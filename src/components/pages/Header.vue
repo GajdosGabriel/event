@@ -12,15 +12,15 @@ export default defineComponent({
     const queryClass3 = ref("");
 
     if (useRoute().query.params == "likes") {
-      queryClass1.value = "bg-slate-100 rounded-full";
+      queryClass1.value = "bg-gray-100 rounded-full";
     }
 
     if (useRoute().query.params == "visited") {
-      queryClass2.value = "bg-slate-100 rounded-full";
+      queryClass2.value = "bg-gray-100 rounded-full";
     }
 
     if (useRoute().query.params == "newest") {
-      queryClass3.value = "bg-slate-100 rounded-full";
+      queryClass3.value = "bg-gray-100 rounded-full";
     }
 
     return { queryClass1, queryClass2, queryClass3 };

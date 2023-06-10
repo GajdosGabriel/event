@@ -7,13 +7,7 @@ import pageComponent from "./components/pages/page_3_2.vue";
 
   <main class="bg-gray-50">
     <pageComponent>
-      <template v-slot:content>
-        <router-view></router-view>
-      </template>
-
-      <template v-slot:aside>
-        <router-view name="aside"></router-view>
-      </template>
+      <router-view></router-view>
     </pageComponent>
   </main>
 </template>
