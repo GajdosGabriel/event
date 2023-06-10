@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import Header from "./Header.vue";
-import Card from "../templates/card.vue";
+import Header from "../Header.vue";
+import Card from "../../templates/card.vue";
 
 
 

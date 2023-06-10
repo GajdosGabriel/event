@@ -1,0 +1,28 @@
+import axios from "axios";
+import { reactive, readonly, computed } from "vue";
+
+
+const defaultState = {
+  events: [],
+};
+
+const state = reactive(defaultState);
+
+const getters = {
+  getEvents: computed(() => state.events),
+};
+
+const actions = {
+  getEvents: () => {
+    axios.get("https://event.hlascirkvi.sk/api/events").then(function (response) {
+      // console.log(response.data)
+      state.events = response.data;
+    });
+  },
+};
+
+export default () => ({
+  state: readonly(state),
+  ...getters,
+  ...actions,
+});
