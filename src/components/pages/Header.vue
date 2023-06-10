@@ -4,9 +4,6 @@ import { useRoute } from "vue-router";
 
 export default defineComponent({
   setup() {
-    console.log(useRoute().query.params);
-
-    // const volba = ref('bg-slate-100 rounded-full')
     const queryClass1 = ref("");
     const queryClass2 = ref("");
     const queryClass3 = ref("");
