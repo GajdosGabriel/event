@@ -26,21 +26,10 @@ export default defineComponent({
         <Header></Header>
 
         <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-8 pt-8">
-          <div v-for="event in getEvents" :key="event.id">
+          <!-- <div v-for="event in getEvents" :key="event.id">
           {{ event.id }}
-          </div>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
+          </div> -->
+          <Card :item="event" v-for="event in getEvents" :key="event.id"></Card>
         </div>
       </div>
 
