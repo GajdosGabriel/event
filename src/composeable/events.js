@@ -13,10 +13,10 @@ const getters = {
 };
 
 const actions = {
-  getEvents: () => {
-    axios.get("https://event.hlascirkvi.sk/api/events").then(function (response) {
+  setEvents: () => {
+    axios.get("http://eventapi.local/api/events").then(function (response) {
       // console.log(response.data)
-      state.events = response.data;
+      state.events = response.data.data;
     });
   },
 };
