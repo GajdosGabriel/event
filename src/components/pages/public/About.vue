@@ -1,17 +1,17 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref } from "vue";
 import Header from "../Header.vue";
-import Card from "../../templates/card.vue";
+import Card from "../../event/card.vue";
 
 import UseEvent from "../../../composeable/events.js";
 
 export default defineComponent({
   components: { Header, Card },
   setup() {
-    const { state, getEvents, setEvents } = UseEvent();
+    const { state, getEvents, fetch } = UseEvent();
 
     onMounted(() => {
-      setEvents();
+      fetch();
     });
 
     return { state, getEvents };

@@ -13,7 +13,7 @@ const getters = {
 };
 
 const actions = {
-  setEvents: () => {
+  fetch: () => {
     axios.get("http://eventapi.local/api/events").then(function (response) {
       // console.log(response.data)
       state.events = response.data.data;

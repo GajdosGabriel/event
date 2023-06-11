@@ -1,19 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 import NavigationPublic from '../components/pages/public/Navigation.vue';
-import Home from '../components/pages/public/Home.vue';
+import About from '../components/pages/public/About.vue';
 
 
 const routes = [
     {
         path: '/', 
-        name: 'Home', 
+        name: 'About', 
         components: {
-          default: Home,   
+          default: About,   
           navigation: NavigationPublic,   
         }, 
          meta: {
-            title: 'Home'
+            title: 'About'
         }
     },  
     // {
