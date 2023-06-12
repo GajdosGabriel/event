@@ -13,7 +13,7 @@ interface Paginated<T> {
 }
 
 
-interface Event {
+export interface Event {
     id: number;
     title: string;
     body: string;
@@ -22,6 +22,7 @@ interface Event {
     count_view: number;
     ticket_available: number;
     created_at: string;
+    image?: string;
     // photos: UserImageType[];
     // location: UserLocation;
 }

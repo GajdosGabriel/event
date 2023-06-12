@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref } from "vue";
+// import { Event } from "../../../types/event";
 import Header from "../Header.vue";
 import Card from "../../event/card.vue";
 
