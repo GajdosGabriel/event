@@ -3,11 +3,12 @@ import { defineComponent, onMounted, ref } from "vue";
 // import { Event } from "../../../types/event";
 import Header from "../Header.vue";
 import Card from "../../event/card.vue";
+import CardAside from "../CardAside.vue";
 
 import UseEvent from "../../../composeable/events.js";
 
 export default defineComponent({
-  components: { Header, Card },
+  components: { Header, Card, CardAside },
   setup() {
     const { state, getEvents, fetch } = UseEvent();
 
@@ -35,7 +36,10 @@ export default defineComponent({
       </div>
 
       <div class="col-span-3">
-        <!-- <slot name="aside">Aside je prázdny</slot> -->
+        <CardAside>
+          <template v-slot:title>Aside</template>
+          <template v-slot:body>Body text</template>
+        </CardAside>
       </div>
     </div>
   </div>
