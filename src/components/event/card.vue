@@ -13,9 +13,13 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="bg-red-700 text-gray-200 p-4">
-    {{ item.id }}
-    {{ item.title }}
-    <!-- {{ item }} -->
+  <div class="border-gray-300 border-2 rounded-sm">
+    <div class="w-full max-h-24 overflow-hidden">
+      <img :src="item.image_thumb" alt="" />
+    </div>
+    <div class="p-3">
+      <span class="font-medium ">{{ item.title }}</span>
+      <!-- {{ item }} -->
+    </div>
   </div>
 </template>
