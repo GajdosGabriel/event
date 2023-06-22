@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 import NavigationPublic from '../components/navigation/NavigationPublic.vue';
 import About from '../components/pages/public/About.vue';
+import Show from '../components/pages/public/Show.vue';
 
 
 const routes = [
@@ -14,6 +15,17 @@ const routes = [
         }, 
          meta: {
             title: 'Ticket portál'
+        }
+    },  
+    {
+        path: '/show', 
+        name: 'Show', 
+        components: {
+          default: Show,   
+          navigation: NavigationPublic,   
+        }, 
+         meta: {
+            title: 'Show event'
         }
     },  
     // {

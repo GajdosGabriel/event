@@ -16,7 +16,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <section class="border-gray-700 rounded-md border-2">
+  <section class="border-gray-700 rounded-md border-2 mb-10">
     <div class="flex justify-between p-2 rounded-t-md bg-blue-200 border-gray-300 border-2 shadow-md items-center">
       <h3 class="font-semibold text-lg">
         <slot name="title"></slot>
