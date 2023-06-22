@@ -14,8 +14,8 @@ export default defineComponent({
 
 <template>
   <div class="border-gray-300 border-2 rounded-sm hover:shadow-md cursor-pointer">
-    <div class="w-full max-h-24 overflow-hidden">
-      <img :src="item.image_thumb" alt="" />
+    <div class="overflow-hidden max-h-40 ">
+      <img :src="item.image_thumb" alt="" class="w-full" />
     </div>
     <div class="p-3">
       <span class="font-medium ">{{ item.title }}</span>

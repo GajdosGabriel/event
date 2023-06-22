@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-import NavigationPublic from '../components/pages/public/Navigation.vue';
+import NavigationPublic from '../components/navigation/NavigationPublic.vue';
 import About from '../components/pages/public/About.vue';
 
 
