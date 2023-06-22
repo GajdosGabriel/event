@@ -13,7 +13,7 @@ const routes = [
           navigation: NavigationPublic,   
         }, 
          meta: {
-            title: 'About'
+            title: 'Ticket portál'
         }
     },  
     // {
