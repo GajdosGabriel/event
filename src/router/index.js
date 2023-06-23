@@ -7,27 +7,27 @@ import Show from '../components/pages/public/Show.vue';
 
 const routes = [
     {
-        path: '/', 
-        name: 'About', 
+        path: '/',
+        name: 'About',
         components: {
-          default: About,   
-          navigation: NavigationPublic,   
-        }, 
-         meta: {
+            default: About,
+            navigation: NavigationPublic,
+        },
+        meta: {
             title: 'Ticket portál'
         }
-    },  
+    },
     {
-        path: '/show', 
-        name: 'Show', 
+        path: '/event/:eventId/:eventSlug:',
+        name: 'event.show',
         components: {
-          default: Show,   
-          navigation: NavigationPublic,   
-        }, 
-         meta: {
+            default: Show,
+            navigation: NavigationPublic,
+        },
+        meta: {
             title: 'Show event'
         }
-    },  
+    },
     // {
     //     path: '/:pathMatch(.*)*', name: 'Stranka-sa-nenasla', component: NotFoundPage, meta: {
     //         title: 'Stránka sa nenašla'
@@ -43,7 +43,7 @@ const router = createRouter({
 })
 
 
-router.beforeResolve( async(to, from, next) => {
+router.beforeResolve(async (to, from, next) => {
     // Get the page title from the route meta data that we have defined
     // See further down below for how we setup this data
     const title = to.meta.title

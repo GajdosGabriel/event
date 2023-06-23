@@ -1,6 +1,7 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
 
+
 const defaultState = {
   events: [],
   event: {},
@@ -18,20 +19,18 @@ const getters = {
 const actions = {
   getEvents: async () => {
     let response = await axios.get(state.url);
-    state.events = (await response).data.data;
-    state.meta = (await response).data.meta;
-    state.links = (await response).data.links;
-},
-  getEvent: (id:number) => {
-    axios.get(state.url + id).then(function (response) {
-      // console.log(response.data)
-      state.event = response.data;
-    });
+    state.events = response.data.data;
+    state.meta = response.data.meta;
+    state.links = response.data.links;
+  },
+  getEvent: async (id: number) => {
+    let response = await  axios.get(state.url + '/' + id);
+    state.event = response.data.data;
   },
 
-  paginationhUrl: (url:string) => {
+  paginationhUrl: (url: string) => {
     state.url = url;
-},
+  },
 };
 
 export default () => ({
