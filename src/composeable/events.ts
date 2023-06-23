@@ -1,10 +1,12 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
 
-
 const defaultState = {
   events: [],
   event: {},
+  url: "http://eventapi.local/api/events",
+  meta: {},
+  links: {},
 };
 
 const state = reactive(defaultState);
@@ -14,18 +16,22 @@ const getters = {
 };
 
 const actions = {
-  fetch: () => {
-    axios.get("http://eventapi.local/api/events").then(function (response) {
-      // console.log(response.data)
-      state.events = response.data.data;
-    });
-  },
-  getEvent: (id) => {
-    axios.get("http://eventapi.local/api/events/" + id ).then(function (response) {
+  getEvents: async () => {
+    let response = await axios.get(state.url);
+    state.events = (await response).data.data;
+    state.meta = (await response).data.meta;
+    state.links = (await response).data.links;
+},
+  getEvent: (id:number) => {
+    axios.get(state.url + id).then(function (response) {
       // console.log(response.data)
       state.event = response.data;
     });
   },
+
+  paginationhUrl: (url:string) => {
+    state.url = url;
+},
 };
 
 export default () => ({

@@ -1,19 +1,17 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref } from "vue";
 // import { Event } from "../../../types/event";
-import Header from "../Header.vue";
-import Card from "../../event/card.vue";
 import CardAside from "../CardAside.vue";
 import UseEvent from "../../../composeable/events.js";
 import SubscribeForm from "../../event/subscribeForm.vue";
 
 export default defineComponent({
-  components: { Header, Card, CardAside, SubscribeForm },
+  components: { CardAside, SubscribeForm },
   setup() {
-    const { state, getEvents, fetch } = UseEvent();
+    const { state, getEvents } = UseEvent();
 
     onMounted(() => {
-      fetch();
+      getEvents();
     });
 
     return { state, getEvents };

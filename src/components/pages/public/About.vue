@@ -4,19 +4,25 @@ import { defineComponent, onMounted, ref } from "vue";
 import Header from "../Header.vue";
 import Card from "../../event/card.vue";
 import CardAside from "../CardAside.vue";
+import PaginationComponent from "../PaginationComponent.vue";
 
 import UseEvent from "../../../composeable/events.js";
 
 export default defineComponent({
-  components: { Header, Card, CardAside },
+  components: { Header, Card, CardAside, PaginationComponent },
   setup() {
-    const { state, getEvents, fetch } = UseEvent();
+    const { state, getEvents, paginationhUrl } = UseEvent();
 
     onMounted(() => {
-      fetch();
+      getEvents();
     });
 
-    return { state, getEvents };
+    const paginatorUrl = (url:string) => {
+           paginationhUrl(url);
+           getEvents();
+        };
+
+    return { state, getEvents, paginatorUrl };
   },
 });
 </script>
@@ -31,7 +37,7 @@ export default defineComponent({
           <!-- <div v-for="event in getEvents" :key="event.id">
           {{ event.id }}
           </div> -->
-          <Card :item="event" v-for="event in getEvents" :key="event.id"></Card>
+          <Card :item="event" v-for="event in state.events" :key="event.id"></Card>
         </div>
       </div>
 
@@ -40,6 +46,10 @@ export default defineComponent({
           <template v-slot:title>Aside</template>
           <template v-slot:body>Body text</template>
         </CardAside>
+      </div>
+
+      <div class="col-span-8">
+        <pagination-component :meta="state.meta" :links="state.links" @fetchUrl="paginatorUrl"></pagination-component>
       </div>
     </div>
   </div>
