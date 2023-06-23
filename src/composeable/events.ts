@@ -23,8 +23,8 @@ const actions = {
     state.meta = response.data.meta;
     state.links = response.data.links;
   },
-  getEvent: async (id: number) => {
-    let response = await  axios.get(state.url + '/' + id);
+  getEvent: async (id: string | string[]) => {
+    let response = await  axios.get("http://eventapi.local/api/events/" + id);
     state.event = response.data.data;
   },
 
