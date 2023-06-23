@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import NavigationPublic from "../components/navigation/NavigationPublic.vue";
 import About from "../components/pages/public/About.vue";
 import Show from "../components/pages/public/Show.vue";
+import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
 
 const routes = [
   {
@@ -27,11 +28,17 @@ const routes = [
       title: "Show event",
     },
   },
-  // {
-  //     path: '/:pathMatch(.*)*', name: 'Stranka-sa-nenasla', component: NotFoundPage, meta: {
-  //         title: 'Stránka sa nenašla'
-  //     }
-  // },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "Stranka-sa-nenasla",
+    components: {
+      default: NotFoundPage,
+      navigation: NavigationPublic,
+    },
+    meta: {
+      title: "Stránka sa nenašla",
+    },
+  },
 ];
 
 const router = createRouter({

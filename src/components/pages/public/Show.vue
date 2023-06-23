@@ -28,22 +28,26 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="md:w-12/12 mx-auto p-6 h-screen">
-    <div class="md:grid grid-cols-12 gap-16">
+  <div class="md:w-10/12 mx-auto p-6 h-screen">
+    <div class="md:grid grid-cols-12 gap-10">
       <article class="col-span-8">
         <h1 class="text-3xl font-semibold">{{ state.event.title }}</h1>
 
-        <div class="border-4 border-gray-300 p-3 rounded-md shadow-md my-8">
-          <span>Kto {{ state.event.canal_name }}</span>
-          <span> Vás pozáva dňa {{ state.event.start_at_date }}</span>
-          <span> o {{ state.event.start_at_time }}</span>
-          <div>Koniec {{ state.event.end_at_date }}</div>
-          <div>o {{ state.event.end_at_time }}</div>
-          <div>Kde {{ state.event.village_name }}</div>
+        <div class="border-4 border-gray-300 rounded-md shadow-md my-8 bg-slate-600 text-gray-200 flex justify-between">
+          <div class="bg-slate-500 p-3">
+            <span>Kto {{ state.event.canal_name }} Vás pozáva</span>
+          </div>
+          <div class="p-3">
+            <span> dňa {{ state.event.start_at_date }}</span>
+            <span> o {{ state.event.start_at_time }}</span>
+            <div>Koniec {{ state.event.end_at_date }}</div>
+            <div>o {{ state.event.end_at_time }}</div>
+            <div>Kde {{ state.event.village_name }}</div>
+          </div>
         </div>
         <div v-html="state.event.body"></div>
         <img
-          :src="state.event.image_thumb"
+          :src="state.event.image_url"
           :alt="state.event.slug"
           :title="state.event.slug"
           class="w-full my-10 rounded-md"

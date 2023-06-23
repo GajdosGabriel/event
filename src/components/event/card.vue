@@ -1,7 +1,6 @@
 <script lang="ts">
 import { defineComponent, PropType, onMounted } from "vue";
 import UseEvent from "../../composeable/events.js";
-import { useRoute } from "vue-router";
 
 export default defineComponent({
   props: {
