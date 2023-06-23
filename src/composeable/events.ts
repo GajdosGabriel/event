@@ -28,6 +28,10 @@ const actions = {
     state.event = response.data.data;
   },
 
+  resetEvent: () => {
+    state.event = {};
+  },
+
   paginationhUrl: (url: string) => {
     state.url = url;
   },

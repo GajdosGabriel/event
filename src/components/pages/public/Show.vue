@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, onMounted, ref } from "vue";
+import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
 // import { Event } from "../../../types/event";
 import { useRoute } from "vue-router";
 import CardAside from "../CardAside.vue";
@@ -12,10 +12,14 @@ export default defineComponent({
     const {
       params: { eventId },
     } = useRoute();
-    const { state, getEvent } = UseEvent();
+    const { state, getEvent, resetEvent } = UseEvent();
 
     onMounted(() => {
-     getEvent(eventId);
+      getEvent(eventId);
+    });
+
+    onBeforeUnmount(() => {
+      resetEvent();
     });
 
     return { state, getEvent };
@@ -38,7 +42,12 @@ export default defineComponent({
           <div>Kde {{ state.event.village_name }}</div>
         </div>
         <div v-html="state.event.body"></div>
-        <img :src="state.event.image_thumb" :alt="state.event.slug" :title="state.event.slug" class="w-full my-10 rounded-md">
+        <img
+          :src="state.event.image_thumb"
+          :alt="state.event.slug"
+          :title="state.event.slug"
+          class="w-full my-10 rounded-md"
+        />
       </article>
 
       <div class="col-span-3">
