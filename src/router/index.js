@@ -4,6 +4,7 @@ import NavigationPublic from "../components/navigation/NavigationPublic.vue";
 import About from "../components/pages/public/About.vue";
 import Show from "../components/pages/public/Show.vue";
 import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
+import LoginCard from "../components/auth/LoginCard.vue";
 
 const routes = [
   {
@@ -26,6 +27,17 @@ const routes = [
     },
     meta: {
       title: "Show event",
+    },
+  },
+  {
+    path: "/prihlasenie",
+    name: "login.index",
+    components: {
+      default: LoginCard,
+      navigation: NavigationPublic,
+    },
+    meta: {
+      title: "Prihlásenie",
     },
   },
   {
