@@ -12,14 +12,14 @@ import UseEvent from "../../../composeable/events.js";
 export default defineComponent({
   components: { Header, Card, CardAside, PaginationComponent, FooterComponent },
   setup() {
-    const { state, getEvents, paginationhUrl } = UseEvent();
+    const { state, getEvents, paginationUrl } = UseEvent();
 
     onMounted(() => {
       getEvents();
     });
 
     const paginatorUrl = (url:string) => {
-           paginationhUrl(url);
+           paginationUrl(url);
            getEvents();
         };
 

@@ -32,7 +32,7 @@ const actions = {
     state.event = {};
   },
 
-  paginationhUrl: (url: string) => {
+  paginationUrl: (url: string) => {
     state.url = url;
   },
 };

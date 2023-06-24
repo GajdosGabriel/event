@@ -35,9 +35,15 @@ export default defineComponent({
       <article class="col-span-8">
         <h1 class="text-3xl font-semibold">{{ state.event.title }}</h1>
 
-        <info-panel :item="state.event"/>
-        <div v-html="state.event.body"></div>
-       <picture-viewer :item="state.event"/>
+        <div class="flex">
+          <div class="p-4" v-html="state.event.body"></div>
+          <div>
+            <info-panel :item="state.event" />
+            <picture-viewer :item="state.event" />
+          </div>
+        </div>
+
+        <picture-viewer :item="state.event" />
       </article>
 
       <section class="col-span-3">

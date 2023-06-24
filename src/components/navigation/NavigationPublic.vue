@@ -1,7 +1,7 @@
 <template>
   <div class="bg-rose-800">
     <nav class="flex items-center justify-between flex-wrap p-6 md:w-10/12 mx-auto">
-      <router-link to="/">
+      <router-link to="/" @click="onclickLogo">
         <div class="flex items-center flex-shrink-0 text-white mr-6">
           <svg
             class="fill-current h-8 w-8 mr-2"
@@ -43,4 +43,11 @@
 
 <script setup lang="ts">
 import userDropDown from "./userDropDown.vue";
+import useEvent from "../../composeable/events";
+
+const { paginationUrl } = useEvent();
+
+const onclickLogo = () => {
+  paginationUrl("http://eventapi.local/api/events");
+};
 </script>
