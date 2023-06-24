@@ -5,6 +5,40 @@
 @tailwind utilities;
 
 
+.btn {
+    @apply border-2 border-gray-300 px-3 py-2 rounded-md;
+}
+
+.btn-small {
+    @apply text-sm border-2 border-gray-300 py-1 px-3 rounded-md;
+}
+
+.btn-small:hover {
+    @apply bg-gray-200;
+}
+
+.btn-primary {
+    @apply bg-blue-800 text-white;
+}
+
+.btn-primary:hover {
+    @apply bg-blue-600;
+}
 
 
+.btn-default {
+    @apply bg-white text-gray-700;
+}
 
+.btn-default:hover {
+    @apply bg-blue-200;
+}
+
+
+.btn-success {
+    @apply bg-green-600 text-gray-100;
+}
+
+.btn-success:hover {
+    @apply bg-green-700;
+}

@@ -22,7 +22,12 @@ export interface Event {
     count_view: number;
     ticket_available: number;
     created_at: string;
-    image?: string;
-    // photos: UserImageType[];
-    // location: UserLocation;
+    image_url: string;
+    image_thumb: string;
+    canal_name: string;
+    start_at_date: string;
+    start_at_time: string;
+    end_at_date: string;
+    end_at_time: string;
+    village_name: string
 }

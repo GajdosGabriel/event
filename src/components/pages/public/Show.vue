@@ -1,13 +1,14 @@
 <script lang="ts">
 import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
-// import { Event } from "../../../types/event";
+import { Event } from "../../../types/event";
 import { useRoute } from "vue-router";
 import CardAside from "../CardAside.vue";
 import UseEvent from "../../../composeable/events.js";
 import SubscribeForm from "../../event/subscribeForm.vue";
+import PictureViewer from "../../event/PictureViewer.vue";
 
 export default defineComponent({
-  components: { CardAside, SubscribeForm },
+  components: { CardAside, SubscribeForm, PictureViewer },
   setup() {
     const {
       params: { eventId },
@@ -33,11 +34,9 @@ export default defineComponent({
       <article class="col-span-8">
         <h1 class="text-3xl font-semibold">{{ state.event.title }}</h1>
 
-        <div class="border-4 border-gray-300 rounded-md shadow-md my-8 bg-slate-600 text-gray-200 flex justify-between">
-          <div class="bg-slate-500 p-3">
-            <span>Kto {{ state.event.canal_name }} Vás pozáva</span>
-          </div>
+        <div class="border-4 border-gray-300 rounded-md shadow-md my-8">
           <div class="p-3">
+            <span>{{ state.event.canal_name }} Vás pozáva</span>
             <span> dňa {{ state.event.start_at_date }}</span>
             <span> o {{ state.event.start_at_time }}</span>
             <div>Koniec {{ state.event.end_at_date }}</div>
@@ -46,12 +45,7 @@ export default defineComponent({
           </div>
         </div>
         <div v-html="state.event.body"></div>
-        <img
-          :src="state.event.image_url"
-          :alt="state.event.slug"
-          :title="state.event.slug"
-          class="w-full my-10 rounded-md"
-        />
+       <picture-viewer :item="state.event"/>
       </article>
 
       <div class="col-span-3">

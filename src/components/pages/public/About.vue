@@ -2,7 +2,7 @@
 import { defineComponent, onMounted, ref } from "vue";
 // import { Event } from "../../../types/event";
 import Header from "../Header.vue";
-import Card from "../../event/card.vue";
+import Card from "../../event/Card.vue";
 import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 

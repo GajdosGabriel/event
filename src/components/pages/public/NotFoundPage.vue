@@ -13,11 +13,11 @@ export default defineComponent({
   <div class="md:w-10/12 mx-auto p-6 h-screen">
     <div class="md:grid grid-cols-12 gap-10">
       <article class="col-span-8">
-        <h1 class="text-3xl font-semibold">404 Stránka sa nenašla</h1>
+        <h1 class="text-3xl font-semibold mb-10">404 Stránka sa nenašla</h1>
 
         <button
           @click="$router.go(-1)"
-          class="bg-blue-800 text-gray-200 text-2xl p-2 px-5 rounded-md mt-6 font-medium hover:bg-blue-600"
+          class="btn btn-primary"
         >
           Späť
         </button>
