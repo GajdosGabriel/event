@@ -5,11 +5,12 @@ import Header from "../Header.vue";
 import Card from "../../event/Card.vue";
 import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
+import FooterComponent from "../Footer.vue";
 
 import UseEvent from "../../../composeable/events.js";
 
 export default defineComponent({
-  components: { Header, Card, CardAside, PaginationComponent },
+  components: { Header, Card, CardAside, PaginationComponent, FooterComponent },
   setup() {
     const { state, getEvents, paginationhUrl } = UseEvent();
 

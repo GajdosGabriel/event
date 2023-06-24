@@ -13,5 +13,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <img :src="item.image_url" :alt="item.slug" :title="item.slug" class="w-full my-10 rounded-md" />
+  <figure>
+    <img :src="item.image_url" :alt="item.slug" :title="item.slug" class="w-full my-10 rounded-md" />
+  </figure>
 </template>
