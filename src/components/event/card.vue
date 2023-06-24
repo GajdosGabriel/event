@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, PropType, onMounted } from "vue";
-import UseEvent from "../../composeable/events.js";
+import UseEvent from "../../composeable/Events.js";
 
 export default defineComponent({
   props: {

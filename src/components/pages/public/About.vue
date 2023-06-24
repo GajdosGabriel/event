@@ -7,7 +7,7 @@ import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 import FooterComponent from "../Footer.vue";
 
-import UseEvent from "../../../composeable/events.js";
+import UseEvent from "../../../composeable/Events.js";
 
 export default defineComponent({
   components: { Header, Card, CardAside, PaginationComponent, FooterComponent },
