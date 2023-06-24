@@ -19,14 +19,11 @@ const routes = [
     },
   },
   {
-    path: "/event/:eventId/:eventSlug:",
+    path: "/event/:eventId/:eventSlug",
     name: "event.show",
     components: {
       default: Show,
       navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Show event",
     },
   },
   {
@@ -67,9 +64,8 @@ router.beforeResolve(async (to, from, next) => {
   // Get the page title from the route meta data that we have defined
   // See further down below for how we setup this data
   const title = to.meta.title;
-
   //Take the title from the parameters
-  const titleFromParams = to.params.pageTitle;
+  const titleFromParams = to.query.pageTitle;
   // If the route has a title, set it as the page title of the document/page
   if (title) {
     document.title = title;

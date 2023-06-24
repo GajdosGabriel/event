@@ -23,6 +23,7 @@ export default defineComponent({
         eventId: item.id,
         eventSlug: item.slug,
       },
+      query: { pageTitle: item.title }
     }"
   >
     <div class="border-gray-300 border-2 rounded-sm hover:shadow-md cursor-pointer h-full">
