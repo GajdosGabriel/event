@@ -34,7 +34,7 @@ export default defineComponent({
       <div class="col-span-8">
         <Header></Header>
 
-        <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-8 pt-8">
+        <div class="grid lg:grid-cols-3 sm:grid-cols-2 gap-8 pt-8">
           <!-- <div v-for="event in getEvents" :key="event.id">
           {{ event.id }}
           </div> -->

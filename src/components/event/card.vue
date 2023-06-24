@@ -26,7 +26,7 @@ export default defineComponent({
     }"
   >
     <div class="border-gray-300 border-2 rounded-sm hover:shadow-md cursor-pointer h-full">
-      <div class="overflow-hidden max-h-40">
+      <div class="overflow-hidden max-h-36">
         <img :src="item.image_thumb" alt="" class="w-full" />
       </div>
       <div class="p-3">

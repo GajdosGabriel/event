@@ -13,14 +13,13 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="border-4 border-gray-300 rounded-md shadow-md my-8">
-    <div class="p-3">
-      <span>{{ item.canal_name }} Vás pozáva</span>
-      <span> dňa {{ item.start_at_date }}</span>
-      <span> o {{ item.start_at_time }}</span>
-      <div>Koniec {{ item.end_at_date }}</div>
-      <div>o {{ item.end_at_time }}</div>
-      <div>Kde {{ item.village_name }}</div>
+  <div class="border-4 border-gray-300 rounded-md shadow-md">
+    <div class="p-3 text-lg">
+      <div>Kto {{ item.canal_name }}</div>
+      <div>dňa {{ item.start_at_date }} o {{ item.start_at_time }}</div>
+      <div>Koniec</div>
+      <div>dňa {{ item.end_at_date }} o {{ item.end_at_time }}</div>
+      <div>Miesto {{ item.village_name }}</div>
     </div>
   </div>
 </template>
