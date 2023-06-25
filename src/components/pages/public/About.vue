@@ -2,7 +2,7 @@
 import { defineComponent, onMounted, ref } from "vue";
 // import { Event } from "../../../types/event";
 import Header from "../Header.vue";
-import Card from "../../event/Card.vue";
+import IndexCard from "../../event/IndexCard.vue";
 import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 import FooterComponent from "../Footer.vue";
@@ -10,20 +10,20 @@ import FooterComponent from "../Footer.vue";
 import UseEvent from "../../../composeable/Events.js";
 
 export default defineComponent({
-  components: { Header, Card, CardAside, PaginationComponent, FooterComponent },
+  components: { Header, IndexCard, CardAside, PaginationComponent, FooterComponent },
   setup() {
-    const { state, getEvents, paginationUrl } = UseEvent();
+    const { state, fetchEvents, paginationUrl } = UseEvent();
 
     onMounted(() => {
-      getEvents();
+      fetchEvents();
     });
 
     const paginatorUrl = (url:string) => {
            paginationUrl(url);
-           getEvents();
+           fetchEvents();
         };
 
-    return { state, getEvents, paginatorUrl };
+    return { state, fetchEvents, paginatorUrl };
   },
 });
 </script>
@@ -35,10 +35,10 @@ export default defineComponent({
         <Header></Header>
 
         <div class="grid lg:grid-cols-3 sm:grid-cols-2 gap-8 pt-8">
-          <!-- <div v-for="event in getEvents" :key="event.id">
+          <!-- <div v-for="event in fetchEvents" :key="event.id">
           {{ event.id }}
           </div> -->
-          <Card :item="event" v-for="event in state.events" :key="event.id"></Card>
+          <index-card :item="event" v-for="event in state.events" :key="event.id"></index-card>
         </div>
       </div>
 

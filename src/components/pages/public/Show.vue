@@ -14,17 +14,17 @@ export default defineComponent({
     const {
       params: { eventId },
     } = useRoute();
-    const { state, getEvent, resetEvent } = UseEvent();
+    const { state, fetchEvent, resetEvent } = UseEvent();
 
     onMounted(() => {
-      getEvent(eventId);
+      fetchEvent(eventId);
     });
 
     onBeforeUnmount(() => {
       resetEvent();
     });
 
-    return { state, getEvent };
+    return { state, fetchEvent };
   },
 });
 </script>
