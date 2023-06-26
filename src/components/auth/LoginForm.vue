@@ -8,36 +8,20 @@
 
         <form @submit.prevent="attemptLogin" class="bg-grey-lightest px-10 py-10">
           <div class="mb-3">
-            <input
-              v-model="email"
-              type="email"
-              class="border-2 border-gray-300 w-full p-3"
-              name="email"
-              placeholder="E-Mail"
-              required
-              autofocus
-            />
+            <input v-model="form.email" type="email" class="border-2 border-gray-300 w-full p-3" name="email"
+              placeholder="E-Mail" required autofocus />
             <div style="color: red" v-text="errors.errors"></div>
           </div>
           <div class="mb-6">
-            <input
-              v-model="password"
-              :type="inputType ? 'text' : 'password'"
-              class="border-2 border-gray-300 w-full p-3"
-              name="password"
-              placeholder="Heslo ..."
-              required
-            />
+            <input v-model="form.password" :type="inputType ? 'text' : 'password'"
+              class="border-2 border-gray-300 w-full p-3" name="password" placeholder="Heslo ..." required />
             <a href="#" @click.prevent="togglePassword" style="font-size: 80%; margin-top: -1rem">
-              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a
-            >
+              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a>
           </div>
 
           <div class="flex">
-            <button
-              type="submit"
-              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300"
-            >
+            <button type="submit"
+              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300">
               Vstúpiť
             </button>
           </div>
@@ -58,21 +42,37 @@
   </div>
 </template>
 
+
 <script>
+import axios from 'axios';
+
+import { reactive } from 'vue';
+
+import useUser from '../../composeable/user'
+
 export default {
-  // props: {
-  //     getShowForm: {
-  //         required: true,
-  //         type: Boolean
-  //     }
-  //
-  // },
+
+  setup() {
+
+    const { login } = useUser();
+
+    const form = reactive({
+      rememberMe: true,
+      device_name: 'web'
+    });
+
+    const attemptLogin = () => {
+      login(form);
+
+    }
+
+
+
+    return { form, attemptLogin }
+  },
   data: function () {
     return {
-      email: "",
-      password: "",
       rememberMe: true,
-      loading: false,
       errors: {},
       inputType: false,
     };
@@ -92,7 +92,6 @@ export default {
   },
 
   methods: {
-    //            nedokočené opačne
     togglePassword: function () {
       this.inputType = !this.inputType;
     },
@@ -100,35 +99,34 @@ export default {
       if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(this.email)) {
         return true;
       } else {
-        //                    alert("Zadali ste neplatnú emailú adresu!");
         return false;
       }
     },
 
-    attemptLogin: function () {
-      //                this.errors = [];
-      this.loading = true;
-      axios
-        .post("/login", { email: this.email, password: this.password, rememberMe: this.rememberMe })
-        .then((resp) => {
-          location.reload();
-          bus.$emit("flash", { body: "Vitajte, ste úspešne prihlásený." });
-        })
+    // attemptLogin: function () {
+    //   //                this.errors = [];
+    //   this.loading = true;
+    //   axios
+    //     .post("http://eventapi.local/api/login", { email: this.email, password: this.password, rememberMe: this.rememberMe, device_name: 'web' })
+    //     .then((resp) => {
+    //       location.reload();
+    //       // bus.$emit("flash", { body: "Vitajte, ste úspešne prihlásený." });
+    //     })
 
-        //                .catch (error => this.errors = error.response.data);
+    //     //                .catch (error => this.errors = error.response.data);
 
-        .catch((error) => {
-          this.loading = false;
-          this.errors = error.response.data;
+    //     .catch((error) => {
+    //       this.loading = false;
+    //       this.errors = error.response.data;
 
-          if (error.response.status == 422) {
-            bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
-            this.errors.push("Prihlasovacie údaje nie sú správne.");
-          } else {
-            this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
-          }
-        });
-    },
+    //       if (error.response.status == 422) {
+    //         // bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
+    //         // this.errors.push("Prihlasovacie údaje nie sú správne.");
+    //       } else {
+    //         this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
+    //       }
+    //     });
+    // },
   },
 };
 </script>
@@ -164,8 +162,11 @@ label {
   transition: all 0.8s cubic-bezier(1, 0.5, 0.8, 1);
 }
 
-.slide-fade-enter, .slide-fade-leave-to
-        /* .slide-fade-leave-active below version 2.1.8 */ {
+.slide-fade-enter,
+.slide-fade-leave-to
+
+/* .slide-fade-leave-active below version 2.1.8 */
+  {
   transform: translateX(10px);
   opacity: 0;
 }

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
+import type { UserForm } from "../types/user";
 
 
 const defaultState = {
@@ -17,7 +18,7 @@ const getters = {
 const actions = {
   fetchUser: async () => {
     try {
-      await axios.get("/api/user")
+      await axios.get("http://eventapi.local/api/user")
         .then(
           response => {
             state.user = response.data.data;
@@ -31,8 +32,9 @@ const actions = {
     } catch (e) { }
   },
 
-  login: async (form) => {
-    axios.post("/api/sanctumLogin", form)
+  login: async (form: UserForm) => {
+    console.log(form);
+    axios.post("http://eventapi.local/api/login", form)
       .then(
         response => {
           localStorage.setItem('token', response.data);
@@ -40,7 +42,6 @@ const actions = {
           actions.fetchUser();
         }
       )
-
   },
 
   getUser: async () => {
