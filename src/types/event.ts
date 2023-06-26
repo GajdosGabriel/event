@@ -16,6 +16,7 @@
 export interface Event {
     id: number;
     title: string;
+    slug: string;
     body: string;
     street: string;
     organizazion_id: number;
