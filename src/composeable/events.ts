@@ -1,5 +1,6 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
+import type {Event} from '../types/event'
 
 
 const defaultState = {
@@ -25,7 +26,7 @@ const actions = {
   },
   fetchEvent: async (id: string | string[]) => {
     let response = await  axios.get("http://eventapi.local/api/events/" + id);
-    state.event = response.data.data;
+    state.event = response.data.data as Event;
   },
 
   resetEvent: () => {

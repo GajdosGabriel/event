@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import type { Event } from "../../types/event";
+import type { Event } from "../../types/vent";
 
 export default defineComponent({
   props: {
