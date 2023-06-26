@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, PropType} from "vue";
+import { defineComponent, PropType } from "vue";
 import UseEvent from "../../composeable/Events.js";
 import type { Event } from "../../types/event";
 
@@ -7,6 +7,7 @@ export default defineComponent({
   props: {
     item: {
       type: Object as PropType<Event>,
+      required: true,
     },
   },
 
@@ -24,7 +25,7 @@ export default defineComponent({
         eventId: item.id,
         eventSlug: item.slug,
       },
-      query: { pageTitle: item.title }
+      query: { pageTitle: item.title },
     }"
   >
     <div class="border-gray-300 border-2 rounded-sm hover:shadow-md cursor-pointer h-full">
