@@ -9,7 +9,7 @@
         <form @submit.prevent="attemptRegister" class="bg-grey-lightest px-10 py-10">
           <div class="mb-3">
             <input
-              v-model="first_name"
+              v-model="name"
               type="text"
               class="border-2 border-gray-300 w-full p-3"
               name="email"
@@ -17,19 +17,7 @@
               required
               autofocus
             />
-            <div style="color: red" v-text="errors.first_name"></div>
-          </div>
-
-          <div class="mb-3">
-            <input
-              v-model="last_name"
-              type="text"
-              class="border-2 border-gray-300 w-full p-3"
-              name="email"
-              placeholder="Priezvisko"
-              required
-            />
-            <div style="color: red" v-text="errors.last_name"></div>
+            <div style="color: red" v-text="errors.name"></div>
           </div>
 
           <div class="mb-3">
@@ -74,18 +62,6 @@
             <div style="color: red" v-text="errors.password_confirmation"></div>
           </div>
 
-          <div class="mb-6">
-            <span class="text-sm">Som človek 7 plus 3 = </span>
-            <input
-              type="number"
-              v-model="iamHuman"
-              placeholder="Zadajte výsledné číslo"
-              class="border-2 border-gray-300 w-full text-sm w-fullrounded-md px-2 py-1"
-              required
-            />
-            <div style="color: red" v-text="errors.iamHuman"></div>
-          </div>
-
           <div class="flex">
             <button
               type="submit"
@@ -112,14 +88,14 @@
 </template>
 
 <script>
+import axios from 'axios';
 export default {
   data: function () {
     return {
       email: "",
       password: "",
       password_confirmation: "",
-      first_name: "",
-      last_name: "",
+      name: "",
       iamHuman: "",
       rememberMe: true,
       loading: false,
@@ -160,17 +136,15 @@ export default {
       this.loading = true;
       axios
         .post("/register", {
-          iamHuman: this.iamHuman,
-          last_name: this.last_name,
-          first_name: this.first_name,
+          name: this.name,
           email: this.email,
           password: this.password,
           password_confirmation: this.password_confirmation,
           rememberMe: this.rememberMe,
         })
         .then((resp) => {
-          location.reload();
-          bus.$emit("flash", { body: "Vitajte, rezistrácia je úspešná." });
+          // location.reload();
+          // bus.$emit("flash", { body: "Vitajte, rezistrácia je úspešná." });
         })
 
         //                .catch (error => this.errors = error.response.data);
@@ -180,10 +154,10 @@ export default {
           this.errors = error.response.data.errors;
 
           if (error.response.status == 422) {
-            bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
-            this.errors.push("Prihlasovacie údaje nie sú správne.");
+            // bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
+            // this.errors.push("Prihlasovacie údaje nie sú správne.");
           } else {
-            this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
+            // this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
           }
         });
     },

@@ -6,7 +6,7 @@ import type {Event} from '../types/event'
 const defaultState = {
   events: [],
   event: {},
-  url: "http://eventapi.local/api/events",
+  url: "/api/events",
   meta: {},
   links: {},
 };
@@ -25,7 +25,7 @@ const actions = {
     state.links = response.data.links;
   },
   fetchEvent: async (id: string | string[]) => {
-    let response = await  axios.get("http://eventapi.local/api/events/" + id);
+    let response = await  axios.get("/api/events/" + id);
     state.event = response.data.data as Event;
   },
 

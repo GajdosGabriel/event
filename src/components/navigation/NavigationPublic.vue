@@ -48,6 +48,6 @@ import useEvent from "../../composeable/Events";
 const { paginationUrl } = useEvent();
 
 const onclickLogo = () => {
-  paginationUrl("http://eventapi.local/api/events");
+  paginationUrl("http://localhost:8000/api/events");
 };
 </script>

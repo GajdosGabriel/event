@@ -4,7 +4,7 @@ import type { UserForm } from "../types/user";
 
 
 const defaultState = {
-  user: {},
+  user: null,
   isLoggedIn: false,
   token: localStorage.getItem('token')
 };
@@ -18,12 +18,12 @@ const getters = {
 const actions = {
   fetchUser: async () => {
     try {
-      await axios.get("http://eventapi.local/api/user")
+      await axios.get("/api/user")
         .then(
           response => {
             state.user = response.data.data;
             if (response.data.data) {
-              actions.updateIsLoggedIn(true);
+              // actions.updateIsLoggedIn(true);
             }
           }
         )
@@ -33,21 +33,23 @@ const actions = {
   },
 
   login: async (form: UserForm) => {
-    console.log(form);
-    axios.post("http://eventapi.local/api/login", form)
+    // axios.defaults.withCredentials = true;
+    // axios.defaults.baseURL = "http://localhost"
+    // await axios.get('http://localhost:5173/sanctum/csrf-cookie');
+    axios.post("/login", form)
       .then(
         response => {
-          localStorage.setItem('token', response.data);
+          // localStorage.setItem('token', response.data);
           state.token = response.data
           actions.fetchUser();
         }
       )
   },
 
-  getUser: async () => {
-    let response = await axios.get("http://eventapi.local/api/user/");
-    state.user = response.data.data;
-  },
+  // getUser: async () => {
+  //   let response = await axios.get("http://eventapi.local/api/user");
+  //   state.user = response.data;
+  // },
 
   updateIsLoggedIn: (isLoggedIn) => {
     state.isLoggedIn = isLoggedIn;

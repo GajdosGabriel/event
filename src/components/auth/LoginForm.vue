@@ -54,11 +54,11 @@ export default {
 
   setup() {
 
-    const { login } = useUser();
+    const {state, login } = useUser();
 
     const form = reactive({
       rememberMe: true,
-      device_name: 'web'
+      device_name: 'web',
     });
 
     const attemptLogin = () => {
@@ -68,7 +68,7 @@ export default {
 
 
 
-    return { form, attemptLogin }
+    return {state, form, attemptLogin }
   },
   data: function () {
     return {
@@ -105,11 +105,11 @@ export default {
 
     // attemptLogin: function () {
     //   //                this.errors = [];
-    //   this.loading = true;
+    //   // this.loading = true;
     //   axios
-    //     .post("http://eventapi.local/api/login", { email: this.email, password: this.password, rememberMe: this.rememberMe, device_name: 'web' })
+    //     .post("http://localhost:8000/login", { email: this.email, password: this.password, rememberMe: this.rememberMe, device_name: 'web' })
     //     .then((resp) => {
-    //       location.reload();
+    //       // location.reload();
     //       // bus.$emit("flash", { body: "Vitajte, ste úspešne prihlásený." });
     //     })
 
@@ -123,7 +123,7 @@ export default {
     //         // bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
     //         // this.errors.push("Prihlasovacie údaje nie sú správne.");
     //       } else {
-    //         this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
+    //         // this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
     //       }
     //     });
     // },

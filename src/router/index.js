@@ -27,7 +27,7 @@ const routes = [
     },
   },
   {
-    path: "/prihlasenie",
+    path: "/login",
     name: "login.index",
     components: {
       default: LoginCard,
