@@ -3,26 +3,37 @@
     <div class="mx-auto max-w-sm">
       <div class="bg-white rounded shadow border-gray-300 border-2">
         <div class="border-b py-8 font-bold text-black text-center text-xl tracking-widest uppercase">
-          Nová registrácia!
+          Nová registrácia
         </div>
 
-        <form @submit.prevent="attemptRegister" class="bg-grey-lightest px-10 py-10">
+        <form @submit.prevent="handleRegister" class="bg-grey-lightest px-10 py-10">
           <div class="mb-3">
             <input
-              v-model="name"
+              v-model="form.first_name"
               type="text"
               class="border-2 border-gray-300 w-full p-3"
-              name="email"
+              name="first_name"
               placeholder="Meno"
               required
               autofocus
             />
-            <div style="color: red" v-text="errors.name"></div>
+            <div style="color: red" v-text="errors.first_name"></div>
+          </div>
+          <div class="mb-3">
+            <input
+              v-model="form.last_name"
+              type="text"
+              class="border-2 border-gray-300 w-full p-3"
+              name="last_name"
+              placeholder="Priezvisko"
+              required
+            />
+            <div style="color: red" v-text="errors.last_name"></div>
           </div>
 
           <div class="mb-3">
             <input
-              v-model="email"
+              v-model="form.email"
               type="email"
               class="border-2 border-gray-300 w-full p-3"
               name="email"
@@ -33,7 +44,7 @@
           </div>
           <div class="mb-6">
             <input
-              v-model="password"
+              v-model="form.password"
               :type="inputType ? 'text' : 'password'"
               class="border-2 border-gray-300 w-full p-3"
               name="password"
@@ -45,14 +56,14 @@
 
           <div class="mb-6">
             <input
-              v-model="password_confirmation"
+              v-model="form.password_confirmation"
               :type="inputType ? 'text' : 'password'"
               class="border-2 border-gray-300 w-full p-3"
               placeholder="Potvrdiť heslo"
               required
             />
             <span
-              v-if="password"
+              v-if="form.password"
               @click.prevent="togglePassword"
               class="cursor-pointer"
               style="font-size: 80%; margin-top: -1rem"
@@ -89,15 +100,30 @@
 
 <script>
 import axios from 'axios';
+import useUser from '../../composeable/user';
+import { reactive} from 'vue';
+
+
 export default {
+  setup() {
+
+    const {register, getLoading} = useUser();
+    const form = reactive({
+      rememberMe: true,
+    });
+
+    const handleRegister = () => {
+      register(form)
+    }
+
+
+
+  
+    return {form, handleRegister}
+},
+
   data: function () {
     return {
-      email: "",
-      password: "",
-      password_confirmation: "",
-      name: "",
-      iamHuman: "",
-      rememberMe: true,
       loading: false,
       errors: [],
       inputType: false,
@@ -132,11 +158,10 @@ export default {
     },
 
     attemptRegister: function () {
-      //                this.errors = [];
-      this.loading = true;
       axios
         .post("/register", {
-          name: this.name,
+          first_name: this.first_name,
+          last_name: this.last_name,
           email: this.email,
           password: this.password,
           password_confirmation: this.password_confirmation,

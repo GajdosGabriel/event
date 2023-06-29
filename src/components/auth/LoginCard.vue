@@ -4,9 +4,7 @@
             <div class="py-10 text-center"></div>
 
             <div class="bg-white rounded shadow border-gray-300 border-2">
-                <div
-                    class="border-b py-8 font-bold text-black text-center text-xl tracking-widest uppercase"
-                >
+                <div class="border-b py-8 font-bold text-black text-center text-xl tracking-widest uppercase">
                     Vstúpte!
                 </div>
 
@@ -17,10 +15,7 @@
                         </h5>
                     </div>
                     <div class="mb-6">
-                        <a
-                            href="/auth/facebook"
-                            title="Prihlásenie cez Facebook"
-                        >
+                        <a href="/auth/facebook" title="Prihlásenie cez Facebook">
                             <h5>
                                 <i class="fas fa-check"></i> Pokračovať pomocou
                                 Facebooku
@@ -43,11 +38,11 @@
 </template>
 <script>
 import LoginForm from "./LoginForm.vue";
-import LoginRegister from "./Login-register.vue";
+import LoginRegister from "./RegisterForm.vue";
 
 export default {
     components: { LoginRegister, LoginForm },
-    data: function() {
+    data: function () {
         return {
             showRegisterForm: false,
             showLoginForm: false,
@@ -56,7 +51,7 @@ export default {
         };
     },
     methods: {
-        close: function() {
+        close: function () {
             this.$emit("closeModal", false);
         },
 

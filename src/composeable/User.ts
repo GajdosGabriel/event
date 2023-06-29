@@ -4,6 +4,7 @@ import type { UserForm } from "../types/user";
 
 
 const defaultState = {
+  loading: false,
   user: null,
   isLoggedIn: false,
   token: localStorage.getItem('token')
@@ -13,6 +14,7 @@ const state = reactive(defaultState);
 
 const getters = {
   getUser: computed(() => state.user),
+  getLoading: computed(() => state.loading),
 };
 
 const actions = {
@@ -33,15 +35,27 @@ const actions = {
   },
 
   login: async (form: UserForm) => {
-    // axios.defaults.withCredentials = true;
-    // axios.defaults.baseURL = "http://localhost"
-    // await axios.get('http://localhost:5173/sanctum/csrf-cookie');
+    state.loading = true;
     axios.post("/login", form)
       .then(
         response => {
           // localStorage.setItem('token', response.data);
           state.token = response.data
           actions.fetchUser();
+          state.loading = false;
+        }
+      )
+  },
+
+  register: async (form: UserForm) => {
+    state.loading = true;
+    axios.post("/register", form)
+      .then(
+        response => {
+          // localStorage.setItem('token', response.data);
+          state.token = response.data
+          actions.fetchUser();
+          state.loading = false;
         }
       )
   },
