@@ -14,7 +14,8 @@ const defaultState = {
 const state = reactive(defaultState);
 
 const getters = {
-  fetchEvents: computed(() => state.events),
+  events: computed(() => state.events),
+  event: computed(() => state.event),
 };
 
 const actions = {

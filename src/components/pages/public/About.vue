@@ -12,7 +12,7 @@ import UseEvent from "../../../store/Events.js";
 export default defineComponent({
   components: { Header, IndexCard, CardAside, PaginationComponent, FooterComponent },
   setup() {
-    const { state, fetchEvents, paginationUrl } = UseEvent();
+    const { state, fetchEvents, events, paginationUrl } = UseEvent();
 
     onMounted(() => {
       fetchEvents();
@@ -23,7 +23,7 @@ export default defineComponent({
       fetchEvents();
     };
 
-    return { state, fetchEvents, paginatorUrl };
+    return { state, events, paginatorUrl };
   },
 });
 </script>
@@ -38,7 +38,7 @@ export default defineComponent({
           <!-- <div v-for="event in fetchEvents" :key="event.id">
           {{ event.id }}
           </div> -->
-          <index-card :item="event" v-for="event in state.events" :key="event.id"></index-card>
+          <index-card :item="event" v-for="event in events" :key="event.id"></index-card>
         </div>
       </div>
 

@@ -15,7 +15,7 @@ const defaultState = {
 const state = reactive(defaultState);
 
 const getters = {
-  getUser: computed(() => state.user),
+  user: computed(() => state.user),
   getLoading: computed(() => state.loading),
   getErrors: computed(() => state.errors),
 };
@@ -34,6 +34,7 @@ const actions = {
   },
 
   login: async (form: UserForm) => {
+    actions.fetchToken();
     state.errors = [];
     try {
     // actions.getToken();
@@ -61,10 +62,13 @@ const actions = {
     });
   },
 
-  // getUser: async () => {
-  //   let response = await axios.get("http://eventapi.local/api/user");
-  //   state.user = response.data;
-  // },
+  logout: async () => {
+    try {
+      await axios.post("/logout").then((response) => {
+        state.user = null;
+      });
+    } catch (e) {}
+  },
 
   updateIsLoggedIn: (isLoggedIn) => {
     state.isLoggedIn = isLoggedIn;
