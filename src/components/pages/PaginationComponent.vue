@@ -30,8 +30,9 @@ export default {
   props: ["meta", "links"],
 
   methods: {
-    fetchPaginate(url:string) {
+    fetchPaginate(url: string) {
       this.$emit("fetchUrl", url);
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     },
   },
 };
