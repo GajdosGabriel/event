@@ -4,7 +4,7 @@ import NavigationPublic from "../components/navigation/NavigationPublic.vue";
 import About from "../components/pages/public/About.vue";
 import Show from "../components/pages/public/Show.vue";
 import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
-import LoginCard from "../components/auth/LoginCard.vue";
+import LoginCard from "../components/auth/Card.vue";
 
 const routes = [
   {

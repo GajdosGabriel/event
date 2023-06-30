@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import UseEvent from "../../composeable/Events.js";
+import UseEvent from "../../store/Events.js";
 import type { Event } from "../../types/event";
 
 export default defineComponent({

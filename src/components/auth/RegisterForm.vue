@@ -17,7 +17,7 @@
               required
               autofocus
             />
-            <div style="color: red" v-text="errors.first_name"></div>
+            <div style="color: red" v-text="getErrors.first_name"></div>
           </div>
           <div class="mb-3">
             <input
@@ -28,7 +28,7 @@
               placeholder="Priezvisko"
               required
             />
-            <div style="color: red" v-text="errors.last_name"></div>
+            <div style="color: red" v-text="getErrors.last_name"></div>
           </div>
 
           <div class="mb-3">
@@ -40,7 +40,7 @@
               placeholder="E-Mail"
               required
             />
-            <div style="color: red" v-text="errors.email"></div>
+            <div style="color: red" v-text="getErrors.email"></div>
           </div>
           <div class="mb-6">
             <input
@@ -51,7 +51,7 @@
               placeholder="Heslo ..."
               required
             />
-            <div style="color: red" v-text="errors.password"></div>
+            <div style="color: red" v-text="getErrors.password"></div>
           </div>
 
           <div class="mb-6">
@@ -70,7 +70,7 @@
             >
               {{ inputType ? "Skryť" : "Zobraziť" }} heslo</span
             >
-            <div style="color: red" v-text="errors.password_confirmation"></div>
+            <div style="color: red" v-text="getErrors.password_confirmation"></div>
           </div>
 
           <div class="flex">
@@ -99,33 +99,26 @@
 </template>
 
 <script>
-import axios from 'axios';
-import useUser from '../../composeable/user';
-import { reactive} from 'vue';
-
+import useUser from "../../store/user";
+import { reactive } from "vue";
 
 export default {
   setup() {
-
-    const {register, getLoading} = useUser();
+    const { register, getLoading, getErrors } = useUser();
     const form = reactive({
       rememberMe: true,
     });
 
     const handleRegister = () => {
-      register(form)
-    }
+      register(form);
+    };
 
-
-
-  
-    return {form, handleRegister}
-},
+    return { form, handleRegister, getErrors };
+  },
 
   data: function () {
     return {
       loading: false,
-      errors: [],
       inputType: false,
     };
   },
@@ -144,7 +137,6 @@ export default {
   },
 
   methods: {
-    //            nedokočené opačne
     togglePassword: function () {
       this.inputType = !this.inputType;
     },
@@ -155,36 +147,6 @@ export default {
         //                    alert("Zadali ste neplatnú emailú adresu!");
         return false;
       }
-    },
-
-    attemptRegister: function () {
-      axios
-        .post("/register", {
-          first_name: this.first_name,
-          last_name: this.last_name,
-          email: this.email,
-          password: this.password,
-          password_confirmation: this.password_confirmation,
-          rememberMe: this.rememberMe,
-        })
-        .then((resp) => {
-          // location.reload();
-          // bus.$emit("flash", { body: "Vitajte, rezistrácia je úspešná." });
-        })
-
-        //                .catch (error => this.errors = error.response.data);
-
-        .catch((error) => {
-          this.loading = false;
-          this.errors = error.response.data.errors;
-
-          if (error.response.status == 422) {
-            // bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
-            // this.errors.push("Prihlasovacie údaje nie sú správne.");
-          } else {
-            // this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
-          }
-        });
     },
   },
 };

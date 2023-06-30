@@ -3,7 +3,7 @@ import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
 import type { Event } from "../../../types/event";
 import { useRoute } from "vue-router";
 import CardAside from "../CardAside.vue";
-import UseEvent from "../../../composeable/Events.js";
+import UseEvent from "../../../store/Events.js";
 import SubscribeForm from "../../event/subscribeForm.vue";
 import PictureViewer from "../../event/PictureViewer.vue";
 import InfoPanel from "../../event/InfoPanel.vue";
@@ -35,7 +35,7 @@ export default defineComponent({
       <article class="col-span-8">
         <h1 class="text-3xl font-semibold">{{ state.event.title }}</h1>
 
-        <div class="md:grid grid-cols-12 gap-10  mt-6">
+        <div class="md:grid grid-cols-12 gap-10 mt-6">
           <div class="col-span-7" v-html="state.event.body"></div>
           <div class="col-span-5">
             <info-panel :item="state.event" />

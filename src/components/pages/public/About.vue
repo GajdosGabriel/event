@@ -7,7 +7,7 @@ import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 import FooterComponent from "../Footer.vue";
 
-import UseEvent from "../../../composeable/Events.js";
+import UseEvent from "../../../store/Events.js";
 
 export default defineComponent({
   components: { Header, IndexCard, CardAside, PaginationComponent, FooterComponent },
@@ -18,10 +18,10 @@ export default defineComponent({
       fetchEvents();
     });
 
-    const paginatorUrl = (url:string) => {
-           paginationUrl(url);
-           fetchEvents();
-        };
+    const paginatorUrl = (url: string) => {
+      paginationUrl(url);
+      fetchEvents();
+    };
 
     return { state, fetchEvents, paginatorUrl };
   },

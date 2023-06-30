@@ -1,12 +1,14 @@
 <script lang="ts">
 import { ref, onMounted } from "vue";
-import useUser from "../../composeable/user";
+import useUser from "../../store/user";
 
 export default {
   setup() {
-    const { getUser, fetchUser } = useUser();
+    const { state, getUser, fetchToken, fetchUser } = useUser();
 
     onMounted(() => {
+      fetchToken();
+      console.log(state.token);
       fetchUser();
     });
 
@@ -35,14 +37,13 @@ export default {
 </script>
 
 <template>
-   <!-- @click="toggleClick" -->
+  <!-- @click="toggleClick" -->
   <router-link :to="{ name: 'login.index' }">
     <button
       v-if="getUser"
-     
       class="relative text-gray-100 hover:bg-gray-50 border-b border-gray-100 md:hover:bg-transparent md:border-0 pl-3 pr-4 py-2 md:hover:text-gray-300 md:p-0 font-medium flex items-center justify-between w-full md:w-auto"
     >
-      {{ getUser.first_name + " " + getUser.last_name }}
+      {{ getUser.full_name }}
       <svg class="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
         <path
           fill-rule="evenodd"
@@ -52,7 +53,8 @@ export default {
       </svg>
     </button>
 
-    <button v-else
+    <button
+      v-else
       class="relative text-gray-100 hover:bg-gray-50 border-b border-gray-100 md:hover:bg-transparent md:border-0 pl-3 pr-4 py-2 md:hover:text-gray-300 md:p-0 font-medium flex items-center justify-between w-full md:w-auto"
     >
       Prihlásiť

@@ -8,20 +8,37 @@
 
         <form @submit.prevent="attemptLogin" class="bg-grey-lightest px-10 py-10">
           <div class="mb-3">
-            <input v-model="form.email" type="email" class="border-2 border-gray-300 w-full p-3" name="email"
-              placeholder="E-Mail" required autofocus />
-            <div style="color: red" v-text="errors.errors"></div>
+            <input
+              v-model="form.email"
+              type="email"
+              class="border-2 border-gray-300 w-full p-3"
+              name="email"
+              placeholder="E-Mail"
+              required
+              autofocus
+            />
+            <div style="color: red">{{ getErrors.email }}</div>
           </div>
           <div class="mb-6">
-            <input v-model="form.password" :type="inputType ? 'text' : 'password'"
-              class="border-2 border-gray-300 w-full p-3" name="password" placeholder="Heslo ..." required />
+            <input
+              v-model="form.password"
+              :type="inputType ? 'text' : 'password'"
+              class="border-2 border-gray-300 w-full p-3"
+              name="password"
+              placeholder="Heslo ..."
+              required
+            />
+            <div style="color: red" v-text="getErrors.password"></div>
             <a href="#" @click.prevent="togglePassword" style="font-size: 80%; margin-top: -1rem">
-              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a>
+              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a
+            >
           </div>
 
           <div class="flex">
-            <button type="submit"
-              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300">
+            <button
+              type="submit"
+              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300"
+            >
               Vstúpiť
             </button>
           </div>
@@ -42,33 +59,30 @@
   </div>
 </template>
 
-
 <script>
-import axios from 'axios';
+import { useRouter } from "vue-router";
 
-import { reactive } from 'vue';
+import { reactive } from "vue";
 
-import useUser from '../../composeable/user'
+import useUser from "../../store/user";
 
 export default {
-
   setup() {
+    const router = useRouter();
 
-    const {state, login } = useUser();
+    const { state, login, getErrors } = useUser();
 
     const form = reactive({
       rememberMe: true,
-      device_name: 'web',
+      device_name: "web",
     });
 
     const attemptLogin = () => {
       login(form);
+      // router.push("/");
+    };
 
-    }
-
-
-
-    return {state, form, attemptLogin }
+    return { state, form, attemptLogin, getErrors };
   },
   data: function () {
     return {
@@ -165,8 +179,7 @@ label {
 .slide-fade-enter,
 .slide-fade-leave-to
 
-/* .slide-fade-leave-active below version 2.1.8 */
-  {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateX(10px);
   opacity: 0;
 }
