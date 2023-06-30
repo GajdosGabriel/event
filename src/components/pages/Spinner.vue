@@ -1,5 +1,5 @@
 <template>
-    <div class="text-center">
+    <div class="flex items-center justify-center h-screen">
         <div class="lds-spinner">
             <div></div>
             <div></div>
