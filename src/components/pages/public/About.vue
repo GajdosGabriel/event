@@ -6,13 +6,14 @@ import IndexCard from "../../event/IndexCard.vue";
 import CardAside from "../CardAside.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 import FooterComponent from "../Footer.vue";
+import Spinner from "../Spinner.vue";
 
 import UseEvent from "../../../store/Events.js";
 
 export default defineComponent({
-  components: { Header, IndexCard, CardAside, PaginationComponent, FooterComponent },
+  components: { Header, IndexCard, CardAside, PaginationComponent, Spinner, FooterComponent },
   setup() {
-    const { state, fetchEvents, events, paginationUrl } = UseEvent();
+    const { loading, meta, links, fetchEvents, events, paginationUrl } = UseEvent();
 
     onMounted(() => {
       fetchEvents();
@@ -23,7 +24,7 @@ export default defineComponent({
       fetchEvents();
     };
 
-    return { state, events, paginatorUrl };
+    return { events, loading, meta, links, paginatorUrl };
   },
 });
 </script>
@@ -32,7 +33,9 @@ export default defineComponent({
   <div class="md:w-10/12 mx-auto p-6 h-screen">
     <div class="md:grid grid-cols-12 gap-10">
       <div class="col-span-8">
+        
         <Header></Header>
+        <Spinner v-if="loading"></Spinner>
 
         <div class="grid lg:grid-cols-3 sm:grid-cols-2 gap-8 pt-8">
           <!-- <div v-for="event in fetchEvents" :key="event.id">
@@ -50,7 +53,7 @@ export default defineComponent({
       </div>
 
       <div class="col-span-8">
-        <pagination-component :meta="state.meta" :links="state.links" @fetchUrl="paginatorUrl"></pagination-component>
+        <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl"></pagination-component>
       </div>
     </div>
   </div>

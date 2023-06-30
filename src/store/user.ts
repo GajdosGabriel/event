@@ -16,8 +16,8 @@ const state = reactive(defaultState);
 
 const getters = {
   user: computed(() => state.user),
-  getLoading: computed(() => state.loading),
-  getErrors: computed(() => state.errors),
+  loading: computed(() => state.loading),
+  errors: computed(() => state.errors),
 };
 
 const actions = {
@@ -26,7 +26,7 @@ const actions = {
       await axios.get("/api/user").then((response) => {
         state.user = response.data.data;
       });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   fetchToken: async () => {
@@ -37,18 +37,18 @@ const actions = {
     actions.fetchToken();
     state.errors = [];
     try {
-    // actions.getToken();
-    state.loading = true;
-    await axios.post("/login", form).then((response) => {
-      // localStorage.setItem('token', response.data);
-      actions.fetchUser();
-      state.loading = false;
-    });
-  } catch (error) {
-    if(error.response.status === 422) {
-      state.errors = error.response.data.errors
+      // actions.getToken();
+      state.loading = true;
+      await axios.post("/login", form).then((response) => {
+        // localStorage.setItem('token', response.data);
+        actions.fetchUser();
+        state.loading = false;
+      });
+    } catch (error) {
+      if (error.response.status === 422) {
+        state.errors = error.response.data.errors
+      }
     }
-  }
   },
 
   register: async (form: UserForm) => {
@@ -67,7 +67,7 @@ const actions = {
       await axios.post("/logout").then((response) => {
         state.user = null;
       });
-    } catch (e) {}
+    } catch (e) { }
   },
 
   updateIsLoggedIn: (isLoggedIn) => {

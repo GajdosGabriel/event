@@ -17,7 +17,7 @@
               required
               autofocus
             />
-            <div style="color: red" v-text="getErrors.first_name"></div>
+            <div style="color: red" v-text="errors.first_name"></div>
           </div>
           <div class="mb-3">
             <input
@@ -28,7 +28,7 @@
               placeholder="Priezvisko"
               required
             />
-            <div style="color: red" v-text="getErrors.last_name"></div>
+            <div style="color: red" v-text="errors.last_name"></div>
           </div>
 
           <div class="mb-3">
@@ -40,7 +40,7 @@
               placeholder="E-Mail"
               required
             />
-            <div style="color: red" v-text="getErrors.email"></div>
+            <div style="color: red" v-text="errors.email"></div>
           </div>
           <div class="mb-6">
             <input
@@ -51,7 +51,7 @@
               placeholder="Heslo ..."
               required
             />
-            <div style="color: red" v-text="getErrors.password"></div>
+            <div style="color: red" v-text="errors.password"></div>
           </div>
 
           <div class="mb-6">
@@ -70,7 +70,7 @@
             >
               {{ inputType ? "Skryť" : "Zobraziť" }} heslo</span
             >
-            <div style="color: red" v-text="getErrors.password_confirmation"></div>
+            <div style="color: red" v-text="errors.password_confirmation"></div>
           </div>
 
           <div class="flex">
@@ -104,7 +104,7 @@ import { reactive } from "vue";
 
 export default {
   setup() {
-    const { register, getLoading, getErrors } = useUser();
+    const { register, loading, errors } = useUser();
     const form = reactive({
       rememberMe: true,
     });
@@ -113,7 +113,7 @@ export default {
       register(form);
     };
 
-    return { form, handleRegister, getErrors };
+    return { form, handleRegister, errors };
   },
 
   data: function () {

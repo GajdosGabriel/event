@@ -17,7 +17,7 @@
               required
               autofocus
             />
-            <div style="color: red">{{ getErrors.email }}</div>
+            <div style="color: red" v-if="errors.email">{{ errors.email[0] }}</div>
           </div>
           <div class="mb-6">
             <input
@@ -28,7 +28,7 @@
               placeholder="Heslo ..."
               required
             />
-            <div style="color: red" v-text="getErrors.password"></div>
+            <div style="color: red" v-if="errors.password" v-text="errors.password"></div>
             <a href="#" @click.prevent="togglePassword" style="font-size: 80%; margin-top: -1rem">
               {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a
             >
@@ -70,7 +70,7 @@ export default {
   setup() {
     const router = useRouter();
 
-    const { state, login, getErrors } = useUser();
+    const { state, login, errors } = useUser();
 
     const form = reactive({
       rememberMe: true,
@@ -79,10 +79,10 @@ export default {
 
     const attemptLogin = () => {
       login(form);
-      // router.push("/");
+      router.push("/");
     };
 
-    return { state, form, attemptLogin, getErrors };
+    return { state, form, attemptLogin, errors };
   },
   data: function () {
     return {
