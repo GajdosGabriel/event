@@ -1,14 +1,15 @@
 import { createRouter, createWebHistory } from "vue-router";
+import user from "./user";
 
 import NavigationPublic from "../components/navigation/NavigationPublic.vue";
 import OchranaOsobnyhUdajov from "../components/pages/public/OchranaOsobnychUdajov.vue";
-import UserHome from "../components/pages/user/Home.vue";
 import About from "../components/pages/public/About.vue";
 import Show from "../components/pages/public/Show.vue";
 import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
 import LoginCard from "../components/auth/Card.vue";
 
 const routes = [
+  ... user,
   {
     path: "/",
     name: "About",
@@ -37,17 +38,6 @@ const routes = [
     },
     meta: {
       title: "Prihlásenie",
-    },
-  },
-  {
-    path: "/user/home",
-    name: "user.index",
-    components: {
-      default: UserHome,
-      navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Správa účtu",
     },
   },
   {

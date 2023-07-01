@@ -24,7 +24,7 @@ export default defineComponent({
 <template>
   <div class="md:w-10/12 mx-auto p-6">
     <div class="md:grid grid-cols-12 gap-10">
-      <div class="col-span-8">
+      <div class="col-span-8 h-screen">
         <!-- <Header></Header> -->
         <Spinner v-if="loading"></Spinner>
 
