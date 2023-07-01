@@ -25,7 +25,7 @@ export default defineComponent({
         <Spinner v-if="loading"></Spinner>
 
         <div class="space-y-5">
-          <h1 class="font-semibold text-2xl">User home</h1>
+          <h1 class="font-semibold text-2xl">Admin home</h1>
         </div>
       </div>
 

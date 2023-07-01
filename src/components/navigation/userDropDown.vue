@@ -71,7 +71,7 @@ export default {
         <router-link to="/user/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">User</router-link>
       </li>
       <li>
-        <router-link to="admin" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Admin</router-link>
+        <router-link to="/admin/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Admin</router-link>
       </li>
     </ul>
     <div class="py-1">

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import user from "./user";
+import admin from "./admin";
 
 import NavigationPublic from "../components/navigation/NavigationPublic.vue";
 import OchranaOsobnyhUdajov from "../components/pages/public/OchranaOsobnychUdajov.vue";
@@ -10,6 +11,7 @@ import LoginCard from "../components/auth/Card.vue";
 
 const routes = [
   ... user,
+  ... admin,
   {
     path: "/",
     name: "About",
