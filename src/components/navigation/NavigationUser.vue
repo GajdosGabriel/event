@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-slate-600 ">
+  <div class="bg-lime-600">
     <nav class="flex items-center justify-between flex-wrap p-6 md:w-10/12 mx-auto">
       <router-link to="/" @click="onclickLogo">
         <div class="flex items-center flex-shrink-0 text-white mr-6">
@@ -29,9 +29,9 @@
       </div>
       <div class="w-full block flex-grow lg:flex lg:items-center lg:w-auto">
         <div class="text-sm lg:flex-grow">
-          <!-- <RouterLink to="/event" class="block mt-4 lg:inline-block lg:mt-0 text-gray-100 hover:text-white mr-4">
-            Show
-          </RouterLink> -->
+          <RouterLink to="/user/events" class="block mt-4 lg:inline-block lg:mt-0 text-gray-100 hover:text-white mr-4">
+            Akcie
+          </RouterLink>
         </div>
         <div>
           <userDropDown />

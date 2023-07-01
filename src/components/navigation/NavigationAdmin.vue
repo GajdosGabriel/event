@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-600 ">
+  <div class="bg-slate-600">
     <nav class="flex items-center justify-between flex-wrap p-6 md:w-10/12 mx-auto">
       <router-link to="/" @click="onclickLogo">
         <div class="flex items-center flex-shrink-0 text-white mr-6">

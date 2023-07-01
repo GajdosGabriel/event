@@ -6,10 +6,10 @@ import CardAside from "../CardAside.vue";
 import FooterComponent from "../Footer.vue";
 import Spinner from "../Spinner.vue";
 import UseUser from "../../../store/user.js";
-
+import UserEventCard from "@/components/event/UserEventCard.vue";
 
 export default defineComponent({
-  components: { CardAside, Spinner, FooterComponent },
+  components: { CardAside, Spinner, FooterComponent, UserEventCard },
   setup() {
     const { loading, user } = UseUser();
 
@@ -27,7 +27,7 @@ export default defineComponent({
 
         <div class="space-y-5">
           <h1 class="font-semibold text-2xl">User home</h1>
-        
+          <user-event-card :item="{ ffffffffffffff: 'dddasdf' }" />
         </div>
       </div>
 
