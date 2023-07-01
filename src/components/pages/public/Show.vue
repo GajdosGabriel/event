@@ -3,7 +3,7 @@ import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
 import type { Event } from "../../../types/event";
 import { useRoute } from "vue-router";
 import CardAside from "../CardAside.vue";
-import UseEvent from "../../../store/Events.js";
+import UseEvent from "../../../store/event.js";
 import SubscribeForm from "../../event/subscribeForm.vue";
 import PictureViewer from "../../event/PictureViewer.vue";
 import InfoPanel from "../../event/InfoPanel.vue";

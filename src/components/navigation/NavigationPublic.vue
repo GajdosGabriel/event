@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import userDropDown from "./userDropDown.vue";
-import useEvent from "../../store/Events";
+import useEvent from "../../store/event";
 
 const { paginationUrl } = useEvent();
 

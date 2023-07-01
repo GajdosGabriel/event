@@ -8,10 +8,11 @@ import PaginationComponent from "../PaginationComponent.vue";
 import FooterComponent from "../Footer.vue";
 import Spinner from "../Spinner.vue";
 
-import UseEvent from "../../../store/Events.js";
+import UseEvent from "../../../store/event.js";
+import EventVillageCard from "../../village/EventVillageCard.vue";
 
 export default defineComponent({
-  components: { Header, IndexCard, CardAside, PaginationComponent, Spinner, FooterComponent },
+  components: { Header, IndexCard, CardAside, PaginationComponent, Spinner, FooterComponent, EventVillageCard },
   setup() {
     const { loading, meta, links, fetchEvents, events, paginationUrl } = UseEvent();
 
@@ -46,6 +47,8 @@ export default defineComponent({
       </div>
 
       <div class="col-span-3">
+        <event-village-card /> 
+
         <CardAside>
           <template v-slot:title>Aside</template>
           <template v-slot:body>Body text</template>
