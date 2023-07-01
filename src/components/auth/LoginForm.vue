@@ -59,7 +59,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { useRouter } from "vue-router";
 import { reactive, watch } from "vue";
 import useUser from "../../store/user";
@@ -116,32 +116,7 @@ export default {
       } else {
         return false;
       }
-    },
-
-    // attemptLogin: function () {
-    //   //                this.errors = [];
-    //   // this.loading = true;
-    //   axios
-    //     .post("http://localhost:8000/login", { email: this.email, password: this.password, rememberMe: this.rememberMe, device_name: 'web' })
-    //     .then((resp) => {
-    //       // location.reload();
-    //       // bus.$emit("flash", { body: "Vitajte, ste úspešne prihlásený." });
-    //     })
-
-    //     //                .catch (error => this.errors = error.response.data);
-
-    //     .catch((error) => {
-    //       this.loading = false;
-    //       this.errors = error.response.data;
-
-    //       if (error.response.status == 422) {
-    //         // bus.$emit("flash", { body: "Údaje nie sú správne. Skúste znova." });
-    //         // this.errors.push("Prihlasovacie údaje nie sú správne.");
-    //       } else {
-    //         // this.errors.push("Niečo zlyhalo, skúste znova načítať web a prihlásiť sa.");
-    //       }
-    //     });
-    // },
+    }
   },
 };
 </script>

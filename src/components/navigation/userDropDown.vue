@@ -68,7 +68,7 @@ export default {
   >
     <ul class="py-1" aria-labelledby="dropdownLargeButton">
       <li>
-        <router-link to="user" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">User</router-link>
+        <router-link to="/user/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">User</router-link>
       </li>
       <li>
         <router-link to="admin" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Admin</router-link>
