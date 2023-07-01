@@ -9,7 +9,7 @@ import FooterComponent from "../Footer.vue";
 import Spinner from "../Spinner.vue";
 
 import UseEvent from "../../../store/event.js";
-import EventVillageCard from "../../village/EventVillageCard.vue";
+import EventVillageCard from "./EventVillageCard.vue";
 
 export default defineComponent({
   components: { Header, IndexCard, CardAside, PaginationComponent, Spinner, FooterComponent, EventVillageCard },
@@ -31,10 +31,9 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="md:w-10/12 mx-auto p-6 h-screen">
+  <div class="md:w-10/12 mx-auto p-6">
     <div class="md:grid grid-cols-12 gap-10">
       <div class="col-span-8">
-        
         <Header></Header>
         <Spinner v-if="loading"></Spinner>
 
@@ -47,7 +46,7 @@ export default defineComponent({
       </div>
 
       <div class="col-span-3">
-        <event-village-card /> 
+        <event-village-card />
 
         <CardAside>
           <template v-slot:title>Aside</template>
@@ -60,4 +59,5 @@ export default defineComponent({
       </div>
     </div>
   </div>
+  <footer-component />
 </template>

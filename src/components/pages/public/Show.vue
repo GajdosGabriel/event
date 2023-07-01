@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
+import Footer from "../Footer.vue";
 import type { Event } from "../../../types/event";
 import { useRoute } from "vue-router";
 import CardAside from "../CardAside.vue";
@@ -10,7 +11,7 @@ import InfoPanel from "../../event/InfoPanel.vue";
 import Spinner from "../Spinner.vue";
 
 export default defineComponent({
-  components: { CardAside, SubscribeForm, PictureViewer, InfoPanel, Spinner },
+  components: { CardAside, SubscribeForm, PictureViewer, InfoPanel, Spinner, Footer },
   setup() {
     const {
       params: { eventId },
@@ -31,13 +32,13 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="md:w-10/12 mx-auto p-6 h-screen">
+  <div class="md:w-10/12 mx-auto p-6">
     <div class="md:grid grid-cols-12 gap-10">
       <article class="col-span-8">
         <Spinner v-if="loading"></Spinner>
         <h1 class="text-3xl font-semibold">{{ event.title }}</h1>
         <div class="md:grid grid-cols-12 gap-10 mt-6">
-          <div class="col-span-7" v-html="event.body"></div>
+          <div class="col-span-7 space-y-2" v-html="event.body"></div>
           <div class="col-span-5">
             <info-panel :item="event" />
             <picture-viewer :item="event" />
@@ -63,4 +64,6 @@ export default defineComponent({
       </section>
     </div>
   </div>
+
+  <Footer/>
 </template>

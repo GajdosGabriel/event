@@ -61,16 +61,14 @@
 
 <script>
 import { useRouter } from "vue-router";
-
-import { reactive } from "vue";
-
+import { reactive, watch } from "vue";
 import useUser from "../../store/user";
 
 export default {
   setup() {
     const router = useRouter();
 
-    const { state, login, errors } = useUser();
+    const { state, user, login, errors } = useUser();
 
     const form = reactive({
       rememberMe: true,
@@ -79,8 +77,11 @@ export default {
 
     const attemptLogin = () => {
       login(form);
-      router.push("/");
     };
+
+    watch(user, () => {
+      router.push("/");
+    });
 
     return { state, form, attemptLogin, errors };
   },

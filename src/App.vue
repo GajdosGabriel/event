@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FooterComponent from "./components/pages/Footer.vue";
 </script>
 
 <template>

@@ -4,16 +4,15 @@
       <div class="w-full">
         <h4 class="border-b-2 py-3 border-gray-300 font-semibold">O projekte</h4>
         <ul class="mt-2 space-y-1">
-          <li><a href="#">Založiť svoj blog</a></li>
           <li><a href="#">Pridať novú akciu</a></li>
-          <li><a href="#">Ochrana osobných údajov</a></li>
+          <li><router-link to="/ochrana-osobnych-udajov">Ochrana osobných údajov</router-link></li>
         </ul>
       </div>
 
       <div class="w-full">
         <h4 class="border-b-2 py-3 border-gray-300 font-semibold">Kontakt</h4>
         <ul class="mt-2 space-y-1">
-          <li><span class="fa fa-globe"></span> Trenčín, Slovensko</li>
+          <li><span class="fa fa-globe"></span> Bratislava, Slovensko</li>
           <li><span class="fa fa-phone"></span> 0905 320 616</li>
         </ul>
       </div>

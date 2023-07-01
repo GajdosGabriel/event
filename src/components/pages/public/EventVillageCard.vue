@@ -1,15 +1,14 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import useEvent from "../../store/event"
+import useEvent from "../../../store/event";
 
 export default defineComponent({
   setup() {
-    const {villages, fetchEventsVillages} = useEvent();
+    const { villages, fetchEventsVillages } = useEvent();
     onMounted(() => {
-      fetchEventsVillages()
+      fetchEventsVillages();
     });
- 
 
     return { villages };
   },
@@ -23,10 +22,8 @@ export default defineComponent({
 
       <div class="hidden sm:block">
         <div class="flex space-x-1">
-          <a href="?params=likes">
-            <div
-              class="flex hover:bg-gray-100 p-2 rounded-full h-9 w-9 items-center justify-center"
-            >
+          <a href="#">
+            <div class="flex hover:bg-gray-100 p-2 rounded-full h-9 w-9 items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -54,6 +51,13 @@ export default defineComponent({
           <router-link to="#">
             <!-- <i style="color: #3b32b3" class="fas fa-check"></i> -->
             {{ village.fullname }}
+          </router-link>
+          <span>(N)</span>
+        </li>
+        <li class="flex justify-between">
+          <router-link to="#">
+            <!-- <i style="color: #3b32b3" class="fas fa-check"></i> -->
+            Online prenosy
           </router-link>
           <span>(N)</span>
         </li>
