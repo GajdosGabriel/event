@@ -52,6 +52,10 @@ const actions = {
   paginationUrl: (url: string) => {
     state.url = url;
   },
+
+  setUrl: (url: string) => {
+    state.url = url;
+  },
 };
 
 export default () => ({

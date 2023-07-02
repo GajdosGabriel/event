@@ -35,7 +35,7 @@ export default defineComponent({
       <div class="p-3">
         <span class="font-medium">{{ item.title }}</span>
 
-        <div class="font-light text-sm">Dňa {{ item.created_at }}</div>
+        <div class="font-light text-sm">Dňa {{ item.start_at_date }}</div>
       </div>
     </div>
   </router-link>

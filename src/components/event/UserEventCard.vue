@@ -22,36 +22,39 @@ export default defineComponent({
     :to="{
       name: 'event.show',
       params: {
-        eventId: 'item.id',
-        eventSlug: 'item.slug',
+        eventId: item.id,
+        eventSlug: item.slug,
       },
-      query: { pageTitle: 'item.title' },
+      query: { pageTitle: item.title },
     }"
   >
-    <div class="md:grid grid-cols-8 gap-4">
+    <li class="md:grid grid-cols-8 gap-4 mb-8 bg-white border-solid border-2 rounded-md shadow-sm">
+      <div>
+        <img :src="item.image_thumb">
+      </div>
       <div class="col-span-6">
-        <div class="post-header">
-          <div class="title flex justify-between">
-            <h5 class="text-lg font-semibold"><a href="#"> Title </a></h5>
-
+        <div class="">
+          <div class="flex justify-between">
+            <a href="#">
+            <h5 class="text-lg font-semibold">{{ item.title }}</h5>
+          </a>
             <div>drop down</div>
           </div>
 
-          <div class="text-gray-600 text-sm">limit 200 text</div>
+          <div class="text-gray-600 text-sm" v-html="item.body.slice(0, 100)"></div>
         </div>
       </div>
 
-      <div class="col-span-2 bg-gray-100 p-2 rounded-md">
+      <div class="col-span-8 bg-gray-100 p-2 rounded-md flex justify-between">
         <a href="#">
-          <div class="">miesto</div>
+          <div class=""><span class="font-light">Kde:</span> {{  item.village_name }}</div>
         </a>
-        <div class="">čas</div>
+        <div class=""><span class="font-light">Čas:</span> {{ item.start_at_date +' '+ item.start_at_time }}</div>
 
         <div>
-          Pridal:
-          <a href="#" class="hover:underline"> Organizátor </a>
+          <a href="#" class="hover:underline"><span class="font-light">Organizátor:</span> {{ item.canal_name }} </a>
         </div>
       </div>
-    </div>
+    </li>
   </router-link>
 </template>
