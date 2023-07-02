@@ -14,7 +14,7 @@
               d="M13.5 22.1c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05zM0 38.3c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05z"
             />
           </svg>
-          <div class="font-semibold text-xl tracking-tight">Ticket portál</div>
+          <div class="font-semibold text-xl tracking-tight">Administrácia</div>
         </div>
       </router-link>
       <div class="block lg:hidden">
@@ -43,11 +43,12 @@
 
 <script setup lang="ts">
 import userDropDown from "./userDropDown.vue";
-import useEvent from "../../store/event";
+import { useRouter } from "vue-router";
 
-const { paginationUrl } = useEvent();
+const router = useRouter();
 
 const onclickLogo = () => {
-  paginationUrl("http://localhost:8000/api/events");
+
+  router.push('/user/home')
 };
 </script>

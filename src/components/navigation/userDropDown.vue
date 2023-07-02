@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import useUser from "../../store/user";
 import { useRouter } from "vue-router";
 
@@ -7,6 +7,9 @@ export default {
   setup() {
     const { user, fetchToken, fetchUser, logout } = useUser();
     const router = useRouter();
+    const currentRouteName = computed(() => {
+      return router.currentRoute.value.name;
+    });
 
     const toggle = ref(false);
 
@@ -17,7 +20,6 @@ export default {
 
     const clickButton = () => {
       if (user.value !== null) {
-        console.log("in");
         toggle.value = !toggle.value;
         return;
       }
@@ -29,7 +31,7 @@ export default {
       router.push("/");
     };
 
-    return { user, clickButton, toggle, clickLogout };
+    return { user, clickButton, toggle, clickLogout, currentRouteName };
   },
 
   // mounted() {
@@ -67,11 +69,16 @@ export default {
     v-if="toggle && user"
   >
     <ul class="py-1" aria-labelledby="dropdownLargeButton">
-      <li>
+      <li v-if="currentRouteName !== 'public.index'">
+        <router-link to="/" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Public</router-link>
+      </li>
+      <li v-if="currentRouteName !== 'user.index'">
         <router-link to="/user/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">User</router-link>
       </li>
-      <li>
-        <router-link to="/admin/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Admin</router-link>
+      <li v-if="currentRouteName !== 'admin.index'">
+        <router-link to="/admin/home" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2"
+          >Admin</router-link
+        >
       </li>
     </ul>
     <div class="py-1">

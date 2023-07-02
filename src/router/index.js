@@ -14,7 +14,7 @@ const routes = [
   ... admin,
   {
     path: "/",
-    name: "About",
+    name: "public.index",
     components: {
       default: About,
       navigation: NavigationPublic,

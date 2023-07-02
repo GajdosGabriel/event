@@ -43,11 +43,12 @@
 
 <script setup lang="ts">
 import userDropDown from "./userDropDown.vue";
-import useEvent from "../../store/event";
+import { useRouter } from "vue-router";
 
-const { paginationUrl } = useEvent();
+const router = useRouter();
 
 const onclickLogo = () => {
-  paginationUrl("http://localhost:8000/api/events");
+
+  router.push('/admin/home')
 };
 </script>
