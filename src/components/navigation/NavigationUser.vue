@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import userDropDown from "./userDropDown.vue";
+import userDropDown from "./NavDropDown.vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();

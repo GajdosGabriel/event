@@ -38,7 +38,7 @@ export default defineComponent({
         <Spinner v-if="loading"></Spinner>
 
         <div class="space-y-5">
-          <h1 class="font-semibold text-2xl">User home</h1>
+          <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
           <ul>
           <user-event-card :item="event" v-for="event in events" :key="event.id" />
         </ul>

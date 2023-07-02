@@ -9,9 +9,10 @@ import SubscribeForm from "../../event/subscribeForm.vue";
 import PictureViewer from "../../event/PictureViewer.vue";
 import InfoPanel from "../../event/InfoPanel.vue";
 import Spinner from "../Spinner.vue";
+import DropDown from "../../navigation/PostDropDown.vue";
 
 export default defineComponent({
-  components: { CardAside, SubscribeForm, PictureViewer, InfoPanel, Spinner, Footer },
+  components: { CardAside, SubscribeForm, PictureViewer, InfoPanel, Spinner, Footer, DropDown },
   setup() {
     const {
       params: { eventId },
@@ -36,7 +37,11 @@ export default defineComponent({
     <div class="md:grid grid-cols-12 gap-10">
       <article class="col-span-8">
         <Spinner v-if="loading"></Spinner>
-        <h1 class="text-3xl font-semibold">{{ event.title }}</h1>
+        <div class="flex justify-between ">
+          <h1 class="text-3xl font-semibold">{{ event.title }}</h1>
+          <drop-down/>
+        </div>
+      
         <div class="md:grid grid-cols-12 gap-10 mt-6">
           <div class="col-span-7 space-y-2" v-html="event.body"></div>
           <div class="col-span-5">
