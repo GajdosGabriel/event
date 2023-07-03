@@ -14,7 +14,7 @@
               d="M13.5 22.1c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05zM0 38.3c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05z"
             />
           </svg>
-          <div class="font-semibold text-xl tracking-tight">Administrácia</div>
+          <div class="font-semibold text-xl tracking-tight">User</div>
         </div>
       </router-link>
       <div class="block lg:hidden">
@@ -31,6 +31,9 @@
         <div class="text-sm lg:flex-grow">
           <RouterLink to="/user/events" class="block mt-4 lg:inline-block lg:mt-0 text-gray-100 hover:text-white mr-4">
             Akcie
+          </RouterLink>
+          <RouterLink to="/user/setup" class="block mt-4 lg:inline-block lg:mt-0 text-gray-100 hover:text-white mr-4">
+            Nastavenia
           </RouterLink>
         </div>
         <div>

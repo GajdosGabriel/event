@@ -5,7 +5,7 @@ import FooterComponent from "./components/pages/Footer.vue";
 <template>
   <router-view name="navigation" />
 
-  <main class="bg-gray-50">
+  <main class="bg-white">
     <router-view></router-view>
   </main>
 </template>

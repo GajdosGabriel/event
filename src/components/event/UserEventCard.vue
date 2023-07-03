@@ -2,8 +2,10 @@
 import { defineComponent, PropType } from "vue";
 import UseEvent from "../../store/event.js";
 import type { Event } from "../../types/event";
+import PostDropDown from "../navigation/PostDropDown.vue";
 
 export default defineComponent({
+  components: { PostDropDown },
   props: {
     item: {
       type: Object as PropType<Event>,
@@ -11,9 +13,7 @@ export default defineComponent({
     },
   },
 
-  setup() {
-
-  },
+  setup() {},
 });
 </script>
 
@@ -28,17 +28,18 @@ export default defineComponent({
       query: { pageTitle: item.title },
     }"
   >
-    <li class="md:grid grid-cols-8 gap-4 mb-8 bg-white border-solid border-2 rounded-md shadow-sm">
+    <li class="md:grid grid-cols-8 gap-4 mb-8 bg-white border-solid border-2 rounded-md shadow-sm hover:shadow-md">
       <div>
-        <img :src="item.image_thumb">
+        <img :src="item.image_thumb" />
       </div>
-      <div class="col-span-6">
-        <div class="">
-          <div class="flex justify-between">
+      <div class="col-span-7">
+        <div class="px-4 p-2">
+          <div class="flex justify-between content-center ">
             <a href="#">
-            <h5 class="text-lg font-semibold">{{ item.title }}</h5>
-          </a>
-            <div>drop down</div>
+              <h5 class="text-lg font-semibold">{{ item.title }}</h5>
+            </a>
+
+            <post-drop-down />
           </div>
 
           <div class="text-gray-600 text-sm" v-html="item.body.slice(0, 100)"></div>
@@ -47,9 +48,9 @@ export default defineComponent({
 
       <div class="col-span-8 bg-gray-100 p-2 rounded-md flex justify-between">
         <a href="#">
-          <div class=""><span class="font-light">Kde:</span> {{  item.village_name }}</div>
+          <div class=""><span class="font-light">Kde:</span> {{ item.village_name }}</div>
         </a>
-        <div class=""><span class="font-light">Čas:</span> {{ item.start_at_date +' '+ item.start_at_time }}</div>
+        <div class=""><span class="font-light">Čas:</span> {{ item.start_at_date + " " + item.start_at_time }}</div>
 
         <div>
           <a href="#" class="hover:underline"><span class="font-light">Organizátor:</span> {{ item.canal_name }} </a>

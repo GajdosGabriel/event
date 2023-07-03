@@ -8,24 +8,29 @@ import Spinner from "../Spinner.vue";
 import UseUser from "../../../store/user.js";
 import UseEvent from "../../../store/event.js";
 import UserEventCard from "@/components/event/UserEventCard.vue";
+import PaginationComponent from "../PaginationComponent.vue";
 
 export default defineComponent({
-  components: { CardAside, Spinner, FooterComponent, UserEventCard },
+  components: { CardAside, Spinner, FooterComponent, UserEventCard, PaginationComponent },
   setup() {
-    const {  user } = UseUser();
-    const { loading, setUrl, fetchEvents, events } = UseEvent();
+    const { user } = UseUser();
+    const { loading, setUrl, fetchEvents, events, meta, links, paginationUrl } = UseEvent();
 
     onMounted(() => {
-      setUrl('/api/user/271/event');
+      setUrl("/api/user/271/event");
       fetchEvents();
     });
 
+    const paginatorUrl = (url: string) => {
+      paginationUrl(url);
+      fetchEvents();
+    };
+
     watch(user, () => {
-       setUrl('/api/user/'+ user.canal_id +'/event');
+      setUrl("/api/user/" + user.canal_id + "/event");
     });
 
-
-    return { user, events, loading };
+    return { user, events, loading, meta, links, paginatorUrl };
   },
 });
 </script>
@@ -40,8 +45,12 @@ export default defineComponent({
         <div class="space-y-5">
           <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
           <ul>
-          <user-event-card :item="event" v-for="event in events" :key="event.id" />
-        </ul>
+            <user-event-card :item="event" v-for="event in events" :key="event.id" />
+          </ul>
+        </div>
+
+        <div class="col-span-8">
+          <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl"></pagination-component>
         </div>
       </div>
 
