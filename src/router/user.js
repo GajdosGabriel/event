@@ -1,8 +1,8 @@
-
 import NavigationUser from "../components/navigation/NavigationUser.vue";
 import UserHome from "../components/pages/user/Home.vue";
 import UserEvents from "../components/pages/user/Events.vue";
 import UserSetup from "../components/pages/user/Setup.vue";
+import auth from "../middleware/auth";
 
 const user = [
   {
@@ -14,6 +14,7 @@ const user = [
     },
     meta: {
       title: "Správa účtu",
+      middleware: [auth],
     },
   },
   {
@@ -25,19 +26,22 @@ const user = [
     },
     meta: {
       title: "Vaše akcie",
+      middleware: [auth],
     },
   },
   {
     path: "/user/setup",
-    name: "user.index",
+    name: "user.setup",
     components: {
       default: UserSetup,
       navigation: NavigationUser,
     },
     meta: {
       title: "Nastavenie účtu",
+      middleware: [auth],
     },
   },
 ];
+
 
 export default user;

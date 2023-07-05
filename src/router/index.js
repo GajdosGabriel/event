@@ -1,70 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 import user from "./user";
 import admin from "./admin";
+import publicSite from "./publicSite";
 
-import NavigationPublic from "../components/navigation/NavigationPublic.vue";
-import OchranaOsobnyhUdajov from "../components/pages/public/OchranaOsobnychUdajov.vue";
-import About from "../components/pages/public/About.vue";
-import Show from "../components/pages/public/Show.vue";
-import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
-import LoginCard from "../components/auth/Card.vue";
 
 const routes = [
-  ... user,
-  ... admin,
-  {
-    path: "/",
-    name: "public.index",
-    components: {
-      default: About,
-      navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Ticket portál",
-    },
-  },
-  {
-    path: "/event/:eventId/:eventSlug",
-    name: "event.show",
-    components: {
-      default: Show,
-      navigation: NavigationPublic,
-    },
-  },
-  {
-    path: "/login",
-    name: "login.index",
-    components: {
-      default: LoginCard,
-      navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Prihlásenie",
-    },
-  },
-  {
-    path: "/ochrana-osobnych-udajov",
-    name: "ochranaOsobnychUdajov",
-    components: {
-      default: OchranaOsobnyhUdajov,
-      navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Ochrana osobných údajov",
-    },
-  },
-  {
-    path: "/:pathMatch(.*)*",
-    name: "Stranka-sa-nenasla",
-    components: {
-      default: NotFoundPage,
-      navigation: NavigationPublic,
-    },
-    meta: {
-      title: "Stránka sa nenašla",
-    },
-  },
+  ...publicSite, ...user, ...admin
 ];
+
+// const routes = baseRoutes.concat(freepublic, user, admin);
 
 const router = createRouter({
   history: createWebHistory(),
@@ -93,6 +37,40 @@ router.beforeResolve(async (to, from, next) => {
   }
   // Continue resolving the route
   next();
+});
+
+function nextFactory(context, middleware, index) {
+  const subsequentMiddleware = middleware[index];
+  // If no subsequent Middleware exists,
+  // the default `next()` callback is returned.
+  if (!subsequentMiddleware) return context.next;
+
+  return (...parameters) => {
+    // Run the default Vue Router `next()` callback first.
+    context.next(...parameters);
+    // Then run the subsequent Middleware with a new
+    // `nextMiddleware()` callback.
+    const nextMiddleware = nextFactory(context, middleware, index + 1);
+    subsequentMiddleware({ ...context, next: nextMiddleware });
+  };
+}
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.middleware) {
+    const middleware = Array.isArray(to.meta.middleware) ? to.meta.middleware : [to.meta.middleware];
+
+    const context = {
+      from,
+      next,
+      router,
+      to,
+    };
+    const nextMiddleware = nextFactory(context, middleware, 1);
+
+    return middleware[0]({ ...context, next: nextMiddleware });
+  }
+
+  return next();
 });
 
 export default router;
