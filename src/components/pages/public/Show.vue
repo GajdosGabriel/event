@@ -17,17 +17,17 @@ export default defineComponent({
     const {
       params: { eventId },
     } = useRoute();
-    const { event, loading, fetchEvent, resetEvent } = UseEvent();
+    const { event, loading, findEvent, resetEvent } = UseEvent();
 
     onMounted(() => {
-      fetchEvent(eventId);
+      findEvent(eventId);
     });
 
     onBeforeUnmount(() => {
       resetEvent();
     });
 
-    return { event, fetchEvent, loading };
+    return { event, loading };
   },
 });
 </script>
@@ -38,7 +38,7 @@ export default defineComponent({
       <article class="col-span-8">
         <Spinner v-if="loading"></Spinner>
         <div class="flex justify-between ">
-          <h1 class="text-3xl font-semibold">{{ event.title }}</h1>
+          <h1 class="text-3xl font-semibold" v-text="event.title"></h1>
           <drop-down/>
         </div>
       

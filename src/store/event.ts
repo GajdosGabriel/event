@@ -5,7 +5,7 @@ import type { Event } from "../types/event";
 const defaultState = {
   loading: false,
   events: [],
-  event: {},
+  event: {} as Event,
   villages: [],
   url: "/api/events",
   meta: {},
@@ -38,6 +38,11 @@ const actions = {
     state.event = response.data.data as Event;
 
     state.loading = false;
+  },
+
+  findEvent: (id: number) => {
+    let event = state.events.find( e => e.id == id);
+    state.event = event;
   },
 
   fetchEventsVillages: async () => {
