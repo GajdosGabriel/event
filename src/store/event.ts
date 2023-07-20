@@ -42,6 +42,10 @@ const actions = {
 
   findEvent: (id: number) => {
     let event = state.events.find( e => e.id == id);
+    // V prípade že event nie je v načítanom zozname, napr cez odkaz z vonku.
+    if(!event) {
+     event = actions.fetchEvent(id);
+    }
     state.event = event;
   },
 
