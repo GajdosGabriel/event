@@ -1,15 +1,26 @@
-import {ref} from 'vue'
-// https://www.syncfusion.com/blogs/post/can-the-composition-api-replace-vue-mixins.aspx
-export default function useClickAway(){
+import { onBeforeMount, onMounted} from 'vue'
+// https://www.youtube.com/watch?v=tevotcV6D2E&ab_channel=SolidusCode
+export default function useClickAway(el, callback_fn) {
 
-    const open = ref (false)
-    function toggleHandle() {
-        open.value = ! open.value;
-        // console.log(reuseData.value);
-        // console.log('Hello from Reusable method!')
+    if (!el) return;
+
+    let listener = (e) => {
+        if (e.target == el.value || e.composedPath().includes(el.value)) {
+            return
+        }
+
+        if (typeof callback_fn == 'function') {
+            callback_fn()
+        }
     }
-    return {
-        open,
-        toggleHandle
-    }
+
+    onMounted(() => {
+        window.addEventListener('click', listener)
+    });
+
+    onBeforeMount(() => {
+        window.removeEventListener('click', listener)
+    })
+
+    return { listener }
 }

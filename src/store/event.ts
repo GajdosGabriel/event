@@ -1,10 +1,10 @@
+import { type Event } from './../types/event';
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
-import type { Event } from "../types/event";
 
 const defaultState = {
   loading: false,
-  events: [],
+  events: [] as Event[],
   event: {} as Event,
   villages: [],
   url: "/api/events",
@@ -55,7 +55,7 @@ const actions = {
   },
 
   resetEvent: () => {
-    state.event = {};
+    state.event = {} as Event;
   },
 
   paginationUrl: (url: string) => {
