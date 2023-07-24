@@ -13,49 +13,52 @@ export default defineComponent({
     },
   },
 
-  setup() {},
+  setup() { },
 });
 </script>
 
 <template>
-  <router-link
-    :to="{
+  <li class="md:grid grid-cols-8 gap-4 mb-8 bg-white border-solid border-2 rounded-md shadow-sm hover:shadow-md">
+    <router-link :to="{
       name: 'event.show',
       params: {
         eventId: item.id,
         eventSlug: item.slug,
       },
       query: { pageTitle: item.title },
-    }"
-  >
-    <li class="md:grid grid-cols-8 gap-4 mb-8 bg-white border-solid border-2 rounded-md shadow-sm hover:shadow-md">
+    }">
+      <img :src="item.image_thumb" />
+    </router-link>
+    <div class="col-span-7">
+      <div class="px-4 p-2">
+        <div class="flex justify-between content-center ">
+          <router-link :to="{
+            name: 'event.show',
+            params: {
+              eventId: item.id,
+              eventSlug: item.slug,
+            },
+            query: { pageTitle: item.title },
+          }">
+            <h5 class="text-lg font-semibold">{{ item.title }}</h5>
+          </router-link>
+
+          <post-drop-down />
+        </div>
+
+        <div class="text-gray-600 text-sm" v-html="item.body.slice(0, 100)"></div>
+      </div>
+    </div>
+
+    <div class="col-span-8 bg-gray-100 p-2 rounded-md flex justify-between">
+
+      <div class=""><span class="font-light">Kde:</span> {{ item.village_name }}</div>
+
+      <div class=""><span class="font-light">Čas:</span> {{ item.start_at_date + " " + item.start_at_time }}</div>
+
       <div>
-        <img :src="item.image_thumb" />
+        <a href="#" class="hover:underline"><span class="font-light">Organizátor:</span> {{ item.canal_name }} </a>
       </div>
-      <div class="col-span-7">
-        <div class="px-4 p-2">
-          <div class="flex justify-between content-center ">
-            <a href="#">
-              <h5 class="text-lg font-semibold">{{ item.title }}</h5>
-            </a>
-
-            <post-drop-down />
-          </div>
-
-          <div class="text-gray-600 text-sm" v-html="item.body.slice(0, 100)"></div>
-        </div>
-      </div>
-
-      <div class="col-span-8 bg-gray-100 p-2 rounded-md flex justify-between">
-        <a href="#">
-          <div class=""><span class="font-light">Kde:</span> {{ item.village_name }}</div>
-        </a>
-        <div class=""><span class="font-light">Čas:</span> {{ item.start_at_date + " " + item.start_at_time }}</div>
-
-        <div>
-          <a href="#" class="hover:underline"><span class="font-light">Organizátor:</span> {{ item.canal_name }} </a>
-        </div>
-      </div>
-    </li>
-  </router-link>
+    </div>
+  </li>
 </template>
