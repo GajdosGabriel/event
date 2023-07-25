@@ -2,9 +2,12 @@ import { type Event } from './../types/event';
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
 
+import useUser from "./user"
+
 const defaultState = {
   loading: false,
   events: [] as Event[],
+  canalEvents: [] as Event[],
   event: {} as Event,
   villages: [],
   url: "/api/events",
@@ -16,6 +19,7 @@ const state = reactive(defaultState);
 
 const getters = {
   events: computed(() => state.events),
+  canalEvents: computed(() => state.canalEvents),
   event: computed(() => state.event),
   villages: computed(() => state.villages),
   loading: computed(() => state.loading),
@@ -32,6 +36,18 @@ const actions = {
     state.links = response.data.links;
     state.loading = false;
   },
+
+  fetchCanalEvents: async () => {
+    const {user} =  useUser();
+
+    state.loading = true;
+    let response = await axios.get("/api/canal/"+ user.value.canal_id +"/event");
+    state.canalEvents = response.data.data;
+    state.meta = response.data.meta;
+    state.links = response.data.links;
+    state.loading = false;
+  },
+  
   fetchEvent: async (id: string | string[]) => {
     state.loading = true;
     let response = await axios.get("/api/events/" + id);

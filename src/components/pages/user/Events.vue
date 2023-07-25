@@ -14,23 +14,22 @@ export default defineComponent({
   components: { CardAside, Spinner, FooterComponent, UserEventCard, PaginationComponent },
   setup() {
     const { user } = UseUser();
-    const { loading, setUrl, fetchEvents, events, meta, links, paginationUrl } = UseEvent();
+    const { loading, setUrl, fetchCanalEvents, canalEvents, meta, links, paginationUrl } = UseEvent();
 
     onMounted(() => {
-      setUrl("/api/user/271/event");
-      fetchEvents();
+      fetchCanalEvents();
     });
 
     const paginatorUrl = (url: string) => {
-      paginationUrl(url);
-      fetchEvents();
+      // paginationUrl(url);
+      fetchCanalEvents();
     };
 
-    watch(user, () => {
-      setUrl("/api/user/" + user.canal_id + "/event");
-    });
+    // watch(user, () => {
+    //   setUrl("/api/user/" + user.canal_id + "/event");
+    // });
 
-    return { user, events, loading, meta, links, paginatorUrl };
+    return { user, canalEvents, loading, meta, links, paginatorUrl };
   },
 });
 </script>
@@ -45,7 +44,7 @@ export default defineComponent({
         <div class="space-y-5">
           <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
           <ul>
-            <user-event-card :item="event" v-for="event in events" :key="event.id" />
+            <user-event-card :item="event" v-for="event in canalEvents" :key="event.id" />
           </ul>
         </div>
 
