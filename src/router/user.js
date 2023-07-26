@@ -21,8 +21,8 @@ const user = [
     path: "/user/events",
     name: "canal.index",
     components: {
-      default: UserEvents,
       navigation: NavigationUser,
+      default: UserEvents,
     },
     meta: {
       title: "Vaše akcie",
