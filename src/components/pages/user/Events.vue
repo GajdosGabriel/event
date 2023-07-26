@@ -42,7 +42,13 @@ export default defineComponent({
         <Spinner v-if="loading"></Spinner>
 
         <div class="space-y-5">
-          <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
+          <div class="flex justify-between ">
+            <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
+            <router-link to="/user/events/create">
+              <button>Nová akcia</button>
+            </router-link>
+          </div>
+
           <ul>
             <user-event-card :item="event" v-for="event in canalEvents" :key="event.id" />
           </ul>

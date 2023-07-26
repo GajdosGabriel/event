@@ -1,6 +1,7 @@
 import NavigationUser from "../components/navigation/NavigationUser.vue";
 import UserHome from "../components/pages/user/Home.vue";
 import UserEvents from "../components/pages/user/Events.vue";
+import UserEventsCreate from "../components/pages/user/EventsCreate.vue";
 import UserSetup from "../components/pages/user/Setup.vue";
 import auth from "../middleware/auth";
 
@@ -26,6 +27,18 @@ const user = [
     },
     meta: {
       title: "Vaše akcie",
+      middleware: [auth],
+    },
+  },
+  {
+    path: "/user/events/create",
+    name: "event.create",
+    components: {
+      navigation: NavigationUser,
+      default: UserEventsCreate,
+    },
+    meta: {
+      title: "Nová akcia",
       middleware: [auth],
     },
   },
