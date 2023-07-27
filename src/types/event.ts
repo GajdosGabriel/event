@@ -12,6 +12,21 @@
 //     };
 // }
 
+export interface EventForm {
+    title: string;
+    body: string;
+    street: string;
+    ticket_available: string;
+    canal_name: string;
+    start_at: string;
+    end_at: string;
+    village_name: string;
+    registration: string;
+    entryFee: string;
+    clientwww: string;
+    published: string;
+}
+
 
 export interface Event {
     id: number;
@@ -32,3 +47,5 @@ export interface Event {
     end_at_time: string;
     village_name: string
 }
+
+

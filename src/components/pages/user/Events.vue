@@ -45,7 +45,7 @@ export default defineComponent({
           <div class="flex justify-between ">
             <h1 class="font-semibold text-2xl">Vaše pozvánky</h1>
             <router-link to="/user/events/create">
-              <button>Nová akcia</button>
+              <button class="btn btn-default">Nová akcia</button>
             </router-link>
           </div>
 
