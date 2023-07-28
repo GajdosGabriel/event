@@ -14,15 +14,14 @@ import EventVillageCard from "./EventVillageCard.vue";
 export default defineComponent({
   components: { Header, IndexCard, CardAside, PaginationComponent, Spinner, FooterComponent, EventVillageCard },
   setup() {
-    const { loading, meta, links, fetchEvents, events, paginationUrl } = UseEvent();
+    const { loading, meta, links, fetchEvents, events} = UseEvent();
 
     onMounted(() => {
-      fetchEvents();
+      fetchEvents("/api/events");
     });
 
     const paginatorUrl = (url: string) => {
-      paginationUrl(url);
-      fetchEvents();
+      fetchEvents(url);
     };
 
     return { events, loading, meta, links, paginatorUrl };
@@ -55,7 +54,7 @@ export default defineComponent({
       </div>
 
       <div class="col-span-8">
-        <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl"></pagination-component>
+        <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl" />
       </div>
     </div>
   </div>

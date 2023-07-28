@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, watch, onMounted } from "vue";
-// import { Event } from "../../../types/event";
+// import { Event } from "@/types/event";
 
 import CardAside from "../CardAside.vue";
 import FooterComponent from "../Footer.vue";
@@ -14,22 +14,21 @@ export default defineComponent({
   components: { CardAside, Spinner, FooterComponent, UserEventCard, PaginationComponent },
   setup() {
     const { user } = UseUser();
-    const { loading, setUrl, fetchCanalEvents, canalEvents, meta, links, paginationUrl } = UseEvent();
+    const { loading,  fetchEvents, events, meta, links } = UseEvent();
 
-    onMounted(() => {
-      fetchCanalEvents();
+    onMounted(async () => {
+     await fetchEvents("/api/canal/"+ user.value.canal_id +"/event");
     });
 
     const paginatorUrl = (url: string) => {
-      // paginationUrl(url);
-      fetchCanalEvents();
+      fetchEvents(url);
     };
 
-    // watch(user, () => {
-    //   setUrl("/api/user/" + user.canal_id + "/event");
-    // });
+    watch(user, () => {
+     fetchEvents("/api/canal/"+ user.value.canal_id +"/event");
+    });
 
-    return { user, canalEvents, loading, meta, links, paginatorUrl };
+    return { events, loading, meta, links, paginatorUrl };
   },
 });
 </script>
@@ -50,12 +49,12 @@ export default defineComponent({
           </div>
 
           <ul>
-            <user-event-card :item="event" v-for="event in canalEvents" :key="event.id" />
+            <user-event-card :item="event" v-for="event in events" :key="event.id" />
           </ul>
         </div>
 
         <div class="col-span-8">
-          <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl"></pagination-component>
+          <pagination-component :meta="meta" :links="links" @fetchUrl="paginatorUrl" />
         </div>
       </div>
 

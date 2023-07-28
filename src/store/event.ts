@@ -7,10 +7,8 @@ import useUser from "./user"
 const defaultState = {
   loading: false,
   events: [] as Event[],
-  canalEvents: [] as Event[],
   event: {} as Event,
   villages: [],
-  url: "/api/events",
   meta: {},
   links: {},
 };
@@ -19,7 +17,6 @@ const state = reactive(defaultState);
 
 const getters = {
   events: computed(() => state.events),
-  canalEvents: computed(() => state.canalEvents),
   event: computed(() => state.event),
   villages: computed(() => state.villages),
   loading: computed(() => state.loading),
@@ -28,21 +25,11 @@ const getters = {
 };
 
 const actions = {
-  fetchEvents: async () => {
+
+  fetchEvents: async (url :string) => {
     state.loading = true;
-    let response = await axios.get(state.url);
+    let response = await axios.get(url);
     state.events = response.data.data;
-    state.meta = response.data.meta;
-    state.links = response.data.links;
-    state.loading = false;
-  },
-
-  fetchCanalEvents: async () => {
-    const {user} =  useUser();
-
-    state.loading = true;
-    let response = await axios.get("/api/canal/"+ user.value.canal_id +"/event");
-    state.canalEvents = response.data.data;
     state.meta = response.data.meta;
     state.links = response.data.links;
     state.loading = false;
@@ -72,14 +59,6 @@ const actions = {
 
   resetEvent: () => {
     state.event = {} as Event;
-  },
-
-  paginationUrl: (url: string) => {
-    state.url = url;
-  },
-
-  setUrl: (url: string) => {
-    state.url = url;
   },
 };
 

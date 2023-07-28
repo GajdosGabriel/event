@@ -38,7 +38,7 @@ const user = [
       default: UserEventsCreate,
     },
     meta: {
-      title: "Nová akcia",
+      title: "Vytvoriť akciu",
       middleware: [auth],
     },
   },

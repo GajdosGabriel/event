@@ -49,7 +49,7 @@ export default defineComponent({
 
           <div class="">
             <label for="body">Popis akcie
-              <textarea rows="12" v-model="event.body" class="w-full" id="body"></textarea>
+              <textarea rows="12" v-model="event.body" class="form-textarea w-full" id="body"></textarea>
             </label>
           </div>
 
@@ -147,13 +147,15 @@ export default defineComponent({
         <div>
           <div class="flex justify-between my-3">
             <div>
-              <label for="publishet1">Publikovať teraz</label>
-              <input type="radio" id="publishet1" v-model="event.published" class="form-radio">
+              <label for="publishet1">Publikovať teraz
+                <input type="radio" id="publishet1" v-model="event.published" class="form-radio">
+              </label>
             </div>
-            <div>
 
-              <label for="publishet2">Publikovať neskôr</label>
-              <input type="radio" id="publishet2" v-model="event.published" class="form-radio">
+            <div>
+              <label for="publishet2">Publikovať neskôr
+                <input type="radio" id="publishet2" v-model="event.published" class="form-radio">
+              </label>
             </div>
           </div>
         </div>
