@@ -5,10 +5,11 @@ import { type EventForm } from "@/types/event";
 import CardAside from "../CardAside.vue";
 import FooterComponent from "../Footer.vue";
 import UserEventCard from "@/components/event/UserEventCard.vue";
+import InputField from "@/components/input/InputField.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 
 export default defineComponent({
-  components: { CardAside, FooterComponent, UserEventCard, PaginationComponent },
+  components: { CardAside, FooterComponent, UserEventCard, PaginationComponent, InputField },
   setup() {
     const event = reactive<EventForm>({
       title: '',
@@ -41,11 +42,9 @@ export default defineComponent({
         <div class="space-y-5">
           <h1 class="font-semibold text-2xl">Vytvoriť akciu</h1>
 
-          <div class="">
-            <label for="title">Názov
-              <input type="text" v-model="event.title" id="title" class="form-input w-full" placeholder="Názov" required>
-            </label>
-          </div>
+          <InputField v-model="event.title" :current-value="event.title" model="event.title" placeholder="Názov akcie"
+            label="Názov" />
+
 
           <div class="">
             <label for="body">Popis akcie
@@ -70,17 +69,13 @@ export default defineComponent({
 
       <div class="col-span-3 flex-col space-y-5">
 
-        <div>
-          <label for="dateStart">Začiatok akcie
-            <input type="datetime-local" v-model="event.start_at" id="dateStart" class="form-date w-full" required>
-          </label>
-        </div>
+        <InputField v-model="event.start_at" :current-value="event.start_at" model="event.start_at"
+          input-type="datetime-local" placeholder="Začiatok akcie" label="Začiatok akcie" />
 
-        <div>
-          <label for="dateend">Dátum ukončenia akcie
-            <input type="datetime-local" v-model="event.end_at" id="dateend" class="form-date w-full" required>
-          </label>
-        </div>
+        <InputField v-model="event.end_at" :current-value="event.end_at" model="event.end_at" input-type="datetime-local"
+          placeholder="Koniec akcie" label="Dátum ukončenia akcie" />
+
+
 
 
         <div>
@@ -93,12 +88,10 @@ export default defineComponent({
           </label>
         </div>
 
-        <div>
-          <label for="">Ulica
-            <input type="text" v-model="event.street" placeholder="Adresa konania" class="form-input w-full">
-          </label>
-        </div>
+        <InputField v-model="event.street" :current-value="event.street" model="event.street"
+          placeholder="Ulica a číslo" label="Ulica konania akcie" />
 
+       
         <div>
           <label for="">Miesto podujatia
             <select name="village_id" class="form-select w-full" required>
@@ -108,12 +101,9 @@ export default defineComponent({
           </label>
         </div>
 
-        <div>
-          <label for="">web
-            <input type="text" v-model="event.clientwww" placeholder="Odkaz na váš webovú stánku"
-              class="form-input w-full">
-          </label>
-        </div>
+        <InputField v-model="event.clientwww" :current-value="event.clientwww" model="event.clientwww"
+          placeholder="Odkaz na váš webovú stánku" label="Odkaz na váš webovú stánku" />
+
 
         <div>
           <label for="">Registrácia je:
@@ -134,13 +124,6 @@ export default defineComponent({
               <option>Dobrovoľné</option>
               <option>Na registráciu</option>
             </select>
-          </label>
-        </div>
-
-        <div>
-          <label for="online_ink">Online link
-            <input type="text" id="online_link" name="online_link" placeholder="Link na odkaz"
-              class="form-input w-full input-sm">
           </label>
         </div>
 
