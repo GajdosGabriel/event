@@ -2,8 +2,8 @@ import userUser from "../store/user"
 
 // src/middleware/auth.js
 export default function auth({ next, router }) {
-    const { user } = userUser();
-    if (!user.value) {
+    const { state } = userUser();
+    if (! JSON.parse(localStorage.getItem('YourItem'))) {
       return router.push({ name: 'login.index' });
     } else
   

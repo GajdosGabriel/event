@@ -1,11 +1,11 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
 import type { UserForm } from "../types/user";
+import { json } from "stream/consumers";
 
 const defaultState = {
   loading: false,
   user: null,
-  isLoggedIn: false,
   token: null,
   errors: [],
 
@@ -24,11 +24,14 @@ const actions = {
   fetchUser: async () => {
     try {
       await axios.get("/api/user").then((response) => {
-        state.user = response.data.data;
+        localStorage.setItem('YourItem', JSON.stringify(response.data.data))
+        state.user = JSON.parse(localStorage.getItem('YourItem'));
       });
     } catch (e) {
       if(e.response.status == 401){
-        state.user = null;
+        // state.user = null;
+
+        localStorage.removeItem('YourItem');
       }
 
      }
@@ -91,13 +94,11 @@ const actions = {
     try {
       await axios.post("/logout").then((response) => {
         state.user = null;
+        localStorage.removeItem('YourItem');
       });
     } catch (e) { }
   },
 
-  updateIsLoggedIn: (isLoggedIn) => {
-    state.isLoggedIn = isLoggedIn;
-  },
 };
 
 export default () => ({

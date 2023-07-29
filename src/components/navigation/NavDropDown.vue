@@ -6,7 +6,7 @@ import useClickAway from "../utils/ClickAway";
 
 export default {
   setup() {
-    const { user, fetchToken, fetchUser, logout } = useUser();
+    const { user, state, fetchToken, fetchUser, logout } = useUser();
     const router = useRouter();
     const currentRouteName = computed(() => {
       return router.currentRoute.value.name;
@@ -16,6 +16,10 @@ export default {
     const outdiv = ref(null);
 
     function toggleHandle() {
+
+      if (!user.value) {
+        router.push("/login");
+      }
       open.value = !open.value;
     }
 
@@ -26,7 +30,7 @@ export default {
 
     onMounted(() => {
       // fetchToken();
-      if(user.value) {
+      if( JSON.parse(localStorage.getItem('YourItem'))) {
         fetchUser();
       }
     });
@@ -36,7 +40,7 @@ export default {
       router.push("/");
     };
 
-    return { user, toggleHandle, outdiv, open, currentRouteName, clickLogout };
+    return { user, state, toggleHandle, outdiv, open, currentRouteName, clickLogout };
   }
 };
 </script>
@@ -58,7 +62,7 @@ export default {
 
     <!-- </router-link> -->
     <div class="bg-white text-base z-10 list-none divide-y divide-gray-100 rounded shadow my-4 w-44 absolute" v-if="open">
-      <ul class="py-1" aria-labelledby="dropdownLargeButton">
+      <ul class="py-1" aria-labelledby="dropdownLargeButton" v-if="user">
         <li v-if="currentRouteName !== 'public.index'">
           <router-link to="/" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Public</router-link>
         </li>
@@ -69,10 +73,10 @@ export default {
           <router-link to="/admin/home"
             class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Admin</router-link>
         </li>
+        <li class="py-1">
+          <a href="#" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2" @click="clickLogout">Odhlásiť</a>
+        </li>
       </ul>
-      <div class="py-1">
-        <a href="#" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2" @click="clickLogout">Odhlásiť</a>
-      </div>
     </div>
   </div>
 </template>

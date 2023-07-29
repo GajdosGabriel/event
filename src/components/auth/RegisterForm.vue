@@ -98,7 +98,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import useUser from "../../store/user";
 import { reactive } from "vue";
 
