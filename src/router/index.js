@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
-import user from "./user";
+import dashboard from "./dashboard";
 import admin from "./admin";
 import publicSite from "./publicSite";
 
 
 const routes = [
-  ...publicSite, ...user, ...admin
+  ...publicSite, ...dashboard, ...admin
 ];
 
 // const routes = baseRoutes.concat(freepublic, user, admin);
