@@ -6,10 +6,11 @@ import CardAside from "../CardAside.vue";
 import FooterComponent from "../Footer.vue";
 import UserEventCard from "@/components/event/UserEventCard.vue";
 import InputField from "@/components/input/InputField.vue";
+import SelectField from "@/components/input/SelectField.vue";
 import PaginationComponent from "../PaginationComponent.vue";
 
 export default defineComponent({
-  components: { CardAside, FooterComponent, UserEventCard, PaginationComponent, InputField },
+  components: { CardAside, FooterComponent, UserEventCard, PaginationComponent, InputField, SelectField },
   setup() {
     const event = reactive<EventForm>({
       title: '',
@@ -88,10 +89,10 @@ export default defineComponent({
           </label>
         </div>
 
-        <InputField v-model="event.street" :current-value="event.street" model="event.street"
-          placeholder="Ulica a číslo" label="Ulica konania akcie" />
+        <InputField v-model="event.street" :current-value="event.street" model="event.street" placeholder="Ulica a číslo"
+          label="Ulica konania akcie" />
 
-       
+
         <div>
           <label for="">Miesto podujatia
             <select name="village_id" class="form-select w-full" required>
@@ -116,16 +117,8 @@ export default defineComponent({
           </label>
         </div>
 
-        <div>
-          <label for="">Vstupné
-            <select v-model="event.entryFee" class="form-select input-sm w-full" required>
-              <option disabled value="" selected hidden>---Vybrať---</option>
-              <option>Bez vstupného</option>
-              <option>Dobrovoľné</option>
-              <option>Na registráciu</option>
-            </select>
-          </label>
-        </div>
+        <SelectField :items="[{name: 'dddddddd', value: 'yes' }]" v-model="event.entryFee" :current-value="event.entryFee" model="event.entryFee" placeholder="Vstupné"
+          label="Vstupné" />
 
         <div>
           <div class="flex justify-between my-3">

@@ -25,8 +25,10 @@ export default {
 
 
     onMounted(() => {
-      fetchToken();
-      fetchUser();
+      // fetchToken();
+      if(user.value) {
+        fetchUser();
+      }
     });
 
     const clickLogout = () => {
