@@ -81,13 +81,20 @@ const actions = {
 
   makeRegistration: async (form: UserForm) => {
     state.errors = [];
-    state.loading = true;
-    await axios.post("/register", form).then((response) => {
-      // localStorage.setItem('token', response.data);
-      state.token = response.data;
-      actions.fetchUser();
-      state.loading = false;
-    });
+    try {
+      // actions.getToken();
+      state.loading = true;
+      await axios.post("/register", form).then((response) => {
+        // localStorage.setItem('token', response.data);
+        // actions.fetchUser();
+        console.log(response.data)
+        state.loading = false;
+      });
+    } catch (error) {
+      if (error.response.status === 422) {
+        state.errors = error.response.data.errors
+      }
+    }
   },
 
   logout: async () => {

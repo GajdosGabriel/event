@@ -66,7 +66,7 @@ export default {
         <li v-if="currentRouteName !== 'public.index'">
           <router-link to="/" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">Public</router-link>
         </li>
-        <li v-if="currentRouteName !== 'user.index'">
+        <li v-if="currentRouteName !== 'dashboard.index'">
           <router-link to="/dashboard" class="text-sm hover:bg-gray-100 text-gray-700 block px-4 py-2">User</router-link>
         </li>
         <li v-if="currentRouteName !== 'admin.index'">

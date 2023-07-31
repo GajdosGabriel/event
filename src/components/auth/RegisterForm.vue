@@ -12,25 +12,25 @@
           <div class="mb-3">
             <InputField v-model="form.first_name" :current-value="form.first_name" model="form.first_name"
               placeholder="Meno" label="Meno" />
-            <div style="color: red" v-text="errors.first_name"></div>
+            <div style="color: red" v-if="errors.first_name">{{ errors.first_name[0] }}</div>
           </div>
 
 
           <div class="mb-3">
             <InputField v-model="form.last_name" :current-value="form.last_name" model="form.last_name"
               placeholder="Priezvisko" label="Priezvisko" />
-            <div style="color: red" v-text="errors.last_name"></div>
+            <div style="color: red" v-if="errors.last_name" >{{ errors.last_name[0] }}</div>
           </div>
 
           <div class="mb-3">
             <InputField v-model="form.email" :current-value="form.email" model="form.email" input-type="email"
               placeholder="Email" label="Email" />
-            <div style="color: red" v-text="errors.email"></div>
+            <div style="color: red" v-if="errors.email" >{{ errors.email[0] }}</div>
           </div>
           <div class="mb-6">
             <InputField v-model="form.password" :current-value="form.password" model="form.password" input-type="password"
               placeholder="Heslo min 8 znakov" label="Heslo" />
-            <div style="color: red" v-text="errors.password"></div>
+            <div style="color: red" v-if="errors.password" >{{ errors.password[0] }}</div>
           </div>
 
           <div class="mb-6">
@@ -40,7 +40,7 @@
             <span v-if="form.password" @click.prevent="togglePassword" class="cursor-pointer"
               style="font-size: 80%; margin-top: -1rem">
               {{ inputType ? "Skryť" : "Zobraziť" }} heslo</span>
-            <div style="color: red" v-text="errors.password_confirmation"></div>
+            <div style="color: red" v-if="errors.password_confirmation">{{ errors.password_confirmation[0] }}</div>
           </div>
 
           <div class="flex">
@@ -127,43 +127,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.box {
-  margin: 2rem;
-}
 
-.card-body {
-  display: flex;
-}
-
-.inline {
-  display: inline-flex;
-}
-
-.form-group {
-  padding: 1rem 0rem;
-}
-
-label {
-  background: #898989;
-  padding: 0 0.5rem;
-  color: whitesmoke;
-}
-
-.slide-fade-enter-active {
-  transition: all 0.3s ease;
-}
-
-.slide-fade-leave-active {
-  transition: all 0.8s cubic-bezier(1, 0.5, 0.8, 1);
-}
-
-.slide-fade-enter,
-.slide-fade-leave-to
-
-/* .slide-fade-leave-active below version 2.1.8 */
-  {
-  transform: translateX(10px);
-  opacity: 0;
-}
-</style>
