@@ -1,4 +1,4 @@
-import NavigationUser from "../components/navigation/NavigationUser.vue";
+import NavigationDashboard from "../components/navigation/NavigationDashboard.vue";
 import DashboardHome from "../components/pages/dashboard/Home.vue";
 import DashboardEvents from "../components/pages/dashboard/Events.vue";
 import DashboardEventsCreate from "../components/pages/dashboard/EventsCreate.vue";
@@ -11,7 +11,7 @@ const dashboard = [
     name: "dashboard.index",
     components: {
       default: DashboardHome,
-      navigation: NavigationUser,
+      navigation: NavigationDashboard,
     },
     meta: {
       title: "Správa účtu",
@@ -20,9 +20,9 @@ const dashboard = [
   },
   {
     path: "/dashboard/events",
-    name: "dashboard.canal.index",
+    name: "dashboard.events.index",
     components: {
-      navigation: NavigationUser,
+      navigation: NavigationDashboard,
       default: DashboardEvents,
     },
     meta: {
@@ -34,7 +34,7 @@ const dashboard = [
     path: "/dashboard/event/create",
     name: "dashboard.event.create",
     components: {
-      navigation: NavigationUser,
+      navigation: NavigationDashboard,
       default: DashboardEventsCreate,
     },
     meta: {
@@ -47,7 +47,7 @@ const dashboard = [
     name: "dashboard.setup",
     components: {
       default: DashboardSetup,
-      navigation: NavigationUser,
+      navigation: NavigationDashboard,
     },
     meta: {
       title: "Nastavenie účtu",
