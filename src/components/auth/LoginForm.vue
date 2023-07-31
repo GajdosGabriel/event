@@ -46,7 +46,7 @@
 
         <div class="border-t px-10 py-6">
           <div class="flex justify-between">
-            <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/prihlasenie">
+            <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/login">
               Späť
             </router-link>
             <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/password/reset">

@@ -19,27 +19,30 @@
           <div class="mb-3">
             <InputField v-model="form.last_name" :current-value="form.last_name" model="form.last_name"
               placeholder="Priezvisko" label="Priezvisko" />
-            <div style="color: red" v-if="errors.last_name" >{{ errors.last_name[0] }}</div>
+            <div style="color: red" v-if="errors.last_name">{{ errors.last_name[0] }}</div>
           </div>
 
           <div class="mb-3">
             <InputField v-model="form.email" :current-value="form.email" model="form.email" input-type="email"
               placeholder="Email" label="Email" />
-            <div style="color: red" v-if="errors.email" >{{ errors.email[0] }}</div>
+            <div style="color: red" v-if="errors.email">{{ errors.email[0] }}</div>
           </div>
           <div class="mb-6">
-            <InputField v-model="form.password" :current-value="form.password" model="form.password" input-type="password"
-              placeholder="Heslo min 8 znakov" label="Heslo" />
-            <div style="color: red" v-if="errors.password" >{{ errors.password[0] }}</div>
+            <InputField v-model="form.password" :current-value="form.password" model="form.password"
+              :input-type="changeType ? 'text' : 'password'" placeholder="Heslo min 8 znakov" label="Heslo" />
+            <span v-if="form.password" @click.prevent="togglePassword" class="cursor-pointer"
+              style="font-size: 80%; margin-top: -1rem">
+              {{ changeType ? "Skryť" : "Zobraziť" }} heslo</span>
+            <div style="color: red" v-if="errors.password">{{ errors.password[0] }}</div>
           </div>
 
           <div class="mb-6">
             <InputField v-model="form.password_confirmation" :current-value="form.password_confirmation"
-              input-type="password" model="form.password_confirmation" placeholder="Zopakovať heslo"
-              label="Potvrdiť heslo" />
+              :input-type="changeType ? 'text' : 'password'" model="form.password_confirmation"
+              placeholder="Zopakovať heslo" label="Potvrdiť heslo" />
             <span v-if="form.password" @click.prevent="togglePassword" class="cursor-pointer"
               style="font-size: 80%; margin-top: -1rem">
-              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</span>
+              {{ changeType ? "Skryť" : "Zobraziť" }} heslo</span>
             <div style="color: red" v-if="errors.password_confirmation">{{ errors.password_confirmation[0] }}</div>
           </div>
 
@@ -53,7 +56,7 @@
 
         <div class="border-t px-10 py-6">
           <div class="flex justify-between">
-            <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/prihlasenie">
+            <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/login">
               Späť
             </router-link>
             <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/facebook">
@@ -70,12 +73,14 @@
 import useUser from "../../store/user";
 import InputField from "../input/InputField.vue";
 import { reactive } from "vue";
+import { useRouter } from "vue-router";
 import { type UserForm } from "../../types/user"
 
 export default {
   components: { InputField },
   setup() {
     const { makeRegistration, loading, errors } = useUser();
+    const router = useRouter();
     const form = reactive<UserForm>({
       rememberMe: true,
       first_name: '',
@@ -84,8 +89,9 @@ export default {
       password: '',
     });
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
       makeRegistration(form);
+      await router.push("/");
     };
 
     return { form, handleRegister, errors };
@@ -94,7 +100,7 @@ export default {
   data: function () {
     return {
       loading: false,
-      inputType: false,
+      changeType: false,
     };
   },
 
@@ -103,7 +109,7 @@ export default {
       return this.emailIsValid();
     },
 
-    isValidPassword: function () : boolean {
+    isValidPassword: function (): boolean {
       if (this.form.password.length < 6) {
         return false;
       }
@@ -113,9 +119,9 @@ export default {
 
   methods: {
     togglePassword: function () {
-      this.inputType = !this.inputType;
+      this.changeType = !this.changeType;
     },
-    emailIsValid: function () : boolean {
+    emailIsValid: function (): boolean {
       if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(this.form.email)) {
         return true;
       } else {

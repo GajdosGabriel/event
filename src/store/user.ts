@@ -1,7 +1,7 @@
 import axios from "axios";
 import { reactive, readonly, computed } from "vue";
 import type { UserForm } from "../types/user";
-import { json } from "stream/consumers";
+
 
 const defaultState = {
   loading: false,
@@ -65,7 +65,6 @@ const actions = {
     actions.fetchToken();
     state.errors = [];
     try {
-      // actions.getToken();
       state.loading = true;
       await axios.post("/login", form).then((response) => {
         // localStorage.setItem('token', response.data);
@@ -82,12 +81,11 @@ const actions = {
   makeRegistration: async (form: UserForm) => {
     state.errors = [];
     try {
-      // actions.getToken();
+      actions.fetchToken();
       state.loading = true;
       await axios.post("/register", form).then((response) => {
         // localStorage.setItem('token', response.data);
-        // actions.fetchUser();
-        console.log(response.data)
+        actions.fetchUser();
         state.loading = false;
       });
     } catch (error) {
