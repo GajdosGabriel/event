@@ -79,7 +79,7 @@ const actions = {
     }
   },
 
-  register: async (form: UserForm) => {
+  makeRegistration: async (form: UserForm) => {
     state.errors = [];
     state.loading = true;
     await axios.post("/register", form).then((response) => {
