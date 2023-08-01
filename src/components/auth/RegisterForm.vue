@@ -56,9 +56,10 @@
 
         <div class="border-t px-10 py-6">
           <div class="flex justify-between">
-            <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/login">
+            <div class="font-bold text-primary hover:text-primary-dark no-underline cursor-pointer"
+              @click="$emit('onClickBack')">
               Späť
-            </router-link>
+            </div>
             <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/facebook">
               Registrácia pomocou Facebooku
             </router-link>
@@ -78,6 +79,7 @@ import { type UserForm } from "../../types/user"
 
 export default {
   components: { InputField },
+  emits: ['onClickBack'],
   setup() {
     const { makeRegistration, loading, errors } = useUser();
     const router = useRouter();

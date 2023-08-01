@@ -3,42 +3,20 @@
     <div class="mx-auto max-w-sm">
       <div class="bg-white rounded shadow border-gray-300 border-2">
         <div class="border-b py-8 font-bold text-black text-center text-xl tracking-widest uppercase">
-          Vitajte späť!
+          Zabudnuté heslo!
         </div>
 
         <form @submit.prevent="attemptLogin" class="bg-grey-lightest px-10 py-10">
           <div class="mb-3">
-            <input
-              v-model="form.email"
-              type="email"
-              class="border-2 border-gray-300 w-full p-3"
-              name="email"
-              placeholder="E-Mail"
-              required
-              autofocus
-            />
+            <input v-model="form.email" type="email" class="border-2 border-gray-300 w-full p-3" name="email"
+              placeholder="E-Mail" required autofocus />
             <div style="color: red" v-if="errors.email">{{ errors.email[0] }}</div>
           </div>
-          <div class="mb-6">
-            <input
-              v-model="form.password"
-              :type="inputType ? 'text' : 'password'"
-              class="border-2 border-gray-300 w-full p-3"
-              name="password"
-              placeholder="Heslo ..."
-              required
-            />
-            <div style="color: red" v-if="errors.password" v-text="errors.password"></div>
-            <a href="#" @click.prevent="togglePassword" style="font-size: 80%; margin-top: -1rem">
-              {{ inputType ? "Skryť" : "Zobraziť" }} heslo</a
-            >
-          </div>
+
 
           <div class="flex">
-            <button
-              type="submit"
-              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300"
-            >
+            <button type="submit"
+              class="hover:bg-gray-200 w-full p-4 text-sm uppercase font-bold tracking-wider border-2 border-gray-300">
               Vstúpiť
             </button>
           </div>
@@ -46,11 +24,11 @@
 
         <div class="border-t px-10 py-6">
           <div class="flex justify-between">
-            <div class="font-bold text-primary hover:text-primary-dark no-underline cursor-pointer" @click="$emit('onClickBack')">
+            <router-link class="font-bold text-primary hover:text-primary-dark no-underline cursor-pointer" to="/login">
               Späť
-            </div>
+            </router-link>
             <router-link class="font-bold text-primary hover:text-primary-dark no-underline" to="/password/reset">
-              Zabudnuté heslo?
+              Prihlásiť sa pomocou Facebooku
             </router-link>
           </div>
         </div>
@@ -157,7 +135,8 @@ label {
 .slide-fade-enter,
 .slide-fade-leave-to
 
-/* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+  {
   transform: translateX(10px);
   opacity: 0;
 }

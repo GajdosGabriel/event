@@ -4,6 +4,7 @@ import About from "../components/pages/public/About.vue";
 import Show from "../components/pages/public/Show.vue";
 import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
 import LoginCard from "../components/auth/Card.vue";
+import ResetPassword from "../components/auth/ResetPassword.vue";
 
 const publicSite = [
   {
@@ -31,6 +32,17 @@ const publicSite = [
     name: "login.index",
     components: {
       default: LoginCard,
+      navigation: NavigationPublic,
+    },
+    meta: {
+      title: "Prihlásenie",
+    },
+  },
+  {
+    path: "/password/reset",
+    name: "password.reset",
+    components: {
+      default: ResetPassword,
       navigation: NavigationPublic,
     },
     meta: {
