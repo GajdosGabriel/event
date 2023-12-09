@@ -15,6 +15,7 @@
     </div>
 
     <div class="p-3 px-4">
+      <label for="first_name">Meno</label>
       <input
         type="text"
         name="first_name"
@@ -22,8 +23,10 @@
         value=""
         required
         placeholder="Meno"
+        id="first_name"
       />
 
+      <label for="last_name">Priezvisko</label>
       <input
         type="text"
         name="last_name"
@@ -31,8 +34,10 @@
         value=""
         required
         placeholder="Priezvisko"
+        id="last_name"
       />
 
+      <label for="email">Email</label>
       <input
         type="email"
         name="email"
@@ -40,10 +45,12 @@
         value=""
         required
         placeholder="email na zaslanie potvrdenia"
+        id="email"
       />
 
       <div>
         <label>
+          Som človek
           <input
             type="number"
             class="border-2 border-gray-500 rounded-md p-2 mb-3 w-full"
@@ -51,7 +58,6 @@
             placeholder="Zadajte číslo"
             required
           />
-          Zadajte číslo
         </label>
       </div>
 
