@@ -26,9 +26,10 @@ const getters = {
 
 const actions = {
 
-  fetchEvents: async (url :string) => {
+  fetchEvents: async (url :string, query : string = '') => {
+    console.log(url + query)
     state.loading = true;
-    let response = await axios.get(url);
+    let response = await axios.get(url + query);
     state.events = response.data.data;
     state.meta = response.data.meta;
     state.links = response.data.links;

@@ -1,16 +1,22 @@
 <script lang="ts">
-import { defineComponent, onMounted, ref } from "vue";
+import { defineComponent, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import useEvent from "../../../store/event";
 
 export default defineComponent({
   setup() {
-    const { villages, fetchEventsVillages } = useEvent();
+    const { villages, fetchEventsVillages, fetchEvents } = useEvent();
     onMounted(() => {
       fetchEventsVillages();
     });
 
-    return { villages };
+    const selectedVillage = ref('');
+
+    watch(selectedVillage, () => {
+      fetchEvents("/api/events?location=", selectedVillage.value);
+    })
+
+    return { villages, selectedVillage };
   },
 });
 </script>
@@ -37,11 +43,13 @@ export default defineComponent({
 
     <div class="p-4">
       <ul class="divide-y-2 divide-gray-200 divide-dashed">
-        <li v-for="(village, index) in villages" :key="village.id" class="flex justify-between">
-          <router-link to="#">
+        <li v-for="(village, index) in villages" :key="village.id" @click="selectedVillage = village[0].id"
+          class="flex justify-between cursor-pointer hover:bg-slate-100"
+          :class="{ 'bg-slate-200': village[0].id == selectedVillage }">
+          <span>
             <!-- <i style="color: #3b32b3" class="fas fa-check"></i> -->
             {{ village[0].name }}
-          </router-link>
+          </span>
           <span>({{ village.length }})</span>
         </li>
         <li class="flex justify-between">
