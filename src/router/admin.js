@@ -1,13 +1,12 @@
-import NavigationAdmin from "../components/navigation/NavigationAdmin.vue";
-import AdminHome from "../components/pages/admin/Home.vue";
+
 
 const admin = [
   {
     path: "/admin/home",
     name: "admin.index",
     components: {
-      default: AdminHome,
-      navigation: NavigationAdmin,
+      default: () => import('../components/pages/admin/Home.vue'),
+      navigation: () => import('../components/navigation/NavigationAdmin.vue')
     },
     meta: {
       title: "Správa účtu",

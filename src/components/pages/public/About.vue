@@ -17,7 +17,7 @@ export default defineComponent({
     const { loading, meta, links, fetchEvents, events} = UseEvent();
 
     onMounted(() => {
-      fetchEvents("/api/events");
+      fetchEvents("/");
     });
 
     const paginatorUrl = (url: string) => {

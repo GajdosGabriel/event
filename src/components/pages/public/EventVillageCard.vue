@@ -1,6 +1,5 @@
 <script lang="ts">
 import { defineComponent, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
 import useEvent from "../../../store/event";
 
 export default defineComponent({
@@ -13,7 +12,7 @@ export default defineComponent({
     const selectedVillage = ref('');
 
     watch(selectedVillage, () => {
-      fetchEvents("/api/events?location=", selectedVillage.value);
+      fetchEvents("?location=", selectedVillage.value);
     })
 
     return { villages, selectedVillage };
@@ -41,10 +40,10 @@ export default defineComponent({
       </div>
     </div>
 
-    <div class="p-4">
+    <div class="">
       <ul class="divide-y-2 divide-gray-200 divide-dashed">
         <li v-for="(village, index) in villages" :key="village.id" @click="selectedVillage = village[0].id"
-          class="flex justify-between cursor-pointer hover:bg-slate-100"
+          class="flex justify-between cursor-pointer hover:bg-slate-100 px-4"
           :class="{ 'bg-slate-200': village[0].id == selectedVillage }">
           <span>
             <!-- <i style="color: #3b32b3" class="fas fa-check"></i> -->
@@ -52,11 +51,11 @@ export default defineComponent({
           </span>
           <span>({{ village.length }})</span>
         </li>
-        <li class="flex justify-between">
-          <router-link to="#">
+        <li class="flex justify-between cursor-pointer hover:bg-slate-100 px-4">
+          <span>
             <!-- <i style="color: #3b32b3" class="fas fa-check"></i> -->
             Online prenosy
-          </router-link>
+          </span>
           <span>(N)</span>
         </li>
       </ul>

@@ -1,8 +1,4 @@
-import NavigationDashboard from "../components/navigation/NavigationDashboard.vue";
-import DashboardHome from "../components/pages/dashboard/Home.vue";
-import DashboardEvents from "../components/pages/dashboard/Events.vue";
-import DashboardEventsCreate from "../components/pages/dashboard/EventsCreate.vue";
-import DashboardSetup from "../components/pages/dashboard/Setup.vue";
+
 import auth from "../middleware/auth";
 
 const dashboard = [
@@ -10,8 +6,8 @@ const dashboard = [
     path: "/dashboard",
     name: "dashboard.index",
     components: {
-      default: DashboardHome,
-      navigation: NavigationDashboard,
+      default: () => import('../components/pages/dashboard/Home.vue'),
+      navigation: () => import('../components/navigation/NavigationDashboard.vue')
     },
     meta: {
       title: "Správa účtu",
@@ -22,8 +18,8 @@ const dashboard = [
     path: "/dashboard/events",
     name: "dashboard.events.index",
     components: {
-      navigation: NavigationDashboard,
-      default: DashboardEvents,
+      default: () => import('../components/pages/dashboard/Events.vue'),
+      navigation: () => import('../components/navigation/NavigationDashboard.vue')
     },
     meta: {
       title: "Vaše akcie",
@@ -34,8 +30,8 @@ const dashboard = [
     path: "/dashboard/event/create",
     name: "dashboard.event.create",
     components: {
-      navigation: NavigationDashboard,
-      default: DashboardEventsCreate,
+      default: () => import('../components/pages/dashboard/EventsCreate.vue'),
+      navigation: () => import('../components/navigation/NavigationDashboard.vue')
     },
     meta: {
       title: "Vytvoriť akciu",
@@ -46,8 +42,8 @@ const dashboard = [
     path: "/dashboard/setup",
     name: "dashboard.setup",
     components: {
-      default: DashboardSetup,
-      navigation: NavigationDashboard,
+      default: () => import('../components/pages/dashboard/Setup.vue'),
+      navigation: () => import('../components/navigation/NavigationDashboard.vue')
     },
     meta: {
       title: "Nastavenie účtu",

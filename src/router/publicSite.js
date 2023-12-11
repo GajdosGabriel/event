@@ -1,18 +1,11 @@
-import NavigationPublic from "../components/navigation/NavigationPublic.vue";
-import OchranaOsobnyhUdajov from "../components/pages/public/OchranaOsobnychUdajov.vue";
-import About from "../components/pages/public/About.vue";
-import Show from "../components/pages/public/Show.vue";
-import NotFoundPage from "../components/pages/public/NotFoundPage.vue";
-import LoginCard from "../components/auth/Card.vue";
-import ResetPassword from "../components/auth/ResetPassword.vue";
 
 const publicSite = [
   {
     path: "/",
     name: "public.index",
     components: {
-      default: About,
-      navigation: NavigationPublic,
+      default: () => import('../components/pages/public/About.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
     meta: {
       title: "Ticket portál",
@@ -23,16 +16,16 @@ const publicSite = [
     path: "/event/:eventId/:eventSlug",
     name: "event.show",
     components: {
-      default: Show,
-      navigation: NavigationPublic,
+      default: () => import('../components/pages/public/Show.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
   },
   {
     path: "/login",
     name: "login.index",
     components: {
-      default: LoginCard,
-      navigation: NavigationPublic,
+      default: () => import('../components/auth/Card.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
     meta: {
       title: "Prihlásenie",
@@ -42,8 +35,8 @@ const publicSite = [
     path: "/password/reset",
     name: "password.reset",
     components: {
-      default: ResetPassword,
-      navigation: NavigationPublic,
+      default: () => import('../components/auth/ResetPassword.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
     meta: {
       title: "Prihlásenie",
@@ -53,8 +46,8 @@ const publicSite = [
     path: "/ochrana-osobnych-udajov",
     name: "ochranaOsobnychUdajov",
     components: {
-      default: OchranaOsobnyhUdajov,
-      navigation: NavigationPublic,
+      default: () => import('../components/pages/public/OchranaOsobnychUdajov.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
     meta: {
       title: "Ochrana osobných údajov",
@@ -64,8 +57,8 @@ const publicSite = [
     path: "/:pathMatch(.*)*",
     name: "Stranka-sa-nenasla",
     components: {
-      default: NotFoundPage,
-      navigation: NavigationPublic,
+      default: () => import('../components/pages/public/NotFoundPage.vue'),
+      navigation: () => import('../components/navigation/NavigationPublic.vue')
     },
     meta: {
       title: "Stránka sa nenašla",

@@ -54,7 +54,7 @@ const actions = {
   },
 
   fetchEventsVillages: async () => {
-    let response = await axios.get("/api/event/village");
+    let response = await axios.get("/event/village");
     state.villages = response.data.data;
   },
 
