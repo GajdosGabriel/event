@@ -11,7 +11,7 @@ const dashboard = [
     },
     meta: {
       title: "Správa účtu",
-      middleware: [auth],
+      // middleware: [auth],
     },
   },
   {
@@ -23,7 +23,7 @@ const dashboard = [
     },
     meta: {
       title: "Vaše akcie",
-      middleware: [auth],
+      // middleware: [auth],
     },
   },
   {
@@ -35,7 +35,7 @@ const dashboard = [
     },
     meta: {
       title: "Vytvoriť akciu",
-      middleware: [auth],
+      // middleware: [auth],
     },
   },
   {
@@ -47,7 +47,7 @@ const dashboard = [
     },
     meta: {
       title: "Nastavenie účtu",
-      middleware: [auth],
+      // middleware: [auth],
     },
   },
 ];

@@ -30,9 +30,9 @@ export default {
 
     onMounted(() => {
       // fetchToken();
-      if( JSON.parse(localStorage.getItem('YourItem'))) {
+      // if( JSON.parse(localStorage.getItem('YourItem'))) {
         fetchUser();
-      }
+      // }
     });
 
     const clickLogout = () => {
