@@ -20,9 +20,7 @@
       <header class="header">
         <RouterLink to="/dashboard" class="brand">Dashboard</RouterLink>
         <nav class="header-nav">
-          <RouterLink to="/" class="header-link">Verejná časť</RouterLink>
-          <RouterLink v-if="auth.isSuperAdmin" to="/admin" class="header-link">Admin</RouterLink>
-          <button class="btn btn-sm btn-secondary" @click="handleLogout">Odhlásiť</button>
+          <UserDropdown variant="teal" logout-to="login" />
         </nav>
       </header>
 
@@ -37,15 +35,9 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import UserDropdown from '@/components/UserDropdown.vue'
 
 const auth = useAuthStore()
-const router = useRouter()
-
-async function handleLogout() {
-  await auth.logout()
-  router.push({ name: 'login' })
-}
 </script>
 
 <style scoped>

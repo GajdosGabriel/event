@@ -1,15 +1,19 @@
 <template>
   <div class="grid min-h-screen grid-rows-[auto_1fr_auto] bg-slate-100">
-    <header class="flex items-center justify-between bg-slate-900 px-5 py-4 text-white">
+    <header class="flex items-center justify-between bg-slate-900 px-5 py-3 text-white">
       <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
-      <nav class="flex gap-4">
+      <nav class="flex items-center gap-3">
         <template v-if="auth.isAuthenticated">
-          <RouterLink to="/dashboard" class="text-slate-300 no-underline hover:text-white">Dashboard</RouterLink>
-          <button class="text-slate-300 hover:text-white bg-transparent border-0 cursor-pointer" @click="handleLogout">Odhlásiť</button>
+          <UserDropdown />
         </template>
         <template v-else>
-          <RouterLink to="/login" class="text-slate-300 no-underline hover:text-white">Prihlásenie</RouterLink>
-          <RouterLink to="/register" class="text-slate-300 no-underline hover:text-white">Registrácia</RouterLink>
+          <RouterLink to="/login" class="text-sm text-slate-300 no-underline hover:text-white">Prihlásenie</RouterLink>
+          <RouterLink
+            to="/register"
+            class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white no-underline hover:bg-blue-500"
+          >
+            Registrácia
+          </RouterLink>
         </template>
       </nav>
     </header>
@@ -26,13 +30,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import UserDropdown from '@/components/UserDropdown.vue'
 
 const auth = useAuthStore()
-const router = useRouter()
-
-async function handleLogout() {
-  await auth.logout()
-  router.push({ name: 'home' })
-}
 </script>

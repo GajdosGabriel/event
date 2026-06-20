@@ -23,8 +23,7 @@
       <header class="header">
         <RouterLink to="/admin" class="brand">Admin</RouterLink>
         <nav class="header-nav">
-          <RouterLink to="/dashboard" class="header-link">Dashboard</RouterLink>
-          <button class="btn btn-sm btn-secondary" @click="handleLogout">Odhlásiť</button>
+          <UserDropdown variant="amber" logout-to="login" />
         </nav>
       </header>
 
@@ -38,16 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
-
-const auth = useAuthStore()
-const router = useRouter()
-
-async function handleLogout() {
-  await auth.logout()
-  router.push({ name: 'login' })
-}
+import UserDropdown from '@/components/UserDropdown.vue'
 </script>
 
 <style scoped>

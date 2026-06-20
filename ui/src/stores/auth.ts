@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => identity.value !== null || !!localStorage.getItem('auth_token'))
   const isSuperAdmin = computed(() => identity.value?.roles?.includes('super-admin') ?? false)
+  const displayName = computed(() => identity.value?.display_name ?? identity.value?.email ?? '')
   const canalName = computed(() => identity.value?.canal ?? '')
   const canalId = computed(() => identity.value?.canal_id ?? null)
 
@@ -48,5 +49,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('auth_token')
   }
 
-  return { identity, loading, isAuthenticated, isSuperAdmin, canalName, canalId, fetchIdentity, login, logout, setActiveCanal, clear }
+  return { identity, loading, isAuthenticated, isSuperAdmin, displayName, canalName, canalId, fetchIdentity, login, logout, setActiveCanal, clear }
 })

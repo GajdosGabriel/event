@@ -77,13 +77,24 @@ export interface LookupOption {
 export interface AuthCanalContextActive {
   id: number
   name: string
+  slug?: string
+}
+
+export interface AuthCanalItem {
+  id: number
+  name: string
+  slug: string
+  status: string
 }
 
 export interface AuthIdentity {
   id: number
+  display_name: string
+  email?: string
   canal_id: number | null
   canal: string
   roles?: string[]
+  canals?: AuthCanalItem[]
   canal_context?: {
     active: AuthCanalContextActive | null
     is_owner: boolean
