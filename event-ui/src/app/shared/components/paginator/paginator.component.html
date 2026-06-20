@@ -1,0 +1,30 @@
+<nav class="paginator" aria-label="Pagination">
+  <button
+    type="button"
+    (click)="prev()"
+    [disabled]="currentPage() === 1"
+    class="nav-btn"
+  >
+    Pred
+  </button>
+
+  @for (page of pages; track page) {
+    <button
+      type="button"
+      (click)="goTo(page)"
+      [class.active]="page === currentPage()"
+      class="page-btn"
+    >
+      {{ page }}
+    </button>
+  }
+
+  <button
+    type="button"
+    (click)="next()"
+    [disabled]="currentPage() === totalPages()"
+    class="nav-btn"
+  >
+    Ďalšia
+  </button>
+</nav>

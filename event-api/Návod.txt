@@ -1,0 +1,44 @@
+php artisan migrate --env=test
+php artisan migrate:reset --env=test
+
+--- Scheduler / cron ---
+php artisan schedule:list
+php artisan schedule:run
+
+Linux cron:
+* * * * * cd /var/www/event-api && php artisan schedule:run >> /dev/null 2>&1
+
+Windows Task Scheduler:
+- Program/script: php
+- Arguments: artisan schedule:run
+- Start in: C:\www\event-api
+
+tests/
+└── Feature/
+    ├── Events/
+    │   └── EventIndexTest.php
+    └── ...
+
+    php artisan make:test UserTest
+    php artisan make:test UserTest --unit
+
+php artisan test tests/Feature/Events
+
+php artisan test tests/Feature/Events/EventIndexTest.php
+php artisan test --testsuite=Feature
+php artisan test --filter=DashboardIndexTest
+
+--- Všetky testy v zložke ---
+php artisan test tests/Unit/Events
+
+
+php artisan migrate:fresh --env=test
+
+
+php artisan app:import-event-sources
+php artisan app:import-event-sources --pages=3 --limit=20
+php artisan app:import-event-sources --url=https://www.ecav.sk/aktuality/pozvanky
+
+Poznámka:
+Pri `app:import-event-sources` sa časy zo zdrojov `ecav.sk`, `vyveska.sk` a `tkkbs.sk` interpretujú ako lokálny čas `Europe/Bratislava`.
+To znamená, že importer neberie čas zo zdroja ako čisté UTC, ale ako slovenský lokálny čas a až potom ho prevedie na správny UTC moment pre backend.

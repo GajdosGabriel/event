@@ -1,0 +1,76 @@
+.event-index-aside {
+	display: grid;
+	gap: 1rem;
+	align-content: start;
+	height: fit-content;
+}
+
+.event-index-aside-title {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 600;
+	color: #0f172a;
+}
+
+.event-index-stats {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.event-index-stat {
+	border: 1px solid #e2e8f0;
+	border-radius: 0.75rem;
+	padding: 0.65rem 0.75rem;
+	background: #f8fafc;
+}
+
+.event-index-stat-label {
+	margin: 0;
+	font-size: 0.8rem;
+	color: #64748b;
+}
+
+.event-index-stat-value {
+	margin: 0.2rem 0 0;
+	font-size: 1.3rem;
+	line-height: 1;
+	font-weight: 700;
+	color: #0f172a;
+}
+
+.event-index-nearest {
+	border: 1px dashed #cbd5e1;
+	border-radius: 0.75rem;
+	padding: 0.75rem;
+	background: #fff;
+}
+
+.event-index-nearest-title {
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: #475569;
+}
+
+.event-index-nearest-name {
+	margin: 0.45rem 0 0;
+	font-size: 0.97rem;
+	font-weight: 600;
+	color: #0f172a;
+}
+
+.event-index-nearest-time {
+	margin: 0.25rem 0 0;
+	color: #334155;
+	font-size: 0.88rem;
+}
+
+.event-index-nearest-empty {
+	margin: 0.45rem 0 0;
+	color: #64748b;
+	font-size: 0.88rem;
+}
+
+

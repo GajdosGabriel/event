@@ -1,0 +1,15 @@
+<article class="index-admin-row">
+  <ng-content select="[row-thumb]" />
+
+  <div class="main">
+    <h3 class="title"><ng-content select="[row-title]" /></h3>
+    <ng-content select="[row-meta]" />
+    <ng-content select="[row-description]" />
+  </div>
+
+  <ng-content select="[row-status]" />
+
+  <div class="actions">
+    <ng-content select="[row-actions]" />
+  </div>
+</article>

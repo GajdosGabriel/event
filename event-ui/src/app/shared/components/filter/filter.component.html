@@ -1,0 +1,78 @@
+<div class="filter-container">
+  @if (filterState && isActive) {
+    <div class="filter-badge">Aktivne filtre</div>
+    <p class="filter-active-list">{{ activeFilterLabels.join(', ') }}</p>
+  }
+
+  <div class="filter-controls">
+    <div class="filter-search-field">
+      <input
+        [formControl]="searchControl"
+        class="filter-search"
+        placeholder="Hladat nazov, slug alebo text"
+        type="text"
+      />
+      @if (searchControl.value) {
+        <button
+          (click)="clearSearch()"
+          aria-label="Vymazat vyhladavanie"
+          class="filter-search-clear"
+          type="button"
+        >
+          x
+        </button>
+      }
+    </div>
+
+    <button
+      (click)="togglePublished()"
+      [class.active]="filterState.published"
+      class="filter-btn"
+    >
+      📤 Publikované
+    </button>
+
+    <button
+      (click)="toggleUnpublished()"
+      [class.active]="filterState.unpublished"
+      class="filter-btn"
+    >
+      📝 Nepublikované
+    </button>
+
+    <button
+      (click)="toggleBlocked()"
+      [class.active]="filterState.blocked"
+      class="filter-btn"
+    >
+      🚫 Blokované
+    </button>
+
+    <button (click)="toggleDeleted()" [class.active]="filterState.deleted" class="filter-btn">
+      🗑️ Vrátané položky
+    </button>
+
+    <select (change)="onStatusChange($event)" class="filter-select" [value]="filterState.status ?? ''">
+      <option value="">Vsetky statusy</option>
+      @for (option of statusOptions; track option.id) {
+        <option [value]="option.id" [selected]="filterState.status === option.id">{{ option.name }}</option>
+      }
+    </select>
+
+    @if (perPageLoading()) {
+      <select class="filter-select" aria-busy="true" disabled>
+        <option selected>Načítavam počet položiek...</option>
+      </select>
+    } @else {
+      <select (change)="onPerPageChange($event)" class="filter-select" [value]="filterState.per_page">
+        @for (option of perPageOptions(); track option) {
+          <option [value]="option" [selected]="filterState.per_page === option">{{ option }} položiek</option>
+        }
+      </select>
+    }
+
+    @if (isActive) {
+      <button (click)="resetFilter()" class="filter-btn reset-btn">✕ Zrušit filtre</button>
+    }
+  </div>
+</div>

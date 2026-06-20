@@ -1,0 +1,30 @@
+{
+  "/api": {
+    "target": "http://event-api.local",
+    "secure": false,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/sanctum": {
+    "target": "http://event-api.local",
+    "secure": false,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/storage": {
+    "target": "http://event-api.local",
+    "secure": false,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/images": {
+    "target": "http://event-api.local",
+    "secure": false,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  }
+}

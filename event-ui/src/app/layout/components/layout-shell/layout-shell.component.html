@@ -1,0 +1,56 @@
+<div class="layout-shell" [class]="layoutClass ? 'layout-shell ' + layoutClass : 'layout-shell'">
+  <aside *ngIf="showAside" class="aside">
+    <a class="aside-brand" [routerLink]="brandLink">
+      <span class="brand-mark">{{ asideBrandMark }}</span>
+      <span class="brand-copy">
+        <strong>{{ brandText }}</strong>
+        <small *ngIf="brandSubtitle">{{ brandSubtitle }}</small>
+      </span>
+    </a>
+
+    <nav class="aside-nav">
+      <a
+        *ngFor="let link of asideLinks"
+        [attr.href]="link.path"
+        class="aside-link"
+        [class.active]="isAsideLinkActive(link)"
+        (click)="onAsideLinkClick($event, link)"
+      >
+        {{ link.label }}
+      </a>
+    </nav>
+  </aside>
+
+  <div class="content-shell" [class.no-aside]="!showAside">
+    <header class="header">
+      <a *ngIf="!showAside" class="brand" [routerLink]="brandLink">{{ brandText }}</a>
+      <nav class="header-nav">
+        <a
+          *ngFor="let link of headerLinks"
+          [routerLink]="link.path"
+          [class.active]="isHeaderLinkActive(link)"
+          class="header-link"
+        >
+          {{ link.label }}
+        </a>
+        @if (showLogout) {
+          <app-dropdown
+            [triggerLabel]="(isLoggingOut$ | async) ? 'Odhlasujem...' : userMenuLabel"
+            [items]="userMenuItems"
+            [disabled]="(isLoggingOut$ | async) ?? false"
+            (itemSelect)="onUserMenuSelect($event)"
+          >
+          </app-dropdown>
+        }
+      </nav>
+    </header>
+
+    <main class="body">
+      <router-outlet />
+    </main>
+
+    <footer class="footer">
+      <small>{{ footerText }}</small>
+    </footer>
+  </div>
+</div>

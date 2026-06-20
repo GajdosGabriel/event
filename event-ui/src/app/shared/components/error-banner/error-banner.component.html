@@ -1,0 +1,11 @@
+@if (displayMessages().length > 0) {
+  <div class="error-banner" role="alert" aria-live="assertive">
+    @if (displayMessages().length === 1) {
+      <p>{{ displayMessages()[0] }}</p>
+    } @else {
+      @for (text of displayMessages(); track text) {
+        <p>{{ text }}</p>
+      }
+    }
+  </div>
+}

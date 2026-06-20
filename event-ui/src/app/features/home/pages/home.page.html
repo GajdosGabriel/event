@@ -1,0 +1,56 @@
+<main class="home">
+  <header class="hero">
+    <h1>Nadchádzajúce podujatia</h1>
+    <p>Vyber si podujatie, ktoré ťa zaujíma.</p>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Načítavam podujatia...</p>
+  } @else {
+    <app-error-banner [message]="errorMessage()" />
+
+    <section class="home-layout">
+      <div class="home-main">
+        <section class="events-grid">
+          @for (event of events(); track event.id) {
+            <app-event-card
+              [title]="event.name"
+              [description]="event.body"
+              [category]="getModelStatusLabel(event.status)"
+              [canalName]="event.canalName"
+              [startAt]="event.startAt"
+              [registrationDeadlineAt]="event.registrationDeadlineAt"
+              [imageUrl]="event.imageUrl"
+              [link]="'/events/' + event.id"
+            />
+          }
+        </section>
+
+        <app-paginator
+          [currentPage]="currentPage()"
+          [totalPages]="totalPages()"
+          (pageChange)="onPageChange($event)"
+        />
+      </div>
+
+      <div>
+        <aside class="home-aside">
+          <h2>Prehľad</h2>
+          <p>Počet podujatí na stránke: {{ events().length }}</p>
+          <p>Stránka {{ currentPage() }} z {{ totalPages() }}</p>
+        </aside>
+
+        <aside class="home-aside">
+          <app-municipality-overview
+            [limit]="8"
+            scope="public"
+            title="Miesta s podujatiami"
+            allLabel="Všetky podujatia"
+            allLink="/"
+          />
+        </aside>
+      </div>
+    </section>
+  }
+</main>
+

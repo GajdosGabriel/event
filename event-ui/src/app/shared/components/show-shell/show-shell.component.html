@@ -1,0 +1,22 @@
+@if (loading()) {
+  <section class="show-card">
+    <h1 class="text-lg font-semibold text-slate-900">{{ loadingText() }}</h1>
+  </section>
+} @else if (found()) {
+  <section class="show-shell">
+    <ng-content select="[shell-main]" />
+    <aside class="show-card">
+      <ng-content select="[shell-aside]" />
+    </aside>
+  </section>
+} @else {
+  <section class="show-not-found">
+    <h1 class="text-lg font-semibold">{{ notFoundText() }}</h1>
+    <a
+      [routerLink]="backLink()"
+      class="mt-3 inline-block text-sm font-medium text-rose-700 hover:underline"
+    >
+      {{ backLinkText() }}
+    </a>
+  </section>
+}

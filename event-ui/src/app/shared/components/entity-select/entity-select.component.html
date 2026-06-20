@@ -1,0 +1,75 @@
+<label class="field" [class.invalid]="invalid()">
+  <span class="label-line" [id]="labelId">
+    {{ label() }}
+    @if (required()) {
+      <span class="required-mark" aria-hidden="true">*</span>
+    }
+  </span>
+
+  <div class="input-wrap">
+    <input
+      type="text"
+      [id]="inputId"
+      [class.invalid]="invalid()"
+      [value]="query()"
+      [placeholder]="placeholder()"
+      [disabled]="disabled"
+      role="combobox"
+      aria-autocomplete="list"
+      [attr.aria-labelledby]="labelId"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="listboxId"
+      [attr.aria-activedescendant]="getActiveDescendant()"
+      [attr.aria-invalid]="invalid()"
+      [attr.aria-describedby]="invalid() ? errorId : null"
+      (keydown)="onKeydown($event)"
+      (input)="onInput(($any($event.target).value ?? '').toString())"
+      (focus)="openDropdown()"
+      (blur)="closeDropdown()"
+    />
+
+    @if (!required() && selectedValue() !== null && !disabled) {
+      <button type="button" class="clear-btn" (click)="clearSelection()">Zrušit</button>
+    }
+  </div>
+
+  @if (isOpen()) {
+    <div class="panel" [id]="listboxId" role="listbox">
+      @if (filteredOptions().length === 0) {
+        <p class="empty">Nenasli sa ziadne vysledky.</p>
+      }
+
+      @for (option of filteredOptions(); track option.id; let index = $index) {
+        @let parts = getOptionLabelParts(option.name);
+        <button
+          type="button"
+          class="option"
+          role="option"
+          [class.active]="option.id === selectedValue()"
+          [class.highlighted]="index === activeIndex()"
+          [attr.aria-selected]="option.id === selectedValue()"
+          [id]="getOptionId(index)"
+          [attr.data-option-index]="index"
+          (mousedown)="$event.preventDefault()"
+          (mouseenter)="setActiveIndex(index)"
+          (click)="selectOption(option)"
+        >
+          <span>
+            {{ parts.before }}
+            @if (parts.match) {
+              <mark class="option-match">{{ parts.match }}</mark>
+            }
+            {{ parts.after }}
+          </span>
+          @if (option.id === selectedValue()) {
+            <span class="option-state">Vybrané</span>
+          }
+        </button>
+      }
+    </div>
+  }
+
+  @if (invalid()) {
+    <p class="field-error" [id]="errorId">{{ errorText() }}</p>
+  }
+</label>

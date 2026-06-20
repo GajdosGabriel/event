@@ -1,0 +1,40 @@
+export const API_BASE_URL = '/api';
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
+export const API_ENDPOINTS = {
+  eventsPublic: `${API_BASE_URL}/events`,
+  eventsMunicipalitiesOverviewPublic: `${API_BASE_URL}/events/municipalities-overview`,
+  eventsMunicipalitiesOverviewDashboard: `${API_BASE_URL}/dashboard/events/municipalities-overview`,
+  eventsMunicipalitiesOverviewAdmin: `${API_BASE_URL}/admin/events/municipalities-overview`,
+  canalsMunicipalitiesOverviewDashboard: `${API_BASE_URL}/dashboard/canals/municipalities-overview`,
+  canalsMunicipalitiesOverviewAdmin: `${API_BASE_URL}/admin/canals/municipalities-overview`,
+  venuesMunicipalitiesOverviewDashboard: `${API_BASE_URL}/dashboard/venues/municipalities-overview`,
+  venuesMunicipalitiesOverviewAdmin: `${API_BASE_URL}/admin/venues/municipalities-overview`,
+  events: `${API_BASE_URL}/dashboard/events`,
+  adminEvents: `${API_BASE_URL}/admin/events`,
+  canals: `${API_BASE_URL}/dashboard/canals`,
+  adminCanals: `${API_BASE_URL}/admin/canals`,
+  authActiveCanal: `${API_BASE_URL}/dashboard/users/active-canal`,
+  files: `${API_BASE_URL}/dashboard/files`,
+  dashboardFiles: `${API_BASE_URL}/dashboard/files`,
+  adminFiles: `${API_BASE_URL}/admin/files`,
+  dashboardRoles: `${API_BASE_URL}/dashboard/roles`,
+  dashboardPermissions: `${API_BASE_URL}/dashboard/permissions`,
+  dashboardUsers: `${API_BASE_URL}/dashboard/users`,
+  dashboardOrganizations: `${API_BASE_URL}/dashboard/organizations`,
+  adminOrganizations: `${API_BASE_URL}/admin/organizations`,
+  municipalities: `${API_BASE_URL}/dashboard/municipalities/all`,
+  venues: `${API_BASE_URL}/dashboard/venues`,
+  adminVenues: `${API_BASE_URL}/admin/venues`,
+  venuesDetect: `${API_BASE_URL}/dashboard/venues/detect`,
+  authLogin: `${API_BASE_URL}/login`,
+  authRegister: `${API_BASE_URL}/register`,
+  authRegisterVerify: `${API_BASE_URL}/register/verify`,
+  authRegisterResend: `${API_BASE_URL}/register/resend`,
+  authLogout: `${API_BASE_URL}/logout`,
+  authMe: `${API_BASE_URL}/user`,
+  authCsrfCookie: `${API_ORIGIN}/sanctum/csrf-cookie`,
+  authGoogleRedirect: `${API_BASE_URL}/auth/google/redirect`,
+  authFacebookRedirect: `${API_BASE_URL}/auth/facebook/redirect`
+} as const;
+

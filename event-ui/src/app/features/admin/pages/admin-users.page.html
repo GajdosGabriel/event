@@ -1,0 +1,73 @@
+<app-index-shell
+	title="Roly a permissions"
+	subtitle="GET /dashboard/roles, GET /dashboard/permissions, PUT /dashboard/users/{id}/roles"
+>
+	<button index-actions type="button" class="btn btn-secondary btn-sm" (click)="reloadAccessControlData()" [disabled]="loading() || assigning()">
+		Obnoviť
+	</button>
+
+	@if (errorMessage()) {
+		<p class="index-status index-status-error">{{ errorMessage() }}</p>
+	}
+
+	<section class="users-grid">
+		<article class="panel-card section-card">
+			<h3>Pridanie roly používateľovi</h3>
+
+			<div class="form-row">
+				<label for="userId">ID používateľa</label>
+				<input id="userId" type="number" min="1" [(ngModel)]="userId" placeholder="napr. 123" />
+			</div>
+
+			<div class="form-row">
+				<label for="role">Rola</label>
+				<select id="role" [(ngModel)]="selectedRole">
+					<option value="">Vyber rolu</option>
+					@for (role of roles(); track role.name) {
+						<option [value]="role.name">{{ role.label || role.name }}</option>
+					}
+				</select>
+			</div>
+
+			<button type="button" class="btn btn-primary" (click)="assignRole()" [disabled]="assigning() || loading()">
+				{{ assigning() ? 'Ukladám...' : 'Priradiť rolu' }}
+			</button>
+		</article>
+
+		<article class="panel-card section-card">
+			<h3>Dostupné roly</h3>
+			@if (loading()) {
+				<p class="index-status">Načítavam roly...</p>
+			} @else if (roles().length === 0) {
+				<p class="index-status">Žiadne roly neboli vrátené z API.</p>
+			} @else {
+				<ul class="simple-list">
+					@for (role of roles(); track role.name) {
+						<li>
+							<strong>{{ role.label || role.name }}</strong>
+							<span class="muted">({{ role.name }})</span>
+						</li>
+					}
+				</ul>
+			}
+		</article>
+
+		<article class="panel-card section-card">
+			<h3>Dostupné permissions</h3>
+			@if (loading()) {
+				<p class="index-status">Načítavam permissions...</p>
+			} @else if (permissions().length === 0) {
+				<p class="index-status">Žiadne permissions neboli vrátené z API.</p>
+			} @else {
+				<ul class="simple-list">
+					@for (permission of permissions(); track permission.name) {
+						<li>
+							<strong>{{ permission.label || permission.name }}</strong>
+							<span class="muted">({{ permission.name }})</span>
+						</li>
+					}
+				</ul>
+			}
+		</article>
+	</section>
+</app-index-shell>

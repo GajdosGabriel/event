@@ -1,0 +1,117 @@
+<section class="uploaded-files-gallery ">
+  <h3 class="uploaded-files-gallery__title">{{ title }}</h3>
+
+  @if (allFiles.length === 0) {
+    <p class="uploaded-files-gallery__empty">{{ emptyText }}</p>
+  } @else {
+    <div class="uploaded-files-gallery__grid">
+      @for (file of allFiles; track file.id ?? file.url ?? file.name) {
+        @if (isImage(file)) {
+          <button
+            type="button"
+            class="uploaded-files-gallery__item"
+            (click)="openLightboxForFile(file)"
+            [title]="file.name"
+            [attr.aria-label]="'Otvoriť obrázok ' + file.name + ' v lightboxe'"
+          >
+            <img
+              class="uploaded-files-gallery__image"
+              [src]="file.previewUrl || file.url"
+              [alt]="file.name"
+              loading="lazy"
+            />
+            <span class="uploaded-files-gallery__caption">{{ file.name | truncate:30 }}</span>
+          </button>
+        } @else {
+          <a
+            class="uploaded-files-gallery__item uploaded-files-gallery__item--file"
+            [href]="file.url"
+            target="_blank"
+            rel="noopener"
+            [title]="file.name"
+            [attr.aria-label]="file.name"
+          >
+            @switch (getFileIconVariant(file)) {
+              @case ('pdf') {
+                <svg class="file-icon file-icon--pdf" viewBox="0 0 48 48" role="img" [attr.aria-label]="getFileIconLabel(file) + ' file'">
+                  <path class="file-icon__sheet" d="M14 4h14l10 10v24a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V10a6 6 0 0 1 6-6Z" />
+                  <path class="file-icon__fold file-icon__fold--filled" d="M28 4v10h10" />
+                  <path class="file-icon__pdf-mark" d="M14 30h20" />
+                  <path class="file-icon__pdf-mark" d="M14 34h16" />
+                  <path class="file-icon__pdf-mark" d="M14 38h12" />
+                  <rect class="file-icon__band" x="10" y="10" width="11" height="16" rx="3" />
+                  <text class="file-icon__label file-icon__label--stacked" x="15.5" y="19.5" text-anchor="middle">PDF</text>
+                </svg>
+              }
+              @case ('word') {
+                <svg class="file-icon file-icon--word" viewBox="0 0 48 48" role="img" [attr.aria-label]="getFileIconLabel(file) + ' file'">
+                  <path class="file-icon__sheet" d="M19 5h15l8 8v24a6 6 0 0 1-6 6H19a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z" />
+                  <path class="file-icon__fold" d="M34 5v8h8" />
+                  <rect class="file-icon__panel" x="6" y="12" width="16" height="22" rx="4" />
+                  <text class="file-icon__glyph" x="14" y="26" text-anchor="middle">W</text>
+                  <path class="file-icon__word-line" d="M25 19h11" />
+                  <path class="file-icon__word-line" d="M25 24h9" />
+                  <path class="file-icon__word-line" d="M25 29h11" />
+                </svg>
+              }
+              @case ('excel') {
+                <svg class="file-icon file-icon--excel" viewBox="0 0 48 48" role="img" [attr.aria-label]="getFileIconLabel(file) + ' file'">
+                  <path class="file-icon__sheet" d="M19 5h15l8 8v24a6 6 0 0 1-6 6H19a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z" />
+                  <path class="file-icon__fold" d="M34 5v8h8" />
+                  <rect class="file-icon__panel" x="6" y="12" width="16" height="22" rx="4" />
+                  <text class="file-icon__glyph" x="14" y="26" text-anchor="middle">X</text>
+                  <path class="file-icon__grid" d="M26 17h10M26 22h10M26 27h10M29.5 14v17M33 14v17" />
+                </svg>
+              }
+              @default {
+                <svg class="file-icon" viewBox="0 0 48 48" role="img" [attr.aria-label]="getFileIconLabel(file) + ' file'">
+                  <path class="file-icon__sheet" d="M14 4h14l10 10v24a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V10a6 6 0 0 1 6-6Z" />
+                  <path class="file-icon__fold" d="M28 4v10h10" />
+                  <rect class="file-icon__band" x="12" y="27" width="24" height="11" rx="3" />
+                  <text class="file-icon__label" x="24" y="35.2" text-anchor="middle">{{ getFileIconLabel(file) }}</text>
+                </svg>
+              }
+            }
+            <span class="uploaded-files-gallery__caption">{{ file.name | truncate:30 }}</span>
+          </a>
+        }
+      }
+    </div>
+  }
+</section>
+
+@if (activeImage; as image) {
+  <div class="uploaded-files-gallery__lightbox" (click)="onBackdropClick($event)">
+    <div class="uploaded-files-gallery__lightbox-content" role="dialog" aria-modal="true" [attr.aria-label]="image.name">
+      <button type="button" class="uploaded-files-gallery__close" (click)="closeLightbox()" aria-label="Zatvoriť lightbox">
+        ×
+      </button>
+
+      <img class="uploaded-files-gallery__lightbox-image" [src]="image.url" [alt]="image.name" />
+
+      <div class="uploaded-files-gallery__lightbox-footer">
+        <span class="uploaded-files-gallery__lightbox-name">{{ image.name }}</span>
+        <a class="uploaded-files-gallery__open-link" [href]="image.url" target="_blank" rel="noopener">Otvoriť originál</a>
+      </div>
+
+      @if (imageFiles.length > 1) {
+        <button
+          type="button"
+          class="uploaded-files-gallery__nav uploaded-files-gallery__nav--prev"
+          (click)="showPreviousImage()"
+          aria-label="Predchádzajúci obrázok"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          class="uploaded-files-gallery__nav uploaded-files-gallery__nav--next"
+          (click)="showNextImage()"
+          aria-label="Ďalší obrázok"
+        >
+          ›
+        </button>
+      }
+    </div>
+  </div>
+}

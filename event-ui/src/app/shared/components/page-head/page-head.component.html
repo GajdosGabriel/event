@@ -1,0 +1,11 @@
+<div class="head">
+  <div class="head-actions flex justify-between">
+    <ng-content select="[head-actions]"></ng-content>
+  </div>
+
+  <h1 class="head-title">{{ title() }}</h1>
+
+  @if (subtitle()) {
+    <p class="head-copy">{{ subtitle() }}</p>
+  }
+</div>

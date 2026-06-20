@@ -1,0 +1,91 @@
+.municipality-overview {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.overview-head h2 {
+  margin: 0;
+  font-size: 1.03rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.overview-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px dashed #e5e7eb;
+  border-bottom: 2px dashed #e5e7eb;
+}
+
+.overview-row,
+.overview-all-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 2.4rem;
+  border-top: 2px dashed #e5e7eb;
+  padding: 0.4rem 0;
+}
+
+.overview-list > li:first-child {
+  border-top: 0;
+}
+
+.overview-item,
+.overview-all-link {
+  color: #1f2937;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.16s ease;
+}
+
+.overview-item:hover,
+.overview-all-link:hover {
+  color: #2563eb;
+}
+
+.overview-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 600;
+}
+
+.overview-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.all-icon {
+  color: #3b32b3;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.overview-count {
+  min-width: 2ch;
+  text-align: right;
+  color: #111827;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  .overview-item,
+  .overview-all-link {
+    font-size: 0.9rem;
+  }
+}

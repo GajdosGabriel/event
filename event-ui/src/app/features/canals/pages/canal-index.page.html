@@ -1,0 +1,67 @@
+<div class="grid gap-6 lg:grid-cols-3">
+  <main class="flex flex-col gap-4 lg:col-span-2">
+    <app-index-shell title="Kanály" [defaultPerPage]="defaultPerPage()" [perPageLoading]="defaultPerPageLoading()">
+      @if (canCreate()) {
+        <a index-actions [routerLink]="routePrefix + '/canals/create'" class="head-link">Vytvoriť kanál</a>
+      }
+
+      @if (loading()) {
+        <p class="index-status">Načítavam kanály...</p>
+      } @else {
+        <app-error-banner [message]="errorMessage()" />
+
+        @if (canals().length === 0) {
+          <p class="index-status">Žiadne kanály.</p>
+        } @else {
+          <ul class="index-list">
+            @for (canal of canals(); track canal.id) {
+              <app-index-item
+                [itemId]="canal.id"
+                [title]="canal.canal"
+                [description]="canal.body"
+                [descriptionFallback]="'Bez popisu kanálu.'"
+                [metaItems]="[canal.email, getCanalIdentityModeLabel(canal.identityMode), getModelStatusLabel(canal.status)]"
+                [thumbImage]="canal.imageUrl"
+                [status]="canal.status"
+                [deletedAt]="canal.deletedAt"
+                [link]="routePrefix + '/canals/' + canal.id"
+                [editLink]="routePrefix + '/canals/' + canal.id + '/edit'"
+                [isHighlighted]="resolvedActiveCanalId() === canal.id"
+                [highlightLabel]="'Aktívny kanál'"
+                [rowClass]="resolvedActiveCanalId() === canal.id ? 'active-canal-row' : null"
+                [showSwitchAction]="canSwitchCanal()"
+                [hideDeleteAction]="activeCanalId() === canal.id"
+                [permissions]="canal.permissions"
+                [showViewAction]="true"
+                [showStatusAction]="true"
+                [detailAriaLabel]="'Zobraziť detail kanálu'"
+                [deletedItemMessage]="'Kanál je zmazaný. Obnovte ho pre zobrazenie detailu.'"
+                (actionClicked)="onCanalAction($event, canal)"
+              ></app-index-item>
+            }
+          </ul>
+        }
+      }
+    </app-index-shell>
+
+    <app-paginator
+      [currentPage]="currentPage()"
+      [totalPages]="totalPages()"
+      (pageChange)="onPageChange($event)"
+    />
+  </main>
+
+  <aside class="lg:col-span-1">
+    <div class="panel-card">
+      <app-municipality-overview
+        title="Regióny"
+        allLabel="Všetky kanály"
+        [allLink]="routePrefix + '/canals'"
+        [scope]="canalsScope"
+        resource="canals"
+        [limit]="8"
+      />
+    </div>
+  </aside>
+</div>
+

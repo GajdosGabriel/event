@@ -1,0 +1,114 @@
+<app-index-shell
+	title="Organizations"
+	subtitle="Dashboard/Admin organizations CRUD + restore"
+>
+	<button index-actions type="button" class="btn btn-secondary btn-sm" (click)="loadOrganizations()" [disabled]="loading() || submitting()">
+		Obnoviť zoznam
+	</button>
+
+	<div class="scope-switch">
+		<button
+			type="button"
+			class="btn btn-sm"
+			[class.btn-dark]="scope() === 'admin'"
+			[class.btn-secondary]="scope() !== 'admin'"
+			(click)="onScopeChange('admin')"
+			[disabled]="loading()"
+		>
+			Admin API
+		</button>
+		<button
+			type="button"
+			class="btn btn-sm"
+			[class.btn-dark]="scope() === 'dashboard'"
+			[class.btn-secondary]="scope() !== 'dashboard'"
+			(click)="onScopeChange('dashboard')"
+			[disabled]="loading()"
+		>
+			Dashboard API
+		</button>
+	</div>
+
+	@if (errorMessage()) {
+		<p class="index-status index-status-error">{{ errorMessage() }}</p>
+	}
+
+	<section class="settings-grid">
+		<article class="panel-card section-card">
+			<h3>{{ selectedOrganizationId ? 'Upraviť organization' : 'Vytvoriť organization' }}</h3>
+
+			<div class="form-grid">
+				<label>
+					Názov *
+					<input type="text" [(ngModel)]="form.name" placeholder="Názov organizácie" />
+				</label>
+				<label>
+					Slug
+					<input type="text" [(ngModel)]="form.slug" placeholder="my-organization" />
+				</label>
+				<label>
+					Website
+					<input type="text" [(ngModel)]="form.website" placeholder="https://example.com" />
+				</label>
+				<label>
+					Email
+					<input type="email" [(ngModel)]="form.email" placeholder="team@example.com" />
+				</label>
+				<label>
+					Telefón
+					<input type="text" [(ngModel)]="form.phone" placeholder="+421..." />
+				</label>
+				<label>
+					Status
+					<input type="text" [(ngModel)]="form.status" placeholder="draft/published..." />
+				</label>
+			</div>
+
+			<label>
+				Popis
+				<textarea rows="4" [(ngModel)]="form.body" placeholder="Krátky popis"></textarea>
+			</label>
+
+			<div class="actions-row">
+				<button type="button" class="btn btn-primary" (click)="saveOrganization()" [disabled]="submitting() || loading()">
+					{{ submitting() ? 'Ukladám...' : (selectedOrganizationId ? 'Uložiť zmeny' : 'Vytvoriť') }}
+				</button>
+				<button type="button" class="btn btn-ghost" (click)="resetForm()" [disabled]="submitting()">
+					Vyčistiť
+				</button>
+			</div>
+		</article>
+
+		<article class="panel-card section-card">
+			<h3>Zoznam organizations ({{ scope() }})</h3>
+			@if (loading()) {
+				<p class="index-status">Načítavam organizations...</p>
+			} @else if (organizations().length === 0) {
+				<p class="index-status">Žiadne organizations na zobrazenie.</p>
+			} @else {
+				<ul class="org-list">
+					@for (item of organizations(); track item.id) {
+						<li>
+							<div class="org-main">
+								<strong>{{ item.name }}</strong>
+								<span class="muted">#{{ item.id }} @if (item.slug) { • {{ item.slug }} }</span>
+								@if (item.deletedAt) {
+									<span class="deleted-tag">deleted</span>
+								}
+							</div>
+
+							<div class="org-actions">
+								<button type="button" class="btn btn-secondary btn-sm" (click)="editOrganization(item)">Upraviť</button>
+								@if (item.deletedAt) {
+									<button type="button" class="btn btn-secondary btn-sm" (click)="restoreOrganization(item)">Restore</button>
+								} @else {
+									<button type="button" class="btn btn-danger btn-sm" (click)="deleteOrganization(item)">Delete</button>
+								}
+							</div>
+						</li>
+					}
+				</ul>
+			}
+		</article>
+	</section>
+</app-index-shell>

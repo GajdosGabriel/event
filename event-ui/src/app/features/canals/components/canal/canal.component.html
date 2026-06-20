@@ -1,0 +1,29 @@
+<section class="canal-widget">
+  <h2>Kanály</h2>
+
+  @if (loading()) {
+    <p class="status">Načítavam kanály...</p>
+  } @else {
+    <app-error-banner [message]="errorMessage()" />
+
+    @if (canals().length === 0) {
+      <p class="status">Žiadne kanály.</p>
+    } @else {
+      <ul class="canal-list">
+        @for (canal of canals(); track canal.id) {
+          <li>
+            <strong>{{ canal.name }}</strong>
+            <span>{{ getCanalIdentityModeLabel(canal.identityMode) }}</span>
+            <span>{{ canal.email }}</span>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>
+
+<app-paginator
+  [currentPage]="currentPage()"
+  [totalPages]="totalPages()"
+  (pageChange)="onPageChange($event)"
+/>

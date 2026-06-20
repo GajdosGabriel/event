@@ -1,0 +1,25 @@
+<article class="event-card">
+  <a [routerLink]="link()" class="image-link">
+    <img [src]="imageUrl()" [alt]="title()" />
+  </a>
+
+  <div class="content">
+    <h3>
+      <a [routerLink]="link()">{{ title() }}</a>
+    </h3>
+    <p class="description">{{ ((description() || 'Bez popisu podujatia.') | stripHtml) | truncate: 80 }}</p>
+    <a [routerLink]="link()" class="category">
+      <span class="bar" aria-hidden="true"></span>{{ category() }}
+    </a>
+    <p class="published">
+      Začiatok:
+      {{ startAt() ? (startAt() | date: 'dd.MM.yyyy HH:mm') : 'Termín neznámy' }}
+    </p>
+    @if (registrationDeadlineAt()) {
+      <p class="published">
+        Uzávierka: {{ registrationDeadlineAt() | timeUntil }}
+      </p>
+    }
+    <p class="published">Kto: {{ canalName() }}</p>
+  </div>
+</article>

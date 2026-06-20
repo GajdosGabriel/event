@@ -1,0 +1,16 @@
+<section class="index-widget panel-card">
+  <div class="index-head head flex justify-between">
+    <h2 class="head-title">{{ title() }}</h2>
+    <div class="head-actions">
+      <ng-content select="[index-actions]"></ng-content>
+    </div>
+
+    @if (subtitle()) {
+      <p class="head-copy">{{ subtitle() }}</p>
+    }
+  </div>
+
+  <app-filter [defaultPerPage]="defaultPerPage()" [perPageLoading]="perPageLoading()"></app-filter>
+
+  <ng-content></ng-content>
+</section>

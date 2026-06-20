@@ -1,0 +1,55 @@
+<div class="editor-shell" [class.editor-shell-disabled]="disabled" [class.editor-shell-focused]="isFocused">
+  <div class="editor-toolbar" aria-label="Formátovanie textu">
+    <button type="button" class="toolbar-button" (click)="exec('bold')" [disabled]="disabled" aria-label="Tučné">
+      B
+    </button>
+    <button type="button" class="toolbar-button toolbar-button-italic" (click)="exec('italic')" [disabled]="disabled" aria-label="Kurzíva">
+      I
+    </button>
+    <button type="button" class="toolbar-button toolbar-button-underline" (click)="exec('underline')" [disabled]="disabled" aria-label="Podčiarknuté">
+      U
+    </button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <button type="button" class="toolbar-button" (click)="exec('formatBlock', '<h2>')" [disabled]="disabled">
+      H2
+    </button>
+    <button type="button" class="toolbar-button" (click)="exec('formatBlock', '<h3>')" [disabled]="disabled">
+      H3
+    </button>
+    <button type="button" class="toolbar-button" (click)="exec('formatBlock', '<p>')" [disabled]="disabled">
+      P
+    </button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <button type="button" class="toolbar-button" (click)="exec('insertUnorderedList')" [disabled]="disabled" aria-label="Odrážky">
+      • List
+    </button>
+    <button type="button" class="toolbar-button" (click)="exec('insertOrderedList')" [disabled]="disabled" aria-label="Číslovaný zoznam">
+      1. List
+    </button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <button type="button" class="toolbar-button" (click)="exec('createLink')" [disabled]="disabled">
+      Link
+    </button>
+    <button type="button" class="toolbar-button" (click)="exec('unlink')" [disabled]="disabled">
+      Unlink
+    </button>
+  </div>
+
+  <div class="editor-surface-wrap">
+    @if (isEmpty()) {
+      <span class="editor-placeholder">{{ placeholder() }}</span>
+    }
+
+    <div
+      #editor
+      class="editor-surface"
+      [attr.contenteditable]="disabled ? 'false' : 'true'"
+      [attr.aria-disabled]="disabled"
+      role="textbox"
+      aria-multiline="true"
+      (input)="onInput()"
+      (focus)="onFocus()"
+      (blur)="onBlur()"
+    ></div>
+  </div>
+</div>

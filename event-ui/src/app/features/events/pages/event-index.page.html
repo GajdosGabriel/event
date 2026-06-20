@@ -1,0 +1,97 @@
+<div class="grid gap-6 lg:grid-cols-3">
+  <main class="flex flex-col gap-4 lg:col-span-2">
+    <app-index-shell title="Podujatia" [defaultPerPage]="defaultPerPage()" [perPageLoading]="defaultPerPageLoading()">
+      @if (canCreate()) {
+        <a index-actions [routerLink]="routePrefix + '/events/create'" class="head-link">Vytvoriť podujatie</a>
+      }
+
+      @if (loading()) {
+        <p class="index-status">Načítavam podujatia...</p>
+      } @else {
+        <app-error-banner [message]="errorMessage()" />
+
+        @if (events().length === 0) {
+          <p class="index-status">Žiadne podujatia.</p>
+        } @else {
+          <ul class="index-list">
+            @for (event of events(); track event.id) {
+              <li class="index-list-entry">
+                <app-index-item
+                  [itemId]="event.id"
+                  [title]="event.name"
+                  [description]="event.body"
+                  [descriptionFallback]="'Bez popisu podujatia.'"
+                  [status]="event.status"
+                  [metaItems]="[event.startAt ?? '', event.canalName]"
+                  [formatFirstMetaItemAsDate]="true"
+                  [thumbImage]="event.imageUrl"
+                  [link]="routePrefix + '/events/' + event.id"
+                  [editLink]="routePrefix + '/events/' + event.id + '/edit'"
+                  [deletedAt]="event.deletedAt"
+                  [permissions]="event.permissions"
+                  [showViewAction]="true"
+                  [showStatusAction]="true"
+                  [detailAriaLabel]="'Zobraziť detail podujatia'"
+                  [deletedItemMessage]="'Podujatie je zmazané. Obnovte ho pre zobrazenie detailu.'"
+                  (actionClicked)="onEventAction($event, event)"
+                ></app-index-item>
+                <app-completion-indicator
+                  [filled]="completionOf(event).filled"
+                  [total]="completionOf(event).total"
+                  label="Vyplnenie"
+                />
+              </li>
+            }
+          </ul>
+        }
+      }
+    </app-index-shell>
+
+    <app-paginator
+      [currentPage]="currentPage()"
+      [totalPages]="totalPages()"
+      (pageChange)="onPageChange($event)"
+    />
+  </main>
+
+  <aside class="lg:col-span-1">
+    <div class="panel-card flex flex-col gap-4">
+      <h3 class="event-index-aside-title">Rýchly prehľad</h3>
+
+      <div class="event-index-stats">
+        <article class="event-index-stat">
+          <p class="event-index-stat-label">V zozname</p>
+          <p class="event-index-stat-value">{{ events().length }}</p>
+        </article>
+
+        <article class="event-index-stat">
+          <p class="event-index-stat-label">Publikované</p>
+          <p class="event-index-stat-value">{{ publishedCount() }}</p>
+        </article>
+
+        <article class="event-index-stat">
+          <p class="event-index-stat-label">Koncepty</p>
+          <p class="event-index-stat-value">{{ draftCount() }}</p>
+        </article>
+      </div>
+
+      <section class="event-index-nearest" aria-label="Najbližšie podujatie">
+        <h4 class="event-index-nearest-title">Najbližšie podujatie</h4>
+        @if (nearestUpcomingEvent(); as nearest) {
+          <p class="event-index-nearest-name">{{ nearest.name }}</p>
+          <p class="event-index-nearest-time">{{ nearest.startAt | date: 'dd.MM.yyyy HH:mm' }}</p>
+        } @else {
+          <p class="event-index-nearest-empty">V zozname nie je žiadne budúce podujatie.</p>
+        }
+      </section>
+
+      <app-municipality-overview
+        [limit]="6"
+        [scope]="municipalityScope"
+        title="Okresy Slovenska"
+        allLabel="Všetky podujatia"
+        [allLink]="routePrefix + '/events'"
+      />
+    </div>
+  </aside>
+</div>

@@ -1,0 +1,25 @@
+.event-body :is(p, ul, ol, h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 0.9rem;
+}
+
+.event-body :is(ul, ol) {
+  padding-left: 1.4rem;
+}
+
+.event-body :is(h2, h3) {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.event-body h2 {
+  font-size: 1.3rem;
+}
+
+.event-body h3 {
+  font-size: 1.1rem;
+}
+
+.event-body a {
+  color: #1d4ed8;
+  text-decoration: underline;
+}

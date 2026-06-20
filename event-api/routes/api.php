@@ -1,0 +1,270 @@
+<?php
+
+use App\Http\Controllers\{HomeController, TestController};
+use App\Http\Controllers\Admin\{ CanalController as AdminCanalController, DashboardController as AdminDashboardController, EventController as AdminEventController, FileController as AdminFileController, UserController as AdminUserController, MunicipalityController as AdminMunicipalityController, VenueController as AdminVenueController };
+use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
+use App\Http\Controllers\Admin\RoleController as AdminRoleController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Dashboard\DashboardCanalController;
+use App\Http\Controllers\Dashboard\DashboardEventController;
+use App\Http\Controllers\Dashboard\DashboardFileController;
+use App\Http\Controllers\Dashboard\DashboardHomeController;
+use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
+use App\Http\Controllers\Dashboard\DashboardOrganizationController;
+use App\Http\Controllers\Dashboard\DashboardRoleController;
+use App\Http\Controllers\Dashboard\DashboardUserController;
+use App\Http\Controllers\Dashboard\DashboardVenueController;
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController};
+use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\{Artisan, Route};
+use Illuminate\Support\Facades\Auth;
+
+// if (app()->environment('local') && ! app()->runningUnitTests()) {
+//      $user = User::whereKey(1)->first(); // ?? User::first();
+//     // $user =  User::first(1);
+
+//     if ($user !== null) {
+//         Auth::login($user);
+//     }
+// }
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return new UserResource($request->user());
+});
+
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::get('/login-form', [AuthController::class, 'loginForm'])->name('auth.loginForm');
+Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+Route::post('/login/google', [AuthController::class, 'googleAuth'])->name('auth.login.google');
+Route::post('/login/facebook', [AuthController::class, 'facebookAuth'])->name('auth.login.facebook');
+Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
+Route::post('/register/google', [AuthController::class, 'googleAuth'])->name('auth.register.google');
+Route::post('/register/facebook', [AuthController::class, 'facebookAuth'])->name('auth.register.facebook');
+Route::post('/register/resend', [AuthController::class, 'resendRegistrationVerification'])->name('auth.register.resend');
+Route::post('/register/verify', [AuthController::class, 'verifyRegistration'])->name('auth.register.verify');
+Route::get('/register/verify/{token}', [AuthController::class, 'verifyRegistrationLink'])->name('auth.register.verify.link');
+Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:sanctum');
+
+
+Route::get('events/municipalities-overview', [PublicEventController::class, 'municipalitiesOverview'])
+    ->name('public.events.municipalities.overview');
+
+Route::apiResources([
+    'events' => PublicEventController::class,
+    'canals' => PublicCanalController::class,
+    'test'   => TestController::class,
+]);
+
+
+Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
+    Route::get('municipalities/all', [DashboardMunicipalityController::class, 'all']);
+    Route::get('canals/municipalities-overview', [DashboardCanalController::class, 'municipalitiesOverview'])
+        ->name('canals.municipalities.overview')
+        ->middleware('permission:canal.view');
+
+    Route::apiResource('canals', DashboardCanalController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:canal.view');
+    Route::apiResource('canals', DashboardCanalController::class)
+        ->only(['store', 'update'])
+        ->middleware('permission:canal.update');
+    Route::apiResource('canals', DashboardCanalController::class)
+        ->only(['destroy'])
+        ->middleware('permission:canal.delete');
+    Route::post('canals/{canal}/restore', [DashboardCanalController::class, 'restore'])
+        ->name('canals.restore')
+        ->middleware('permission:canal.delete');
+
+    Route::apiResource('files', DashboardFileController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:file.view');
+    Route::apiResource('files', DashboardFileController::class)
+        ->only(['store'])
+        ->middleware('permission:file.create');
+    Route::apiResource('files', DashboardFileController::class)
+        ->only(['update'])
+        ->middleware('permission:file.update');
+    Route::apiResource('files', DashboardFileController::class)
+        ->only(['destroy'])
+        ->middleware('permission:file.delete');
+    Route::post('files/{id}/restore', [DashboardFileController::class, 'restore'])
+        ->name('files.restore')
+        ->middleware('permission:file.delete');
+
+    Route::get('events/municipalities-overview', [DashboardEventController::class, 'municipalitiesOverview'])
+        ->name('events.municipalities.overview')
+        ->middleware('permission:event.view');
+    Route::post('events/detect-from-text', [DashboardEventController::class, 'detectFromText'])
+        ->name('events.detect-from-text')
+        ->middleware('permission:event.create');
+
+    Route::apiResource('events', DashboardEventController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:event.view');
+    Route::apiResource('events', DashboardEventController::class)
+        ->only(['store'])
+        ->middleware('permission:event.create');
+    Route::apiResource('events', DashboardEventController::class)
+        ->only(['update'])
+        ->middleware('permission:event.update');
+    Route::post('events/{event}/publish', [DashboardEventController::class, 'publish'])
+        ->name('events.publish')
+        ->middleware('permission:event.update');
+    Route::apiResource('events', DashboardEventController::class)
+        ->only(['destroy'])
+        ->middleware('permission:event.delete');
+    Route::post('events/{event}/restore', [DashboardEventController::class, 'restore'])
+        ->name('events.restore')
+        ->middleware('permission:event.delete');
+
+    Route::apiResource('municipalities', DashboardMunicipalityController::class);
+
+    Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
+        ->name('venues.detect')
+        ->middleware('permission:venue.create');
+    Route::get('venues/municipalities-overview', [DashboardVenueController::class, 'municipalitiesOverview'])
+        ->name('venues.municipalities.overview')
+        ->middleware('permission:venue.view');
+    Route::apiResource('venues', DashboardVenueController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:venue.view');
+    Route::apiResource('venues', DashboardVenueController::class)
+        ->only(['store'])
+        ->middleware('permission:venue.create');
+    Route::apiResource('venues', DashboardVenueController::class)
+        ->only(['update'])
+        ->middleware('permission:venue.update');
+    Route::apiResource('venues', DashboardVenueController::class)
+        ->only(['destroy'])
+        ->middleware('permission:venue.delete');
+    Route::post('venues/{venue}/restore', [DashboardVenueController::class, 'restore'])
+        ->name('venues.restore')
+        ->middleware('permission:venue.delete');
+    Route::apiResource('users',  DashboardUserController::class);
+    Route::post('users/{user}/restore', [DashboardUserController::class, 'restore'])->name('users.restore');
+    Route::post('users/active-canal', [DashboardUserController::class, 'setActiveCanal']);
+
+    Route::apiResource('organizations', DashboardOrganizationController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:organization.view');
+    Route::apiResource('organizations', DashboardOrganizationController::class)
+        ->only(['store'])
+        ->middleware('permission:organization.create');
+    Route::apiResource('organizations', DashboardOrganizationController::class)
+        ->only(['update'])
+        ->middleware('permission:organization.update');
+    Route::apiResource('organizations', DashboardOrganizationController::class)
+        ->only(['destroy'])
+        ->middleware('permission:organization.delete');
+    Route::post('organizations/{organization}/restore', [DashboardOrganizationController::class, 'restore'])
+        ->name('organizations.restore')
+        ->middleware('permission:organization.delete');
+
+    Route::get('roles', [DashboardRoleController::class, 'roles'])->name('roles.index');
+    Route::get('permissions', [DashboardRoleController::class, 'permissions'])->name('permissions.index');
+    Route::put('users/{user}/roles', [DashboardRoleController::class, 'syncUserRoles'])->name('users.roles.sync');
+})->middleware('auth:sanctum');
+
+Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('home');
+    Route::get('municipalities/all', [AdminMunicipalityController::class, 'all']);
+    Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
+        ->name('canals.municipalities.overview')
+        ->middleware('permission:canal.view');
+    Route::delete('files/{id}', [AdminFileController::class, 'destroy'])
+        ->name('files.destroy')
+        ->middleware('permission:file.delete');
+    Route::post('files/{id}/restore', [AdminFileController::class, 'restore'])
+        ->name('files.restore')
+        ->middleware('permission:file.delete');
+
+    Route::apiResource('canals', AdminCanalController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:canal.view');
+    Route::apiResource('canals', AdminCanalController::class)
+        ->only(['store', 'update'])
+        ->middleware('permission:canal.update');
+    Route::post('canals/{canal}/restore', [AdminCanalController::class, 'restore'])
+        ->name('canals.restore')
+        ->middleware('permission:canal.delete');
+
+    Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
+        ->name('events.municipalities.overview')
+        ->middleware('permission:event.view');
+
+    Route::apiResource('events', AdminEventController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:event.view');
+    Route::apiResource('events', AdminEventController::class)
+        ->only(['store'])
+        ->middleware('permission:event.create');
+    Route::apiResource('events', AdminEventController::class)
+        ->only(['update'])
+        ->middleware('permission:event.update');
+    Route::post('events/{event}/publish', [AdminEventController::class, 'publish'])
+        ->name('events.publish')
+        ->middleware('permission:event.update');
+    Route::post('events/{event}/restore', [AdminEventController::class, 'restore'])
+        ->name('events.restore')
+        ->middleware('permission:event.delete');
+
+    Route::apiResource('users', AdminUserController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:user.view');
+    Route::post('users/{user}/restore', [AdminUserController::class, 'restore'])
+        ->name('users.restore')
+        ->middleware('permission:user.delete');
+    Route::apiResource('organizations', AdminOrganizationController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:organization.view');
+    Route::apiResource('organizations', AdminOrganizationController::class)
+        ->only(['store'])
+        ->middleware('permission:organization.create');
+    Route::apiResource('organizations', AdminOrganizationController::class)
+        ->only(['update'])
+        ->middleware('permission:organization.update');
+    Route::apiResource('organizations', AdminOrganizationController::class)
+        ->only(['destroy'])
+        ->middleware('permission:organization.delete');
+    Route::post('organizations/{organization}/restore', [AdminOrganizationController::class, 'restore'])
+        ->name('organizations.restore')
+        ->middleware('permission:organization.delete');
+
+    Route::middleware('role:super-admin')->group(function () {
+        Route::get('roles', [AdminRoleController::class, 'roles'])->name('roles.index');
+        Route::get('permissions', [AdminRoleController::class, 'permissions'])->name('permissions.index');
+        Route::put('users/{user}/roles', [AdminRoleController::class, 'syncUserRoles'])->name('users.roles.sync');
+    });
+
+    Route::apiResource('municipalities', AdminMunicipalityController::class);
+
+    Route::post('venues/detect', [AdminVenueController::class, 'detect'])
+        ->name('venues.detect')
+        ->middleware('permission:venue.create');
+    Route::get('venues/municipalities-overview', [AdminVenueController::class, 'municipalitiesOverview'])
+        ->name('venues.municipalities.overview')
+        ->middleware('permission:venue.view');
+    Route::apiResource('venues', AdminVenueController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:venue.view');
+    Route::post('venues/{venue}/restore', [AdminVenueController::class, 'restore'])
+        ->name('venues.restore')
+        ->middleware('permission:venue.delete');
+});
+
+
+
+Route::get('artisan/run', function () {
+    Artisan::call('cache:clear');
+    Artisan::call('view:clear');
+    Artisan::call('config:clear');
+    Artisan::call('optimize:clear');
+    Artisan::call('queue:work');
+
+    // dd("All is cleared");
+});

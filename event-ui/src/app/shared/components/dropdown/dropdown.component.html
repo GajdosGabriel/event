@@ -1,0 +1,41 @@
+<div class="dropdown">
+  <button
+    type="button"
+    class="dropdown-trigger"
+    [disabled]="disabled"
+    [attr.aria-expanded]="isOpen"
+    aria-haspopup="menu"
+    (click)="toggle()"
+  >
+    {{ triggerLabel }}
+    <span *ngIf="triggerIcon" class="dropdown-caret" [class.open]="isOpen" aria-hidden="true">▾</span>
+  </button>
+
+  <div *ngIf="isOpen" class="dropdown-menu" role="menu">
+    <ng-container *ngFor="let item of items">
+      <a
+        *ngIf="hasLink(item); else actionItem"
+        class="dropdown-item"
+        role="menuitem"
+        [routerLink]="item.path!"
+        [attr.aria-disabled]="item.disabled ? true : null"
+        [class.disabled]="item.disabled"
+        (click)="onItemClick(item)"
+      >
+        {{ item.label }}
+      </a>
+
+      <ng-template #actionItem>
+        <button
+          type="button"
+          class="dropdown-item"
+          role="menuitem"
+          [disabled]="item.disabled"
+          (click)="onItemClick(item)"
+        >
+          {{ item.label }}
+        </button>
+      </ng-template>
+    </ng-container>
+  </div>
+</div>

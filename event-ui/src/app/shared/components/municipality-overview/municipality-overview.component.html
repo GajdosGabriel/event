@@ -1,0 +1,41 @@
+<section class="municipality-overview">
+  <header class="overview-head">
+    <h2>{{ title() }}</h2>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Nacitavam obce...</p>
+  } @else if (errorMessage()) {
+    <p class="status error">{{ errorMessage() }}</p>
+  } @else if (!items().length) {
+    <p class="status">Zatial nie su dostupne ziadne data.</p>
+  } @else {
+    <ul class="overview-list">
+      <li class="overview-all-row">
+        <a [routerLink]="allLink()" class="overview-all-link">
+          @if (shouldShowAllIcon()) {
+            <span class="all-icon" aria-hidden="true">&#10003;</span>
+          }
+          {{ allLabel() }}
+        </a>
+        <span class="overview-count">{{ totalEvents() }}</span>
+      </li>
+
+      @for (item of items(); track trackByMunicipality($index, item)) {
+        <li class="overview-row">
+          <a
+            [routerLink]="allLink()"
+            [queryParams]="getItemQueryParams(item)"
+            class="overview-item"
+          >
+            @if (shouldShowMunicipalityIcon(item)) {
+              <span class="all-icon" aria-hidden="true">&#10003;</span>
+            }
+            {{ item.municipalityName }}
+          </a>
+          <span class="overview-count">{{ item.eventsCount }}</span>
+        </li>
+      }
+    </ul>
+  }
+</section>
