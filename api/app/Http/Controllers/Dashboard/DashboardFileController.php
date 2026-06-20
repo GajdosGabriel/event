@@ -92,7 +92,7 @@ class DashboardFileController extends Controller
         if ($request->has('is_primary') && $request->boolean('is_primary')) {
             $file = $this->fileManager->setPrimary($file);
         } else {
-            $file->update($request->only(['is_primary', 'meta']));
+            $file->update($request->only(['is_primary', 'sort_order', 'meta']));
             $file->refresh();
         }
 
@@ -107,6 +107,25 @@ class DashboardFileController extends Controller
         $this->fileManager->delete($file, false);
 
         return response()->json(null, 204);
+    }
+
+    public function reorder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'items'            => ['required', 'array'],
+            'items.*.id'       => ['required', 'integer'],
+            'items.*.sort_order' => ['required', 'integer', 'min:0'],
+        ]);
+
+        foreach ($request->input('items') as $item) {
+            $file = File::find($item['id']);
+            if ($file) {
+                $this->authorize('update', $file);
+                $file->update(['sort_order' => $item['sort_order']]);
+            }
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function restore(string $id): JsonResponse

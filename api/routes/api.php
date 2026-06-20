@@ -95,6 +95,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('files/{id}/restore', [DashboardFileController::class, 'restore'])
         ->name('files.restore')
         ->middleware('permission:file.delete');
+    Route::post('files/reorder', [DashboardFileController::class, 'reorder'])
+        ->name('files.reorder')
+        ->middleware('permission:file.update');
 
     Route::get('events/municipalities-overview', [DashboardEventController::class, 'municipalitiesOverview'])
         ->name('events.municipalities.overview')

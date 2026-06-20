@@ -26,7 +26,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     capacity: (raw['capacity'] as number) ?? null,
     openingHours: (raw['opening_hours'] as string) ?? null,
     category: (raw['category'] as string) ?? null,
-    imageUrl: (raw['image_url'] as string) ?? null,
+    imageUrl: (raw['image_url'] as string) ?? ((raw['primary_image'] as Record<string,string>)?.['thumb']) ?? (raw['thumb_image'] as string) ?? null,
     status: (raw['status'] as VenueItem['status']) ?? 'draft',
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt: (raw['created_at'] as string) ?? '',

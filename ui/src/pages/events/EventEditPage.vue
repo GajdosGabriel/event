@@ -60,6 +60,11 @@
         </div>
       </form>
     </div>
+
+    <div v-if="!isCreate" class="edit-card">
+      <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
+      <ImageManager fileable-type="event" :fileable-id="Number(route.params.id)" />
+    </div>
   </div>
 </template>
 
@@ -68,6 +73,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { useToast } from '@/composables/useToast'
+import ImageManager from '@/components/ImageManager.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()

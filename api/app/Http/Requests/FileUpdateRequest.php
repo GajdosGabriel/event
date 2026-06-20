@@ -15,6 +15,7 @@ class FileUpdateRequest extends FormRequest
     {
         return [
             'is_primary' => ['sometimes', 'boolean'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
             'meta'       => ['sometimes', 'array'],
         ];
     }

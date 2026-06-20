@@ -28,6 +28,7 @@ class File extends Model
         'checksum',
         'type',
         'is_primary',
+        'sort_order',
         'meta',
     ];
 
@@ -85,7 +86,7 @@ class File extends Model
             return $filesystem->url($this->large);
         }
 
-        return url('images/document-placeholder.svg');
+        return null;
     }
 
     public function getLargeImageUrlAttribute(): ?string
@@ -104,7 +105,7 @@ class File extends Model
             return $filesystem->url($this->thumb);
         }
 
-        return $this->thumb_image_url;
+        return null;
     }
 
     private function isImage(): bool
