@@ -1,31 +1,31 @@
-# ===== event-api (Laravel) =====
-event-api/.env
-event-api/.env.backup
-event-api/.env.production
-event-api/.phpactor.json
-event-api/.phpunit.result.cache
-event-api/.phpunit.cache/
-event-api/vendor/
-event-api/node_modules/
-event-api/public/build/
-event-api/public/hot/
-event-api/public/storage/
-event-api/storage/*.key
-event-api/storage/pail/
-event-api/auth.json
-event-api/Homestead.json
-event-api/Homestead.yaml
-event-api/tmp/
+# ===== api (Laravel) =====
+api/.env
+api/.env.backup
+api/.env.production
+api/.phpactor.json
+api/.phpunit.result.cache
+api/.phpunit.cache/
+api/vendor/
+api/node_modules/
+api/public/build/
+api/public/hot/
+api/public/storage/
+api/storage/*.key
+api/storage/pail/
+api/auth.json
+api/Homestead.json
+api/Homestead.yaml
+api/tmp/
 
-# ===== event-ui (Angular) =====
-event-ui/node_modules/
-event-ui/dist/
-event-ui/tmp/
-event-ui/out-tsc/
-event-ui/bazel-out/
-event-ui/.angular/
-event-ui/ng-serve.err.log
-event-ui/ng-serve.out.log
+# ===== ui (Angular) =====
+ui/node_modules/
+ui/dist/
+ui/tmp/
+ui/out-tsc/
+ui/bazel-out/
+ui/.angular/
+ui/ng-serve.err.log
+ui/ng-serve.out.log
 
 # ===== Všeobecné =====
 .DS_Store
