@@ -9,20 +9,34 @@ function baseUrl(scope: Scope) {
   return '/dashboard/events'
 }
 
+function buildDateRangeLabel(startAt: string | null, endAt: string | null): string | null {
+  if (!startAt) return null
+  const fmt = (d: string) => new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  if (!endAt || startAt === endAt) return fmt(startAt)
+  const start = new Date(startAt)
+  const end = new Date(endAt)
+  if (start.toDateString() === end.toDateString()) return fmt(startAt)
+  return `${fmt(startAt)} – ${fmt(endAt)}`
+}
+
 function mapEvent(raw: Record<string, unknown>): EventItem {
+  const canal = (raw['canal'] as { id: number; name: string } | null) ?? null
+  const startAt = (raw['start_at'] as string) ?? null
+  const endAt = (raw['end_at'] as string) ?? null
+  const primaryImage = raw['primary_image'] as Record<string, string> | null
   return {
     id: raw['id'] as number,
     canalId: (raw['canal_id'] as number) ?? null,
-    canalName: (raw['canal_name'] as string) ?? '',
+    canalName: canal?.name ?? (raw['canal_name'] as string) ?? '',
     municipalityId: (raw['municipality_id'] as number) ?? null,
     venueId: (raw['venue_id'] as number) ?? null,
     name: raw['name'] as string,
     slug: (raw['slug'] as string) ?? '',
     body: (raw['body'] as string) ?? null,
     status: (raw['status'] as EventItem['status']) ?? 'draft',
-    startAt: (raw['start_at'] as string) ?? null,
-    endAt: (raw['end_at'] as string) ?? null,
-    dateRangeLabel: (raw['date_range_label'] as string) ?? null,
+    startAt,
+    endAt,
+    dateRangeLabel: (raw['date_range_label'] as string) ?? buildDateRangeLabel(startAt, endAt),
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
@@ -33,14 +47,50 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     country: (raw['country'] as string) ?? null,
     latitude: (raw['latitude'] as number) ?? null,
     longitude: (raw['longitude'] as number) ?? null,
-    imageUrl: (raw['image_url'] as string) ?? (raw['thumb'] as string) ?? null,
+    imageUrl: (raw['image_url'] as string) ?? primaryImage?.['thumb'] ?? (raw['thumb_image'] as string) ?? null,
     uploadedFiles: (raw['uploaded_files'] as EventItem['uploadedFiles']) ?? [],
+    phone: (raw['phone'] as string) ?? null,
+    email: (raw['email'] as string) ?? null,
     permissions: (raw['permissions'] as EventItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
     allowedStatuses: (raw['allowed_statuses'] as EventItem['allowedStatuses']) ?? [],
     municipality: (raw['municipality'] as EventItem['municipality']) ?? null,
-    canal: (raw['canal'] as EventItem['canal']) ?? null,
-    venue: (raw['venue'] as EventItem['venue']) ?? null,
+    canal,
+    venue: (() => {
+      const v = raw['venue'] as Record<string, unknown> | null
+      if (!v) return null
+      return {
+        id: v['id'] as number,
+        name: v['name'] as string,
+        street: (v['street'] as string) ?? null,
+        postcode: (v['postcode'] as string) ?? null,
+        latitude: (v['latitude'] as string) ?? null,
+        longitude: (v['longitude'] as string) ?? null,
+        phone: (v['phone'] as string) ?? null,
+        website: (v['website'] as string) ?? null,
+        openingHours: (v['opening_hours'] as Record<string, string | null>) ?? null,
+      }
+    })(),
+    uploadedImages: (() => {
+      const files = raw['files'] as Record<string, unknown>[] | null
+      if (!files?.length) {
+        const pi = raw['primary_image'] as Record<string, string> | null
+        if (pi?.['thumb']) return [{ thumb: pi['thumb'], large: pi['large'] ?? pi['thumb'], original: pi['original'] ?? pi['thumb'] }]
+        return []
+      }
+      return files
+        .filter((f) => (f['type'] as string) === 'image')
+        .map((f) => ({
+          thumb: (f['thumb_image_url'] as string) ?? (f['original_file_url'] as string) ?? '',
+          large: (f['large_image_url'] as string) ?? (f['original_file_url'] as string) ?? '',
+          original: (f['original_file_url'] as string) ?? '',
+        }))
+    })(),
   }
+}
+
+export async function showPublicEvent(id: number | string): Promise<EventItem> {
+  const { data } = await http.get(`/events/${id}`)
+  return mapEvent((data.data ?? data) as Record<string, unknown>)
 }
 
 export async function indexEvents(scope: Scope, params?: FilterParams & { page?: number }): Promise<PaginatedResponse<EventItem>> {

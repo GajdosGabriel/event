@@ -132,9 +132,22 @@ export interface EventItem {
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
   allowedStatuses: AllowedStatusOption[]
-  municipality: { id: number; name: string } | null
-  canal: { id: number; name: string } | null
-  venue: { id: number; name: string } | null
+  phone: string | null
+  email: string | null
+  municipality: { id: number; name: string; fullname?: string } | null
+  canal: { id: number; name: string; thumbImage?: string } | null
+  venue: {
+    id: number
+    name: string
+    street: string | null
+    postcode: string | null
+    latitude: string | null
+    longitude: string | null
+    phone: string | null
+    website: string | null
+    openingHours: Record<string, string | null> | null
+  } | null
+  uploadedImages: { thumb: string; large: string; original: string }[]
 }
 
 // Canal
