@@ -29,23 +29,15 @@
           :show-link="showRoute(event.id)"
         >
           <template #actions>
-            <RouterLink :to="showRoute(event.id)" class="action-btn action-btn-view">Zobraziť</RouterLink>
-            <RouterLink :to="editRoute(event.id)" class="action-btn">Upraviť</RouterLink>
-            <button
-              v-if="event.permissions.publish"
-              class="action-btn action-btn-publish"
-              @click="togglePublish(event)"
-            >{{ event.publishedAt ? 'Zrušiť pub.' : 'Publikovať' }}</button>
-            <button
-              v-if="event.permissions.delete && !event.deletedAt"
-              class="action-btn action-btn-danger"
-              @click="remove(event.id)"
-            >Zmazať</button>
-            <button
-              v-if="event.permissions.restore && event.deletedAt"
-              class="action-btn"
-              @click="restore(event.id)"
-            >Obnoviť</button>
+            <RowActions>
+              <RouterLink :to="showRoute(event.id)" class="row-menu-item">Zobraziť</RouterLink>
+              <RouterLink :to="editRoute(event.id)" class="row-menu-item">Upraviť</RouterLink>
+              <button v-if="event.permissions.publish" class="row-menu-item" @click="togglePublish(event)">
+                {{ event.publishedAt ? 'Zrušiť publikovanie' : 'Publikovať' }}
+              </button>
+              <button v-if="event.permissions.delete && !event.deletedAt" class="row-menu-item row-menu-item-danger" @click="remove(event.id)">Zmazať</button>
+              <button v-if="event.permissions.restore && event.deletedAt" class="row-menu-item" @click="restore(event.id)">Obnoviť</button>
+            </RowActions>
           </template>
         </IndexRow>
       </li>
@@ -62,6 +54,7 @@ import { useRoute } from 'vue-router'
 import { indexEvents, deleteEvent, restoreEvent, publishEvent } from '@/api/events'
 import type { EventItem } from '@/types'
 import IndexRow from '@/components/IndexRow.vue'
+import RowActions from '@/components/RowActions.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useToast } from '@/composables/useToast'
 

@@ -15,10 +15,12 @@
       <li v-for="venue in venues" :key="venue.id" class="index-list-entry">
         <IndexRow :title="venue.name" :image-url="venue.imageUrl" :status="venue.status" :show-link="showRoute(venue.id)">
           <template #actions>
-            <RouterLink :to="showRoute(venue.id)" class="action-btn">Zobraziť</RouterLink>
-            <RouterLink :to="editRoute(venue.id)" class="action-btn">Upraviť</RouterLink>
-            <button v-if="venue.permissions.delete && !venue.deletedAt" class="action-btn action-btn-danger" @click="remove(venue.id)">Zmazať</button>
-            <button v-if="venue.permissions.restore && venue.deletedAt" class="action-btn" @click="restore(venue.id)">Obnoviť</button>
+            <RowActions>
+              <RouterLink :to="showRoute(venue.id)" class="row-menu-item">Zobraziť</RouterLink>
+              <RouterLink :to="editRoute(venue.id)" class="row-menu-item">Upraviť</RouterLink>
+              <button v-if="venue.permissions.delete && !venue.deletedAt" class="row-menu-item row-menu-item-danger" @click="remove(venue.id)">Zmazať</button>
+              <button v-if="venue.permissions.restore && venue.deletedAt" class="row-menu-item" @click="restore(venue.id)">Obnoviť</button>
+            </RowActions>
           </template>
         </IndexRow>
       </li>
@@ -35,6 +37,7 @@ import { useRoute } from 'vue-router'
 import { indexVenues, deleteVenue, restoreVenue } from '@/api/venues'
 import type { VenueItem } from '@/types'
 import IndexRow from '@/components/IndexRow.vue'
+import RowActions from '@/components/RowActions.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useToast } from '@/composables/useToast'
 

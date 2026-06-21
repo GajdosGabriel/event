@@ -20,10 +20,12 @@
           :show-link="showRoute(canal.id)"
         >
           <template #actions>
-            <RouterLink :to="showRoute(canal.id)" class="action-btn">Zobraziť</RouterLink>
-            <RouterLink :to="editRoute(canal.id)" class="action-btn">Upraviť</RouterLink>
-            <button v-if="canal.permissions.delete && !canal.deletedAt" class="action-btn action-btn-danger" @click="remove(canal.id)">Zmazať</button>
-            <button v-if="canal.permissions.restore && canal.deletedAt" class="action-btn" @click="restore(canal.id)">Obnoviť</button>
+            <RowActions>
+              <RouterLink :to="showRoute(canal.id)" class="row-menu-item">Zobraziť</RouterLink>
+              <RouterLink :to="editRoute(canal.id)" class="row-menu-item">Upraviť</RouterLink>
+              <button v-if="canal.permissions.delete && !canal.deletedAt" class="row-menu-item row-menu-item-danger" @click="remove(canal.id)">Zmazať</button>
+              <button v-if="canal.permissions.restore && canal.deletedAt" class="row-menu-item" @click="restore(canal.id)">Obnoviť</button>
+            </RowActions>
           </template>
         </IndexRow>
       </li>
@@ -40,6 +42,7 @@ import { useRoute } from 'vue-router'
 import { indexCanals, deleteCanal, restoreCanal } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import IndexRow from '@/components/IndexRow.vue'
+import RowActions from '@/components/RowActions.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useToast } from '@/composables/useToast'
 
