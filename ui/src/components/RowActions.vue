@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const open = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
@@ -46,7 +46,6 @@ function updateRect() {
   triggerRect.value = rootEl.value?.getBoundingClientRect() ?? null
 }
 
-import { watch } from 'vue'
 watch(open, (val) => { if (val) updateRect() })
 
 onMounted(() => document.addEventListener('mousedown', onDocClick))

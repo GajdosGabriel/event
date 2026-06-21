@@ -5,50 +5,99 @@
       <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť miesto' : 'Nové miesto' }}</h1>
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
-      <form class="grid gap-3 mt-4" @submit.prevent="submit">
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <label class="form-label">
-            Názov *
-            <input v-model="form.name" type="text" class="form-input" :class="{ invalid: errors.name }" required />
-            <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-          </label>
-          <label class="form-label">
-            Ulica
-            <input v-model="form.street" type="text" class="form-input" />
-          </label>
-          <label class="form-label">
-            PSČ
-            <input v-model="form.postcode" type="text" class="form-input" />
-          </label>
-          <label class="form-label">
-            Kapacita
-            <input v-model.number="form.capacity" type="number" class="form-input" />
-          </label>
-          <label class="form-label">
-            Email
-            <input v-model="form.email" type="email" class="form-input" />
-          </label>
-          <label class="form-label">
-            Telefón
-            <input v-model="form.phone" type="tel" class="form-input" />
-          </label>
-          <label class="form-label">
-            Web
-            <input v-model="form.website" type="url" class="form-input" />
-          </label>
-          <label class="form-label">
-            Stav
-            <select v-model="form.status" class="form-input">
-              <option value="draft">Návrh</option>
-              <option value="published">Publikované</option>
-            </select>
-          </label>
-          <label class="form-label lg:col-span-2">
-            Popis
-            <textarea v-model="form.body" class="form-textarea" rows="5" />
-          </label>
-        </div>
-        <div class="flex gap-2 mt-2">
+      <form class="grid gap-4 mt-4" @submit.prevent="submit">
+        <fieldset class="field-group">
+          <legend class="field-legend">Základné info</legend>
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <label class="form-label lg:col-span-2">
+              Názov *
+              <input v-model="form.name" type="text" class="form-input" :class="{ invalid: errors.name }" required />
+              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
+            </label>
+            <label class="form-label">
+              Kanál
+              <select v-model="form.canal_id" class="form-input">
+                <option :value="null">— vyberte kanál —</option>
+                <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <span v-if="errors.canal_id" class="field-error">{{ errors.canal_id }}</span>
+            </label>
+            <label class="form-label">
+              Stav
+              <select v-model="form.status" class="form-input">
+                <option value="draft">Koncept</option>
+                <option value="published">Publikovaný</option>
+                <option value="archived">Archivovaný</option>
+              </select>
+            </label>
+            <label class="form-label">
+              Kategória
+              <input v-model="form.category" type="text" class="form-input" placeholder="napr. kultúrny dom, škola…" />
+            </label>
+            <label class="form-label">
+              Kapacita
+              <input v-model.number="form.capacity" type="number" min="0" class="form-input" />
+            </label>
+            <label class="form-label lg:col-span-2">
+              Popis
+              <textarea v-model="form.body" class="form-textarea" rows="5" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend class="field-legend">Adresa</legend>
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <label class="form-label">
+              Obec / Mesto *
+              <select v-model="form.village_id" class="form-input" :class="{ invalid: errors.village_id }">
+                <option :value="null">— vyberte obec —</option>
+                <option v-for="m in municipalities" :key="m.id" :value="m.id">{{ m.name }}</option>
+              </select>
+              <span v-if="errors.village_id" class="field-error">{{ errors.village_id }}</span>
+            </label>
+            <label class="form-label">
+              Ulica
+              <input v-model="form.street" type="text" class="form-input" />
+            </label>
+            <label class="form-label">
+              PSČ
+              <input v-model="form.postcode" type="text" class="form-input" />
+            </label>
+            <label class="form-label">
+              Krajina
+              <input v-model="form.country" type="text" class="form-input" placeholder="Slovensko" />
+            </label>
+            <label class="form-label">
+              Zemepisná šírka (lat)
+              <input v-model="form.latitude" type="number" step="any" class="form-input" />
+            </label>
+            <label class="form-label">
+              Zemepisná dĺžka (lng)
+              <input v-model="form.longitude" type="number" step="any" class="form-input" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend class="field-legend">Kontakt</legend>
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <label class="form-label">
+              Web
+              <input v-model="form.website" type="url" class="form-input" />
+            </label>
+            <label class="form-label">
+              Email
+              <input v-model="form.email" type="email" class="form-input" />
+            </label>
+            <label class="form-label">
+              Telefón
+              <input v-model="form.phone" type="tel" class="form-input" />
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="flex gap-2">
           <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
           <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
         </div>
@@ -69,6 +118,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showVenue, createVenue, updateVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
+import { useFormOptions } from '@/composables/useFormOptions'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 
@@ -83,16 +133,53 @@ const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
-const form = ref({ name: '', street: '', postcode: '', capacity: null as number | null, email: '', phone: '', website: '', body: '', status: 'draft' })
+const { municipalities, canals, loadMunicipalities, loadCanals } = useFormOptions(scope.value)
+
+const form = ref({
+  name: '',
+  canal_id: null as number | null,
+  village_id: null as number | null,
+  street: '',
+  postcode: '',
+  country: '',
+  latitude: null as number | null,
+  longitude: null as number | null,
+  capacity: null as number | null,
+  category: '',
+  website: '',
+  email: '',
+  phone: '',
+  body: '',
+  status: 'draft',
+})
+
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
 const saving = ref(false)
 
 onMounted(async () => {
+  loadMunicipalities()
+  loadCanals()
   if (!isCreate.value) {
     try {
-      const v = await showVenue('dashboard', Number(route.params.id))
-      form.value = { name: v.name, street: v.street ?? '', postcode: v.postcode ?? '', capacity: v.capacity, email: v.email ?? '', phone: v.phone ?? '', website: v.website ?? '', body: v.body ?? '', status: v.status }
+      const v = await showVenue(scope.value, Number(route.params.id))
+      form.value = {
+        name: v.name,
+        canal_id: v.canalId ?? null,
+        village_id: v.villageId ?? null,
+        street: v.street ?? '',
+        postcode: v.postcode ?? '',
+        country: v.country ?? '',
+        latitude: v.latitude ?? null,
+        longitude: v.longitude ?? null,
+        capacity: v.capacity ?? null,
+        category: v.category ?? '',
+        website: v.website ?? '',
+        email: v.email ?? '',
+        phone: v.phone ?? '',
+        body: v.body ?? '',
+        status: v.status,
+      }
     } catch { serverError.value = 'Nepodarilo sa načítať.' }
   }
 })

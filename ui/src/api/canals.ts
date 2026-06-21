@@ -18,6 +18,7 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     titlePrefix: (raw['title_prefix'] as string) ?? null,
     titleSuffix: (raw['title_suffix'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
+    phone: (raw['phone'] as string) ?? null,
     body: (raw['body'] as string) ?? null,
     imageUrl: (raw['image_url'] as string) ?? ((raw['primary_image'] as Record<string,string>)?.['thumb']) ?? (raw['thumb_image'] as string) ?? null,
     publishedAt: (raw['published_at'] as string) ?? null,

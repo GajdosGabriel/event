@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 
 interface PickerItem {
   file: File
@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({
-  get files() { return items.value.map(it => it.file) },
+  files: computed(() => items.value.map(it => it.file)),
   clear() { items.value.forEach(it => URL.revokeObjectURL(it.preview)); items.value = [] },
 })
 </script>

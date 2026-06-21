@@ -173,6 +173,7 @@ export interface CanalItem {
   titlePrefix: string | null
   titleSuffix: string | null
   email: string | null
+  phone: string | null
   body: string | null
   imageUrl: string | null
   publishedAt: string | null
