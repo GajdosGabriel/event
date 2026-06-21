@@ -3,7 +3,7 @@
     <div class="edit-card">
       <div class="mb-4">
         <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť na zoznam</RouterLink>
-        <h1 class="my-2 text-2xl text-slate-900">{{ isCreate ? 'Nový event' : 'Upraviť event' }}</h1>
+        <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť event' : 'Nový event' }}</h1>
       </div>
 
       <p v-if="loadingData" class="text-slate-600">Načítavam…</p>
@@ -61,9 +61,9 @@
       </form>
     </div>
 
-    <div v-if="!isCreate" class="edit-card">
+    <div v-if="fileableId" class="edit-card">
       <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager fileable-type="event" :fileable-id="Number(route.params.id)" />
+      <ImageManager fileable-type="event" :fileable-id="fileableId" />
     </div>
   </div>
 </template>
@@ -84,6 +84,9 @@ const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? '
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const isCreate = computed(() => !route.params.id)
 const indexRoute = computed(() => `${prefix.value}/events`)
+
+const savedId = ref<number | null>(null)
+const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 
 const form = ref({ name: '', status: 'draft', start_at: '', end_at: '', location_name: '', website: '', body: '' })
 const errors = ref<Record<string, string>>({})
@@ -117,12 +120,12 @@ async function submit() {
   try {
     if (isCreate.value) {
       const ev = await createEvent(form.value)
+      savedId.value = ev.id
       toast.success('Event vytvorený.')
-      router.push(`${prefix.value}/events/${ev.id}`)
+      router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
       await updateEvent(Number(route.params.id), form.value)
       toast.success('Event uložený.')
-      router.push(`${prefix.value}/events/${route.params.id}`)
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

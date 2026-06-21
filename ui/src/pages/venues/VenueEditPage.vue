@@ -2,7 +2,7 @@
   <div class="edit-shell">
     <div class="edit-card">
       <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
-      <h1 class="my-2 text-2xl text-slate-900">{{ isCreate ? 'Nové miesto' : 'Upraviť miesto' }}</h1>
+      <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť miesto' : 'Nové miesto' }}</h1>
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-3 mt-4" @submit.prevent="submit">
@@ -55,9 +55,9 @@
       </form>
     </div>
 
-    <div v-if="!isCreate" class="edit-card">
+    <div v-if="fileableId" class="edit-card">
       <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager fileable-type="venue" :fileable-id="Number(route.params.id)" />
+      <ImageManager fileable-type="venue" :fileable-id="fileableId" />
     </div>
   </div>
 </template>
@@ -75,6 +75,9 @@ const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? '
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const isCreate = computed(() => !route.params.id)
 const indexRoute = computed(() => `${prefix.value}/venues`)
+
+const savedId = ref<number | null>(null)
+const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 
 const form = ref({ name: '', street: '', postcode: '', capacity: null as number | null, email: '', phone: '', website: '', body: '', status: 'draft' })
 const errors = ref<Record<string, string>>({})
@@ -95,12 +98,12 @@ async function submit() {
   try {
     if (isCreate.value) {
       const v = await createVenue(form.value as Record<string, unknown>)
+      savedId.value = v.id
       toast.success('Miesto vytvorené.')
-      router.push(`${prefix.value}/venues/${v.id}`)
+      router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
       await updateVenue(Number(route.params.id), form.value as Record<string, unknown>)
       toast.success('Miesto uložené.')
-      router.push(`${prefix.value}/venues/${route.params.id}`)
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
