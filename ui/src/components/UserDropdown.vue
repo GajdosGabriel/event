@@ -32,9 +32,6 @@
       >
         <div class="border-b border-slate-100 px-4 py-3">
           <p class="truncate text-sm font-semibold text-slate-900">{{ auth.displayName }}</p>
-          <p v-if="auth.identity?.email && auth.identity.email !== auth.displayName" class="truncate text-xs text-slate-500">
-            {{ auth.identity.email }}
-          </p>
           <div v-if="auth.isSuperAdmin" class="mt-1.5">
             <span class="inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Super admin</span>
           </div>

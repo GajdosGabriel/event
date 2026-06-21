@@ -36,7 +36,6 @@ class UserResource extends JsonResource
         return [
             'id'           => $this->id,
             'display_name' => $activeCanal?->name ?? $this->email,
-            'email'        => $this->email,
             'roles'        => $globalRoles,
             'canals'       => $canals,
             'canal_context' => [

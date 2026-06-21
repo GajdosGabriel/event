@@ -90,7 +90,6 @@ export interface AuthCanalItem {
 export interface AuthIdentity {
   id: number
   display_name: string
-  email?: string
   canal_id: number | null
   canal: string
   roles?: string[]
