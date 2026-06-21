@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FileResource;
+use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +30,13 @@ class EventController extends Controller
     public function show($id)
     {
         return response()->json($this->eventRepository->publicShow($id));
+    }
+
+    public function files($id): JsonResponse
+    {
+        $event = Event::findOrFail($id);
+        $files = $event->files()->orderBy('sort_order')->orderBy('id')->get();
+        return response()->json(FileResource::collection($files));
     }
 
     public function municipalitiesOverview(Request $request): JsonResponse

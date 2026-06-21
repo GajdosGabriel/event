@@ -46,6 +46,11 @@ export async function listFiles(params: { fileable_type: string; fileable_id: nu
   return ((data.data ?? data) as Record<string, unknown>[]).map(mapFile)
 }
 
+export async function listPublicEventFiles(eventId: number): Promise<FileItem[]> {
+  const { data } = await http.get(`/events/${eventId}/files`)
+  return ((data.data ?? data) as Record<string, unknown>[]).map(mapFile)
+}
+
 export async function uploadFiles(formData: FormData): Promise<FileItem[]> {
   const { data } = await http.post('/dashboard/files', formData)
   return ((data.data ?? data) as Record<string, unknown>[]).map(mapFile)

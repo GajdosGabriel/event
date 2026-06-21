@@ -18,9 +18,16 @@
       </div>
 
       <div class="show-shell">
-        <div class="show-card">
-          <img v-if="event.imageUrl" :src="event.imageUrl" :alt="event.name" class="mb-4 w-full rounded-xl object-cover max-h-72" />
-          <div v-if="event.body" class="prose text-slate-700" v-html="event.body" />
+        <div class="space-y-4">
+          <div class="show-card">
+            <div v-if="event.body" class="prose text-slate-700" v-html="event.body" />
+            <p v-else class="text-slate-400 text-sm">Bez popisu.</p>
+          </div>
+
+          <div class="show-card">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Fotografie</h2>
+            <ImageGallery fileable-type="event" :fileable-id="Number(route.params.id)" />
+          </div>
         </div>
 
         <aside class="grid gap-3">
@@ -53,6 +60,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
 import type { EventItem } from '@/types'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()

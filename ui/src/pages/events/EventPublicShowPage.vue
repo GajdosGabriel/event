@@ -43,23 +43,9 @@
             </div>
 
             <!-- Photo gallery -->
-            <div v-if="event.uploadedImages.length > 1" class="rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 class="mb-4 text-base font-semibold text-slate-800">Fotografie</h2>
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <a
-                  v-for="(img, i) in event.uploadedImages"
-                  :key="i"
-                  :href="img.large"
-                  target="_blank"
-                  class="group block overflow-hidden rounded-lg"
-                >
-                  <img
-                    :src="img.thumb"
-                    :alt="`${event.name} – foto ${i + 1}`"
-                    class="h-36 w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                </a>
-              </div>
+              <ImageGallery fileable-type="event" :fileable-id="Number(route.params.id)" :public="true" />
             </div>
 
             <!-- Map -->
@@ -164,6 +150,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showPublicEvent } from '@/api/events'
 import type { EventItem } from '@/types'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route = useRoute()
 const event = ref<EventItem | null>(null)

@@ -53,6 +53,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->
 Route::get('events/municipalities-overview', [PublicEventController::class, 'municipalitiesOverview'])
     ->name('public.events.municipalities.overview');
 
+Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
+
 Route::apiResources([
     'events' => PublicEventController::class,
     'canals' => PublicCanalController::class,
