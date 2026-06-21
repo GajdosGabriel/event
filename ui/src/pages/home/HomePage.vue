@@ -16,21 +16,23 @@
         <AppPaginator :current-page="page" :last-page="lastPage" @change="loadPage" />
       </div>
 
-      <aside class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-2 text-base text-slate-900">O portáli</h2>
-        <p class="text-slate-600">Portál eventov a podujatí pre vaše mesto.</p>
+      <aside>
+        <MunicipalityAside scope="public" resource="events" />
       </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
 import EventCard from '@/components/EventCard.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
+import MunicipalityAside from '@/components/MunicipalityAside.vue'
 
+const route = useRoute()
 const events = ref<EventItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -41,7 +43,9 @@ async function loadPage(p = 1) {
   loading.value = true
   error.value = null
   try {
-    const res = await indexEvents('public', { page: p })
+    const params: Record<string, unknown> = { page: p }
+    if (route.query.municipality) params['municipality'] = route.query.municipality
+    const res = await indexEvents('public', params)
     events.value = res.data
     page.value = res.meta.current_page
     lastPage.value = res.meta.last_page
@@ -52,5 +56,6 @@ async function loadPage(p = 1) {
   }
 }
 
+watch(() => route.query.municipality, () => loadPage(1))
 onMounted(() => loadPage())
 </script>

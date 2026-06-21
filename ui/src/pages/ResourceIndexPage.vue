@@ -170,6 +170,8 @@ const search = ref('')
 const statusFilter = ref('')
 let searchTimer: ReturnType<typeof setTimeout>
 
+watch(() => route.query.municipality, () => load(1))
+
 // ── API calls (generic — no per-resource imports needed) ────────────────────
 
 const apiBase = computed(() => `/${scope.value}/${cfg.value.apiSlug}`)
@@ -181,6 +183,7 @@ async function load(p = 1) {
     const params: Record<string, unknown> = { page: p }
     if (search.value) params['search'] = search.value
     if (statusFilter.value) params['status'] = statusFilter.value
+    if (route.query.municipality) params['municipality'] = route.query.municipality
     const { data } = await http.get(apiBase.value, { params })
     const list: Record<string, unknown>[] = data.data ?? data
     items.value = list.map(mapItem)

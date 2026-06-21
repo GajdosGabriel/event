@@ -25,7 +25,15 @@
       </header>
 
       <main class="body">
-        <RouterView />
+        <div class="body-inner">
+          <div class="page-content">
+            <RouterView />
+          </div>
+
+          <aside class="right-aside">
+            <MunicipalityAside v-if="munResource" scope="dashboard" :resource="munResource" />
+          </aside>
+        </div>
       </main>
 
       <footer class="footer text-sm">© {{ new Date().getFullYear() }} Event</footer>
@@ -34,10 +42,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
+import MunicipalityAside from '@/components/MunicipalityAside.vue'
 
 const auth = useAuthStore()
+const route = useRoute()
+
+const MUN_RESOURCES = ['events', 'canals', 'venues']
+const munResource = computed(() => {
+  const seg = route.path.split('/').find(s => MUN_RESOURCES.includes(s))
+  return seg ?? null
+})
 </script>
 
 <style scoped>
@@ -56,7 +74,6 @@ const auth = useAuthStore()
 }
 .brand { @apply font-bold tracking-wide text-white no-underline; }
 .header-nav { @apply ml-auto flex items-center gap-3; }
-.header-link { @apply rounded-md px-2 py-1 text-teal-50/80 no-underline hover:bg-teal-200/15 hover:text-white; }
 .aside {
   @apply relative z-40 flex flex-row items-center gap-3 overflow-auto p-3 text-white md:min-h-screen md:flex-col md:items-stretch md:overflow-visible md:border-r md:border-slate-800;
   background: linear-gradient(180deg, rgb(30 64 70) 0%, rgb(19 78 74) 100%);
@@ -69,7 +86,12 @@ const auth = useAuthStore()
 .aside-nav { @apply flex min-w-0 flex-1 flex-row gap-1 md:mt-3 md:flex-col; }
 .aside-link { @apply whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-teal-50/80 no-underline hover:bg-teal-200/12 hover:text-white; }
 .aside-link.active { @apply bg-teal-300 text-teal-950 font-bold; }
+
 .body { @apply min-w-0 overflow-auto p-4; }
+.body-inner { @apply flex min-h-full gap-4; }
+.page-content { @apply min-w-0 flex-1; }
+.right-aside { @apply hidden xl:block w-52 shrink-0 self-stretch border-l border-slate-200; }
+
 .footer { @apply border-t border-slate-200 bg-white px-5 py-4 text-slate-600; }
 
 @media (min-width: 768px) {
