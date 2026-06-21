@@ -5,6 +5,45 @@
       <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť miesto' : 'Nové miesto' }}</h1>
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
+      <!-- AI Detect panel -->
+      <div class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <button type="button" class="flex items-center gap-2 text-sm font-semibold text-blue-700"
+          @click="detectOpen = !detectOpen">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          {{ detectOpen ? 'Skryť AI detekciu' : 'Vyplniť pomocou AI' }}
+        </button>
+        <div v-if="detectOpen" class="mt-3 grid gap-3">
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <label class="form-label">Názov miesta
+              <input v-model="detectForm.name" type="text" class="form-input" placeholder="napr. Kultúrny dom" />
+            </label>
+            <label class="form-label">Mesto / Obec
+              <input v-model="detectForm.city" type="text" class="form-input" placeholder="napr. Trenčín" />
+            </label>
+            <label class="form-label">Krajina
+              <input v-model="detectForm.country" type="text" class="form-input" placeholder="Slovensko" />
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" class="btn btn-primary" :disabled="detecting || !detectForm.name || !detectForm.city"
+              @click="runDetect">
+              {{ detecting ? 'Detekcujem…' : 'Detekovať' }}
+            </button>
+            <span v-if="detectError" class="text-sm text-red-600">{{ detectError }}</span>
+          </div>
+          <div v-if="detectResult" class="rounded-lg border border-blue-200 bg-white p-3 text-sm">
+            <p class="mb-2 font-semibold text-slate-800">Výsledok detekcie:</p>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-700">
+              <template v-for="(val, key) in detectSummary" :key="key">
+                <dt class="text-slate-500">{{ key }}</dt>
+                <dd class="truncate">{{ val }}</dd>
+              </template>
+            </dl>
+            <button type="button" class="mt-3 btn btn-primary" @click="applyDetect">Vyplniť formulár</button>
+          </div>
+        </div>
+      </div>
+
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
           <legend class="field-legend">Základné info</legend>
@@ -115,7 +154,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showVenue, createVenue, updateVenue } from '@/api/venues'
+import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
@@ -156,6 +195,56 @@ const form = ref({
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
 const saving = ref(false)
+
+const detectOpen = ref(false)
+const detecting = ref(false)
+const detectError = ref<string | null>(null)
+const detectResult = ref<Record<string, unknown> | null>(null)
+const detectForm = ref({ name: '', city: '', country: 'Slovensko' })
+
+const detectSummary = computed(() => {
+  const p = detectResult.value?.['venue_store_payload'] as Record<string, unknown> | undefined
+  if (!p) return {}
+  return Object.fromEntries(
+    Object.entries(p).filter(([, v]) => v !== null && v !== '' && v !== undefined)
+  )
+})
+
+async function runDetect() {
+  detectError.value = null
+  detectResult.value = null
+  detecting.value = true
+  try {
+    const res = await detectVenue(detectForm.value.name, detectForm.value.city, detectForm.value.country || undefined)
+    if (!(res['success'] as boolean)) throw new Error((res['error'] as string) ?? 'Detekcia zlyhala.')
+    detectResult.value = res
+  } catch (e: unknown) {
+    detectError.value =
+      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      (e as Error)?.message ??
+      'Detekcia zlyhala.'
+  } finally {
+    detecting.value = false
+  }
+}
+
+function applyDetect() {
+  const p = detectResult.value?.['venue_store_payload'] as Record<string, unknown> | undefined
+  if (!p) return
+  if (p['name']) form.value.name = p['name'] as string
+  if (p['street']) form.value.street = p['street'] as string
+  if (p['postcode']) form.value.postcode = p['postcode'] as string
+  if (p['country']) form.value.country = p['country'] as string
+  if (p['latitude'] != null) form.value.latitude = p['latitude'] as number
+  if (p['longitude'] != null) form.value.longitude = p['longitude'] as number
+  if (p['website']) form.value.website = p['website'] as string
+  if (p['email']) form.value.email = p['email'] as string
+  if (p['phone']) form.value.phone = p['phone'] as string
+  if (p['body']) form.value.body = p['body'] as string
+  if (p['village_id'] != null) form.value.village_id = p['village_id'] as number
+  detectOpen.value = false
+  toast.success('Formulár vyplnený z AI detekcie.')
+}
 
 onMounted(async () => {
   loadMunicipalities()

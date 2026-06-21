@@ -73,9 +73,13 @@ export async function restoreVenue(id: number): Promise<void> {
   await http.post(`${baseUrl('dashboard')}/${id}/restore`)
 }
 
-export async function detectVenue(url: string): Promise<Partial<VenueItem>> {
-  const { data } = await http.post('/dashboard/venues/detect', { url })
-  return mapVenue((data.data ?? data) as Record<string, unknown>)
+export async function detectVenue(
+  name: string,
+  city: string,
+  country?: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await http.post('/dashboard/venues/detect', { name, city, country })
+  return data as Record<string, unknown>
 }
 
 export async function venuesMunicipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

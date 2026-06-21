@@ -9,6 +9,38 @@
       <p v-if="loadingData" class="text-slate-600">Načítavam…</p>
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
+      <!-- AI Detect panel -->
+      <div v-if="!loadingData" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <button type="button" class="flex items-center gap-2 text-sm font-semibold text-blue-700"
+          @click="detectOpen = !detectOpen">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          {{ detectOpen ? 'Skryť AI detekciu' : 'Vyplniť pomocou AI z textu' }}
+        </button>
+        <div v-if="detectOpen" class="mt-3 grid gap-3">
+          <label class="form-label">Vložte text o evente
+            <textarea v-model="detectText" class="form-textarea" rows="6"
+              placeholder="Sem vložte text plagátu, pozvánky alebo popisu eventu…" />
+          </label>
+          <div class="flex items-center gap-3">
+            <button type="button" class="btn btn-primary" :disabled="detecting || !detectText.trim()"
+              @click="runDetect">
+              {{ detecting ? 'Detekcujem…' : 'Detekovať' }}
+            </button>
+            <span v-if="detectError" class="text-sm text-red-600">{{ detectError }}</span>
+          </div>
+          <div v-if="detectResult" class="rounded-lg border border-blue-200 bg-white p-3 text-sm">
+            <p class="mb-2 font-semibold text-slate-800">Výsledok detekcie:</p>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-700">
+              <template v-for="(val, key) in detectSummary" :key="key">
+                <dt class="text-slate-500">{{ key }}</dt>
+                <dd class="truncate">{{ val }}</dd>
+              </template>
+            </dl>
+            <button type="button" class="mt-3 btn btn-primary" @click="applyDetect">Vyplniť formulár</button>
+          </div>
+        </div>
+      </div>
+
       <form v-if="!loadingData" class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
           <legend class="field-legend">Základné info</legend>
@@ -109,7 +141,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showEvent, createEvent, updateEvent } from '@/api/events'
+import { showEvent, createEvent, updateEvent, detectEventFromText } from '@/api/events'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
@@ -151,6 +183,64 @@ const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
 const saving = ref(false)
 const loadingData = ref(false)
+
+const detectOpen = ref(false)
+const detecting = ref(false)
+const detectError = ref<string | null>(null)
+const detectResult = ref<Record<string, unknown> | null>(null)
+const detectText = ref('')
+
+const detectSummary = computed(() => {
+  const ep = detectResult.value?.['event_payload'] as Record<string, unknown> | undefined
+  if (!ep) return {}
+  const fields: Record<string, string> = {}
+  if (ep['title']) fields['Názov'] = ep['title'] as string
+  if (ep['start_at']) fields['Začiatok'] = ep['start_at'] as string
+  if (ep['end_at']) fields['Koniec'] = ep['end_at'] as string
+  if ((ep['venue'] as Record<string, unknown>)?.['name']) fields['Miesto'] = (ep['venue'] as Record<string, unknown>)['name'] as string
+  if ((ep['venue'] as Record<string, unknown>)?.['city']) fields['Mesto'] = (ep['venue'] as Record<string, unknown>)['city'] as string
+  if (ep['website']) fields['Web'] = ep['website'] as string
+  if (ep['email']) fields['Email'] = ep['email'] as string
+  if (ep['phone']) fields['Telefón'] = ep['phone'] as string
+  return fields
+})
+
+async function runDetect() {
+  detectError.value = null
+  detectResult.value = null
+  detecting.value = true
+  try {
+    const res = await detectEventFromText(detectText.value)
+    if (!(res['success'] as boolean)) throw new Error((res['error'] as string) ?? 'Detekcia zlyhala.')
+    detectResult.value = res
+  } catch (e: unknown) {
+    detectError.value =
+      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      (e as Error)?.message ??
+      'Detekcia zlyhala.'
+  } finally {
+    detecting.value = false
+  }
+}
+
+function applyDetect() {
+  const ep = detectResult.value?.['event_payload'] as Record<string, unknown> | undefined
+  const correctedText = detectResult.value?.['corrected_text'] as string | undefined
+  if (!ep) return
+  if (ep['title']) form.value.name = ep['title'] as string
+  if (ep['start_at']) form.value.start_at = (ep['start_at'] as string).slice(0, 16)
+  if (ep['end_at']) form.value.end_at = (ep['end_at'] as string).slice(0, 16)
+  if (ep['registration_deadline_at']) form.value.registration_deadline_at = (ep['registration_deadline_at'] as string).slice(0, 16)
+  if (ep['website']) form.value.website = ep['website'] as string
+  if (ep['email']) form.value.email = ep['email'] as string
+  if (ep['phone']) form.value.phone = ep['phone'] as string
+  if (correctedText) form.value.body = correctedText
+  else if (ep['description']) form.value.body = ep['description'] as string
+  const venue = ep['venue'] as Record<string, unknown> | undefined
+  if (venue?.['name']) form.value.location_name = venue['name'] as string
+  detectOpen.value = false
+  toast.success('Formulár vyplnený z AI detekcie.')
+}
 
 onMounted(async () => {
   loadCanals()

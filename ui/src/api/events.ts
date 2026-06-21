@@ -133,6 +133,11 @@ export async function publishEvent(id: number, published: boolean): Promise<void
   await http.post(`${baseUrl('dashboard')}/${id}/publish`, { published })
 }
 
+export async function detectEventFromText(text: string): Promise<Record<string, unknown>> {
+  const { data } = await http.post('/dashboard/events/detect-from-text', { text })
+  return data as Record<string, unknown>
+}
+
 export async function municipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {
   const url = scope === 'public'
     ? '/events/municipalities-overview'
