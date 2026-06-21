@@ -73,6 +73,11 @@ export async function setActiveCanal(canalId: number): Promise<AuthIdentity | nu
   return unwrapIdentity(data)
 }
 
+export async function verifyRegistrationLink(token: string): Promise<{ message: string }> {
+  const { data } = await http.get(`/register/verify/${token}`)
+  return data as { message: string }
+}
+
 export function startSocialLogin(provider: 'google' | 'facebook') {
   window.location.assign(`/api/auth/${provider}/redirect`)
 }

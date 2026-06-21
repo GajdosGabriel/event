@@ -216,6 +216,17 @@ export interface VenueItem {
   allowedStatuses: AllowedStatusOption[]
 }
 
+// Municipality
+export interface MunicipalityItem {
+  id: number
+  name: string
+  shortname: string | null
+  zip: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
 // Organization
 export interface OrganizationItem {
   id: number

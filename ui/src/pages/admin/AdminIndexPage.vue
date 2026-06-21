@@ -18,6 +18,7 @@ const links = [
   { to: '/admin/events', label: 'Eventy' },
   { to: '/admin/canals', label: 'Kanály' },
   { to: '/admin/venues', label: 'Miesta' },
+  { to: '/admin/municipalities', label: 'Obce' },
   { to: '/admin/users', label: 'Používatelia' },
   { to: '/admin/settings', label: 'Nastavenia' },
   { to: '/admin/files', label: 'Súbory' },

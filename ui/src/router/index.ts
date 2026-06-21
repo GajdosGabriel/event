@@ -15,6 +15,7 @@ const router = createRouter({
         { path: 'login', name: 'login', component: () => import('@/pages/auth/LoginPage.vue') },
         { path: 'register', name: 'register', component: () => import('@/pages/auth/RegisterPage.vue') },
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
+        { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
         { path: 'events/:id', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
       ],
     },
@@ -38,6 +39,7 @@ const router = createRouter({
         { path: 'venues/create', name: 'dashboard-venues-create', component: () => import('@/pages/venues/VenueEditPage.vue') },
         { path: 'venues/:id', name: 'dashboard-venues-show', component: () => import('@/pages/venues/VenueShowPage.vue') },
         { path: 'venues/:id/edit', name: 'dashboard-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue') },
+        { path: 'municipalities', name: 'dashboard-municipalities', component: () => import('@/pages/dashboard/DashboardMunicipalitiesPage.vue') },
       ],
     },
 
@@ -60,6 +62,7 @@ const router = createRouter({
         { path: 'venues/create', name: 'admin-venues-create', component: () => import('@/pages/venues/VenueEditPage.vue'), props: { scope: 'admin' } },
         { path: 'venues/:id', name: 'admin-venues-show', component: () => import('@/pages/venues/VenueShowPage.vue'), props: { scope: 'admin' } },
         { path: 'venues/:id/edit', name: 'admin-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue'), props: { scope: 'admin' } },
+        { path: 'municipalities', name: 'admin-municipalities', component: () => import('@/pages/admin/AdminMunicipalitiesPage.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },
         { path: 'files', name: 'admin-files', component: () => import('@/pages/admin/AdminFilesPage.vue') },
