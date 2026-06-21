@@ -143,10 +143,30 @@
       </form>
     </div>
 
-    <div class="edit-card">
-      <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager v-if="fileableId" fileable-type="venue" :fileable-id="fileableId" />
-      <ImagePicker v-else ref="picker" />
+    <div class="edit-card grid gap-6">
+      <div>
+        <h2 class="mb-2 text-lg font-semibold text-slate-800">Poloha</h2>
+        <VenueMapPicker
+          :lat="form.latitude"
+          :lng="form.longitude"
+          @update:lat="form.latitude = $event"
+          @update:lng="form.longitude = $event"
+        />
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <label class="form-label text-xs">Lat
+            <input v-model.number="form.latitude" type="number" step="any" class="form-input" />
+          </label>
+          <label class="form-label text-xs">Lng
+            <input v-model.number="form.longitude" type="number" step="any" class="form-input" />
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
+        <ImageManager v-if="fileableId" fileable-type="venue" :fileable-id="fileableId" />
+        <ImagePicker v-else ref="picker" />
+      </div>
     </div>
   </div>
 </template>
@@ -160,6 +180,7 @@ import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
+import VenueMapPicker from '@/components/VenueMapPicker.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const router = useRouter(); const toast = useToast()

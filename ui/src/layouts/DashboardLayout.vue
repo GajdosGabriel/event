@@ -77,8 +77,10 @@ function toggle() {
 
 const MUN_RESOURCES = ['events', 'canals', 'venues']
 const munResource = computed(() => {
-  const seg = route.path.split('/').find(s => MUN_RESOURCES.includes(s))
-  return seg ?? null
+  const segs = route.path.split('/').filter(Boolean)
+  // only show on index pages: /dashboard/<resource>
+  if (segs.length !== 2) return null
+  return MUN_RESOURCES.includes(segs[1]) ? segs[1] : null
 })
 </script>
 
@@ -102,7 +104,10 @@ const munResource = computed(() => {
 
 /* Aside */
 .aside {
-  @apply relative z-40 flex flex-col border-r border-slate-800 p-3 text-white overflow-hidden;
+  @apply sticky top-0 z-40 flex flex-col border-r border-slate-800 p-3 text-white;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: linear-gradient(180deg, rgb(30 64 70) 0%, rgb(19 78 74) 100%);
   transition: width 0.22s ease;
 }
