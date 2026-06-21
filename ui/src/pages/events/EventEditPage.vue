@@ -61,9 +61,10 @@
       </form>
     </div>
 
-    <div v-if="fileableId" class="edit-card">
+    <div class="edit-card">
       <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager fileable-type="event" :fileable-id="fileableId" />
+      <ImageManager v-if="fileableId" fileable-type="event" :fileable-id="fileableId" />
+      <ImagePicker v-else ref="picker" />
     </div>
   </div>
 </template>
@@ -72,8 +73,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
+import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import ImageManager from '@/components/ImageManager.vue'
+import ImagePicker from '@/components/ImagePicker.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -87,6 +90,7 @@ const indexRoute = computed(() => `${prefix.value}/events`)
 
 const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
+const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const form = ref({ name: '', status: 'draft', start_at: '', end_at: '', location_name: '', website: '', body: '' })
 const errors = ref<Record<string, string>>({})
@@ -121,6 +125,14 @@ async function submit() {
     if (isCreate.value) {
       const ev = await createEvent(form.value)
       savedId.value = ev.id
+      const pending = picker.value?.files ?? []
+      if (pending.length) {
+        const fd = new FormData()
+        fd.append('fileable_type', 'event')
+        fd.append('fileable_id', String(ev.id))
+        pending.forEach(f => fd.append('files[]', f))
+        await uploadFiles(fd)
+      }
       toast.success('Event vytvorený.')
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {

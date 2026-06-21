@@ -55,9 +55,10 @@
       </form>
     </div>
 
-    <div v-if="fileableId" class="edit-card">
+    <div class="edit-card">
       <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager fileable-type="venue" :fileable-id="fileableId" />
+      <ImageManager v-if="fileableId" fileable-type="venue" :fileable-id="fileableId" />
+      <ImagePicker v-else ref="picker" />
     </div>
   </div>
 </template>
@@ -66,8 +67,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showVenue, createVenue, updateVenue } from '@/api/venues'
+import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import ImageManager from '@/components/ImageManager.vue'
+import ImagePicker from '@/components/ImagePicker.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const router = useRouter(); const toast = useToast()
@@ -78,6 +81,7 @@ const indexRoute = computed(() => `${prefix.value}/venues`)
 
 const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
+const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const form = ref({ name: '', street: '', postcode: '', capacity: null as number | null, email: '', phone: '', website: '', body: '', status: 'draft' })
 const errors = ref<Record<string, string>>({})
@@ -99,6 +103,14 @@ async function submit() {
     if (isCreate.value) {
       const v = await createVenue(form.value as Record<string, unknown>)
       savedId.value = v.id
+      const pending = picker.value?.files ?? []
+      if (pending.length) {
+        const fd = new FormData()
+        fd.append('fileable_type', 'venue')
+        fd.append('fileable_id', String(v.id))
+        pending.forEach(f => fd.append('files[]', f))
+        await uploadFiles(fd)
+      }
       toast.success('Miesto vytvorené.')
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
