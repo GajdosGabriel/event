@@ -22,7 +22,7 @@ class Canal extends Model
      * @var list<string>
      */
     protected $guarded = [];
-    protected $appends = ['primary_image', 'thumb_image', 'files'];
+    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'files'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -87,11 +87,12 @@ class Canal extends Model
 
     protected function defaultThumbImageUrl(): string
     {
-        $modelFallback = 'storage/images/canal.png';
+        $modelFallback = 'storage/images/canal-default.svg';
+        $legacyFallback = 'storage/images/canal.png';
         $sharedFallback = 'storage/images/default.png';
 
-        return file_exists(public_path($modelFallback))
-            ? url($modelFallback)
-            : url($sharedFallback);
+        if (file_exists(public_path($modelFallback))) return url($modelFallback);
+        if (file_exists(public_path($legacyFallback))) return url($legacyFallback);
+        return url($sharedFallback);
     }
 }

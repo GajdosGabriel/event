@@ -21,6 +21,11 @@ trait HasFile
         return $this->files()->where('type', FileType::IMAGE->value);
     }
 
+    public function getHasPrimaryImageAttribute(): bool
+    {
+        return $this->images()->where('is_primary', true)->exists();
+    }
+
     public function getPrimaryImageAttribute(): array
     {
         $image = $this->images()

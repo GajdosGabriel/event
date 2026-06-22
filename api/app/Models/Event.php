@@ -16,7 +16,7 @@ class Event extends Model
 
     protected $guarded = [];
     protected $hidden = [];
-    protected $appends = ['primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files'];
+    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files'];
 
     protected $casts = [
         'name' => StringLength250::class,
@@ -89,16 +89,18 @@ class Event extends Model
             ? $this->getRelation('canal')
             : $this->canal()->first();
 
-        if ($canal?->thumb_image) {
+        // Use canal image only when canal has a real primary image
+        if ($canal?->has_primary_image) {
             return $canal->thumb_image;
         }
 
-        $modelFallback = 'storage/images/canal-man.png';
+        $modelFallback = 'storage/images/event-default.svg';
+        $legacyFallback = 'storage/images/canal-man.png';
         $sharedFallback = 'storage/images/default.png';
 
-        return file_exists(public_path($modelFallback))
-            ? url($modelFallback)
-            : url($sharedFallback);
+        if (file_exists(public_path($modelFallback))) return url($modelFallback);
+        if (file_exists(public_path($legacyFallback))) return url($legacyFallback);
+        return url($sharedFallback);
     }
 
     protected function defaultPrimaryImage(): array
@@ -107,7 +109,8 @@ class Event extends Model
             ? $this->getRelation('canal')
             : $this->canal()->first();
 
-        if (is_array($canal?->primary_image ?? null)) {
+        // Use canal image only when canal has a real primary image
+        if ($canal?->has_primary_image) {
             return $canal->primary_image;
         }
 
@@ -116,7 +119,6 @@ class Event extends Model
         return [
             'thumb' => $fallback,
             'large' => $fallback,
-            // 'original' => $fallback,
         ];
     }
 }
