@@ -51,6 +51,11 @@ export async function showVenue(scope: Scope, id: number): Promise<VenueItem> {
   return mapVenue((data.data ?? data) as Record<string, unknown>)
 }
 
+export async function showVenuePublic(id: number): Promise<VenueItem> {
+  const { data } = await http.get(`/venues/${id}`)
+  return mapVenue((data.data ?? data) as Record<string, unknown>)
+}
+
 export async function createVenue(payload: FormData | Record<string, unknown>): Promise<VenueItem> {
   const { data } = await http.post(baseUrl('dashboard'), payload)
   return mapVenue((data.data ?? data) as Record<string, unknown>)

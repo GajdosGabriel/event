@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
-import { listFiles, listPublicEventFiles, type FileItem } from '@/api/files'
+import { listFiles, listPublicEventFiles, listPublicVenueFiles, type FileItem } from '@/api/files'
 
 const props = defineProps<{
   fileableType: 'canal' | 'event' | 'venue'
@@ -121,8 +121,10 @@ function next() { if (lightboxIdx.value !== null && lightboxIdx.value < images.v
 
 onMounted(async () => {
   try {
-    const files = props.public && props.fileableType === 'event'
-      ? await listPublicEventFiles(props.fileableId)
+    const files = props.public
+      ? props.fileableType === 'venue'
+        ? await listPublicVenueFiles(props.fileableId)
+        : await listPublicEventFiles(props.fileableId)
       : await listFiles({ fileable_type: props.fileableType, fileable_id: props.fileableId })
     images.value = [...files].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
   } catch { /* ignore */ }

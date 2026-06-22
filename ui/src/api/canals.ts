@@ -47,6 +47,11 @@ export async function showCanal(scope: Scope, id: number): Promise<CanalItem> {
   return mapCanal((data.data ?? data) as Record<string, unknown>)
 }
 
+export async function showCanalPublic(id: number): Promise<CanalItem> {
+  const { data } = await http.get(`/canals/${id}`)
+  return mapCanal((data.data ?? data) as Record<string, unknown>)
+}
+
 export async function createCanal(payload: FormData | Record<string, unknown>): Promise<CanalItem> {
   const { data } = await http.post(baseUrl('dashboard'), payload)
   return mapCanal((data.data ?? data) as Record<string, unknown>)

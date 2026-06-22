@@ -14,7 +14,7 @@ use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
 use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController};
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, VenueController as PublicVenueController};
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -54,6 +54,8 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
     ->name('public.events.municipalities.overview');
 
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
+Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.venues.show');
+Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
 
 Route::apiResources([
     'events' => PublicEventController::class,

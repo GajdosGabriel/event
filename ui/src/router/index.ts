@@ -17,6 +17,8 @@ const router = createRouter({
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
         { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
         { path: 'events/:id', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
+        { path: 'venues/:id', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },
+        { path: 'canals/:id', name: 'canal-public-show', component: () => import('@/pages/canals/CanalPublicShowPage.vue') },
       ],
     },
 
