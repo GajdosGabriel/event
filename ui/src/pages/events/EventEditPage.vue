@@ -67,16 +67,17 @@
                 <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
             </label>
-            <label class="form-label">
+            <label class="form-label lg:col-span-2">
               Miesto konania
-              <select v-model="form.venue_id" class="form-input">
-                <option :value="null">— bez miesta —</option>
-                <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
-              </select>
-            </label>
-            <label class="form-label">
-              Vlastný názov miesta
-              <input v-model="form.location_name" type="text" class="form-input" placeholder="ak nie je v zozname" />
+              <div class="flex gap-2">
+                <select v-model="form.venue_id" class="form-input min-w-0">
+                  <option :value="null">— bez miesta —</option>
+                  <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
+                </select>
+                <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
+                  + Pridať nové
+                </button>
+              </div>
             </label>
           </div>
         </fieldset>
@@ -100,6 +101,11 @@
         </fieldset>
 
         <fieldset class="field-group">
+          <legend class="field-legend">Popis akcie</legend>
+          <textarea v-model="form.body" class="form-textarea" rows="7" />
+        </fieldset>
+
+        <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
@@ -118,11 +124,6 @@
           </div>
         </fieldset>
 
-        <fieldset class="field-group">
-          <legend class="field-legend">Popis</legend>
-          <textarea v-model="form.body" class="form-textarea" rows="7" />
-        </fieldset>
-
         <div class="flex gap-2">
           <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
           <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
@@ -136,22 +137,70 @@
       <ImagePicker v-else ref="picker" />
     </div>
   </div>
+
+  <!-- Quick venue create modal -->
+  <Teleport to="body">
+    <div v-if="venueModal.show" class="fixed inset-0 z-600 flex items-center justify-center bg-black/40 p-4" @mousedown.self="venueModal.show = false">
+      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+        <h2 class="mb-4 text-lg font-semibold text-slate-900">Nové miesto konania</h2>
+        <p v-if="venueModal.error" class="mb-3 text-sm text-red-600">{{ venueModal.error }}</p>
+        <div class="grid gap-3">
+          <label class="form-label">
+            Názov *
+            <input v-model="venueModal.form.name" type="text" class="form-input"
+              :class="{ invalid: venueModal.errors.name }" placeholder="napr. Kultúrny dom" />
+            <span v-if="venueModal.errors.name" class="field-error">{{ venueModal.errors.name }}</span>
+          </label>
+          <label class="form-label">
+            Obec *
+            <SearchableSelect
+              v-model="venueModal.form.village_id"
+              :options="municipalities"
+              placeholder="— vyberte obec —"
+              :invalid="!!venueModal.errors.village_id"
+            />
+            <span v-if="venueModal.errors.village_id" class="field-error">{{ venueModal.errors.village_id }}</span>
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="form-label">
+              Ulica
+              <input v-model="venueModal.form.street" type="text" class="form-input" placeholder="napr. Hlavná 12" />
+            </label>
+            <label class="form-label">
+              PSČ
+              <input v-model="venueModal.form.postcode" type="text" class="form-input" placeholder="01234" />
+            </label>
+          </div>
+        </div>
+        <div class="mt-5 flex gap-2">
+          <button type="button" class="btn btn-primary" :disabled="venueModal.saving" @click="saveNewVenue">
+            {{ venueModal.saving ? 'Ukladám…' : 'Vytvoriť miesto' }}
+          </button>
+          <button type="button" class="btn btn-secondary" @click="venueModal.show = false">Zrušiť</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent, detectEventFromText } from '@/api/events'
+import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
+import SearchableSelect from '@/components/SearchableSelect.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const auth = useAuthStore()
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
@@ -162,14 +211,13 @@ const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
-const { canals, venues, loadCanals, loadVenues } = useFormOptions(scope.value)
+const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
 
 const form = ref({
   name: '',
   status: 'draft',
-  canal_id: null as number | null,
+  canal_id: auth.canalId ?? null,
   venue_id: null as number | null,
-  location_name: '',
   start_at: '',
   end_at: '',
   registration_deadline_at: '',
@@ -183,6 +231,48 @@ const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
 const saving = ref(false)
 const loadingData = ref(false)
+
+watch(() => auth.canalId, (id) => {
+  if (id && !form.value.canal_id) form.value.canal_id = id
+}, { immediate: true })
+
+const venueModal = ref({
+  show: false,
+  saving: false,
+  error: null as string | null,
+  errors: {} as Record<string, string>,
+  form: { name: '', village_id: null as number | null, street: '', postcode: '' },
+})
+
+function openVenueModal() {
+  venueModal.value = { show: true, saving: false, error: null, errors: {}, form: { name: '', village_id: null, street: '', postcode: '' } }
+}
+
+async function saveNewVenue() {
+  venueModal.value.errors = {}
+  venueModal.value.error = null
+  venueModal.value.saving = true
+  try {
+    const payload: Record<string, unknown> = {
+      name: venueModal.value.form.name,
+      village_id: venueModal.value.form.village_id,
+      street: venueModal.value.form.street || null,
+      postcode: venueModal.value.form.postcode || null,
+      canal_id: form.value.canal_id,
+    }
+    const created = await createVenue(payload)
+    venues.value.push({ id: created.id, name: created.name })
+    form.value.venue_id = created.id
+    venueModal.value.show = false
+    toast.success('Miesto vytvorené.')
+  } catch (e: unknown) {
+    const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
+    if (resp?.errors) venueModal.value.errors = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
+    venueModal.value.error = resp?.message ?? 'Uloženie zlyhalo.'
+  } finally {
+    venueModal.value.saving = false
+  }
+}
 
 const detectOpen = ref(false)
 const detecting = ref(false)
@@ -236,8 +326,6 @@ function applyDetect() {
   if (ep['phone']) form.value.phone = ep['phone'] as string
   if (correctedText) form.value.body = correctedText
   else if (ep['description']) form.value.body = ep['description'] as string
-  const venue = ep['venue'] as Record<string, unknown> | undefined
-  if (venue?.['name']) form.value.location_name = venue['name'] as string
   detectOpen.value = false
   toast.success('Formulár vyplnený z AI detekcie.')
 }
@@ -245,6 +333,7 @@ function applyDetect() {
 onMounted(async () => {
   loadCanals()
   loadVenues()
+  loadMunicipalities()
   if (!isCreate.value) {
     loadingData.value = true
     try {
@@ -252,9 +341,8 @@ onMounted(async () => {
       form.value = {
         name: ev.name,
         status: ev.status,
-        canal_id: ev.canalId ?? null,
+        canal_id: ev.canalId ?? auth.canalId ?? null,
         venue_id: ev.venueId ?? null,
-        location_name: ev.locationName ?? '',
         start_at: ev.startAt?.slice(0, 16) ?? '',
         end_at: ev.endAt?.slice(0, 16) ?? '',
         registration_deadline_at: (ev as Record<string, unknown>)['registrationDeadlineAt'] as string ?? '',

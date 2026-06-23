@@ -11,7 +11,10 @@ export function useFormOptions(scope: 'dashboard' | 'admin') {
   async function loadMunicipalities() {
     try {
       const { data } = await http.get(`/${scope}/municipalities/all`)
-      municipalities.value = (data.data ?? data) as SelectOption[]
+      municipalities.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
+        id: r['id'] as number,
+        name: (r['fullname'] ?? r['name']) as string,
+      }))
     } catch { /* ignore */ }
   }
 

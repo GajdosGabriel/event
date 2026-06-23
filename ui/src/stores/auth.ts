@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isSuperAdmin = computed(() => identity.value?.roles?.includes('super-admin') ?? false)
   const displayName = computed(() => identity.value?.display_name ?? '')
   const canalName = computed(() => identity.value?.canal ?? '')
-  const canalId = computed(() => identity.value?.canal_id ?? null)
+  const canalId = computed(() => identity.value?.canal_id ?? identity.value?.canal_context?.active?.id ?? null)
 
   async function fetchIdentity() {
     try {
