@@ -12,6 +12,7 @@ use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\EventResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\OpenAI\Chatgpt;
 use App\Services\OpenAI\Detector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -127,5 +128,23 @@ class DashboardEventController extends Controller
         $result = $detector->detectFromText($request->validated()['text']);
 
         return response()->json($result);
+    }
+
+    public function improveText(Request $request, Chatgpt $chatgpt): JsonResponse
+    {
+        $this->authorize('create', Event::class);
+
+        $validated = $request->validate([
+            'text' => 'required|string|min:50|max:20000',
+            'modes' => 'sometimes|array',
+            'modes.*' => 'string|in:grammar,style,expand,html',
+        ]);
+
+        try {
+            $result = $chatgpt->extractTextEdit($validated['text'], $validated['modes'] ?? ['grammar', 'style']);
+            return response()->json(['success' => true, ...$result]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
     }
 }

@@ -138,6 +138,18 @@ export async function detectEventFromText(text: string): Promise<Record<string, 
   return data as Record<string, unknown>
 }
 
+export type ImproveMode = 'grammar' | 'style' | 'expand' | 'html'
+
+export async function improveEventText(text: string, modes: ImproveMode[]): Promise<{ success: boolean; improved_text?: string; changes_summary?: string; error?: string }> {
+  const { data } = await http.post('/dashboard/events/improve-text', { text, modes })
+  return data as { success: boolean; improved_text?: string; changes_summary?: string; error?: string }
+}
+
+export async function runAdminTool(tool: 'import-events' | 'ai-detector' | 'archive-events', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
+  const { data } = await http.post(`/admin/tools/${tool}`, options ?? {})
+  return data as { success: boolean; output: string }
+}
+
 export async function municipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {
   const url = scope === 'public'
     ? '/events/municipalities-overview'

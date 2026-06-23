@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\{HomeController, TestController};
 use App\Http\Controllers\Admin\{ CanalController as AdminCanalController, DashboardController as AdminDashboardController, EventController as AdminEventController, FileController as AdminFileController, UserController as AdminUserController, MunicipalityController as AdminMunicipalityController, VenueController as AdminVenueController };
+use App\Http\Controllers\Admin\AdminToolsController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Auth\AuthController;
@@ -108,6 +109,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('permission:event.view');
     Route::post('events/detect-from-text', [DashboardEventController::class, 'detectFromText'])
         ->name('events.detect-from-text')
+        ->middleware('permission:event.create');
+    Route::post('events/improve-text', [DashboardEventController::class, 'improveText'])
+        ->name('events.improve-text')
         ->middleware('permission:event.create');
 
     Route::apiResource('events', DashboardEventController::class)
@@ -219,6 +223,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('events/{event}/restore', [AdminEventController::class, 'restore'])
         ->name('events.restore')
         ->middleware('permission:event.delete');
+
+    Route::post('tools/import-events', [AdminToolsController::class, 'runImportEvents'])->name('tools.import-events');
+    Route::post('tools/ai-detector', [AdminToolsController::class, 'runAiDetector'])->name('tools.ai-detector');
+    Route::post('tools/archive-events', [AdminToolsController::class, 'runArchiveEvents'])->name('tools.archive-events');
 
     Route::apiResource('users', AdminUserController::class)
         ->only(['index', 'show'])

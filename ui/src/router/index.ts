@@ -68,6 +68,7 @@ const router = createRouter({
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },
         { path: 'files', name: 'admin-files', component: () => import('@/pages/admin/AdminFilesPage.vue') },
+        { path: 'tools', name: 'admin-tools', component: () => import('@/pages/admin/AdminToolsPage.vue') },
       ],
     },
   ],

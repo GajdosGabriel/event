@@ -146,6 +146,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import type { EventItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
@@ -154,6 +155,40 @@ const route = useRoute()
 const event = ref<EventItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
+
+useHead(computed(() => {
+  const e = event.value
+  if (!e) return { title: 'Načítavam…' }
+
+  const title = e.name
+  const siteTitle = 'Event'
+  const fullTitle = `${title} | ${siteTitle}`
+  const description = e.body
+    ? e.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
+    : e.dateRangeLabel
+      ? `${e.dateRangeLabel}${e.venue ? ` · ${e.venue.name}` : ''}`
+      : title
+  const image = e.imageUrl ?? undefined
+  const url = window.location.href
+
+  return {
+    title: fullTitle,
+    meta: [
+      { name: 'description', content: description },
+      // Open Graph
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'event' },
+      { property: 'og:url', content: url },
+      ...(image ? [{ property: 'og:image', content: image }] : []),
+      // Twitter Card
+      { name: 'twitter:card', content: image ? 'summary_large_image' : 'summary' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+      ...(image ? [{ name: 'twitter:image', content: image }] : []),
+    ],
+  }
+}))
 
 const hasCoords = computed(() =>
   !!event.value?.venue?.latitude && !!event.value?.venue?.longitude

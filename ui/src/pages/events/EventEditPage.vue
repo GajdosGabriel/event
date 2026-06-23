@@ -9,8 +9,8 @@
       <p v-if="loadingData" class="text-slate-600">Načítavam…</p>
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
-      <!-- AI Detect panel -->
-      <div v-if="!loadingData" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+      <!-- AI Detect panel — admin only -->
+      <div v-if="!loadingData && scope === 'admin'" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
         <button type="button" class="flex items-center gap-2 text-sm font-semibold text-blue-700"
           @click="detectOpen = !detectOpen">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -103,6 +103,43 @@
         <fieldset class="field-group">
           <legend class="field-legend">Popis akcie</legend>
           <textarea v-model="form.body" class="form-textarea" rows="7" />
+
+          <!-- Text improve -->
+          <div v-if="form.body.length >= 80" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
+            <button type="button" class="flex items-center gap-2 text-sm font-semibold text-violet-700"
+              @click="improveOpen = !improveOpen">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              {{ improveOpen ? 'Skryť vylepšenie textu' : 'Vylepšiť text pomocou AI' }}
+            </button>
+            <div v-if="improveOpen" class="mt-3 grid gap-3">
+              <div class="flex flex-wrap gap-3">
+                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
+                  <input type="checkbox" v-model="improveModes" value="grammar" class="accent-violet-600" /> Gramatika
+                </label>
+                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
+                  <input type="checkbox" v-model="improveModes" value="style" class="accent-violet-600" /> Štýl
+                </label>
+                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
+                  <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> Rozšíriť obsah
+                </label>
+                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
+                  <input type="checkbox" v-model="improveModes" value="html" class="accent-violet-600" /> HTML formát
+                </label>
+              </div>
+              <div class="flex items-center gap-3">
+                <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent"
+                  :disabled="improving || !improveModes.length" @click="runImprove">
+                  {{ improving ? 'Vylepšujem…' : 'Navrhnúť úpravu' }}
+                </button>
+                <span v-if="improveError" class="text-sm text-red-600">{{ improveError }}</span>
+              </div>
+              <div v-if="improveResult" class="rounded-lg border border-violet-200 bg-white p-3">
+                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-violet-600">{{ improveResult.changes_summary }}</p>
+                <pre class="whitespace-pre-wrap text-sm text-slate-800 font-sans mb-3">{{ improveResult.improved_text }}</pre>
+                <button type="button" class="btn btn-sm btn-primary" @click="applyImprove">Použiť navrhnutý text</button>
+              </div>
+            </div>
+          </div>
         </fieldset>
 
         <fieldset class="field-group">
@@ -186,7 +223,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showEvent, createEvent, updateEvent, detectEventFromText } from '@/api/events'
+import { showEvent, createEvent, updateEvent, detectEventFromText, improveEventText, type ImproveMode } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
@@ -271,6 +308,36 @@ async function saveNewVenue() {
     venueModal.value.error = resp?.message ?? 'Uloženie zlyhalo.'
   } finally {
     venueModal.value.saving = false
+  }
+}
+
+const improveOpen = ref(false)
+const improving = ref(false)
+const improveError = ref<string | null>(null)
+const improveModes = ref<ImproveMode[]>(['grammar', 'style'])
+const improveResult = ref<{ improved_text: string; changes_summary: string } | null>(null)
+
+async function runImprove() {
+  improveError.value = null
+  improveResult.value = null
+  improving.value = true
+  try {
+    const res = await improveEventText(form.value.body, improveModes.value)
+    if (!res.success) throw new Error(res.error ?? 'Vylepšenie zlyhalo.')
+    improveResult.value = { improved_text: res.improved_text!, changes_summary: res.changes_summary! }
+  } catch (e: unknown) {
+    improveError.value = (e as Error)?.message ?? 'Vylepšenie zlyhalo.'
+  } finally {
+    improving.value = false
+  }
+}
+
+function applyImprove() {
+  if (improveResult.value) {
+    form.value.body = improveResult.value.improved_text
+    improveResult.value = null
+    improveOpen.value = false
+    toast.success('Text bol aktualizovaný.')
   }
 }
 

@@ -4,7 +4,7 @@ namespace App\Services\OpenAI;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptVenue};
+use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptTextEditor, PromptVenue};
 use OpenAI\Laravel\Facades\OpenAI;
 
 class ChatGPT
@@ -14,6 +14,7 @@ class ChatGPT
         private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter(),
         private readonly PromptVenue $promptVenue = new PromptVenue(),
         private readonly PromptCanal $promptCanal = new PromptCanal(),
+        private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
     ) {}
 
     public function extractData(array|string $input): array
@@ -83,6 +84,33 @@ class ChatGPT
         // if (!empty($data['event_body']) && is_string($data['event_body'])) {
         //     $data['event_body'] = $this->addEventClasses($data['event_body']);
         // }
+
+        return $data;
+    }
+
+    public function extractTextEdit(string $text, array $modes): array
+    {
+        $response = OpenAI::chat()->create([
+            'model' => 'gpt-4o',
+            'temperature' => 0.3,
+            'response_format' => $this->promptTextEditor->jsonSchema(),
+            'messages' => $this->promptTextEditor->prompt($text, $modes),
+        ]);
+
+        $content = $response->choices[0]->message->content ?? null;
+        if (!$content) {
+            throw new \RuntimeException('Prázdna odpoveď od OpenAI');
+        }
+
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+            throw new \RuntimeException('Neplatný JSON: ' . json_last_error_msg());
+        }
+
+        $validator = Validator::make($data, $this->promptTextEditor->validator());
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatná štruktúra dát: ' . $validator->errors()->toJson());
+        }
 
         return $data;
     }
