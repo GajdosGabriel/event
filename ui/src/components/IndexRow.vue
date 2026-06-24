@@ -12,6 +12,7 @@
       </p>
       <p v-if="meta" class="mt-1 flex items-center gap-1.5 text-xs text-slate-500">{{ meta }}</p>
       <p v-if="description" class="mt-1 text-sm text-slate-700">{{ description }}</p>
+      <slot name="detail" />
     </div>
 
     <div class="col-span-2 flex justify-start md:col-span-1 md:justify-center">

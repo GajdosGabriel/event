@@ -26,6 +26,36 @@
           :status="item.status"
           :show-link="`${prefix}/${item.id}`"
         >
+          <template v-if="resource === 'event'" #detail>
+            <div class="mt-1.5 flex flex-col gap-1">
+              <!-- Dátumy -->
+              <div v-if="item.startLabel" class="flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                  <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  Začiatok: {{ item.startLabel }}
+                </span>
+                <span v-if="item.endLabel" class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  Koniec: {{ item.endLabel }}
+                </span>
+              </div>
+              <!-- Kanál + venue + stav -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span v-if="item.canalName"
+                  class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">
+                  {{ item.canalName }}
+                </span>
+                <span v-if="item.venueName"
+                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                  {{ item.venueName }}
+                </span>
+                <span v-if="item.deletedAt"
+                  class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-200">
+                  zmazaný
+                </span>
+              </div>
+            </div>
+          </template>
           <template #actions>
             <RowActions>
               <RouterLink :to="`${prefix}/${item.id}`" class="row-menu-item">Zobraziť</RouterLink>
@@ -125,7 +155,21 @@ interface ResourceItem {
   publishedAt?: string | null
   deletedAt?: string | null
   permissions?: Record<string, boolean>
+  canalName?: string | null
+  venueName?: string | null
+  startLabel?: string | null
+  endLabel?: string | null
   [key: string]: unknown
+}
+
+function fmtDate(d: Date) {
+  return d.toLocaleDateString('sk-SK', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+function fmtTime(d: Date) {
+  return d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+}
+function fmtDateTime(d: Date) {
+  return `${fmtDate(d)}, ${fmtTime(d)}`
 }
 
 function mapItem(raw: Record<string, unknown>): ResourceItem {
@@ -136,15 +180,27 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     (raw['thumb_image'] as string) ??
     null
 
-  // meta: date range for events, address for venues
+  // meta: only for non-event resources (venue address, etc.)
   let meta: string | null = null
+  let startLabel: string | null = null
+  let endLabel: string | null = null
+
   if (raw['start_at']) {
     const start = new Date(raw['start_at'] as string)
-    const fmt = (d: Date) => d.toLocaleDateString('sk-SK', { day: 'numeric', month: 'short', year: 'numeric' })
-    meta = raw['end_at'] ? `${fmt(start)} – ${fmt(new Date(raw['end_at'] as string))}` : fmt(start)
+    startLabel = fmtDateTime(start)
+    if (raw['end_at']) {
+      const end = new Date(raw['end_at'] as string)
+      const sameDay = start.toDateString() === end.toDateString()
+      endLabel = sameDay ? fmtTime(end) : fmtDateTime(end)
+    }
   } else if (raw['street']) {
     meta = [raw['street'], raw['postcode']].filter(Boolean).join(', ')
   }
+
+  const canalRaw = raw['canal'] as { name: string } | null
+  const venueRaw = raw['venue'] as { name: string } | null
+  const canalName = canalRaw?.name ?? (raw['canal_name'] as string) ?? null
+  const venueName = venueRaw?.name ?? null
 
   return {
     id: raw['id'] as number,
@@ -152,9 +208,13 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     status: (raw['status'] as string) ?? '',
     imageUrl,
     meta,
+    startLabel,
+    endLabel,
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     permissions: (raw['permissions'] as Record<string, boolean>) ?? {},
+    canalName,
+    venueName,
     ...raw,
   }
 }

@@ -72,11 +72,26 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         /** @var Event $event */
         $event = $this->model()->withTrashed()->findOrFail($id);
+
+        $canalChanged = isset($properties['canal_id']) && (int) $properties['canal_id'] !== (int) $event->canal_id;
+
+        // When the user explicitly picks a new canal, the existing venue may belong to the old canal.
+        // Rather than silently reverting canal_id to the venue's canal, clear venue_id so the
+        // canal change is honoured (user can re-select a compatible venue afterwards).
+        if ($canalChanged && ! empty($properties['venue_id'])) {
+            $newCanalId = (int) $properties['canal_id'];
+            $venue = Venue::query()->find((int) $properties['venue_id']);
+            if ($venue && ! $venue->activeCanals()->where('canals.id', $newCanalId)->exists()) {
+                $properties['venue_id'] = null;
+            }
+        }
+
         $targetCanalId = isset($properties['canal_id'])
             ? (int) $properties['canal_id']
             : (int) $event->canal_id;
 
-        $this->normalizeLocationPayload($properties, $targetCanalId, true);
+        // syncCanalFromVenue only when canal itself wasn't changed — i.e. venue drives the canal.
+        $this->normalizeLocationPayload($properties, $targetCanalId, ! $canalChanged);
 
         if (isset($properties['status']) && $properties['status'] === ModelStatus::Published->value && $event->published_at === null) {
             $properties['published_at'] = now();
@@ -136,7 +151,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
     public function adminIndexQuery()
     {
-        return $this->latestFirst($this->model()->withTrashed());
+        return $this->latestFirst($this->model()->withTrashed()->with(['canal:id,name', 'venue:id,name']));
     }
 
     public function dashboardIndexQuery()
@@ -145,6 +160,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         return $this->latestFirst(
             $this->model()->withTrashed()
+                ->with(['canal:id,name', 'venue:id,name'])
                 ->whereIn('canal_id', $canalIds)
         );
     }
