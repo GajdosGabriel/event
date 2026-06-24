@@ -71,9 +71,8 @@ class VenueController extends Controller
     public function show($id): JsonResponse
     {
         $venue = $this->venueRepository->adminShow($id);
-        $this->authorize('view', $venue);
 
-        return response()->json(['admin-show' => $venue]);
+        return response()->json(new VenueResource($venue));
     }
 
     public function detect(VenueDetectRequest $request, Detector $detector): JsonResponse
@@ -126,5 +125,18 @@ class VenueController extends Controller
         $venue = $this->venueRepository->restore($id);
 
         return response()->json(new VenueResource($venue), 200);
+    }
+
+    public function events(string $id): JsonResponse
+    {
+        $venue = $this->venueRepository->adminShow($id);
+        $this->authorize('view', $venue);
+
+        $events = Event::where('venue_id', $venue->id)
+            ->orderByDesc('start_at')
+            ->limit(50)
+            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+
+        return response()->json($events);
     }
 }

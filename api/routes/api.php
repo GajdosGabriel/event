@@ -156,6 +156,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('venues/{venue}/restore', [DashboardVenueController::class, 'restore'])
         ->name('venues.restore')
         ->middleware('permission:venue.delete');
+    Route::get('venues/{venue}/events', [DashboardVenueController::class, 'events'])
+        ->name('venues.events')
+        ->middleware('permission:venue.view');
     Route::apiResource('users',  DashboardUserController::class);
     Route::post('users/{user}/restore', [DashboardUserController::class, 'restore'])->name('users.restore');
     Route::post('users/active-canal', [DashboardUserController::class, 'setActiveCanal']);
@@ -187,6 +190,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');
+    Route::get('files', [AdminFileController::class, 'index'])
+        ->name('files.index');
     Route::delete('files/{id}', [AdminFileController::class, 'destroy'])
         ->name('files.destroy')
         ->middleware('permission:file.delete');
@@ -268,7 +273,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->only(['index', 'show'])
         ->middleware('permission:venue.view');
     Route::post('venues/{venue}/restore', [AdminVenueController::class, 'restore'])
-        ->name('venues.restore')
+        ->name('venues.restore');
+    Route::get('venues/{venue}/events', [AdminVenueController::class, 'events'])
+        ->name('venues.events')
         ->middleware('permission:venue.delete');
 });
 

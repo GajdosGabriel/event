@@ -33,6 +33,21 @@ class VenueResource extends JsonResource
             'restore' => $user?->can('restore', $this->resource) ?? false,
         ];
 
+        if ($this->relationLoaded('municipality') && $this->municipality) {
+            $data['municipality'] = [
+                'id' => $this->municipality->id,
+                'name' => $this->municipality->fullname,
+            ];
+        }
+
+        if ($this->relationLoaded('canals')) {
+            $data['canals_list'] = $this->canals->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'is_owner' => (bool) $c->pivot->is_owner,
+            ])->values()->all();
+        }
+
         return $data;
     }
 }

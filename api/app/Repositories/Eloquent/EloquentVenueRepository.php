@@ -59,7 +59,15 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
     public function dashboardShow($id)
     {
-        $venue = $this->dashboardIndexQuery()->where('id', $id)->firstOrFail();
+        $venue = $this->model()->withTrashed()->with(['municipality', 'canals'])->findOrFail($id);
+        Gate::authorize('view', $venue);
+
+        return $venue;
+    }
+
+    public function adminShow($id)
+    {
+        $venue = $this->model()->withTrashed()->with(['municipality', 'canals'])->findOrFail($id);
         Gate::authorize('view', $venue);
 
         return $venue;

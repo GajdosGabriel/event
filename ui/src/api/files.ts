@@ -46,6 +46,31 @@ export async function listFiles(params: { fileable_type: string; fileable_id: nu
   return ((data.data ?? data) as Record<string, unknown>[]).map(mapFile)
 }
 
+export interface AdminFileParams {
+  fileable_type?: string
+  fileable_id?: number
+  search?: string
+  with_trashed?: boolean
+  page?: number
+}
+
+export interface PaginatedFiles {
+  data: FileItem[]
+  total: number
+  currentPage: number
+  lastPage: number
+}
+
+export async function listAdminFiles(params: AdminFileParams = {}): Promise<PaginatedFiles> {
+  const { data } = await http.get('/admin/files', { params })
+  return {
+    data: ((data.data ?? []) as Record<string, unknown>[]).map(mapFile),
+    total: (data.meta?.total ?? data.total ?? 0) as number,
+    currentPage: (data.meta?.current_page ?? data.current_page ?? 1) as number,
+    lastPage: (data.meta?.last_page ?? data.last_page ?? 1) as number,
+  }
+}
+
 export async function listPublicEventFiles(eventId: number): Promise<FileItem[]> {
   const { data } = await http.get(`/events/${eventId}/files`)
   return ((data.data ?? data) as Record<string, unknown>[]).map(mapFile)

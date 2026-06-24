@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ModelStatus;
+use App\Models\Municipality;
 use App\Models\Traits\{HasCommonFilters, HasFile};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,11 @@ class Venue extends Model
     {
         $this->attributes['name'] = $value;
         $this->attributes['slug'] = Str::slug($value);
+    }
+
+    public function municipality()
+    {
+        return $this->belongsTo(Municipality::class, 'village_id');
     }
 
     public function canal()

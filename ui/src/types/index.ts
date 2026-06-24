@@ -204,7 +204,7 @@ export interface VenueItem {
   latitude: number | null
   longitude: number | null
   capacity: number | null
-  openingHours: string | null
+  openingHours: unknown | null
   category: string | null
   imageUrl: string | null
   status: ModelStatus
@@ -214,6 +214,8 @@ export interface VenueItem {
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
   allowedStatuses: AllowedStatusOption[]
+  municipality: { id: number; name: string } | null
+  canalsList: { id: number; name: string; isOwner: boolean }[]
 }
 
 // Municipality

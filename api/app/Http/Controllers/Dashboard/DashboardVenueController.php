@@ -153,4 +153,17 @@ class DashboardVenueController extends Controller
 
         return response()->json(new VenueResource($venue), 200);
     }
+
+    public function events(string $id): JsonResponse
+    {
+        $venue = $this->venueRepository->dashboardShow($id);
+        $this->authorize('view', $venue);
+
+        $events = Event::where('venue_id', $venue->id)
+            ->orderByDesc('start_at')
+            ->limit(50)
+            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+
+        return response()->json($events);
+    }
 }

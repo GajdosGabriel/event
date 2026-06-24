@@ -34,6 +34,8 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     uploadedFiles: (raw['uploaded_files'] as VenueItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as VenueItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
     allowedStatuses: (raw['allowed_statuses'] as VenueItem['allowedStatuses']) ?? [],
+    municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
+    canalsList: ((raw['canals_list'] as Record<string,unknown>[]) ?? []).map(c => ({ id: c['id'] as number, name: c['name'] as string, isOwner: c['is_owner'] as boolean })),
   }
 }
 
@@ -85,6 +87,25 @@ export async function detectVenue(
 ): Promise<Record<string, unknown>> {
   const { data } = await http.post('/dashboard/venues/detect', { name, city, country })
   return data as Record<string, unknown>
+}
+
+export interface VenueEventItem {
+  id: number
+  name: string
+  startAt: string | null
+  endAt: string | null
+  status: string
+}
+
+export async function listVenueEvents(scope: Scope, venueId: number): Promise<VenueEventItem[]> {
+  const { data } = await http.get(`${baseUrl(scope)}/${venueId}/events`)
+  return ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
+    id: r['id'] as number,
+    name: r['name'] as string,
+    startAt: (r['start_at'] as string) ?? null,
+    endAt: (r['end_at'] as string) ?? null,
+    status: (r['status'] as string) ?? 'draft',
+  }))
 }
 
 export async function venuesMunicipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {
