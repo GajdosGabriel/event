@@ -8,7 +8,8 @@ use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\CanalResource;
 use App\Repositories\Contracts\CanalRepository;
-use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
+use App\Models\Event;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Models\Canal;
@@ -56,9 +57,20 @@ class CanalController extends Controller
     public function show($id): JsonResponse
     {
         $canal = $this->canalRepository->adminShow($id);
-        $this->authorize('view', $canal);
 
-        return response()->json(['admin-show' => $canal]);
+        return response()->json(new CanalResource($canal));
+    }
+
+    public function events(string $id): JsonResponse
+    {
+        $canal = $this->canalRepository->adminShow($id);
+
+        $events = Event::where('canal_id', $canal->id)
+            ->orderByDesc('start_at')
+            ->limit(50)
+            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+
+        return response()->json($events);
     }
 
     public function store(CanalStoreRequest $request): JsonResponse

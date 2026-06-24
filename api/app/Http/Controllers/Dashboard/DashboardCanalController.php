@@ -8,6 +8,7 @@ use App\Repositories\Contracts\CanalRepository;
 use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\CanalResource;
+use App\Models\Event;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Models\Canal;
@@ -113,5 +114,18 @@ class DashboardCanalController extends Controller
         $canal = $this->canalRepository->restore($id);
 
         return response()->json(new CanalResource($canal), 200);
+    }
+
+    public function events(string $id): JsonResponse
+    {
+        $canal = $this->canalRepository->dashboardShow($id);
+        $this->authorize('view', $canal);
+
+        $events = Event::where('canal_id', $canal->id)
+            ->orderByDesc('start_at')
+            ->limit(50)
+            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+
+        return response()->json($events);
     }
 }

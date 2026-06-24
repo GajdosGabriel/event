@@ -47,6 +47,11 @@ class Canal extends Model
         $this->attributes['slug']  = Str::slug($value);
     }
 
+    public function municipality()
+    {
+        return $this->belongsTo(\App\Models\Municipality::class, 'municipality_id');
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class)->withPivot(['is_owner', 'status'])->withTimestamps();

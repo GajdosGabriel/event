@@ -30,7 +30,29 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     uploadedFiles: (raw['uploaded_files'] as CanalItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as CanalItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
     allowedStatuses: (raw['allowed_statuses'] as CanalItem['allowedStatuses']) ?? [],
+    municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
+    venuesList: ((raw['venues_list'] as Record<string,unknown>[]) ?? []).map(v => ({ id: v['id'] as number, name: v['name'] as string, isOwner: v['is_owner'] as boolean })),
+    membersList: ((raw['members_list'] as Record<string,unknown>[]) ?? []).map(u => ({ id: u['id'] as number, name: u['name'] as string, isOwner: u['is_owner'] as boolean })),
   }
+}
+
+export interface CanalEventItem {
+  id: number
+  name: string
+  startAt: string | null
+  endAt: string | null
+  status: string
+}
+
+export async function listCanalEvents(scope: Scope, canalId: number): Promise<CanalEventItem[]> {
+  const { data } = await http.get(`${baseUrl(scope)}/${canalId}/events`)
+  return ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
+    id: r['id'] as number,
+    name: r['name'] as string,
+    startAt: (r['start_at'] as string) ?? null,
+    endAt: (r['end_at'] as string) ?? null,
+    status: (r['status'] as string) ?? 'draft',
+  }))
 }
 
 export async function indexCanals(scope: Scope, params?: FilterParams & { page?: number }): Promise<PaginatedResponse<CanalItem>> {

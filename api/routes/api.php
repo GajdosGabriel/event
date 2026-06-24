@@ -84,6 +84,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('canals/{canal}/restore', [DashboardCanalController::class, 'restore'])
         ->name('canals.restore')
         ->middleware('permission:canal.delete');
+    Route::get('canals/{canal}/events', [DashboardCanalController::class, 'events'])
+        ->name('canals.events')
+        ->middleware('permission:canal.view');
 
     Route::apiResource('files', DashboardFileController::class)
         ->only(['index', 'show'])
@@ -208,6 +211,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('canals/{canal}/restore', [AdminCanalController::class, 'restore'])
         ->name('canals.restore')
         ->middleware('permission:canal.delete');
+    Route::get('canals/{canal}/events', [AdminCanalController::class, 'events'])
+        ->name('canals.events')
+        ->middleware('permission:canal.view');
 
     Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
         ->name('events.municipalities.overview')

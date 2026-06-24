@@ -185,6 +185,9 @@ export interface CanalItem {
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
   allowedStatuses: AllowedStatusOption[]
+  municipality: { id: number; name: string } | null
+  venuesList: { id: number; name: string; isOwner: boolean }[]
+  membersList: { id: number; name: string; isOwner: boolean }[]
 }
 
 // Venue

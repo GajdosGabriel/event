@@ -33,6 +33,29 @@ class CanalResource extends JsonResource
             'restore' => $user?->can('restore', $this->resource) ?? false,
         ];
 
+        if ($this->relationLoaded('municipality') && $this->municipality) {
+            $data['municipality'] = [
+                'id' => $this->municipality->id,
+                'name' => $this->municipality->fullname,
+            ];
+        }
+
+        if ($this->relationLoaded('venues')) {
+            $data['venues_list'] = $this->venues->map(fn ($v) => [
+                'id' => $v->id,
+                'name' => $v->name,
+                'is_owner' => (bool) $v->pivot->is_owner,
+            ])->values()->all();
+        }
+
+        if ($this->relationLoaded('users')) {
+            $data['members_list'] = $this->users->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->display_name ?? $u->name ?? ('User #' . $u->id),
+                'is_owner' => (bool) $u->pivot->is_owner,
+            ])->values()->all();
+        }
+
         return $data;
     }
 }
