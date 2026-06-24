@@ -77,6 +77,11 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             : (int) $event->canal_id;
 
         $this->normalizeLocationPayload($properties, $targetCanalId, true);
+
+        if (isset($properties['status']) && $properties['status'] === ModelStatus::Published->value && $event->published_at === null) {
+            $properties['published_at'] = now();
+        }
+
         $event->update($properties);
 
         $this->syncEventFiles($event, $filePayload);
@@ -178,9 +183,14 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $query = $this->model()->newQuery()
             ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->where('events.status', ModelStatus::Published->value)
-            ->whereNotNull('events.published_at')
-            ->where('events.end_at', '>=', now())
-            ->whereNotNull('events.venue_id');
+            ->whereNotNull('events.venue_id')
+            ->where(function ($q) {
+                $q->where('events.end_at', '>=', now())
+                  ->orWhere(function ($inner) {
+                      $inner->whereNull('events.end_at')
+                            ->where('events.start_at', '>=', now()->startOfDay());
+                  });
+            });
 
         if ($scope === 'planned') {
             $query->where('events.start_at', '>=', now());
@@ -195,8 +205,13 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     {
         return $this->model()
             ->where('status', ModelStatus::Published->value)
-            ->whereNotNull('published_at')
-            ->where('end_at', '>=', now())
+            ->where(function ($q) {
+                $q->where('end_at', '>=', now())
+                  ->orWhere(function ($inner) {
+                      $inner->whereNull('end_at')
+                            ->where('start_at', '>=', now()->startOfDay());
+                  });
+            })
             ->orderBy('start_at', 'asc');
     }
 
