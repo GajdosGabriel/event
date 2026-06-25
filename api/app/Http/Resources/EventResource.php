@@ -25,6 +25,7 @@ class EventResource extends JsonResource
         $data['registration_deadline_at'] = $this->registration_deadline_at;
         $data['date_range_label'] = $this->dateRangeLabel();
         $data['date_range_days'] = $this->dateRangeDays();
+        $data['status_label'] = $this->statusLabel();
 
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 

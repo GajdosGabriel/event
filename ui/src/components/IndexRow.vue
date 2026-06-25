@@ -16,7 +16,7 @@
     </div>
 
     <div class="col-span-2 flex justify-start md:col-span-1 md:justify-center">
-      <span class="index-row-status" :class="{ 'status-live': status === 'published' }">{{ status }}</span>
+      <span class="index-row-status" :class="{ 'status-live': statusValue === 'published' }">{{ status }}</span>
     </div>
 
     <div class="index-row-actions">
@@ -32,6 +32,7 @@ defineProps<{
   meta?: string
   description?: string
   status?: string
+  statusValue?: string
   showLink?: string | object
 }>()
 </script>

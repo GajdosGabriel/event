@@ -20,6 +20,7 @@ class VenueResource extends JsonResource
         $user = $request->user();
         $data = parent::toArray($request);
 
+        $data['status_label'] = $this->statusLabel();
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
         $isPublished = $this->status === ModelStatus::Published;

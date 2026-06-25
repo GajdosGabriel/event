@@ -23,7 +23,8 @@
           :title="item.name"
           :image-url="item.imageUrl ?? undefined"
           :meta="item.meta ?? undefined"
-          :status="item.status"
+          :status="item.statusLabel ?? item.status"
+          :status-value="item.status"
           :show-link="`${prefix}/${item.id}`"
         >
           <template v-if="resource === 'event'" #detail>
@@ -150,6 +151,7 @@ interface ResourceItem {
   id: number
   name: string
   status: string
+  statusLabel?: string | null
   imageUrl?: string | null
   meta?: string | null
   publishedAt?: string | null
@@ -206,6 +208,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     id: raw['id'] as number,
     name: (raw['name'] as string) ?? '',
     status: (raw['status'] as string) ?? '',
+    statusLabel: (raw['status_label'] as string) ?? null,
     imageUrl,
     meta,
     startLabel,

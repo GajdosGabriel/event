@@ -11,4 +11,13 @@ trait HasAllowedStatuses
     {
         return ModelStatus::allowedForUser($request->user());
     }
+
+    protected function statusLabel(): string
+    {
+        $status = $this->status instanceof ModelStatus
+            ? $this->status
+            : ModelStatus::tryFrom((string) $this->status);
+
+        return $status?->label() ?? (string) ($this->status?->value ?? $this->status);
+    }
 }
