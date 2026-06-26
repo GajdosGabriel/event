@@ -22,5 +22,6 @@ const links = [
   { to: '/admin/users', label: 'Používatelia' },
   { to: '/admin/settings', label: 'Nastavenia' },
   { to: '/admin/files', label: 'Súbory' },
+  { to: '/admin/tools', label: 'Nástroje' },
 ]
 </script>

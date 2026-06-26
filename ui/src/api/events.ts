@@ -33,6 +33,7 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     name: raw['name'] as string,
     slug: (raw['slug'] as string) ?? '',
     body: (raw['body'] as string) ?? null,
+    bodyAi: (raw['body_ai'] as string) ?? null,
     status: (raw['status'] as EventItem['status']) ?? 'draft',
     startAt,
     endAt,
@@ -140,8 +141,9 @@ export async function detectEventFromText(text: string): Promise<Record<string, 
 
 export type ImproveMode = 'grammar' | 'style' | 'expand' | 'html'
 
-export async function improveEventText(text: string, modes: ImproveMode[]): Promise<{ success: boolean; improved_text?: string; changes_summary?: string; error?: string }> {
-  const { data } = await http.post('/dashboard/events/improve-text', { text, modes })
+export async function improveEventText(scope: 'dashboard' | 'admin', text: string, modes: ImproveMode[]): Promise<{ success: boolean; improved_text?: string; changes_summary?: string; error?: string }> {
+  const url = scope === 'admin' ? '/admin/events/improve-text' : '/dashboard/events/improve-text'
+  const { data } = await http.post(url, { text, modes })
   return data as { success: boolean; improved_text?: string; changes_summary?: string; error?: string }
 }
 

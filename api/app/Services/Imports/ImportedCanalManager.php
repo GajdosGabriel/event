@@ -12,6 +12,15 @@ class ImportedCanalManager
 {
     public function resolveOrCreate(string $canalName, ?string $detectedName, string $sourceOrigin): Canal
     {
+        // Fuzzy name lookup: AI-detected organizer name matched against existing canals
+        if ($detectedName !== null) {
+            $existing = $this->findByFuzzyName($detectedName);
+            if ($existing instanceof Canal) {
+                $this->ensureSystemOwnership($existing);
+                return $existing->fresh();
+            }
+        }
+
         $existing = Canal::query()
             ->where('website', $sourceOrigin)
             ->first();
@@ -95,6 +104,19 @@ class ImportedCanalManager
         if ($superAdmin->canal_id === null) {
             $superAdmin->forceFill(['canal_id' => $canal->id])->save();
         }
+    }
+
+    private function findByFuzzyName(string $name): ?Canal
+    {
+        $slug = Str::slug($name);
+        return Canal::query()
+            ->where(function ($q) use ($name, $slug) {
+                $q->where('slug', $slug)
+                  ->orWhere('name', $name)
+                  ->orWhere('name', 'like', '%' . addslashes(Str::limit($name, 100, '')) . '%');
+            })
+            ->orderByDesc('created_at')
+            ->first();
     }
 
     private function shouldUpgradeName(string $currentName, string $detectedName, string $sourceOrigin): bool

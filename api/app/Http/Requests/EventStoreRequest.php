@@ -34,6 +34,7 @@ class EventStoreRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:250'],
             'body' => ['nullable', 'string'],
+            'body_ai' => ['nullable', 'string'],
             'start_at' => ['nullable', new EventDatetimeRule],
             'end_at' => ['nullable', new EventDatetimeRule],
             'registration_deadline_at' => ['nullable', 'date', 'before_or_equal:start_at'],

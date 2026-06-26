@@ -37,7 +37,26 @@
         <div class="grid gap-4">
           <!-- Popis -->
           <div class="show-card">
-            <div v-if="event.body" class="prose prose-slate max-w-none text-slate-700" v-html="event.body" />
+            <div v-if="event.body || event.bodyAi">
+              <!-- Toggle between body versions when both exist -->
+              <div v-if="event.body && event.bodyAi" class="mb-3 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 w-fit">
+                <button type="button"
+                  :class="bodyView === 'original' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+                  class="rounded-md px-3 py-1 text-xs font-medium transition-all"
+                  @click="bodyView = 'original'">Originál</button>
+                <button type="button"
+                  :class="bodyView === 'ai' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+                  class="rounded-md px-3 py-1 text-xs font-medium transition-all"
+                  @click="bodyView = 'ai'">
+                  <span class="flex items-center gap-1">
+                    <svg class="h-3 w-3 text-violet-500" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    AI verzia
+                  </span>
+                </button>
+              </div>
+              <div class="prose prose-slate max-w-none text-slate-700"
+                v-html="bodyView === 'ai' && event.bodyAi ? event.bodyAi : event.body" />
+            </div>
             <p v-else class="text-sm text-slate-400">Bez popisu.</p>
           </div>
 
@@ -250,6 +269,7 @@ const error = ref(false)
 const relatedEvents = ref<CanalEventItem[]>([])
 const relatedLoading = ref(false)
 const hasImages = ref(true)
+const bodyView = ref<'original' | 'ai'>('ai')
 
 const DAY_NAMES: Record<number, string> = {
   0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',

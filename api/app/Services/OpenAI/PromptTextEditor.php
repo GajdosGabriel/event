@@ -57,7 +57,7 @@ Vráť iba validný JSON bez ďalšieho textu.',
             $lines[] = '- Rozšír text: pridaj motivačné a obsahové vysvetlenie, rozdeľ do logických odsekov.';
         }
         if (in_array('html', $modes, true)) {
-            $lines[] = '- Naformátuj výstup ako HTML s tagmi p, strong, h3, ul, li. Nadpisy ako <h3 class="event-section-title">, zoznamy ako <ul class="event-list">, položky ako <li class="event-list-item">.';
+            $lines[] = '- Naformátuj výstup ako čisté sémantické HTML. Povolené tagy: p, h2, h3, h4, strong, em, ul, ol, li, blockquote, br. Každý odsek obaľ do <p>, nadpisy do <h2>/<h3>, zoznamy do <ul><li>. Nepoužívaj CSS triedy, inline štýly ani žiadne iné atribúty. Nevracaj <html>, <head>, <body> ani <!DOCTYPE>.';
         }
 
         if (empty($lines)) {

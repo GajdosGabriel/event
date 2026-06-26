@@ -124,6 +124,7 @@ export interface EventItem {
   name: string
   slug: string
   body: string | null
+  bodyAi: string | null
   status: ModelStatus
   startAt: string | null
   endAt: string | null

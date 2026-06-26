@@ -12,6 +12,7 @@ class EventDetailService
 	public function __construct(
 		private readonly ImportPageFetcher $pageFetcher,
 		private readonly \App\Services\Imports\VyveskaRssService $vyveskaRssService,
+		private readonly HtmlBodyCleaner $htmlCleaner = new HtmlBodyCleaner(),
 	)
 	{
 	}
@@ -51,29 +52,33 @@ class EventDetailService
 	 */
 	private function extractEcavDetail(string $html, string $sourceUrl): array
 	{
-		$xpath = $this->createXPath($html);
-		$main = $this->firstNode($xpath, '//*[@id="content"] | //main');
-		$title = $this->firstNodeText($xpath, '//h1');
-		$body = $this->normalizeWhitespace($main?->textContent ?? '');
-		$linkItems = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="content"]//a[@href] | //main//a[@href]');
-		$links = array_values(array_unique(array_column($linkItems, 'url')));
-		$images = $this->extractImages($xpath, $sourceUrl, '//*[@id="content"]//img[@src] | //main//img[@src]');
+		$xpath      = $this->createXPath($html);
+		$main       = $this->firstNode($xpath, '//*[@id="content"] | //main');
+		$title      = $this->firstNodeText($xpath, '//h1');
+		$bodyText   = $this->normalizeWhitespace($main?->textContent ?? '');
+		$body       = $main
+			? $this->htmlCleaner->cleanInner($main)
+			: $this->htmlCleaner->fromPlainText($bodyText);
+		$linkItems  = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="content"]//a[@href] | //main//a[@href]');
+		$links      = array_values(array_unique(array_column($linkItems, 'url')));
+		$images     = $this->extractImages($xpath, $sourceUrl, '//*[@id="content"]//img[@src] | //main//img[@src]');
 		$attachments = $this->extractAttachments($xpath, $sourceUrl, '//*[@id="content"]//a[@href] | //main//a[@href]');
-		$media = $this->normalizeEcavMedia($images, $attachments);
-		[$startAt, $endAt] = $this->extractDateRangeFromText($body);
+		$media      = $this->normalizeEcavMedia($images, $attachments);
+		[$startAt, $endAt] = $this->extractDateRangeFromText($bodyText);
 
 		return [
-			'title' => Str::limit($title !== '' ? $title : 'Imported event', 250, ''),
-			'body' => $body,
-			'start_at' => $startAt,
-			'end_at' => $endAt,
-			'registration_deadline_at' => $this->extractRegistrationDeadline($body),
-			'published_at_source' => $this->extractFirstDateTimeFromText($body),
-			'links' => $links,
-			'link_items' => $linkItems,
-			'image_urls' => $media['image_urls'],
-			'attachments' => $media['attachments'],
-			'source_url' => $sourceUrl,
+			'title'                    => Str::limit($title !== '' ? $title : 'Imported event', 250, ''),
+			'body'                     => $body,
+			'body_text'                => $bodyText,
+			'start_at'                 => $startAt,
+			'end_at'                   => $endAt,
+			'registration_deadline_at' => $this->extractRegistrationDeadline($bodyText),
+			'published_at_source'      => $this->extractFirstDateTimeFromText($bodyText),
+			'links'                    => $links,
+			'link_items'               => $linkItems,
+			'image_urls'               => $media['image_urls'],
+			'attachments'              => $media['attachments'],
+			'source_url'               => $sourceUrl,
 		];
 	}
 
@@ -82,25 +87,31 @@ class EventDetailService
 	 */
 	private function extractTkkbsDetail(string $html, string $sourceUrl): array
 	{
-		$xpath = $this->createXPath($html);
-		$title = $this->firstNodeText($xpath, '//title | //h1');
-		$body = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[contains(@class, "clatext")]//p | //*[contains(@class, "clatext")]'));
+		$xpath     = $this->createXPath($html);
+		$title     = $this->firstNodeText($xpath, '//title | //h1');
+		$bodyText  = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[contains(@class, "clatext")]//p | //*[contains(@class, "clatext")]'));
+		$body      = $this->htmlCleaner->cleanFromXPath($xpath, '//*[contains(@class, "clatext")]');
 		$linkItems = $this->extractLinkItems($xpath, $sourceUrl, '//*[contains(@class, "clatext")]//a[@href]');
-		$links = array_values(array_unique(array_column($linkItems, 'url')));
-		$images = $this->extractImages($xpath, $sourceUrl, '//img[@src]');
+		$links     = array_values(array_unique(array_column($linkItems, 'url')));
+		$images    = $this->extractImages($xpath, $sourceUrl, '//img[@src]');
+
+		if ($body === '') {
+			$body = $this->htmlCleaner->fromPlainText($bodyText);
+		}
 
 		return [
-			'title' => Str::limit(preg_replace('/\s*-\s*TK\s*KBS$/iu', '', $title) ?? $title, 250, ''),
-			'body' => $body,
-			'start_at' => null,
-			'end_at' => null,
+			'title'                    => Str::limit(preg_replace('/\s*-\s*TK\s*KBS$/iu', '', $title) ?? $title, 250, ''),
+			'body'                     => $body,
+			'body_text'                => $bodyText,
+			'start_at'                 => null,
+			'end_at'                   => null,
 			'registration_deadline_at' => null,
-			'published_at_source' => $this->extractTkkbsPublishedAt($body),
-			'links' => $links,
-			'link_items' => $linkItems,
-			'image_urls' => $images,
-			'attachments' => [],
-			'source_url' => $sourceUrl,
+			'published_at_source'      => $this->extractTkkbsPublishedAt($bodyText),
+			'links'                    => $links,
+			'link_items'               => $linkItems,
+			'image_urls'               => $images,
+			'attachments'              => [],
+			'source_url'               => $sourceUrl,
 		];
 	}
 
@@ -109,33 +120,39 @@ class EventDetailService
 	 */
 	private function extractVyveskaDetail(string $html, string $sourceUrl): array
 	{
-		$xpath = $this->createXPath($html);
-		$title = $this->firstNodeText($xpath, '//*[@id="event"]//h1 | //h1');
-		$body = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[@id="event"]//p'));
-		$linkItems = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
-		$links = array_values(array_unique(array_column($linkItems, 'url')));
-		$images = $this->extractImages($xpath, $sourceUrl, '//*[@id="event"]//img[@src]');
+		$xpath       = $this->createXPath($html);
+		$title       = $this->firstNodeText($xpath, '//*[@id="event"]//h1 | //h1');
+		$bodyText    = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[@id="event"]//p[not(contains(@class, "creator"))]'));
+		$body        = $this->htmlCleaner->cleanFromXPath($xpath, '//*[@id="event"]//p[not(contains(@class, "creator"))]');
+		$linkItems   = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
+		$links       = array_values(array_unique(array_column($linkItems, 'url')));
+		$images      = $this->extractImages($xpath, $sourceUrl, '//*[@id="event"]//img[@src]');
 		$attachments = $this->extractAttachments($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
-		$dateText = $this->firstNodeText($xpath, '//*[@id="event"]//h2//*[contains(@class, "nadpis")] | //*[@id="event"]//h2');
+		$dateText    = $this->firstNodeText($xpath, '//*[@id="event"]//h2//*[contains(@class, "nadpis")] | //*[@id="event"]//h2');
 		[$startAt, $endAt] = $this->extractVyveskaDateRange($dateText);
 		$creatorText = $this->firstNodeText($xpath, '//*[@id="event"]//p[contains(@class, "creator")][last()]');
-		$rssItem = $this->vyveskaRssService->findByUrl($sourceUrl);
+		$rssItem     = $this->vyveskaRssService->findByUrl($sourceUrl);
 
 		$startAt ??= $rssItem['start_at'] ?? null;
 		$endAt ??= $rssItem['end_at'] ?? null;
 
+		if ($body === '') {
+			$body = $this->htmlCleaner->fromPlainText($bodyText);
+		}
+
 		return [
-			'title' => Str::limit($title !== '' ? $title : 'Imported event', 250, ''),
-			'body' => $body,
-			'start_at' => $startAt,
-			'end_at' => $endAt,
+			'title'                    => Str::limit($title !== '' ? $title : 'Imported event', 250, ''),
+			'body'                     => $body,
+			'body_text'                => $bodyText,
+			'start_at'                 => $startAt,
+			'end_at'                   => $endAt,
 			'registration_deadline_at' => null,
-			'published_at_source' => $this->extractVyveskaPublishedAt($creatorText) ?? ($rssItem['published_at'] ?? null),
-			'links' => $links,
-			'link_items' => $linkItems,
-			'image_urls' => $images,
-			'attachments' => $attachments,
-			'source_url' => $sourceUrl,
+			'published_at_source'      => $this->extractVyveskaPublishedAt($creatorText) ?? ($rssItem['published_at'] ?? null),
+			'links'                    => $links,
+			'link_items'               => $linkItems,
+			'image_urls'               => $images,
+			'attachments'              => $attachments,
+			'source_url'               => $sourceUrl,
 		];
 	}
 

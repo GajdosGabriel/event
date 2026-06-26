@@ -56,7 +56,7 @@ class EventImportService
         $resolvedCanal = $this->canalNameResolver->resolve(
             $detail['source_url'],
             (string) $detail['title'],
-            (string) $detail['body'],
+            (string) ($detail['body_text'] ?? strip_tags((string) $detail['body'])),
         );
 
         $canal = $this->canalManager->resolveOrCreate(
@@ -65,22 +65,33 @@ class EventImportService
             $resolvedCanal['source_origin'],
         );
 
-        $venue = $this->venueManager->resolveFallbackVenue($canal);
+        $venue = $this->venueManager->resolveOrDetect(
+            $canal,
+            $resolvedCanal['detected_venue_name'] ?? null,
+            $resolvedCanal['detected_venue_city'] ?? null,
+        );
+
         $systemOwner = $this->canalManager->systemOwner();
         $existingEvent = $this->findExistingEvent($canal->id, $detail);
 
+        $body = $this->appendRelevantLinksToBody(
+            (string) $detail['body'],
+            (array) ($detail['link_items'] ?? []),
+            (array) ($detail['attachments'] ?? [])
+        );
+
+        $startAt = $detail['start_at'];
+        $endAt = $detail['end_at'];
+        $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
+
         $payload = [
             'name' => Str::limit((string) $detail['title'], 250, ''),
-            'body' => $this->appendRelevantLinksToBody(
-                (string) $detail['body'],
-                (array) ($detail['link_items'] ?? []),
-                (array) ($detail['attachments'] ?? [])
-            ),
-            'start_at' => $detail['start_at'],
-            'end_at' => $detail['end_at'],
+            'body' => $body,
+            'start_at' => $startAt,
+            'end_at' => $endAt,
             'registration_deadline_at' => $detail['registration_deadline_at'],
-            'status' => ModelStatus::Draft->value,
-            'published_at' => null,
+            'status' => $isComplete ? ModelStatus::Published->value : ModelStatus::Draft->value,
+            'published_at' => $isComplete ? now() : null,
             'website' => $this->resolveEventWebsite((array) $detail['links'], (string) $detail['source_url']),
             'orginal_source' => (string) $detail['source_url'],
             'email' => null,
@@ -93,6 +104,7 @@ class EventImportService
                     'source' => 'external_source',
                     'source_origin' => $resolvedCanal['source_origin'],
                     'detected_canal_name' => $resolvedCanal['detected_name'],
+                    'detected_venue_name' => $resolvedCanal['detected_venue_name'] ?? null,
                     'imported_at' => now()->toIso8601String(),
                     'published_at_source' => $detail['published_at_source']?->toIso8601String(),
                     'links' => $detail['links'],
@@ -100,7 +112,7 @@ class EventImportService
                     'image_urls' => $detail['image_urls'],
                     'attachments' => $detail['attachments'] ?? [],
                 ],
-                'raw_text' => $detail['body'],
+                'raw_text' => $detail['body_text'] ?? strip_tags((string) $detail['body']),
             ],
         ];
 
@@ -354,14 +366,21 @@ class EventImportService
             $label = $this->linkLabel($text, $url);
             $key = mb_strtolower($label . '|' . $url);
 
-            $relevantLinks[$key] = $label . ': ' . $url;
+            $relevantLinks[$key] = ['label' => $label, 'url' => $url];
         }
 
         if ($relevantLinks === []) {
             return $body;
         }
 
-        return rtrim($body) . "\n\nOdkazy:\n" . implode("\n", array_values($relevantLinks));
+        $items = '';
+        foreach ($relevantLinks as $link) {
+            $safeHref  = htmlspecialchars($link['url'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $safeLabel = htmlspecialchars($link['label'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $items    .= "<li><a href=\"{$safeHref}\">{$safeLabel}</a></li>\n";
+        }
+
+        return rtrim($body) . "\n<h2>Odkazy</h2>\n<ul>\n{$items}</ul>";
     }
 
     private function linkLabel(string $text, string $url): string

@@ -102,14 +102,14 @@
 
         <fieldset class="field-group">
           <legend class="field-legend">Popis akcie</legend>
-          <textarea v-model="form.body" class="form-textarea" rows="7" />
+          <textarea v-model="form.body" class="form-textarea" rows="7" placeholder="Napíšte popis eventu…" />
 
-          <!-- Text improve -->
-          <div v-if="form.body.length >= 80" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
+          <!-- AI suggest panel — active when body >= 100 chars -->
+          <div v-if="form.body.length >= 100" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
             <button type="button" class="flex items-center gap-2 text-sm font-semibold text-violet-700"
               @click="improveOpen = !improveOpen">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              {{ improveOpen ? 'Skryť vylepšenie textu' : 'Vylepšiť text pomocou AI' }}
+              {{ improveOpen ? 'Skryť AI návrh' : 'AI návrh vylepšeného textu' }}
             </button>
             <div v-if="improveOpen" class="mt-3 grid gap-3">
               <div class="flex flex-wrap gap-3">
@@ -122,22 +122,78 @@
                 <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
                   <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> Rozšíriť obsah
                 </label>
-                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="html" class="accent-violet-600" /> HTML formát
-                </label>
               </div>
+              <p class="text-xs text-violet-600">HTML formátovanie je vždy zapnuté — výsledok sa uloží do <strong>body_ai</strong>, originál ostane zachovaný.</p>
               <div class="flex items-center gap-3">
                 <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent"
                   :disabled="improving || !improveModes.length" @click="runImprove">
-                  {{ improving ? 'Vylepšujem…' : 'Navrhnúť úpravu' }}
+                  {{ improving ? 'Generujem AI návrh…' : 'Vygenerovať AI návrh' }}
                 </button>
                 <span v-if="improveError" class="text-sm text-red-600">{{ improveError }}</span>
               </div>
-              <div v-if="improveResult" class="rounded-lg border border-violet-200 bg-white p-3">
-                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-violet-600">{{ improveResult.changes_summary }}</p>
-                <pre class="whitespace-pre-wrap text-sm text-slate-800 font-sans mb-3">{{ improveResult.improved_text }}</pre>
-                <button type="button" class="btn btn-sm btn-primary" @click="applyImprove">Použiť navrhnutý text</button>
+              <div v-if="improveResult" class="rounded-lg border border-violet-200 bg-white overflow-hidden">
+                <div class="flex items-center justify-between gap-2 border-b border-violet-100 bg-violet-50 px-3 py-2">
+                  <p class="text-xs font-semibold text-violet-700">{{ improveResult.changes_summary }}</p>
+                  <div class="flex gap-1">
+                    <button type="button"
+                      :class="improvePreview === 'html' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
+                      class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                      @click="improvePreview = 'html'">Náhľad</button>
+                    <button type="button"
+                      :class="improvePreview === 'raw' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
+                      class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                      @click="improvePreview = 'raw'">Zdrojový kód</button>
+                  </div>
+                </div>
+                <div class="max-h-72 overflow-y-auto p-3">
+                  <div v-if="improvePreview === 'html'" class="prose prose-sm prose-slate max-w-none" v-html="improveResult.improved_text" />
+                  <pre v-else class="whitespace-pre-wrap text-xs text-slate-700 font-mono">{{ improveResult.improved_text }}</pre>
+                </div>
+                <div class="flex flex-wrap gap-2 border-t border-violet-100 px-3 py-2">
+                  <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent" @click="applyImproveAsAi">
+                    Uložiť ako AI verziu
+                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary" @click="applyImproveAsBody">
+                    Nahradiť originál
+                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary" @click="improveResult = null">
+                    Zahodiť
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+
+          <!-- body_ai section — shown when AI version exists -->
+          <div v-if="form.body_ai" class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  AI verzia
+                </span>
+                <span class="text-xs text-emerald-600">Uloží sa spolu s formulárom</span>
+              </div>
+              <div class="flex gap-1">
+                <button type="button"
+                  :class="aiPreview === 'html' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
+                  class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                  @click="aiPreview = 'html'">Náhľad</button>
+                <button type="button"
+                  :class="aiPreview === 'edit' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
+                  class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                  @click="aiPreview = 'edit'">Upraviť</button>
+              </div>
+            </div>
+            <div v-if="aiPreview === 'html'" class="max-h-60 overflow-y-auto rounded-lg border border-emerald-100 bg-white p-3">
+              <div class="prose prose-sm prose-slate max-w-none" v-html="form.body_ai" />
+            </div>
+            <textarea v-else v-model="form.body_ai" class="form-textarea" rows="6" />
+            <div class="mt-2 flex gap-2">
+              <button type="button" class="btn btn-sm btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200"
+                @click="form.body_ai = ''">
+                Zmazať AI verziu
+              </button>
             </div>
           </div>
         </fieldset>
@@ -262,6 +318,7 @@ const form = ref({
   email: '',
   phone: '',
   body: '',
+  body_ai: '',
 })
 
 const errors = ref<Record<string, string>>({})
@@ -316,15 +373,19 @@ const improving = ref(false)
 const improveError = ref<string | null>(null)
 const improveModes = ref<ImproveMode[]>(['grammar', 'style'])
 const improveResult = ref<{ improved_text: string; changes_summary: string } | null>(null)
+const improvePreview = ref<'html' | 'raw'>('html')
+const aiPreview = ref<'html' | 'edit'>('html')
 
 async function runImprove() {
   improveError.value = null
   improveResult.value = null
   improving.value = true
   try {
-    const res = await improveEventText(form.value.body, improveModes.value)
+    const modes: ImproveMode[] = [...improveModes.value, 'html']
+    const res = await improveEventText(scope.value, form.value.body, modes)
     if (!res.success) throw new Error(res.error ?? 'Vylepšenie zlyhalo.')
     improveResult.value = { improved_text: res.improved_text!, changes_summary: res.changes_summary! }
+    improvePreview.value = 'html'
   } catch (e: unknown) {
     improveError.value = (e as Error)?.message ?? 'Vylepšenie zlyhalo.'
   } finally {
@@ -332,13 +393,21 @@ async function runImprove() {
   }
 }
 
-function applyImprove() {
-  if (improveResult.value) {
-    form.value.body = improveResult.value.improved_text
-    improveResult.value = null
-    improveOpen.value = false
-    toast.success('Text bol aktualizovaný.')
-  }
+function applyImproveAsAi() {
+  if (!improveResult.value) return
+  form.value.body_ai = improveResult.value.improved_text
+  improveResult.value = null
+  improveOpen.value = false
+  aiPreview.value = 'html'
+  toast.success('AI verzia uložená. Nezabudnite uložiť formulár.')
+}
+
+function applyImproveAsBody() {
+  if (!improveResult.value) return
+  form.value.body = improveResult.value.improved_text
+  improveResult.value = null
+  improveOpen.value = false
+  toast.success('Originálny text bol nahradený.')
 }
 
 const detectOpen = ref(false)
@@ -417,6 +486,7 @@ onMounted(async () => {
         email: ev.email ?? '',
         phone: ev.phone ?? '',
         body: ev.body ?? '',
+        body_ai: ev.bodyAi ?? '',
       }
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }

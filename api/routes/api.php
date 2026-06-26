@@ -218,6 +218,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
         ->name('events.municipalities.overview')
         ->middleware('permission:event.view');
+    Route::post('events/improve-text', [AdminEventController::class, 'improveText'])
+        ->name('events.improve-text')
+        ->middleware('permission:event.update');
 
     Route::apiResource('events', AdminEventController::class)
         ->only(['index', 'show'])

@@ -204,6 +204,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
   const canalName = canalRaw?.name ?? (raw['canal_name'] as string) ?? null
   const venueName = venueRaw?.name ?? null
 
+  const { meta: _rawMeta, ...restRaw } = raw
   return {
     id: raw['id'] as number,
     name: (raw['name'] as string) ?? '',
@@ -218,7 +219,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     permissions: (raw['permissions'] as Record<string, boolean>) ?? {},
     canalName,
     venueName,
-    ...raw,
+    ...restRaw,
   }
 }
 
@@ -266,7 +267,7 @@ function onSearch() {
 
 async function togglePublish(item: ResourceItem) {
   try {
-    await http.put(`${apiBase.value}/${item.id}`, { published: !item.publishedAt })
+    await http.post(`${apiBase.value}/${item.id}/publish`, { published: !item.publishedAt })
     toast.success(item.publishedAt ? 'Zrušené publikovanie.' : 'Publikované.')
     load(page.value)
   } catch { toast.error('Akcia zlyhala.') }

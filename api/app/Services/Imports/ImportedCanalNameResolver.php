@@ -7,38 +7,84 @@ use Illuminate\Support\Str;
 
 class ImportedCanalNameResolver
 {
-    public function __construct(private readonly ChatGPT $chatGPT = new ChatGPT())
-    {
-    }
+    public function __construct(
+        private readonly ChatGPT $chatGPT = new ChatGPT(),
+        private readonly EventTextLabelExtractor $labelExtractor = new EventTextLabelExtractor(),
+    ) {}
 
     /**
-     * @return array{name: string, detected_name: string|null, source_origin: string}
+     * @return array{name: string, detected_name: string|null, source_origin: string, detected_venue_name: string|null, detected_venue_city: string|null}
      */
     public function resolve(string $sourceUrl, string $title, string $text): array
     {
         $title = $this->normalizeEncoding($title);
-        $text = $this->normalizeEncoding($text);
-        $detectedName = $this->extractByHeuristics($title, $text);
+        $text  = $this->normalizeEncoding($text);
 
-        if ($detectedName === null && (bool) config('services.imports.detect_canal_with_ai', false)) {
+        // Priority 1: explicit label ("Organizátor:", "Usporiadateľ:", …) — source-agnostic
+        // Priority 2: domain-specific heuristic patterns (ECAV, KBS, …)
+        $detectedName = $this->labelExtractor->extractOrganizerName($text)
+            ?? $this->extractByHeuristics($title, $text);
+
+        // Heuristic venue extraction — source-agnostic, works without AI
+        $heuristicVenue  = $this->labelExtractor->extractVenue($text);
+        $detectedVenueName = $heuristicVenue['name'] ?? null;
+        $detectedVenueCity = $heuristicVenue['city'] ?? null;
+
+        if ((bool) config('services.imports.detect_canal_with_ai', false)) {
             try {
-                $detectedName = $this->chatGPT->extractCanalName([
-                    'title' => $title,
-                    'text' => $text,
-                    'source_url' => $sourceUrl,
-                ]);
+                $aiData = $this->chatGPT->extractData($title . "\n\n" . $text);
+
+                if ($detectedName === null) {
+                    $detectedName = $this->resolveOrganizerFromAiData($aiData);
+                }
+
+                $venueRaw = $aiData['venue'] ?? null;
+                if (is_array($venueRaw)) {
+                    $vn = is_string($venueRaw['name'] ?? null) ? trim((string) $venueRaw['name']) : null;
+                    $vc = is_string($venueRaw['city'] ?? null) ? trim((string) $venueRaw['city']) : null;
+                    // AI overrides heuristic only when it actually found something
+                    if ($vn !== null && $vn !== '') {
+                        $detectedVenueName = $vn;
+                    }
+                    if ($vc !== null && $vc !== '') {
+                        $detectedVenueCity = $vc;
+                    }
+                }
             } catch (\Throwable) {
-                $detectedName = null;
+                // AI failed — heuristic results are preserved
             }
         }
 
         $sourceOrigin = $this->extractOrigin($sourceUrl);
 
         return [
-            'name' => $detectedName ?? $this->hostLabel($sourceUrl),
-            'detected_name' => $detectedName,
-            'source_origin' => $sourceOrigin,
+            'name'                 => $detectedName ?? $this->hostLabel($sourceUrl),
+            'detected_name'        => $detectedName,
+            'source_origin'        => $sourceOrigin,
+            'detected_venue_name'  => $detectedVenueName,
+            'detected_venue_city'  => $detectedVenueCity,
         ];
+    }
+
+    private function resolveOrganizerFromAiData(array $aiData): ?string
+    {
+        $organizer = $aiData['organizer'] ?? null;
+        if (is_array($organizer)) {
+            $name = is_string($organizer['name'] ?? null) ? trim((string) $organizer['name']) : null;
+            if ($name !== null && $name !== '') {
+                return $this->sanitizeName($name);
+            }
+        }
+
+        $venue = $aiData['venue'] ?? null;
+        if (is_array($venue)) {
+            $name = is_string($venue['name'] ?? null) ? trim((string) $venue['name']) : null;
+            if ($name !== null && $name !== '') {
+                return $this->sanitizeName($name);
+            }
+        }
+
+        return null;
     }
 
     private function extractByHeuristics(string $title, string $text): ?string
@@ -99,7 +145,7 @@ class ImportedCanalNameResolver
     private function extractOrigin(string $url): string
     {
         $scheme = (string) (parse_url($url, PHP_URL_SCHEME) ?: 'https');
-        $host = (string) parse_url($url, PHP_URL_HOST);
+        $host   = (string) parse_url($url, PHP_URL_HOST);
 
         return $host !== '' ? $scheme . '://' . $host : $url;
     }
