@@ -159,11 +159,24 @@ class DashboardVenueController extends Controller
         $venue = $this->venueRepository->dashboardShow($id);
         $this->authorize('view', $venue);
 
+        $user = request()->user();
+        $canalIds = $user->canals()->pluck('canals.id');
+
         $events = Event::where('venue_id', $venue->id)
+            ->whereIn('canal_id', $canalIds)
+            ->with('canal:id,name')
             ->orderByDesc('start_at')
             ->limit(50)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
 
-        return response()->json($events);
+        return response()->json($events->map(fn ($ev) => [
+            'id' => $ev->id,
+            'name' => $ev->name,
+            'start_at' => $ev->start_at,
+            'end_at' => $ev->end_at,
+            'status' => $ev->status,
+            'canal_id' => $ev->canal_id,
+            'canal_name' => $ev->canal?->name,
+        ]));
     }
 }

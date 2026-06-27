@@ -82,10 +82,13 @@
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="w-2 h-2 rounded-full shrink-0"
                   :class="ev.status === 'published' ? 'bg-green-500' : ev.status === 'archived' ? 'bg-slate-400' : 'bg-amber-400'" />
-                <RouterLink :to="`${prefix}/events/${ev.id}`"
-                  class="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
-                  {{ ev.name }}
-                </RouterLink>
+                <div class="flex-1 min-w-0">
+                  <RouterLink :to="`${prefix}/events/${ev.id}`"
+                    class="block truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                    {{ ev.name }}
+                  </RouterLink>
+                  <span v-if="ev.canalName" class="mt-0.5 inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">{{ ev.canalName }}</span>
+                </div>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
                 <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">Upraviť</RouterLink>
               </li>

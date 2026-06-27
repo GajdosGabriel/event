@@ -56,6 +56,7 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
 
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
 Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.venues.show');
+Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name('public.venues.events');
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
 
 Route::apiResources([

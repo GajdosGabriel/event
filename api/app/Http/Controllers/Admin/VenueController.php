@@ -133,10 +133,19 @@ class VenueController extends Controller
         $this->authorize('view', $venue);
 
         $events = Event::where('venue_id', $venue->id)
+            ->with('canal:id,name')
             ->orderByDesc('start_at')
-            ->limit(50)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+            ->limit(100)
+            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
 
-        return response()->json($events);
+        return response()->json($events->map(fn ($ev) => [
+            'id' => $ev->id,
+            'name' => $ev->name,
+            'start_at' => $ev->start_at,
+            'end_at' => $ev->end_at,
+            'status' => $ev->status,
+            'canal_id' => $ev->canal_id,
+            'canal_name' => $ev->canal?->name,
+        ]));
     }
 }

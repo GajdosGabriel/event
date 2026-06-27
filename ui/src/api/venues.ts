@@ -95,17 +95,24 @@ export interface VenueEventItem {
   startAt: string | null
   endAt: string | null
   status: string
+  canalName: string | null
 }
 
-export async function listVenueEvents(scope: Scope, venueId: number): Promise<VenueEventItem[]> {
-  const { data } = await http.get(`${baseUrl(scope)}/${venueId}/events`)
-  return ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
+function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
+  return {
     id: r['id'] as number,
     name: r['name'] as string,
     startAt: (r['start_at'] as string) ?? null,
     endAt: (r['end_at'] as string) ?? null,
     status: (r['status'] as string) ?? 'draft',
-  }))
+    canalName: (r['canal_name'] as string) ?? null,
+  }
+}
+
+export async function listVenueEvents(scope: Scope | 'public', venueId: number): Promise<VenueEventItem[]> {
+  const url = scope === 'public' ? `/venues/${venueId}/events` : `${baseUrl(scope as Scope)}/${venueId}/events`
+  const { data } = await http.get(url)
+  return ((data.data ?? data) as Record<string, unknown>[]).map(mapVenueEvent)
 }
 
 export async function venuesMunicipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

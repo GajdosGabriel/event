@@ -46,7 +46,7 @@ class ImportedVenueManager
     public function resolveFallbackVenue(Canal $canal): Venue
     {
         $venue = Venue::query()
-            ->whereHas('canals', fn ($query) => $query->where('canals.id', $canal->id))
+            ->where('category', 'fallback')
             ->where('slug', 'cele-slovensko')
             ->first();
 
@@ -54,13 +54,13 @@ class ImportedVenueManager
             return $venue;
         }
 
-        $venue = Venue::query()->create([
-            'village_id' => (int) ($canal->municipality_id ?: 4209),
-            'name' => 'Cele Slovensko',
+        return Venue::query()->create([
+            'village_id' => 4209,
+            'name' => 'Celé Slovensko',
             'street' => null,
             'postcode' => null,
-            'body' => 'Fallback venue pre importovane eventy bez spolahlivo rozpoznaneho miesta konania.',
-            'website' => $canal->website,
+            'body' => null,
+            'website' => null,
             'country' => 'Slovensko',
             'latitude' => null,
             'longitude' => null,
@@ -69,10 +69,6 @@ class ImportedVenueManager
             'category' => 'fallback',
             'status' => ModelStatus::Draft->value,
         ]);
-
-        $venue->assignCanal($canal, isOwner: true);
-
-        return $venue;
     }
 
     private function findByName(string $name): ?Venue

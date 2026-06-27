@@ -62,6 +62,31 @@
                 </a>
               </div>
             </div>
+
+            <!-- Eventy -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 class="mb-4 text-base font-semibold text-slate-800">Eventy na tomto mieste</h2>
+              <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
+              <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne nadchádzajúce eventy.</p>
+              <ul v-else class="grid gap-2">
+                <li v-for="ev in events" :key="ev.id"
+                  class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <RouterLink :to="`/events/${ev.id}`"
+                      class="block truncate text-sm font-medium text-slate-900 hover:text-blue-700 no-underline">
+                      {{ ev.name }}
+                    </RouterLink>
+                    <div class="mt-0.5 flex flex-wrap items-center gap-2">
+                      <span v-if="ev.startAt" class="text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
+                      <span v-if="ev.canalName"
+                        class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">
+                        {{ ev.canalName }}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- Sidebar -->
@@ -115,7 +140,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { showVenuePublic } from '@/api/venues'
+import { showVenuePublic, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import type { VenueItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
 
@@ -125,13 +150,24 @@ const venueId = computed(() => Number(route.params.id))
 const venue = ref<VenueItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
+const events = ref<VenueEventItem[]>([])
+const eventsLoading = ref(false)
 
 const hasCoords = computed(() => venue.value?.latitude != null && venue.value?.longitude != null)
 
+function formatDate(d: string | null) {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 onMounted(async () => {
   loading.value = true
-  try { venue.value = await showVenuePublic(venueId.value) }
+  try {
+    venue.value = await showVenuePublic(venueId.value)
+    eventsLoading.value = true
+    events.value = await listVenueEvents('public', venueId.value)
+  }
   catch { error.value = true }
-  finally { loading.value = false }
+  finally { loading.value = false; eventsLoading.value = false }
 })
 </script>
