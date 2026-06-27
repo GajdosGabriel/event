@@ -7,10 +7,17 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <input v-model="search" type="search" placeholder="Hľadať…" class="form-input max-w-xs" @input="onSearch" />
-        <select v-if="cfg.statusOptions" v-model="statusFilter" class="form-input w-auto" @change="load(1)">
+        <select v-if="apiStatusOptions.length" v-model="statusFilter" class="form-input w-auto" @change="load(1)">
           <option value="">Všetky stavy</option>
-          <option v-for="opt in cfg.statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          <option v-for="opt in apiStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
+        <!-- Active canal filter chip -->
+        <button v-if="canalFilter" type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-300 hover:bg-teal-200 transition-colors"
+          @click="clearCanalFilter">
+          {{ canalFilter.name }}
+          <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+        </button>
       </div>
     </div>
 
@@ -40,15 +47,26 @@
                   Koniec: {{ item.endLabel }}
                 </span>
               </div>
-              <!-- Kanál + venue + stav -->
+              <!-- Kanál + venue + stav + dátum vzniku -->
               <div class="flex flex-wrap items-center gap-1.5">
-                <span v-if="item.canalName"
+                <button v-if="item.canalName && resource === 'event'" type="button"
+                  class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200 hover:bg-teal-100 transition-colors cursor-pointer"
+                  :title="`Filtrovať podľa kanála: ${item.canalName}`"
+                  @click.prevent="setCanalFilter(item)">
+                  {{ item.canalName }}
+                </button>
+                <span v-else-if="item.canalName"
                   class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">
                   {{ item.canalName }}
                 </span>
                 <span v-if="item.venueName"
                   class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                   {{ item.venueName }}
+                </span>
+                <span v-if="item.createdAt"
+                  class="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-xs text-slate-400 ring-1 ring-inset ring-slate-200">
+                  <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {{ item.createdAt }}
                 </span>
                 <span v-if="item.deletedAt"
                   class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-200">
@@ -114,7 +132,6 @@ interface ResourceConfig {
   createLabel: string
   emptyLabel: string
   apiSlug: string
-  statusOptions?: { value: string; label: string }[]
 }
 
 const CONFIGS: Record<string, ResourceConfig> = {
@@ -135,11 +152,6 @@ const CONFIGS: Record<string, ResourceConfig> = {
     createLabel: 'Nový event',
     emptyLabel: 'Žiadne eventy.',
     apiSlug: 'events',
-    statusOptions: [
-      { value: 'published', label: 'Publikované' },
-      { value: 'draft', label: 'Návrh' },
-      { value: 'archived', label: 'Archivované' },
-    ],
   },
 }
 
@@ -156,7 +168,9 @@ interface ResourceItem {
   meta?: string | null
   publishedAt?: string | null
   deletedAt?: string | null
+  createdAt?: string | null
   permissions?: Record<string, boolean>
+  canalId?: number | null
   canalName?: string | null
   venueName?: string | null
   startLabel?: string | null
@@ -199,10 +213,14 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     meta = [raw['street'], raw['postcode']].filter(Boolean).join(', ')
   }
 
-  const canalRaw = raw['canal'] as { name: string } | null
+  const canalRaw = raw['canal'] as { id?: number; name: string } | null
   const venueRaw = raw['venue'] as { name: string } | null
+  const canalId = (canalRaw?.id ?? (raw['canal_id'] as number)) ?? null
   const canalName = canalRaw?.name ?? (raw['canal_name'] as string) ?? null
   const venueName = venueRaw?.name ?? null
+
+  const createdAtRaw = raw['created_at'] as string | null
+  const createdAt = createdAtRaw ? fmtDate(new Date(createdAtRaw)) : null
 
   const { meta: _rawMeta, ...restRaw } = raw
   return {
@@ -216,7 +234,9 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     endLabel,
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
+    createdAt,
     permissions: (raw['permissions'] as Record<string, boolean>) ?? {},
+    canalId,
     canalName,
     venueName,
     ...restRaw,
@@ -232,6 +252,8 @@ const page = ref(1)
 const lastPage = ref(1)
 const search = ref('')
 const statusFilter = ref('')
+const canalFilter = ref<{ id: number; name: string } | null>(null)
+const apiStatusOptions = ref<{ value: string; label: string }[]>([])
 let searchTimer: ReturnType<typeof setTimeout>
 
 watch(() => route.query.municipality, () => load(1))
@@ -247,17 +269,35 @@ async function load(p = 1) {
     const params: Record<string, unknown> = { page: p }
     if (search.value) params['search'] = search.value
     if (statusFilter.value) params['status'] = statusFilter.value
+    if (canalFilter.value) params['canal_id'] = canalFilter.value.id
     if (route.query.municipality) params['municipality'] = route.query.municipality
     const { data } = await http.get(apiBase.value, { params })
     const list: Record<string, unknown>[] = data.data ?? data
     items.value = list.map(mapItem)
     page.value = data.meta?.current_page ?? 1
     lastPage.value = data.meta?.last_page ?? 1
+
+    // Populate status options from API on first successful load
+    const allowed = data.meta?.allowed_statuses as { value: string; label: string }[] | undefined
+    if (allowed?.length && !apiStatusOptions.value.length) {
+      apiStatusOptions.value = allowed
+    }
   } catch {
     error.value = `Nepodarilo sa načítať ${cfg.value.title.toLowerCase()}.`
   } finally {
     loading.value = false
   }
+}
+
+function setCanalFilter(item: ResourceItem) {
+  if (!item.canalId || !item.canalName) return
+  canalFilter.value = { id: item.canalId, name: item.canalName }
+  load(1)
+}
+
+function clearCanalFilter() {
+  canalFilter.value = null
+  load(1)
 }
 
 function onSearch() {
@@ -291,7 +331,7 @@ async function restore(id: number) {
 }
 
 // Reload when resource prop changes (router reuse)
-watch(() => props.resource, () => { search.value = ''; statusFilter.value = ''; load(1) })
+watch(() => props.resource, () => { search.value = ''; statusFilter.value = ''; canalFilter.value = null; apiStatusOptions.value = []; load(1) })
 
 onMounted(() => load())
 </script>

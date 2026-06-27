@@ -127,6 +127,15 @@ trait HasCommonFilters
         return $query;
     }
 
+    public function scopeByCanal(Builder $query, ?int $canalId): Builder
+    {
+        if ($canalId === null || ! $this->hasCommonFilterColumn('canal_id')) {
+            return $query;
+        }
+
+        return $query->where($this->qualifyColumn('canal_id'), $canalId);
+    }
+
     public function scopeApplyCommonFilters(Builder $query, array $filters): Builder
     {
         return $query
@@ -135,7 +144,8 @@ trait HasCommonFilters
             ->byPublished($filters['published'] ?? null)
             ->byBlocked($filters['blocked'] ?? null)
             ->byDeleted($filters['deleted'] ?? null)
-            ->byMunicipality($filters['municipality'] ?? null);
+            ->byMunicipality($filters['municipality'] ?? null)
+            ->byCanal($filters['canal_id'] ?? null);
     }
 
     protected function resolveCommonSearchColumns(array $columns): array
