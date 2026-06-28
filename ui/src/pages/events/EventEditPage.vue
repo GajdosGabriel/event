@@ -10,8 +10,8 @@
       <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <!-- AI Detect panel — admin only -->
-      <div v-if="!loadingData && scope === 'admin'" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-        <button type="button" class="flex items-center gap-2 text-sm font-semibold text-blue-700"
+      <div v-if="!loadingData && props.scope === 'admin'" class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-blue-700"
           @click="detectOpen = !detectOpen">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           {{ detectOpen ? 'Skryť AI detekciu' : 'Vyplniť pomocou AI z textu' }}
@@ -63,7 +63,7 @@
             <label class="form-label">
               Kanál
               <select v-model="form.canal_id" class="form-input">
-                <option :value="null">— bez kanála —</option>
+                <option v-if="!form.canal_id" :value="null" disabled>— vyberte kanál —</option>
                 <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
             </label>
@@ -87,15 +87,15 @@
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
               Začiatok
-              <input v-model="form.start_at" type="datetime-local" class="form-input" />
+              <DateTimeInput v-model="form.start_at" class="form-input" />
             </label>
             <label class="form-label">
               Koniec
-              <input v-model="form.end_at" type="datetime-local" class="form-input" />
+              <DateTimeInput v-model="form.end_at" class="form-input" />
             </label>
             <label class="form-label">
               Uzávierka registrácie
-              <input v-model="form.registration_deadline_at" type="datetime-local" class="form-input" />
+              <DateTimeInput v-model="form.registration_deadline_at" class="form-input" />
             </label>
           </div>
         </fieldset>
@@ -106,7 +106,7 @@
 
           <!-- AI suggest panel — active when body >= 100 chars -->
           <div v-if="form.body.length >= 100" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
-            <button type="button" class="flex items-center gap-2 text-sm font-semibold text-violet-700"
+            <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-violet-700"
               @click="improveOpen = !improveOpen">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               {{ improveOpen ? 'Skryť AI návrh' : 'AI návrh vylepšeného textu' }}
@@ -287,6 +287,7 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
+import DateTimeInput from '@/components/DateTimeInput.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -329,6 +330,20 @@ const loadingData = ref(false)
 watch(() => auth.canalId, (id) => {
   if (id && !form.value.canal_id) form.value.canal_id = id
 }, { immediate: true })
+
+watch(canals, (list) => {
+  if (list.length > 0 && form.value.canal_id === null) {
+    form.value.canal_id = list[0].id
+  }
+})
+
+watch(() => form.value.start_at, (startAt) => {
+  if (!startAt || form.value.end_at) return
+  const d = new Date(startAt)
+  if (isNaN(d.getTime())) return
+  d.setHours(d.getHours() + 2)
+  form.value.end_at = d.toISOString().slice(0, 16)
+})
 
 const venueModal = ref({
   show: false,

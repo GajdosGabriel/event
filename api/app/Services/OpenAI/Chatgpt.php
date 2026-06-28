@@ -91,9 +91,9 @@ class ChatGPT
     public function extractTextEdit(string $text, array $modes): array
     {
         $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o',
+            'model' => 'gpt-4o-mini',
             'temperature' => 0.3,
-            'response_format' => $this->promptTextEditor->jsonSchema(),
+            'response_format' => ['type' => 'json_object'],
             'messages' => $this->promptTextEditor->prompt($text, $modes),
         ]);
 

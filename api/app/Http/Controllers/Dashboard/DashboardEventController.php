@@ -152,7 +152,7 @@ class DashboardEventController extends Controller
 
             return response()->json(['success' => true, ...$result]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 }
