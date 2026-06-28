@@ -3,6 +3,7 @@
 namespace App\Services\Imports;
 
 use App\Services\OpenAI\ChatGPT;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class ImportedCanalNameResolver
@@ -13,9 +14,20 @@ class ImportedCanalNameResolver
     ) {}
 
     /**
-     * @return array{name: string, detected_name: string|null, source_origin: string, detected_venue_name: string|null, detected_venue_city: string|null}
+     * @return array{
+     *   name: string,
+     *   detected_name: string|null,
+     *   source_origin: string,
+     *   detected_venue_name: string|null,
+     *   detected_venue_city: string|null,
+     *   detected_venue_street: string|null,
+     *   ai_start_at: Carbon|null,
+     *   ai_end_at: Carbon|null,
+     *   ai_email: string|null,
+     *   ai_phone: string|null,
+     * }
      */
-    public function resolve(string $sourceUrl, string $title, string $text): array
+    public function resolve(string $sourceUrl, string $title, string $text, bool $startAtFound = false): array
     {
         $title = $this->normalizeEncoding($title);
         $text  = $this->normalizeEncoding($text);
@@ -26,14 +38,24 @@ class ImportedCanalNameResolver
             ?? $this->extractByHeuristics($title, $text);
 
         // Heuristic venue extraction — source-agnostic, works without AI
-        $heuristicVenue  = $this->labelExtractor->extractVenue($text);
-        $detectedVenueName = $heuristicVenue['name'] ?? null;
-        $detectedVenueCity = $heuristicVenue['city'] ?? null;
+        $heuristicVenue      = $this->labelExtractor->extractVenue($text);
+        $detectedVenueName   = $heuristicVenue['name'] ?? null;
+        $detectedVenueCity   = $heuristicVenue['city'] ?? null;
+        $detectedVenueStreet = null;
 
-        if ((bool) config('services.imports.detect_canal_with_ai', false)) {
+        $aiStartAt = null;
+        $aiEndAt   = null;
+        $aiEmail   = null;
+        $aiPhone   = null;
+
+        // AI activates only when regex left something missing
+        $somethingMissing = $detectedName === null || $detectedVenueName === null || ! $startAtFound;
+
+        if ((bool) config('services.imports.detect_canal_with_ai', false) && $somethingMissing) {
             try {
                 $aiData = $this->chatGPT->extractData($title . "\n\n" . $text);
 
+                // Fill only what regex could not find — never override a found value
                 if ($detectedName === null) {
                     $detectedName = $this->resolveOrganizerFromAiData($aiData);
                 }
@@ -42,28 +64,66 @@ class ImportedCanalNameResolver
                 if (is_array($venueRaw)) {
                     $vn = is_string($venueRaw['name'] ?? null) ? trim((string) $venueRaw['name']) : null;
                     $vc = is_string($venueRaw['city'] ?? null) ? trim((string) $venueRaw['city']) : null;
-                    // AI overrides heuristic only when it actually found something
-                    if ($vn !== null && $vn !== '') {
+                    $vs = is_string($venueRaw['street_and_number'] ?? null) ? trim((string) $venueRaw['street_and_number']) : null;
+                    if ($detectedVenueName === null && $vn !== null && $vn !== '') {
                         $detectedVenueName = $vn;
                     }
-                    if ($vc !== null && $vc !== '') {
+                    if ($detectedVenueCity === null && $vc !== null && $vc !== '') {
                         $detectedVenueCity = $vc;
                     }
+                    if ($vs !== null && $vs !== '') {
+                        $detectedVenueStreet = $vs;
+                    }
                 }
+
+                // Dates — only used when start_at was not found by regex
+                if (! $startAtFound) {
+                    $aiStartAt = $this->parseAiDateTime($aiData['start_at'] ?? null);
+                    $aiEndAt   = $this->parseAiDateTime($aiData['end_at'] ?? null);
+                }
+
+                $aiEmail = $this->normalizeString($aiData['email'] ?? null);
+                $aiPhone = $this->normalizeString($aiData['phone'] ?? null);
             } catch (\Throwable) {
-                // AI failed — heuristic results are preserved
+                // AI failed — regex results are preserved
             }
         }
 
         $sourceOrigin = $this->extractOrigin($sourceUrl);
 
         return [
-            'name'                 => $detectedName ?? $this->hostLabel($sourceUrl),
-            'detected_name'        => $detectedName,
-            'source_origin'        => $sourceOrigin,
-            'detected_venue_name'  => $detectedVenueName,
-            'detected_venue_city'  => $detectedVenueCity,
+            'name'                  => $detectedName ?? $this->hostLabel($sourceUrl),
+            'detected_name'         => $detectedName,
+            'source_origin'         => $sourceOrigin,
+            'detected_venue_name'   => $detectedVenueName,
+            'detected_venue_city'   => $detectedVenueCity,
+            'detected_venue_street' => $detectedVenueStreet,
+            'ai_start_at'           => $aiStartAt,
+            'ai_end_at'             => $aiEndAt,
+            'ai_email'              => $aiEmail,
+            'ai_phone'              => $aiPhone,
         ];
+    }
+
+    private function parseAiDateTime(mixed $value): ?Carbon
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i:s', trim($value), 'Europe/Bratislava')?->utc();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function normalizeString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $v = trim($value);
+        return $v !== '' ? $v : null;
     }
 
     private function resolveOrganizerFromAiData(array $aiData): ?string

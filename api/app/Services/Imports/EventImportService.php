@@ -57,6 +57,7 @@ class EventImportService
             $detail['source_url'],
             (string) $detail['title'],
             (string) ($detail['body_text'] ?? strip_tags((string) $detail['body'])),
+            startAtFound: $detail['start_at'] !== null,
         );
 
         $canal = $this->canalManager->resolveOrCreate(
@@ -69,6 +70,7 @@ class EventImportService
             $canal,
             $resolvedCanal['detected_venue_name'] ?? null,
             $resolvedCanal['detected_venue_city'] ?? null,
+            $resolvedCanal['detected_venue_street'] ?? null,
         );
 
         $systemOwner = $this->canalManager->systemOwner();
@@ -80,8 +82,9 @@ class EventImportService
             (array) ($detail['attachments'] ?? [])
         );
 
-        $startAt = $detail['start_at'];
-        $endAt = $detail['end_at'];
+        // Regex dates take priority; AI fills in only what regex could not find
+        $startAt = $detail['start_at'] ?? $resolvedCanal['ai_start_at'];
+        $endAt   = $detail['end_at'] ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
         $payload = [
@@ -94,8 +97,8 @@ class EventImportService
             'published_at' => $isComplete ? now() : null,
             'website' => $this->resolveEventWebsite((array) $detail['links'], (string) $detail['source_url']),
             'orginal_source' => (string) $detail['source_url'],
-            'email' => null,
-            'phone' => null,
+            'email' => $resolvedCanal['ai_email'] ?? null,
+            'phone' => $resolvedCanal['ai_phone'] ?? null,
             'venue_id' => $venue->id,
             'canal_id' => $canal->id,
             'user_id' => $systemOwner->id,

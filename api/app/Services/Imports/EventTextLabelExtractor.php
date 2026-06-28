@@ -32,6 +32,15 @@ class EventTextLabelExtractor
         '/\bKde\s*:\s*([^\n\r]+)/iu',
     ];
 
+    // Prose patterns: venue mentioned inline (e.g. "o 18:00 v Katedrále sv. Martina v Bratislave")
+    // Group 1 = venue name, Group 2 (optional) = city name
+    private const PROSE_VENUE_PATTERNS = [
+        // "o HH:MM v [Venue...] v [City]" — venue + city after time
+        '/o\s+\d{1,2}[:.]\d{2}\s+v\s+(\p{Lu}[^,\n]+?)\s+v\s+(\p{Lu}[^,.\n\s]+)/u',
+        // "o HH:MM v [Venue]." — venue only after time
+        '/o\s+\d{1,2}[:.]\d{2}\s+v\s+(\p{Lu}[^,.\n]+?)(?=[.,])/u',
+    ];
+
     /**
      * Returns the organizer name extracted from the text, or null.
      */
@@ -55,6 +64,7 @@ class EventTextLabelExtractor
      * Slovak event format: "label: [city/municipality], [specific venue name]"
      * First comma-delimited segment is treated as the municipality/city,
      * the remaining segments form the venue name.
+     * Falls back to prose detection ("o 18:00 v Venue v City").
      */
     public function extractVenue(string $text): ?array
     {
@@ -81,6 +91,30 @@ class EventTextLabelExtractor
             // "city, venue" — first token is the municipality, rest is the venue
             $city = $parts[0];
             $name = implode(', ', array_slice($parts, 1));
+
+            return ['name' => $name, 'city' => $city];
+        }
+
+        return $this->extractVenueFromProse($text);
+    }
+
+    /**
+     * Extracts venue mentioned inline in prose, e.g.:
+     * "... o 18:00 v Katedrále svätého Martina v Bratislave."
+     */
+    private function extractVenueFromProse(string $text): ?array
+    {
+        foreach (self::PROSE_VENUE_PATTERNS as $index => $pattern) {
+            if (! preg_match($pattern, $text, $match)) {
+                continue;
+            }
+
+            $name = $this->sanitize(trim($match[1]));
+            if ($name === null || $name === '') {
+                continue;
+            }
+
+            $city = isset($match[2]) ? ($this->sanitize(trim($match[2])) ?? null) : null;
 
             return ['name' => $name, 'city' => $city];
         }

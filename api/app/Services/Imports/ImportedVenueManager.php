@@ -4,6 +4,7 @@ namespace App\Services\Imports;
 
 use App\Enums\ModelStatus;
 use App\Models\Canal;
+use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\OpenAI\Detector;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ class ImportedVenueManager
         private readonly Detector $detector = new Detector(),
     ) {}
 
-    public function resolveOrDetect(Canal $canal, ?string $venueName, ?string $venueCity): Venue
+    public function resolveOrDetect(Canal $canal, ?string $venueName, ?string $venueCity, ?string $venueStreet = null): Venue
     {
         if (is_string($venueName) && $venueName !== '') {
             $existing = $this->findByName($venueName);
@@ -35,15 +36,32 @@ class ImportedVenueManager
                         return $venue;
                     }
                 } catch (\Throwable) {
-                    // venue detection failed, fall through to fallback
+                    // venue detection failed, fall through to simple draft
+                }
+            }
+
+            // Auto-create a draft venue when city can be resolved to a municipality
+            if (is_string($venueCity) && $venueCity !== '') {
+                $villageId = $this->resolveMunicipalityId($venueCity);
+                if ($villageId !== null) {
+                    $venue = Venue::create([
+                        'village_id' => $villageId,
+                        'name'       => Str::limit($venueName, 250, ''),
+                        'street'     => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
+                        'category'   => null,
+                        'status'     => ModelStatus::Draft->value,
+                        'country'    => 'Slovensko',
+                    ]);
+                    $venue->assignCanal($canal, isOwner: false);
+                    return $venue;
                 }
             }
         }
 
-        return $this->resolveFallbackVenue($canal);
+        return $this->resolveFallbackVenue();
     }
 
-    public function resolveFallbackVenue(Canal $canal): Venue
+    public function resolveFallbackVenue(): Venue
     {
         $venue = Venue::query()
             ->where('category', 'fallback')
@@ -71,6 +89,43 @@ class ImportedVenueManager
         ]);
     }
 
+    /**
+     * Resolves a city name (potentially in Slovak locative/genitive case) to a municipality id.
+     * Tries exact match first, then prefix-based fuzzy match to handle inflected forms
+     * (e.g. "Bratislave" → "Bratislava", "Košiciach" → "Košice").
+     */
+    private function resolveMunicipalityId(string $city): ?int
+    {
+        $municipality = Municipality::query()
+            ->where('fullname', $city)
+            ->orWhere('shortname', $city)
+            ->first();
+
+        if ($municipality !== null) {
+            return $municipality->id;
+        }
+
+        // Fuzzy prefix: try cutting 1–4 trailing characters to de-inflect Slovak locative endings
+        $len = mb_strlen($city);
+        if ($len < 4) {
+            return null;
+        }
+
+        for ($cut = 1; $cut <= min(4, $len - 3); $cut++) {
+            $prefix = mb_substr($city, 0, $len - $cut);
+            $municipality = Municipality::query()
+                ->where('fullname', 'like', $prefix . '%')
+                ->orWhere('shortname', 'like', $prefix . '%')
+                ->first();
+
+            if ($municipality !== null) {
+                return $municipality->id;
+            }
+        }
+
+        return null;
+    }
+
     private function findByName(string $name): ?Venue
     {
         $slug = Str::slug($name);
@@ -84,3 +139,4 @@ class ImportedVenueManager
             ->first();
     }
 }
+

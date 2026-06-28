@@ -188,11 +188,12 @@ class ChatGPT
 
     private function applyEventDateTimeFallbackFromText(array $data, string $text): array
     {
-        $explicitStart = $this->extractExplicitStartDateTime($text);
-
-        if ($explicitStart instanceof Carbon) {
-            $data['start_at'] = $explicitStart->format('Y-m-d H:i:s');
-            $data['_start_time_explicit'] = true;
+        // Regex fallback — only fills in what AI left null; never overrides a found value
+        if (($data['start_at'] ?? null) === null) {
+            $explicitStart = $this->extractExplicitStartDateTime($text);
+            if ($explicitStart instanceof Carbon) {
+                $data['start_at'] = $explicitStart->format('Y-m-d H:i:s');
+            }
         }
 
         $startAt = $this->parseDateTime($data['start_at'] ?? null);

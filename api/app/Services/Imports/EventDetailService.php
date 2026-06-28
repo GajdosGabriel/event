@@ -99,12 +99,14 @@ class EventDetailService
 			$body = $this->htmlCleaner->fromPlainText($bodyText);
 		}
 
+		[$startAt, $endAt] = $this->extractTkkbsDateRange($bodyText);
+
 		return [
 			'title'                    => Str::limit(preg_replace('/\s*-\s*TK\s*KBS$/iu', '', $title) ?? $title, 250, ''),
 			'body'                     => $body,
 			'body_text'                => $bodyText,
-			'start_at'                 => null,
-			'end_at'                   => null,
+			'start_at'                 => $startAt,
+			'end_at'                   => $endAt,
 			'registration_deadline_at' => null,
 			'published_at_source'      => $this->extractTkkbsPublishedAt($bodyText),
 			'links'                    => $links,
@@ -413,6 +415,31 @@ class EventDetailService
 		}
 
 		return $this->sourceDateTime((int) $parts[3], $month, (int) $parts[1], (int) $parts[4], (int) $parts[5], 0);
+	}
+
+	/**
+	 * @return array{0:?Carbon,1:?Carbon}
+	 */
+	private function extractTkkbsDateRange(string $text): array
+	{
+		// "DD. Month YYYY o HH:MM" — event date+time with Slovak preposition "o"
+		// e.g. "29. júna 2026 o 18:00" or "29. júna 2026 o 18.00"
+		if (preg_match(
+			'/(\d{1,2})\.\s*([[:alpha:]áäčďéíĺľňóôŕšťúýž]+)\s+(\d{4})\s+o\s+(\d{1,2})[:.](\d{2})/iu',
+			$text,
+			$m,
+		)) {
+			$month = $this->slovakMonthToNumber($m[2]);
+			if ($month !== null) {
+				return [
+					$this->sourceDateTime((int) $m[3], $month, (int) $m[1], (int) $m[4], (int) $m[5], 0),
+					null,
+				];
+			}
+		}
+
+		// Fallback: generic patterns ("DD.–DD. Month YYYY" or "DD. Month YYYY")
+		return $this->extractDateRangeFromText($text);
 	}
 
 	/**
