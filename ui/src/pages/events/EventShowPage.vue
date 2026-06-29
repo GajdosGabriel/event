@@ -67,6 +67,7 @@
             <p v-if="!hasImages" class="text-sm text-slate-400">Žiadne fotografie.</p>
           </div>
 
+
           <!-- Mapa -->
           <div v-if="event.latitude && event.longitude" class="show-card overflow-hidden p-0">
             <iframe

@@ -1,19 +1,32 @@
 <template>
-  <div v-if="images.length" class="space-y-2">
+  <div v-if="allFiles.length" class="space-y-2">
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
       <div
-        v-for="(img, idx) in images"
-        :key="img.id"
-        class="group relative aspect-square cursor-zoom-in overflow-hidden rounded-xl bg-slate-100"
-        @click="open(idx)"
+        v-for="file in allFiles"
+        :key="file.id"
+        class="group relative aspect-square overflow-hidden rounded-xl bg-slate-100"
+        :class="isPdf(file) ? 'cursor-pointer' : 'cursor-zoom-in'"
+        @click="handleClick(file)"
       >
+        <!-- Image -->
         <img
-          v-if="imgSrc(img)"
-          :src="imgSrc(img)!"
-          :alt="img.name"
+          v-if="isImage(file) && imgSrc(file)"
+          :src="imgSrc(file)!"
+          :alt="file.name"
           class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-          @error="onError($event, img)"
+          @error="onError($event, file)"
         />
+
+        <!-- PDF tile -->
+        <div v-else-if="isPdf(file)"
+          class="flex h-full w-full flex-col items-center justify-center gap-2 bg-red-50 p-3 transition-colors group-hover:bg-red-100">
+          <svg class="h-10 w-10 shrink-0 text-red-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+          </svg>
+          <span class="line-clamp-2 w-full text-center text-xs text-slate-600 leading-tight">{{ file.name }}</span>
+        </div>
+
+        <!-- Generic fallback -->
         <div v-else class="flex h-full w-full items-center justify-center bg-slate-100">
           <svg class="h-8 w-8 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
@@ -22,7 +35,7 @@
       </div>
     </div>
 
-    <!-- Lightbox -->
+    <!-- Lightbox (images only) -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition duration-150"
@@ -36,7 +49,7 @@
           v-if="lightboxIdx !== null"
           ref="lightboxEl"
           tabindex="-1"
-          class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4"
+          class="fixed inset-0 z-9999 flex items-center justify-center bg-black/85 p-4"
           @click.self="close"
           @keydown.esc="close"
           @keydown.left="prev"
@@ -53,7 +66,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
             </svg>
           </button>
-          <button v-if="lightboxIdx < images.length - 1" class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" @click="next">
+          <button v-if="lightboxIdx < imageFiles.length - 1" class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" @click="next">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
             </svg>
@@ -61,12 +74,12 @@
 
           <img
             :src="lightboxSrc"
-            :alt="images[lightboxIdx]?.name"
+            :alt="imageFiles[lightboxIdx]?.name"
             class="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
           />
 
-          <div v-if="images.length > 1" class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
-            {{ lightboxIdx + 1 }} / {{ images.length }}
+          <div v-if="imageFiles.length > 1" class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+            {{ lightboxIdx + 1 }} / {{ imageFiles.length }}
           </div>
         </div>
       </Transition>
@@ -84,40 +97,53 @@ const props = defineProps<{
   public?: boolean
 }>()
 
-const images = ref<FileItem[]>([])
+const allFiles = ref<FileItem[]>([])
 const lightboxIdx = ref<number | null>(null)
 const lightboxEl = ref<HTMLElement | null>(null)
 const brokenSrcs = ref(new Set<number>())
 
 const PLACEHOLDER = 'document-placeholder'
 
-function imgSrc(img: FileItem): string | null {
-  if (brokenSrcs.value.has(img.id)) return (img.url && !img.url.includes(PLACEHOLDER)) ? img.url : null
-  const c = img.thumbUrl ?? img.url
+const imageFiles = computed(() => allFiles.value.filter(f => isImage(f)))
+
+function isImage(f: FileItem) { return f.mimeType.startsWith('image/') }
+function isPdf(f: FileItem) { return f.mimeType === 'application/pdf' }
+
+function imgSrc(f: FileItem): string | null {
+  if (brokenSrcs.value.has(f.id)) return (f.url && !f.url.includes(PLACEHOLDER)) ? f.url : null
+  const c = f.thumbUrl ?? f.url
   return (c && !c.includes(PLACEHOLDER)) ? c : null
 }
 
-function onError(e: Event, img: FileItem) {
+function onError(e: Event, f: FileItem) {
   const el = e.target as HTMLImageElement
-  if (!brokenSrcs.value.has(img.id) && img.url && !img.url.includes(PLACEHOLDER) && img.url !== el.src) {
-    brokenSrcs.value.add(img.id)
-    el.src = img.url
+  if (!brokenSrcs.value.has(f.id) && f.url && !f.url.includes(PLACEHOLDER) && f.url !== el.src) {
+    brokenSrcs.value.add(f.id)
+    el.src = f.url
   }
 }
 
 const lightboxSrc = computed(() => {
   if (lightboxIdx.value === null) return ''
-  const img = images.value[lightboxIdx.value]
+  const img = imageFiles.value[lightboxIdx.value]
   return img?.largeUrl ?? img?.thumbUrl ?? img?.url ?? ''
 })
 
-function open(idx: number) {
-  lightboxIdx.value = idx
-  nextTick(() => lightboxEl.value?.focus())
+function handleClick(file: FileItem) {
+  if (isPdf(file)) {
+    window.open(file.url, '_blank')
+    return
+  }
+  const idx = imageFiles.value.findIndex(f => f.id === file.id)
+  if (idx !== -1) {
+    lightboxIdx.value = idx
+    nextTick(() => lightboxEl.value?.focus())
+  }
 }
+
 function close() { lightboxIdx.value = null }
 function prev() { if (lightboxIdx.value !== null && lightboxIdx.value > 0) lightboxIdx.value-- }
-function next() { if (lightboxIdx.value !== null && lightboxIdx.value < images.value.length - 1) lightboxIdx.value++ }
+function next() { if (lightboxIdx.value !== null && lightboxIdx.value < imageFiles.value.length - 1) lightboxIdx.value++ }
 
 onMounted(async () => {
   try {
@@ -126,7 +152,7 @@ onMounted(async () => {
         ? await listPublicVenueFiles(props.fileableId)
         : await listPublicEventFiles(props.fileableId)
       : await listFiles({ fileable_type: props.fileableType, fileable_id: props.fileableId })
-    images.value = [...files].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    allFiles.value = [...files].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
   } catch { /* ignore */ }
 })
 </script>
