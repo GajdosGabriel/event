@@ -19,6 +19,7 @@ class EventImportService
         private readonly ImportedVenueManager $venueManager,
         private readonly EventRepository $eventRepository,
         private readonly FileManager $fileManager,
+        private readonly PdfConverterService $pdfConverter,
     ) {
     }
 
@@ -53,10 +54,32 @@ class EventImportService
     public function importArticle(string $articleUrl): string
     {
         $detail = $this->detailService->extract($articleUrl);
+
+        // Convert any PDF attachments: extract text (for canal/venue/date detection) and page images
+        $pdfText    = '';
+        $pdfResults = []; // [['result' => PdfConvertResult, 'name' => string, 'source_url' => string]]
+        foreach ((array) ($detail['attachments'] ?? []) as $attachment) {
+            $url  = is_string($attachment['url'] ?? null) ? trim((string) $attachment['url']) : '';
+            $name = is_string($attachment['name'] ?? null) ? (string) $attachment['name'] : basename((string) parse_url($url, PHP_URL_PATH));
+            $urlPath = strtolower((string) parse_url($url, PHP_URL_PATH));
+            if ($url === '' || !str_ends_with($urlPath, '.pdf')) {
+                continue;
+            }
+            $result = $this->pdfConverter->convertFromUrl($url);
+            if ($result === null || $result->fullText === '') {
+                continue;
+            }
+            $pdfText .= "\n\n" . $result->fullText;
+            $pdfResults[] = ['result' => $result, 'name' => $name, 'source_url' => $url];
+        }
+
+        $rawBodyText    = (string) ($detail['body_text'] ?? strip_tags((string) $detail['body']));
+        $enrichedBodyText = $pdfText !== '' ? $rawBodyText . $pdfText : $rawBodyText;
+
         $resolvedCanal = $this->canalNameResolver->resolve(
             $detail['source_url'],
             (string) $detail['title'],
-            (string) ($detail['body_text'] ?? strip_tags((string) $detail['body'])),
+            $enrichedBodyText,
             startAtFound: $detail['start_at'] !== null,
         );
 
@@ -81,6 +104,12 @@ class EventImportService
             (array) ($detail['link_items'] ?? []),
             (array) ($detail['attachments'] ?? [])
         );
+
+        // Enrich body with PDF text if existing body is very short
+        if ($pdfText !== '' && mb_strlen(strip_tags($body)) < 300) {
+            $safeText = htmlspecialchars(trim($pdfText), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $body = rtrim($body) . "\n<p>" . nl2br($safeText) . "</p>";
+        }
 
         // Regex dates take priority; AI fills in only what regex could not find
         $startAt = $detail['start_at'] ?? $resolvedCanal['ai_start_at'];
@@ -130,6 +159,7 @@ class EventImportService
 
         $this->syncImages($event, (array) $detail['image_urls'], (string) $detail['source_url']);
         $this->syncAttachments($event, (array) ($detail['attachments'] ?? []), (string) $detail['source_url']);
+        $this->syncPdfPageImages($event, $pdfResults);
 
         return $status;
     }
@@ -186,6 +216,55 @@ class EventImportService
         }
 
         return Str::limit($sourceUrl, 150, '');
+    }
+
+    /**
+     * @param array<int, array{result: PdfConvertResult, name: string, source_url: string}> $pdfResults
+     */
+    private function syncPdfPageImages(Event $event, array $pdfResults): void
+    {
+        if ($pdfResults === []) {
+            return;
+        }
+
+        $existingSourceUrls = $event->files()
+            ->get()
+            ->map(fn ($file) => is_array($file->meta) ? ($file->meta['source_pdf_url'] ?? null) : null)
+            ->filter(fn ($v) => is_string($v) && $v !== '')
+            ->values()
+            ->all();
+
+        foreach ($pdfResults as ['result' => $result, 'name' => $name, 'source_url' => $sourceUrl]) {
+            if (in_array($sourceUrl, $existingSourceUrls, true)) {
+                continue;
+            }
+
+            foreach ($result->pages as $page) {
+                $pageNumber   = (int) ($page['page'] ?? 1);
+                $uploadedFile = $this->pdfConverter->pageToUploadedFile($page, $name, $pageNumber);
+                if ($uploadedFile === null) {
+                    continue;
+                }
+
+                try {
+                    $this->fileManager->storeForEvent(
+                        $event,
+                        $uploadedFile,
+                        FileType::IMAGE,
+                        'public',
+                        null,
+                        false,
+                        [
+                            'source'        => 'pdf_conversion',
+                            'source_pdf_url' => $sourceUrl,
+                            'page'           => $pageNumber,
+                        ]
+                    );
+                } finally {
+                    @unlink($uploadedFile->getPathname());
+                }
+            }
+        }
     }
 
     /**

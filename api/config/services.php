@@ -66,6 +66,11 @@ return [
         ],
     ],
 
+    'pdf_converter' => [
+        'url'   => env('PDF_CONVERTER_URL', 'http://78.47.38.184'),
+        'token' => env('PDF_CONVERTER_TOKEN', ''),
+    ],
+
     'imports' => [
         'user_agent' => env('IMPORTS_USER_AGENT', env('APP_NAME', 'Event API') . ' importer'),
         'detect_canal_with_ai' => (bool) env('IMPORTS_DETECT_CANAL_WITH_AI', false),
