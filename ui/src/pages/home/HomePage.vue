@@ -31,8 +31,10 @@ import type { EventItem } from '@/types'
 import EventCard from '@/components/EventCard.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
+import { useSettings } from '@/composables/useSettings'
 
 const route = useRoute()
+const { settings } = useSettings()
 const events = ref<EventItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -43,7 +45,7 @@ async function loadPage(p = 1) {
   loading.value = true
   error.value = null
   try {
-    const params: Record<string, unknown> = { page: p }
+    const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
     if (route.query.municipality) params['municipality'] = route.query.municipality
     const res = await indexEvents('public', params)
     events.value = res.data

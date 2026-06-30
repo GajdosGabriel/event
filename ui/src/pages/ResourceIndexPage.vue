@@ -113,6 +113,7 @@ import IndexRow from '@/components/IndexRow.vue'
 import RowActions from '@/components/RowActions.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useToast } from '@/composables/useToast'
+import { useSettings } from '@/composables/useSettings'
 
 const props = defineProps<{
   resource: 'canal' | 'venue' | 'event'
@@ -121,6 +122,13 @@ const props = defineProps<{
 
 const route = useRoute()
 const toast = useToast()
+const { settings } = useSettings()
+
+const perPage = computed(() => {
+  if (props.resource === 'event') return settings.value.eventsPerPage
+  if (props.resource === 'venue') return settings.value.venuesPerPage
+  return settings.value.canalsPerPage
+})
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => `${scope.value === 'admin' ? '/admin' : '/dashboard'}/${props.resource}s`)
@@ -266,7 +274,7 @@ async function load(p = 1) {
   loading.value = true
   error.value = null
   try {
-    const params: Record<string, unknown> = { page: p }
+    const params: Record<string, unknown> = { page: p, per_page: perPage.value }
     if (search.value) params['search'] = search.value
     if (statusFilter.value) params['status'] = statusFilter.value
     if (canalFilter.value) params['canal_id'] = canalFilter.value.id
