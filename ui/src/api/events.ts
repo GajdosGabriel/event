@@ -39,6 +39,11 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     endAt,
     dateRangeLabel: (raw['date_range_label'] as string) ?? buildDateRangeLabel(startAt, endAt),
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
+    ticketsEnabled: Boolean(raw['tickets_enabled']),
+    capacity: (raw['capacity'] as number) ?? null,
+    remainingCapacity: (raw['remaining_capacity'] as number) ?? null,
+    priceAmount: (raw['price_amount'] as number) ?? null,
+    priceCurrency: (raw['price_currency'] as string) ?? null,
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     website: (raw['website'] as string) ?? null,
@@ -52,7 +57,19 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     uploadedFiles: (raw['uploaded_files'] as EventItem['uploadedFiles']) ?? [],
     phone: (raw['phone'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
-    permissions: (raw['permissions'] as EventItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
+    permissions: (() => {
+      const p = (raw['permissions'] as Record<string, boolean>) ?? {}
+      return {
+        view: p['view'] ?? true,
+        update: p['update'] ?? false,
+        publish: p['publish'] ?? false,
+        delete: p['delete'] ?? false,
+        archive: p['archive'] ?? false,
+        restore: p['restore'] ?? false,
+        viewTickets: p['view_tickets'] ?? false,
+        checkin: p['checkin'] ?? false,
+      }
+    })(),
     allowedStatuses: (raw['allowed_statuses'] as EventItem['allowedStatuses']) ?? [],
     municipality: (raw['municipality'] as EventItem['municipality']) ?? null,
     canal,

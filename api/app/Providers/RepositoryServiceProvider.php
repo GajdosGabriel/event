@@ -45,6 +45,11 @@ class RepositoryServiceProvider extends ServiceProvider
             'App\Repositories\Contracts\VenueRepository',
             'App\Repositories\Eloquent\EloquentVenueRepository'
         );
+
+        $this->app->bind(
+            'App\Repositories\Contracts\TicketRepository',
+            'App\Repositories\Eloquent\EloquentTicketRepository'
+        );
     }
 
     /**

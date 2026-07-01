@@ -26,6 +26,10 @@
             <input v-model.number="importLimit" type="number" min="0" max="100" class="form-input" />
           </label>
         </div>
+        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" v-model="importForce" class="accent-blue-600" />
+          Vynútiť refresh aj u už kompletných eventov (ignoruje skip)
+        </label>
       </div>
       <ToolRunButton label="Spustiť import" :running="running === 'import'" @run="runTool('import')" />
       <ToolOutput :output="outputs['import']" />
@@ -63,6 +67,7 @@ const toast = useToast()
 const importUrls = ref('')
 const importPages = ref(1)
 const importLimit = ref(0)
+const importForce = ref(false)
 
 type ToolKey = 'import' | 'ai-detector' | 'archive'
 const running = ref<ToolKey | null>(null)
@@ -75,7 +80,7 @@ async function runTool(tool: ToolKey) {
     let res
     if (tool === 'import') {
       const urls = importUrls.value.trim().split('\n').map(u => u.trim()).filter(Boolean)
-      res = await runAdminTool('import-events', { urls, pages: importPages.value, limit: importLimit.value })
+      res = await runAdminTool('import-events', { urls, pages: importPages.value, limit: importLimit.value, force: importForce.value })
     } else if (tool === 'ai-detector') {
       res = await runAdminTool('ai-detector')
     } else {

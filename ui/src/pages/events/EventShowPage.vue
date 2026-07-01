@@ -22,6 +22,8 @@
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <RouterLink :to="indexRoute" class="action-btn">← Späť</RouterLink>
         <RouterLink v-if="event.permissions.update" :to="editRoute" class="action-btn">Upraviť</RouterLink>
+        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/attendees`" class="action-btn">Účastníci</RouterLink>
+        <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">Check-in</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
           :class="statusClass(event.status)">{{ event.status }}</span>
       </div>

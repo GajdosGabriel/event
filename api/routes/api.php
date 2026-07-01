@@ -15,7 +15,8 @@ use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
 use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, VenueController as PublicVenueController};
+use App\Http\Controllers\Dashboard\DashboardTicketController;
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, VenueController as PublicVenueController};
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -55,6 +56,9 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
     ->name('public.events.municipalities.overview');
 
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
+Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])->name('public.events.tickets.store');
+Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
+Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.venues.show');
 Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name('public.venues.events');
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
@@ -136,6 +140,19 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/{event}/restore', [DashboardEventController::class, 'restore'])
         ->name('events.restore')
         ->middleware('permission:event.delete');
+
+    Route::get('events/{event}/tickets', [DashboardTicketController::class, 'index'])
+        ->name('events.tickets.index')
+        ->middleware('permission:ticket.view');
+    Route::post('tickets/checkin', [DashboardTicketController::class, 'checkin'])
+        ->name('tickets.checkin')
+        ->middleware('permission:ticket.checkin');
+    Route::get('tickets/{id}', [DashboardTicketController::class, 'show'])
+        ->name('tickets.show')
+        ->middleware('permission:ticket.view');
+    Route::post('tickets/{id}', [DashboardTicketController::class, 'update'])
+        ->name('tickets.update')
+        ->middleware('permission:ticket.update');
 
     Route::apiResource('municipalities', DashboardMunicipalityController::class);
 

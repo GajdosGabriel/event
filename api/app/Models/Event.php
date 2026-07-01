@@ -16,7 +16,7 @@ class Event extends Model
 
     protected $guarded = [];
     protected $hidden = [];
-    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files'];
+    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'remaining_capacity'];
 
     protected $casts = [
         'name' => StringLength250::class,
@@ -25,6 +25,9 @@ class Event extends Model
         'start_at' => 'datetime',
         'end_at' => 'datetime',
         'registration_deadline_at' => 'datetime',
+        'tickets_enabled' => 'boolean',
+        'capacity' => 'integer',
+        'price_amount' => 'integer',
         'meta' => 'array',
     ];
 
@@ -48,6 +51,24 @@ class Event extends Model
     public function venue()
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
+    public function getRemainingCapacityAttribute(): ?int
+    {
+        if ($this->capacity === null) {
+            return null;
+        }
+
+        $issued = $this->tickets()
+            ->whereIn('status', [\App\Enums\TicketStatus::Reserved->value, \App\Enums\TicketStatus::Confirmed->value])
+            ->count();
+
+        return max(0, $this->capacity - $issued);
     }
 
     public function getOwnerAttribute()

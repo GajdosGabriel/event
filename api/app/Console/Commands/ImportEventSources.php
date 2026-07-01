@@ -10,7 +10,8 @@ class ImportEventSources extends Command
     protected $signature = 'app:import-event-sources
         {--url=* : Listing URL(s) to import}
         {--pages=1 : Maximum number of pages per listing}
-        {--limit=0 : Maximum number of detail pages to import per listing}';
+        {--limit=0 : Maximum number of detail pages to import per listing}
+        {--force : Re-import and overwrite events even if already complete}';
 
     protected $description = 'Import events from configured external source listings';
 
@@ -29,6 +30,7 @@ class ImportEventSources extends Command
 
         $pages = max(1, (int) $this->option('pages'));
         $limit = max(0, (int) $this->option('limit'));
+        $force = (bool) $this->option('force');
         $total = [
             'imported' => 0,
             'updated' => 0,
@@ -42,6 +44,7 @@ class ImportEventSources extends Command
                 (string) $url,
                 $pages,
                 $limit > 0 ? $limit : null,
+                $force,
             );
 
             $this->info(sprintf(

@@ -84,6 +84,22 @@
               </div>
             </div>
 
+            <!-- Lístok / registrácia -->
+            <div v-if="event.ticketsEnabled" class="rounded-2xl border border-slate-200 bg-white p-5">
+              <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
+                </svg>
+                Registrácia
+              </div>
+              <TicketRequestForm
+                :event-id="event.id"
+                :remaining-capacity="event.remainingCapacity"
+                :price-amount="event.priceAmount"
+                :price-currency="event.priceCurrency"
+              />
+            </div>
+
             <!-- Miesto -->
             <div v-if="event.venue || event.locationName || event.street || event.municipality"
               class="rounded-2xl border border-slate-200 bg-white p-5">
@@ -206,6 +222,7 @@ import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import type { EventItem } from '@/types'
 import EventDateRange from '@/components/EventDateRange.vue'
+import TicketRequestForm from '@/components/TicketRequestForm.vue'
 
 const route = useRoute()
 const event = ref<EventItem | null>(null)

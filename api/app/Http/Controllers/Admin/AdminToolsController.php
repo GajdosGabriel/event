@@ -18,9 +18,13 @@ class AdminToolsController extends Controller
             'urls.*' => 'url',
             'pages' => 'sometimes|integer|min:1|max:20',
             'limit' => 'sometimes|integer|min:0|max:100',
+            'force' => 'sometimes|boolean',
         ]);
 
         $options = ['--pages' => $validated['pages'] ?? 1, '--limit' => $validated['limit'] ?? 0];
+        if ($validated['force'] ?? false) {
+            $options['--force'] = true;
+        }
         foreach ($validated['urls'] ?? [] as $url) {
             $options['--url'][] = $url;
         }

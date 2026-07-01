@@ -101,6 +101,24 @@
         </fieldset>
 
         <fieldset class="field-group">
+          <legend class="field-legend">Registrácia a lístky</legend>
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer mb-3">
+            <input type="checkbox" v-model="form.tickets_enabled" class="accent-blue-600" />
+            Vyžaduje sa registrácia / lístok
+          </label>
+          <div v-if="form.tickets_enabled" class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <label class="form-label">
+              Počet miest (prázdne = neobmedzené)
+              <input v-model.number="form.capacity" type="number" min="1" class="form-input" placeholder="neobmedzené" />
+            </label>
+            <label class="form-label">
+              Cena (€, prázdne = zdarma)
+              <input v-model="priceEuro" type="number" min="0" step="0.01" class="form-input" placeholder="0 = zdarma" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
           <legend class="field-legend">Popis akcie</legend>
           <textarea v-model="form.body" class="form-textarea" rows="7" placeholder="Napíšte popis eventu…" />
 
@@ -315,12 +333,17 @@ const form = ref({
   start_at: '',
   end_at: '',
   registration_deadline_at: '',
+  tickets_enabled: false,
+  capacity: null as number | null,
+  price_currency: 'EUR',
   website: '',
   email: '',
   phone: '',
   body: '',
   body_ai: '',
 })
+
+const priceEuro = ref<string>('')
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
@@ -497,12 +520,16 @@ onMounted(async () => {
         start_at: ev.startAt?.slice(0, 16) ?? '',
         end_at: ev.endAt?.slice(0, 16) ?? '',
         registration_deadline_at: (ev as Record<string, unknown>)['registrationDeadlineAt'] as string ?? '',
+        tickets_enabled: ev.ticketsEnabled ?? false,
+        capacity: ev.capacity ?? null,
+        price_currency: ev.priceCurrency ?? 'EUR',
         website: ev.website ?? '',
         email: ev.email ?? '',
         phone: ev.phone ?? '',
         body: ev.body ?? '',
         body_ai: ev.bodyAi ?? '',
       }
+      priceEuro.value = ev.priceAmount ? (ev.priceAmount / 100).toString() : ''
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }
   }
@@ -513,7 +540,10 @@ async function submit() {
   serverError.value = null
   saving.value = true
   try {
-    const payload = { ...form.value }
+    const payload = {
+      ...form.value,
+      price_amount: priceEuro.value ? Math.round(parseFloat(priceEuro.value) * 100) : null,
+    }
     if (isCreate.value) {
       const ev = await createEvent(payload)
       savedId.value = ev.id

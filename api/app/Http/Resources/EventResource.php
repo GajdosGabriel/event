@@ -27,6 +27,12 @@ class EventResource extends JsonResource
         $data['date_range_days'] = $this->dateRangeDays();
         $data['status_label'] = $this->statusLabel();
 
+        $data['tickets_enabled'] = $this->tickets_enabled;
+        $data['capacity'] = $this->capacity;
+        $data['remaining_capacity'] = $this->remaining_capacity;
+        $data['price_amount'] = $this->price_amount;
+        $data['price_currency'] = $this->price_currency;
+
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
         $isPublished = $this->status === ModelStatus::Published;
@@ -38,6 +44,8 @@ class EventResource extends JsonResource
             'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
             'restore' => $user?->can('restore', $this->resource) ?? false,
+            'view_tickets' => $user?->can('view', $this->resource) ?? false,
+            'checkin' => ($user?->can('view', $this->resource) ?? false) && ($user?->can('ticket.checkin') ?? false),
         ];
 
         return $data;

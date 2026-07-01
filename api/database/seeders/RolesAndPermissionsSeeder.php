@@ -40,6 +40,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'file.create',
             'file.update',
             'file.delete',
+            'ticket.view',
+            'ticket.create',
+            'ticket.update',
+            'ticket.checkin',
         ];
 
         foreach ($permissions as $permission) {
@@ -89,6 +93,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'file.create',
             'file.update',
             'file.delete',
+            'ticket.view',
+            'ticket.create',
+            'ticket.update',
+            'ticket.checkin',
         ]);
 
         $editorRole->syncPermissions([
@@ -98,6 +106,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'organization.view',
             'user.view',
             'file.view',
+            'ticket.view',
+            'ticket.checkin',
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

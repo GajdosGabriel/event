@@ -26,7 +26,7 @@ class EventImportService
     /**
      * @return array{imported:int,updated:int,skipped:int,errors:int,processed:int}
      */
-    public function importFromListing(string $listingUrl, int $maxPages = 1, ?int $limit = null): array
+    public function importFromListing(string $listingUrl, int $maxPages = 1, ?int $limit = null, bool $force = false): array
     {
         $articleUrls = $this->listService->listArticleUrls($listingUrl, $maxPages, $limit);
         $summary = [
@@ -39,7 +39,7 @@ class EventImportService
 
         foreach ($articleUrls as $articleUrl) {
             try {
-                $result = $this->importArticle($articleUrl);
+                $result = $this->importArticle($articleUrl, $force);
                 $summary[$result]++;
             } catch (\Throwable) {
                 $summary['errors']++;
@@ -51,8 +51,18 @@ class EventImportService
         return $summary;
     }
 
-    public function importArticle(string $articleUrl): string
+    public function importArticle(string $articleUrl, bool $force = false): string
     {
+        // Cheap early exit: if this exact source URL was already imported and the
+        // resulting event has everything it needs, skip before doing any expensive
+        // work (detail page fetch, AI canal/venue detection, PDF conversion).
+        if (! $force) {
+            $alreadyImported = Event::query()->where('orginal_source', $articleUrl)->first();
+            if ($alreadyImported instanceof Event && $this->isComplete($alreadyImported)) {
+                return 'skipped';
+            }
+        }
+
         $detail = $this->detailService->extract($articleUrl);
 
         // Convert any PDF attachments: extract text (for canal/venue/date detection) and page images
@@ -149,6 +159,10 @@ class EventImportService
         ];
 
         if ($existingEvent instanceof Event) {
+            if (! $force && $this->isComplete($existingEvent)) {
+                return 'skipped';
+            }
+
             $existingEvent->update($payload);
             $event = $existingEvent->fresh();
             $status = 'updated';
@@ -162,6 +176,20 @@ class EventImportService
         $this->syncPdfPageImages($event, $pdfResults);
 
         return $status;
+    }
+
+    /**
+     * An imported event is considered "complete" once it has everything a
+     * re-import would otherwise try to fill in: it's published, has a date
+     * range, and a resolved venue. Complete events are skipped on subsequent
+     * import runs (unless $force is set) to avoid redundant scraping/AI/PDF work.
+     */
+    private function isComplete(Event $event): bool
+    {
+        return $event->status === ModelStatus::Published
+            && $event->start_at !== null
+            && $event->end_at !== null
+            && $event->venue_id !== null;
     }
 
     /**

@@ -19,6 +19,8 @@ export interface ModelPermissions {
   delete: boolean
   archive?: boolean
   restore: boolean
+  viewTickets?: boolean
+  checkin?: boolean
 }
 
 export interface CollectionPermissions {
@@ -130,6 +132,11 @@ export interface EventItem {
   endAt: string | null
   dateRangeLabel: string | null
   registrationDeadlineAt: string | null
+  ticketsEnabled: boolean
+  capacity: number | null
+  remainingCapacity: number | null
+  priceAmount: number | null
+  priceCurrency: string | null
   publishedAt: string | null
   deletedAt: string | null
   website: string | null
@@ -265,4 +272,39 @@ export interface AccessPermission {
 
 export interface UserRolesPayload {
   roles: string[]
+}
+
+// Tickets
+export type TicketStatus = 'reserved' | 'confirmed' | 'cancelled'
+export type TicketPaymentStatus = 'none' | 'pending' | 'paid' | 'failed' | 'refunded'
+
+export interface TicketItem {
+  id?: number
+  uuid: string
+  eventId?: number
+  holderName: string
+  holderEmail?: string
+  holderPhone?: string | null
+  status: TicketStatus
+  statusLabel: string
+  paymentStatus: TicketPaymentStatus
+  paymentStatusLabel: string
+  priceAmount: number | null
+  priceCurrency: string | null
+  isCheckedIn: boolean
+  checkedInAt: string | null
+  checkedInBy?: { id: number } | null
+  createdAt: string
+  deletedAt?: string | null
+  event?: EventItem
+  permissions?: {
+    update: boolean
+    checkin: boolean
+  }
+}
+
+export interface TicketCheckinResult {
+  status: 'checked_in' | 'already_checked_in' | 'invalid'
+  reason?: 'not_found' | 'cancelled' | null
+  ticket: TicketItem | null
 }
