@@ -82,45 +82,6 @@
             </div>
           </div>
 
-          <!-- Venue karta -->
-          <div v-if="event.venue" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Miesto konania</h2>
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <RouterLink :to="`${prefix}/venues/${event.venue.id}`"
-                  class="text-base font-semibold text-blue-700 no-underline hover:underline">
-                  {{ event.venue.name }}
-                </RouterLink>
-                <p v-if="event.venue.street || event.venue.postcode" class="mt-0.5 text-sm text-slate-500">
-                  <span v-if="event.venue.street">{{ event.venue.street }}, </span>
-                  <span v-if="event.venue.postcode">{{ event.venue.postcode }}</span>
-                </p>
-                <div class="mt-2 flex flex-wrap gap-3 text-sm">
-                  <a v-if="event.venue.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">
-                    {{ event.venue.phone }}
-                  </a>
-                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" class="text-blue-600 truncate max-w-xs">
-                    {{ event.venue.website }}
-                  </a>
-                </div>
-              </div>
-              <RouterLink :to="`${prefix}/venues/${event.venue.id}`" class="action-btn shrink-0">Detail →</RouterLink>
-            </div>
-
-            <!-- Otváracie hodiny venue -->
-            <template v-if="venueOpeningHours.length">
-              <div class="mt-3 border-t border-slate-100 pt-3">
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Otváracie hodiny</p>
-                <dl class="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm">
-                  <template v-for="row in venueOpeningHours" :key="row.day">
-                    <dt class="font-medium text-slate-600">{{ row.day }}</dt>
-                    <dd class="text-slate-900">{{ row.hours }}</dd>
-                  </template>
-                </dl>
-              </div>
-            </template>
-          </div>
-
           <!-- Ďalšie eventy tohto kanálu -->
           <div v-if="event.canal" class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -151,18 +112,8 @@
           <!-- Termín -->
           <dl class="show-card grid gap-3">
             <div v-if="event.startAt" class="detail-card">
-              <dt>Začiatok</dt>
-              <dd>
-                <span class="block font-medium">{{ dayName(event.startAt) }}</span>
-                <span>{{ fmtDateTime(event.startAt) }}</span>
-              </dd>
-            </div>
-            <div v-if="event.endAt && event.endAt !== event.startAt" class="detail-card">
-              <dt>Koniec</dt>
-              <dd>
-                <span class="block font-medium">{{ dayName(event.endAt) }}</span>
-                <span>{{ fmtDateTime(event.endAt) }}</span>
-              </dd>
+              <dt>Termín</dt>
+              <dd><EventDateRange :start-at="event.startAt" :end-at="event.endAt" /></dd>
             </div>
             <div v-if="event.registrationDeadlineAt" class="detail-card border-l-2 border-amber-400 pl-2">
               <dt class="text-amber-700">Registrácia do</dt>
@@ -185,6 +136,23 @@
 
           <!-- Miesto -->
           <dl class="show-card grid gap-3">
+            <div v-if="event.venue" class="detail-card">
+              <dt>Miesto konania</dt>
+              <dd>
+                <RouterLink :to="`${prefix}/venues/${event.venue.id}`"
+                  class="font-semibold text-blue-700 no-underline hover:underline">
+                  {{ event.venue.name }}
+                </RouterLink>
+                <p v-if="event.venue.street || event.venue.postcode" class="mt-0.5 text-sm text-slate-500">
+                  <span v-if="event.venue.street">{{ event.venue.street }}, </span>
+                  <span v-if="event.venue.postcode">{{ event.venue.postcode }}</span>
+                </p>
+                <div class="mt-1 flex flex-wrap gap-2 text-sm">
+                  <a v-if="event.venue.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
+                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" class="truncate text-blue-600">{{ event.venue.website }}</a>
+                </div>
+              </dd>
+            </div>
             <div v-if="event.locationName" class="detail-card">
               <dt>Popis miesta</dt>
               <dd>{{ event.locationName }}</dd>
@@ -198,7 +166,7 @@
                 <span v-if="event.country && event.country !== 'Slovakia'" class="block text-xs text-slate-500">{{ event.country }}</span>
               </dd>
             </div>
-            <div v-else-if="event.municipality" class="detail-card">
+            <div v-else-if="event.municipality && !event.venue" class="detail-card">
               <dt>Obec</dt>
               <dd>{{ event.municipality.name }}</dd>
             </div>
@@ -255,6 +223,7 @@ import { showEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { EventItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
+import EventDateRange from '@/components/EventDateRange.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()

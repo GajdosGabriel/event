@@ -3,9 +3,9 @@
 namespace App\Services\OpenAI;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptTextEditor, PromptVenue};
-use OpenAI\Laravel\Facades\OpenAI;
 
 class ChatGPT
 {
@@ -21,24 +21,8 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o-mini',
-            // 'model' => 'gpt-4o',
-            'temperature' => 0,
-            'response_format' => $this->promptData->jsonSchema(),
-            'messages' => $this->promptData->prompt($text),
-        ]);
-
-        $content = $response->choices[0]->message->content ?? null;
-        if (!$content) {
-            throw new \RuntimeException('Prazdna odpoved od OpenAI');
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
-        }
-
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptData->prompt($text));
+        $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyEventDateTimeFallbackFromText($data, $text);
 
@@ -55,23 +39,8 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o',
-            'temperature' => 0,
-            'response_format' => $this->promptCopywriter->jsonSchema(),
-            'messages' => $this->promptCopywriter->prompt($text),
-        ]);
-
-        $content = $response->choices[0]->message->content ?? null;
-        if (!$content) {
-            throw new \RuntimeException('Prazdna odpoved od OpenAI');
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
-        }
-
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text));
+        $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
 
         $validator = Validator::make($data, $this->promptCopywriter->validator());
@@ -90,22 +59,8 @@ class ChatGPT
 
     public function extractTextEdit(string $text, array $modes): array
     {
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o-mini',
-            'temperature' => 0.3,
-            'response_format' => ['type' => 'json_object'],
-            'messages' => $this->promptTextEditor->prompt($text, $modes),
-        ]);
-
-        $content = $response->choices[0]->message->content ?? null;
-        if (!$content) {
-            throw new \RuntimeException('Prázdna odpoveď od OpenAI');
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatný JSON: ' . json_last_error_msg());
-        }
+        $content = $this->chatComplete('gpt-4o-mini', 0.3, $this->promptTextEditor->prompt($text, $modes));
+        $data = $this->decodeJson($content);
 
         $validator = Validator::make($data, $this->promptTextEditor->validator());
         if ($validator->fails()) {
@@ -119,23 +74,8 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o-mini',
-            'temperature' => 0,
-            'response_format' => $this->promptVenue->jsonSchema(),
-            'messages' => $this->promptVenue->prompt($text),
-        ]);
-
-        $content = $response->choices[0]->message->content ?? null;
-        if (!$content) {
-            throw new \RuntimeException('Prazdna odpoved od OpenAI');
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
-        }
-
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptVenue->prompt($text));
+        $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyVenueFallbackFromText($data, $text);
 
@@ -152,22 +92,8 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o-mini',
-            'temperature' => 0,
-            'response_format' => $this->promptCanal->jsonSchema(),
-            'messages' => $this->promptCanal->prompt($text),
-        ]);
-
-        $content = $response->choices[0]->message->content ?? null;
-        if (!$content) {
-            throw new \RuntimeException('Prazdna odpoved od OpenAI');
-        }
-
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
-        }
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCanal->prompt($text));
+        $data = $this->decodeJson($content);
 
         $validator = Validator::make($data, $this->promptCanal->validator());
 
@@ -380,6 +306,65 @@ class ChatGPT
         $line = trim($match[1]);
 
         return $line !== '' ? $line : null;
+    }
+
+    /**
+     * Direct HTTP call to OpenAI Chat Completions — bypasses the SDK's CreateResponse which
+     * breaks when OpenAI routes certain requests to the new Responses API format.
+     */
+    private function chatComplete(string $model, float $temperature, array $messages): string
+    {
+        $apiKey = config('openai.api_key', '');
+        if ($apiKey === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $response = Http::timeout(60)
+            ->withToken($apiKey)
+            ->post('https://api.openai.com/v1/chat/completions', [
+                'model'           => $model,
+                'temperature'     => $temperature,
+                'response_format' => ['type' => 'json_object'],
+                'messages'        => $messages,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('OpenAI API error: ' . $response->status() . ' ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        // Standard Chat Completions format
+        $content = $data['choices'][0]['message']['content'] ?? null;
+
+        // Fallback: new Responses API format
+        if ($content === null) {
+            foreach ((array) ($data['output'] ?? []) as $block) {
+                if (is_array($block) && ($block['type'] ?? '') === 'message') {
+                    foreach ((array) ($block['content'] ?? []) as $part) {
+                        if (is_array($part) && ($part['type'] ?? '') === 'output_text') {
+                            $content = $part['text'] ?? null;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!is_string($content) || $content === '') {
+            throw new \RuntimeException('Prazdna odpoved od OpenAI');
+        }
+
+        return $content;
+    }
+
+    private function decodeJson(string $content): array
+    {
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
+        }
+        return $data;
     }
 
     private function normalizeInput(array|string $input): string

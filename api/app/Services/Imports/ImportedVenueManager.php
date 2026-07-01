@@ -20,6 +20,10 @@ class ImportedVenueManager
         if (is_string($venueName) && $venueName !== '') {
             $existing = $this->findByName($venueName);
             if ($existing instanceof Venue) {
+                // Ensure the venue is linked to this canal so the repository validation passes
+                if (!$existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
+                    $existing->assignCanal($canal, isOwner: false);
+                }
                 return $existing;
             }
 
@@ -58,7 +62,16 @@ class ImportedVenueManager
             }
         }
 
-        return $this->resolveFallbackVenue();
+        return $this->resolveFallbackVenueForCanal($canal);
+    }
+
+    public function resolveFallbackVenueForCanal(Canal $canal): Venue
+    {
+        $venue = $this->resolveFallbackVenue();
+        if (!$venue->activeCanals()->where('canals.id', $canal->id)->exists()) {
+            $venue->assignCanal($canal, isOwner: false);
+        }
+        return $venue;
     }
 
     public function resolveFallbackVenue(): Venue

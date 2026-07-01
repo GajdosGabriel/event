@@ -66,35 +66,6 @@
               </div>
             </div>
 
-            <!-- Venue detail -->
-            <div v-if="event.venue" class="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 class="mb-3 text-base font-semibold text-slate-800">Miesto konania</h2>
-              <p class="font-semibold text-slate-900">{{ event.venue.name }}</p>
-              <p v-if="event.venue.street || event.venue.postcode" class="mt-0.5 text-sm text-slate-500">
-                <span v-if="event.venue.street">{{ event.venue.street }}, </span>
-                <span v-if="event.venue.postcode">{{ event.venue.postcode }}</span>
-              </p>
-              <p v-if="event.municipality" class="text-sm text-slate-500">
-                {{ event.municipality.fullname ?? event.municipality.name }}
-              </p>
-              <div class="mt-2 flex flex-wrap gap-3 text-sm">
-                <a v-if="event.venue.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
-                <a v-if="event.venue.website" :href="event.venue.website" target="_blank" class="text-blue-600">{{ event.venue.website }}</a>
-              </div>
-
-              <!-- Otváracie hodiny venue -->
-              <template v-if="venueOpeningHours.length">
-                <div class="mt-4 border-t border-slate-100 pt-4">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Otváracie hodiny</p>
-                  <dl class="grid grid-cols-2 gap-x-6 gap-y-0.5 text-sm">
-                    <template v-for="row in venueOpeningHours" :key="row.day">
-                      <dt class="font-medium text-slate-600">{{ row.day }}</dt>
-                      <dd class="text-slate-900">{{ row.hours }}</dd>
-                    </template>
-                  </dl>
-                </div>
-              </template>
-            </div>
           </div>
 
           <!-- Sidebar -->
@@ -107,23 +78,15 @@
                 </svg>
                 Termín
               </div>
-              <p class="text-base font-semibold text-slate-900">{{ event.dateRangeLabel ?? '—' }}</p>
-              <div v-if="event.startAt" class="mt-1 text-sm text-slate-500">
-                <span class="font-medium text-slate-700">{{ dayName(event.startAt) }}</span>
-                {{ formatDateTime(event.startAt) }}
-              </div>
-              <div v-if="event.endAt && !isSameDay(event.startAt!, event.endAt)" class="mt-1 text-sm text-slate-500">
-                <span class="mr-1 text-slate-400">do</span>
-                <span class="font-medium text-slate-700">{{ dayName(event.endAt) }}</span>
-                {{ formatDateTime(event.endAt) }}
-              </div>
+              <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
               <div v-if="event.registrationDeadlineAt" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 Registrácia do: <strong>{{ formatDate(event.registrationDeadlineAt) }}</strong>
               </div>
             </div>
 
             <!-- Miesto -->
-            <div v-if="event.venue || event.locationName || event.street" class="rounded-2xl border border-slate-200 bg-white p-5">
+            <div v-if="event.venue || event.locationName || event.street || event.municipality"
+              class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
@@ -133,12 +96,31 @@
               <RouterLink v-if="event.venue?.id" :to="`/venues/${event.venue.id}`"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.venue.name }}</RouterLink>
               <p v-else-if="event.locationName" class="font-semibold text-slate-900">{{ event.locationName }}</p>
-              <p v-if="event.street" class="mt-0.5 text-sm text-slate-500">
+              <p v-if="event.venue?.street || event.venue?.postcode" class="mt-0.5 text-sm text-slate-500">
+                <span v-if="event.venue?.street">{{ event.venue.street }}, </span>
+                <span v-if="event.venue?.postcode">{{ event.venue.postcode }}</span>
+              </p>
+              <p v-else-if="event.street" class="mt-0.5 text-sm text-slate-500">
                 {{ event.street }}<span v-if="event.postcode">, {{ event.postcode }}</span>
               </p>
               <p v-if="event.municipality" class="mt-0.5 text-sm text-slate-500">
                 {{ event.municipality.fullname ?? event.municipality.name }}
               </p>
+              <div class="mt-1 flex flex-wrap gap-2 text-sm">
+                <a v-if="event.venue?.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
+                <a v-if="event.venue?.website" :href="event.venue.website" target="_blank" class="text-blue-600">{{ event.venue.website }}</a>
+              </div>
+              <template v-if="venueOpeningHours.length">
+                <div class="mt-3 border-t border-slate-100 pt-3">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Otváracie hodiny</p>
+                  <dl class="grid grid-cols-2 gap-x-6 gap-y-0.5 text-sm">
+                    <template v-for="row in venueOpeningHours" :key="row.day">
+                      <dt class="font-medium text-slate-600">{{ row.day }}</dt>
+                      <dd class="text-slate-900">{{ row.hours }}</dd>
+                    </template>
+                  </dl>
+                </div>
+              </template>
             </div>
 
             <!-- Organizátor -->
@@ -223,6 +205,7 @@ import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import type { EventItem } from '@/types'
+import EventDateRange from '@/components/EventDateRange.vue'
 
 const route = useRoute()
 const event = ref<EventItem | null>(null)
