@@ -79,7 +79,7 @@
             </label>
             <label class="form-label lg:col-span-2">
               Popis
-              <textarea v-model="form.body" class="form-textarea" rows="5" />
+              <HtmlEditor v-model="form.body" min-height="130px" />
             </label>
           </div>
         </fieldset>
@@ -181,6 +181,7 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import VenueMapPicker from '@/components/VenueMapPicker.vue'
+import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const router = useRouter(); const toast = useToast()
