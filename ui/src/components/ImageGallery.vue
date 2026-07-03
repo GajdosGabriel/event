@@ -5,20 +5,20 @@
         v-for="file in allFiles"
         :key="file.id"
         class="group relative aspect-square overflow-hidden rounded-xl bg-slate-100"
-        :class="isPdf(file) ? 'cursor-pointer' : 'cursor-zoom-in'"
+        :class="isImage(file) ? 'cursor-zoom-in' : 'cursor-pointer'"
         @click="handleClick(file)"
       >
-        <!-- Image -->
+        <!-- Image (also used for a PDF/DOC's generated preview thumbnail, when one exists) -->
         <img
-          v-if="isImage(file) && imgSrc(file)"
+          v-if="imgSrc(file)"
           :src="imgSrc(file)!"
           :alt="file.name"
           class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
           @error="onError($event, file)"
         />
 
-        <!-- PDF tile -->
-        <div v-else-if="isPdf(file)"
+        <!-- Document tile (no preview available yet/at all — e.g. conversion failed) -->
+        <div v-else
           class="flex h-full w-full flex-col items-center justify-center gap-2 bg-red-50 p-3 transition-colors group-hover:bg-red-100">
           <svg class="h-10 w-10 shrink-0 text-red-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
@@ -26,11 +26,9 @@
           <span class="line-clamp-2 w-full text-center text-xs text-slate-600 leading-tight">{{ file.name }}</span>
         </div>
 
-        <!-- Generic fallback -->
-        <div v-else class="flex h-full w-full items-center justify-center bg-slate-100">
-          <svg class="h-8 w-8 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
-          </svg>
+        <!-- Document badge: overlaid on a generated preview so it's still clear this is a PDF/DOC -->
+        <div v-if="!isImage(file) && imgSrc(file)" class="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+          {{ extensionLabel(file) }}
         </div>
       </div>
     </div>
@@ -90,6 +88,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { listFiles, listPublicEventFiles, listPublicVenueFiles, type FileItem } from '@/api/files'
+import { isImageFile as isImage, extensionLabel, openOriginal, useFilePreview } from '@/composables/useFilePreview'
 
 const props = defineProps<{
   fileableType: 'canal' | 'event' | 'venue'
@@ -100,28 +99,10 @@ const props = defineProps<{
 const allFiles = ref<FileItem[]>([])
 const lightboxIdx = ref<number | null>(null)
 const lightboxEl = ref<HTMLElement | null>(null)
-const brokenSrcs = ref(new Set<number>())
 
-const PLACEHOLDER = 'document-placeholder'
+const { imgSrc, onImgError: onError } = useFilePreview()
 
 const imageFiles = computed(() => allFiles.value.filter(f => isImage(f)))
-
-function isImage(f: FileItem) { return f.mimeType.startsWith('image/') }
-function isPdf(f: FileItem) { return f.mimeType === 'application/pdf' }
-
-function imgSrc(f: FileItem): string | null {
-  if (brokenSrcs.value.has(f.id)) return (f.url && !f.url.includes(PLACEHOLDER)) ? f.url : null
-  const c = f.thumbUrl ?? f.url
-  return (c && !c.includes(PLACEHOLDER)) ? c : null
-}
-
-function onError(e: Event, f: FileItem) {
-  const el = e.target as HTMLImageElement
-  if (!brokenSrcs.value.has(f.id) && f.url && !f.url.includes(PLACEHOLDER) && f.url !== el.src) {
-    brokenSrcs.value.add(f.id)
-    el.src = f.url
-  }
-}
 
 const lightboxSrc = computed(() => {
   if (lightboxIdx.value === null) return ''
@@ -130,8 +111,8 @@ const lightboxSrc = computed(() => {
 })
 
 function handleClick(file: FileItem) {
-  if (isPdf(file)) {
-    window.open(file.url, '_blank')
+  if (!isImage(file)) {
+    openOriginal(file)
     return
   }
   const idx = imageFiles.value.findIndex(f => f.id === file.id)

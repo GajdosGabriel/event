@@ -125,22 +125,22 @@ export async function showEvent(scope: Exclude<Scope, 'public'>, id: number): Pr
   return mapEvent((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function createEvent(payload: FormData | Record<string, unknown>): Promise<EventItem> {
-  const { data } = await http.post(baseUrl('dashboard'), payload)
+export async function createEvent(payload: FormData | Record<string, unknown>, scope: Exclude<Scope, 'public'> = 'dashboard'): Promise<EventItem> {
+  const { data } = await http.post(baseUrl(scope), payload)
   return mapEvent((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function updateEvent(id: number, payload: FormData | Record<string, unknown>): Promise<EventItem> {
+export async function updateEvent(id: number, payload: FormData | Record<string, unknown>, scope: Exclude<Scope, 'public'> = 'dashboard'): Promise<EventItem> {
   const isForm = payload instanceof FormData
   if (isForm) payload.append('_method', 'PUT')
   const { data } = isForm
-    ? await http.post(`${baseUrl('dashboard')}/${id}`, payload)
-    : await http.put(`${baseUrl('dashboard')}/${id}`, payload)
+    ? await http.post(`${baseUrl(scope)}/${id}`, payload)
+    : await http.put(`${baseUrl(scope)}/${id}`, payload)
   return mapEvent((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function deleteEvent(id: number): Promise<void> {
-  await http.delete(`${baseUrl('dashboard')}/${id}`)
+export async function deleteEvent(id: number, scope: Exclude<Scope, 'public'> = 'dashboard'): Promise<void> {
+  await http.delete(`${baseUrl(scope)}/${id}`)
 }
 
 export async function restoreEvent(id: number): Promise<void> {

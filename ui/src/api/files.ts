@@ -3,6 +3,7 @@ import http from './index'
 export interface FileItem {
   id: number
   name: string
+  extension: string
   url: string
   thumbUrl: string | null
   largeUrl: string | null
@@ -23,17 +24,23 @@ function resolveImageUrl(...candidates: (string | null | undefined)[]): string |
 }
 
 function mapFile(raw: Record<string, unknown>): FileItem {
+  const mimeType    = (raw['mime_type'] as string) ?? ''
+  // A raw (non-image) document can never itself be used as an <img> src — only fall
+  // back to the original file's URL when it's actually a raster image.
+  const isImage     = mimeType.startsWith('image/')
   const originalUrl = (raw['original_file_url'] as string) ?? null
+  const imageFallback = isImage ? originalUrl : null
   const thumbRaw    = (raw['thumb_image_url'] as string) ?? null
   const largeRaw    = (raw['large_image_url'] as string) ?? null
 
   return {
     id: raw['id'] as number,
     name: (raw['name'] as string) ?? '',
+    extension: (raw['extension'] as string) ?? '',
     url: originalUrl ?? '',
-    thumbUrl: resolveImageUrl(thumbRaw, originalUrl),
-    largeUrl: resolveImageUrl(largeRaw, originalUrl, thumbRaw),
-    mimeType: (raw['mime_type'] as string) ?? '',
+    thumbUrl: resolveImageUrl(thumbRaw, imageFallback),
+    largeUrl: resolveImageUrl(largeRaw, imageFallback, thumbRaw),
+    mimeType,
     sizeBytes: (raw['size'] as number) ?? (raw['size_bytes'] as number) ?? 0,
     isPrimary: (raw['is_primary'] as boolean) ?? false,
     sortOrder: (raw['sort_order'] as number) ?? 0,

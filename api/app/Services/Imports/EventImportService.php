@@ -267,6 +267,10 @@ class EventImportService
                 continue;
             }
 
+            // Note: the original PDF itself is already kept as a separate attachment
+            // by syncAttachments() (via RemoteAttachmentPersister, which generates its
+            // own preview through the same ImageVariantGenerator pipeline) — storing it
+            // again here would duplicate the file. This only adds the per-page images.
             foreach ($result->pages as $page) {
                 $pageNumber   = (int) ($page['page'] ?? 1);
                 $uploadedFile = $this->pdfConverter->pageToUploadedFile($page, $name, $pageNumber);

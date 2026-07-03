@@ -29,7 +29,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
     public function adminIndexQuery()
     {
-        return $this->latestFirst($this->model()->withTrashed());
+        return $this->latestFirst($this->model()->withTrashed()->with('canals'));
     }
 
     public function dashboardIndexQuery()
@@ -37,7 +37,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         $canalIds = auth('sanctum')->user()?->dashboardCanalIds() ?? collect();
 
         return $this->latestFirst(
-            $this->model()->withTrashed()->whereHas(
+            $this->model()->withTrashed()->with('canals')->whereHas(
                 'canals',
                 fn ($query) => $query
                     ->whereIn('canals.id', $canalIds)

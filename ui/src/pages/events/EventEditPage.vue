@@ -7,7 +7,7 @@
       </div>
 
       <p v-if="loadingData" class="text-slate-600">Načítavam…</p>
-      <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
+      <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form v-if="!loadingData" class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
@@ -20,32 +20,35 @@
             </label>
             <label class="form-label">
               Stav
-              <select v-model="form.status" class="form-input">
+              <select v-model="form.status" class="form-input" :class="{ invalid: errors.status }">
                 <option value="draft">Koncept</option>
                 <option value="published">Publikovaný</option>
                 <option value="archived">Archivovaný</option>
                 <option value="scheduled">Naplánovaný</option>
                 <option value="pending_review">Čaká na schválenie</option>
               </select>
+              <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
             </label>
             <label class="form-label">
               Kanál
-              <select v-model="form.canal_id" class="form-input">
+              <select v-model="form.canal_id" class="form-input" :class="{ invalid: errors.canal_id }">
                 <option v-if="!form.canal_id" :value="null" disabled>— vyberte kanál —</option>
                 <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
+              <span v-if="errors.canal_id" class="field-error">{{ errors.canal_id }}</span>
             </label>
             <label class="form-label lg:col-span-2">
               Miesto konania
               <div class="flex gap-2">
-                <select v-model="form.venue_id" class="form-input min-w-0">
+                <select v-model="form.venue_id" class="form-input min-w-0" :class="{ invalid: errors.venue_id }">
                   <option :value="null">— bez miesta —</option>
-                  <option v-for="v in venues" :key="v.id" :value="v.id">{{ v.name }}</option>
+                  <option v-for="v in venuesForCanal" :key="v.id" :value="v.id">{{ v.name }}</option>
                 </select>
                 <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
                   + Pridať nové
                 </button>
               </div>
+              <span v-if="errors.venue_id" class="field-error">{{ errors.venue_id }}</span>
             </label>
           </div>
         </fieldset>
@@ -55,15 +58,18 @@
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
               Začiatok
-              <DateTimeInput v-model="form.start_at" class="form-input" />
+              <DateTimeInput v-model="form.start_at" class="form-input" :class="{ invalid: errors.start_at }" />
+              <span v-if="errors.start_at" class="field-error">{{ errors.start_at }}</span>
             </label>
             <label class="form-label">
               Koniec
-              <DateTimeInput v-model="form.end_at" class="form-input" />
+              <DateTimeInput v-model="form.end_at" class="form-input" :class="{ invalid: errors.end_at }" />
+              <span v-if="errors.end_at" class="field-error">{{ errors.end_at }}</span>
             </label>
             <label class="form-label">
               Uzávierka registrácie
-              <DateTimeInput v-model="form.registration_deadline_at" class="form-input" />
+              <DateTimeInput v-model="form.registration_deadline_at" class="form-input" :class="{ invalid: errors.registration_deadline_at }" />
+              <span v-if="errors.registration_deadline_at" class="field-error">{{ errors.registration_deadline_at }}</span>
             </label>
           </div>
         </fieldset>
@@ -77,11 +83,13 @@
           <div v-if="form.tickets_enabled" class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
               Počet miest (prázdne = neobmedzené)
-              <input v-model.number="form.capacity" type="number" min="1" class="form-input" placeholder="neobmedzené" />
+              <input v-model.number="form.capacity" type="number" min="1" class="form-input" :class="{ invalid: errors.capacity }" placeholder="neobmedzené" />
+              <span v-if="errors.capacity" class="field-error">{{ errors.capacity }}</span>
             </label>
             <label class="form-label">
               Cena (€, prázdne = zdarma)
-              <input v-model="priceEuro" type="number" min="0" step="0.01" class="form-input" placeholder="0 = zdarma" />
+              <input v-model="priceEuro" type="number" min="0" step="0.01" class="form-input" :class="{ invalid: errors.price_amount }" placeholder="0 = zdarma" />
+              <span v-if="errors.price_amount" class="field-error">{{ errors.price_amount }}</span>
             </label>
           </div>
         </fieldset>
@@ -194,11 +202,13 @@
             </label>
             <label class="form-label">
               Email
-              <input v-model="form.email" type="email" class="form-input" />
+              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
+              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
             </label>
             <label class="form-label">
               Telefón
-              <input v-model="form.phone" type="tel" class="form-input" />
+              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
+              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
             </label>
           </div>
         </fieldset>
@@ -270,6 +280,8 @@ import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { isImageLikeUpload } from '@/utils/uploadFileTypes'
+import { scrollToError } from '@/utils/scrollToError'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
@@ -316,6 +328,7 @@ const priceEuro = ref<string>('')
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
+const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 const loadingData = ref(false)
 
@@ -329,12 +342,32 @@ watch(canals, (list) => {
   }
 })
 
+// Only offer venues that actually belong to the selected canal — picking an
+// incompatible pair would be rejected by the backend at submit time anyway.
+// Admins manage venues across all canals, so they see the full list unfiltered.
+const venuesForCanal = computed(() => {
+  if (scope.value === 'admin' || !form.value.canal_id) return venues.value
+  return venues.value.filter(v => v.canalIds.includes(form.value.canal_id as number))
+})
+
+watch(() => form.value.canal_id, () => {
+  // Skip while venues haven't loaded yet — avoids clobbering a valid venue_id
+  // restored from an existing event before loadVenues() has resolved.
+  if (!venues.value.length) return
+  if (form.value.venue_id && !venuesForCanal.value.some(v => v.id === form.value.venue_id)) {
+    form.value.venue_id = null
+  }
+})
+
 watch(() => form.value.start_at, (startAt) => {
   if (!startAt || form.value.end_at) return
   const d = new Date(startAt)
   if (isNaN(d.getTime())) return
   d.setHours(d.getHours() + 2)
-  form.value.end_at = d.toISOString().slice(0, 16)
+  // Build the datetime-local string from local components — toISOString() would
+  // convert to UTC and shift the displayed value by the local timezone offset.
+  const pad = (n: number) => String(n).padStart(2, '0')
+  form.value.end_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 })
 
 const venueModal = ref({
@@ -362,7 +395,7 @@ async function saveNewVenue() {
       canal_id: form.value.canal_id,
     }
     const created = await createVenue(payload)
-    venues.value.push({ id: created.id, name: created.name })
+    venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
     form.value.venue_id = created.id
     venueModal.value.show = false
     toast.success('Miesto vytvorené.')
@@ -458,26 +491,39 @@ async function submit() {
       price_amount: priceEuro.value ? Math.round(parseFloat(priceEuro.value) * 100) : null,
     }
     if (isCreate.value) {
-      const ev = await createEvent(payload)
+      const ev = await createEvent(payload, scope.value)
       savedId.value = ev.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
-        const fd = new FormData()
-        fd.append('fileable_type', 'event')
-        fd.append('fileable_id', String(ev.id))
-        pending.forEach(f => fd.append('files[]', f))
-        await uploadFiles(fd)
+        // PDFs are converted server-side into an image preview, so they upload as type
+        // "image" (and can become the primary/cover image); DOC/DOCX upload as type "file".
+        const imageFiles = pending.filter(isImageLikeUpload)
+        const docFiles = pending.filter(f => !isImageLikeUpload(f))
+        for (const [group, type, makePrimary] of [
+          [imageFiles, 'image', true] as const,
+          [docFiles, 'file', false] as const,
+        ]) {
+          if (!group.length) continue
+          const fd = new FormData()
+          fd.append('fileable_type', 'event')
+          fd.append('fileable_id', String(ev.id))
+          fd.append('type', type)
+          fd.append('make_primary', makePrimary ? '1' : '0')
+          group.forEach(f => fd.append('files[]', f))
+          await uploadFiles(fd)
+        }
       }
       toast.success('Event vytvorený.')
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
-      await updateEvent(Number(route.params.id), payload)
+      await updateEvent(Number(route.params.id), payload, scope.value)
       toast.success('Event uložený.')
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    await scrollToError(errorBanner)
   } finally { saving.value = false }
 }
 </script>

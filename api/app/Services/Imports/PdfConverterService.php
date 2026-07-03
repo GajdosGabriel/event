@@ -37,9 +37,38 @@ class PdfConverterService
             return null;
         }
 
-        try {
-            $filename = basename((string) parse_url($pdfUrl, PHP_URL_PATH)) ?: 'document.pdf';
+        $filename = basename((string) parse_url($pdfUrl, PHP_URL_PATH)) ?: 'document.pdf';
 
+        return $this->convert($apiUrl, $token, $pdfContent, $filename, ['url' => $pdfUrl]);
+    }
+
+    /**
+     * Convert a PDF already held in memory (e.g. a just-uploaded file) without
+     * needing a publicly reachable URL to download it from first.
+     */
+    public function convertFromBinary(string $pdfContent, string $filename): ?PdfConvertResult
+    {
+        $apiUrl = rtrim((string) config('services.pdf_converter.url', self::FALLBACK_URL), '/');
+        $token  = (string) config('services.pdf_converter.token', '');
+
+        if ($token === '') {
+            Log::debug('PdfConverterService: PDF_CONVERTER_TOKEN not set, skipping', ['filename' => $filename]);
+            return null;
+        }
+
+        if ($pdfContent === '') {
+            return null;
+        }
+
+        return $this->convert($apiUrl, $token, $pdfContent, $filename, ['filename' => $filename]);
+    }
+
+    /**
+     * @param array<string, string> $logContext
+     */
+    private function convert(string $apiUrl, string $token, string $pdfContent, string $filename, array $logContext): ?PdfConvertResult
+    {
+        try {
             $response = Http::timeout(120)
                 ->acceptJson()
                 ->withToken($token)
@@ -51,7 +80,7 @@ class PdfConverterService
 
             if (!$response->successful()) {
                 Log::warning('PdfConverterService: converter returned error', [
-                    'url'    => $pdfUrl,
+                    ...$logContext,
                     'status' => $response->status(),
                     'body'   => $response->body(),
                 ]);
@@ -70,12 +99,15 @@ class PdfConverterService
                 pages: $pages,
             );
         } catch (\Throwable $e) {
-            Log::warning('PdfConverterService: conversion failed', ['url' => $pdfUrl, 'error' => $e->getMessage()]);
+            Log::warning('PdfConverterService: conversion failed', [...$logContext, 'error' => $e->getMessage()]);
             return null;
         }
     }
 
-    public function pageToUploadedFile(array $page, string $baseName, int $pageNumber): ?UploadedFile
+    /**
+     * Decode a page's base64 "image" field (as returned by the converter) into raw binary.
+     */
+    public function decodePageImage(array $page): ?string
     {
         $imageData = (string) ($page['image'] ?? '');
         if ($imageData === '') {
@@ -84,7 +116,14 @@ class PdfConverterService
 
         $base64 = (string) preg_replace('/^data:[^;]+;base64,/', '', $imageData);
         $binary = base64_decode($base64, true);
-        if ($binary === false || $binary === '') {
+
+        return ($binary === false || $binary === '') ? null : $binary;
+    }
+
+    public function pageToUploadedFile(array $page, string $baseName, int $pageNumber): ?UploadedFile
+    {
+        $binary = $this->decodePageImage($page);
+        if ($binary === null) {
             return null;
         }
 

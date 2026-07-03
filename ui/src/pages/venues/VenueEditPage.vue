@@ -3,7 +3,7 @@
     <div class="edit-card">
       <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
       <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť miesto' : 'Nové miesto' }}</h1>
-      <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
+      <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <!-- AI Detect panel -->
       <div class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -63,23 +63,27 @@
             </label>
             <label class="form-label">
               Stav
-              <select v-model="form.status" class="form-input">
+              <select v-model="form.status" class="form-input" :class="{ invalid: errors.status }">
                 <option value="draft">Koncept</option>
                 <option value="published">Publikovaný</option>
                 <option value="archived">Archivovaný</option>
               </select>
+              <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
             </label>
             <label class="form-label">
               Kategória
-              <input v-model="form.category" type="text" class="form-input" placeholder="napr. kultúrny dom, škola…" />
+              <input v-model="form.category" type="text" class="form-input" :class="{ invalid: errors.category }" placeholder="napr. kultúrny dom, škola…" />
+              <span v-if="errors.category" class="field-error">{{ errors.category }}</span>
             </label>
             <label class="form-label">
               Kapacita
-              <input v-model.number="form.capacity" type="number" min="0" class="form-input" />
+              <input v-model.number="form.capacity" type="number" min="0" class="form-input" :class="{ invalid: errors.capacity }" />
+              <span v-if="errors.capacity" class="field-error">{{ errors.capacity }}</span>
             </label>
             <label class="form-label lg:col-span-2">
               Popis
               <HtmlEditor v-model="form.body" min-height="130px" />
+              <span v-if="errors.body" class="field-error">{{ errors.body }}</span>
             </label>
           </div>
         </fieldset>
@@ -97,23 +101,28 @@
             </label>
             <label class="form-label">
               Ulica
-              <input v-model="form.street" type="text" class="form-input" />
+              <input v-model="form.street" type="text" class="form-input" :class="{ invalid: errors.street }" />
+              <span v-if="errors.street" class="field-error">{{ errors.street }}</span>
             </label>
             <label class="form-label">
               PSČ
-              <input v-model="form.postcode" type="text" class="form-input" />
+              <input v-model="form.postcode" type="text" class="form-input" :class="{ invalid: errors.postcode }" />
+              <span v-if="errors.postcode" class="field-error">{{ errors.postcode }}</span>
             </label>
             <label class="form-label">
               Krajina
-              <input v-model="form.country" type="text" class="form-input" placeholder="Slovensko" />
+              <input v-model="form.country" type="text" class="form-input" :class="{ invalid: errors.country }" placeholder="Slovensko" />
+              <span v-if="errors.country" class="field-error">{{ errors.country }}</span>
             </label>
             <label class="form-label">
               Zemepisná šírka (lat)
-              <input v-model="form.latitude" type="number" step="any" class="form-input" />
+              <input v-model="form.latitude" type="number" step="any" class="form-input" :class="{ invalid: errors.latitude }" />
+              <span v-if="errors.latitude" class="field-error">{{ errors.latitude }}</span>
             </label>
             <label class="form-label">
               Zemepisná dĺžka (lng)
-              <input v-model="form.longitude" type="number" step="any" class="form-input" />
+              <input v-model="form.longitude" type="number" step="any" class="form-input" :class="{ invalid: errors.longitude }" />
+              <span v-if="errors.longitude" class="field-error">{{ errors.longitude }}</span>
             </label>
           </div>
         </fieldset>
@@ -123,15 +132,18 @@
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
               Web
-              <input v-model="form.website" type="url" class="form-input" />
+              <input v-model="form.website" type="url" class="form-input" :class="{ invalid: errors.website }" />
+              <span v-if="errors.website" class="field-error">{{ errors.website }}</span>
             </label>
             <label class="form-label">
               Email
-              <input v-model="form.email" type="email" class="form-input" />
+              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
+              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
             </label>
             <label class="form-label">
               Telefón
-              <input v-model="form.phone" type="tel" class="form-input" />
+              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
+              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
             </label>
           </div>
         </fieldset>
@@ -178,6 +190,7 @@ import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { scrollToError } from '@/utils/scrollToError'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import VenueMapPicker from '@/components/VenueMapPicker.vue'
@@ -216,6 +229,7 @@ const form = ref({
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
+const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 
 const detectOpen = ref(false)
@@ -319,6 +333,7 @@ async function submit() {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    await scrollToError(errorBanner)
   } finally { saving.value = false }
 }
 </script>

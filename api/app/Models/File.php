@@ -36,6 +36,7 @@ class File extends Model
         'name' => StringLength250::class,
         'size' => 'integer',
         'is_primary' => 'boolean',
+        'sort_order' => 'integer',
         'meta' => 'array',
         'type' => FileType::class,
     ];

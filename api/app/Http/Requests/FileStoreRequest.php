@@ -19,7 +19,7 @@ class FileStoreRequest extends FormRequest
             'fileable_type' => ['required', 'string', Rule::in(['canal', 'event', 'venue'])],
             'fileable_id'   => ['required', 'integer', 'min:1'],
             'files'         => ['required', 'array', 'min:1'],
-            'files.*'       => ['file', 'max:10240'],
+            'files.*'       => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx'],
             'type'          => ['sometimes', 'string', Rule::enum(FileType::class)],
             'disk'          => ['sometimes', 'string', 'max:50'],
             'make_primary'  => ['sometimes', 'boolean'],

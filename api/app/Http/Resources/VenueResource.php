@@ -46,6 +46,7 @@ class VenueResource extends JsonResource
                 'id' => $c->id,
                 'name' => $c->name,
                 'is_owner' => (bool) $c->pivot->is_owner,
+                'status' => $c->pivot->status,
             ])->values()->all();
         }
 

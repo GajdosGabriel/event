@@ -2,10 +2,15 @@
 
 namespace App\Services\Files;
 
+use App\Services\Pdf\PdfPreviewRenderer;
 use Illuminate\Support\Facades\Storage;
 
 class ImageVariantGenerator
 {
+    public function __construct(
+        private readonly PdfPreviewRenderer $pdfPreviewRenderer,
+    ) {}
+
     /**
      * @return array{thumb: ?string, large: ?string, delete_original: bool}
      */
@@ -21,8 +26,10 @@ class ImageVariantGenerator
         }
 
         $source = @imagecreatefromstring($binary);
+        $isDocumentPreview = false;
         if (!$source) {
-            $source = $this->createImageFromDocumentPreview($binary);
+            $source = $this->pdfPreviewRenderer->renderFirstPage($binary, basename($originalPath));
+            $isDocumentPreview = true;
         }
 
         if (!$source) {
@@ -40,7 +47,10 @@ class ImageVariantGenerator
         return [
             'thumb' => $thumb,
             'large' => $large,
-            'delete_original' => $this->shouldDeleteOriginal($thumb, $large),
+            // The original of a document preview (PDF/DOC) is the source document itself,
+            // not a redundant full-res image — it must never be deleted, unlike a plain
+            // image original that's been superseded by its own resized variants.
+            'delete_original' => $isDocumentPreview ? false : $this->shouldDeleteOriginal($thumb, $large),
         ];
     }
 
@@ -49,38 +59,6 @@ class ImageVariantGenerator
         return $large !== null;
     }
 
-    private function createImageFromDocumentPreview(string $binary): \GdImage|false
-    {
-        $imagickClass = 'Imagick';
-        if (!class_exists($imagickClass)) {
-            return false;
-        }
-
-        $tmpPath = tempnam(sys_get_temp_dir(), 'event_file_preview_');
-        if ($tmpPath === false) {
-            return false;
-        }
-
-        file_put_contents($tmpPath, $binary);
-
-        try {
-            /** @var object $imagick */
-            $imagick = new $imagickClass();
-            $imagick->setResolution(150, 150);
-            $imagick->readImage($tmpPath . '[0]');
-            $imagick->setImageBackgroundColor('white');
-            $imagick->setImageFormat('jpeg');
-            $blob = $imagick->getImageBlob();
-            $imagick->clear();
-            $imagick->destroy();
-
-            return @imagecreatefromstring($blob);
-        } catch (\Throwable) {
-            return false;
-        } finally {
-            @unlink($tmpPath);
-        }
-    }
 
     private function storeVariant(
         string $disk,

@@ -3,7 +3,7 @@
     <div class="edit-card">
       <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
       <h1 class="my-2 text-2xl text-slate-900">{{ savedId || !isCreate ? 'Upraviť kanál' : 'Nový kanál' }}</h1>
-      <p v-if="serverError" class="text-red-600 mt-2">{{ serverError }}</p>
+      <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
@@ -16,19 +16,22 @@
             </label>
             <label class="form-label">
               Predpona názvu
-              <input v-model="form.title_prefix" type="text" class="form-input" placeholder="napr. Spoločnosť" />
+              <input v-model="form.title_prefix" type="text" class="form-input" :class="{ invalid: errors.title_prefix }" placeholder="napr. Spoločnosť" />
+              <span v-if="errors.title_prefix" class="field-error">{{ errors.title_prefix }}</span>
             </label>
             <label class="form-label">
               Prípona názvu
-              <input v-model="form.title_suffix" type="text" class="form-input" placeholder="napr. o.z." />
+              <input v-model="form.title_suffix" type="text" class="form-input" :class="{ invalid: errors.title_suffix }" placeholder="napr. o.z." />
+              <span v-if="errors.title_suffix" class="field-error">{{ errors.title_suffix }}</span>
             </label>
             <label class="form-label">
               Typ identity
-              <select v-model="form.identity_mode" class="form-input">
+              <select v-model="form.identity_mode" class="form-input" :class="{ invalid: errors.identity_mode }">
                 <option value="personal">Osobná</option>
                 <option value="organization">Organizácia</option>
                 <option value="pseudonymous">Pseudonymná</option>
               </select>
+              <span v-if="errors.identity_mode" class="field-error">{{ errors.identity_mode }}</span>
             </label>
             <label class="form-label">
               Obec / Mesto *
@@ -41,6 +44,7 @@
             <label class="form-label lg:col-span-2">
               Popis
               <HtmlEditor v-model="form.body" min-height="130px" />
+              <span v-if="errors.body" class="field-error">{{ errors.body }}</span>
             </label>
           </div>
         </fieldset>
@@ -50,15 +54,18 @@
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <label class="form-label">
               Email
-              <input v-model="form.email" type="email" class="form-input" />
+              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
+              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
             </label>
             <label class="form-label">
               Telefón
-              <input v-model="form.phone" type="tel" class="form-input" />
+              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
+              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
             </label>
             <label class="form-label">
               Web
-              <input v-model="form.website" type="url" class="form-input" />
+              <input v-model="form.website" type="url" class="form-input" :class="{ invalid: errors.website }" />
+              <span v-if="errors.website" class="field-error">{{ errors.website }}</span>
             </label>
           </div>
         </fieldset>
@@ -85,6 +92,7 @@ import { showCanal, createCanal, updateCanal } from '@/api/canals'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { scrollToError } from '@/utils/scrollToError'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
@@ -118,6 +126,7 @@ const form = ref({
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
+const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 
 onMounted(async () => {
@@ -164,6 +173,7 @@ async function submit() {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    await scrollToError(errorBanner)
   } finally { saving.value = false }
 }
 </script>

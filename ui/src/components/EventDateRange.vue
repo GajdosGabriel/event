@@ -6,6 +6,12 @@
       <span>{{ fmtDate(startAt) }}, {{ fmtTime(startAt) }} – {{ fmtTime(endAt) }}</span>
     </template>
 
+    <!-- Multi-day, no specific time (00:00 - 23:59): Pondelok - Piatok / 28. 9. 2026, - 15. 1. 2027 -->
+    <template v-else-if="endAt && isAllDayRange(startAt, endAt)">
+      <span class="block font-semibold">{{ dayName(startAt) }} - {{ dayName(endAt) }}</span>
+      <span>{{ fmtDate(startAt) }}, - {{ fmtDate(endAt) }}</span>
+    </template>
+
     <!-- Multi-day or no end -->
     <template v-else>
       <span class="block font-semibold">{{ dayName(startAt) }}</span>
@@ -44,5 +50,12 @@ function fmtTime(d: string) {
 
 function isSameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString()
+}
+
+function isAllDayRange(a: string, b: string) {
+  const start = new Date(a)
+  const end = new Date(b)
+  return start.getHours() === 0 && start.getMinutes() === 0
+    && end.getHours() === 23 && end.getMinutes() === 59
 }
 </script>
