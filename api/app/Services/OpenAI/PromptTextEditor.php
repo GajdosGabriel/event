@@ -10,6 +10,7 @@ class PromptTextEditor
             'type' => 'json_schema',
             'json_schema' => [
                 'name' => 'text_editor_schema',
+                'strict' => true,
                 'schema' => [
                     'type' => 'object',
                     'required' => ['improved_text', 'changes_summary'],

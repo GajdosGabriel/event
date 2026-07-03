@@ -10,6 +10,7 @@ class PromptVenue
             'type' => 'json_schema',
             'json_schema' => [
                 'name' => 'venue_schema',
+                'strict' => true,
                 'schema' => [
                     'type' => 'object',
                     'required' => [

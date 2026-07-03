@@ -10,6 +10,7 @@ class PromptCopywriter
             'type' => 'json_schema',
             'json_schema' => [
                 'name' => 'event_schema',
+                'strict' => true,
                 'schema' => [
                     'type' => 'object',
                     'required' => [

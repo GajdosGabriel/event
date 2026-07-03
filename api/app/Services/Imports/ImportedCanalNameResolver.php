@@ -4,6 +4,7 @@ namespace App\Services\Imports;
 
 use App\Services\OpenAI\ChatGPT;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ImportedCanalNameResolver
@@ -27,7 +28,7 @@ class ImportedCanalNameResolver
      *   ai_phone: string|null,
      * }
      */
-    public function resolve(string $sourceUrl, string $title, string $text, bool $startAtFound = false): array
+    public function resolve(string $sourceUrl, string $title, string $text, bool $startAtFound = false, ?Carbon $referenceDate = null): array
     {
         $title = $this->normalizeEncoding($title);
         $text  = $this->normalizeEncoding($text);
@@ -53,7 +54,7 @@ class ImportedCanalNameResolver
 
         if ((bool) config('services.imports.detect_canal_with_ai', false) && $somethingMissing) {
             try {
-                $aiData = $this->chatGPT->extractData($title . "\n\n" . $text);
+                $aiData = $this->chatGPT->extractData($title . "\n\n" . $text, $referenceDate);
 
                 // Fill only what regex could not find — never override a found value
                 if ($detectedName === null) {
@@ -84,8 +85,12 @@ class ImportedCanalNameResolver
 
                 $aiEmail = $this->normalizeString($aiData['email'] ?? null);
                 $aiPhone = $this->normalizeString($aiData['phone'] ?? null);
-            } catch (\Throwable) {
-                // AI failed — regex results are preserved
+            } catch (\Throwable $e) {
+                Log::warning('ImportedCanalNameResolver: AI fallback failed, regex results preserved.', [
+                    'source_url' => $sourceUrl,
+                    'title'      => $title,
+                    'error'      => $e->getMessage(),
+                ]);
             }
         }
 

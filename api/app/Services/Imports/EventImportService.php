@@ -91,6 +91,7 @@ class EventImportService
             (string) $detail['title'],
             $enrichedBodyText,
             startAtFound: $detail['start_at'] !== null,
+            referenceDate: $detail['published_at_source'] ?? now(),
         );
 
         $canal = $this->canalManager->resolveOrCreate(

@@ -17,14 +17,16 @@ class ChatGPT
         private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
     ) {}
 
-    public function extractData(array|string $input): array
+    public function extractData(array|string $input, ?Carbon $referenceDate = null): array
     {
         $text = $this->normalizeInput($input);
+        $referenceDate ??= Carbon::now(config('app.timezone', 'Europe/Bratislava'));
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptData->prompt($text));
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptData->prompt($text, $referenceDate), $this->promptData->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyEventDateTimeFallbackFromText($data, $text);
+        $data = $this->enforceCurrentOrFutureYear($data, $referenceDate);
 
         $validator = Validator::make($data, $this->promptData->validator());
 
@@ -39,7 +41,7 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text));
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text), $this->promptCopywriter->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
 
@@ -59,8 +61,13 @@ class ChatGPT
 
     public function extractTextEdit(string $text, array $modes): array
     {
-        $content = $this->chatComplete('gpt-4o-mini', 0.3, $this->promptTextEditor->prompt($text, $modes));
+        $content = $this->chatComplete('gpt-4o-mini', 0.3, $this->promptTextEditor->prompt($text, $modes), $this->promptTextEditor->jsonSchema());
         $data = $this->decodeJson($content);
+
+        // Safety net: some responses use "text" instead of the requested "improved_text" key.
+        if (! isset($data['improved_text']) && isset($data['text'])) {
+            $data['improved_text'] = $data['text'];
+        }
 
         $validator = Validator::make($data, $this->promptTextEditor->validator());
         if ($validator->fails()) {
@@ -74,7 +81,7 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptVenue->prompt($text));
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptVenue->prompt($text), $this->promptVenue->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyVenueFallbackFromText($data, $text);
@@ -92,7 +99,7 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCanal->prompt($text));
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCanal->prompt($text), $this->promptCanal->jsonSchema());
         $data = $this->decodeJson($content);
 
         $validator = Validator::make($data, $this->promptCanal->validator());
@@ -130,6 +137,50 @@ class ChatGPT
         }
 
         return $data;
+    }
+
+    /**
+     * Safety net on top of the prompt instruction: the year of an AI-guessed
+     * event date must never fall before the reference (publish/extraction)
+     * date — a missing year in the source text must never be resolved to a
+     * past year, only the current year or, if extracted in December for an
+     * earlier-month event, the next year.
+     */
+    private function enforceCurrentOrFutureYear(array $data, Carbon $referenceDate): array
+    {
+        $startAt = $this->parseDateTime($data['start_at'] ?? null);
+        if (! $startAt instanceof Carbon) {
+            return $data;
+        }
+
+        $minAllowedYear = $this->resolveMinimumEventYear($startAt->month, $referenceDate);
+        if ($startAt->year >= $minAllowedYear) {
+            return $data;
+        }
+
+        $yearShift = $minAllowedYear - $startAt->year;
+        $data['start_at'] = $startAt->copy()->addYears($yearShift)->format('Y-m-d H:i:s');
+
+        $endAt = $this->parseDateTime($data['end_at'] ?? null);
+        if ($endAt instanceof Carbon) {
+            $data['end_at'] = $endAt->copy()->addYears($yearShift)->format('Y-m-d H:i:s');
+        }
+
+        return $data;
+    }
+
+    private function resolveMinimumEventYear(int $eventMonth, Carbon $referenceDate): int
+    {
+        $year = $referenceDate->year;
+
+        // Extracting in December for an event whose month is earlier than
+        // December (e.g. a January Mass mentioned in a December article)
+        // means the event belongs to next year.
+        if ($referenceDate->month === 12 && $eventMonth < 12) {
+            $year++;
+        }
+
+        return $year;
     }
 
     private function extractExplicitStartDateTime(string $text): ?Carbon
@@ -312,7 +363,7 @@ class ChatGPT
      * Direct HTTP call to OpenAI Chat Completions — bypasses the SDK's CreateResponse which
      * breaks when OpenAI routes certain requests to the new Responses API format.
      */
-    private function chatComplete(string $model, float $temperature, array $messages): string
+    private function chatComplete(string $model, float $temperature, array $messages, ?array $responseFormat = null): string
     {
         $apiKey = config('openai.api_key', '');
         if ($apiKey === '') {
@@ -324,7 +375,7 @@ class ChatGPT
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model'           => $model,
                 'temperature'     => $temperature,
-                'response_format' => ['type' => 'json_object'],
+                'response_format' => $responseFormat ?? ['type' => 'json_object'],
                 'messages'        => $messages,
             ]);
 

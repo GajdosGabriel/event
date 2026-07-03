@@ -2,6 +2,8 @@
 
 namespace App\Services\OpenAI;
 
+use Carbon\Carbon;
+
 class PromptData
 {
     public function jsonSchema(): array
@@ -10,6 +12,7 @@ class PromptData
             'type' => 'json_schema',
             'json_schema' => [
                 'name' => 'event_schema',
+                'strict' => true,
                 'schema' => [
                     'type' => 'object',
                     'required' => [
@@ -59,6 +62,7 @@ class PromptData
                             'type' => 'array',
                             'items' => [
                                 'type' => 'object',
+                                'required' => ['meno', 'telefon', 'email', 'description'],
                                 'properties' => [
                                     'meno' => ['type' => ['string', 'null']],
                                     'telefon' => ['type' => ['string', 'null']],
@@ -75,12 +79,26 @@ class PromptData
         ];
     }
 
-    public function prompt(string $text): array
+    public function prompt(string $text, Carbon $referenceDate): array
     {
+        $referenceDateFormatted = $referenceDate->format('Y-m-d');
+        $referenceYear = $referenceDate->year;
+        $nextYear = $referenceYear + 1;
+
+        $dateContext = "DNEŠNÝ DÁTUM (dátum publikovania/extrakcie článku): {$referenceDateFormatted}
+
+PRAVIDLO PRE CHÝBAJÚCI ROK:
+- Ak text pri dátume podujatia neuvádza rok (napr. \"v piatok 3. júla\", \"25. júna\"), rok NIKDY nesmie byť v minulosti voči dnešnému dátumu vyššie.
+- Za normálnych okolností použi aktuálny rok {$referenceYear}.
+- Výnimka: ak je dnešný mesiac december a mesiac podujatia je skorší ako december (napr. januárová akcia spomenutá v decembrovom článku), použi nasledujúci rok {$nextYear}, pretože akcia sa evidentne koná až budúci rok.
+- Rok nikdy nehádaj ako minulý rok len preto, že si si istý inou hodnotou z trénovacích dát — vždy vychádzaj z dnešného dátumu uvedeného vyššie.
+
+";
+
         return [
             [
                 'role' => 'system',
-                'content' => 'Si presný štruktúrovaný extrakčný asistent pre slovenské udalosti.
+                'content' => $dateContext . 'Si presný štruktúrovaný extrakčný asistent pre slovenské udalosti.
 
 Tvojou úlohou je extrahovať informácie z textu do striktne validného JSON podľa zadanej schémy.
 

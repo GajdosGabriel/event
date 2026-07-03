@@ -10,6 +10,7 @@ class PromptCanal
             'type' => 'json_schema',
             'json_schema' => [
                 'name' => 'canal_schema',
+                'strict' => true,
                 'schema' => [
                     'type' => 'object',
                     'required' => ['canal_name'],
