@@ -166,9 +166,29 @@ export async function improveEventText(scope: 'dashboard' | 'admin', text: strin
   return data as { success: boolean; improved_text?: string; changes_summary?: string; error?: string }
 }
 
-export async function runAdminTool(tool: 'import-events' | 'ai-detector' | 'archive-events', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
+export async function runAdminTool(tool: 'ai-detector' | 'archive-events', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
   const { data } = await http.post(`/admin/tools/${tool}`, options ?? {})
   return data as { success: boolean; output: string }
+}
+
+export interface ToolRunStatus {
+  run_id: string
+  tool: string
+  status: 'queued' | 'running' | 'done' | 'failed'
+  output: string
+  queued_at?: string | null
+  started_at?: string | null
+  finished_at?: string | null
+}
+
+export async function startEventImport(options: Record<string, unknown>): Promise<{ run_id: string }> {
+  const { data } = await http.post('/admin/tools/import-events', options)
+  return data as { run_id: string }
+}
+
+export async function getEventImportStatus(runId: string): Promise<ToolRunStatus> {
+  const { data } = await http.get(`/admin/tools/import-events/runs/${runId}`)
+  return data as ToolRunStatus
 }
 
 export async function municipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

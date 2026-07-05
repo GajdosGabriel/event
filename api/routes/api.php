@@ -257,6 +257,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->middleware('permission:event.delete');
 
     Route::post('tools/import-events', [AdminToolsController::class, 'runImportEvents'])->name('tools.import-events');
+    Route::get('tools/import-events/runs/{runId}', [AdminToolsController::class, 'importRunStatus'])->name('tools.import-events.status');
     Route::post('tools/ai-detector', [AdminToolsController::class, 'runAiDetector'])->name('tools.ai-detector');
     Route::post('tools/archive-events', [AdminToolsController::class, 'runArchiveEvents'])->name('tools.archive-events');
 

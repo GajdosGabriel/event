@@ -58,8 +58,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { runAdminTool } from '@/api/events'
+import { onBeforeUnmount, ref } from 'vue'
+import { runAdminTool, startEventImport, getEventImportStatus } from '@/api/events'
 import { useToast } from '@/composables/useToast'
 
 const toast = useToast()
@@ -72,22 +72,52 @@ const importForce = ref(false)
 type ToolKey = 'import' | 'ai-detector' | 'archive'
 const running = ref<ToolKey | null>(null)
 const outputs = ref<Record<string, string>>({})
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => { pollTimer = setTimeout(resolve, ms) })
+}
+
+async function runImport() {
+  const urls = importUrls.value.trim().split('\n').map(u => u.trim()).filter(Boolean)
+  const limit = Number.isFinite(importLimit.value) ? importLimit.value : 0
+  const pages = Number.isFinite(importPages.value) ? importPages.value : 1
+
+  const { run_id } = await startEventImport({ urls, pages, limit, force: importForce.value })
+  outputs.value['import'] = 'Import spustený na pozadí, čakám na výsledok…'
+
+  // Poll the run status until it finishes. The job runs on the queue, so this
+  // requires an active worker (php artisan queue:work database --queue=imports).
+  for (;;) {
+    await sleep(2000)
+    const run = await getEventImportStatus(run_id)
+    if (run.status === 'done') {
+      outputs.value['import'] = run.output || '(bez výstupu)'
+      toast.success('Import dokončený.')
+      return
+    }
+    if (run.status === 'failed') {
+      outputs.value['import'] = run.output || 'Import zlyhal.'
+      toast.error('Import zlyhal.')
+      return
+    }
+    outputs.value['import'] = run.status === 'running'
+      ? 'Import prebieha na pozadí…'
+      : 'Import čaká v poradí (queue worker)…'
+  }
+}
 
 async function runTool(tool: ToolKey) {
   running.value = tool
   outputs.value[tool] = ''
   try {
-    let res
     if (tool === 'import') {
-      const urls = importUrls.value.trim().split('\n').map(u => u.trim()).filter(Boolean)
-      res = await runAdminTool('import-events', { urls, pages: importPages.value, limit: importLimit.value, force: importForce.value })
-    } else if (tool === 'ai-detector') {
-      res = await runAdminTool('ai-detector')
+      await runImport()
     } else {
-      res = await runAdminTool('archive-events')
+      const res = await runAdminTool(tool === 'ai-detector' ? 'ai-detector' : 'archive-events')
+      outputs.value[tool] = res.output || '(bez výstupu)'
+      toast.success('Príkaz dokončený.')
     }
-    outputs.value[tool] = res.output || '(bez výstupu)'
-    toast.success('Príkaz dokončený.')
   } catch {
     outputs.value[tool] = 'Chyba pri spúšťaní príkazu.'
     toast.error('Príkaz zlyhal.')
@@ -95,6 +125,8 @@ async function runTool(tool: ToolKey) {
     running.value = null
   }
 }
+
+onBeforeUnmount(() => clearTimeout(pollTimer))
 </script>
 
 <script lang="ts">

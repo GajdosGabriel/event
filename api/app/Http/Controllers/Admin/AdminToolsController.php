@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ImportEventSourcesJob;
+use App\Support\ToolRunTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 
 class AdminToolsController extends Controller
 {
@@ -29,10 +32,34 @@ class AdminToolsController extends Controller
             $options['--url'][] = $url;
         }
 
-        Artisan::call('app:import-event-sources', $options);
-        $output = Artisan::output();
+        // Run on the queue: an unbounded import (limit = 0) can process many detail
+        // pages and would exceed the HTTP request's execution time. Force the database
+        // connection so it is queued even when the default connection is 'sync'.
+        $runId = (string) Str::uuid();
+        ToolRunTracker::start($runId, 'import-events');
 
-        return response()->json(['success' => true, 'output' => $output]);
+        ImportEventSourcesJob::dispatch($runId, $options)
+            ->onConnection('database')
+            ->onQueue('imports');
+
+        return response()->json([
+            'success' => true,
+            'run_id' => $runId,
+            'status' => 'queued',
+        ], 202);
+    }
+
+    public function importRunStatus(string $runId): JsonResponse
+    {
+        $this->authorize('viewAny', \App\Models\Event::class);
+
+        $run = ToolRunTracker::get($runId);
+
+        if ($run === null) {
+            return response()->json(['message' => 'Beh sa nenašiel alebo vypršal.'], 404);
+        }
+
+        return response()->json($run);
     }
 
     public function runAiDetector(): JsonResponse
