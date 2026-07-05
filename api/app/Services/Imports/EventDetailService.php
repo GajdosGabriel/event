@@ -23,6 +23,7 @@ class EventDetailService
 	 *   body:string,
 	 *   start_at:?Carbon,
 	 *   end_at:?Carbon,
+	 *   start_at_precise:bool,
 	 *   registration_deadline_at:?Carbon,
 	 *   published_at_source:?Carbon,
 	 *   links:array<int,string>,
@@ -72,6 +73,7 @@ class EventDetailService
 			'body_text'                => $bodyText,
 			'start_at'                 => $startAt,
 			'end_at'                   => $endAt,
+			'start_at_precise'         => true,
 			'registration_deadline_at' => $this->extractRegistrationDeadline($bodyText),
 			'published_at_source'      => $this->extractFirstDateTimeFromText($bodyText),
 			'links'                    => $links,
@@ -99,7 +101,7 @@ class EventDetailService
 			$body = $this->htmlCleaner->fromPlainText($bodyText);
 		}
 
-		[$startAt, $endAt] = $this->extractTkkbsDateRange($bodyText);
+		[$startAt, $endAt, $startAtPrecise] = $this->extractTkkbsDateRange($bodyText);
 
 		return [
 			'title'                    => Str::limit(preg_replace('/\s*-\s*TK\s*KBS$/iu', '', $title) ?? $title, 250, ''),
@@ -107,6 +109,7 @@ class EventDetailService
 			'body_text'                => $bodyText,
 			'start_at'                 => $startAt,
 			'end_at'                   => $endAt,
+			'start_at_precise'         => $startAtPrecise,
 			'registration_deadline_at' => null,
 			'published_at_source'      => $this->extractTkkbsPublishedAt($bodyText),
 			'links'                    => $links,
@@ -148,6 +151,7 @@ class EventDetailService
 			'body_text'                => $bodyText,
 			'start_at'                 => $startAt,
 			'end_at'                   => $endAt,
+			'start_at_precise'         => true,
 			'registration_deadline_at' => null,
 			'published_at_source'      => $this->extractVyveskaPublishedAt($creatorText) ?? ($rssItem['published_at'] ?? null),
 			'links'                    => $links,
@@ -418,7 +422,11 @@ class EventDetailService
 	}
 
 	/**
-	 * @return array{0:?Carbon,1:?Carbon}
+	 * @return array{0:?Carbon,1:?Carbon,2:bool} Third element is true only when
+	 *   an explicit clock time was matched alongside the date — a bare date
+	 *   fallback (e.g. a "Sobota 4. júla 2026:" heading in front of a
+	 *   multi-time program list) is unreliable as the event's actual start
+	 *   and is flagged false so the caller can let AI confirm/refine it.
 	 */
 	private function extractTkkbsDateRange(string $text): array
 	{
@@ -434,12 +442,17 @@ class EventDetailService
 				return [
 					$this->sourceDateTime((int) $m[3], $month, (int) $m[1], (int) $m[4], (int) $m[5], 0),
 					null,
+					true,
 				];
 			}
 		}
 
-		// Fallback: generic patterns ("DD.–DD. Month YYYY" or "DD. Month YYYY")
-		return $this->extractDateRangeFromText($text);
+		// Fallback: generic patterns ("DD.–DD. Month YYYY" or "DD. Month YYYY").
+		// These never capture a time, so the result may just be a heading
+		// (e.g. a program date) rather than the true event start.
+		[$startAt, $endAt] = $this->extractDateRangeFromText($text);
+
+		return [$startAt, $endAt, false];
 	}
 
 	/**

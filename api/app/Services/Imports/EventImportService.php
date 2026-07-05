@@ -86,11 +86,18 @@ class EventImportService
         $rawBodyText    = (string) ($detail['body_text'] ?? strip_tags((string) $detail['body']));
         $enrichedBodyText = $pdfText !== '' ? $rawBodyText . $pdfText : $rawBodyText;
 
+        // A date found without an explicit clock time (e.g. a "Sobota 4. júla
+        // 2026:" heading in front of a multi-time program list) is only a
+        // guess, not a confirmed start — treat it as "not found" so the AI
+        // fallback gets a chance to read the actual program and confirm the
+        // real start/end time.
+        $startAtPrecise = (bool) ($detail['start_at_precise'] ?? true);
+
         $resolvedCanal = $this->canalNameResolver->resolve(
             $detail['source_url'],
             (string) $detail['title'],
             $enrichedBodyText,
-            startAtFound: $detail['start_at'] !== null,
+            startAtFound: $detail['start_at'] !== null && $startAtPrecise,
             referenceDate: $detail['published_at_source'] ?? now(),
         );
 
@@ -122,9 +129,14 @@ class EventImportService
             $body = rtrim($body) . "\n<p>" . nl2br($safeText) . "</p>";
         }
 
-        // Regex dates take priority; AI fills in only what regex could not find
-        $startAt = $detail['start_at'] ?? $resolvedCanal['ai_start_at'];
-        $endAt   = $detail['end_at'] ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
+        // Precise regex dates take priority. An imprecise (date-only) regex
+        // match defers to the AI-confirmed time when available, falling back
+        // to the original guess only if AI could not confirm it either.
+        $regexStartAt = $startAtPrecise ? $detail['start_at'] : null;
+        $regexEndAt   = $startAtPrecise ? $detail['end_at'] : null;
+
+        $startAt = $regexStartAt ?? $resolvedCanal['ai_start_at'] ?? $detail['start_at'];
+        $endAt   = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
         $payload = [
