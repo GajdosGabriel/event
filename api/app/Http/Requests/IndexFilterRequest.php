@@ -47,6 +47,9 @@ class IndexFilterRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'municipality' => ['nullable', 'integer', 'min:1'],
             'canal_id' => ['nullable', 'integer', 'min:1'],
+            'sort' => ['nullable', 'in:newest,oldest,name,upcoming'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ];
     }
 
@@ -61,6 +64,9 @@ class IndexFilterRequest extends FormRequest
             'per_page' => $this->input('per_page', 15),
             'municipality' => $this->input('municipality') ? (int) $this->input('municipality') : null,
             'canal_id' => $this->input('canal_id') ? (int) $this->input('canal_id') : null,
+            'sort' => $this->input('sort'),
+            'date_from' => $this->input('date_from'),
+            'date_to' => $this->input('date_to'),
         ];
     }
 

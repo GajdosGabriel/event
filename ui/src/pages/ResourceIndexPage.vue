@@ -5,20 +5,21 @@
         <h1 class="text-2xl font-semibold text-slate-900">{{ cfg.title }}</h1>
         <RouterLink :to="`${prefix}/create`" class="btn btn-primary">+ {{ cfg.createLabel }}</RouterLink>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <input v-model="search" type="search" placeholder="Hľadať…" class="form-input max-w-xs" @input="onSearch" />
-        <select v-if="apiStatusOptions.length" v-model="statusFilter" class="form-input w-auto" @change="load(1)">
-          <option value="">Všetky stavy</option>
-          <option v-for="opt in apiStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-        </select>
-        <!-- Active canal filter chip -->
-        <button v-if="canalFilter" type="button"
-          class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-300 hover:bg-teal-200 transition-colors"
-          @click="clearCanalFilter">
-          {{ canalFilter.name }}
-          <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
-        </button>
-      </div>
+      <ResourceFilterBar
+        v-model:search="search"
+        v-model:status="statusFilter"
+        v-model:sort="sortFilter"
+        v-model:date-from="dateFrom"
+        v-model:date-to="dateTo"
+        v-model:only-deleted="onlyDeleted"
+        :status-options="apiStatusOptions"
+        :sort-options="sortOptions"
+        :show-date-range="resource === 'event'"
+        :show-deleted="scope === 'admin'"
+        :canal-filter="canalFilter"
+        @change="load(1)"
+        @clear-canal="canalFilter = null"
+      />
     </div>
 
     <p v-if="loading" class="index-status">Načítavam…</p>
@@ -107,11 +108,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import http from '@/api/index'
 import IndexRow from '@/components/IndexRow.vue'
 import RowActions from '@/components/RowActions.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
+import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import { useToast } from '@/composables/useToast'
 import { useSettings } from '@/composables/useSettings'
 
@@ -121,6 +123,7 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const { settings } = useSettings()
 
@@ -260,11 +263,58 @@ const page = ref(1)
 const lastPage = ref(1)
 const search = ref('')
 const statusFilter = ref('')
+const sortFilter = ref('newest')
+const dateFrom = ref('')
+const dateTo = ref('')
+const onlyDeleted = ref(false)
 const canalFilter = ref<{ id: number; name: string } | null>(null)
-const apiStatusOptions = ref<{ value: string; label: string }[]>([])
-let searchTimer: ReturnType<typeof setTimeout>
+const apiStatusOptions = ref<FilterOption[]>([])
+const sortOptions = computed<FilterOption[]>(() => {
+  const opts: FilterOption[] = [
+    { value: 'newest', label: 'Najnovšie' },
+    { value: 'oldest', label: 'Najstaršie' },
+    { value: 'name', label: 'Názov A–Z' },
+  ]
+  if (props.resource === 'event') opts.push({ value: 'upcoming', label: 'Najbližší termín' })
+  return opts
+})
 
 watch(() => route.query.municipality, () => load(1))
+
+// ── Filters ⇆ URL query (shareable links, survives reload/back) ─────────────
+
+function filtersToQuery(): Record<string, string> {
+  const q: Record<string, string> = {}
+  if (route.query.municipality) q['municipality'] = String(route.query.municipality)
+  if (search.value) q['q'] = search.value
+  if (statusFilter.value) q['status'] = statusFilter.value
+  if (sortFilter.value && sortFilter.value !== 'newest') q['sort'] = sortFilter.value
+  if (dateFrom.value) q['from'] = dateFrom.value
+  if (dateTo.value) q['to'] = dateTo.value
+  if (onlyDeleted.value) q['deleted'] = '1'
+  if (canalFilter.value) {
+    q['canal_id'] = String(canalFilter.value.id)
+    q['canal_name'] = canalFilter.value.name
+  }
+  return q
+}
+
+function filtersFromQuery() {
+  const q = route.query
+  search.value = typeof q.q === 'string' ? q.q : ''
+  statusFilter.value = typeof q.status === 'string' ? q.status : ''
+  sortFilter.value = typeof q.sort === 'string' ? q.sort : 'newest'
+  dateFrom.value = typeof q.from === 'string' ? q.from : ''
+  dateTo.value = typeof q.to === 'string' ? q.to : ''
+  onlyDeleted.value = q.deleted === '1'
+  canalFilter.value = typeof q.canal_id === 'string' && Number(q.canal_id) > 0
+    ? { id: Number(q.canal_id), name: typeof q.canal_name === 'string' ? q.canal_name : `Kanál #${q.canal_id}` }
+    : null
+}
+
+function syncQuery() {
+  router.replace({ query: filtersToQuery() }).catch(() => {})
+}
 
 // ── API calls (generic — no per-resource imports needed) ────────────────────
 
@@ -277,8 +327,13 @@ async function load(p = 1) {
     const params: Record<string, unknown> = { page: p, per_page: perPage.value }
     if (search.value) params['search'] = search.value
     if (statusFilter.value) params['status'] = statusFilter.value
+    if (sortFilter.value && sortFilter.value !== 'newest') params['sort'] = sortFilter.value
+    if (dateFrom.value) params['date_from'] = dateFrom.value
+    if (dateTo.value) params['date_to'] = dateTo.value
+    if (onlyDeleted.value) params['deleted'] = 1
     if (canalFilter.value) params['canal_id'] = canalFilter.value.id
     if (route.query.municipality) params['municipality'] = route.query.municipality
+    syncQuery()
     const { data } = await http.get(apiBase.value, { params })
     const list: Record<string, unknown>[] = data.data ?? data
     items.value = list.map(mapItem)
@@ -301,16 +356,6 @@ function setCanalFilter(item: ResourceItem) {
   if (!item.canalId || !item.canalName) return
   canalFilter.value = { id: item.canalId, name: item.canalName }
   load(1)
-}
-
-function clearCanalFilter() {
-  canalFilter.value = null
-  load(1)
-}
-
-function onSearch() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => load(1), 400)
 }
 
 async function togglePublish(item: ResourceItem) {
@@ -339,7 +384,20 @@ async function restore(id: number) {
 }
 
 // Reload when resource prop changes (router reuse)
-watch(() => props.resource, () => { search.value = ''; statusFilter.value = ''; canalFilter.value = null; apiStatusOptions.value = []; load(1) })
+watch(() => props.resource, () => {
+  search.value = ''
+  statusFilter.value = ''
+  sortFilter.value = 'newest'
+  dateFrom.value = ''
+  dateTo.value = ''
+  onlyDeleted.value = false
+  canalFilter.value = null
+  apiStatusOptions.value = []
+  load(1)
+})
 
-onMounted(() => load())
+onMounted(() => {
+  filtersFromQuery()
+  load()
+})
 </script>

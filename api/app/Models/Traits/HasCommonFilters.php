@@ -136,10 +136,56 @@ trait HasCommonFilters
         return $query->where($this->qualifyColumn('canal_id'), $canalId);
     }
 
+    public function scopeByDateRange(Builder $query, ?string $from, ?string $to): Builder
+    {
+        if ($from === null && $to === null) {
+            return $query;
+        }
+
+        $column = $this->hasCommonFilterColumn('start_at') ? 'start_at' : 'created_at';
+        $qualified = $this->qualifyColumn($column);
+
+        if ($from !== null) {
+            $query->whereDate($qualified, '>=', $from);
+        }
+
+        if ($to !== null) {
+            $query->whereDate($qualified, '<=', $to);
+        }
+
+        return $query;
+    }
+
+    public function scopeBySort(Builder $query, ?string $sort): Builder
+    {
+        if ($sort === null || $sort === '' || $sort === 'newest') {
+            return $query;
+        }
+
+        return match ($sort) {
+            'oldest' => $query->reorder()
+                ->orderBy($this->qualifyColumn('created_at'))
+                ->orderBy($this->qualifyColumn('id')),
+            'name' => $this->hasCommonFilterColumn('name')
+                ? $query->reorder()->orderBy($this->qualifyColumn('name'))
+                : $query,
+            'upcoming' => $this->hasCommonFilterColumn('start_at')
+                ? $query->reorder()
+                    ->orderByRaw($this->qualifyColumn('start_at') . ' IS NULL')
+                    ->orderBy($this->qualifyColumn('start_at'))
+                : $query,
+            default => $query,
+        };
+    }
+
     public function scopeApplyCommonFilters(Builder $query, array $filters): Builder
     {
+        // bySort must run before bySearch: search relevance ordering keeps
+        // pre-existing orders as secondary sort keys.
         return $query
             ->byStatus($filters['status'] ?? null)
+            ->byDateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
+            ->bySort($filters['sort'] ?? null)
             ->bySearch($filters['search'] ?? null)
             ->byPublished($filters['published'] ?? null)
             ->byBlocked($filters['blocked'] ?? null)
@@ -197,6 +243,8 @@ trait HasCommonFilters
         foreach ($existingOrders as $order) {
             if (isset($order['column'], $order['direction'])) {
                 $query->orderBy($order['column'], $order['direction']);
+            } elseif (($order['type'] ?? null) === 'Raw' && isset($order['sql'])) {
+                $query->orderByRaw($order['sql']);
             }
         }
 
