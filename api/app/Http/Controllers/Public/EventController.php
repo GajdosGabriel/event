@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EventResource;
 use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class EventController extends Controller
 {
@@ -18,13 +20,14 @@ class EventController extends Controller
         $this->eventRepository = $eventRepository;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $municipality = $request->integer('municipality') ?: null;
+        $perPage = max(1, min((int) $request->integer('per_page') ?: 15, 100));
 
-        return response()->json(
-            $this->eventRepository->publicIndexWithFilters(15, ['municipality' => $municipality])
-        );
+        $events = $this->eventRepository->publicIndexWithFilters($perPage, ['municipality' => $municipality]);
+
+        return EventResource::collection($events);
     }
 
     public function show($id)

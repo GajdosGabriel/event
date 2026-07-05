@@ -23,14 +23,22 @@ trait HasFile
 
     public function getHasPrimaryImageAttribute(): bool
     {
+        $loaded = $this->loadedImageFiles();
+
+        if ($loaded !== null) {
+            return $loaded->contains(fn (File $file) => $file->is_primary === true);
+        }
+
         return $this->images()->where('is_primary', true)->exists();
     }
 
     public function getPrimaryImageAttribute(): array
     {
-        $image = $this->images()
-            ->where('is_primary', true)
-            ->first();
+        $loaded = $this->loadedImageFiles();
+
+        $image = $loaded !== null
+            ? $loaded->first(fn (File $file) => $file->is_primary === true)
+            : $this->images()->where('is_primary', true)->first();
 
         if ($image instanceof File) {
             return $this->formatPrimaryImage($image);
@@ -46,7 +54,25 @@ trait HasFile
 
     public function getFilesAttribute(): Collection
     {
-        return $this->files()->get();
+        return $this->relationLoaded('files')
+            ? $this->getRelation('files')
+            : $this->files()->get();
+    }
+
+    /**
+     * Images from the eager-loaded files relation, or null when files aren't loaded
+     * (callers then fall back to a direct query). Keeps image accessors free of the
+     * per-serialization N+1 they'd otherwise cause on list endpoints.
+     */
+    protected function loadedImageFiles(): ?Collection
+    {
+        if (! $this->relationLoaded('files')) {
+            return null;
+        }
+
+        return $this->getRelation('files')
+            ->filter(fn (File $file) => $file->type === FileType::IMAGE)
+            ->values();
     }
 
     protected function defaultThumbImageUrl(): string

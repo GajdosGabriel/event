@@ -78,12 +78,16 @@ class Event extends Model
 
     public function getCanalAttribute()
     {
-        return $this->canal()->first();
+        return $this->relationLoaded('canal')
+            ? $this->getRelation('canal')
+            : $this->canal()->first();
     }
 
     public function getVenueAttribute()
     {
-        return $this->venue()->first();
+        return $this->relationLoaded('venue')
+            ? $this->getRelation('venue')
+            : $this->venue()->first();
     }
 
     public function getMunicipalityAttribute()
@@ -92,16 +96,19 @@ class Event extends Model
             ? $this->getRelation('venue')
             : $this->venue()->first();
 
-        if ($venue === null || $venue->village_id === null) {
+        if ($venue === null) {
+            return null;
+        }
+
+        if ($venue->relationLoaded('municipality')) {
+            return $venue->getRelation('municipality');
+        }
+
+        if ($venue->village_id === null) {
             return null;
         }
 
         return Municipality::query()->find($venue->village_id);
-    }
-
-    public function getFilesAttribute()
-    {
-        return $this->files()->get();
     }
 
     protected function defaultThumbImageUrl(): string

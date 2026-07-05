@@ -151,7 +151,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
     public function adminIndexQuery()
     {
-        return $this->latestFirst($this->model()->withTrashed()->with(['canal:id,name', 'venue:id,name']));
+        return $this->latestFirst($this->model()->withTrashed()->with($this->indexEagerLoads()));
     }
 
     public function dashboardIndexQuery()
@@ -160,9 +160,24 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         return $this->latestFirst(
             $this->model()->withTrashed()
-                ->with(['canal:id,name', 'venue:id,name'])
+                ->with($this->indexEagerLoads())
                 ->whereIn('canal_id', $canalIds)
         );
+    }
+
+    /**
+     * Relations serialized by EventResource for every row. Eager loading them keeps the
+     * model's canal/venue/files/image accessors from re-querying per row (N+1). Venue
+     * carries the columns EventResource exposes; images come from the loaded files.
+     */
+    private function indexEagerLoads(): array
+    {
+        return [
+            'canal:id,name',
+            'canal.files',
+            'venue:id,name,street,postcode,latitude,longitude,phone,website,opening_hours',
+            'files',
+        ];
     }
 
     public function dashboardShow($id)
@@ -220,6 +235,14 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     public function publicIndexQuery()
     {
         return $this->model()
+            ->with([
+                'canal:id,name',
+                'canal.files',
+                'venue' => fn ($query) => $query
+                    ->select(['id', 'name', 'street', 'postcode', 'latitude', 'longitude', 'phone', 'website', 'opening_hours', 'village_id'])
+                    ->with('municipality'),
+                'files',
+            ])
             ->where('status', ModelStatus::Published->value)
             ->where(function ($q) {
                 $q->where('end_at', '>=', now())

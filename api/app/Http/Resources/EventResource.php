@@ -19,6 +19,16 @@ class EventResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // The nested canal/venue are only output as a slim shape below, but the model's
+        // appended accessors would otherwise serialize their full image/pivot appends
+        // (extra file/pivot queries per row). Drop those appends on the loaded relations
+        // before parent serialization; real columns (id, name, address…) stay available.
+        foreach (['canal', 'venue'] as $relation) {
+            if ($this->resource->relationLoaded($relation)) {
+                $this->resource->getRelation($relation)?->setAppends([]);
+            }
+        }
+
         $user = $request->user();
         $data = parent::toArray($request);
 
@@ -34,6 +44,29 @@ class EventResource extends JsonResource
         $data['price_currency'] = $this->price_currency;
 
         $data['allowed_statuses'] = $this->allowedStatuses($request);
+
+        // Nested canal/venue are exposed via the Event model's appended accessors,
+        // which serialize the whole related model (all columns + their own image/pivot
+        // appends). The event views only need a handful of fields, so trim to those:
+        // this shrinks the payload and avoids leaking canal/venue email/body publicly.
+        $canal = $this->canal;
+        $data['canal'] = $canal ? [
+            'id' => $canal->id,
+            'name' => $canal->name,
+        ] : null;
+
+        $venue = $this->venue;
+        $data['venue'] = $venue ? [
+            'id' => $venue->id,
+            'name' => $venue->name,
+            'street' => $venue->street,
+            'postcode' => $venue->postcode,
+            'latitude' => $venue->latitude,
+            'longitude' => $venue->longitude,
+            'phone' => $venue->phone,
+            'website' => $venue->website,
+            'opening_hours' => $venue->opening_hours,
+        ] : null;
 
         $isPublished = $this->status === ModelStatus::Published;
 
