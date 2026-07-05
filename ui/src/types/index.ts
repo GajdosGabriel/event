@@ -139,6 +139,8 @@ export interface EventItem {
   priceCurrency: string | null
   publishedAt: string | null
   deletedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
   website: string | null
   locationName: string | null
   street: string | null

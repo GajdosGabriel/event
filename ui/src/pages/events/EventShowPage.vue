@@ -195,17 +195,13 @@
 
           <!-- Meta -->
           <dl class="show-card grid gap-3">
-            <div v-if="event.publishedAt" class="detail-card">
-              <dt>Publikované</dt>
-              <dd>{{ fmt(event.publishedAt) }}</dd>
-            </div>
             <div class="detail-card">
-              <dt>Vytvorené</dt>
-              <dd>{{ fmt(event.createdAt ?? '') }}</dd>
-            </div>
-            <div class="detail-card">
-              <dt>Upravené</dt>
-              <dd>{{ fmt(event.updatedAt ?? '') }}</dd>
+              <dt>Záznam</dt>
+              <dd class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span v-if="event.publishedAt">Publikované {{ fmt(event.publishedAt) }}</span>
+                <span v-if="event.createdAt">Vytvorené {{ fmt(event.createdAt) }}</span>
+                <span v-if="event.updatedAt">Upravené {{ fmt(event.updatedAt) }}</span>
+              </dd>
             </div>
             <div v-if="event.deletedAt" class="detail-card bg-red-50">
               <dt class="text-red-600">Zmazané</dt>

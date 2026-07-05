@@ -46,6 +46,8 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     priceCurrency: (raw['price_currency'] as string) ?? null,
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
+    createdAt: (raw['created_at'] as string) ?? null,
+    updatedAt: (raw['updated_at'] as string) ?? null,
     website: (raw['website'] as string) ?? null,
     locationName: (raw['location_name'] as string) ?? null,
     street: (raw['street'] as string) ?? null,
