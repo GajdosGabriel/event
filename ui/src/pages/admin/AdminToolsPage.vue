@@ -49,7 +49,7 @@
     <div class="panel-card grid gap-3">
       <div>
         <h2 class="font-semibold text-slate-900">Archivácia ukončených eventov</h2>
-        <p class="text-sm text-slate-500">Spustí <code class="text-xs bg-slate-100 px-1 rounded">app:archive-finished-events</code> — nastaví status na archived pre eventy po skončení.</p>
+        <p class="text-sm text-slate-500">Spustí <code class="text-xs bg-slate-100 px-1 rounded">app:events-archive-finished</code> — nastaví status na archived pre eventy po skončení.</p>
       </div>
       <ToolRunButton label="Archivovať" :running="running === 'archive'" @run="runTool('archive')" />
       <ToolOutput :output="outputs['archive']" />

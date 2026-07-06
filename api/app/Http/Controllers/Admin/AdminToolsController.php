@@ -76,7 +76,7 @@ class AdminToolsController extends Controller
     {
         $this->authorize('viewAny', \App\Models\Event::class);
 
-        Artisan::call('app:archive-finished-events');
+        Artisan::call('app:events-archive-finished');
         $output = Artisan::output();
 
         return response()->json(['success' => true, 'output' => $output]);
