@@ -19,16 +19,27 @@ class ImportedCanalManager
                 $this->ensureSystemOwnership($existing);
                 return $existing->fresh();
             }
-        }
 
-        $existing = Canal::query()
-            ->where('website', $sourceOrigin)
-            ->first();
-
-        if (! $existing) {
+            // A named organizer that has no existing match gets its own canal by
+            // slug. It must never fall into the "website == source origin" bucket
+            // below: that bucket is shared by every event from this scraper with
+            // no detected name, and would otherwise pull unrelated organizers in.
             $existing = Canal::query()
                 ->where('slug', Str::slug($canalName))
                 ->first();
+        } else {
+            // No organizer could be detected at all: fall back to one shared
+            // "unknown organizer" canal per scraper source, matched by source
+            // origin instead of a real organizer name.
+            $existing = Canal::query()
+                ->where('website', $sourceOrigin)
+                ->first();
+
+            if (! $existing) {
+                $existing = Canal::query()
+                    ->where('slug', Str::slug($canalName))
+                    ->first();
+            }
         }
 
         if ($existing) {
