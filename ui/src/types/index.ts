@@ -285,6 +285,7 @@ export interface TicketItem {
   uuid: string
   eventId?: number
   holderName: string
+  quantity?: number
   holderEmail?: string
   holderPhone?: string | null
   status: TicketStatus

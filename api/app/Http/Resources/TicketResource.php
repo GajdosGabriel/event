@@ -17,6 +17,7 @@ class TicketResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'holder_name' => $this->holder_name,
+            'quantity' => $this->quantity,
             'status' => $this->status,
             'status_label' => $this->status->label(),
             'payment_status' => $this->payment_status,

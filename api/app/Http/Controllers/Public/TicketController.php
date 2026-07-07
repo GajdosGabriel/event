@@ -29,7 +29,18 @@ class TicketController extends Controller
         }
 
         $properties = $request->validated();
-        $properties['user_id'] = auth('sanctum')->id();
+
+        $user = auth('sanctum')->user();
+        $properties['user_id'] = $user?->id;
+
+        // One-click rezervácia: prihlásenému doplníme meno a e-mail z účtu.
+        if ($user) {
+            $properties['holder_email'] = $properties['holder_email']
+                ?? $user->email;
+            $properties['holder_name'] = $properties['holder_name']
+                ?? $user->pendingProfile?->display_name
+                ?? strtok((string) $user->email, '@');
+        }
 
         $ticket = $this->ticketRepository->issueForEvent($event, $properties);
         $ticket->load('event');

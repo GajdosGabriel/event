@@ -26,15 +26,32 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             /** @var Event $lockedEvent */
             $lockedEvent = Event::query()->lockForUpdate()->findOrFail($event->id);
 
+            // Registračné okno – podujatie už prebehlo alebo uplynul termín registrácie.
+            if ($lockedEvent->end_at !== null && $lockedEvent->end_at->isPast()) {
+                abort(422, 'Podujatie už prebehlo, registrácia nie je možná.');
+            }
+
+            if ($lockedEvent->registration_deadline_at !== null && $lockedEvent->registration_deadline_at->isPast()) {
+                abort(422, 'Termín registrácie už uplynul.');
+            }
+
+            $quantity = max(1, (int) ($properties['quantity'] ?? 1));
+
             if ($lockedEvent->capacity !== null) {
-                $issuedCount = Ticket::query()
+                $issuedSeats = (int) Ticket::query()
                     ->where('event_id', $lockedEvent->id)
                     ->whereIn('status', [TicketStatus::Reserved->value, TicketStatus::Confirmed->value])
                     ->lockForUpdate()
-                    ->count();
+                    ->sum('quantity');
 
-                if ($issuedCount >= $lockedEvent->capacity) {
+                $remaining = max(0, $lockedEvent->capacity - $issuedSeats);
+
+                if ($remaining <= 0) {
                     abort(422, 'Event je už plne obsadený.');
+                }
+
+                if ($quantity > $remaining) {
+                    abort(422, 'K dispozícii ' . ($remaining === 1 ? 'je' : 'sú') . ' už len ' . $remaining . ' ' . $this->seatsWord($remaining) . '.');
                 }
             }
 
@@ -46,6 +63,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 'holder_name' => $properties['holder_name'],
                 'holder_email' => $properties['holder_email'],
                 'holder_phone' => $properties['holder_phone'] ?? null,
+                'quantity' => $quantity,
                 'status' => $isPaid ? TicketStatus::Reserved->value : TicketStatus::Confirmed->value,
                 'payment_status' => $isPaid ? TicketPaymentStatus::Pending->value : TicketPaymentStatus::None->value,
                 'price_amount' => $isPaid ? $lockedEvent->price_amount : null,
@@ -121,12 +139,17 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             return null;
         }
 
-        $issued = Ticket::query()
+        $issued = (int) Ticket::query()
             ->where('event_id', $event->id)
             ->whereIn('status', [TicketStatus::Reserved->value, TicketStatus::Confirmed->value])
-            ->count();
+            ->sum('quantity');
 
         return max(0, $event->capacity - $issued);
+    }
+
+    private function seatsWord(int $count): string
+    {
+        return $count >= 2 && $count <= 4 ? 'voľné miesta' : 'voľných miest';
     }
 
     public function publicIndexQuery()

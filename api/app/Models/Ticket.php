@@ -20,6 +20,7 @@ class Ticket extends Model
     protected $casts = [
         'status' => TicketStatus::class,
         'payment_status' => TicketPaymentStatus::class,
+        'quantity' => 'integer',
         'checked_in_at' => 'datetime',
         'meta' => 'array',
     ];

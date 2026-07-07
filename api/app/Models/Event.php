@@ -64,9 +64,9 @@ class Event extends Model
             return null;
         }
 
-        $issued = $this->tickets()
+        $issued = (int) $this->tickets()
             ->whereIn('status', [\App\Enums\TicketStatus::Reserved->value, \App\Enums\TicketStatus::Confirmed->value])
-            ->count();
+            ->sum('quantity');
 
         return max(0, $this->capacity - $issued);
     }

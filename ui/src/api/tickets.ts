@@ -10,6 +10,7 @@ function mapTicket(raw: Record<string, unknown>): TicketItem {
     uuid: raw['uuid'] as string,
     eventId: (raw['event_id'] as number) ?? undefined,
     holderName: raw['holder_name'] as string,
+    quantity: (raw['quantity'] as number) ?? 1,
     holderEmail: (raw['holder_email'] as string) ?? undefined,
     holderPhone: (raw['holder_phone'] as string) ?? null,
     status: raw['status'] as TicketItem['status'],
@@ -31,9 +32,10 @@ function mapTicket(raw: Record<string, unknown>): TicketItem {
 }
 
 export interface TicketRequestPayload {
-  holder_name: string
-  holder_email: string
+  holder_name?: string
+  holder_email?: string
   holder_phone?: string
+  quantity?: number
 }
 
 export async function requestTicket(eventId: number, payload: TicketRequestPayload): Promise<TicketItem> {
