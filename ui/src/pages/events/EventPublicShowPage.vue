@@ -95,8 +95,6 @@
               <TicketRequestForm
                 :event-id="event.id"
                 :remaining-capacity="event.remainingCapacity"
-                :price-amount="event.priceAmount"
-                :price-currency="event.priceCurrency"
                 :registration-deadline-at="event.registrationDeadlineAt"
                 :end-at="event.endAt"
               />

@@ -13,4 +13,8 @@ return [
         'failed'   => 'Platba selhala',
         'refunded' => 'Vrácený',
     ],
+    'admission_status' => [
+        'valid'     => 'Platný',
+        'cancelled' => 'Zrušený',
+    ],
 ];

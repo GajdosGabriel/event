@@ -43,6 +43,10 @@ class EventResource extends JsonResource
         $data['price_amount'] = $this->price_amount;
         $data['price_currency'] = $this->price_currency;
 
+        if ($this->resource->relationLoaded('ticketTypes')) {
+            $data['ticket_types'] = TicketTypeResource::collection($this->ticketTypes);
+        }
+
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
         // Nested canal/venue are exposed via the Event model's appended accessors,

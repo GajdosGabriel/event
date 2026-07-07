@@ -66,31 +66,19 @@
               <DateTimeInput v-model="form.end_at" class="form-input" :class="{ invalid: errors.end_at }" />
               <span v-if="errors.end_at" class="field-error">{{ errors.end_at }}</span>
             </label>
-            <label class="form-label">
-              Uzávierka registrácie
-              <DateTimeInput v-model="form.registration_deadline_at" class="form-input" :class="{ invalid: errors.registration_deadline_at }" />
-              <span v-if="errors.registration_deadline_at" class="field-error">{{ errors.registration_deadline_at }}</span>
-            </label>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
           <legend class="field-legend">Registrácia a lístky</legend>
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer mb-3">
-            <input type="checkbox" v-model="form.tickets_enabled" class="accent-blue-600" />
-            Vyžaduje sa registrácia / lístok
-          </label>
-          <div v-if="form.tickets_enabled" class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Počet miest (prázdne = neobmedzené)
-              <input v-model.number="form.capacity" type="number" min="1" class="form-input" :class="{ invalid: errors.capacity }" placeholder="neobmedzené" />
-              <span v-if="errors.capacity" class="field-error">{{ errors.capacity }}</span>
-            </label>
-            <label class="form-label">
-              Cena (€, prázdne = zdarma)
-              <input v-model="priceEuro" type="number" min="0" step="0.01" class="form-input" :class="{ invalid: errors.price_amount }" placeholder="0 = zdarma" />
-              <span v-if="errors.price_amount" class="field-error">{{ errors.price_amount }}</span>
-            </label>
+          <p v-if="isCreate" class="text-sm text-slate-500">
+            Lístky a registráciu nastavíte po vytvorení eventu v samostatnej sekcii „Lístky".
+          </p>
+          <div v-else class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
+            <p class="text-sm text-slate-600">Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.</p>
+            <RouterLink :to="`${prefix}/events/${route.params.id}/tickets`" class="btn btn-secondary shrink-0">
+              Spravovať lístky →
+            </RouterLink>
           </div>
         </fieldset>
 
@@ -313,18 +301,12 @@ const form = ref({
   venue_id: null as number | null,
   start_at: '',
   end_at: '',
-  registration_deadline_at: '',
-  tickets_enabled: false,
-  capacity: null as number | null,
-  price_currency: 'EUR',
   website: '',
   email: '',
   phone: '',
   body: '',
   body_ai: '',
 })
-
-const priceEuro = ref<string>('')
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
@@ -465,17 +447,12 @@ onMounted(async () => {
         venue_id: ev.venueId ?? null,
         start_at: ev.startAt?.slice(0, 16) ?? '',
         end_at: ev.endAt?.slice(0, 16) ?? '',
-        registration_deadline_at: (ev as Record<string, unknown>)['registrationDeadlineAt'] as string ?? '',
-        tickets_enabled: ev.ticketsEnabled ?? false,
-        capacity: ev.capacity ?? null,
-        price_currency: ev.priceCurrency ?? 'EUR',
         website: ev.website ?? '',
         email: ev.email ?? '',
         phone: ev.phone ?? '',
         body: ev.body ?? '',
         body_ai: ev.bodyAi ?? '',
       }
-      priceEuro.value = ev.priceAmount ? (ev.priceAmount / 100).toString() : ''
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }
   }
@@ -486,10 +463,7 @@ async function submit() {
   serverError.value = null
   saving.value = true
   try {
-    const payload = {
-      ...form.value,
-      price_amount: priceEuro.value ? Math.round(parseFloat(priceEuro.value) * 100) : null,
-    }
+    const payload = { ...form.value }
     if (isCreate.value) {
       const ev = await createEvent(payload, scope.value)
       savedId.value = ev.id

@@ -1,10 +1,13 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-md px-4">
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <RouterLink :to="`/dashboard/events/${eventId}/attendees`" class="action-btn">← Späť na zoznam</RouterLink>
-    </div>
+    <EventTicketsTabs :event-id="eventId" />
 
-    <h1 class="mb-4 text-2xl font-semibold text-slate-900">Check-in — skenovanie QR</h1>
+    <h1 class="mb-2 text-2xl font-semibold text-slate-900">Check-in — skenovanie QR</h1>
+
+    <div v-if="stats" class="mb-4 rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
+      Prišlo: <strong>{{ stats.arrived }}</strong> / {{ stats.total }}
+      <span class="text-slate-400">· zostáva {{ stats.remaining }}</span>
+    </div>
 
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-black">
       <video ref="videoEl" class="aspect-square w-full object-cover" muted playsinline />
@@ -16,7 +19,10 @@
 
     <div v-if="result" class="mt-4 rounded-xl p-4 text-sm" :class="resultClass">
       <p class="font-semibold">{{ resultTitle }}</p>
-      <p v-if="result.ticket">{{ result.ticket.holderName }}</p>
+      <p v-if="result.admission">
+        {{ result.admission.attendeeName || result.admission.holderName }}
+        <span v-if="result.admission.ticketType" class="text-xs opacity-70">· {{ result.admission.ticketType.name }}</span>
+      </p>
     </div>
 
     <form class="mt-6 flex gap-2" @submit.prevent="submitManual">
@@ -32,8 +38,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
-import { checkinTicket } from '@/api/tickets'
-import type { TicketCheckinResult } from '@/types'
+import { checkinTicket, checkinStats } from '@/api/tickets'
+import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
+import type { CheckinStats, TicketCheckinResult } from '@/types'
 
 QrScanner.WORKER_PATH = QrScannerWorkerPath
 
@@ -44,6 +51,7 @@ const videoEl = ref<HTMLVideoElement | null>(null)
 const cameraError = ref<string | null>(null)
 const result = ref<TicketCheckinResult | null>(null)
 const manualToken = ref('')
+const stats = ref<CheckinStats | null>(null)
 
 let scanner: QrScanner | null = null
 let processing = false
@@ -52,13 +60,22 @@ function extractToken(scanned: string): string {
   return scanned.startsWith('TICKET:') ? scanned.slice('TICKET:'.length) : scanned
 }
 
+async function loadStats() {
+  try {
+    stats.value = await checkinStats(eventId)
+  } catch {
+    // ignore
+  }
+}
+
 async function handleToken(token: string) {
   if (processing || !token) return
   processing = true
   try {
     result.value = await checkinTicket(token)
+    if (result.value.status === 'checked_in') await loadStats()
   } catch {
-    result.value = { status: 'invalid', reason: null, ticket: null }
+    result.value = { status: 'invalid', reason: null, admission: null }
   } finally {
     setTimeout(() => { processing = false }, 1500)
   }
@@ -73,7 +90,7 @@ async function submitManual() {
 const resultTitle = computed(() => {
   switch (result.value?.status) {
     case 'checked_in': return '✅ Vstup potvrdený'
-    case 'already_checked_in': return `⚠️ Lístok už bol použitý ${result.value.ticket?.checkedInAt ? 'o ' + new Date(result.value.ticket.checkedInAt).toLocaleTimeString('sk-SK') : ''}`
+    case 'already_checked_in': return `⚠️ Lístok už bol použitý ${result.value.admission?.checkedInAt ? 'o ' + new Date(result.value.admission.checkedInAt).toLocaleTimeString('sk-SK') : ''}`
     default: return '❌ Neplatný lístok'
   }
 })
@@ -87,6 +104,7 @@ const resultClass = computed(() => {
 })
 
 onMounted(async () => {
+  loadStats()
   if (!videoEl.value) return
   try {
     scanner = new QrScanner(videoEl.value, (r) => handleToken(extractToken(r.data)), {

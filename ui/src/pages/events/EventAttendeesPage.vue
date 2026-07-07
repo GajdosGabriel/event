@@ -1,11 +1,8 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <RouterLink :to="`/dashboard/events/${eventId}`" class="action-btn">← Späť na event</RouterLink>
-      <RouterLink :to="`/dashboard/events/${eventId}/checkin`" class="action-btn ml-auto">Check-in skener</RouterLink>
-    </div>
+    <EventTicketsTabs :event-id="eventId" />
 
-    <h1 class="mb-4 text-2xl font-semibold text-slate-900">Prihlásení / lístky</h1>
+    <h1 class="mb-4 text-2xl font-semibold text-slate-900">Prihlásení / objednávky</h1>
 
     <input v-model="search" type="search" placeholder="Hľadať podľa mena alebo e-mailu…"
       class="mb-4 w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -19,36 +16,73 @@
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
+            <th class="px-4 py-3"></th>
             <th class="px-4 py-3">Meno</th>
             <th class="px-4 py-3">E-mail</th>
+            <th class="px-4 py-3">Lístky</th>
+            <th class="px-4 py-3">Vstup</th>
             <th class="px-4 py-3">Stav</th>
             <th class="px-4 py-3">Platba</th>
-            <th class="px-4 py-3">Vstup</th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr v-for="ticket in tickets" :key="ticket.id">
-            <td class="px-4 py-3 font-medium text-slate-900">{{ ticket.holderName }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ ticket.holderEmail }}</td>
-            <td class="px-4 py-3">
-              <span class="rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="ticket.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">
-                {{ ticket.statusLabel }}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-slate-600">{{ ticket.paymentStatusLabel }}</td>
-            <td class="px-4 py-3">
-              <span v-if="ticket.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                Áno {{ formatDateTime(ticket.checkedInAt) }}
-              </span>
-              <span v-else class="text-xs text-slate-400">Nie</span>
-            </td>
-            <td class="px-4 py-3 text-right">
-              <button v-if="ticket.permissions?.update && ticket.status !== 'cancelled'" type="button"
-                class="action-btn" @click="onCancel(ticket)">Zrušiť</button>
-            </td>
-          </tr>
+          <template v-for="ticket in tickets" :key="ticket.id">
+            <tr class="cursor-pointer hover:bg-slate-50" @click="toggle(ticket.id!)">
+              <td class="px-4 py-3 text-slate-400">{{ expanded === ticket.id ? '▾' : '▸' }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">{{ ticket.holderName }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ ticket.holderEmail }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ ticket.admissionsTotal }}</td>
+              <td class="px-4 py-3">
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="ticket.checkedInCount >= ticket.admissionsTotal && ticket.admissionsTotal > 0
+                    ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">
+                  {{ ticket.checkedInCount }} / {{ ticket.admissionsTotal }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="ticket.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">
+                  {{ ticket.statusLabel }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-slate-600">{{ ticket.paymentStatusLabel }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap" @click.stop>
+                <button v-if="ticket.permissions?.update" type="button" class="action-btn" @click="onResend(ticket)">Poslať znova</button>
+                <button v-if="ticket.permissions?.update && ticket.status !== 'cancelled'" type="button"
+                  class="action-btn ml-1 text-red-600" @click="onCancelOrder(ticket)">Zrušiť</button>
+              </td>
+            </tr>
+
+            <!-- Rozbalené vstupenky objednávky -->
+            <tr v-if="expanded === ticket.id" :key="`${ticket.id}-adm`">
+              <td colspan="8" class="bg-slate-50 px-4 py-3">
+                <div class="space-y-2">
+                  <div v-for="(adm, i) in ticket.admissions" :key="adm.uuid"
+                    class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <span class="text-sm font-medium text-slate-800">
+                      {{ adm.attendeeName || `Vstupenka ${i + 1}` }}
+                    </span>
+                    <span v-if="adm.ticketType" class="text-xs text-slate-500">{{ adm.ticketType.name }}</span>
+                    <span v-if="adm.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Zrušený</span>
+                    <span v-else-if="adm.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      Vstup {{ formatDateTime(adm.checkedInAt) }}
+                    </span>
+                    <span v-else class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Čaká na vstup</span>
+
+                    <div class="ml-auto flex gap-1">
+                      <button v-if="ticket.permissions?.checkin && adm.status === 'valid' && !adm.isCheckedIn" type="button"
+                        class="action-btn" @click="onCheckin(adm.id!)">Označiť vstup</button>
+                      <button v-if="ticket.permissions?.checkin && adm.isCheckedIn" type="button"
+                        class="action-btn" @click="onUndo(adm.id!)">Zrušiť vstup</button>
+                      <button v-if="ticket.permissions?.update && adm.status === 'valid'" type="button"
+                        class="action-btn text-red-600" @click="onCancelAdmission(adm.id!)">Zrušiť lístok</button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -64,10 +98,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { cancelTicket, indexEventTickets } from '@/api/tickets'
+import {
+  indexEventTickets,
+  cancelTicket,
+  cancelAdmission,
+  checkinAdmissionManual,
+  undoCheckin,
+  resendTicket,
+} from '@/api/tickets'
+import { useToast } from '@/composables/useToast'
+import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { PaginatedResponse, TicketItem } from '@/types'
 
 const route = useRoute()
+const toast = useToast()
 const eventId = Number(route.params.id)
 
 const tickets = ref<TicketItem[]>([])
@@ -76,12 +120,17 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const search = ref('')
 const page = ref(1)
+const expanded = ref<number | null>(null)
 
 let searchTimeout: ReturnType<typeof setTimeout> | undefined
 
 function formatDateTime(d: string | null) {
   if (!d) return ''
   return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function toggle(id: number) {
+  expanded.value = expanded.value === id ? null : id
 }
 
 async function load(targetPage = 1) {
@@ -108,10 +157,40 @@ function changePage(target: number) {
   load(target)
 }
 
-async function onCancel(ticket: TicketItem) {
-  if (!ticket.id || !confirm(`Naozaj zrušiť lístok pre ${ticket.holderName}?`)) return
+async function onCancelOrder(ticket: TicketItem) {
+  if (!ticket.id || !confirm(`Naozaj zrušiť celú objednávku pre ${ticket.holderName}?`)) return
   await cancelTicket(ticket.id)
   await load(page.value)
+}
+
+async function onCancelAdmission(admissionId: number) {
+  if (!confirm('Naozaj zrušiť túto vstupenku?')) return
+  await cancelAdmission(admissionId)
+  await load(page.value)
+}
+
+async function onCheckin(admissionId: number) {
+  const res = await checkinAdmissionManual(admissionId)
+  if (res.status === 'checked_in') toast.success('Vstup označený.')
+  else if (res.status === 'already_checked_in') toast.error('Vstupenka už bola použitá.')
+  else toast.error('Vstupenku sa nepodarilo označiť.')
+  await load(page.value)
+}
+
+async function onUndo(admissionId: number) {
+  await undoCheckin(admissionId)
+  toast.success('Vstup zrušený.')
+  await load(page.value)
+}
+
+async function onResend(ticket: TicketItem) {
+  if (!ticket.id) return
+  try {
+    await resendTicket(ticket.id)
+    toast.success('Potvrdenie odoslané.')
+  } catch {
+    toast.error('E-mail sa nepodarilo odoslať.')
+  }
 }
 
 onMounted(() => load(1))

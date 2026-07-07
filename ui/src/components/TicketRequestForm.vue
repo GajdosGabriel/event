@@ -1,19 +1,17 @@
 <template>
   <div>
-    <!-- Úspešná rezervácia -->
+    <!-- Úspešná objednávka -->
     <div v-if="success" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-      <p class="mb-2 font-semibold">{{ isPaid ? 'Lístok bol vytvorený!' : 'Miesto je rezervované!' }}</p>
-      <p v-if="(success.quantity ?? 1) > 1" class="mb-1">
-        Počet miest: <strong>{{ success.quantity }}</strong>
-      </p>
+      <p class="mb-2 font-semibold">{{ success.priceAmount ? 'Lístky boli vytvorené!' : 'Miesta sú rezervované!' }}</p>
+      <p class="mb-1">Počet vstupeniek: <strong>{{ success.admissionsTotal }}</strong></p>
       <p v-if="sentEmail" class="mb-3">Potvrdenie sme poslali na e-mail <strong>{{ sentEmail }}</strong>.</p>
       <p v-else class="mb-3">Potvrdenie sme poslali na e-mail tvojho účtu.</p>
       <RouterLink :to="`/tickets/${success.uuid}`" class="inline-block rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800">
-        Zobraziť lístok a QR kód →
+        Zobraziť lístky a QR kódy →
       </RouterLink>
     </div>
 
-    <!-- Registrácia uzavretá (event skončil / uplynul termín) -->
+    <!-- Registrácia uzavretá -->
     <div v-else-if="closedReason" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
       {{ closedReason }}
     </div>
@@ -23,21 +21,62 @@
       Kapacita je naplnená — event je plný.
     </div>
 
-    <form v-else class="space-y-3" @submit.prevent="submit">
+    <div v-else-if="loadingTypes" class="text-sm text-slate-500">Načítavam lístky…</div>
+
+    <div v-else-if="!types.length" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
+      Pre toto podujatie zatiaľ nie sú v predaji žiadne lístky.
+    </div>
+
+    <form v-else class="space-y-4" @submit.prevent="submit">
       <div v-if="remainingCapacity !== null" class="text-xs text-slate-500">
         Voľných miest: <strong>{{ remainingCapacity }}</strong>
       </div>
-      <div v-if="isPaid" class="text-sm font-semibold text-slate-800">
-        Cena: {{ formattedPrice }}<span v-if="quantity > 1" class="text-slate-500"> × {{ quantity }} = {{ formattedTotal }}</span>
-      </div>
-      <div v-else class="text-sm font-semibold text-green-700">Zdarma</div>
 
-      <!-- Prihlásený → one-click rezervácia -->
+      <!-- Výber typov lístkov -->
+      <div v-for="type in types" :key="type.id" class="rounded-lg border border-slate-200 p-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
+            <p v-if="type.description" class="text-xs text-slate-500">{{ type.description }}</p>
+            <p class="mt-1 text-sm font-semibold" :class="type.priceAmount ? 'text-slate-800' : 'text-green-700'">
+              {{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : 'Zdarma' }}
+            </p>
+            <p v-if="type.remainingCapacity !== null && type.remainingCapacity !== undefined" class="text-xs text-slate-400">
+              Zostáva: {{ type.remainingCapacity }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" :disabled="qty(type) <= 0"
+              class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              @click="dec(type)">−</button>
+            <span class="w-6 text-center text-sm font-semibold">{{ qty(type) }}</span>
+            <button type="button" :disabled="qty(type) >= maxFor(type)"
+              class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              @click="inc(type)">+</button>
+          </div>
+        </div>
+
+        <!-- Mená účastníkov (ak to typ vyžaduje) -->
+        <div v-if="type.requiresAttendeeName && qty(type) > 0" class="mt-3 space-y-2">
+          <div v-for="n in qty(type)" :key="n">
+            <label class="mb-1 block text-xs font-medium text-slate-600">Meno účastníka {{ n }}</label>
+            <input v-model.trim="attendeeName(type, n - 1).value" type="text" maxlength="250"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
+        <span>Spolu ({{ totalSeats }} {{ totalSeats === 1 ? 'lístok' : 'ks' }})</span>
+        <span>{{ totalPrice ? formatPrice(totalPrice, currency) : 'Zdarma' }}</span>
+      </div>
+
+      <!-- Prihlásený → one-click -->
       <div v-if="oneClick" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
-        Rezervuješ ako <strong>{{ auth.displayName }}</strong>. Potvrdenie pošleme na e-mail tvojho účtu.
+        Objednávaš ako <strong>{{ auth.displayName }}</strong>. Potvrdenie pošleme na e-mail tvojho účtu.
       </div>
 
-      <!-- Formulár údajov (hosť alebo „zadať iné údaje") -->
+      <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
       <template v-if="!oneClick">
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-600">Meno a priezvisko</label>
@@ -56,28 +95,13 @@
         </div>
       </template>
 
-      <!-- Počet miest -->
-      <div>
-        <label class="mb-1 block text-xs font-medium text-slate-600">Počet miest</label>
-        <div class="flex items-center gap-2">
-          <button type="button" :disabled="quantity <= 1"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            @click="quantity > 1 && quantity--">−</button>
-          <span class="w-8 text-center text-sm font-semibold">{{ quantity }}</span>
-          <button type="button" :disabled="quantity >= maxQuantity"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            @click="quantity < maxQuantity && quantity++">+</button>
-        </div>
-      </div>
-
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
-      <button type="submit" :disabled="loading"
+      <button type="submit" :disabled="loading || totalSeats === 0"
         class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
         {{ loading ? 'Odosielam…' : actionLabel }}
       </button>
 
-      <!-- Prepnutie medzi one-click a vlastnými údajmi (len pre prihlásených) -->
       <button v-if="auth.isAuthenticated" type="button"
         class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
         @click="useOwnDetails = !useOwnDetails">
@@ -88,16 +112,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { requestTicket } from '@/api/tickets'
+import { publicTicketTypes } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
-import type { TicketItem } from '@/types'
+import type { TicketItem, TicketTypeItem } from '@/types'
 
 const props = defineProps<{
   eventId: number
   remainingCapacity: number | null
-  priceAmount: number | null
-  priceCurrency: string | null
   registrationDeadlineAt?: string | null
   endAt?: string | null
 }>()
@@ -110,17 +133,19 @@ const form = reactive({
   holder_phone: '',
 })
 
+const types = ref<TicketTypeItem[]>([])
+const loadingTypes = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const success = ref<TicketItem | null>(null)
 const sentEmail = ref('')
 const useOwnDetails = ref(false)
-const quantity = ref(1)
 
-const isPaid = computed(() => (props.priceAmount ?? 0) > 0)
+// Množstvá a mená účastníkov podľa id typu.
+const quantities = reactive<Record<number, number>>({})
+const attendees = reactive<Record<number, { value: string }[]>>({})
+
 const isSoldOut = computed(() => props.remainingCapacity !== null && props.remainingCapacity <= 0)
-
-// Prihlásený a nechce zadávať iné údaje → rezervácia na jedno kliknutie.
 const oneClick = computed(() => auth.isAuthenticated && !useOwnDetails.value)
 
 const closedReason = computed(() => {
@@ -134,39 +159,68 @@ const closedReason = computed(() => {
   return null
 })
 
-const maxQuantity = computed(() => {
-  const cap = props.remainingCapacity !== null ? props.remainingCapacity : 10
-  return Math.max(1, Math.min(cap, 10))
-})
+function qty(type: TicketTypeItem): number {
+  return quantities[type.id!] ?? 0
+}
+
+function maxFor(type: TicketTypeItem): number {
+  const caps = [type.maxPerOrder]
+  if (type.remainingCapacity !== null && type.remainingCapacity !== undefined) caps.push(type.remainingCapacity)
+  if (props.remainingCapacity !== null) caps.push(props.remainingCapacity - totalSeats.value + qty(type))
+  return Math.max(0, Math.min(...caps))
+}
+
+function attendeeName(type: TicketTypeItem, index: number): { value: string } {
+  const list = attendees[type.id!] ?? (attendees[type.id!] = [])
+  while (list.length <= index) list.push({ value: '' })
+  return list[index]
+}
+
+function inc(type: TicketTypeItem) {
+  if (qty(type) < maxFor(type)) quantities[type.id!] = qty(type) + 1
+}
+
+function dec(type: TicketTypeItem) {
+  if (qty(type) > 0) quantities[type.id!] = qty(type) - 1
+}
+
+const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))
+const currency = computed(() => types.value.find(t => t.priceAmount)?.priceCurrency ?? 'EUR')
+const totalPrice = computed(() =>
+  types.value.reduce((sum, t) => sum + (t.priceAmount ?? 0) * qty(t), 0),
+)
 
 const actionLabel = computed(() => {
-  if (isPaid.value) return quantity.value > 1 ? 'Získať lístky' : 'Získať lístok'
-  return quantity.value > 1 ? 'Rezervovať miesta' : 'Rezervovať miesto'
+  if (totalPrice.value > 0) return 'Získať lístky'
+  return 'Rezervovať miesta'
 })
 
-const formattedPrice = computed(() => {
-  if (!props.priceAmount) return ''
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: props.priceCurrency ?? 'EUR' })
-    .format(props.priceAmount / 100)
-})
-
-const formattedTotal = computed(() => {
-  if (!props.priceAmount) return ''
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: props.priceCurrency ?? 'EUR' })
-    .format((props.priceAmount * quantity.value) / 100)
-})
+function formatPrice(amount: number, curr: string | null) {
+  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: curr ?? 'EUR' }).format(amount / 100)
+}
 
 async function submit() {
+  if (totalSeats.value === 0) return
   loading.value = true
   error.value = null
   try {
+    const items = types.value
+      .filter(t => qty(t) > 0)
+      .map(t => ({
+        ticket_type_id: t.id!,
+        quantity: qty(t),
+        attendees: t.requiresAttendeeName
+          ? Array.from({ length: qty(t) }, (_, i) => ({ name: attendeeName(t, i).value || null }))
+          : undefined,
+      }))
+
     const payload = oneClick.value
-      ? { quantity: quantity.value }
+      ? { items }
       : {
           holder_name: form.holder_name,
           holder_email: form.holder_email,
           holder_phone: form.holder_phone || undefined,
-          quantity: quantity.value,
+          items,
         }
     sentEmail.value = oneClick.value ? '' : form.holder_email
     success.value = await requestTicket(props.eventId, payload)
@@ -177,4 +231,19 @@ async function submit() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  loadingTypes.value = true
+  try {
+    types.value = await publicTicketTypes(props.eventId)
+    // Predvyplň jeden lístok, ak je len jeden typ.
+    if (types.value.length === 1 && maxFor(types.value[0]) > 0) {
+      quantities[types.value[0].id!] = 1
+    }
+  } catch {
+    // ticho — formulár ukáže prázdny stav
+  } finally {
+    loadingTypes.value = false
+  }
+})
 </script>

@@ -30,14 +30,14 @@ class TicketDashboardResource extends JsonResource
             'payment_status_label' => $this->payment_status->label(),
             'price_amount' => $this->price_amount,
             'price_currency' => $this->price_currency,
-            'is_checked_in' => $this->is_checked_in,
-            'checked_in_at' => $this->checked_in_at,
-            'checked_in_by' => $this->whenLoaded('checkedInBy', fn () => $this->checkedInBy ? ['id' => $this->checkedInBy->id] : null),
+            'checked_in_count' => $this->checked_in_count,
+            'admissions_total' => $this->admissions_total,
+            'admissions' => AdmissionResource::collection($this->whenLoaded('admissions')),
             'created_at' => $this->created_at,
             'deleted_at' => $this->deleted_at,
             'permissions' => [
                 'update' => $user?->can('update', $this->resource) ?? false,
-                'checkin' => $user?->can('checkin', $this->resource) ?? false,
+                'checkin' => $user?->can('ticket.checkin') ?? false,
             ],
         ];
     }

@@ -8,32 +8,56 @@
 
     <div v-else-if="ticket" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div class="bg-linear-to-br from-blue-600 to-blue-800 p-6 text-white">
-        <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">Lístok</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">
+          {{ ticket.admissions.length > 1 ? 'Lístky' : 'Lístok' }}
+        </p>
         <h1 class="mt-1 text-2xl font-bold">{{ ticket.event?.name }}</h1>
         <p v-if="ticket.event?.dateRangeLabel" class="mt-1 text-sm text-blue-100">{{ ticket.event.dateRangeLabel }}</p>
       </div>
 
       <div class="space-y-4 p-6">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Meno</p>
-          <p class="text-lg font-semibold text-slate-900">{{ ticket.holderName }}</p>
-        </div>
-
-        <div class="flex items-center gap-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Objednávateľ</p>
+            <p class="text-lg font-semibold text-slate-900">{{ ticket.holderName }}</p>
+          </div>
           <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusClass">{{ ticket.statusLabel }}</span>
-          <span v-if="ticket.isCheckedIn" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-            Potvrdený vstup {{ formatDateTime(ticket.checkedInAt) }}
-          </span>
         </div>
 
         <div v-if="ticket.priceAmount" class="text-sm text-slate-600">
           Cena: <strong>{{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }}</strong> ({{ ticket.paymentStatusLabel }})
         </div>
 
-        <div class="flex flex-col items-center gap-2 rounded-xl bg-slate-50 p-4">
-          <img :src="qrUrl" alt="QR kód lístka" class="h-56 w-56" />
-          <p class="text-xs text-slate-500">Tento QR kód predložte pri vstupe na akciu.</p>
+        <p class="text-xs text-slate-500">
+          Každá vstupenka má vlastný QR kód. Jednotlivé kódy môžete preposlať priateľom — pri vstupe sa
+          skenujú samostatne.
+        </p>
+
+        <!-- Jednotlivé vstupenky s vlastným QR -->
+        <div
+          v-for="(admission, i) in ticket.admissions"
+          :key="admission.uuid"
+          class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+        >
+          <div class="mb-2 flex items-center justify-between">
+            <p class="text-sm font-semibold text-slate-800">
+              {{ admission.attendeeName || `Vstupenka ${i + 1}` }}
+              <span v-if="admission.ticketType" class="ml-1 text-xs font-normal text-slate-500">· {{ admission.ticketType.name }}</span>
+            </p>
+            <span v-if="admission.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+              Použitý {{ formatDateTime(admission.checkedInAt) }}
+            </span>
+            <span v-else-if="admission.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+              Zrušený
+            </span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <img :src="admission.qrUrl" :alt="`QR kód vstupenky ${i + 1}`" class="h-48 w-48"
+              :class="{ 'opacity-30 grayscale': admission.isCheckedIn || admission.status === 'cancelled' }" />
+          </div>
         </div>
+
+        <p class="text-center text-xs text-slate-400">QR kód predložte pri vstupe na akciu.</p>
       </div>
     </div>
   </div>
@@ -42,15 +66,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { showTicket, ticketQrImageUrl } from '@/api/tickets'
+import { showTicket } from '@/api/tickets'
 import type { TicketItem } from '@/types'
 
 const route = useRoute()
 const ticket = ref<TicketItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
-
-const qrUrl = computed(() => (ticket.value ? ticketQrImageUrl(ticket.value.uuid) : ''))
 
 const statusClass = computed(() => {
   switch (ticket.value?.status) {
@@ -62,7 +84,7 @@ const statusClass = computed(() => {
 
 function formatDateTime(d: string | null) {
   if (!d) return ''
-  return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function formatPrice(amount: number, currency: string | null) {

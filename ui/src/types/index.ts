@@ -279,7 +279,49 @@ export interface UserRolesPayload {
 // Tickets
 export type TicketStatus = 'reserved' | 'confirmed' | 'cancelled'
 export type TicketPaymentStatus = 'none' | 'pending' | 'paid' | 'failed' | 'refunded'
+export type AdmissionStatus = 'valid' | 'cancelled'
 
+// Typ lístka (napr. Standard, VIP, Zdarma).
+export interface TicketTypeItem {
+  id?: number
+  eventId?: number
+  name: string
+  description: string | null
+  priceAmount: number | null
+  priceCurrency: string
+  capacity: number | null
+  maxPerOrder: number
+  minPerOrder: number
+  requiresAttendeeName: boolean
+  saleStartsAt: string | null
+  saleEndsAt: string | null
+  isActive: boolean
+  sortOrder: number
+  soldCount?: number
+  remainingCapacity?: number | null
+  onSale?: boolean
+  createdAt?: string
+}
+
+// Jednotlivá vstupenka (jedno miesto) s vlastným QR kódom.
+export interface AdmissionItem {
+  id?: number
+  uuid: string
+  ticketId?: number
+  eventId?: number
+  attendeeName: string | null
+  status: AdmissionStatus
+  statusLabel: string
+  isCheckedIn: boolean
+  checkedInAt: string | null
+  checkedInBy?: { id: number } | null
+  qrUrl: string
+  ticketType?: { id: number; name: string } | null
+  holderName?: string | null
+  event?: { id: number; name: string } | null
+}
+
+// Objednávka / registrácia (jeden nákup jedného kupujúceho).
 export interface TicketItem {
   id?: number
   uuid: string
@@ -294,9 +336,9 @@ export interface TicketItem {
   paymentStatusLabel: string
   priceAmount: number | null
   priceCurrency: string | null
-  isCheckedIn: boolean
-  checkedInAt: string | null
-  checkedInBy?: { id: number } | null
+  checkedInCount: number
+  admissionsTotal: number
+  admissions: AdmissionItem[]
   createdAt: string
   deletedAt?: string | null
   event?: EventItem
@@ -307,7 +349,13 @@ export interface TicketItem {
 }
 
 export interface TicketCheckinResult {
-  status: 'checked_in' | 'already_checked_in' | 'invalid'
+  status: 'checked_in' | 'already_checked_in' | 'invalid' | 'reverted'
   reason?: 'not_found' | 'cancelled' | null
-  ticket: TicketItem | null
+  admission: AdmissionItem | null
+}
+
+export interface CheckinStats {
+  total: number
+  arrived: number
+  remaining: number
 }

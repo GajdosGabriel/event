@@ -58,15 +58,25 @@ class Event extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    public function ticketTypes()
+    {
+        return $this->hasMany(TicketType::class);
+    }
+
+    public function admissions()
+    {
+        return $this->hasMany(Admission::class);
+    }
+
     public function getRemainingCapacityAttribute(): ?int
     {
         if ($this->capacity === null) {
             return null;
         }
 
-        $issued = (int) $this->tickets()
-            ->whereIn('status', [\App\Enums\TicketStatus::Reserved->value, \App\Enums\TicketStatus::Confirmed->value])
-            ->sum('quantity');
+        $issued = (int) $this->admissions()
+            ->where('status', \App\Enums\AdmissionStatus::Valid->value)
+            ->count();
 
         return max(0, $this->capacity - $issued);
     }

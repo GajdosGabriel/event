@@ -43,7 +43,7 @@ class TicketController extends Controller
         }
 
         $ticket = $this->ticketRepository->issueForEvent($event, $properties);
-        $ticket->load('event');
+        $ticket->load(['event', 'admissions.ticketType']);
 
         Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket));
 
@@ -58,7 +58,7 @@ class TicketController extends Controller
             abort(404);
         }
 
-        $ticket->load('event');
+        $ticket->load(['event', 'admissions.ticketType']);
 
         return response()->json(new TicketResource($ticket));
     }

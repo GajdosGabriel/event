@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdmissionStatus;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Models\Traits\HasCommonFilters;
@@ -9,19 +10,21 @@ use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
 
+/**
+ * Objednávka / registrácia — jeden nákup jedného kupujúceho.
+ * Jednotlivé vstupenky (miesta) sú v {@see Admission}.
+ */
 class Ticket extends Model
 {
     use HasFactory, SoftDeletes, HasCommonFilters;
 
     protected $guarded = [];
-    protected $hidden = ['qr_token'];
-    protected $appends = ['is_checked_in'];
+    protected $appends = ['checked_in_count', 'admissions_total'];
 
     protected $casts = [
         'status' => TicketStatus::class,
         'payment_status' => TicketPaymentStatus::class,
         'quantity' => 'integer',
-        'checked_in_at' => 'datetime',
         'meta' => 'array',
     ];
 
@@ -39,10 +42,6 @@ class Ticket extends Model
             if (empty($ticket->uuid)) {
                 $ticket->uuid = (string) Str::uuid();
             }
-
-            if (empty($ticket->qr_token)) {
-                $ticket->qr_token = Str::random(64);
-            }
         });
     }
 
@@ -56,13 +55,32 @@ class Ticket extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function checkedInBy()
+    public function admissions()
     {
-        return $this->belongsTo(User::class, 'checked_in_by');
+        return $this->hasMany(Admission::class);
     }
 
-    public function getIsCheckedInAttribute(): bool
+    /** Počet vstupeniek objednávky, ktoré už prešli vchodom. */
+    public function getCheckedInCountAttribute(): int
     {
-        return $this->checked_in_at !== null;
+        if ($this->relationLoaded('admissions')) {
+            return $this->admissions->whereNotNull('checked_in_at')->count();
+        }
+
+        return (int) $this->admissions()->whereNotNull('checked_in_at')->count();
+    }
+
+    /** Počet platných vstupeniek objednávky. */
+    public function getAdmissionsTotalAttribute(): int
+    {
+        if ($this->relationLoaded('admissions')) {
+            return $this->admissions
+                ->where('status', AdmissionStatus::Valid)
+                ->count();
+        }
+
+        return (int) $this->admissions()
+            ->where('status', AdmissionStatus::Valid->value)
+            ->count();
     }
 }

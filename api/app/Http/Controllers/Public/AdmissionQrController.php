@@ -7,7 +7,7 @@ use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\QrCodeGenerator;
 use Illuminate\Http\Response;
 
-class TicketQrController extends Controller
+class AdmissionQrController extends Controller
 {
     protected $ticketRepository;
 
@@ -18,11 +18,7 @@ class TicketQrController extends Controller
 
     public function show($uuid, QrCodeGenerator $generator): Response
     {
-        // Spätná kompatibilita: staré odkazy /tickets/{uuid}/qr → QR prvej
-        // vstupenky objednávky. Nové odkazy používajú /admissions/{uuid}/qr.
-        $ticket = $this->ticketRepository->findByUuid($uuid);
-
-        $admission = $ticket?->admissions()->orderBy('id')->first();
+        $admission = $this->ticketRepository->findAdmissionByUuid($uuid);
 
         if (! $admission) {
             abort(404);
