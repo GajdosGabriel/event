@@ -40,6 +40,8 @@ class CanalStoreRequest extends FormRequest
             'email' => 'nullable|email|max:150',
             'website' => 'nullable|string|max:150',
             'phone' => 'nullable|string|max:20',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'municipality_id' => 'required|integer|exists:municipalities,id',
             'identity_mode' => ['sometimes', 'string', Rule::enum(CanalIdentityMode::class)],
             'files' => ['sometimes', 'array'],

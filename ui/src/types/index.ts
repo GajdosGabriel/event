@@ -189,6 +189,8 @@ export interface CanalItem {
   publishedAt: string | null
   status: ModelStatus
   website: string | null
+  latitude: number | null
+  longitude: number | null
   deletedAt: string | null
   createdAt: string
   updatedAt: string

@@ -24,6 +24,8 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     publishedAt: (raw['published_at'] as string) ?? null,
     status: (raw['status'] as CanalItem['status']) ?? 'draft',
     website: (raw['website'] as string) ?? null,
+    latitude: raw['latitude'] != null ? Number(raw['latitude']) : null,
+    longitude: raw['longitude'] != null ? Number(raw['longitude']) : null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt: (raw['created_at'] as string) ?? '',
     updatedAt: (raw['updated_at'] as string) ?? '',

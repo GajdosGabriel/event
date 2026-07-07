@@ -5,10 +5,12 @@ namespace App\Repositories\Eloquent;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
+use App\Models\Municipality;
 use App\Models\User;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\CanalRepository;
 use App\Services\Files\FileManager;
+use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
+        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver(),
     ) {
         parent::__construct();
     }
@@ -100,6 +103,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
             'updated_at' => now(),
         ]);
 
+        $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
 
         return $canal->fresh(['files']);
@@ -112,9 +116,59 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $canal = $this->model()->findOrFail($id);
         $canal->update($properties);
 
+        $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
 
         return $canal->fresh(['files']);
+    }
+
+    /**
+     * Ak kanalu chybaju GPS suradnice, skus ich doplnit cez AI/Nominatim podla
+     * nazvu kanalu a jeho obce, aby sa na detaile zobrazila mapa.
+     * Chyba geokodovania nie je fatalna.
+     */
+    private function backfillCoordinates(Canal $canal): void
+    {
+        if ($canal->latitude !== null && $canal->longitude !== null) {
+            return;
+        }
+
+        $city = $this->resolveMunicipalityName($canal->municipality_id);
+
+        $coords = $this->coordinateResolver->resolve($canal->name, $city, 'Slovensko');
+
+        // Kanal je casto organizator (nie fyzicke miesto) - ak sa podla nazvu nic
+        // nenajde, pouzi aspon stred obce, aby sa mapa dala zobrazit.
+        if (($coords['latitude'] === null || $coords['longitude'] === null) && $city !== null) {
+            $coords = $this->coordinateResolver->resolve(null, $city, 'Slovensko');
+        }
+
+        if ($coords['latitude'] === null || $coords['longitude'] === null) {
+            return;
+        }
+
+        $canal->forceFill([
+            'latitude' => $coords['latitude'],
+            'longitude' => $coords['longitude'],
+        ])->save();
+    }
+
+    private function resolveMunicipalityName(mixed $municipalityId): ?string
+    {
+        if ($municipalityId === null || $municipalityId === '') {
+            return null;
+        }
+
+        $municipality = Municipality::query()->find($municipalityId, ['shortname', 'fullname']);
+
+        $name = trim((string) ($municipality?->shortname ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $fullname = trim((string) ($municipality?->fullname ?? ''));
+
+        return $fullname !== '' ? $fullname : null;
     }
 
     private function extractFilePayload(array &$properties): array

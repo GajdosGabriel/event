@@ -115,10 +115,6 @@
               <dt>Telefón</dt>
               <dd><a :href="`tel:${venue.phone}`" class="text-blue-700">{{ venue.phone }}</a></dd>
             </div>
-            <div v-if="venue.email" class="detail-card">
-              <dt>Email</dt>
-              <dd><a :href="`mailto:${venue.email}`" class="text-blue-700">{{ venue.email }}</a></dd>
-            </div>
             <div v-if="venue.website" class="detail-card">
               <dt>Web</dt>
               <dd><a :href="venue.website" target="_blank" class="break-all text-blue-700">{{ venue.website }}</a></dd>

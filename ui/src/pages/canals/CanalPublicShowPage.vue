@@ -37,6 +37,17 @@
             <div v-if="!canal.body" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
               Žiadny opis nie je k dispozícii.
             </div>
+
+            <!-- Mapa -->
+            <div v-if="canal.latitude && canal.longitude" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <iframe
+                :src="`https://www.openstreetmap.org/export/embed.html?bbox=${canal.longitude - 0.005},${canal.latitude - 0.003},${canal.longitude + 0.005},${canal.latitude + 0.003}&layer=mapnik&marker=${canal.latitude},${canal.longitude}`"
+                width="100%" height="320" frameborder="0" scrolling="no" class="block" title="Mapa" loading="lazy"
+              />
+              <div class="px-6 py-2 text-xs text-slate-500">
+                <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600 hover:underline">Otvoriť v Google Maps ↗</a>
+              </div>
+            </div>
           </div>
 
           <!-- Sidebar -->

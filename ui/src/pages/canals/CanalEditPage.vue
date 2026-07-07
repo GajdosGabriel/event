@@ -77,10 +77,33 @@
       </form>
     </div>
 
-    <div class="edit-card">
-      <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
-      <ImageManager v-if="fileableId" fileable-type="canal" :fileable-id="fileableId" />
-      <ImagePicker v-else ref="picker" />
+    <div class="edit-card grid gap-6">
+      <div>
+        <h2 class="mb-2 text-lg font-semibold text-slate-800">Poloha</h2>
+        <p class="mb-2 text-xs text-slate-500">
+          Súradnice sa po uložení skúsia doplniť automaticky pomocou AI. Polohu môžeš upraviť kliknutím do mapy.
+        </p>
+        <VenueMapPicker
+          :lat="form.latitude"
+          :lng="form.longitude"
+          @update:lat="form.latitude = $event"
+          @update:lng="form.longitude = $event"
+        />
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <label class="form-label text-xs">Lat
+            <input v-model.number="form.latitude" type="number" step="any" class="form-input" />
+          </label>
+          <label class="form-label text-xs">Lng
+            <input v-model.number="form.longitude" type="number" step="any" class="form-input" />
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
+        <ImageManager v-if="fileableId" fileable-type="canal" :fileable-id="fileableId" />
+        <ImagePicker v-else ref="picker" />
+      </div>
     </div>
   </div>
 </template>
@@ -95,6 +118,7 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import { scrollToError } from '@/utils/scrollToError'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
+import VenueMapPicker from '@/components/VenueMapPicker.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -121,6 +145,8 @@ const form = ref({
   email: '',
   phone: '',
   website: '',
+  latitude: null as number | null,
+  longitude: null as number | null,
   body: '',
 })
 
@@ -143,6 +169,8 @@ onMounted(async () => {
         email: c.email ?? '',
         phone: c.phone ?? '',
         website: c.website ?? '',
+        latitude: c.latitude ?? null,
+        longitude: c.longitude ?? null,
         body: c.body ?? '',
       }
     } catch { serverError.value = 'Nepodarilo sa načítať.' }

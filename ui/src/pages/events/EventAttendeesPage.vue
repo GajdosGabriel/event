@@ -18,7 +18,6 @@
           <tr>
             <th class="px-4 py-3"></th>
             <th class="px-4 py-3">Meno</th>
-            <th class="px-4 py-3">E-mail</th>
             <th class="px-4 py-3">Lístky</th>
             <th class="px-4 py-3">Vstup</th>
             <th class="px-4 py-3">Stav</th>
@@ -31,7 +30,6 @@
             <tr class="cursor-pointer hover:bg-slate-50" @click="toggle(ticket.id!)">
               <td class="px-4 py-3 text-slate-400">{{ expanded === ticket.id ? '▾' : '▸' }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ ticket.holderName }}</td>
-              <td class="px-4 py-3 text-slate-600">{{ ticket.holderEmail }}</td>
               <td class="px-4 py-3 text-slate-600">{{ ticket.admissionsTotal }}</td>
               <td class="px-4 py-3">
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium"
@@ -56,7 +54,7 @@
 
             <!-- Rozbalené vstupenky objednávky -->
             <tr v-if="expanded === ticket.id" :key="`${ticket.id}-adm`">
-              <td colspan="8" class="bg-slate-50 px-4 py-3">
+              <td colspan="7" class="bg-slate-50 px-4 py-3">
                 <div class="space-y-2">
                   <div v-for="(adm, i) in ticket.admissions" :key="adm.uuid"
                     class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">

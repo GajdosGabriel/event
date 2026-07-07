@@ -4,10 +4,12 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Models\Municipality;
 use App\Models\Venue;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
+use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -18,6 +20,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
+        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver(),
     ) {
         parent::__construct();
     }
@@ -96,6 +99,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         $venue = parent::create($properties);
         $venue->syncCanalAssignments($canalIds, true);
 
+        $this->backfillCoordinates($venue);
         $this->syncVenueFiles($venue, $filePayload);
 
         return $venue->fresh(['files', 'canals']);
@@ -118,6 +122,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             $venue->syncCanalAssignments($canalIds, false, $ownerCanalId);
         }
 
+        $this->backfillCoordinates($venue);
         $this->syncVenueFiles($venue, $filePayload);
 
         return $venue->fresh(['files', 'canals']);
@@ -211,6 +216,50 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             'disk' => $fileDisk,
             'make_primary' => $makePrimary,
         ];
+    }
+
+    /**
+     * Ak mistu chybaju GPS suradnice, skus ich automaticky doplnit cez AI/Nominatim,
+     * aby sa na detaile a v evente zobrazila mapa. Chyba geokodovania nie je fatalna.
+     */
+    private function backfillCoordinates(Venue $venue): void
+    {
+        if ($venue->latitude !== null && $venue->longitude !== null) {
+            return;
+        }
+
+        $coords = $this->coordinateResolver->resolve(
+            $venue->name,
+            $this->resolveMunicipalityName($venue->village_id),
+            $venue->country,
+        );
+
+        if ($coords['latitude'] === null || $coords['longitude'] === null) {
+            return;
+        }
+
+        $venue->forceFill([
+            'latitude' => $coords['latitude'],
+            'longitude' => $coords['longitude'],
+        ])->save();
+    }
+
+    private function resolveMunicipalityName(mixed $villageId): ?string
+    {
+        if ($villageId === null || $villageId === '') {
+            return null;
+        }
+
+        $municipality = Municipality::query()->find($villageId, ['shortname', 'fullname']);
+
+        $name = trim((string) ($municipality?->shortname ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $fullname = trim((string) ($municipality?->fullname ?? ''));
+
+        return $fullname !== '' ? $fullname : null;
     }
 
     private function syncVenueFiles(Venue $venue, array $filePayload): void

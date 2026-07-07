@@ -178,14 +178,10 @@
           </dl>
 
           <!-- Kontakt -->
-          <dl v-if="event.phone || event.email || event.website" class="show-card grid gap-3">
+          <dl v-if="event.phone || event.website" class="show-card grid gap-3">
             <div v-if="event.phone" class="detail-card">
               <dt>Telefón</dt>
               <dd><a :href="`tel:${event.phone}`" class="text-blue-700">{{ event.phone }}</a></dd>
-            </div>
-            <div v-if="event.email" class="detail-card">
-              <dt>Email</dt>
-              <dd><a :href="`mailto:${event.email}`" class="text-blue-700">{{ event.email }}</a></dd>
             </div>
             <div v-if="event.website" class="detail-card">
               <dt>Web</dt>

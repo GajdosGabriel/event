@@ -40,6 +40,19 @@
             <div v-if="canal.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="canal.body" />
           </div>
 
+          <!-- Mapa -->
+          <div v-if="canal.latitude && canal.longitude" class="show-card overflow-hidden p-0">
+            <iframe
+              :src="`https://www.openstreetmap.org/export/embed.html?bbox=${canal.longitude - 0.005},${canal.latitude - 0.003},${canal.longitude + 0.005},${canal.latitude + 0.003}&layer=mapnik&marker=${canal.latitude},${canal.longitude}`"
+              class="h-72 w-full border-0"
+              loading="lazy"
+            />
+            <div class="px-4 py-2 text-xs text-slate-500">
+              GPS: {{ canal.latitude }}, {{ canal.longitude }} ·
+              <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600">Google Maps ↗</a>
+            </div>
+          </div>
+
           <!-- Galéria -->
           <div v-if="files.length" class="show-card">
             <h2 class="mb-3 text-base font-semibold text-slate-800">Galéria</h2>
@@ -105,10 +118,6 @@
             <div v-if="canal.phone" class="detail-card">
               <dt>Telefón</dt>
               <dd><a :href="`tel:${canal.phone}`" class="text-blue-700">{{ canal.phone }}</a></dd>
-            </div>
-            <div v-if="canal.email" class="detail-card">
-              <dt>Email</dt>
-              <dd><a :href="`mailto:${canal.email}`" class="text-blue-700">{{ canal.email }}</a></dd>
             </div>
             <div v-if="canal.website" class="detail-card">
               <dt>Web</dt>
