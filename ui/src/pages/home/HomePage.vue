@@ -6,19 +6,46 @@
         <p class="text-slate-500">Prehľad verejných podujatí.</p>
       </div>
 
-      <div class="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm">
-        <button
-          type="button"
-          class="px-3 py-1.5 transition-colors"
-          :class="view === 'agenda' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
-          @click="setView('agenda')"
-        >Agenda</button>
-        <button
-          type="button"
-          class="px-3 py-1.5 transition-colors"
-          :class="view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
-          @click="setView('grid')"
-        >Mriežka</button>
+      <div class="flex items-center gap-2">
+        <!-- Rozbaľovacie vyhľadávanie podľa názvu -->
+        <div class="flex items-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <button
+            type="button"
+            class="flex h-9 w-9 shrink-0 items-center justify-center text-slate-500 transition-colors hover:text-slate-800"
+            :title="searchOpen ? 'Zavrieť vyhľadávanie' : 'Hľadať'"
+            @click="toggleSearch"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
+            </svg>
+          </button>
+          <input
+            ref="searchInput"
+            v-model="search"
+            type="search"
+            placeholder="Hľadať podľa názvu…"
+            class="h-9 border-0 bg-transparent py-0 pr-3 text-sm text-slate-800 outline-none transition-all duration-200"
+            :class="searchOpen ? 'w-48 opacity-100' : 'w-0 opacity-0'"
+            @input="onSearchInput"
+            @keydown.esc="closeSearch"
+          />
+        </div>
+
+        <div class="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm">
+          <button
+            type="button"
+            class="px-3 py-1.5 transition-colors"
+            :class="view === 'agenda' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+            @click="setView('agenda')"
+          >Agenda</button>
+          <button
+            type="button"
+            class="px-3 py-1.5 transition-colors"
+            :class="view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+            @click="setView('grid')"
+          >Mriežka</button>
+        </div>
       </div>
     </div>
 
@@ -42,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
@@ -67,12 +94,40 @@ const error = ref<string | null>(null)
 const page = ref(1)
 const lastPage = ref(1)
 
+const search = ref('')
+const searchOpen = ref(false)
+const searchInput = ref<HTMLInputElement | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+function toggleSearch() {
+  searchOpen.value = !searchOpen.value
+  if (searchOpen.value) {
+    nextTick(() => searchInput.value?.focus())
+  } else {
+    closeSearch()
+  }
+}
+
+function closeSearch() {
+  searchOpen.value = false
+  if (search.value) {
+    search.value = ''
+    loadPage(1)
+  }
+}
+
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => loadPage(1), 400)
+}
+
 async function loadPage(p = 1) {
   loading.value = true
   error.value = null
   try {
     const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
     if (route.query.municipality) params['municipality'] = route.query.municipality
+    if (search.value.trim()) params['search'] = search.value.trim()
     const res = await indexEvents('public', params)
     events.value = res.data
     page.value = res.meta.current_page
@@ -86,4 +141,5 @@ async function loadPage(p = 1) {
 
 watch(() => route.query.municipality, () => loadPage(1))
 onMounted(() => loadPage())
+onBeforeUnmount(() => clearTimeout(searchTimer))
 </script>
