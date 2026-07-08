@@ -27,6 +27,9 @@
       <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
+    <!-- Extra filters injected by the host page -->
+    <slot name="filters" />
+
     <!-- Date range (events) -->
     <template v-if="showDateRange">
       <label class="flex items-center gap-1.5 text-sm text-slate-500">

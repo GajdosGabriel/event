@@ -299,6 +299,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::apiResource('users', AdminUserController::class)
         ->only(['index', 'show'])
         ->middleware('permission:user.view');
+    Route::apiResource('users', AdminUserController::class)
+        ->only(['update'])
+        ->middleware('permission:user.update');
+    Route::apiResource('users', AdminUserController::class)
+        ->only(['destroy'])
+        ->middleware('permission:user.delete');
     Route::post('users/{user}/restore', [AdminUserController::class, 'restore'])
         ->name('users.restore')
         ->middleware('permission:user.delete');

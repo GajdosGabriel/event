@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminUserUpdateRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\UserResource;
 use App\Repositories\Contracts\UserRepository;
@@ -44,6 +45,34 @@ class UserController extends Controller
         $this->authorize('view', $user);
 
         return response()->json(['admin-show' => $user]);
+    }
+
+    public function update(AdminUserUpdateRequest $request, string $id): JsonResponse
+    {
+        $user = $this->userRepository->adminShow($id);
+        $this->authorize('update', $user);
+        abort_if((int) $user->id === (int) $request->user()->id, 403, 'Nemôžete upraviť vlastný účet.');
+
+        $blocked = $request->boolean('blocked');
+
+        $user->forceFill([
+            'blocked_at'     => $blocked ? ($user->blocked_at ?? now()) : null,
+            'blocked_until'  => $blocked ? $request->input('blocked_until') : null,
+            'blocked_reason' => $blocked ? $request->input('blocked_reason') : null,
+        ])->save();
+
+        return response()->json(new UserResource($user->fresh()), 200);
+    }
+
+    public function destroy(string $id): JsonResponse
+    {
+        $user = $this->userRepository->adminShow($id);
+        $this->authorize('delete', $user);
+        abort_if((int) $user->id === (int) request()->user()->id, 403, 'Nemôžete zmazať vlastný účet.');
+
+        $this->userRepository->delete($id);
+
+        return response()->json(null, 204);
     }
 
     public function restore(string $id): JsonResponse

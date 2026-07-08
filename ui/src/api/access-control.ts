@@ -25,3 +25,22 @@ export async function listUsers(scope: ACScope = 'dashboard'): Promise<Record<st
 export async function restoreUser(userId: number, scope: ACScope = 'dashboard'): Promise<void> {
   await http.post(`/${scope}/users/${userId}/restore`, {})
 }
+
+export interface BlockUserPayload {
+  blocked: boolean
+  blocked_until?: string | null
+  blocked_reason?: string | null
+}
+
+export async function updateUser(
+  userId: number,
+  payload: BlockUserPayload,
+  scope: ACScope = 'dashboard',
+): Promise<Record<string, unknown>> {
+  const { data } = await http.put(`/${scope}/users/${userId}`, payload)
+  return (data.data ?? data) as Record<string, unknown>
+}
+
+export async function deleteUser(userId: number, scope: ACScope = 'dashboard'): Promise<void> {
+  await http.delete(`/${scope}/users/${userId}`)
+}
