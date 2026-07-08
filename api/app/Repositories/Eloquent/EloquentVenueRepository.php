@@ -218,6 +218,29 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         ];
     }
 
+    public function backfillMissingCoordinates(?\Closure $onEach = null): array
+    {
+        $summary = ['processed' => 0, 'updated' => 0, 'skipped' => 0];
+
+        $this->model()->withTrashed()
+            ->where(fn ($query) => $query->whereNull('latitude')->orWhereNull('longitude'))
+            ->orderBy('id')
+            ->each(function (Venue $venue) use (&$summary, $onEach) {
+                $summary['processed']++;
+
+                $this->backfillCoordinates($venue);
+
+                $updated = $venue->latitude !== null && $venue->longitude !== null;
+                $summary[$updated ? 'updated' : 'skipped']++;
+
+                if ($onEach !== null) {
+                    $onEach($venue, $updated);
+                }
+            });
+
+        return $summary;
+    }
+
     /**
      * Ak mistu chybaju GPS suradnice, skus ich automaticky doplnit cez AI/Nominatim,
      * aby sa na detaile a v evente zobrazila mapa. Chyba geokodovania nie je fatalna.

@@ -1,9 +1,10 @@
 <template>
   <div v-if="startAt">
-    <!-- Same day: Sobota / 4. 7. 2026, 10:00 – 18:00 -->
+    <!-- Same day: Sobota / 4. 7. 2026, 10:00 – 18:00 (or "Celý deň" for 00:00 – 23:59) -->
     <template v-if="endAt && isSameDay(startAt, endAt)">
       <span class="block font-semibold">{{ dayName(startAt) }}</span>
-      <span>{{ fmtDate(startAt) }}, {{ fmtTime(startAt) }} – {{ fmtTime(endAt) }}</span>
+      <span v-if="isAllDayRange(startAt, endAt)">{{ fmtDate(startAt) }}, Celý deň</span>
+      <span v-else>{{ fmtDate(startAt) }}, {{ fmtTime(startAt) }} – {{ fmtTime(endAt) }}</span>
     </template>
 
     <!-- Multi-day, no specific time (00:00 - 23:59): Pondelok - Piatok / 28. 9. 2026, - 15. 1. 2027 -->

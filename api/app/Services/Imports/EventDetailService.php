@@ -259,7 +259,12 @@ class EventDetailService
 	private function shouldIgnoreImageUrl(string $imageUrl, string $baseUrl): bool
 	{
 		if ($this->isTkkbsUrl($baseUrl)) {
-			return str_ends_with(strtolower((string) parse_url($imageUrl, PHP_URL_PATH)), '/image/tkkbs/tkkbs_logo.gif');
+			// The TK KBS header logo is served under /image/tkkbs/tkkbs_logo.*
+			// (historically .gif, now .svg). Ignore it regardless of extension so
+			// it never pollutes the event's image list.
+			$path = strtolower((string) parse_url($imageUrl, PHP_URL_PATH));
+
+			return preg_match('#/image/tkkbs/tkkbs_logo\.[a-z0-9]+$#', $path) === 1;
 		}
 
 		return false;
@@ -355,10 +360,22 @@ class EventDetailService
 			}
 		}
 
-		if (preg_match('/(\d{1,2})\.\s*([[:alpha:]áäčďéíĺľňóôŕšťúýž]+)\s+(\d{4})/iu', $normalized, $matches)) {
+		// "DD. Month YYYY" optionally followed by an explicit Slovak start time
+		// ("o 12.00 hod.", "o 12:00", "o 12.00 h"). The time uses a dot or colon
+		// separator — Slovak prose commonly writes "o 12.00 hod." rather than
+		// "12:00" — and must be captured so the start is not defaulted to 00:00.
+		if (preg_match('/(\d{1,2})\.\s*([[:alpha:]áäčďéíĺľňóôŕšťúýž]+)\s+(\d{4})(?:\s+o\s+(\d{1,2})[:.](\d{2}))?/iu', $normalized, $matches)) {
 			$month = $this->slovakMonthToNumber($matches[2]);
 			if ($month !== null) {
-				$startAt = $this->sourceDateTime((int) $matches[3], $month, (int) $matches[1], 0, 0, 0);
+				$hasTime = isset($matches[4]) && $matches[4] !== '';
+				$startAt = $this->sourceDateTime(
+					(int) $matches[3],
+					$month,
+					(int) $matches[1],
+					$hasTime ? (int) $matches[4] : 0,
+					$hasTime ? (int) $matches[5] : 0,
+					0,
+				);
 
 				return [$startAt, null];
 			}

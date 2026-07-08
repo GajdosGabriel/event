@@ -63,10 +63,9 @@
           </div>
 
           <!-- Galéria -->
-          <div class="show-card">
+          <div v-if="event.uploadedImages.length" class="show-card">
             <h2 class="mb-3 text-base font-semibold text-slate-800">Fotografie</h2>
             <ImageGallery fileable-type="event" :fileable-id="Number(route.params.id)" />
-            <p v-if="!hasImages" class="text-sm text-slate-400">Žiadne fotografie.</p>
           </div>
 
 
@@ -85,15 +84,13 @@
           </div>
 
           <!-- Ďalšie eventy tohto kanálu -->
-          <div v-if="event.canal" class="show-card">
+          <div v-if="event.canal && relatedEvents.length" class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold text-slate-800">Ďalšie eventy — {{ event.canal.name }}</h2>
-              <RouterLink v-if="event.canal" :to="`${prefix}/canals/${event.canal.id}`"
+              <RouterLink :to="`${prefix}/canals/${event.canal.id}`"
                 class="text-xs text-blue-600 hover:underline">Kanál →</RouterLink>
             </div>
-            <p v-if="relatedLoading" class="text-sm text-slate-500">Načítavam…</p>
-            <p v-else-if="!relatedEvents.length" class="text-sm text-slate-400">Žiadne ďalšie eventy.</p>
-            <ul v-else class="grid gap-1.5">
+            <ul class="grid gap-1.5">
               <li v-for="ev in relatedEvents" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="h-2 w-2 shrink-0 rounded-full"
@@ -231,8 +228,6 @@ const event = ref<EventItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const relatedEvents = ref<CanalEventItem[]>([])
-const relatedLoading = ref(false)
-const hasImages = ref(true)
 const bodyView = ref<'original' | 'ai'>('ai')
 
 const DAY_NAMES: Record<number, string> = {
@@ -286,13 +281,10 @@ onMounted(async () => {
     document.title = event.value.name
 
     if (event.value.canal?.id) {
-      relatedLoading.value = true
       try {
         const all = await listCanalEvents(scope.value, event.value.canal.id)
         relatedEvents.value = all.filter(e => e.id !== id).slice(0, 10)
-      } catch { /* non-fatal */ } finally {
-        relatedLoading.value = false
-      }
+      } catch { /* non-fatal */ }
     }
   } catch {
     error.value = true
