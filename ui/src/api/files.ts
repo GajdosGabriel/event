@@ -3,6 +3,7 @@ import http from './index'
 export interface FileItem {
   id: number
   name: string
+  originalName: string
   extension: string
   url: string
   thumbUrl: string | null
@@ -11,6 +12,9 @@ export interface FileItem {
   sizeBytes: number
   isPrimary: boolean
   sortOrder: number
+  fileableType: string | null
+  fileableId: number | null
+  createdAt: string | null
   deletedAt: string | null
 }
 
@@ -33,9 +37,12 @@ function mapFile(raw: Record<string, unknown>): FileItem {
   const thumbRaw    = (raw['thumb_image_url'] as string) ?? null
   const largeRaw    = (raw['large_image_url'] as string) ?? null
 
+  const fileableTypeRaw = (raw['fileable_type'] as string) ?? null
+
   return {
     id: raw['id'] as number,
     name: (raw['name'] as string) ?? '',
+    originalName: (raw['original_name'] as string) ?? (raw['name'] as string) ?? '',
     extension: (raw['extension'] as string) ?? '',
     url: originalUrl ?? '',
     thumbUrl: resolveImageUrl(thumbRaw, imageFallback),
@@ -44,6 +51,9 @@ function mapFile(raw: Record<string, unknown>): FileItem {
     sizeBytes: (raw['size'] as number) ?? (raw['size_bytes'] as number) ?? 0,
     isPrimary: (raw['is_primary'] as boolean) ?? false,
     sortOrder: (raw['sort_order'] as number) ?? 0,
+    fileableType: fileableTypeRaw ? fileableTypeRaw.split('\\').pop() ?? null : null,
+    fileableId: (raw['fileable_id'] as number) ?? null,
+    createdAt: (raw['created_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
   }
 }
