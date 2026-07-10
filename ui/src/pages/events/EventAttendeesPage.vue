@@ -61,8 +61,12 @@
                     <span class="text-sm font-medium text-slate-800">
                       {{ adm.attendeeName || `Vstupenka ${i + 1}` }}
                     </span>
-                    <span v-if="adm.ticketType" class="text-xs text-slate-500">{{ adm.ticketType.name }}</span>
+                    <span v-if="adm.ticketType" class="text-xs"
+                      :class="adm.ticketType.kind === 'workshop' ? 'rounded-full bg-violet-100 px-2 py-0.5 font-medium text-violet-700' : 'text-slate-500'">
+                      {{ adm.ticketType.name }}
+                    </span>
                     <span v-if="adm.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Zrušený</span>
+                    <span v-else-if="adm.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Náhradník</span>
                     <span v-else-if="adm.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                       Vstup {{ formatDateTime(adm.checkedInAt) }}
                     </span>

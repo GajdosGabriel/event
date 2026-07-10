@@ -76,7 +76,7 @@
           </p>
           <div v-else class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
             <p class="text-sm text-slate-600">Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.</p>
-            <RouterLink :to="`${prefix}/events/${route.params.id}/tickets`" class="btn btn-secondary shrink-0">
+            <RouterLink :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary shrink-0">
               Spravovať lístky →
             </RouterLink>
           </div>

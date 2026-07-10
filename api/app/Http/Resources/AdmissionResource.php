@@ -27,6 +27,8 @@ class AdmissionResource extends JsonResource
             'ticket_type' => $this->whenLoaded('ticketType', fn () => $this->ticketType ? [
                 'id' => $this->ticketType->id,
                 'name' => $this->ticketType->name,
+                'kind' => $this->ticketType->kind,
+                'starts_at' => $this->ticketType->starts_at,
             ] : null),
             // Údaje objednávateľa – užitočné pri kontrole na vchode.
             'holder_name' => $this->whenLoaded('ticket', fn () => $this->ticket?->holder_name),

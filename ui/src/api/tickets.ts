@@ -10,7 +10,15 @@ import type {
 
 export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
   const checkedInBy = raw['checked_in_by'] as { id: number } | null
-  const ticketType = raw['ticket_type'] as { id: number; name: string } | null
+  const rawType = raw['ticket_type'] as Record<string, unknown> | null
+  const ticketType: AdmissionItem['ticketType'] = rawType
+    ? {
+        id: rawType['id'] as number,
+        name: rawType['name'] as string,
+        kind: (rawType['kind'] as 'ticket' | 'workshop') ?? 'ticket',
+        startsAt: (rawType['starts_at'] as string) ?? null,
+      }
+    : null
   const event = raw['event'] as { id: number; name: string } | null
 
   return {

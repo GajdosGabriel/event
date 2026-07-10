@@ -133,6 +133,7 @@ export interface EventItem {
   dateRangeLabel: string | null
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
+  workshopLockOnStart?: boolean
   capacity: number | null
   remainingCapacity: number | null
   priceAmount: number | null
@@ -281,14 +282,17 @@ export interface UserRolesPayload {
 // Tickets
 export type TicketStatus = 'reserved' | 'confirmed' | 'cancelled'
 export type TicketPaymentStatus = 'none' | 'pending' | 'paid' | 'failed' | 'refunded'
-export type AdmissionStatus = 'valid' | 'cancelled'
+export type AdmissionStatus = 'valid' | 'waitlisted' | 'cancelled'
 
-// Typ lístka (napr. Standard, VIP, Zdarma).
+// Typ lístka (napr. Standard, VIP, Zdarma) alebo workshop v rámci eventu.
 export interface TicketTypeItem {
   id?: number
   eventId?: number
   name: string
+  kind: 'ticket' | 'workshop'
   description: string | null
+  startsAt: string | null
+  endsAt: string | null
   priceAmount: number | null
   priceCurrency: string
   capacity: number | null
@@ -302,6 +306,14 @@ export interface TicketTypeItem {
   soldCount?: number
   remainingCapacity?: number | null
   onSale?: boolean
+  /** Je prihlásený návštevník na tomto workshope? (verejný zoznam typov) */
+  viewerJoined?: boolean
+  /** Je náhradníkom na plnom workshope? */
+  viewerWaitlisted?: boolean
+  /** Jeho poradie v čakačke (1 = najbližší na rade). */
+  viewerWaitlistPosition?: number | null
+  /** Počet náhradníkov na workshope. */
+  waitlistCount?: number
   createdAt?: string
 }
 
@@ -318,7 +330,7 @@ export interface AdmissionItem {
   checkedInAt: string | null
   checkedInBy?: { id: number } | null
   qrUrl: string
-  ticketType?: { id: number; name: string } | null
+  ticketType?: { id: number; name: string; kind?: 'ticket' | 'workshop'; startsAt?: string | null } | null
   holderName?: string | null
   event?: { id: number; name: string } | null
 }

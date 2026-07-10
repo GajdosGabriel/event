@@ -21,7 +21,9 @@
       <p class="font-semibold">{{ resultTitle }}</p>
       <p v-if="result.admission">
         {{ result.admission.attendeeName || result.admission.holderName }}
-        <span v-if="result.admission.ticketType" class="text-xs opacity-70">· {{ result.admission.ticketType.name }}</span>
+        <span v-if="result.admission.ticketType" class="text-xs opacity-70">
+          · {{ result.admission.ticketType.kind === 'workshop' ? 'Workshop: ' : '' }}{{ result.admission.ticketType.name }}
+        </span>
       </p>
     </div>
 

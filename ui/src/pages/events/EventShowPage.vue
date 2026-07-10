@@ -62,6 +62,16 @@
             <p v-else class="text-sm text-slate-400">Bez popisu.</p>
           </div>
 
+          <!-- Workshopy (sub-akcie eventu) -->
+          <div v-if="workshops.length" class="show-card">
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <h2 class="text-base font-semibold text-slate-800">Workshopy ({{ workshops.length }})</h2>
+              <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`"
+                class="text-xs text-blue-600 hover:underline">Spravovať →</RouterLink>
+            </div>
+            <EventWorkshops :workshops="workshops" show-inactive />
+          </div>
+
           <!-- Galéria -->
           <div v-if="event.uploadedImages.length" class="show-card">
             <h2 class="mb-3 text-base font-semibold text-slate-800">Fotografie</h2>
@@ -212,9 +222,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
-import type { EventItem } from '@/types'
+import { indexTicketTypes } from '@/api/ticketTypes'
+import type { EventItem, TicketTypeItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
+import EventWorkshops from '@/components/EventWorkshops.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -228,6 +240,7 @@ const event = ref<EventItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const relatedEvents = ref<CanalEventItem[]>([])
+const workshops = ref<TicketTypeItem[]>([])
 const bodyView = ref<'original' | 'ai'>('ai')
 
 const DAY_NAMES: Record<number, string> = {
@@ -279,6 +292,13 @@ onMounted(async () => {
   try {
     event.value = await showEvent(scope.value, id)
     document.title = event.value.name
+
+    if (event.value.permissions.viewTickets) {
+      try {
+        const types = await indexTicketTypes(id)
+        workshops.value = types.filter(t => t.kind === 'workshop')
+      } catch { /* non-fatal */ }
+    }
 
     if (event.value.canal?.id) {
       try {

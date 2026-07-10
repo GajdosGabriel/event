@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\TicketTypeKind;
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -13,6 +14,7 @@ class TicketType extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'kind' => TicketTypeKind::class,
         'price_amount' => 'integer',
         'capacity' => 'integer',
         'max_per_order' => 'integer',
@@ -20,6 +22,8 @@ class TicketType extends Model
         'requires_attendee_name' => 'boolean',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
         'sale_starts_at' => 'datetime',
         'sale_ends_at' => 'datetime',
         'meta' => 'array',
@@ -30,6 +34,11 @@ class TicketType extends Model
     public function event()
     {
         return $this->belongsTo(Event::class);
+    }
+
+    public function isWorkshop(): bool
+    {
+        return $this->kind === TicketTypeKind::Workshop;
     }
 
     public function admissions()

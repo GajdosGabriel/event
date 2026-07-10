@@ -38,6 +38,30 @@
               <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="event.body" />
             </div>
 
+            <!-- Workshopy (sub-akcie v rámci eventu) -->
+            <div v-if="workshops.length" class="rounded-2xl border border-slate-200 bg-white p-6">
+              <div class="mb-4 flex items-center gap-2">
+                <svg class="h-4 w-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <h2 class="text-base font-semibold text-slate-800">Workshopy</h2>
+              </div>
+              <p class="mb-3 text-sm text-slate-500">
+                Sprievodné workshopy v rámci podujatia. Prihlásiť sa na ne môžu účastníci registrovaní na podujatie.
+              </p>
+              <p v-if="workshopError" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ workshopError }}</p>
+              <EventWorkshops
+                :workshops="workshops"
+                joinable
+                :authenticated="auth.isAuthenticated"
+                :viewer-registered="viewerRegistered"
+                :locked="workshopChangesLocked"
+                :busy-id="workshopBusyId"
+                @join="onJoinWorkshop"
+                @leave="onLeaveWorkshop"
+              />
+            </div>
+
             <!-- Galéria -->
             <div v-if="event.uploadedImages.length" class="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 class="mb-4 text-base font-semibold text-slate-800">Fotografie</h2>
@@ -95,6 +119,8 @@
               <TicketRequestForm
                 :event-id="event.id"
                 :remaining-capacity="event.remainingCapacity"
+                :types="ticketTypes"
+                :viewer-registered="viewerRegistered"
                 :registration-deadline-at="event.registrationDeadlineAt"
                 :end-at="event.endAt"
               />
@@ -217,15 +243,53 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
-import type { EventItem } from '@/types'
+import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
+import { useAuthStore } from '@/stores/auth'
+import type { EventItem, TicketTypeItem } from '@/types'
 import EventDateRange from '@/components/EventDateRange.vue'
+import EventWorkshops from '@/components/EventWorkshops.vue'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
 
 const route = useRoute()
+const auth = useAuthStore()
 const event = ref<EventItem | null>(null)
+const ticketTypes = ref<TicketTypeItem[]>([])
+const viewerRegistered = ref(false)
+const workshopChangesLocked = ref(false)
+const workshopBusyId = ref<number | null>(null)
+const workshopError = ref<string | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const lightboxIdx = ref<number | null>(null)
+
+const workshops = computed(() => ticketTypes.value.filter(t => t.kind === 'workshop'))
+
+async function loadTicketTypes(eventId: number) {
+  const result = await publicTicketTypes(eventId)
+  ticketTypes.value = result.types
+  viewerRegistered.value = result.viewerRegistered
+  workshopChangesLocked.value = result.workshopChangesLocked
+}
+
+/** Po zmene znovu načítame typy — obnoví viewerJoined aj voľné kapacity. */
+async function runWorkshopAction(workshop: TicketTypeItem, action: (eventId: number, typeId: number) => Promise<void>) {
+  if (!event.value || !workshop.id) return
+  workshopBusyId.value = workshop.id
+  workshopError.value = null
+  try {
+    await action(event.value.id, workshop.id)
+    await loadTicketTypes(event.value.id)
+    event.value = await showPublicEvent(String(event.value.id))
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    workshopError.value = err.response?.data?.message ?? 'Akciu sa nepodarilo dokončiť.'
+  } finally {
+    workshopBusyId.value = null
+  }
+}
+
+const onJoinWorkshop = (w: TicketTypeItem) => runWorkshopAction(w, joinWorkshop)
+const onLeaveWorkshop = (w: TicketTypeItem) => runWorkshopAction(w, leaveWorkshop)
 
 const DAY_NAMES: Record<number, string> = {
   0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',
@@ -306,7 +370,15 @@ useHead(computed(() => {
 onMounted(async () => {
   loading.value = true
   try {
-    event.value = await showPublicEvent(route.params.id as string)
+    const ev = await showPublicEvent(route.params.id as string)
+
+    // Typy lístkov (vrátane workshopov) načítame tu — používa ich sekcia
+    // workshopov aj registračný formulár, aby sa nerobili dva rovnaké requesty.
+    try {
+      await loadTicketTypes(ev.id)
+    } catch { /* non-fatal — formulár ukáže prázdny stav */ }
+
+    event.value = ev
   } catch {
     error.value = true
   } finally {

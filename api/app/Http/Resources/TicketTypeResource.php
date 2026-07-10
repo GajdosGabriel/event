@@ -16,7 +16,10 @@ class TicketTypeResource extends JsonResource
             'id' => $this->id,
             'event_id' => $this->event_id,
             'name' => $this->name,
+            'kind' => $this->kind,
             'description' => $this->description,
+            'starts_at' => $this->starts_at,
+            'ends_at' => $this->ends_at,
             'price_amount' => $this->price_amount,
             'price_currency' => $this->price_currency,
             'capacity' => $this->capacity,
@@ -30,6 +33,11 @@ class TicketTypeResource extends JsonResource
             'sold_count' => $this->sold_count,
             'remaining_capacity' => $this->remaining_capacity,
             'on_sale' => $this->on_sale,
+            // Dopĺňa verejný zoznam typov — stav prihláseného návštevníka na workshope.
+            'viewer_joined' => (bool) ($this->viewer_joined ?? false),
+            'viewer_waitlisted' => (bool) ($this->viewer_waitlisted ?? false),
+            'viewer_waitlist_position' => $this->viewer_waitlist_position ?? null,
+            'waitlist_count' => (int) ($this->waitlist_count ?? 0),
             'created_at' => $this->created_at,
         ];
     }

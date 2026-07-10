@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\AdmissionStatus;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\QrCodeGenerator;
@@ -21,6 +22,11 @@ class AdmissionQrController extends Controller
         $admission = $this->ticketRepository->findAdmissionByUuid($uuid);
 
         if (! $admission) {
+            abort(404);
+        }
+
+        // Náhradník ešte nemá miesto — QR kód mu nevydáme.
+        if ($admission->status === AdmissionStatus::Waitlisted) {
             abort(404);
         }
 

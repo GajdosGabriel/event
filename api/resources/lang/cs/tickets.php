@@ -14,7 +14,12 @@ return [
         'refunded' => 'Vrácený',
     ],
     'admission_status' => [
-        'valid'     => 'Platný',
-        'cancelled' => 'Zrušený',
+        'valid'      => 'Platný',
+        'waitlisted' => 'Náhradník',
+        'cancelled'  => 'Zrušený',
+    ],
+    'type_kind' => [
+        'ticket'   => 'Vstupenka',
+        'workshop' => 'Workshop',
     ],
 ];

@@ -4,8 +4,9 @@ namespace App\Enums;
 
 enum AdmissionStatus: string
 {
-    case Valid     = 'valid';
-    case Cancelled = 'cancelled';
+    case Valid      = 'valid';
+    case Waitlisted = 'waitlisted';
+    case Cancelled  = 'cancelled';
 
     public function label(): string
     {

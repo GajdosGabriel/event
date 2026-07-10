@@ -26,6 +26,7 @@ class Event extends Model
         'end_at' => 'datetime',
         'registration_deadline_at' => 'datetime',
         'tickets_enabled' => 'boolean',
+        'workshop_lock_on_start' => 'boolean',
         'capacity' => 'integer',
         'price_amount' => 'integer',
         'meta' => 'array',
@@ -70,15 +71,31 @@ class Event extends Model
 
     public function getRemainingCapacityAttribute(): ?int
     {
-        if ($this->capacity === null) {
-            return null;
+        if ($this->capacity === null || $this->id === null) {
+            return $this->capacity;
         }
 
-        $issued = (int) $this->admissions()
-            ->where('status', \App\Enums\AdmissionStatus::Valid->value)
+        // Workshopové miesta sa do kapacity eventu nerátajú.
+        $issued = (int) Admission::query()
+            ->mainSeats($this->id)
             ->count();
 
         return max(0, $this->capacity - $issued);
+    }
+
+    /**
+     * Po začiatku podujatia sa prihlásenie na workshopy už nedá meniť
+     * (ak to organizátor nevypol). Po skončení podujatia vždy.
+     */
+    public function workshopChangesLocked(): bool
+    {
+        if ($this->end_at !== null && $this->end_at->isPast()) {
+            return true;
+        }
+
+        return (bool) $this->workshop_lock_on_start
+            && $this->start_at !== null
+            && $this->start_at->isPast();
     }
 
     public function getOwnerAttribute()

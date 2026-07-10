@@ -14,3 +14,10 @@ export function fmtDate(d: string): string {
 export function fmtTime(d: string): string {
   return new Date(d).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
 }
+
+/** „Streda 1. 8. 2026 10:00–12:00" — termín workshopu. */
+export function fmtDayTimeRange(start: string | null, end: string | null): string {
+  if (!start) return ''
+  const label = `${dayName(start)} ${fmtDate(start)} ${fmtTime(start)}`
+  return end ? `${label}–${fmtTime(end)}` : label
+}

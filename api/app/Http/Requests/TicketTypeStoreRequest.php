@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TicketTypeKind;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class TicketTypeStoreRequest extends FormRequest
 {
@@ -21,7 +23,10 @@ class TicketTypeStoreRequest extends FormRequest
 
         return [
             'name' => [$required, 'string', 'max:190'],
+            'kind' => ['sometimes', Rule::enum(TicketTypeKind::class)],
             'description' => ['nullable', 'string', 'max:500'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'price_amount' => ['nullable', 'integer', 'min:0'],
             'price_currency' => ['sometimes', 'string', 'size:3'],
             'capacity' => ['nullable', 'integer', 'min:1'],

@@ -17,7 +17,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, VenueController as PublicVenueController};
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -59,6 +59,14 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
 Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])->name('public.events.tickets.store');
+
+// Prihlásenie / odhlásenie prihláseného používateľa na workshop podujatia.
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('events/{event}/workshops/{type}', [PublicWorkshopRegistrationController::class, 'store'])
+        ->name('public.events.workshops.store');
+    Route::delete('events/{event}/workshops/{type}', [PublicWorkshopRegistrationController::class, 'destroy'])
+        ->name('public.events.workshops.destroy');
+});
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('admissions/{uuid}/qr', [PublicAdmissionQrController::class, 'show'])->name('public.admissions.qr');

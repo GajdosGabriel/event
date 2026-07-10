@@ -42,16 +42,27 @@
           <div class="mb-2 flex items-center justify-between">
             <p class="text-sm font-semibold text-slate-800">
               {{ admission.attendeeName || `Vstupenka ${i + 1}` }}
-              <span v-if="admission.ticketType" class="ml-1 text-xs font-normal text-slate-500">· {{ admission.ticketType.name }}</span>
+              <span v-if="admission.ticketType?.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                Workshop: {{ admission.ticketType.name }}
+              </span>
+              <span v-else-if="admission.ticketType" class="ml-1 text-xs font-normal text-slate-500">· {{ admission.ticketType.name }}</span>
             </p>
-            <span v-if="admission.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            <span v-if="admission.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              Náhradník
+            </span>
+            <span v-else-if="admission.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
               Použitý {{ formatDateTime(admission.checkedInAt) }}
             </span>
             <span v-else-if="admission.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
               Zrušený
             </span>
           </div>
-          <div class="flex flex-col items-center gap-2">
+
+          <!-- Náhradník ešte nemá miesto — QR kód by pri vchode neprešiel. -->
+          <p v-if="admission.status === 'waitlisted'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+            Čakáte na uvoľnenie miesta. Keď ho dostanete, pošleme vám e-mail a objaví sa tu QR kód.
+          </p>
+          <div v-else class="flex flex-col items-center gap-2">
             <img :src="admission.qrUrl" :alt="`QR kód vstupenky ${i + 1}`" class="h-48 w-48"
               :class="{ 'opacity-30 grayscale': admission.isCheckedIn || admission.status === 'cancelled' }" />
           </div>
