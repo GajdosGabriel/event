@@ -55,6 +55,12 @@ Bez `o` → ignoruje sa (ide o dátum publikovania).
 3. AI (len ak 1. aj 2. vrátili null)
 ```
 
+**Pozor — spravodajské agentúry nie sú organizátor.** „TK KBS“ / „Tlačová kancelária KBS“ sú
+zámerne mimo heuristických vzorov: objavujú sa v hlavičke každého článku na tkkbs.sk
+(`"Košice 8. júla (TK KBS) …"`) ako vydavateľ správy, nie ako organizátor podujatia, o ktorom
+správa referuje. Keby tam boli, každý TK KBS článok by skončil s canalom „TK KBS“ a AI by
+sa k organizátorovi nikdy nedostala.
+
 ```
 1. EventTextLabelExtractor::extractVenue()           ← labely + prose vzory
    ("Miesto:", "o HH:MM v [Miesto] v [Mesto]", ...)
@@ -105,6 +111,8 @@ Ak je `false` → AI blok sa preskočí úplne, regex výsledky sú finálne.
 2. Ak nenašlo a AI je zapnutá → Detector::detectVenueDetails() (geocoding)
 3. Ak nenašlo → auto-vytvorí Draft Venue keď mesto matchuje Municipality
    (fuzzy prefix matching pre slovenský lokál: "Bratislave" → "Bratislava")
+   Keď mesto chýba, ako mesto sa skúsi samotný názov venue — pútnické miesta
+   sú často pomenované len obcou ("do Klokočova" → venue.name = "Klokočov").
 4. Fallback → "Celé Slovensko" (venue.category = 'fallback')
 ```
 

@@ -254,7 +254,9 @@ class ImportEventSourcesCommandTest extends TestCase
 
         $canal = Canal::query()->where('website', 'https://www.tkkbs.sk')->first();
         $this->assertNotNull($canal);
-        $this->assertSame('TK KBS', $canal->name);
+        // The "(TK KBS)" dateline names the news agency, not the organizer, so with AI
+        // detection off the canal falls back to the source host.
+        $this->assertSame('tkkbs.sk', $canal->name);
 
         $event = Event::query()->where('orginal_source', $detailUrl)->first();
         $this->assertNotNull($event);

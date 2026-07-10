@@ -165,8 +165,9 @@ class ImportedCanalNameResolver
             '/\b(VD\s+ECAV)\b/iu',
             '/\b(ZD\s+ECAV)\b/iu',
             '/\b(EMC\s+ECAV)\b/iu',
-            '/\b(TK\s+KBS)\b/iu',
-            '/\b(Tlačov[aá]\s+kancel[aá]ria\s+KBS)\b/iu',
+            // "TK KBS" / "Tlačová kancelária KBS" are deliberately absent: they appear in the
+            // dateline of every tkkbs.sk article ("Košice 8. júla (TK KBS) …") as the news
+            // agency that published the piece, never as the organizer of the event it reports on.
             '/\b(Konferencia\s+biskupov\s+Slovenska)\b/iu',
             '/\b(Evanjelick[áa]\s+cirkev\s+a\.\s*v\.\s+na\s+Slovensku)\b/iu',
         ];

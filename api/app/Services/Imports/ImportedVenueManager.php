@@ -44,9 +44,13 @@ class ImportedVenueManager
                 }
             }
 
-            // Auto-create a draft venue when city can be resolved to a municipality
-            if (is_string($venueCity) && $venueCity !== '') {
-                $villageId = $this->resolveMunicipalityId($venueCity);
+            // Auto-create a draft venue when city can be resolved to a municipality.
+            // A pilgrimage site is often named only by its village ("do Klokočova") with no
+            // separate city, so fall back to reading the venue name itself as the municipality.
+            $cityCandidate = is_string($venueCity) && $venueCity !== '' ? $venueCity : $venueName;
+
+            if ($cityCandidate !== '') {
+                $villageId = $this->resolveMunicipalityId($cityCandidate);
                 if ($villageId !== null) {
                     $venue = Venue::create([
                         'village_id' => $villageId,
