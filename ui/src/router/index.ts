@@ -35,6 +35,8 @@ const router = createRouter({
         { path: 'events/:id', name: 'dashboard-events-show', component: () => import('@/pages/events/EventShowPage.vue') },
         { path: 'events/:id/edit', name: 'dashboard-events-edit', component: () => import('@/pages/events/EventEditPage.vue') },
         { path: 'events/:id/tickets', name: 'dashboard-events-tickets', component: () => import('@/pages/events/EventTicketsSettingsPage.vue') },
+        { path: 'events/:id/tickets/create', name: 'dashboard-events-tickets-create', component: () => import('@/pages/events/EventTicketTypeEditPage.vue') },
+        { path: 'events/:id/tickets/:typeId/edit', name: 'dashboard-events-tickets-edit', component: () => import('@/pages/events/EventTicketTypeEditPage.vue') },
         { path: 'events/:id/attendees', name: 'dashboard-events-attendees', component: () => import('@/pages/events/EventAttendeesPage.vue') },
         { path: 'events/:id/checkin', name: 'dashboard-events-checkin', component: () => import('@/pages/events/EventCheckinScannerPage.vue') },
         { path: 'canals', name: 'dashboard-canals', component: ResourceIndex, props: { resource: 'canal' } },

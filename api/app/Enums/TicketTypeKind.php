@@ -2,8 +2,13 @@
 
 namespace App\Enums;
 
-enum TicketTypeKind: string
+use App\Enums\Concerns\ProvidesOptions;
+use App\Enums\Contracts\HasLabel;
+
+enum TicketTypeKind: string implements HasLabel
 {
+    use ProvidesOptions;
+
     case Ticket   = 'ticket';
     case Workshop = 'workshop';
 

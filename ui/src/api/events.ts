@@ -72,6 +72,8 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
       }
     })(),
     allowedStatuses: (raw['allowed_statuses'] as EventItem['allowedStatuses']) ?? [],
+    ticketTypeKindOptions: (raw['ticket_type_kind_options'] as EventItem['ticketTypeKindOptions']) ?? [],
+    ticketTypeLabels: (raw['ticket_type_labels'] as EventItem['ticketTypeLabels']) ?? {},
     municipality: (raw['municipality'] as EventItem['municipality']) ?? null,
     canal,
     venue: (() => {

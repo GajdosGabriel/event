@@ -1,0 +1,25 @@
+@component('mail::message')
+# Dobrý deň, {{ $greetingName }}!
+
+Váš lístok na akciu **„{{ $eventName }}"** bol úspešne vytvorený.
+
+@if ($quantity > 1)
+Počet rezervovaných miest: **{{ $quantity }}**.
+@endif
+
+@if (count($seats))
+@foreach ($seats as $seat)
+**{{ $seat['label'] }}**@if (!empty($seat['type'])) · {{ $seat['type'] }}@endif
+
+<img src="{{ $message->embedData($seat['png'], 'qr-'.$loop->index.'.png', 'image/png') }}" alt="QR kód" width="200" height="200" style="display:block;border:0;outline:none;margin:6px 0 16px;" />
+@endforeach
+
+Každá vstupenka má vlastný QR kód. Jednotlivé kódy môžete preposlať aj ďalším účastníkom — pri vstupe sa každý načíta samostatne.
+@endif
+
+@component('mail::button', ['url' => $ticketUrl])
+Zobraziť lístok a QR kód
+@endcomponent
+
+Lístok si preneste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.
+@endcomponent

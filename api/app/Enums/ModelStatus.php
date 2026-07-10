@@ -2,10 +2,14 @@
 
 namespace App\Enums;
 
+use App\Enums\Concerns\ProvidesOptions;
+use App\Enums\Contracts\HasLabel;
 use App\Models\User;
 
-enum ModelStatus: string
+enum ModelStatus: string implements HasLabel
 {
+    use ProvidesOptions;
+
     case Draft = 'draft';
     case PendingReview = 'pending_review';
     case Rejected = 'rejected';
@@ -40,9 +44,6 @@ enum ModelStatus: string
             ? self::cases()
             : [self::Draft, self::Published, self::Archived];
 
-        return array_map(
-            fn (self $s) => ['value' => $s->value, 'label' => $s->label()],
-            $cases
-        );
+        return self::options($cases);
     }
 }

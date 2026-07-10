@@ -12,6 +12,12 @@ export interface AllowedStatusOption {
   name: string
 }
 
+/** Možnosť pre <select>, ktorej hodnoty aj popisky (cez lang) drží backend. */
+export interface SelectOption {
+  value: string
+  label: string
+}
+
 export interface ModelPermissions {
   view: boolean
   update: boolean
@@ -151,6 +157,8 @@ export interface EventItem {
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
   allowedStatuses: AllowedStatusOption[]
+  ticketTypeKindOptions: SelectOption[]
+  ticketTypeLabels: Record<string, string>
   phone: string | null
   email: string | null
   municipality: { id: number; name: string; fullname?: string } | null

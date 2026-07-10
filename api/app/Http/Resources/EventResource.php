@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\ModelStatus;
+use App\Enums\TicketTypeKindOption;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -47,6 +48,16 @@ class EventResource extends JsonResource
         }
 
         $data['allowed_statuses'] = $this->allowedStatuses($request);
+
+        // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží
+        // backend (lang + policy), front ich len vykreslí.
+        $data['ticket_type_kind_options'] = TicketTypeKindOption::options(
+            TicketTypeKindOption::allowedForUser($user)
+        );
+
+        // Popisky polí formulára typu lístka — držané v lang, aby ich front
+        // nemal natvrdo a preklad bol len otázka lang súboru.
+        $data['ticket_type_labels'] = __('tickets.type_form');
 
         // Nested canal/venue are exposed via the Event model's appended accessors,
         // which serialize the whole related model (all columns + their own image/pivot

@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
+use App\Services\Tickets\QrCodeGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -26,19 +28,32 @@ class TicketIssued extends Notification implements ShouldQueue
     {
         $ticketUrl = rtrim(config('app.frontend_url'), '/') . '/tickets/' . $this->ticket->uuid;
         $eventName = $this->ticket->event?->name ?? 'podujatie';
-        $quantity = (int) ($this->ticket->quantity ?? 1);
 
-        $message = (new MailMessage())
+        $generator = app(QrCodeGenerator::class);
+
+        // QR kódy patria jednotlivým vstupenkám (admissions), nie objednávke.
+        // Náhradník ešte nemá miesto — QR mu nevydáme (rovnako ako pri vchode).
+        $seats = $this->ticket->admissions()
+            ->with('ticketType')
+            ->where('status', AdmissionStatus::Valid->value)
+            ->orderBy('id')
+            ->get()
+            ->values()
+            ->map(fn (\App\Models\Admission $admission, int $i) => [
+                'label' => $admission->attendee_name ?: ('Vstupenka ' . ($i + 1)),
+                'type'  => $admission->ticketType?->name,
+                'png'   => $generator->forToken($admission->qr_token)->getString(),
+            ])
+            ->all();
+
+        return (new MailMessage())
             ->subject('Váš lístok na ' . $eventName)
-            ->greeting('Dobrý deň, ' . $this->ticket->holder_name . '!')
-            ->line('Váš lístok na akciu "' . $eventName . '" bol úspešne vytvorený.');
-
-        if ($quantity > 1) {
-            $message->line('Počet rezervovaných miest: ' . $quantity . '.');
-        }
-
-        return $message
-            ->action('Zobraziť lístok a QR kód', $ticketUrl)
-            ->line('Lístok si preneste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.');
+            ->markdown('mail.ticket-issued', [
+                'greetingName' => $this->ticket->holder_name,
+                'eventName'    => $eventName,
+                'quantity'     => (int) ($this->ticket->quantity ?? 1),
+                'seats'        => $seats,
+                'ticketUrl'    => $ticketUrl,
+            ]);
     }
 }

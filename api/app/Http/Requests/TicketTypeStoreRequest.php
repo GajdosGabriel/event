@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\TicketTypeKind;
+use App\Enums\TicketTypeKindOption;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,5 +41,29 @@ class TicketTypeStoreRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
+    }
+
+    /**
+     * Zvolený druh (kind + open_to_public) musí patriť medzi možnosti, ktoré
+     * daný používateľ smie nastaviť — rovnaká policy ako vo výbere vo fronte.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->filled('kind')) {
+                return;
+            }
+
+            $kind = TicketTypeKind::tryFrom((string) $this->input('kind'));
+            if ($kind === null) {
+                return; // neplatnú hodnotu už zachytí Rule::enum vyššie
+            }
+
+            $option = TicketTypeKindOption::fromModel($kind, $this->boolean('open_to_public'));
+
+            if (! in_array($option, TicketTypeKindOption::allowedForUser($this->user()), true)) {
+                $validator->errors()->add('kind', __('tickets.errors.kind_not_allowed'));
+            }
+        });
     }
 }

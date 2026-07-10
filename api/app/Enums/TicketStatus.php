@@ -2,8 +2,13 @@
 
 namespace App\Enums;
 
-enum TicketStatus: string
+use App\Enums\Concerns\ProvidesOptions;
+use App\Enums\Contracts\HasLabel;
+
+enum TicketStatus: string implements HasLabel
 {
+    use ProvidesOptions;
+
     case Reserved  = 'reserved';
     case Confirmed = 'confirmed';
     case Cancelled = 'cancelled';

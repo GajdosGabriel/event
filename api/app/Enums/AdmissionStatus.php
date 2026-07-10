@@ -2,8 +2,13 @@
 
 namespace App\Enums;
 
-enum AdmissionStatus: string
+use App\Enums\Concerns\ProvidesOptions;
+use App\Enums\Contracts\HasLabel;
+
+enum AdmissionStatus: string implements HasLabel
 {
+    use ProvidesOptions;
+
     case Valid      = 'valid';
     case Waitlisted = 'waitlisted';
     case Cancelled  = 'cancelled';
