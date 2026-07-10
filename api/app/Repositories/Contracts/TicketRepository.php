@@ -51,5 +51,4 @@ interface TicketRepository extends InterfaceRepository
     public function cancel($id): Ticket;
     public function cancelAdmission(int $admissionId): Admission;
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator;
-    public function remainingCapacity(Event $event): ?int;
 }

@@ -16,7 +16,7 @@ class Event extends Model
 
     protected $guarded = [];
     protected $hidden = [];
-    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'remaining_capacity'];
+    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
 
     protected $casts = [
         'name' => StringLength250::class,
@@ -25,9 +25,7 @@ class Event extends Model
         'start_at' => 'datetime',
         'end_at' => 'datetime',
         'registration_deadline_at' => 'datetime',
-        'tickets_enabled' => 'boolean',
         'workshop_lock_on_start' => 'boolean',
-        'capacity' => 'integer',
         'price_amount' => 'integer',
         'meta' => 'array',
     ];
@@ -69,18 +67,21 @@ class Event extends Model
         return $this->hasMany(Admission::class);
     }
 
-    public function getRemainingCapacityAttribute(): ?int
+    /**
+     * Registrácia / predaj lístkov je dostupná, keď má podujatie aspoň jeden
+     * aktívny typ lístka. Nie je to samostatný prepínač — odvádza sa z typov.
+     */
+    public function getTicketsEnabledAttribute(): bool
     {
-        if ($this->capacity === null || $this->id === null) {
-            return $this->capacity;
+        if ($this->relationLoaded('ticketTypes')) {
+            return $this->ticketTypes->contains(fn ($type) => (bool) $type->is_active);
         }
 
-        // Workshopové miesta sa do kapacity eventu nerátajú.
-        $issued = (int) Admission::query()
-            ->mainSeats($this->id)
-            ->count();
+        if ($this->id === null) {
+            return false;
+        }
 
-        return max(0, $this->capacity - $issued);
+        return $this->ticketTypes()->where('is_active', true)->exists();
     }
 
     /**

@@ -18,10 +18,7 @@ class TicketingSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tickets_enabled' => ['required', 'boolean'],
             'workshop_lock_on_start' => ['sometimes', 'boolean'],
-            'capacity' => ['nullable', 'integer', 'min:1'],
-            'registration_deadline_at' => ['nullable', 'date'],
         ];
     }
 }

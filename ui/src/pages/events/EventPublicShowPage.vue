@@ -55,6 +55,7 @@
                 joinable
                 :authenticated="auth.isAuthenticated"
                 :viewer-registered="viewerRegistered"
+                :standalone="standaloneWorkshops"
                 :locked="workshopChangesLocked"
                 :busy-id="workshopBusyId"
                 @join="onJoinWorkshop"
@@ -118,7 +119,6 @@
               </div>
               <TicketRequestForm
                 :event-id="event.id"
-                :remaining-capacity="event.remainingCapacity"
                 :types="ticketTypes"
                 :viewer-registered="viewerRegistered"
                 :registration-deadline-at="event.registrationDeadlineAt"
@@ -263,6 +263,12 @@ const error = ref(false)
 const lightboxIdx = ref<number | null>(null)
 
 const workshops = computed(() => ticketTypes.value.filter(t => t.kind === 'workshop'))
+
+// Podujatie bez hlavného typu vstupenky (len workshopy) → workshop je samostatná
+// registrácia a dá sa naň prihlásiť priamo, bez vstupenky na podujatie.
+const standaloneWorkshops = computed(
+  () => workshops.value.length > 0 && ticketTypes.value.every(t => t.kind === 'workshop'),
+)
 
 async function loadTicketTypes(eventId: number) {
   const result = await publicTicketTypes(eventId)

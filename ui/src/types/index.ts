@@ -134,8 +134,6 @@ export interface EventItem {
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
   workshopLockOnStart?: boolean
-  capacity: number | null
-  remainingCapacity: number | null
   priceAmount: number | null
   priceCurrency: string | null
   publishedAt: string | null
@@ -299,6 +297,8 @@ export interface TicketTypeItem {
   maxPerOrder: number
   minPerOrder: number
   requiresAttendeeName: boolean
+  /** Workshop otvorený aj pre neregistrovaných — nevyžaduje hlavnú vstupenku. */
+  openToPublic?: boolean
   saleStartsAt: string | null
   saleEndsAt: string | null
   isActive: boolean

@@ -16,6 +16,7 @@ export function mapTicketType(raw: Record<string, unknown>): TicketTypeItem {
     maxPerOrder: (raw['max_per_order'] as number) ?? 10,
     minPerOrder: (raw['min_per_order'] as number) ?? 1,
     requiresAttendeeName: Boolean(raw['requires_attendee_name']),
+    openToPublic: Boolean(raw['open_to_public']),
     saleStartsAt: (raw['sale_starts_at'] as string) ?? null,
     saleEndsAt: (raw['sale_ends_at'] as string) ?? null,
     isActive: Boolean(raw['is_active']),
@@ -43,6 +44,7 @@ export interface TicketTypePayload {
   max_per_order?: number
   min_per_order?: number
   requires_attendee_name?: boolean
+  open_to_public?: boolean
   sale_starts_at?: string | null
   sale_ends_at?: string | null
   is_active?: boolean
@@ -98,10 +100,7 @@ export async function deleteTicketType(eventId: number, typeId: number): Promise
 }
 
 export interface TicketingSettingsPayload {
-  tickets_enabled: boolean
   workshop_lock_on_start?: boolean
-  capacity?: number | null
-  registration_deadline_at?: string | null
 }
 
 export async function updateTicketingSettings(

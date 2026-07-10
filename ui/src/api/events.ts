@@ -41,8 +41,6 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
     ticketsEnabled: Boolean(raw['tickets_enabled']),
     workshopLockOnStart: raw['workshop_lock_on_start'] === undefined ? true : Boolean(raw['workshop_lock_on_start']),
-    capacity: (raw['capacity'] as number) ?? null,
-    remainingCapacity: (raw['remaining_capacity'] as number) ?? null,
     priceAmount: (raw['price_amount'] as number) ?? null,
     priceCurrency: (raw['price_currency'] as string) ?? null,
     publishedAt: (raw['published_at'] as string) ?? null,

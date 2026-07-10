@@ -22,7 +22,6 @@ class TicketTypeAdmissionTest extends EventSetupTest
     {
         $this->app['auth']->forgetGuards();
 
-        $this->futureEvent->update(['tickets_enabled' => true]);
         $standard = $this->futureEvent->ticketTypes()->create(['name' => 'Standard', 'price_amount' => 0, 'is_active' => true]);
         $vip = $this->futureEvent->ticketTypes()->create(['name' => 'VIP', 'price_amount' => 1500, 'is_active' => true]);
 
@@ -54,7 +53,6 @@ class TicketTypeAdmissionTest extends EventSetupTest
     {
         $this->app['auth']->forgetGuards();
 
-        $this->futureEvent->update(['tickets_enabled' => true]);
         $type = $this->futureEvent->ticketTypes()->create(['name' => 'Limit', 'price_amount' => 0, 'capacity' => 2, 'is_active' => true]);
 
         $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
@@ -71,7 +69,6 @@ class TicketTypeAdmissionTest extends EventSetupTest
     {
         // Verejná rezervácia 2 miest.
         $this->app['auth']->forgetGuards();
-        $this->futureEvent->update(['tickets_enabled' => true]);
         $type = $this->futureEvent->ticketTypes()->create(['name' => 'Std', 'price_amount' => 0, 'is_active' => true]);
 
         $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
@@ -113,7 +110,6 @@ class TicketTypeAdmissionTest extends EventSetupTest
     public function checkin_stats_report_arrivals(): void
     {
         $this->app['auth']->forgetGuards();
-        $this->futureEvent->update(['tickets_enabled' => true]);
         $type = $this->futureEvent->ticketTypes()->create(['name' => 'Std', 'price_amount' => 0, 'is_active' => true]);
 
         $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [

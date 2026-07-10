@@ -26,6 +26,7 @@ class TicketTypeResource extends JsonResource
             'max_per_order' => $this->max_per_order,
             'min_per_order' => $this->min_per_order,
             'requires_attendee_name' => $this->requires_attendee_name,
+            'open_to_public' => (bool) $this->open_to_public,
             'sale_starts_at' => $this->sale_starts_at,
             'sale_ends_at' => $this->sale_ends_at,
             'is_active' => $this->is_active,

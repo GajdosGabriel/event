@@ -22,7 +22,6 @@ class WorkshopRegistrationTest extends EventSetupTest
 
         $this->seed(RolesAndPermissionsSeeder::class);
         $this->app['auth']->forgetGuards();
-        $this->futureEvent->update(['tickets_enabled' => true]);
     }
 
     private function createTypes(): array
@@ -56,6 +55,67 @@ class WorkshopRegistrationTest extends EventSetupTest
         ])->assertStatus(422);
 
         $this->assertDatabaseMissing('tickets', ['holder_email' => 'cudzi@example.com']);
+    }
+
+    #[Test]
+    public function standalone_workshop_without_main_type_can_be_ordered_directly(): void
+    {
+        // Podujatie bez hlavného typu vstupenky — workshop je samostatná
+        // registrácia a hosť sa naň má vedieť prihlásiť priamo.
+        $workshop = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Seminár',
+            'kind' => TicketTypeKind::Workshop->value,
+            'price_amount' => 0,
+            'capacity' => 5,
+            'is_active' => true,
+        ]);
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+            'holder_name' => 'Samostatný',
+            'holder_email' => 'sam@example.com',
+            'items' => [['ticket_type_id' => $workshop->id, 'quantity' => 1]],
+        ])->assertStatus(201)->assertJsonPath('admissions_total', 1);
+
+        $this->assertDatabaseHas('tickets', ['holder_email' => 'sam@example.com']);
+    }
+
+    #[Test]
+    public function open_workshop_can_be_ordered_without_main_ticket(): void
+    {
+        // Podujatie MÁ hlavný typ, ale workshop je označený ako otvorený
+        // (open_to_public) → hosť ho vie objednať aj bez hlavnej vstupenky.
+        $this->createTypes(); // vytvorí aj hlavný typ „Vstupenka"
+        $open = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Otvorený seminár',
+            'kind' => TicketTypeKind::Workshop->value,
+            'open_to_public' => true,
+            'price_amount' => 0,
+            'capacity' => 5,
+            'is_active' => true,
+        ]);
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+            'holder_name' => 'Nezaregistrovaný',
+            'holder_email' => 'open@example.com',
+            'items' => [['ticket_type_id' => $open->id, 'quantity' => 1]],
+        ])->assertStatus(201)->assertJsonPath('admissions_total', 1);
+
+        $this->assertDatabaseHas('tickets', ['holder_email' => 'open@example.com']);
+    }
+
+    #[Test]
+    public function non_open_workshop_still_requires_main_ticket(): void
+    {
+        // Kontrolný test: bežný (nie otvorený) workshop naďalej vyžaduje registráciu.
+        [, $workshop] = $this->createTypes();
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+            'holder_name' => 'Cudzí',
+            'holder_email' => 'cudzi2@example.com',
+            'items' => [['ticket_type_id' => $workshop->id, 'quantity' => 1]],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('tickets', ['holder_email' => 'cudzi2@example.com']);
     }
 
     #[Test]
@@ -505,10 +565,17 @@ class WorkshopRegistrationTest extends EventSetupTest
     }
 
     #[Test]
-    public function workshop_admissions_do_not_consume_event_capacity(): void
+    public function workshop_admissions_do_not_consume_main_type_capacity(): void
     {
-        [$main, $workshop] = $this->createTypes();
-        $this->futureEvent->update(['capacity' => 2]);
+        // Hlavný typ má vlastnú kapacitu 2, workshop svoju vlastnú (5).
+        $main = $this->futureEvent->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'capacity' => 2, 'is_active' => true]);
+        $workshop = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Keramika',
+            'kind' => TicketTypeKind::Workshop->value,
+            'price_amount' => 0,
+            'capacity' => 5,
+            'is_active' => true,
+        ]);
 
         $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
             'holder_name' => 'Kapacita',
@@ -519,9 +586,9 @@ class WorkshopRegistrationTest extends EventSetupTest
             ],
         ])->assertStatus(201);
 
-        // Hlavná kapacita 2 je plná, ale workshop miesta ju nezožrali —
-        // remaining_capacity eventu je 0 kvôli 2 vstupenkám, nie 4 admissions.
-        $this->assertSame(0, $this->futureEvent->fresh()->remaining_capacity);
+        // Hlavný typ je plný (2/2), ale workshop miesta jeho kapacitu nezožrali.
+        $this->assertSame(0, $main->fresh()->remaining_capacity);
+        $this->assertSame(3, $workshop->fresh()->remaining_capacity);
 
         $order = Ticket::query()->where('holder_email', 'kapacita@example.com')->firstOrFail();
         $this->assertSame(4, $order->admissions()->count());

@@ -36,7 +36,7 @@ Nastane pri `POST /api/events/{event}/workshops/{type}`, keď sú splnené **vš
 | Podmienka | Pri porušení |
 |-----------|--------------|
 | Používateľ je prihlásený (`auth:sanctum`) | 401 |
-| `event.tickets_enabled` je zapnuté | 422 |
+| Podujatie má aspoň jeden aktívny typ lístka (odvodené `tickets_enabled`) | 422 |
 | Typ patrí eventu, je `is_active` a má `kind = workshop` | 404 |
 | Zmeny nie sú zamknuté (viď nižšie) | 422 |
 | Používateľ ešte nemá na tomto workshope miesto ani miesto v čakačke | 422 „Na tento workshop ste už prihlásený." |

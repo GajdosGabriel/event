@@ -39,8 +39,6 @@ class EventResource extends JsonResource
 
         $data['tickets_enabled'] = $this->tickets_enabled;
         $data['workshop_lock_on_start'] = (bool) $this->workshop_lock_on_start;
-        $data['capacity'] = $this->capacity;
-        $data['remaining_capacity'] = $this->remaining_capacity;
         $data['price_amount'] = $this->price_amount;
         $data['price_currency'] = $this->price_currency;
 

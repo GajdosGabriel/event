@@ -11,10 +11,10 @@
       <!-- Nastavenia predaja -->
       <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
         <h2 class="mb-3 text-lg font-semibold text-slate-800">Nastavenia</h2>
-        <label class="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input v-model="settings.tickets_enabled" type="checkbox" class="accent-blue-600" />
-          Povoliť registráciu / predaj lístkov
-        </label>
+        <p class="mb-3 text-xs text-slate-500">
+          Registrácia je pre návštevníkov dostupná automaticky, keď má podujatie aspoň jeden
+          aktívny typ lístka (nižšie). Bez typov sa formulár na verejnej stránke nezobrazí.
+        </p>
         <label class="mb-3 flex items-start gap-2 text-sm font-medium text-slate-700">
           <input v-model="settings.workshop_lock_on_start" type="checkbox" class="mt-0.5 accent-blue-600" />
           <span>
@@ -25,16 +25,6 @@
             </span>
           </span>
         </label>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label class="form-label">
-            Celková kapacita (prázdne = neobmedzené)
-            <input v-model.number="settings.capacity" type="number" min="1" class="form-input" placeholder="neobmedzené" />
-          </label>
-          <label class="form-label">
-            Uzávierka registrácie
-            <DateTimeInput v-model="settings.registration_deadline_at" class="form-input" />
-          </label>
-        </div>
         <div class="mt-4">
           <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">
             {{ savingSettings ? 'Ukladám…' : 'Uložiť nastavenia' }}
@@ -67,7 +57,9 @@
               <tr v-for="t in types" :key="t.id">
                 <td class="px-4 py-3 font-medium text-slate-900">
                   {{ t.name }}
-                  <span v-if="t.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">Workshop</span>
+                  <span v-if="t.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                    Workshop<template v-if="t.openToPublic"> · otvorený</template>
+                  </span>
                   <span v-if="t.requiresAttendeeName" class="ml-1 text-xs font-normal text-slate-400">(mená účastníkov)</span>
                 </td>
                 <td class="px-4 py-3 text-slate-600">{{ t.priceAmount ? formatPrice(t.priceAmount, t.priceCurrency) : 'Zdarma' }}</td>
@@ -108,9 +100,10 @@
             </label>
             <label class="form-label sm:col-span-2">
               Druh
-              <select v-model="modal.form.kind" class="form-input">
+              <select v-model="kindOption" class="form-input">
                 <option value="ticket">Vstupenka</option>
                 <option value="workshop">Workshop (len pre registrovaných účastníkov)</option>
+                <option value="workshop_open">Workshop (aj pre neregistrovaných na evente)</option>
               </select>
             </label>
             <label class="form-label sm:col-span-2">
@@ -173,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
 import {
@@ -198,10 +191,7 @@ const loadError = ref<string | null>(null)
 const savingSettings = ref(false)
 
 const settings = reactive({
-  tickets_enabled: false,
   workshop_lock_on_start: true,
-  capacity: null as number | null,
-  registration_deadline_at: '' as string,
 })
 
 const types = ref<TicketTypeItem[]>([])
@@ -219,6 +209,7 @@ function emptyTypeForm() {
   return {
     name: '',
     kind: 'ticket' as 'ticket' | 'workshop',
+    open_to_public: false,
     description: '',
     starts_at: '' as string,
     ends_at: '' as string,
@@ -232,6 +223,19 @@ function emptyTypeForm() {
   }
 }
 
+// „Druh" v UI má 3 možnosti; v dátach je to kind (ticket/workshop) + príznak
+// open_to_public. Proxy ich mapuje obojsmerne.
+const kindOption = computed<'ticket' | 'workshop' | 'workshop_open'>({
+  get() {
+    if (modal.form.kind !== 'workshop') return 'ticket'
+    return modal.form.open_to_public ? 'workshop_open' : 'workshop'
+  },
+  set(value) {
+    modal.form.kind = value === 'ticket' ? 'ticket' : 'workshop'
+    modal.form.open_to_public = value === 'workshop_open'
+  },
+})
+
 function formatPrice(amount: number, currency: string | null) {
   return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: currency ?? 'EUR' }).format(amount / 100)
 }
@@ -241,10 +245,7 @@ async function loadAll() {
   loadError.value = null
   try {
     const ev = await showEvent('dashboard', eventId)
-    settings.tickets_enabled = ev.ticketsEnabled ?? false
     settings.workshop_lock_on_start = ev.workshopLockOnStart ?? true
-    settings.capacity = ev.capacity ?? null
-    settings.registration_deadline_at = ev.registrationDeadlineAt?.slice(0, 16) ?? ''
     types.value = await indexTicketTypes(eventId)
   } catch {
     loadError.value = 'Údaje sa nepodarilo načítať.'
@@ -257,10 +258,7 @@ async function saveSettings() {
   savingSettings.value = true
   try {
     await updateTicketingSettings(eventId, {
-      tickets_enabled: settings.tickets_enabled,
       workshop_lock_on_start: settings.workshop_lock_on_start,
-      capacity: settings.capacity || null,
-      registration_deadline_at: settings.registration_deadline_at || null,
     })
     toast.success('Nastavenia uložené.')
   } catch {
@@ -285,6 +283,7 @@ function openEdit(t: TicketTypeItem) {
   modal.form = {
     name: t.name,
     kind: t.kind ?? 'ticket',
+    open_to_public: t.openToPublic ?? false,
     description: t.description ?? '',
     starts_at: t.startsAt?.slice(0, 16) ?? '',
     ends_at: t.endsAt?.slice(0, 16) ?? '',
@@ -306,6 +305,7 @@ async function saveType() {
     const payload: TicketTypePayload = {
       name: modal.form.name,
       kind: modal.form.kind,
+      open_to_public: modal.form.kind === 'workshop' ? modal.form.open_to_public : false,
       description: modal.form.description || null,
       starts_at: modal.form.kind === 'workshop' ? modal.form.starts_at || null : null,
       ends_at: modal.form.kind === 'workshop' ? modal.form.ends_at || null : null,

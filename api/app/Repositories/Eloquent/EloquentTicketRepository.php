@@ -119,11 +119,17 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 abort(422, 'Nevybrali ste žiadny lístok.');
             }
 
-            // Workshopy sú len pre registrovaných účastníkov — nárok je počet
-            // platných hlavných vstupeniek (existujúcich + v tejto objednávke).
-            $workshopLines = array_filter($resolved, fn ($line) => $line['type']->isWorkshop());
+            // Workshopy sú viazané na hlavnú vstupenku — nárok je počet platných
+            // hlavných vstupeniek (existujúcich + v tejto objednávke). Výnimky:
+            //  • workshop s open_to_public sa dá objednať aj bez hlavnej vstupenky,
+            //  • podujatie bez hlavného typu (samostatné workshopy).
+            // Takéto workshopy obmedzuje len vlastná kapacita a max_per_order.
+            $workshopLines = array_filter(
+                $resolved,
+                fn ($line) => $line['type']->isWorkshop() && ! $line['type']->isOpenWorkshop(),
+            );
 
-            if ($workshopLines !== []) {
+            if ($workshopLines !== [] && $this->eventHasActiveMainType($lockedEvent)) {
                 $entitlement = $mainSeats + $this->existingMainSeats(
                     $lockedEvent,
                     $properties['user_id'] ?? null,
@@ -138,25 +144,6 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                     if ($line['quantity'] > $entitlement) {
                         abort(422, 'Na workshop „' . $line['type']->name . '" môžete objednať najviac ' . $entitlement . ' ' . ($entitlement === 1 ? 'miesto' : ($entitlement <= 4 ? 'miesta' : 'miest')) . ' — podľa počtu vstupeniek na podujatie.');
                     }
-                }
-            }
-
-            // Kapacita na úrovni podujatia (naprieč typmi) — workshopové miesta
-            // sa do nej nerátajú, workshopy majú vlastnú kapacitu per typ.
-            if ($lockedEvent->capacity !== null && $mainSeats > 0) {
-                $issued = (int) Admission::query()
-                    ->mainSeats($lockedEvent->id)
-                    ->lockForUpdate()
-                    ->count();
-
-                $remaining = max(0, $lockedEvent->capacity - $issued);
-
-                if ($remaining <= 0) {
-                    abort(422, 'Event je už plne obsadený.');
-                }
-
-                if ($mainSeats > $remaining) {
-                    abort(422, 'K dispozícii ' . ($remaining === 1 ? 'je' : 'sú') . ' už len ' . $remaining . ' ' . $this->seatsWord($remaining) . '.');
                 }
             }
 
@@ -385,8 +372,11 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
     /** Zaradenie medzi náhradníkov — objednávka bez platného miesta. */
     private function createWaitlistAdmission(Event $event, TicketType $type, User $user): Admission
     {
-        // Aj náhradník musí byť účastníkom podujatia.
-        if ($this->existingMainSeats($event, $user->id, $user->email) === 0) {
+        // Aj náhradník musí byť účastníkom podujatia — okrem otvorených workshopov
+        // a podujatí bez hlavného typu vstupenky.
+        if (! $type->isOpenWorkshop()
+            && $this->eventHasActiveMainType($event)
+            && $this->existingMainSeats($event, $user->id, $user->email) === 0) {
             abort(422, 'Na workshopy sa môžu prihlásiť len účastníci registrovaní na podujatie.');
         }
 
@@ -453,6 +443,18 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
     }
 
     /**
+     * Má podujatie aspoň jeden aktívny hlavný (nie workshop) typ vstupenky?
+     * Ak nie, workshopy sú samostatné registrácie a neviažu sa na hlavnú vstupenku.
+     */
+    private function eventHasActiveMainType(Event $event): bool
+    {
+        return $event->ticketTypes()
+            ->where('is_active', true)
+            ->where('kind', '!=', TicketTypeKind::Workshop->value)
+            ->exists();
+    }
+
+    /**
      * Počet platných hlavných vstupeniek, ktoré už objednávateľ
      * (podľa účtu alebo e-mailu) na podujatí má.
      */
@@ -500,14 +502,13 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             ->first();
 
         // Podujatie má povolené lístky, ale zatiaľ nemá nakonfigurovaný žiadny
-        // typ – vytvoríme predvolený z ceny/kapacity podujatia (spätná
-        // kompatibilita so starým „len quantity" payloadom).
+        // typ – vytvoríme predvolený z ceny podujatia (spätná kompatibilita so
+        // starým „len quantity" payloadom).
         if (! $type) {
             $type = $event->ticketTypes()->create([
                 'name' => 'Vstupenka',
                 'price_amount' => $event->price_amount,
                 'price_currency' => $event->price_currency ?? 'EUR',
-                'capacity' => $event->capacity,
                 'is_active' => true,
             ]);
         }
@@ -702,24 +703,6 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             ->latest();
 
         return $this->paginateFilteredQuery($query, $perPage, $filters);
-    }
-
-    public function remainingCapacity(Event $event): ?int
-    {
-        if ($event->capacity === null) {
-            return null;
-        }
-
-        $issued = (int) Admission::query()
-            ->mainSeats($event->id)
-            ->count();
-
-        return max(0, $event->capacity - $issued);
-    }
-
-    private function seatsWord(int $count): string
-    {
-        return $count >= 2 && $count <= 4 ? 'voľné miesta' : 'voľných miest';
     }
 
     public function publicIndexQuery()

@@ -33,6 +33,7 @@ class TicketTypeStoreRequest extends FormRequest
             'max_per_order' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'min_per_order' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'requires_attendee_name' => ['sometimes', 'boolean'],
+            'open_to_public' => ['sometimes', 'boolean'],
             'sale_starts_at' => ['nullable', 'date'],
             'sale_ends_at' => ['nullable', 'date', 'after_or_equal:sale_starts_at'],
             'is_active' => ['sometimes', 'boolean'],

@@ -86,7 +86,7 @@
               {{ busyId === w.id ? 'Odosielam…' : isFull(w) ? 'Zaradiť medzi náhradníkov' : 'Prihlásiť sa' }}
             </button>
             <span v-if="!authenticated" class="text-xs text-slate-500">Najprv sa prihlás do účtu.</span>
-            <span v-else-if="!viewerRegistered" class="text-xs text-slate-500">Najprv sa registruj na podujatie.</span>
+            <span v-else-if="!viewerRegistered && !standalone && !w.openToPublic" class="text-xs text-slate-500">Najprv sa registruj na podujatie.</span>
             <span v-else-if="isFull(w)" class="text-xs text-slate-500">Workshop je plný — pôjdeš do poradia.</span>
           </div>
         </template>
@@ -109,6 +109,8 @@ const props = defineProps<{
   authenticated?: boolean
   /** Má návštevník vstupenku na podujatie? */
   viewerRegistered?: boolean
+  /** Podujatie nemá hlavný typ vstupenky — workshop je samostatná registrácia. */
+  standalone?: boolean
   /** Podujatie začalo a organizátor zamkol zmeny. */
   locked?: boolean
   /** Id workshopu, na ktorom práve beží požiadavka. */
@@ -136,8 +138,10 @@ function isFull(w: TicketTypeItem): boolean {
 }
 
 /** Plný workshop neblokuje akciu — zaradí sa do čakačky. */
-function canAct(_w: TicketTypeItem): boolean {
-  return Boolean(props.authenticated) && Boolean(props.viewerRegistered) && !props.locked
+function canAct(w: TicketTypeItem): boolean {
+  // Otvorený workshop nevyžaduje registráciu na podujatie.
+  const hasAccess = Boolean(props.viewerRegistered) || Boolean(props.standalone) || Boolean(w.openToPublic)
+  return Boolean(props.authenticated) && hasAccess && !props.locked
 }
 
 function lockedMessage(w: TicketTypeItem): string {

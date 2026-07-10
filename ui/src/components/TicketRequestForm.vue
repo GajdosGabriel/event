@@ -16,20 +16,11 @@
       {{ closedReason }}
     </div>
 
-    <!-- Vypredané -->
-    <div v-else-if="soldOutBlocked" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
-      Kapacita je naplnená — event je plný.
-    </div>
-
     <div v-else-if="!types.length" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
       Pre toto podujatie zatiaľ nie sú v predaji žiadne lístky.
     </div>
 
     <form v-else class="space-y-4" @submit.prevent="submit">
-      <div v-if="remainingCapacity !== null" class="text-xs text-slate-500">
-        Voľných miest: <strong>{{ remainingCapacity }}</strong>
-      </div>
-
       <!-- Výber typov lístkov -->
       <div v-for="type in mainTypes" :key="type.id" class="rounded-lg border border-slate-200 p-3">
         <div class="flex items-start justify-between gap-2">
@@ -68,13 +59,13 @@
       <template v-if="workshops.length">
         <div class="pt-1">
           <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Workshopy</p>
-          <p v-if="!workshopsUnlocked" class="mt-1 text-xs text-slate-500">
+          <p v-if="!workshopsUnlocked && hasGatedWorkshops" class="mt-1 text-xs text-slate-500">
             Najprv si vyber vstupenku — workshopy sú len pre registrovaných účastníkov.
           </p>
         </div>
 
         <div v-for="type in workshops" :key="type.id" class="rounded-lg border border-slate-200 p-3"
-          :class="{ 'opacity-60': !workshopsUnlocked }">
+          :class="{ 'opacity-60': !workshopUnlocked(type) }">
           <div class="flex items-start justify-between gap-2">
             <div>
               <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
@@ -92,7 +83,7 @@
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                 @click="dec(type)">−</button>
               <span class="w-6 text-center text-sm font-semibold">{{ qty(type) }}</span>
-              <button type="button" :disabled="!workshopsUnlocked || qty(type) >= maxFor(type)"
+              <button type="button" :disabled="!workshopUnlocked(type) || qty(type) >= maxFor(type)"
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                 @click="inc(type)">+</button>
             </div>
@@ -163,7 +154,6 @@ import type { TicketItem, TicketTypeItem } from '@/types'
 
 const props = defineProps<{
   eventId: number
-  remainingCapacity: number | null
   /** Aktívne typy lístkov vrátane workshopov — načíta ich stránka eventu. */
   types: TicketTypeItem[]
   viewerRegistered?: boolean
@@ -191,22 +181,31 @@ const useOwnDetails = ref(false)
 const quantities = reactive<Record<number, number>>({})
 const attendees = reactive<Record<number, { value: string }[]>>({})
 
-const isSoldOut = computed(() => props.remainingCapacity !== null && props.remainingCapacity <= 0)
 const oneClick = computed(() => auth.isAuthenticated && !useOwnDetails.value)
 
 const mainTypes = computed(() => types.value.filter(t => t.kind !== 'workshop'))
 const workshops = computed(() => types.value.filter(t => t.kind === 'workshop'))
 
+// Podujatie bez hlavného typu vstupenky (len workshopy) → workshop je samostatná
+// registrácia, neviaže sa na hlavnú vstupenku a dá sa objednať priamo.
+const standaloneWorkshops = computed(() => mainTypes.value.length === 0 && workshops.value.length > 0)
+
 // Miesta na hlavných vstupenkách vybrané v tejto objednávke.
 const mainSeatsSelected = computed(() => mainTypes.value.reduce((sum, t) => sum + qty(t), 0))
 
-// Workshopy sú odomknuté pre registrovaného návštevníka alebo po výbere vstupenky.
-const workshopsUnlocked = computed(() => viewerRegistered.value || mainSeatsSelected.value > 0)
-
-// Plný event neblokuje formulár, ak si registrovaný účastník chce doobjednať workshop.
-const soldOutBlocked = computed(
-  () => isSoldOut.value && !(viewerRegistered.value && workshops.value.length > 0),
+// Viazané workshopy sú odomknuté pri samostatnom workshopovom podujatí, pre
+// registrovaného návštevníka alebo po výbere hlavnej vstupenky.
+const workshopsUnlocked = computed(
+  () => standaloneWorkshops.value || viewerRegistered.value || mainSeatsSelected.value > 0,
 )
+
+// Existuje aspoň jeden workshop viazaný na hlavnú vstupenku (nie otvorený)?
+const hasGatedWorkshops = computed(() => workshops.value.some(w => !w.openToPublic))
+
+// Otvorený workshop je odomknutý vždy; ostatné podľa workshopsUnlocked.
+function workshopUnlocked(type: TicketTypeItem): boolean {
+  return Boolean(type.openToPublic) || workshopsUnlocked.value
+}
 
 const closedReason = computed(() => {
   const now = Date.now()
@@ -227,11 +226,12 @@ function maxFor(type: TicketTypeItem): number {
   const caps = [type.maxPerOrder]
   if (type.remainingCapacity !== null && type.remainingCapacity !== undefined) caps.push(type.remainingCapacity)
   if (type.kind === 'workshop') {
-    // Kapacita eventu sa workshopov netýka; bez registrácie limituje počet
-    // vybraných vstupeniek (presný nárok registrovaného stráži backend).
-    if (!viewerRegistered.value) caps.push(mainSeatsSelected.value)
-  } else if (props.remainingCapacity !== null) {
-    caps.push(props.remainingCapacity - mainSeatsSelected.value + qty(type))
+    // Bez registrácie limituje workshop počet vybraných vstupeniek (presný nárok
+    // registrovaného stráži backend). Pri samostatnom podujatí a otvorenom
+    // workshope tento strop neplatí.
+    if (!viewerRegistered.value && !standaloneWorkshops.value && !type.openToPublic) {
+      caps.push(mainSeatsSelected.value)
+    }
   }
   return Math.max(0, Math.min(...caps))
 }
@@ -258,7 +258,7 @@ const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a +
 
 // Po ubratí vstupeniek stiahni aj miesta na workshopoch nad nový limit.
 watch(mainSeatsSelected, () => {
-  if (viewerRegistered.value) return
+  if (viewerRegistered.value || standaloneWorkshops.value) return
   for (const w of workshops.value) {
     if (qty(w) > maxFor(w)) quantities[w.id!] = maxFor(w)
   }

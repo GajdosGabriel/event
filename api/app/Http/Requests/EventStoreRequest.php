@@ -50,8 +50,6 @@ class EventStoreRequest extends FormRequest
             ],
             'email' => 'nullable|email|max:100',
             'phone' => 'nullable|string|max:20',
-            'tickets_enabled' => ['sometimes', 'boolean'],
-            'capacity' => ['nullable', 'integer', 'min:1'],
             'price_amount' => ['nullable', 'integer', 'min:0'],
             'price_currency' => ['sometimes', 'string', 'size:3'],
             'files' => ['sometimes', 'array'],

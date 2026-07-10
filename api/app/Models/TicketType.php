@@ -20,6 +20,7 @@ class TicketType extends Model
         'max_per_order' => 'integer',
         'min_per_order' => 'integer',
         'requires_attendee_name' => 'boolean',
+        'open_to_public' => 'boolean',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
         'starts_at' => 'datetime',
@@ -39,6 +40,12 @@ class TicketType extends Model
     public function isWorkshop(): bool
     {
         return $this->kind === TicketTypeKind::Workshop;
+    }
+
+    /** Workshop otvorený aj pre neregistrovaných — nevyžaduje hlavnú vstupenku. */
+    public function isOpenWorkshop(): bool
+    {
+        return $this->isWorkshop() && (bool) $this->open_to_public;
     }
 
     public function admissions()
