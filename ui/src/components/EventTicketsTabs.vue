@@ -31,7 +31,7 @@ const tabs = computed(() => [
 ])
 
 function isActive(name: string): boolean {
-  if (name === 'settings') return route.name === 'dashboard-events-tickets'
+  if (name === 'settings') return String(route.name ?? '').startsWith('dashboard-events-tickets')
   if (name === 'attendees') return route.name === 'dashboard-events-attendees'
   if (name === 'checkin') return route.name === 'dashboard-events-checkin'
   return false

@@ -1,10 +1,6 @@
 <template>
-  <div class="mx-auto my-5 w-full max-w-[720px] px-4">
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <RouterLink :to="{ name: 'dashboard-events-tickets', params: { id: eventId } }" class="action-btn">
-        ← Späť na lístky
-      </RouterLink>
-    </div>
+  <div class="mx-auto my-5 w-full max-w-[1000px] px-4">
+    <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">
       <h1 class="text-2xl font-semibold text-slate-900">{{ isEdit ? 'Upraviť typ lístka' : 'Nový typ lístka' }}</h1>
@@ -14,7 +10,7 @@
     <p v-if="loading" class="text-slate-500">Načítavam…</p>
     <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
 
-    <section v-else class="rounded-2xl border border-slate-200 bg-white p-6">
+    <section v-else class="rounded-2xl border border-slate-200 bg-white p-5">
       <p v-if="error" class="mb-3 text-sm text-red-600">{{ error }}</p>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label class="form-label sm:col-span-2">
@@ -98,6 +94,7 @@ import {
 } from '@/api/ticketTypes'
 import { useToast } from '@/composables/useToast'
 import DateTimeInput from '@/components/DateTimeInput.vue'
+import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { SelectOption } from '@/types'
 
 const route = useRoute()

@@ -43,6 +43,8 @@ class TicketIssued extends Notification implements ShouldQueue
                 'label' => $admission->attendee_name ?: ('Vstupenka ' . ($i + 1)),
                 'type'  => $admission->ticketType?->name,
                 'png'   => $generator->forToken($admission->qr_token)->getString(),
+                // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
+                'qrUrl' => route('public.admissions.qr', $admission->uuid),
             ])
             ->all();
 
