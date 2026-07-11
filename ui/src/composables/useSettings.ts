@@ -10,6 +10,7 @@ export interface AppSettings {
   canalsPerPage: number
   publicEventsPerPage: number
   publicEventsView: PublicEventsView
+  homeOngoingOpen: boolean
 }
 
 export const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100]
@@ -20,6 +21,7 @@ const DEFAULTS: AppSettings = {
   canalsPerPage: 25,
   publicEventsPerPage: 12,
   publicEventsView: 'agenda',
+  homeOngoingOpen: false,
 }
 
 function loadFromStorage(): AppSettings {

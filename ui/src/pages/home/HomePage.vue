@@ -50,7 +50,9 @@
     </div>
 
     <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div class="min-w-0">
+      <div class="min-w-0 space-y-4">
+        <OngoingEventsStrip v-if="!search.trim()" :municipality="municipalityFilter" />
+        <div>
         <p v-if="loading" class="text-slate-600">Načítavam…</p>
         <p v-else-if="error" class="text-red-600">{{ error }}</p>
         <p v-else-if="events.length === 0" class="rounded-xl border border-slate-200 bg-white p-3 text-slate-500">Žiadne eventy.</p>
@@ -59,6 +61,7 @@
           <EventCard v-for="event in events" :key="event.id" :event="event" />
         </div>
         <AppPaginator :current-page="page" :last-page="lastPage" @change="loadPage" />
+        </div>
       </div>
 
       <aside>
@@ -75,6 +78,7 @@ import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
 import EventCard from '@/components/EventCard.vue'
 import EventAgenda from '@/components/EventAgenda.vue'
+import OngoingEventsStrip from '@/components/OngoingEventsStrip.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
@@ -83,6 +87,7 @@ const route = useRoute()
 const { settings, save } = useSettings()
 
 const view = computed(() => settings.value.publicEventsView)
+const municipalityFilter = computed(() => route.query.municipality ? Number(route.query.municipality) : null)
 
 function setView(next: PublicEventsView) {
   settings.value.publicEventsView = next
@@ -126,6 +131,7 @@ async function loadPage(p = 1) {
   error.value = null
   try {
     const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
+    params['list'] = search.value.trim() ? 'all' : 'upcoming'
     if (route.query.municipality) params['municipality'] = route.query.municipality
     if (search.value.trim()) params['search'] = search.value.trim()
     const res = await indexEvents('public', params)

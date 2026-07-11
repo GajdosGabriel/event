@@ -63,6 +63,8 @@ export interface FilterParams {
   deleted?: string | boolean
   search?: string
   municipality?: string | number
+  list?: 'upcoming' | 'ongoing' | 'all'
+  per_page?: number
 }
 
 export interface PaginatedResponse<T> {

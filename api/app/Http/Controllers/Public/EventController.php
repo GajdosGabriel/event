@@ -25,10 +25,13 @@ class EventController extends Controller
         $municipality = $request->integer('municipality') ?: null;
         $perPage = max(1, min((int) $request->integer('per_page') ?: 15, 100));
         $search = trim((string) $request->input('search', '')) ?: null;
+        $list = $request->input('list');
+        $list = in_array($list, ['upcoming', 'ongoing', 'all'], true) ? $list : 'upcoming';
 
         $events = $this->eventRepository->publicIndexWithFilters($perPage, [
             'municipality' => $municipality,
             'search' => $search,
+            'list' => $list,
         ]);
 
         return EventResource::collection($events);

@@ -170,12 +170,26 @@ trait HasCommonFilters
                 ? $query->reorder()->orderBy($this->qualifyColumn('name'))
                 : $query,
             'upcoming' => $this->hasCommonFilterColumn('start_at')
-                ? $query->reorder()
-                    ->orderByRaw($this->qualifyColumn('start_at') . ' IS NULL')
-                    ->orderBy($this->qualifyColumn('start_at'))
+                ? $this->applyUpcomingSort($query->reorder())
                 : $query,
             default => $query,
         };
+    }
+
+    /**
+     * "Najbližší termín": upcoming events first (soonest start_at on top), then
+     * past events (most recently finished first), and finally events with no date.
+     */
+    protected function applyUpcomingSort(Builder $query): Builder
+    {
+        $column = $this->qualifyColumn('start_at');
+        $now = now();
+
+        return $query
+            ->orderByRaw("{$column} IS NULL")
+            ->orderByRaw("({$column} < ?)", [$now])
+            ->orderByRaw("CASE WHEN {$column} >= ? THEN {$column} END ASC", [$now])
+            ->orderByRaw("{$column} DESC");
     }
 
     public function scopeApplyCommonFilters(Builder $query, array $filters): Builder

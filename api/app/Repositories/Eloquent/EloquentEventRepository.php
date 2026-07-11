@@ -14,6 +14,7 @@ use App\Services\Municipalities\MunicipalityOverviewQuery;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
 
 class EloquentEventRepository extends AbstractRepository implements EventRepository
@@ -230,6 +231,31 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         return $this->municipalityOverviewQuery
             ->apply($query, 'venues.village_id', 'events.id')
             ->get();
+    }
+
+    public function publicIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
+    {
+        $query = $this->applyPublicTimeframe($this->publicIndexQuery(), $filters['list'] ?? 'upcoming');
+
+        return $this->paginateFilteredQuery($query, $perPage, $filters);
+    }
+
+    /**
+     * Splits the public list into ongoing (already started, still running) and
+     * upcoming events so long-running events don't sit on top of the agenda.
+     */
+    private function applyPublicTimeframe(Builder $query, string $list): Builder
+    {
+        return match ($list) {
+            'ongoing' => $query
+                ->where('start_at', '<=', now())
+                ->reorder()
+                ->orderBy('end_at'),
+            'all' => $query,
+            default => $query->where(function ($q) {
+                $q->whereNull('start_at')->orWhere('start_at', '>', now());
+            }),
+        };
     }
 
     public function publicIndexQuery()

@@ -39,4 +39,39 @@ class AdminEventFiltersTest extends TestCase
         $response->assertJsonCount(1, 'data');
         $response->assertJsonPath('data.0.status', ModelStatus::Published->value);
     }
+
+    public function test_upcoming_sort_lists_nearest_future_event_first_and_past_after(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $farFuture = Event::factory()->create([
+            'user_id' => $admin->id,
+            'start_at' => now()->addMonths(2),
+            'end_at' => now()->addMonths(2)->addHour(),
+        ]);
+        $nearFuture = Event::factory()->create([
+            'user_id' => $admin->id,
+            'start_at' => now()->addDay(),
+            'end_at' => now()->addDay()->addHour(),
+        ]);
+        $past = Event::factory()->create([
+            'user_id' => $admin->id,
+            'start_at' => now()->subMonth(),
+            'end_at' => now()->subMonth()->addHour(),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/events?sort=upcoming');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->all();
+
+        $this->assertSame(
+            [$nearFuture->id, $farFuture->id, $past->id],
+            $ids
+        );
+    }
 }
