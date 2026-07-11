@@ -120,7 +120,6 @@
               <TicketRequestForm
                 :event-id="event.id"
                 :types="ticketTypes"
-                :viewer-registered="viewerRegistered"
                 :registration-deadline-at="event.registrationDeadlineAt"
                 :end-at="event.endAt"
               />

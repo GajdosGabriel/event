@@ -165,11 +165,14 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
 
             foreach ($resolved as $line) {
                 for ($i = 0; $i < $line['quantity']; $i++) {
+                    $attendeeEmail = mb_strtolower(trim((string) ($line['attendees'][$i]['email'] ?? '')));
+
                     Admission::create([
                         'ticket_id' => $order->id,
                         'ticket_type_id' => $line['type']->id,
                         'event_id' => $lockedEvent->id,
                         'attendee_name' => $line['attendees'][$i]['name'] ?? null,
+                        'attendee_email' => $attendeeEmail !== '' ? $attendeeEmail : null,
                         'status' => AdmissionStatus::Valid->value,
                     ]);
                 }

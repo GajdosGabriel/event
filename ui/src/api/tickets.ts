@@ -72,7 +72,7 @@ function mapTicket(raw: Record<string, unknown>): TicketItem {
 export interface TicketRequestItem {
   ticket_type_id: number
   quantity: number
-  attendees?: { name?: string | null }[]
+  attendees?: { name?: string | null; email?: string | null }[]
 }
 
 export interface TicketRequestPayload {

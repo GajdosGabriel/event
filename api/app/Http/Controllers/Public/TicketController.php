@@ -8,6 +8,7 @@ use App\Http\Resources\TicketResource;
 use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\AttendeeRegistrar;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
 
@@ -46,6 +47,9 @@ class TicketController extends Controller
         $ticket->load(['event', 'admissions.ticketType']);
 
         Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket));
+
+        // Ďalší účastníci (vstupenky 2..n): účet + osobný kanál + e-mail s lístkom.
+        app(AttendeeRegistrar::class)->registerAndNotify($ticket);
 
         return response()->json(new TicketResource($ticket), 201);
     }

@@ -32,6 +32,7 @@ class TicketStoreRequest extends FormRequest
             'items.*.quantity' => ['required_with:items', 'integer', 'min:1', 'max:20'],
             'items.*.attendees' => ['sometimes', 'array'],
             'items.*.attendees.*.name' => ['nullable', 'string', 'max:250'],
+            'items.*.attendees.*.email' => ['nullable', 'email', 'max:190'],
 
             // Spätná kompatibilita: len počet miest (default typ lístka).
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:20'],

@@ -16,16 +16,17 @@
       {{ closedReason }}
     </div>
 
-    <div v-else-if="!types.length" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
+    <div v-else-if="!orderableTypes.length" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
       Pre toto podujatie zatiaľ nie sú v predaji žiadne lístky.
     </div>
 
     <form v-else class="space-y-4" @submit.prevent="submit">
       <!-- Výber typov lístkov -->
-      <div v-for="type in mainTypes" :key="type.id" class="rounded-lg border border-slate-200 p-3">
+      <div v-for="type in orderableTypes" :key="type.id" class="rounded-lg border border-slate-200 p-3">
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
+            <p v-if="timeLabel(type)" class="text-xs font-medium text-blue-700">{{ timeLabel(type) }}</p>
             <p v-if="type.description" class="text-xs text-slate-500">{{ type.description }}</p>
             <p class="mt-1 text-sm font-semibold" :class="type.priceAmount ? 'text-slate-800' : 'text-green-700'">
               {{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : 'Zdarma' }}
@@ -34,7 +35,9 @@
               Zostáva: {{ type.remainingCapacity }}
             </p>
           </div>
-          <div class="flex items-center gap-2">
+
+          <!-- Stepper sa ukáže až po aktivácii typu tlačidlom nižšie -->
+          <div v-if="qty(type) > 0" class="flex items-center gap-2">
             <button type="button" :disabled="qty(type) <= 0"
               class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
               @click="dec(type)">−</button>
@@ -45,108 +48,78 @@
           </div>
         </div>
 
-        <!-- Mená účastníkov (ak to typ vyžaduje) -->
-        <div v-if="type.requiresAttendeeName && qty(type) > 0" class="mt-3 space-y-2">
-          <div v-for="n in qty(type)" :key="n">
-            <label class="mb-1 block text-xs font-medium text-slate-600">Meno účastníka {{ n }}</label>
-            <input v-model.trim="attendeeName(type, n - 1).value" type="text" maxlength="250"
+        <button v-if="qty(type) === 0" type="button" :disabled="maxFor(type) === 0"
+          class="mt-2 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          @click="activate(type)">
+          {{ maxFor(type) === 0 ? 'Vypredané' : type.priceAmount ? 'Kúpiť' : 'Rezervovať' }}
+        </button>
+
+        <!-- Údaje ďalších účastníkov (1. vstupenka patrí objednávateľovi) -->
+        <div v-if="extraSeatIndexes(type).length" class="mt-3 space-y-2">
+          <p class="text-xs text-slate-500">
+            Prvá vstupenka patrí tebe. Vyplň údaje ostatných účastníkov — každému pošleme jeho vstupenku e-mailom.
+          </p>
+          <div v-for="i in extraSeatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
+            <p class="text-xs font-semibold text-slate-600">Vstupenka {{ i + 1 }}</p>
+            <input v-model.trim="attendee(type, i).name" type="text" required maxlength="250"
+              placeholder="Meno a priezvisko"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <input v-model.trim="attendee(type, i).email" type="email" required maxlength="190"
+              placeholder="E-mail"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
         </div>
       </div>
 
-      <!-- Workshopy -->
-      <template v-if="workshops.length">
-        <div class="pt-1">
-          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Workshopy</p>
-          <p v-if="!workshopsUnlocked && hasGatedWorkshops" class="mt-1 text-xs text-slate-500">
-            Najprv si vyber vstupenku — workshopy sú len pre registrovaných účastníkov.
-          </p>
+      <template v-if="totalSeats > 0">
+        <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
+          <span>Spolu ({{ totalSeats }} {{ totalSeats === 1 ? 'lístok' : 'ks' }})</span>
+          <span>{{ totalPrice ? formatPrice(totalPrice, currency) : 'Zdarma' }}</span>
         </div>
 
-        <div v-for="type in workshops" :key="type.id" class="rounded-lg border border-slate-200 p-3"
-          :class="{ 'opacity-60': !workshopUnlocked(type) }">
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
-              <p v-if="workshopTimeLabel(type)" class="text-xs font-medium text-blue-700">{{ workshopTimeLabel(type) }}</p>
-              <p v-if="type.description" class="text-xs text-slate-500">{{ type.description }}</p>
-              <p class="mt-1 text-sm font-semibold" :class="type.priceAmount ? 'text-slate-800' : 'text-green-700'">
-                {{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : 'Zdarma' }}
-              </p>
-              <p v-if="type.remainingCapacity !== null && type.remainingCapacity !== undefined" class="text-xs text-slate-400">
-                Zostáva: {{ type.remainingCapacity }}
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button type="button" :disabled="qty(type) <= 0"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                @click="dec(type)">−</button>
-              <span class="w-6 text-center text-sm font-semibold">{{ qty(type) }}</span>
-              <button type="button" :disabled="!workshopUnlocked(type) || qty(type) >= maxFor(type)"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-                @click="inc(type)">+</button>
-            </div>
+        <!-- Prihlásený → one-click -->
+        <div v-if="oneClick" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          Objednávaš ako <strong>{{ auth.displayName }}</strong>. Potvrdenie pošleme na e-mail tvojho účtu.
+        </div>
+
+        <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
+        <template v-if="!oneClick">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-600">Meno a priezvisko</label>
+            <input v-model.trim="form.holder_name" type="text" required maxlength="250"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
-
-          <!-- Mená účastníkov (ak to typ vyžaduje) -->
-          <div v-if="type.requiresAttendeeName && qty(type) > 0" class="mt-3 space-y-2">
-            <div v-for="n in qty(type)" :key="n">
-              <label class="mb-1 block text-xs font-medium text-slate-600">Meno účastníka {{ n }}</label>
-              <input v-model.trim="attendeeName(type, n - 1).value" type="text" maxlength="250"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-            </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-600">E-mail</label>
+            <input v-model.trim="form.holder_email" type="email" required maxlength="190"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
-        </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-600">Telefón (nepovinné)</label>
+            <input v-model.trim="form.holder_phone" type="tel" maxlength="30"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+          </div>
+        </template>
+
+        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+
+        <button type="submit" :disabled="loading"
+          class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+          {{ loading ? 'Odosielam…' : actionLabel }}
+        </button>
+
+        <button v-if="auth.isAuthenticated" type="button"
+          class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
+          @click="useOwnDetails = !useOwnDetails">
+          {{ useOwnDetails ? 'Použiť údaje z môjho účtu' : 'Zadať iné údaje' }}
+        </button>
       </template>
-
-      <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
-        <span>Spolu ({{ totalSeats }} {{ totalSeats === 1 ? 'lístok' : 'ks' }})</span>
-        <span>{{ totalPrice ? formatPrice(totalPrice, currency) : 'Zdarma' }}</span>
-      </div>
-
-      <!-- Prihlásený → one-click -->
-      <div v-if="oneClick" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
-        Objednávaš ako <strong>{{ auth.displayName }}</strong>. Potvrdenie pošleme na e-mail tvojho účtu.
-      </div>
-
-      <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
-      <template v-if="!oneClick">
-        <div>
-          <label class="mb-1 block text-xs font-medium text-slate-600">Meno a priezvisko</label>
-          <input v-model.trim="form.holder_name" type="text" required maxlength="250"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-        </div>
-        <div>
-          <label class="mb-1 block text-xs font-medium text-slate-600">E-mail</label>
-          <input v-model.trim="form.holder_email" type="email" required maxlength="190"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-        </div>
-        <div>
-          <label class="mb-1 block text-xs font-medium text-slate-600">Telefón (nepovinné)</label>
-          <input v-model.trim="form.holder_phone" type="tel" maxlength="30"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-        </div>
-      </template>
-
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-
-      <button type="submit" :disabled="loading || totalSeats === 0"
-        class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-        {{ loading ? 'Odosielam…' : actionLabel }}
-      </button>
-
-      <button v-if="auth.isAuthenticated" type="button"
-        class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
-        @click="useOwnDetails = !useOwnDetails">
-        {{ useOwnDetails ? 'Použiť údaje z môjho účtu' : 'Zadať iné údaje' }}
-      </button>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { requestTicket } from '@/api/tickets'
 import { useAuthStore } from '@/stores/auth'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
@@ -156,7 +129,6 @@ const props = defineProps<{
   eventId: number
   /** Aktívne typy lístkov vrátane workshopov — načíta ich stránka eventu. */
   types: TicketTypeItem[]
-  viewerRegistered?: boolean
   registrationDeadlineAt?: string | null
   endAt?: string | null
 }>()
@@ -170,42 +142,24 @@ const form = reactive({
 })
 
 const types = computed(() => props.types)
-const viewerRegistered = computed(() => props.viewerRegistered ?? false)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const success = ref<TicketItem | null>(null)
 const sentEmail = ref('')
 const useOwnDetails = ref(false)
 
-// Množstvá a mená účastníkov podľa id typu.
+// Množstvá a údaje účastníkov podľa id typu.
 const quantities = reactive<Record<number, number>>({})
-const attendees = reactive<Record<number, { value: string }[]>>({})
+const attendees = reactive<Record<number, { name: string; email: string }[]>>({})
 
 const oneClick = computed(() => auth.isAuthenticated && !useOwnDetails.value)
 
 const mainTypes = computed(() => types.value.filter(t => t.kind !== 'workshop'))
-const workshops = computed(() => types.value.filter(t => t.kind === 'workshop'))
 
-// Podujatie bez hlavného typu vstupenky (len workshopy) → workshop je samostatná
-// registrácia, neviaže sa na hlavnú vstupenku a dá sa objednať priamo.
-const standaloneWorkshops = computed(() => mainTypes.value.length === 0 && workshops.value.length > 0)
-
-// Miesta na hlavných vstupenkách vybrané v tejto objednávke.
-const mainSeatsSelected = computed(() => mainTypes.value.reduce((sum, t) => sum + qty(t), 0))
-
-// Viazané workshopy sú odomknuté pri samostatnom workshopovom podujatí, pre
-// registrovaného návštevníka alebo po výbere hlavnej vstupenky.
-const workshopsUnlocked = computed(
-  () => standaloneWorkshops.value || viewerRegistered.value || mainSeatsSelected.value > 0,
-)
-
-// Existuje aspoň jeden workshop viazaný na hlavnú vstupenku (nie otvorený)?
-const hasGatedWorkshops = computed(() => workshops.value.some(w => !w.openToPublic))
-
-// Otvorený workshop je odomknutý vždy; ostatné podľa workshopsUnlocked.
-function workshopUnlocked(type: TicketTypeItem): boolean {
-  return Boolean(type.openToPublic) || workshopsUnlocked.value
-}
+// Workshopy sa objednávajú v sekcii „Workshopy" na stránke podujatia, nie tu.
+// Výnimka: podujatie len s workshopmi — vtedy sú samostatnou registráciou
+// a objednávajú sa priamo v tomto formulári.
+const orderableTypes = computed(() => (mainTypes.value.length ? mainTypes.value : types.value))
 
 const closedReason = computed(() => {
   const now = Date.now()
@@ -225,25 +179,32 @@ function qty(type: TicketTypeItem): number {
 function maxFor(type: TicketTypeItem): number {
   const caps = [type.maxPerOrder]
   if (type.remainingCapacity !== null && type.remainingCapacity !== undefined) caps.push(type.remainingCapacity)
-  if (type.kind === 'workshop') {
-    // Bez registrácie limituje workshop počet vybraných vstupeniek (presný nárok
-    // registrovaného stráži backend). Pri samostatnom podujatí a otvorenom
-    // workshope tento strop neplatí.
-    if (!viewerRegistered.value && !standaloneWorkshops.value && !type.openToPublic) {
-      caps.push(mainSeatsSelected.value)
-    }
-  }
   return Math.max(0, Math.min(...caps))
 }
 
-function workshopTimeLabel(type: TicketTypeItem): string {
+function timeLabel(type: TicketTypeItem): string {
   return fmtDayTimeRange(type.startsAt, type.endsAt)
 }
 
-function attendeeName(type: TicketTypeItem, index: number): { value: string } {
+function attendee(type: TicketTypeItem, index: number): { name: string; email: string } {
   const list = attendees[type.id!] ?? (attendees[type.id!] = [])
-  while (list.length <= index) list.push({ value: '' })
+  while (list.length <= index) list.push({ name: '', email: '' })
   return list[index]
+}
+
+/** Prvý vybraný typ — jeho prvá vstupenka patrí objednávateľovi. */
+const firstSelectedId = computed(() => orderableTypes.value.find(t => qty(t) > 0)?.id ?? null)
+
+/** Indexy vstupeniek typu, ku ktorým treba vyplniť údaje účastníka. */
+function extraSeatIndexes(type: TicketTypeItem): number[] {
+  const start = type.id === firstSelectedId.value ? 1 : 0
+  const n = qty(type)
+  return n > start ? Array.from({ length: n - start }, (_, i) => i + start) : []
+}
+
+/** „Rezervovať"/„Kúpiť" — aktivuje typ s predvoleným 1 miestom. */
+function activate(type: TicketTypeItem) {
+  if (maxFor(type) > 0) quantities[type.id!] = 1
 }
 
 function inc(type: TicketTypeItem) {
@@ -256,16 +217,9 @@ function dec(type: TicketTypeItem) {
 
 const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))
 
-// Po ubratí vstupeniek stiahni aj miesta na workshopoch nad nový limit.
-watch(mainSeatsSelected, () => {
-  if (viewerRegistered.value || standaloneWorkshops.value) return
-  for (const w of workshops.value) {
-    if (qty(w) > maxFor(w)) quantities[w.id!] = maxFor(w)
-  }
-})
 const currency = computed(() => types.value.find(t => t.priceAmount)?.priceCurrency ?? 'EUR')
 const totalPrice = computed(() =>
-  types.value.reduce((sum, t) => sum + (t.priceAmount ?? 0) * qty(t), 0),
+  orderableTypes.value.reduce((sum, t) => sum + (t.priceAmount ?? 0) * qty(t), 0),
 )
 
 const actionLabel = computed(() => {
@@ -282,15 +236,20 @@ async function submit() {
   loading.value = true
   error.value = null
   try {
-    const items = types.value
+    const items = orderableTypes.value
       .filter(t => qty(t) > 0)
-      .map(t => ({
-        ticket_type_id: t.id!,
-        quantity: qty(t),
-        attendees: t.requiresAttendeeName
-          ? Array.from({ length: qty(t) }, (_, i) => ({ name: attendeeName(t, i).value || null }))
-          : undefined,
-      }))
+      .map(t => {
+        const start = t.id === firstSelectedId.value ? 1 : 0
+        return {
+          ticket_type_id: t.id!,
+          quantity: qty(t),
+          attendees: Array.from({ length: qty(t) }, (_, i) =>
+            i < start
+              ? { name: null, email: null }
+              : { name: attendee(t, i).name || null, email: attendee(t, i).email || null },
+          ),
+        }
+      })
 
     const payload = oneClick.value
       ? { items }
@@ -309,11 +268,4 @@ async function submit() {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  // Predvyplň jeden lístok, ak je len jeden hlavný typ (bez workshopov).
-  if (types.value.length === 1 && mainTypes.value.length === 1 && maxFor(mainTypes.value[0]) > 0) {
-    quantities[mainTypes.value[0].id!] = 1
-  }
-})
 </script>
