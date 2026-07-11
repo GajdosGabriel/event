@@ -488,6 +488,82 @@ class WorkshopRegistrationTest extends EventSetupTest
     }
 
     #[Test]
+    public function attendee_can_cancel_their_own_registration(): void
+    {
+        [$main] = $this->createTypes();
+        $this->actingAs($this->user, 'sanctum');
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+            'items' => [['ticket_type_id' => $main->id, 'quantity' => 1]],
+        ])->assertStatus(201);
+
+        $this->getJson("/api/events/{$this->futureEvent->id}/ticket-types")
+            ->assertJsonPath('meta.viewer_registered', true);
+
+        // Samoobslužné zrušenie registrácie.
+        $this->deleteJson("/api/events/{$this->futureEvent->id}/registration")->assertOk();
+
+        // Miesto sa uvoľnilo a už nie je registrovaný.
+        $this->assertSame(0, $main->fresh()->sold_count);
+        $this->getJson("/api/events/{$this->futureEvent->id}/ticket-types")
+            ->assertJsonPath('meta.viewer_registered', false);
+    }
+
+    #[Test]
+    public function cancelling_registration_without_one_is_rejected(): void
+    {
+        $this->createTypes();
+        $this->actingAs($this->user, 'sanctum');
+
+        $this->deleteJson("/api/events/{$this->futureEvent->id}/registration")->assertStatus(422);
+    }
+
+    #[Test]
+    public function guest_cannot_cancel_a_registration(): void
+    {
+        $this->createTypes();
+
+        $this->deleteJson("/api/events/{$this->futureEvent->id}/registration")->assertStatus(401);
+    }
+
+    #[Test]
+    public function cancelling_registration_frees_workshops_and_promotes_the_waitlist(): void
+    {
+        Notification::fake();
+
+        $main = $this->futureEvent->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
+        $workshop = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Keramika',
+            'kind' => TicketTypeKind::Workshop->value,
+            'price_amount' => 0,
+            'capacity' => 1,
+            'is_active' => true,
+        ]);
+
+        // Prvý má hlavnú vstupenku aj miesto na workshope.
+        $first = $this->attendeeWithTicket($main, 'prvy@example.com');
+        $this->postJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")->assertStatus(201);
+
+        // Druhý je na workshope náhradníkom.
+        $second = $this->attendeeWithTicket($main, 'druhy@example.com');
+        $this->postJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")
+            ->assertJsonPath('status', 'waitlisted');
+
+        // Prvý zruší celú registráciu na podujatie → padne aj jeho workshop,
+        // miesto dostane druhý (FIFO).
+        $this->actingAs($first, 'sanctum');
+        $this->deleteJson("/api/events/{$this->futureEvent->id}/registration")->assertOk();
+
+        $this->actingAs($second, 'sanctum');
+        $this->getJson("/api/events/{$this->futureEvent->id}/ticket-types")
+            ->assertOk()
+            ->assertJsonPath('data.1.viewer_joined', true)
+            ->assertJsonPath('data.1.viewer_waitlisted', false);
+
+        Notification::assertSentOnDemand(WorkshopSeatGranted::class);
+    }
+
+    #[Test]
     public function waitlisted_admission_cannot_be_checked_in(): void
     {
         $main = $this->futureEvent->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);

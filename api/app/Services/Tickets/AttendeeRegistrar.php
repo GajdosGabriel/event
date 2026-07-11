@@ -2,11 +2,10 @@
 
 namespace App\Services\Tickets;
 
-use App\Enums\AdmissionStatus;
 use App\Models\PendingProfile;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Notifications\AttendeeTicketIssued;
+use App\Notifications\AttendeeConfirmationRequest;
 use App\Services\Users\PersonalCanalProvisioner;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -15,29 +14,23 @@ use Illuminate\Support\Str;
 /**
  * Ďalší účastníci objednávky (meno + e-mail pri vstupenkách 2..n):
  * každému založí používateľský účet aj osobný kanál (aby sa neskôr mohol
- * prihlasovať na ďalšie podujatia a workshopy) a pošle e-mail s vstupenkou.
+ * prihlasovať na ďalšie podujatia a workshopy) a pošle e-mail so žiadosťou
+ * o potvrdenie rezervácie. Vstupenku s QR dostane až po potvrdení.
  */
 class AttendeeRegistrar
 {
     public function __construct(
         private PersonalCanalProvisioner $canalProvisioner,
+        private AttendeeConfirmation $confirmation,
     ) {
     }
 
     public function registerAndNotify(Ticket $ticket): void
     {
-        $holderEmail = mb_strtolower(trim((string) $ticket->holder_email));
+        // Označí cudzie vstupenky ako „čaká na potvrdenie" a vráti ich po e-mailoch.
+        $groups = $this->confirmation->prepare($ticket);
 
-        $byEmail = $ticket->admissions()
-            ->with('ticketType')
-            ->where('status', AdmissionStatus::Valid->value)
-            ->whereNotNull('attendee_email')
-            ->orderBy('id')
-            ->get()
-            ->filter(fn ($admission) => $admission->attendee_email !== '' && $admission->attendee_email !== $holderEmail)
-            ->groupBy('attendee_email');
-
-        foreach ($byEmail as $email => $admissions) {
+        foreach ($groups as $email => $admissions) {
             $user = $this->ensureUser($email, $admissions->first()->attendee_name);
 
             // Účet vytvorený z cudzej objednávky ešte nie je plne aktívny — e-mail
@@ -46,7 +39,12 @@ class AttendeeRegistrar
             $needsActivation = $user->email_verified_at === null;
 
             Notification::route('mail', $email)
-                ->notify(new AttendeeTicketIssued($ticket, $admissions->pluck('id')->all(), $needsActivation));
+                ->notify(new AttendeeConfirmationRequest(
+                    $ticket,
+                    $admissions->pluck('id')->all(),
+                    (string) $admissions->first()->confirmation_token,
+                    $needsActivation,
+                ));
         }
     }
 

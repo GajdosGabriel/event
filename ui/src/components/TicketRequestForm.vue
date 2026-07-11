@@ -11,6 +11,32 @@
       </RouterLink>
     </div>
 
+    <!-- Návštevník už má registráciu → možnosť ju zrušiť -->
+    <div v-else-if="viewerRegistered" class="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
+      <p class="mb-3 font-semibold">Na toto podujatie si prihlásený.</p>
+
+      <div v-if="confirmingCancel" class="space-y-2">
+        <p class="text-blue-800">Naozaj zrušiť registráciu na toto podujatie?</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" :disabled="cancelLoading"
+            class="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+            @click="cancelRegistration">
+            {{ cancelLoading ? 'Ruším…' : 'Áno, zrušiť registráciu' }}
+          </button>
+          <button type="button" class="text-xs font-medium text-slate-600 hover:text-slate-900"
+            @click="confirmingCancel = false">Späť</button>
+        </div>
+      </div>
+
+      <button v-else type="button"
+        class="rounded-lg border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+        @click="confirmingCancel = true">
+        Zrušiť rezerváciu / Odhlásiť sa
+      </button>
+
+      <p v-if="cancelError" class="mt-2 text-red-600">{{ cancelError }}</p>
+    </div>
+
     <!-- Registrácia uzavretá -->
     <div v-else-if="closedReason" class="rounded-lg bg-slate-100 p-4 text-sm font-medium text-slate-600">
       {{ closedReason }}
@@ -120,7 +146,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { requestTicket } from '@/api/tickets'
+import { requestTicket, cancelOwnRegistration } from '@/api/tickets'
 import { useAuthStore } from '@/stores/auth'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
 import type { TicketItem, TicketTypeItem } from '@/types'
@@ -131,7 +157,11 @@ const props = defineProps<{
   types: TicketTypeItem[]
   registrationDeadlineAt?: string | null
   endAt?: string | null
+  /** Má prihlásený návštevník platnú registráciu na podujatie? */
+  viewerRegistered?: boolean
 }>()
+
+const emit = defineEmits<{ changed: [] }>()
 
 const auth = useAuthStore()
 
@@ -147,6 +177,26 @@ const error = ref<string | null>(null)
 const success = ref<TicketItem | null>(null)
 const sentEmail = ref('')
 const useOwnDetails = ref(false)
+
+// Zrušenie vlastnej registrácie (keď už návštevník lístok má).
+const confirmingCancel = ref(false)
+const cancelLoading = ref(false)
+const cancelError = ref<string | null>(null)
+
+async function cancelRegistration() {
+  cancelLoading.value = true
+  cancelError.value = null
+  try {
+    await cancelOwnRegistration(props.eventId)
+    confirmingCancel.value = false
+    emit('changed')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    cancelError.value = err.response?.data?.message ?? 'Registráciu sa nepodarilo zrušiť.'
+  } finally {
+    cancelLoading.value = false
+  }
+}
 
 // Množstvá a údaje účastníkov podľa id typu.
 const quantities = reactive<Record<number, number>>({})

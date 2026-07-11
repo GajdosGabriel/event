@@ -46,12 +46,30 @@ class TicketController extends Controller
         $ticket = $this->ticketRepository->issueForEvent($event, $properties);
         $ticket->load(['event', 'admissions.ticketType']);
 
-        Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket));
-
-        // Ďalší účastníci (vstupenky 2..n): účet + osobný kanál + e-mail s lístkom.
+        // Najprv označíme cudzie vstupenky ako „čaká na potvrdenie" a pošleme
+        // účastníkom žiadosti — až potom e-mail objednávateľovi, aby jeho lístok
+        // neobsahoval QR kódy miest, ktoré účastníci ešte nepotvrdili.
         app(AttendeeRegistrar::class)->registerAndNotify($ticket);
 
+        Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket->fresh(['event', 'admissions.ticketType'])));
+
         return response()->json(new TicketResource($ticket), 201);
+    }
+
+    /** Samoobslužné zrušenie vlastnej registrácie prihláseného používateľa. */
+    public function cancelOwn($eventId): JsonResponse
+    {
+        $user = auth('sanctum')->user();
+
+        if (! $user) {
+            abort(401);
+        }
+
+        $event = Event::query()->findOrFail($eventId);
+
+        $this->ticketRepository->cancelOwnRegistration($event, $user);
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function show($uuid): JsonResponse

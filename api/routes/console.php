@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:ai-detector')->everyMinute();
 Schedule::command('app:events-archive-finished')->everyTenMinutes();
+Schedule::command('app:tickets-expire-unconfirmed')->everyTenMinutes();
 Schedule::command('app:import-event-sources')->hourly();

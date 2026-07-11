@@ -33,6 +33,9 @@ interface TicketRepository extends InterfaceRepository
     /** Odhlásenie používateľa z workshopu (aj z čakačky). */
     public function leaveWorkshop(Event $event, TicketType $type, User $user): void;
 
+    /** Samoobslužné zrušenie registrácie používateľa na podujatie (posunie náhradníkov). */
+    public function cancelOwnRegistration(Event $event, User $user): void;
+
     /** Posunie prvého náhradníka na uvoľnené miesto workshopu. */
     public function promoteFromWaitlist(TicketType $type): ?Admission;
 

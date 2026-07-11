@@ -4,7 +4,7 @@
       class="rounded-xl border bg-white px-4 py-3"
       :class="w.viewerJoined ? 'border-violet-300 bg-violet-50/40'
         : w.viewerWaitlisted ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'">
-      <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <p class="font-semibold text-slate-900">
           {{ w.name }}
           <span v-if="w.viewerJoined"
@@ -16,9 +16,49 @@
           <span v-if="showInactive && !w.isActive"
             class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">Neaktívny</span>
         </p>
-        <p class="text-sm font-semibold" :class="w.priceAmount ? 'text-slate-800' : 'text-green-700'">
-          {{ w.priceAmount ? formatPrice(w.priceAmount, w.priceCurrency) : 'Zdarma' }}
-        </p>
+
+        <!-- Cena + akcia (tlačidlo pod cenou, aby sme šetrili priestor) -->
+        <div class="flex shrink-0 flex-col items-end gap-1.5">
+          <p class="text-sm font-semibold" :class="w.priceAmount ? 'text-slate-800' : 'text-green-700'">
+            {{ w.priceAmount ? formatPrice(w.priceAmount, w.priceCurrency) : 'Zdarma' }}
+          </p>
+
+          <template v-if="joinable && confirmingId !== w.id">
+            <p v-if="locked" class="max-w-[13rem] text-right text-xs font-medium text-slate-500">
+              {{ lockedMessage(w) }}
+            </p>
+
+            <!-- Má miesto -->
+            <button v-else-if="w.viewerJoined" type="button"
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              @click="confirmingId = w.id ?? null">
+              Odhlásiť sa
+            </button>
+
+            <!-- Je náhradník -->
+            <template v-else-if="w.viewerWaitlisted">
+              <button type="button"
+                class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                @click="confirmingId = w.id ?? null">
+                Opustiť čakačku
+              </button>
+              <span class="max-w-[13rem] text-right text-xs text-slate-500">Keď sa miesto uvoľní, pridelíme ti ho a pošleme e-mail.</span>
+            </template>
+
+            <!-- Voľné miesto alebo čakačka -->
+            <template v-else>
+              <button type="button" :disabled="!canAct(w) || busyId === w.id"
+                class="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                :class="isFull(w) ? 'bg-amber-600 hover:bg-amber-700' : 'bg-violet-600 hover:bg-violet-700'"
+                @click="emit('join', w)">
+                {{ busyId === w.id ? 'Odosielam…' : isFull(w) ? 'Zaradiť medzi náhradníkov' : 'Prihlásiť sa' }}
+              </button>
+              <span v-if="!authenticated" class="text-right text-xs text-slate-500">Najprv sa prihlás do účtu.</span>
+              <span v-else-if="!viewerRegistered && !standalone && !w.openToPublic" class="max-w-[13rem] text-right text-xs text-slate-500">Najprv sa registruj na podujatie.</span>
+              <span v-else-if="isFull(w)" class="max-w-[13rem] text-right text-xs text-slate-500">Workshop je plný — pôjdeš do poradia.</span>
+            </template>
+          </template>
+        </div>
       </div>
 
       <p v-if="timeLabel(w)" class="mt-0.5 text-sm font-medium text-violet-700">{{ timeLabel(w) }}</p>
@@ -37,59 +77,21 @@
         <span v-if="w.waitlistCount"> · {{ w.waitlistCount }} {{ waitingWord(w.waitlistCount) }}</span>
       </p>
 
-      <!-- Prihlásenie / odhlásenie / čakačka -->
-      <div v-if="joinable" class="mt-3">
-        <!-- Potvrdenie odhlásenia (inline, bez popupu) -->
-        <div v-if="confirmingId === w.id" class="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
-          <span class="text-sm text-amber-900">
-            {{ w.viewerWaitlisted
-              ? `Naozaj opustiť čakačku na „${w.name}"?`
-              : `Naozaj sa odhlásiť z „${w.name}"? Miesto dostane prvý náhradník.` }}
-          </span>
-          <button type="button" :disabled="busyId === w.id"
-            class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-            @click="confirmLeave(w)">
-            {{ busyId === w.id ? 'Odhlasujem…' : w.viewerWaitlisted ? 'Áno, opustiť' : 'Áno, odhlásiť' }}
-          </button>
-          <button type="button" class="text-xs font-medium text-slate-600 hover:text-slate-900"
-            @click="confirmingId = null">Zrušiť</button>
-        </div>
-
-        <template v-else>
-          <p v-if="locked" class="text-xs font-medium text-slate-500">
-            {{ lockedMessage(w) }}
-          </p>
-
-          <!-- Má miesto -->
-          <button v-else-if="w.viewerJoined" type="button"
-            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            @click="confirmingId = w.id ?? null">
-            Odhlásiť sa
-          </button>
-
-          <!-- Je náhradník -->
-          <div v-else-if="w.viewerWaitlisted" class="flex flex-wrap items-center gap-2">
-            <button type="button"
-              class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              @click="confirmingId = w.id ?? null">
-              Opustiť čakačku
-            </button>
-            <span class="text-xs text-slate-500">Keď sa miesto uvoľní, pridelíme ti ho a pošleme e-mail.</span>
-          </div>
-
-          <!-- Voľné miesto alebo čakačka -->
-          <div v-else class="flex flex-wrap items-center gap-2">
-            <button type="button" :disabled="!canAct(w) || busyId === w.id"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-              :class="isFull(w) ? 'bg-amber-600 hover:bg-amber-700' : 'bg-violet-600 hover:bg-violet-700'"
-              @click="emit('join', w)">
-              {{ busyId === w.id ? 'Odosielam…' : isFull(w) ? 'Zaradiť medzi náhradníkov' : 'Prihlásiť sa' }}
-            </button>
-            <span v-if="!authenticated" class="text-xs text-slate-500">Najprv sa prihlás do účtu.</span>
-            <span v-else-if="!viewerRegistered && !standalone && !w.openToPublic" class="text-xs text-slate-500">Najprv sa registruj na podujatie.</span>
-            <span v-else-if="isFull(w)" class="text-xs text-slate-500">Workshop je plný — pôjdeš do poradia.</span>
-          </div>
-        </template>
+      <!-- Potvrdenie odhlásenia (inline, plná šírka pod kartou) -->
+      <div v-if="joinable && confirmingId === w.id"
+        class="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+        <span class="text-sm text-amber-900">
+          {{ w.viewerWaitlisted
+            ? `Naozaj opustiť čakačku na „${w.name}"?`
+            : `Naozaj sa odhlásiť z „${w.name}"? Miesto dostane prvý náhradník.` }}
+        </span>
+        <button type="button" :disabled="busyId === w.id"
+          class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          @click="confirmLeave(w)">
+          {{ busyId === w.id ? 'Odhlasujem…' : w.viewerWaitlisted ? 'Áno, opustiť' : 'Áno, odhlásiť' }}
+        </button>
+        <button type="button" class="text-xs font-medium text-slate-600 hover:text-slate-900"
+          @click="confirmingId = null">Zrušiť</button>
       </div>
     </li>
   </ul>

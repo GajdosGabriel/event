@@ -258,6 +258,55 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
     }
 
     /**
+     * Samoobslužné zrušenie registrácie prihláseného používateľa na podujatie.
+     * Zruší jeho objednávky s platnou hlavnou vstupenkou (aj naviazané workshopy)
+     * a uvoľnené workshopové miesta posunie prvému náhradníkovi (FIFO).
+     */
+    public function cancelOwnRegistration(Event $event, User $user): void
+    {
+        $freedTypes = DB::transaction(function () use ($event, $user) {
+            /** @var \Illuminate\Support\Collection<int, Ticket> $tickets */
+            $tickets = Ticket::query()
+                ->where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->where('status', '!=', TicketStatus::Cancelled->value)
+                ->with('admissions.ticketType')
+                ->lockForUpdate()
+                ->get();
+
+            // „Registrácia na podujatie" = platná hlavná vstupenka (nie len workshop).
+            $hasMainSeat = $tickets
+                ->flatMap(fn (Ticket $t) => $t->admissions)
+                ->contains(fn (Admission $a) => $a->status === AdmissionStatus::Valid
+                    && ! ($a->ticketType?->isWorkshop() ?? false));
+
+            if (! $hasMainSeat) {
+                abort(422, 'Na toto podujatie nie ste prihlásený.');
+            }
+
+            $freed = collect();
+
+            foreach ($tickets as $ticket) {
+                $freed = $freed->merge(
+                    $ticket->admissions
+                        ->where('status', AdmissionStatus::Valid)
+                        ->pluck('ticketType')
+                        ->filter(fn (?TicketType $t) => $t?->isWorkshop()),
+                );
+
+                $ticket->update(['status' => TicketStatus::Cancelled->value]);
+                $ticket->admissions()->update(['status' => AdmissionStatus::Cancelled->value]);
+            }
+
+            return $freed->filter()->unique('id');
+        });
+
+        foreach ($freedTypes as $type) {
+            $this->promoteFromWaitlist($type);
+        }
+    }
+
+    /**
      * Uvoľnilo sa miesto → posunie prvého náhradníka (FIFO) a pošle mu lístok.
      * Volá sa po každom zrušení platného miesta na workshope.
      */
@@ -554,6 +603,11 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 return ['status' => 'invalid', 'reason' => 'waitlisted', 'admission' => $admission];
             }
 
+            // Nepotvrdená rezervácia ešte nie je platná — účastník neklikol „Potvrdiť".
+            if ($admission->isPendingConfirmation()) {
+                return ['status' => 'invalid', 'reason' => 'unconfirmed', 'admission' => $admission];
+            }
+
             if ($admission->checked_in_at !== null) {
                 return ['status' => 'already_checked_in', 'admission' => $admission->fresh(['checkedInBy', 'ticket', 'ticketType'])];
             }
@@ -587,6 +641,11 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             // Náhradník ešte nemá miesto — pri vchode ho nepustíme.
             if ($admission->status === AdmissionStatus::Waitlisted) {
                 return ['status' => 'invalid', 'reason' => 'waitlisted', 'admission' => $admission];
+            }
+
+            // Nepotvrdená rezervácia ešte nie je platná — účastník neklikol „Potvrdiť".
+            if ($admission->isPendingConfirmation()) {
+                return ['status' => 'invalid', 'reason' => 'unconfirmed', 'admission' => $admission];
             }
 
             if ($admission->checked_in_at !== null) {

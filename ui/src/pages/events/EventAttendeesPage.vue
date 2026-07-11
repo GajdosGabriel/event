@@ -2,7 +2,10 @@
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
     <EventTicketsTabs :event-id="eventId" />
 
-    <h1 class="mb-4 text-2xl font-semibold text-slate-900">Prihlásení / objednávky</h1>
+    <div class="mb-4">
+      <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || 'Prihlásení / objednávky' }}</h1>
+      <p v-if="eventName" class="text-sm text-slate-500">Prihlásení / objednávky</p>
+    </div>
 
     <input v-model="search" type="search" placeholder="Hľadať podľa mena alebo e-mailu…"
       class="mb-4 w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -46,9 +49,13 @@
               </td>
               <td class="px-4 py-3 text-slate-600">{{ ticket.paymentStatusLabel }}</td>
               <td class="px-4 py-3 text-right whitespace-nowrap" @click.stop>
-                <button v-if="ticket.permissions?.update" type="button" class="action-btn" @click="onResend(ticket)">Poslať znova</button>
-                <button v-if="ticket.permissions?.update && ticket.status !== 'cancelled'" type="button"
-                  class="action-btn ml-1 text-red-600" @click="onCancelOrder(ticket)">Zrušiť</button>
+                <div v-if="ticket.permissions?.update" class="flex justify-end">
+                  <RowActions>
+                    <button type="button" class="row-menu-item" @click="onResend(ticket)">Poslať znova</button>
+                    <button v-if="ticket.status !== 'cancelled'" type="button"
+                      class="row-menu-item row-menu-item-danger" @click="onCancelOrder(ticket)">Zrušiť</button>
+                  </RowActions>
+                </div>
               </td>
             </tr>
 
@@ -108,8 +115,10 @@ import {
   undoCheckin,
   resendTicket,
 } from '@/api/tickets'
+import { showEvent } from '@/api/events'
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
+import RowActions from '@/components/RowActions.vue'
 import type { PaginatedResponse, TicketItem } from '@/types'
 
 const route = useRoute()
@@ -117,6 +126,7 @@ const toast = useToast()
 const eventId = Number(route.params.id)
 
 const tickets = ref<TicketItem[]>([])
+const eventName = ref('')
 const meta = ref<PaginatedResponse<TicketItem>['meta'] | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -195,5 +205,8 @@ async function onResend(ticket: TicketItem) {
   }
 }
 
-onMounted(() => load(1))
+onMounted(() => {
+  load(1)
+  showEvent('dashboard', eventId).then((e) => { eventName.value = e.name }).catch(() => {})
+})
 </script>

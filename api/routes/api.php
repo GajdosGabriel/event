@@ -17,7 +17,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -66,7 +66,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('public.events.workshops.store');
     Route::delete('events/{event}/workshops/{type}', [PublicWorkshopRegistrationController::class, 'destroy'])
         ->name('public.events.workshops.destroy');
+
+    // Samoobslužné zrušenie vlastnej registrácie na podujatie.
+    Route::delete('events/{event}/registration', [PublicTicketController::class, 'cancelOwn'])
+        ->name('public.events.registration.destroy');
 });
+// Potvrdenie účasti účastníkom z e-mailu (chránené tokenom, bez prihlásenia).
+Route::get('rsvp/{token}', [PublicAttendeeRsvpController::class, 'show'])->name('public.rsvp.show');
+Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confirm'])->name('public.rsvp.confirm');
+Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])->name('public.rsvp.decline');
+
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('admissions/{uuid}/qr', [PublicAdmissionQrController::class, 'show'])->name('public.admissions.qr');

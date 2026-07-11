@@ -50,6 +50,9 @@
             <span v-if="admission.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
               Náhradník
             </span>
+            <span v-else-if="admission.confirmationStatus === 'pending'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              Čaká na potvrdenie
+            </span>
             <span v-else-if="admission.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
               Použitý {{ formatDateTime(admission.checkedInAt) }}
             </span>
@@ -61,6 +64,10 @@
           <!-- Náhradník ešte nemá miesto — QR kód by pri vchode neprešiel. -->
           <p v-if="admission.status === 'waitlisted'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
             Čakáte na uvoľnenie miesta. Keď ho dostanete, pošleme vám e-mail a objaví sa tu QR kód.
+          </p>
+          <!-- Vstupenka pre iného účastníka čaká, kým potvrdí účasť. -->
+          <p v-else-if="admission.confirmationStatus === 'pending'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+            Čaká na potvrdenie účastníkom{{ admission.attendeeName ? ` (${admission.attendeeName})` : '' }}. QR kód sa vytvorí, keď potvrdí účasť.
           </p>
           <div v-else class="flex flex-col items-center gap-2">
             <img :src="admission.qrUrl" :alt="`QR kód vstupenky ${i + 1}`" class="h-48 w-48"

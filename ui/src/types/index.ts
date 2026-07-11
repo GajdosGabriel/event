@@ -336,6 +336,9 @@ export interface AdmissionItem {
   attendeeName: string | null
   status: AdmissionStatus
   statusLabel: string
+  confirmationStatus: 'pending' | 'confirmed' | 'declined' | 'expired' | null
+  confirmationStatusLabel: string | null
+  confirmationDeadlineAt: string | null
   isCheckedIn: boolean
   checkedInAt: string | null
   checkedInBy?: { id: number } | null
@@ -374,8 +377,20 @@ export interface TicketItem {
 
 export interface TicketCheckinResult {
   status: 'checked_in' | 'already_checked_in' | 'invalid' | 'reverted'
-  reason?: 'not_found' | 'cancelled' | null
+  reason?: 'not_found' | 'cancelled' | 'waitlisted' | 'unconfirmed' | null
   admission: AdmissionItem | null
+}
+
+// RSVP: potvrdenie účasti účastníkom z e-mailu.
+export interface RsvpInfo {
+  status: 'pending' | 'confirmed' | 'declined' | 'expired' | null
+  statusLabel: string | null
+  attendeeName: string | null
+  holderName: string | null
+  isPaid: boolean
+  deadlineAt: string | null
+  event: { id: number; name: string; dateRangeLabel: string | null } | null
+  seats: { label: string; type: string | null }[]
 }
 
 export interface CheckinStats {

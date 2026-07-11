@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\AttendeeConfirmationStatus;
 use App\Enums\TicketTypeKind;
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +21,10 @@ class Admission extends Model
 
     protected $casts = [
         'status' => AdmissionStatus::class,
+        'confirmation_status' => AttendeeConfirmationStatus::class,
         'checked_in_at' => 'datetime',
+        'confirmation_deadline_at' => 'datetime',
+        'confirmed_at' => 'datetime',
         'meta' => 'array',
     ];
 
@@ -60,6 +64,12 @@ class Admission extends Model
     public function getIsCheckedInAttribute(): bool
     {
         return $this->checked_in_at !== null;
+    }
+
+    /** Vstupenka ešte čaká na potvrdenie účastníkom — miesto je držané, ale neaktívne. */
+    public function isPendingConfirmation(): bool
+    {
+        return $this->confirmation_status === AttendeeConfirmationStatus::Pending;
     }
 
     /**

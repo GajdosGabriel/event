@@ -29,6 +29,9 @@ export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
     attendeeName: (raw['attendee_name'] as string) ?? null,
     status: raw['status'] as AdmissionItem['status'],
     statusLabel: (raw['status_label'] as string) ?? '',
+    confirmationStatus: (raw['confirmation_status'] as AdmissionItem['confirmationStatus']) ?? null,
+    confirmationStatusLabel: (raw['confirmation_status_label'] as string) ?? null,
+    confirmationDeadlineAt: (raw['confirmation_deadline_at'] as string) ?? null,
     isCheckedIn: Boolean(raw['is_checked_in']),
     checkedInAt: (raw['checked_in_at'] as string) ?? null,
     checkedInBy: checkedInBy ?? null,
@@ -86,6 +89,11 @@ export interface TicketRequestPayload {
 export async function requestTicket(eventId: number, payload: TicketRequestPayload): Promise<TicketItem> {
   const { data } = await http.post(`/events/${eventId}/tickets`, payload)
   return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Samoobslužné zrušenie vlastnej registrácie prihláseného používateľa na podujatie. */
+export async function cancelOwnRegistration(eventId: number): Promise<void> {
+  await http.delete(`/events/${eventId}/registration`)
 }
 
 export async function showTicket(uuid: string): Promise<TicketItem> {

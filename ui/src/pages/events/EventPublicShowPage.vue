@@ -122,6 +122,8 @@
                 :types="ticketTypes"
                 :registration-deadline-at="event.registrationDeadlineAt"
                 :end-at="event.endAt"
+                :viewer-registered="viewerRegistered"
+                @changed="onRegistrationChanged"
               />
             </div>
 
@@ -295,6 +297,14 @@ async function runWorkshopAction(workshop: TicketTypeItem, action: (eventId: num
 
 const onJoinWorkshop = (w: TicketTypeItem) => runWorkshopAction(w, joinWorkshop)
 const onLeaveWorkshop = (w: TicketTypeItem) => runWorkshopAction(w, leaveWorkshop)
+
+/** Po zmene registrácie (zrušenie) znovu načítame typy aj event — obnoví
+ *  viewerRegistered aj voľné kapacity. */
+async function onRegistrationChanged() {
+  if (!event.value) return
+  await loadTicketTypes(event.value.id)
+  event.value = await showPublicEvent(String(event.value.id))
+}
 
 const DAY_NAMES: Record<number, string> = {
   0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',

@@ -33,11 +33,18 @@ class TicketIssued extends Notification implements ShouldQueue
 
         // QR kódy patria jednotlivým vstupenkám (admissions), nie objednávke.
         // Náhradník ešte nemá miesto — QR mu nevydáme (rovnako ako pri vchode).
-        $seats = $this->ticket->admissions()
+        $admissions = $this->ticket->admissions()
             ->with('ticketType')
             ->where('status', AdmissionStatus::Valid->value)
             ->orderBy('id')
-            ->get()
+            ->get();
+
+        // Vstupenky objednané pre iných čakajú na ich potvrdenie — QR objednávateľovi
+        // ešte nedávame, aby nescanoval miesto, ktoré účastník ešte neprijal.
+        $pendingCount = $admissions->filter(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())->count();
+
+        $seats = $admissions
+            ->reject(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: ('Vstupenka ' . ($i + 1)),
@@ -55,6 +62,7 @@ class TicketIssued extends Notification implements ShouldQueue
                 'eventName'    => $eventName,
                 'quantity'     => (int) ($this->ticket->quantity ?? 1),
                 'seats'        => $seats,
+                'pendingCount' => $pendingCount,
                 'ticketUrl'    => $ticketUrl,
             ]);
     }
