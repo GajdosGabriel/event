@@ -7,6 +7,7 @@ use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Files\FileManager;
+use App\Services\Geocoding\GoogleMapsLinkResolver;
 use Illuminate\Support\Str;
 
 class EventImportService
@@ -20,6 +21,7 @@ class EventImportService
         private readonly EventRepository $eventRepository,
         private readonly FileManager $fileManager,
         private readonly PdfConverterService $pdfConverter,
+        private readonly GoogleMapsLinkResolver $mapsLinkResolver = new GoogleMapsLinkResolver(),
     ) {
     }
 
@@ -107,11 +109,21 @@ class EventImportService
             $resolvedCanal['source_origin'],
         );
 
+        // A Google Maps pin in the article (e.g. "presne tu: https://maps.app.goo.gl/…")
+        // is the most reliable venue location — read it straight from the link, checking
+        // both the explicit link list and the body text.
+        $mapCoords = $this->mapsLinkResolver->fromUrls((array) ($detail['links'] ?? []));
+        if ($mapCoords['latitude'] === null) {
+            $mapCoords = $this->mapsLinkResolver->fromText($enrichedBodyText);
+        }
+
         $venue = $this->venueManager->resolveOrDetect(
             $canal,
             $resolvedCanal['detected_venue_name'] ?? null,
             $resolvedCanal['detected_venue_city'] ?? null,
             $resolvedCanal['detected_venue_street'] ?? null,
+            $mapCoords['latitude'] ?? null,
+            $mapCoords['longitude'] ?? null,
         );
 
         $systemOwner = $this->canalManager->systemOwner();

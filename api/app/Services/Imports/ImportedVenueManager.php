@@ -15,14 +15,26 @@ class ImportedVenueManager
         private readonly Detector $detector = new Detector(),
     ) {}
 
-    public function resolveOrDetect(Canal $canal, ?string $venueName, ?string $venueCity, ?string $venueStreet = null): Venue
-    {
+    public function resolveOrDetect(
+        Canal $canal,
+        ?string $venueName,
+        ?string $venueCity,
+        ?string $venueStreet = null,
+        ?float $latitude = null,
+        ?float $longitude = null,
+    ): Venue {
+        $hasCoordinates = $latitude !== null && $longitude !== null;
+
         if (is_string($venueName) && $venueName !== '') {
             $existing = $this->findByName($venueName);
             if ($existing instanceof Venue) {
                 // Ensure the venue is linked to this canal so the repository validation passes
                 if (!$existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
                     $existing->assignCanal($canal, isOwner: false);
+                }
+                // Backfill coordinates from an event's map pin only when the venue has none.
+                if ($hasCoordinates && $existing->latitude === null && $existing->longitude === null) {
+                    $existing->update(['latitude' => $latitude, 'longitude' => $longitude]);
                 }
                 return $existing;
             }
@@ -35,6 +47,11 @@ class ImportedVenueManager
                         $payload = array_merge($detected['venue_store_payload'], [
                             'status' => ModelStatus::Draft->value,
                         ]);
+                        // A map-pin from the source article beats the geocoder guess.
+                        if ($hasCoordinates) {
+                            $payload['latitude'] = $latitude;
+                            $payload['longitude'] = $longitude;
+                        }
                         $venue = Venue::create($payload);
                         $venue->assignCanal($canal, isOwner: false);
                         return $venue;
@@ -59,6 +76,8 @@ class ImportedVenueManager
                         'category'   => null,
                         'status'     => ModelStatus::Draft->value,
                         'country'    => 'Slovensko',
+                        'latitude'   => $hasCoordinates ? $latitude : null,
+                        'longitude'  => $hasCoordinates ? $longitude : null,
                     ]);
                     $venue->assignCanal($canal, isOwner: false);
                     return $venue;
