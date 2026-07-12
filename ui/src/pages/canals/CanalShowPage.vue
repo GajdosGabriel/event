@@ -154,6 +154,10 @@
               <dd>{{ formatDate(canal.deletedAt) }}</dd>
             </div>
           </dl>
+
+          <div v-if="canal.contactable" class="mt-4">
+            <ContactButton target-type="canal" :target-id="canal.id" :target-name="canal.name" />
+          </div>
         </aside>
       </div>
     </template>
@@ -165,6 +169,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
+import ContactButton from '@/components/ContactButton.vue'
 import type { CanalItem } from '@/types'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()

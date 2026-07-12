@@ -196,6 +196,11 @@
             </div>
           </dl>
 
+          <!-- Poslať správu organizátorovi -->
+          <div v-if="event.contactable" class="show-card">
+            <ContactButton target-type="event" :target-id="event.id" :target-name="event.name" />
+          </div>
+
           <!-- Meta -->
           <dl class="show-card grid gap-3">
             <div class="detail-card">
@@ -227,6 +232,7 @@ import type { EventItem, TicketTypeItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
+import ContactButton from '@/components/ContactButton.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()

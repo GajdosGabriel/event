@@ -22,6 +22,16 @@ class CanalController extends Controller
 
     public function show($id)
     {
-        return response()->json($this->canalRepository->publicShow($id));
+        $canal = $this->canalRepository->publicShow($id);
+
+        if (! $canal) {
+            abort(404);
+        }
+
+        $data = $canal->toArray();
+        // Kontaktovateľné len ak má kanál majiteľa s e-mailom.
+        $data['contactable'] = $canal->isContactable();
+
+        return response()->json($data);
     }
 }

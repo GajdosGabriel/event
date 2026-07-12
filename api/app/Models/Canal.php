@@ -6,15 +6,16 @@ use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
 use App\Casts\{StringLength250, Website};
+use App\Contracts\Messageable;
 use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Models\User;
-use App\Models\Traits\{HasCommonFilters, HasFile};
+use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
 
-class Canal extends Model
+class Canal extends Model implements Messageable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
 
     /**
      * The attributes that are mass assignable.
@@ -61,6 +62,12 @@ class Canal extends Model
     {
         return $this->belongsToMany(User::class)
             ->wherePivot('is_owner', true);
+    }
+
+    /** Správu kanálu dostane jeho vlastník (prvý majiteľ s e-mailom). */
+    public function messageRecipient(): ?User
+    {
+        return $this->owners()->whereNotNull('email')->first();
     }
 
     public function events()

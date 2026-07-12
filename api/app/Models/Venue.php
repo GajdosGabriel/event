@@ -2,20 +2,22 @@
 
 namespace App\Models;
 
+use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
 use App\Models\Municipality;
-use App\Models\Traits\{HasCommonFilters, HasFile};
+use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Venue extends Model
+class Venue extends Model implements Messageable
 {
     /**
      * Venue je fyzicke miesto, kde sa event kona alebo kde ma canal sidlo.
      */
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
 
     protected $guarded = [];
     protected $appends = ['primary_image', 'thumb_image', 'files', 'canal_id', 'canal_ids'];
@@ -57,6 +59,21 @@ class Venue extends Model
     public function ownerCanals()
     {
         return $this->canals()->wherePivot('is_owner', true);
+    }
+
+    /**
+     * Správu miestu dostane vlastník jeho vlastníckeho kanálu — miesto samo
+     * nemá používateľa, patrí kanálu, ktorý má majiteľa.
+     */
+    public function messageRecipient(): ?User
+    {
+        foreach ($this->ownerCanals as $canal) {
+            if ($recipient = $canal->messageRecipient()) {
+                return $recipient;
+            }
+        }
+
+        return null;
     }
 
     public function events()

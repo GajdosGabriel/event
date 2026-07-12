@@ -114,7 +114,7 @@
               </dl>
             </div>
 
-            <div v-if="venue.phone || venue.website" class="rounded-2xl border border-slate-200 bg-white p-5">
+            <div v-if="venue.phone || venue.website || venue.contactable" class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                 Kontakt
@@ -129,6 +129,8 @@
                   {{ venue.website.replace(/^https?:\/\//, '') }}
                 </a>
               </div>
+              <ContactButton v-if="venue.contactable" target-type="venue" :target-id="venue.id" :target-name="venue.name"
+                :class="{ 'mt-3': venue.phone || venue.website }" />
             </div>
           </aside>
         </div>
@@ -143,6 +145,7 @@ import { useRoute } from 'vue-router'
 import { showVenuePublic, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import type { VenueItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
+import ContactButton from '@/components/ContactButton.vue'
 
 const route = useRoute()
 const venueId = computed(() => Number(route.params.id))

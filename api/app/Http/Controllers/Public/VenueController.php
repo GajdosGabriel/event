@@ -17,7 +17,17 @@ class VenueController extends Controller
 
     public function show($id)
     {
-        return response()->json($this->venueRepository->publicShow($id));
+        $venue = $this->venueRepository->publicShow($id);
+
+        if (! $venue) {
+            abort(404);
+        }
+
+        $data = $venue->toArray();
+        // Kontaktovateľné len ak má miesto vlastnícky kanál s majiteľom (e-mail).
+        $data['contactable'] = $venue->isContactable();
+
+        return response()->json($data);
     }
 
     public function files($id)

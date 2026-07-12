@@ -3,16 +3,17 @@
 namespace App\Models;
 
 use App\Casts\StringLength250;
+use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
-use App\Models\Traits\{HasCommonFilters, HasFile};
+use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
-class Event extends Model
+class Event extends Model implements Messageable
 {
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
 
     protected $guarded = [];
     protected $hidden = [];
@@ -45,6 +46,14 @@ class Event extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Správu k podujatiu dostane jeho vlastník (ak má e-mail). */
+    public function messageRecipient(): ?User
+    {
+        $owner = $this->user;
+
+        return $owner && $owner->email ? $owner : null;
     }
 
     public function venue()

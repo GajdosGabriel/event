@@ -39,7 +39,20 @@ class EventController extends Controller
 
     public function show($id)
     {
-        return response()->json($this->eventRepository->publicShow($id));
+        $event = $this->eventRepository->publicShow($id);
+
+        if (! $event) {
+            abort(404);
+        }
+
+        $data = $event->toArray();
+
+        // Návštevník môže organizátorovi poslať správu, len ak má podujatie
+        // vlastníka s e-mailom. Samotný e-mail verejne NEvystavujeme — front
+        // dostane len tento boolean, ktorý riadi zobrazenie tlačidla.
+        $data['contactable'] = $event->isContactable();
+
+        return response()->json($data);
     }
 
     public function files($id): JsonResponse

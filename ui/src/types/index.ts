@@ -163,6 +163,8 @@ export interface EventItem {
   ticketTypeLabels: Record<string, string>
   phone: string | null
   email: string | null
+  /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */
+  contactable: boolean
   municipality: { id: number; name: string; fullname?: string } | null
   canal: { id: number; name: string; thumbImage?: string } | null
   venue: {
@@ -209,6 +211,8 @@ export interface CanalItem {
   municipality: { id: number; name: string } | null
   venuesList: { id: number; name: string; isOwner: boolean }[]
   membersList: { id: number; name: string; isOwner: boolean }[]
+  /** Má cieľ vlastníka s e-mailom? (riadi tlačidlo „Poslať správu") */
+  contactable?: boolean
 }
 
 // Venue
@@ -240,6 +244,8 @@ export interface VenueItem {
   allowedStatuses: AllowedStatusOption[]
   municipality: { id: number; name: string } | null
   canalsList: { id: number; name: string; isOwner: boolean }[]
+  /** Má cieľ vlastníka s e-mailom? (riadi tlačidlo „Poslať správu") */
+  contactable?: boolean
 }
 
 // Municipality

@@ -95,6 +95,12 @@ class EventResource extends JsonResource
             'checkin' => ($user?->can('view', $this->resource) ?? false) && ($user?->can('ticket.checkin') ?? false),
         ];
 
+        // „Poslať správu" potrebuje príznak len na detaile (show) — na výpisoch
+        // (index) by isContactable() robilo dotaz na každý riadok, preto len tu.
+        if ($request->route()?->getActionMethod() === 'show') {
+            $data['contactable'] = $this->resource->isContactable();
+        }
+
         return $data;
     }
 

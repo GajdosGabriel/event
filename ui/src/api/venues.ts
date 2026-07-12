@@ -36,6 +36,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     allowedStatuses: (raw['allowed_statuses'] as VenueItem['allowedStatuses']) ?? [],
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
     canalsList: ((raw['canals_list'] as Record<string,unknown>[]) ?? []).map(c => ({ id: c['id'] as number, name: c['name'] as string, isOwner: c['is_owner'] as boolean })),
+    contactable: Boolean(raw['contactable']),
   }
 }
 

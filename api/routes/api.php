@@ -17,7 +17,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -59,6 +59,9 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
 Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])->name('public.events.tickets.store');
+
+// Generické „Poslať správu" pre ľubovoľný cieľ (podujatie / miesto / kanál…).
+Route::post('messages', [PublicMessageController::class, 'store'])->name('public.messages.store');
 
 // Prihlásenie / odhlásenie prihláseného používateľa na workshop podujatia.
 Route::middleware('auth:sanctum')->group(function () {

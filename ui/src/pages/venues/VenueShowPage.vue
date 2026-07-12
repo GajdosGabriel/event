@@ -154,6 +154,10 @@
               <dd>{{ formatDate(venue.deletedAt) }}</dd>
             </div>
           </dl>
+
+          <div v-if="venue.contactable" class="mt-4">
+            <ContactButton target-type="venue" :target-id="venue.id" :target-name="venue.name" />
+          </div>
         </aside>
       </div>
     </template>
@@ -165,6 +169,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showVenue, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import { listFiles, type FileItem } from '@/api/files'
+import ContactButton from '@/components/ContactButton.vue'
 import type { VenueItem } from '@/types'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()

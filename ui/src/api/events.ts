@@ -58,6 +58,7 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     uploadedFiles: (raw['uploaded_files'] as EventItem['uploadedFiles']) ?? [],
     phone: (raw['phone'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
+    contactable: Boolean(raw['contactable']),
     permissions: (() => {
       const p = (raw['permissions'] as Record<string, boolean>) ?? {}
       return {

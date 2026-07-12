@@ -50,6 +50,12 @@ class VenueResource extends JsonResource
             ])->values()->all();
         }
 
+        // „Poslať správu" potrebuje príznak len na detaile (show) — na výpisoch
+        // (index) by isContactable() robilo dotaz na každý riadok, preto len tu.
+        if ($request->route()?->getActionMethod() === 'show') {
+            $data['contactable'] = $this->resource->isContactable();
+        }
+
         return $data;
     }
 }
