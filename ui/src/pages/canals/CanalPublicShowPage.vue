@@ -48,6 +48,39 @@
                 <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600 hover:underline">Otvoriť v Google Maps ↗</a>
               </div>
             </div>
+
+            <!-- Eventy -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 class="mb-4 text-base font-semibold text-slate-800">Eventy organizátora</h2>
+              <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
+              <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne publikované eventy.</p>
+              <ul v-else class="grid gap-2">
+                <li v-for="ev in events" :key="ev.id"
+                  class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <div class="min-w-0 flex-1">
+                    <RouterLink :to="`/events/${ev.id}`"
+                      class="block truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                      {{ ev.name }}
+                    </RouterLink>
+                    <span v-if="ev.startAt" class="mt-0.5 block text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Miesta -->
+            <div v-if="canal.venuesList.length" class="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 class="mb-4 text-base font-semibold text-slate-800">Miesta</h2>
+              <ul class="grid gap-2">
+                <li v-for="v in canal.venuesList" :key="v.id"
+                  class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <RouterLink :to="`/venues/${v.id}`"
+                    class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                    {{ v.name }}
+                  </RouterLink>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- Sidebar -->
@@ -71,6 +104,11 @@
                 :class="{ 'mt-3': canal.phone || canal.website }" />
             </div>
 
+            <div v-if="canal.municipality" class="rounded-2xl border border-slate-200 bg-white p-5">
+              <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Pôsobí v</div>
+              <p class="text-sm text-slate-700">{{ canal.municipality.name }}</p>
+            </div>
+
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Organizátor od</div>
               <p class="text-sm text-slate-700">{{ formatDate(canal.createdAt) }}</p>
@@ -85,7 +123,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { showCanalPublic } from '@/api/canals'
+import { showCanalPublic, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import ContactButton from '@/components/ContactButton.vue'
 
@@ -93,13 +131,20 @@ const route = useRoute()
 const canal = ref<CanalItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
+const events = ref<CanalEventItem[]>([])
+const eventsLoading = ref(false)
 
 function formatDate(d: string) { return new Date(d).toLocaleDateString('sk-SK') }
 
 onMounted(async () => {
+  const id = Number(route.params.id)
   loading.value = true
-  try { canal.value = await showCanalPublic(Number(route.params.id)) }
+  try {
+    canal.value = await showCanalPublic(id)
+    eventsLoading.value = true
+    events.value = await listCanalEvents('public', id)
+  }
   catch { error.value = true }
-  finally { loading.value = false }
+  finally { loading.value = false; eventsLoading.value = false }
 })
 </script>

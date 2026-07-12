@@ -86,6 +86,8 @@ Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.
 Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name('public.venues.events');
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
 
+Route::get('canals/{id}/events', [PublicCanalController::class, 'events'])->name('public.canals.events');
+
 Route::apiResources([
     'events' => PublicEventController::class,
     'canals' => PublicCanalController::class,

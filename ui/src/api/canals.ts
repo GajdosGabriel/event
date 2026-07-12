@@ -47,8 +47,9 @@ export interface CanalEventItem {
   status: string
 }
 
-export async function listCanalEvents(scope: Scope, canalId: number): Promise<CanalEventItem[]> {
-  const { data } = await http.get(`${baseUrl(scope)}/${canalId}/events`)
+export async function listCanalEvents(scope: Scope | 'public', canalId: number): Promise<CanalEventItem[]> {
+  const url = scope === 'public' ? `/canals/${canalId}/events` : `${baseUrl(scope)}/${canalId}/events`
+  const { data } = await http.get(url)
   return ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
     id: r['id'] as number,
     name: r['name'] as string,

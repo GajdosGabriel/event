@@ -75,6 +75,16 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
             ->get();
     }
 
+    public function publicShow($id)
+    {
+        return $this->model()
+            ->with([
+                'municipality',
+                'venues' => fn ($q) => $q->wherePivot('status', ModelStatus::Published->value),
+            ])
+            ->find($id);
+    }
+
     public function publicIndexQuery()
     {
         return $this->latestFirst(
