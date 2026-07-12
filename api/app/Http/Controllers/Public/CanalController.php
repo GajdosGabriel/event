@@ -29,8 +29,9 @@ class CanalController extends Controller
         }
 
         $data = $canal->toArray();
-        // Kontaktovateľné len ak má kanál majiteľa s e-mailom.
-        $data['contactable'] = $canal->isContactable();
+        // Kontaktovateľné len ak má kanál aktívneho majiteľa (self/admin
+        // registrácia, overený e-mail) a návštevník ním nie je sám.
+        $data['contactable'] = $canal->isContactableBy(auth('sanctum')->user());
 
         return response()->json($data);
     }

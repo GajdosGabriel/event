@@ -48,12 +48,20 @@ class Event extends Model implements Messageable
         return $this->belongsTo(User::class);
     }
 
-    /** Správu k podujatiu dostane jeho vlastník (ak má e-mail). */
+    /**
+     * Správu k podujatiu dostane jeho vlastník — ale len pri „vlastnom" obsahu.
+     * Importované podujatia (orginal_source) vlastní ten, kto ich importoval,
+     * a ten nevie odpovedať za cudzieho organizátora → nekontaktovateľné.
+     */
     public function messageRecipient(): ?User
     {
+        if (! empty($this->orginal_source)) {
+            return null;
+        }
+
         $owner = $this->user;
 
-        return $owner && $owner->email ? $owner : null;
+        return $owner && $owner->canReceiveMessages() ? $owner : null;
     }
 
     public function venue()

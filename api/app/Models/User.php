@@ -95,6 +95,39 @@ class User extends Authenticatable
             ->wherePivot('is_owner', true);
     }
 
+    /**
+     * Je účet blokovaný? Trvalo (blocked_until = null), alebo dočasne kým
+     * blocked_until neuplynie. Rovnaká sémantika ako is_blocked v UserResource.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null
+            && ($this->blocked_until === null || $this->blocked_until->isFuture());
+    }
+
+    /**
+     * Môže tento účet posielať správy cez „Poslať správu"?
+     * Len overený (potvrdený e-mail) a neblokovaný — anti-spam: každá správa
+     * má dohľadateľného odosielateľa, hostia neposielajú vôbec.
+     */
+    public function canSendMessages(): bool
+    {
+        return $this->email_verified_at !== null
+            && ! $this->isBlocked();
+    }
+
+    /**
+     * Môže tento účet správy prijímať (byť príjemcom „Poslať správu")?
+     * Aktívny = má e-mail, sám si ho overil a nie je blokovaný. Neaktívne
+     * účty (založené z lístka/importu, neoverené) správy nedostávajú.
+     */
+    public function canReceiveMessages(): bool
+    {
+        return $this->email !== null
+            && $this->email_verified_at !== null
+            && ! $this->isBlocked();
+    }
+
     public function canal()
     {
         return $this->belongsTo(Canal::class);

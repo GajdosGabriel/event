@@ -48,9 +48,9 @@ class EventController extends Controller
         $data = $event->toArray();
 
         // Návštevník môže organizátorovi poslať správu, len ak má podujatie
-        // vlastníka s e-mailom. Samotný e-mail verejne NEvystavujeme — front
-        // dostane len tento boolean, ktorý riadi zobrazenie tlačidla.
-        $data['contactable'] = $event->isContactable();
+        // aktívneho vlastníka (a nie je importované, ani jeho vlastné). Samotný
+        // e-mail verejne NEvystavujeme — front dostane len tento boolean.
+        $data['contactable'] = $event->isContactableBy(auth('sanctum')->user());
 
         return response()->json($data);
     }

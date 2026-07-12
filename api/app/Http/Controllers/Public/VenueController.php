@@ -24,8 +24,9 @@ class VenueController extends Controller
         }
 
         $data = $venue->toArray();
-        // Kontaktovateľné len ak má miesto vlastnícky kanál s majiteľom (e-mail).
-        $data['contactable'] = $venue->isContactable();
+        // Kontaktovateľné len ak má miesto vlastnícky kanál s aktívnym majiteľom
+        // (a návštevník ním nie je sám).
+        $data['contactable'] = $venue->isContactableBy(auth('sanctum')->user());
 
         return response()->json($data);
     }

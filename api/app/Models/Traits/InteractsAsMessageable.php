@@ -3,6 +3,7 @@
 namespace App\Models\Traits;
 
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -17,9 +18,16 @@ trait InteractsAsMessageable
         return $this->morphMany(Message::class, 'messageable');
     }
 
-    /** Dá sa tomuto cieľu poslať správa? (má vlastníka s e-mailom) */
-    public function isContactable(): bool
+    /**
+     * Dá sa tomuto cieľu poslať správa z pohľadu daného návštevníka?
+     * Cieľ musí mať aktívneho príjemcu (rieši messageRecipient) a návštevník
+     * nesmie byť ním samým — vlastník si neposiela správy sám sebe.
+     */
+    public function isContactableBy(?User $viewer): bool
     {
-        return $this->messageRecipient() !== null;
+        $recipient = $this->messageRecipient();
+
+        return $recipient !== null
+            && ($viewer === null || $recipient->isNot($viewer));
     }
 }

@@ -9,6 +9,7 @@ use App\Casts\{StringLength250, Website};
 use App\Contracts\Messageable;
 use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
+use App\Enums\RegistrationSource;
 use App\Models\User;
 use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
 
@@ -64,10 +65,24 @@ class Canal extends Model implements Messageable
             ->wherePivot('is_owner', true);
     }
 
-    /** Správu kanálu dostane jeho vlastník (prvý majiteľ s e-mailom). */
+    /**
+     * Správu kanálu dostane jeho vlastník — ale len pri kanáloch, za ktorými
+     * reálne niekto stojí (registrácia self/admin). Importované a systémové
+     * kanály nemajú koho osloviť → nekontaktovateľné, aj keby mali priradeného
+     * technického vlastníka (importéra), ktorý za cudzí obsah nevie odpovedať.
+     */
     public function messageRecipient(): ?User
     {
-        return $this->owners()->whereNotNull('email')->first();
+        $managed = in_array($this->registration_source, [
+            RegistrationSource::SELF,
+            RegistrationSource::ADMIN,
+        ], true);
+
+        if (! $managed) {
+            return null;
+        }
+
+        return $this->owners->first(fn (User $owner) => $owner->canReceiveMessages());
     }
 
     public function events()

@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MessageStoreRequest;
 use App\Models\Message;
 use App\Notifications\MessageReceived;
-use App\Services\Users\GuestAccountProvisioner;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
@@ -16,40 +15,44 @@ use Illuminate\Support\Facades\Notification;
  * Generické „Poslať správu" pre ľubovoľný Messageable cieľ (podujatie / miesto
  * / kanál…). Povolené typy drží whitelist Message::TARGETS, takže pridanie
  * ďalšieho typu je len o jeho zaradení tam (+ implementácia Messageable).
+ *
+ * Anti-spam: posielať môžu len prihlásení používatelia s overeným e-mailom.
+ * Hostia formulár nevidia — front ich vyzve na registráciu.
  */
 class MessageController extends Controller
 {
-    public function __construct(
-        private GuestAccountProvisioner $accounts,
-    ) {
-    }
-
     public function store(MessageStoreRequest $request): JsonResponse
     {
+        // Odosielateľ: len prihlásený (401) a overený, neblokovaný účet (403).
+        $sender = auth('sanctum')->user();
+
+        if (! $sender) {
+            abort(401, 'Na poslanie správy sa musíte prihlásiť.');
+        }
+
+        if (! $sender->canSendMessages()) {
+            abort(403, 'Správy môžu posielať len účty s overeným e-mailom.');
+        }
+
         $data = $request->validated();
 
         $target = $this->resolveTarget($data['target_type'], (int) $data['target_id']);
 
-        // Príjemcom je vlastník cieľa. Bez neho (alebo bez jeho e-mailu) nemá
-        // správu kam doručiť; tlačidlo sa vtedy na fronte ani neukáže.
+        // Príjemcom je vlastník cieľa. Bez aktívneho vlastníka (alebo pri
+        // importovanom obsahu) nemá správu kam doručiť; tlačidlo sa vtedy na
+        // fronte ani neukáže.
         $recipient = $target->messageRecipient();
         if (! $recipient) {
             abort(422, 'Tomuto cieľu nie je možné poslať správu.');
         }
 
-        $sender = auth('sanctum')->user();
-
-        if ($sender) {
-            $senderName = $sender->pendingProfile?->display_name
-                ?? strtok((string) $sender->email, '@');
-            $senderEmail = $sender->email;
-        } else {
-            $senderName = $data['sender_name'];
-            $senderEmail = $data['sender_email'];
-            // E-mail bez účtu → založíme neaktívny účet (ako pri vstupenkách),
-            // aby odosielateľ neskôr videl svoje správy a mohol sa aktivovať.
-            $sender = $this->accounts->ensure($senderEmail, $senderName, 'message');
+        if ($recipient->is($sender)) {
+            abort(422, 'Nemôžete poslať správu sami sebe.');
         }
+
+        $senderName = $sender->pendingProfile?->display_name
+            ?? $sender->canal?->name
+            ?? strtok((string) $sender->email, '@');
 
         $message = $target->messages()->create([
             'sender_user_id' => $sender->id,
@@ -58,7 +61,7 @@ class MessageController extends Controller
         ]);
 
         Notification::route('mail', $recipient->email)
-            ->notify(new MessageReceived($message, $senderName, (string) $senderEmail));
+            ->notify(new MessageReceived($message, $senderName, (string) $sender->email));
 
         return response()->json(['status' => 'ok'], 201);
     }

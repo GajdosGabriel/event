@@ -33,8 +33,6 @@ class UserResource extends JsonResource
                 'status' => $c->status,
             ]);
 
-        $now = now();
-
         return [
             'id'           => $this->id,
             'display_name' => $activeCanal?->name ?? $this->email,
@@ -64,8 +62,7 @@ class UserResource extends JsonResource
                 'status'            => $this->status,
                 'registered_via'    => $this->registered_via,
                 'email_verified'    => $this->email_verified_at !== null,
-                'is_blocked'        => $this->blocked_at !== null
-                    && (! $this->blocked_until || $this->blocked_until->gt($now)),
+                'is_blocked'        => $this->resource->isBlocked(),
                 'blocked_until'     => $this->blocked_until,
                 'canals_count'      => $canals->count(),
                 'last_login_at'     => $this->last_login_at,

@@ -28,40 +28,43 @@
               </button>
             </div>
 
+            <!-- Neprihlásený → výzva na registráciu (správy posielajú len overené účty) -->
+            <div v-if="!auth.isAuthenticated" class="space-y-4">
+              <div class="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
+                <p class="mb-1 font-semibold">Najprv sa prihláste</p>
+                <p>Správy môžu posielať len registrovaní používatelia s overeným e-mailom — chránime tým organizátorov pred spamom.</p>
+              </div>
+              <div class="flex gap-2">
+                <RouterLink :to="{ name: 'login', query: { redirect: route.fullPath } }"
+                  class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white no-underline hover:bg-blue-700">
+                  Prihlásiť sa
+                </RouterLink>
+                <RouterLink :to="{ name: 'register' }"
+                  class="flex-1 rounded-lg border border-blue-600 px-4 py-2 text-center text-sm font-semibold text-blue-600 no-underline hover:bg-blue-50">
+                  Registrovať sa
+                </RouterLink>
+              </div>
+            </div>
+
             <!-- Odoslané -->
-            <div v-if="sent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
+            <div v-else-if="sent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
               <p class="mb-1 font-semibold">Správa bola odoslaná!</p>
-              <p>Odpoveď dorazí na e-mail{{ auth.isAuthenticated ? ' vášho účtu' : (` ${form.sender_email}`) }}.</p>
+              <p>Odpoveď dorazí na e-mail vášho účtu.</p>
               <button type="button" class="mt-3 text-sm font-medium text-green-700 hover:underline" @click="close">Zavrieť</button>
             </div>
 
+            <!-- Prihlásený → posiela z účtu -->
             <form v-else class="space-y-4" @submit.prevent="submit">
               <div>
                 <label class="mb-1 block text-xs font-medium text-slate-600">Vaša správa</label>
-                <textarea v-model.trim="form.body" required rows="4" maxlength="5000"
+                <textarea v-model.trim="body" required rows="4" maxlength="5000"
                   placeholder="Napíšte správu…"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
 
-              <!-- Prihlásený → posiela z účtu -->
-              <div v-if="auth.isAuthenticated" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              <div class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
                 Píšete ako <strong>{{ auth.displayName || 'prihlásený používateľ' }}</strong>. Odpoveď dorazí na e-mail vášho účtu.
               </div>
-
-              <!-- Hosť → meno + e-mail -->
-              <template v-else>
-                <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-600">Vaše meno</label>
-                  <input v-model.trim="form.sender_name" type="text" required maxlength="250"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-600">Váš e-mail</label>
-                  <input v-model.trim="form.sender_email" type="email" required maxlength="190"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-                  <p class="mt-1 text-xs text-slate-400">Na túto adresu vám odpovieme.</p>
-                </div>
-              </template>
 
               <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
@@ -78,7 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { sendMessage, type MessageTargetType } from '@/api/messages'
 import { useAuthStore } from '@/stores/auth'
 
@@ -96,26 +100,20 @@ const props = withDefaults(defineProps<{
 })
 
 const auth = useAuthStore()
+const route = useRoute()
 
 const open = ref(false)
 const loading = ref(false)
 const sent = ref(false)
 const error = ref<string | null>(null)
-
-const form = reactive({
-  body: '',
-  sender_name: '',
-  sender_email: '',
-})
+const body = ref('')
 
 function close() {
   open.value = false
   // Po zatvorení resetujeme, aby ďalšie otvorenie začínalo načisto.
   if (sent.value) {
     sent.value = false
-    form.body = ''
-    form.sender_name = ''
-    form.sender_email = ''
+    body.value = ''
   }
   error.value = null
 }
@@ -127,8 +125,7 @@ async function submit() {
     await sendMessage({
       target_type: props.targetType,
       target_id: props.targetId,
-      body: form.body,
-      ...(auth.isAuthenticated ? {} : { sender_name: form.sender_name, sender_email: form.sender_email }),
+      body: body.value,
     })
     sent.value = true
   } catch (e: unknown) {

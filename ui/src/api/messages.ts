@@ -7,11 +7,9 @@ export interface SendMessagePayload {
   target_type: MessageTargetType
   target_id: number
   body: string
-  /** Povinné len pre neprihláseného odosielateľa. */
-  sender_name?: string
-  sender_email?: string
 }
 
+/** Posielať môžu len prihlásení a overení používatelia — hostí front vyzve na registráciu. */
 export async function sendMessage(payload: SendMessagePayload): Promise<void> {
   await http.post('/messages', payload)
 }
