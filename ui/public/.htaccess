@@ -1,0 +1,23 @@
+# SPA (Vue Router) fallback pre Apache.
+# Priame vstupy na client-side routy (/dashboard, /login, ...) sa servujú
+# cez index.html, inak Apache vráti "Not Found", lebo taký súbor neexistuje.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Ak požadovaný súbor alebo priečinok reálne existuje (assets, favicon,
+    # index.html), servuj ho priamo bez prepisu.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Backend prefixy nechaj tak, ako sú (nikdy ich neprepisuj na index.html).
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
+    # Všetko ostatné smeruj na SPA vstupný bod.
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Ak by mod_rewrite nebol dostupný, aspoň neexistujúce cesty vráť ako SPA.
+<IfModule !mod_rewrite.c>
+    ErrorDocument 404 /index.html
+</IfModule>
