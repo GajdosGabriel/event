@@ -1,8 +1,14 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  // Subfolder deploys (e.g. '/sub/event/') set VITE_APP_BASE_URL; defaults to root.
+  const base = env.VITE_APP_BASE_URL || '/'
+
+  return {
+  base,
   plugins: [vue()],
   resolve: {
     alias: {
@@ -36,4 +42,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })

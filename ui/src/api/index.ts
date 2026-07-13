@@ -1,6 +1,12 @@
 import axios from 'axios'
 
-export const BASE_URL = '/api'
+// App base path (Vite `base`, e.g. '/' in dev, '/sub/event/' on prod). Always
+// ends with a slash. All backend paths are derived from it so the SPA works
+// whether it is served from the domain root or a subfolder.
+const APP_BASE = import.meta.env.BASE_URL || '/'
+
+export const BASE_URL = `${APP_BASE}api`
+export const SANCTUM_URL = `${APP_BASE}sanctum/csrf-cookie`
 
 const http = axios.create({
   baseURL: BASE_URL,
