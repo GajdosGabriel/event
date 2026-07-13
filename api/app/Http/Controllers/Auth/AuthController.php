@@ -101,6 +101,8 @@ class AuthController extends Controller
 
         $user->forceFill(['email_verified_at' => now()])->save();
 
+        $this->assignSuperAdminIfFirstUser($user);
+
         return response()->json($user, 201);
     }
 
@@ -277,6 +279,10 @@ class AuthController extends Controller
         $user->last_login_at = now();
         $user->save();
 
+        if ($created) {
+            $this->assignSuperAdminIfFirstUser($user);
+        }
+
         if ($displayName !== '' && ! $user->pendingProfile()->exists()) {
             PendingProfile::create([
                 'user_id' => $user->id,
@@ -393,12 +399,25 @@ class AuthController extends Controller
 
         $user->forceFill(['email_verified_at' => now()])->save();
 
+        $this->assignSuperAdminIfFirstUser($user);
+
         $pending->delete();
 
         return response()->json([
             'message' => 'Email verified successfully.',
             'user' => $user,
         ], 200);
+    }
+
+    /**
+     * Prvý zaregistrovaný používateľ v systéme sa automaticky stáva super-adminom.
+     * Všetci ďalší používatelia žiadnu rolu automaticky nedostávajú.
+     */
+    protected function assignSuperAdminIfFirstUser(User $user): void
+    {
+        if (User::count() === 1 && ! $user->hasRole('super-admin')) {
+            $user->assignRole('super-admin');
+        }
     }
 
     public function logout(Request $request)
