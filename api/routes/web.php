@@ -9,15 +9,9 @@ use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 // Auth::login(User::find(1));
 
 
-// SPA index.html – servíruje sa z public/ (tam sa nasadzuje obsah ui/dist/).
-$spa = function () {
-    $index = public_path('index.html');
-    abort_unless(is_file($index), 404, 'SPA build (index.html) nie je nasadený v public/.');
-    return response()->file($index);
-};
-
-// Named route vyžadovaný Laravel auth-om; pri refreshi na /login vráti SPA.
-Route::get('/login', $spa)->name('login');
+Route::get('/login', function () {
+    return  null;
+})->name('login');
 
 if (! Route::has('sanctum.csrf-cookie')) {
     Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show'])
@@ -139,11 +133,3 @@ Route::get('/openAI', function () {
 
     // dd($event);
 });
-
-
-// SPA fallback – všetky ostatné GET cesty vráti index.html, aby fungoval
-// client-side routing (refresh na /dashboard, /events/... a pod.).
-// Vynecháva backend prefixy (api, sanctum, storage, images, up), aby tie
-// naďalej vracali JSON / súbory a nie HTML.
-Route::get('/{any?}', $spa)
-    ->where('any', '^(?!(api|sanctum|storage|images|up)(/|$)).*$');

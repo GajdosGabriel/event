@@ -1,8 +1,10 @@
-import http, { BASE_URL, SANCTUM_URL } from './index'
+import http from './index'
 import type { AuthIdentity, LoginPayload, RegisterPayload } from '@/types'
 
+const CSRF_URL = '/sanctum/csrf-cookie'
+
 async function csrf() {
-  await http.get(SANCTUM_URL, { baseURL: '' })
+  await http.get(CSRF_URL, { baseURL: '' })
 }
 
 function unwrapIdentity(data: unknown): AuthIdentity | null {
@@ -77,5 +79,5 @@ export async function verifyRegistrationLink(token: string): Promise<{ message: 
 }
 
 export function startSocialLogin(provider: 'google' | 'facebook') {
-  window.location.assign(`${BASE_URL}/auth/${provider}/redirect`)
+  window.location.assign(`/api/auth/${provider}/redirect`)
 }

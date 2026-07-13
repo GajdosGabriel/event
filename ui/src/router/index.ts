@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     // Public
     {
