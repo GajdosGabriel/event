@@ -71,6 +71,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Webcron Secret
+    |--------------------------------------------------------------------------
+    |
+    | Used to authenticate requests to /cron/schedule-run on hosts where no
+    | shell/cron access is available and an external webcron service is used
+    | instead to trigger the Laravel scheduler over HTTP.
+    |
+    */
+
+    'cron_secret' => env('CRON_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |
