@@ -6,7 +6,7 @@
 
       <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</div>
       <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-        Skontrolujte email pre overovací odkaz.
+        Na uvedený email vám bol zaslaný overovací odkaz.
       </div>
 
       <form v-if="!success" class="grid gap-3" @submit.prevent="submit">

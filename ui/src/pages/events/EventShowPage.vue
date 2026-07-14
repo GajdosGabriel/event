@@ -56,8 +56,7 @@
                   </span>
                 </button>
               </div>
-              <div class="prose prose-slate max-w-none text-slate-700"
-                v-html="bodyView === 'ai' && event.bodyAi ? event.bodyAi : event.body" />
+              <div class="prose prose-slate max-w-none text-slate-700" v-html="renderedBody" />
             </div>
             <p v-else class="text-sm text-slate-400">Bez popisu.</p>
           </div>
@@ -110,7 +109,18 @@
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ fmt(ev.startAt) }}</span>
-                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">Upraviť</RouterLink>
+                <div class="relative shrink-0 related-event-menu">
+                  <button type="button" class="action-btn" @click.stop="openMenuId = openMenuId === ev.id ? null : ev.id">
+                    ⋮
+                  </button>
+                  <div v-if="openMenuId === ev.id"
+                    class="absolute right-0 top-full z-10 mt-1 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                    <RouterLink :to="`${prefix}/events/${ev.id}`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
+                      @click="openMenuId = null">Zobraziť</RouterLink>
+                    <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
+                      @click="openMenuId = null">Upraviť</RouterLink>
+                  </div>
+                </div>
               </li>
             </ul>
           </div>
@@ -191,8 +201,8 @@
               <dd><a :href="`tel:${event.phone}`" class="text-blue-700">{{ event.phone }}</a></dd>
             </div>
             <div v-if="event.website" class="detail-card">
-              <dt>Web</dt>
-              <dd><a :href="event.website" target="_blank" class="break-all text-blue-700">{{ event.website }}</a></dd>
+              <dt>Odkaz na akciu</dt>
+              <dd><a :href="event.website" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline">Zobraziť akciu ↗</a></dd>
             </div>
           </dl>
 
@@ -223,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
@@ -248,6 +258,28 @@ const error = ref(false)
 const relatedEvents = ref<CanalEventItem[]>([])
 const workshops = ref<TicketTypeItem[]>([])
 const bodyView = ref<'original' | 'ai'>('ai')
+const openMenuId = ref<number | null>(null)
+
+function onDocClick(e: MouseEvent) {
+  if (!(e.target as HTMLElement).closest('.related-event-menu')) openMenuId.value = null
+}
+
+onMounted(() => document.addEventListener('mousedown', onDocClick))
+onUnmounted(() => document.removeEventListener('mousedown', onDocClick))
+
+function withBlankLinks(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc.querySelectorAll('a').forEach(a => {
+    a.setAttribute('target', '_blank')
+    a.setAttribute('rel', 'noopener noreferrer')
+  })
+  return doc.body.innerHTML
+}
+
+const renderedBody = computed(() => {
+  const html = bodyView.value === 'ai' && event.value?.bodyAi ? event.value.bodyAi : event.value?.body
+  return html ? withBlankLinks(html) : ''
+})
 
 const DAY_NAMES: Record<number, string> = {
   0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',
