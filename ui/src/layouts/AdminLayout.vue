@@ -125,9 +125,7 @@ const munResource = computed(() => {
 /* Aside */
 .aside {
   @apply sticky top-0 z-40 flex flex-col border-r border-amber-900/40 p-3 text-white;
-  height: 100vh;
   overflow-x: hidden;
-  overflow-y: auto;
   background: linear-gradient(180deg, rgb(68 64 60) 0%, rgb(92 64 51) 100%);
   transition: width 0.22s ease;
 }
@@ -168,5 +166,9 @@ const munResource = computed(() => {
 @media (min-width: 768px) {
   .layout-shell { grid-template-columns: 210px minmax(0, 1fr); }
   .layout-shell.collapsed { grid-template-columns: 60px minmax(0, 1fr); }
+  .aside {
+    height: 100vh;
+    overflow-y: auto;
+  }
 }
 </style>
