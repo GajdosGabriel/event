@@ -22,6 +22,7 @@
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <RouterLink :to="indexRoute" class="action-btn">← Späť</RouterLink>
         <RouterLink v-if="event.permissions.update" :to="editRoute" class="action-btn">Upraviť</RouterLink>
+        <button v-else-if="event.permissions.duplicate" type="button" class="action-btn" @click="duplicate">Kopírovať</button>
         <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">Lístky</RouterLink>
         <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">Check-in</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
@@ -117,8 +118,10 @@
                     class="absolute right-0 top-full z-10 mt-1 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                     <RouterLink :to="`${prefix}/events/${ev.id}`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
                       @click="openMenuId = null">Zobraziť</RouterLink>
-                    <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
+                    <RouterLink v-if="ev.status !== 'archived'" :to="`${prefix}/events/${ev.id}/edit`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
                       @click="openMenuId = null">Upraviť</RouterLink>
+                    <button v-else type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      @click="duplicateRelated(ev.id)">Kopírovať</button>
                   </div>
                 </div>
               </li>
@@ -234,8 +237,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { showEvent } from '@/api/events'
+import { useRoute, useRouter } from 'vue-router'
+import { showEvent, duplicateEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import type { EventItem, TicketTypeItem } from '@/types'
@@ -243,9 +246,12 @@ import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const router = useRouter()
+const toast = useToast()
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
@@ -262,6 +268,24 @@ const openMenuId = ref<number | null>(null)
 
 function onDocClick(e: MouseEvent) {
   if (!(e.target as HTMLElement).closest('.related-event-menu')) openMenuId.value = null
+}
+
+async function duplicate() {
+  if (!event.value) return
+  try {
+    const copy = await duplicateEvent(event.value.id, scope.value)
+    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    router.push(`${prefix.value}/events/${copy.id}/edit`)
+  } catch { toast.error('Kopírovanie zlyhalo.') }
+}
+
+async function duplicateRelated(id: number) {
+  openMenuId.value = null
+  try {
+    const copy = await duplicateEvent(id, scope.value)
+    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    router.push(`${prefix.value}/events/${copy.id}/edit`)
+  } catch { toast.error('Kopírovanie zlyhalo.') }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocClick))

@@ -159,6 +159,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/{event}/publish', [DashboardEventController::class, 'publish'])
         ->name('events.publish')
         ->middleware('permission:event.update');
+    Route::post('events/{event}/duplicate', [DashboardEventController::class, 'duplicate'])
+        ->name('events.duplicate')
+        ->middleware('permission:event.create');
     Route::apiResource('events', DashboardEventController::class)
         ->only(['destroy'])
         ->middleware('permission:event.delete');
@@ -309,6 +312,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('events/{event}/publish', [AdminEventController::class, 'publish'])
         ->name('events.publish')
         ->middleware('permission:event.update');
+    Route::post('events/{event}/duplicate', [AdminEventController::class, 'duplicate'])
+        ->name('events.duplicate')
+        ->middleware('permission:event.create');
     Route::post('events/{event}/restore', [AdminEventController::class, 'restore'])
         ->name('events.restore')
         ->middleware('permission:event.delete');

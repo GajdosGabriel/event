@@ -24,6 +24,7 @@ export interface ModelPermissions {
   publish?: boolean
   delete: boolean
   archive?: boolean
+  duplicate?: boolean
   restore: boolean
   viewTickets?: boolean
   checkin?: boolean

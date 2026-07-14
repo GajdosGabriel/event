@@ -79,7 +79,12 @@
           <template #actions>
             <RowActions>
               <RouterLink :to="`${prefix}/${item.id}`" class="row-menu-item">Zobraziť</RouterLink>
-              <RouterLink :to="`${prefix}/${item.id}/edit`" class="row-menu-item">Upraviť</RouterLink>
+              <RouterLink v-if="item.permissions?.update" :to="`${prefix}/${item.id}/edit`" class="row-menu-item">Upraviť</RouterLink>
+              <button
+                v-else-if="resource === 'event' && item.permissions?.duplicate"
+                class="row-menu-item"
+                @click="duplicate(item)"
+              >Kopírovať</button>
               <button
                 v-if="item.permissions?.publish"
                 class="row-menu-item"
@@ -381,6 +386,15 @@ async function restore(id: number) {
     toast.success('Obnovené.')
     load(page.value)
   } catch { toast.error('Obnova zlyhala.') }
+}
+
+async function duplicate(item: ResourceItem) {
+  try {
+    const { data } = await http.post(`${apiBase.value}/${item.id}/duplicate`)
+    const newId = (data.data ?? data).id
+    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    router.push(`${prefix.value}/${newId}/edit`)
+  } catch { toast.error('Kopírovanie zlyhalo.') }
 }
 
 // Reload when resource prop changes (router reuse)

@@ -108,6 +108,16 @@ class DashboardEventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
+    public function duplicate(string $id, Request $request): JsonResponse
+    {
+        $event = $this->eventRepository->dashboardShow($id);
+        $this->authorize('duplicate', $event);
+
+        $copy = $this->eventRepository->duplicateForUser($request->user(), $event);
+
+        return response()->json(new EventResource($copy), 201);
+    }
+
     public function municipalitiesOverview(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Event::class);

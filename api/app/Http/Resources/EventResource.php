@@ -90,6 +90,7 @@ class EventResource extends JsonResource
             'publish' => $user?->can('publish', $this->resource) ?? false,
             'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
+            'duplicate' => $user?->can('duplicate', $this->resource) ?? false,
             'restore' => $user?->can('restore', $this->resource) ?? false,
             'view_tickets' => $user?->can('view', $this->resource) ?? false,
             'checkin' => ($user?->can('view', $this->resource) ?? false) && ($user?->can('ticket.checkin') ?? false),

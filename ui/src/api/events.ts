@@ -67,6 +67,7 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
         publish: p['publish'] ?? false,
         delete: p['delete'] ?? false,
         archive: p['archive'] ?? false,
+        duplicate: p['duplicate'] ?? false,
         restore: p['restore'] ?? false,
         viewTickets: p['view_tickets'] ?? false,
         checkin: p['checkin'] ?? false,
@@ -153,6 +154,11 @@ export async function restoreEvent(id: number): Promise<void> {
 
 export async function publishEvent(id: number, published: boolean): Promise<void> {
   await http.post(`${baseUrl('dashboard')}/${id}/publish`, { published })
+}
+
+export async function duplicateEvent(id: number, scope: Exclude<Scope, 'public'> = 'dashboard'): Promise<EventItem> {
+  const { data } = await http.post(`${baseUrl(scope)}/${id}/duplicate`)
+  return mapEvent((data.data ?? data) as Record<string, unknown>)
 }
 
 export async function detectEventFromText(text: string): Promise<Record<string, unknown>> {

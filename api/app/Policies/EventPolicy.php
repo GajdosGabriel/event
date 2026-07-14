@@ -50,6 +50,16 @@ class EventPolicy
     }
 
     /**
+     * Determine whether the user can create a new draft event based on this one.
+     * Intentionally does NOT check isNotArchived() — duplicating an archived event
+     * is the whole point (it's the "edit" replacement once an event is locked).
+     */
+    public function duplicate(User $user, Event $event): bool
+    {
+        return $user->dashboardCanalIds()->contains((int) $event->canal_id);
+    }
+
+    /**
      * Determine whether the user can archive the model (published -> archived).
      */
     public function archive(User $user, Event $event): bool

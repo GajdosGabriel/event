@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class EloquentEventRepository extends AbstractRepository implements EventRepository
@@ -65,6 +66,41 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $this->syncEventFiles($event, $filePayload);
 
         return $event->fresh(['files']);
+    }
+
+    public function duplicateForUser(User $user, Event $source): Event
+    {
+        return DB::transaction(function () use ($user, $source) {
+            /** @var Event $copy */
+            $copy = $source->replicate([
+                'status',
+                'published_at',
+                'start_at',
+                'end_at',
+                'registration_deadline_at',
+                'orginal_source',
+                'deleted_at',
+            ]);
+
+            $copy->status = ModelStatus::Draft->value;
+            $copy->user_id = $user->id;
+            $copy->name = $source->name . ' (kópia)';
+            $copy->save();
+
+            foreach ($source->ticketTypes as $ticketType) {
+                $typeCopy = $ticketType->replicate([
+                    'sale_starts_at',
+                    'sale_ends_at',
+                    'starts_at',
+                    'ends_at',
+                    'deleted_at',
+                ]);
+                $typeCopy->event_id = $copy->id;
+                $typeCopy->save();
+            }
+
+            return $copy->fresh(['files', 'ticketTypes']);
+        });
     }
 
     public function update($id, array $properties)

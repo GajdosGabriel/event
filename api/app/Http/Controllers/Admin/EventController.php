@@ -96,6 +96,16 @@ class EventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
+    public function duplicate(string $id, Request $request): JsonResponse
+    {
+        $event = $this->eventRepository->adminShow($id);
+        $this->authorize('duplicate', $event);
+
+        $copy = $this->eventRepository->duplicateForUser($request->user(), $event);
+
+        return response()->json(new EventResource($copy), 201);
+    }
+
     public function improveText(Request $request, Chatgpt $chatgpt, HtmlBodyCleaner $cleaner): JsonResponse
     {
         $this->authorize('update', Event::class);
