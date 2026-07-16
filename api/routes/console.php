@@ -12,4 +12,6 @@ Schedule::command('app:ai-detector')->everyMinute();
 Schedule::command('app:events-archive-finished')->everyTenMinutes();
 Schedule::command('app:tickets-expire-unconfirmed')->everyTenMinutes();
 Schedule::command('app:registrations-expire-pending')->everyTenMinutes();
-Schedule::command('app:import-event-sources')->hourly();
+// Timezone je explicitný, lebo app beží v UTC — bez neho by import šiel o 18:00
+// slovenského času v lete a o 17:00 v zime.
+Schedule::command('app:import-event-sources')->dailyAt('16:00')->timezone('Europe/Bratislava');

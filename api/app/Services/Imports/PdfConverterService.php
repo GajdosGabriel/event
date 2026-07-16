@@ -68,6 +68,11 @@ class PdfConverterService
      */
     private function convert(string $apiUrl, string $token, string $pdfContent, string $filename, array $logContext): ?PdfConvertResult
     {
+        if (!$this->looksLikePdf($pdfContent)) {
+            Log::debug('PdfConverterService: not a PDF, skipping converter', $logContext);
+            return null;
+        }
+
         try {
             $response = Http::timeout(120)
                 ->acceptJson()
@@ -102,6 +107,17 @@ class PdfConverterService
             Log::warning('PdfConverterService: conversion failed', [...$logContext, 'error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * The converter endpoint accepts PDFs only and rejects anything else with a 422,
+     * so non-PDFs (e.g. a .docx upload looking for a preview) are dropped before the
+     * request rather than after a failed round-trip. The %PDF- marker is allowed to
+     * sit behind some leading bytes, matching how PDF readers tolerate such files.
+     */
+    private function looksLikePdf(string $content): bool
+    {
+        return str_contains(substr($content, 0, 1024), '%PDF-');
     }
 
     /**

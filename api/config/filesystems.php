@@ -26,6 +26,11 @@ return [
     |
     | Supported drivers: "local", "ftp", "sftp", "s3"
     |
+    | FILESYSTEM_PUBLIC_URL overrides the public disk's base URL for hostings that
+    | expose the public/ directory somewhere other than APP_URL root (production
+    | serves it under /api, so APP_URL.'/storage' would 404). Leave it unset when
+    | public/ sits at APP_URL root, as it does locally.
+    |
     */
 
     'disks' => [
@@ -33,7 +38,7 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('FILESYSTEM_PUBLIC_URL', env('APP_URL').'/storage'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -42,7 +47,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('FILESYSTEM_PUBLIC_URL', env('APP_URL').'/storage'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
