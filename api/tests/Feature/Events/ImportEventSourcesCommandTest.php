@@ -87,7 +87,13 @@ class ImportEventSourcesCommandTest extends TestCase
 
         $detailBody = 'Modlitebné spoločenstvo ECAV pozýva na výročnú konferenciu v termíne 13. – 15. marca 2026. Uzávierka prihlášok: 8. marec 2026. Aktualizovaný popis programu.';
 
+        // A complete event is skipped on re-import, so overwriting it takes --force.
         $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1])
+            ->expectsOutput('Source https://www.ecav.sk/aktuality/pozvanky -> imported: 0, updated: 0, skipped: 1, errors: 0')
+            ->expectsOutput('Event import summary -> processed: 1, imported: 0, updated: 0, skipped: 1, errors: 0')
+            ->assertSuccessful();
+
+        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1, '--force' => true])
             ->expectsOutput('Source https://www.ecav.sk/aktuality/pozvanky -> imported: 0, updated: 1, skipped: 0, errors: 0')
             ->expectsOutput('Event import summary -> processed: 1, imported: 0, updated: 1, skipped: 0, errors: 0')
             ->assertSuccessful();
@@ -101,7 +107,8 @@ class ImportEventSourcesCommandTest extends TestCase
 
         $event->refresh();
         $this->assertStringContainsString('Aktualizovaný popis programu.', (string) $event->body);
-        $this->assertStringContainsString("Odkazy:\nPrihláška: https://www.modlitby.sk/registracia", (string) $event->body);
+        $this->assertStringContainsString('<h2>Odkazy</h2>', (string) $event->body);
+        $this->assertStringContainsString('<li><a href="https://www.modlitby.sk/registracia">Prihláška</a></li>', (string) $event->body);
         $this->assertCount(1, $event->files);
     }
 
@@ -159,7 +166,8 @@ class ImportEventSourcesCommandTest extends TestCase
         $this->assertSame($event->name, $attachmentFile->name);
         $this->assertSame($attachmentUrl, $attachmentFile->meta['source_url'] ?? null);
         $this->assertSame('8___KOLSK___KONFERENCIA_ECAV_POPRAD_INFO_1.pdf', $attachmentFile->original_name);
-        $this->assertStringContainsString("Odkazy:\nedumiscentrum.sk: https://www.edumiscentrum.sk/skolska-konferencia-2023/", (string) $event->body);
+        $this->assertStringContainsString('<h2>Odkazy</h2>', (string) $event->body);
+        $this->assertStringContainsString('<li><a href="https://www.edumiscentrum.sk/skolska-konferencia-2023/">edumiscentrum.sk</a></li>', (string) $event->body);
     }
 
     #[Test]
@@ -290,7 +298,8 @@ class ImportEventSourcesCommandTest extends TestCase
 
         $this->assertCount(2, $event->fresh()->files);
 
-        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1])
+        // The event is complete by now, so pruning the stale logo takes --force.
+        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1, '--force' => true])
             ->expectsOutput('Source https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl -> imported: 0, updated: 1, skipped: 0, errors: 0')
             ->expectsOutput('Event import summary -> processed: 1, imported: 0, updated: 1, skipped: 0, errors: 0')
             ->assertSuccessful();
@@ -409,8 +418,11 @@ class ImportEventSourcesCommandTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame($canal->id, $event->canal_id);
         $this->assertSame($superAdmin->id, $event->user_id);
+        // The "Miesto konania" line is content; only the trailing byline is chrome.
         $this->assertStringContainsString('Banská Bystrica, Horná 21', (string) $event->body);
-        $this->assertStringContainsString("Odkazy:\nINVITON: https://www.inviton.eu/e-21047/vy-ste-svetlo-sveta-banska-bystrica", (string) $event->body);
+        $this->assertStringNotContainsString('Bernadeta Zacherová', (string) $event->body);
+        $this->assertStringContainsString('<h2>Odkazy</h2>', (string) $event->body);
+        $this->assertStringContainsString('<li><a href="https://www.inviton.eu/e-21047/vy-ste-svetlo-sveta-banska-bystrica">INVITON</a></li>', (string) $event->body);
         $this->assertSame('2026-04-10 15:00:00', $event->start_at?->format('Y-m-d H:i:s'));
         $this->assertSame('2026-04-10 16:30:00', $event->end_at?->format('Y-m-d H:i:s'));
         $this->assertCount(2, $event->files);

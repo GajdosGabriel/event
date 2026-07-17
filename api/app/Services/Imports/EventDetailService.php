@@ -57,8 +57,12 @@ class EventDetailService
 		$main       = $this->firstNode($xpath, '//*[@id="content"] | //main');
 		$title      = $this->firstNodeText($xpath, '//h1');
 		$bodyText   = $this->normalizeWhitespace($main?->textContent ?? '');
-		$body       = $main
-			? $this->htmlCleaner->cleanInner($main)
+		// The article container excludes the date/author/category list that sits
+		// beside it and would otherwise land in the body. $bodyText stays on the
+		// wider container so date extraction keeps seeing the whole page.
+		$article    = $this->firstNode($xpath, '//*[contains(@class, "entry-content")]') ?? $main;
+		$body       = $article
+			? $this->htmlCleaner->cleanInner($article)
 			: $this->htmlCleaner->fromPlainText($bodyText);
 		$linkItems  = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="content"]//a[@href] | //main//a[@href]');
 		$links      = array_values(array_unique(array_column($linkItems, 'url')));
@@ -127,15 +131,27 @@ class EventDetailService
 	{
 		$xpath       = $this->createXPath($html);
 		$title       = $this->firstNodeText($xpath, '//*[@id="event"]//h1 | //h1');
-		$bodyText    = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[@id="event"]//p[not(contains(@class, "creator"))]'));
-		$body        = $this->htmlCleaner->cleanFromXPath($xpath, '//*[@id="event"]//p[not(contains(@class, "creator"))]');
+		$bodyText    = $this->normalizeWhitespace($this->firstNode($xpath, '//*[@id="event"]')?->textContent ?? '');
+		// Read the whole event container rather than just its <p>: anything the
+		// source puts outside a paragraph (lists, headings) belongs in the body
+		// too. Only the trailing byline and the date heading are chrome shown
+		// elsewhere — the "Miesto konania" line shares their class but is real
+		// content, and is what the venue label extractor reads.
+		$body        = $this->htmlCleaner->cleanFromXPath(
+			$xpath,
+			'//*[@id="event"]',
+			'(//*[@id="event"]//p[contains(@class, "creator")])[last()] | //*[@id="event"]//h2',
+		);
 		$linkItems   = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
 		$links       = array_values(array_unique(array_column($linkItems, 'url')));
 		$images      = $this->extractImages($xpath, $sourceUrl, '//*[@id="event"]//img[@src]');
 		$attachments = $this->extractAttachments($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
 		$dateText    = $this->firstNodeText($xpath, '//*[@id="event"]//h2//*[contains(@class, "nadpis")] | //*[@id="event"]//h2');
 		[$startAt, $endAt] = $this->extractVyveskaDateRange($dateText);
-		$creatorText = $this->firstNodeText($xpath, '//*[@id="event"]//p[contains(@class, "creator")][last()]');
+		// Parenthesised so last() picks the final byline across the document —
+		// unparenthesised the predicate applies per parent and also matches the
+		// "Miesto konania" line, which carries no publish date.
+		$creatorText = $this->firstNodeText($xpath, '(//*[@id="event"]//p[contains(@class, "creator")])[last()]');
 		$rssItem     = $this->vyveskaRssService->findByUrl($sourceUrl);
 
 		$startAt ??= $rssItem['start_at'] ?? null;

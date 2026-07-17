@@ -5,6 +5,7 @@ namespace App\Services\Imports;
 use DOMDocument;
 use DOMNode;
 use DOMXPath;
+use SplObjectStorage;
 
 /**
  * Cleans raw HTML scraped from event sources into safe, semantic HTML
@@ -14,6 +15,8 @@ use DOMXPath;
  * Drops:  script, style, noscript, nav, form, iframe, h1 (it's the title)
  * Unwraps: div, section, article, span, figure, figcaption, header, footer
  * Converts: b → strong, i → em
+ * Wraps:  loose text left over after unwrapping into p — sources that mark
+ *         paragraphs with <br> instead of <p> would otherwise yield one block
  */
 class HtmlBodyCleaner
 {
@@ -23,26 +26,61 @@ class HtmlBodyCleaner
     private const UNWRAP = ['div', 'section', 'article', 'main', 'span', 'figure', 'figcaption', 'header', 'footer', 'aside', 'table', 'tbody', 'thead', 'tr', 'td', 'th'];
     private const DROP = ['script', 'style', 'noscript', 'form', 'nav', 'iframe', 'button', 'input', 'select', 'textarea', 'h1', 'img', 'picture', 'video', 'audio', 'canvas', 'svg'];
 
+    /** Nodes the current cleanFromXPath() call must skip; null outside such a call. */
+    private ?SplObjectStorage $excluded = null;
+
     /**
      * Cleans the inner HTML of all nodes matched by $expression.
      * Multiple matched nodes are joined as sibling content.
+     *
+     * $excludeExpression drops matched nodes and their descendants, which lets
+     * callers point $expression at the whole article container instead of
+     * hand-picking the tags they want — anything the container holds but the
+     * body should not (bylines, date headings) is named once, explicitly.
+     * Excluded nodes are skipped, not removed, so the caller's DOM stays intact
+     * for the extraction that runs after this.
      */
-    public function cleanFromXPath(DOMXPath $xpath, string $expression): string
+    public function cleanFromXPath(DOMXPath $xpath, string $expression, ?string $excludeExpression = null): string
     {
         $nodes = $xpath->query($expression);
         if ($nodes === false || $nodes->length === 0) {
             return '';
         }
 
-        $parts = [];
-        foreach ($nodes as $node) {
-            $html = $this->cleanInner($node);
-            if ($html !== '') {
-                $parts[] = $html;
+        $this->excluded = $this->collectExcluded($xpath, $excludeExpression);
+
+        try {
+            $parts = [];
+            foreach ($nodes as $node) {
+                $html = $this->cleanInner($node);
+                if ($html !== '') {
+                    $parts[] = $html;
+                }
             }
+
+            return $this->postProcess(implode("\n", $parts));
+        } finally {
+            $this->excluded = null;
+        }
+    }
+
+    private function collectExcluded(DOMXPath $xpath, ?string $expression): ?SplObjectStorage
+    {
+        if ($expression === null) {
+            return null;
         }
 
-        return $this->postProcess(implode("\n", $parts));
+        $nodes = $xpath->query($expression);
+        if ($nodes === false || $nodes->length === 0) {
+            return null;
+        }
+
+        $excluded = new SplObjectStorage();
+        foreach ($nodes as $node) {
+            $excluded->attach($node);
+        }
+
+        return $excluded;
     }
 
     /**
@@ -50,12 +88,7 @@ class HtmlBodyCleaner
      */
     public function cleanInner(DOMNode $node): string
     {
-        $output = '';
-        foreach ($node->childNodes as $child) {
-            $output .= $this->processNode($child);
-        }
-
-        return $this->postProcess($output);
+        return $this->postProcess($this->renderSegments($this->segments($node)));
     }
 
     /**
@@ -108,8 +141,141 @@ class HtmlBodyCleaner
 
     // ── Private helpers ─────────────────────────────────────────────────────
 
+    /**
+     * Flattens a node's children into an ordered list of block and inline
+     * segments. Containers are unwrapped in place, so a block nested inside
+     * <div>s still surfaces as a block here rather than as loose inline content.
+     *
+     * @return array<int, array{type: string, html: string}>
+     */
+    private function segments(DOMNode $node): array
+    {
+        $segments = [];
+        foreach ($node->childNodes as $child) {
+            foreach ($this->nodeSegments($child) as $segment) {
+                $segments[] = $segment;
+            }
+        }
+
+        return $segments;
+    }
+
+    /**
+     * @return array<int, array{type: string, html: string}>
+     */
+    private function nodeSegments(DOMNode $node): array
+    {
+        if ($this->isExcluded($node)) {
+            return [];
+        }
+
+        if ($node->nodeType === XML_ELEMENT_NODE) {
+            $tag = strtolower($node->nodeName);
+            $tag = self::TRANSFORM[$tag] ?? $tag;
+
+            if (in_array($tag, self::DROP, true)) {
+                return [];
+            }
+
+            $isLeaf = in_array($tag, self::BLOCK, true)
+                || in_array($tag, self::INLINE, true)
+                || in_array($tag, ['br', 'a'], true);
+
+            if (! $isLeaf) {
+                return $this->segments($node);
+            }
+
+            // A <p> holding consecutive <br> is several paragraphs the source
+            // merged into one element — re-split it rather than trust the tag.
+            if ($tag === 'p') {
+                $html = $this->wrapInlineRun($this->processChildren($node));
+
+                return $html === '' ? [] : [['type' => 'block', 'html' => $html]];
+            }
+
+            if (in_array($tag, self::BLOCK, true)) {
+                $html = $this->processNode($node);
+
+                return $html === '' ? [] : [['type' => 'block', 'html' => $html]];
+            }
+        }
+
+        $html = $this->processNode($node);
+
+        return $html === '' ? [] : [['type' => 'inline', 'html' => $html]];
+    }
+
+    /**
+     * @param array<int, array{type: string, html: string}> $segments
+     */
+    private function renderSegments(array $segments): string
+    {
+        $output = '';
+        $inlineRun = '';
+
+        foreach ($segments as $segment) {
+            if ($segment['type'] === 'inline') {
+                $inlineRun .= $segment['html'];
+                continue;
+            }
+
+            $output .= $this->wrapInlineRun($inlineRun) . $segment['html'];
+            $inlineRun = '';
+        }
+
+        return $output . $this->wrapInlineRun($inlineRun);
+    }
+
+    /**
+     * Wraps a run of loose inline content into paragraphs. Sources that never
+     * emit <p> separate paragraphs with consecutive <br>, so a run of two or
+     * more starts a new paragraph while a single one stays a line break.
+     */
+    private function wrapInlineRun(string $html): string
+    {
+        if (trim(strip_tags($html)) === '') {
+            return '';
+        }
+
+        $output = '';
+        foreach (preg_split('/(?:[\s\x{00A0}]*<br>[\s\x{00A0}]*){2,}/u', $html) ?: [$html] as $chunk) {
+            $chunk = $this->normalizeInline($chunk);
+            if (trim(strip_tags($chunk)) === '') {
+                continue;
+            }
+
+            $output .= "<p>{$chunk}</p>\n";
+        }
+
+        return $output;
+    }
+
+    /**
+     * Collapses the source's own line wrapping into single spaces, so a
+     * paragraph reassembled from bare text nodes reads as one line. Sources use
+     * &nbsp; as ordinary spacing, so it collapses too — otherwise it would
+     * survive trimming and leave stray blank paragraphs.
+     */
+    private function normalizeInline(string $html): string
+    {
+        $html = preg_replace('/[\s\x{00A0}]+/u', ' ', $html) ?? $html;
+        // A <br> at either edge carries no meaning once the run is split.
+        $html = preg_replace('/^(?:\s*<br>\s*)+|(?:\s*<br>\s*)+$/', '', $html) ?? $html;
+
+        return trim($html);
+    }
+
+    private function isExcluded(DOMNode $node): bool
+    {
+        return $this->excluded !== null && $this->excluded->contains($node);
+    }
+
     private function processNode(DOMNode $node): string
     {
+        if ($this->isExcluded($node)) {
+            return '';
+        }
+
         if ($node->nodeType === XML_TEXT_NODE) {
             return htmlspecialchars((string) ($node->nodeValue ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
@@ -141,13 +307,24 @@ class HtmlBodyCleaner
             return $this->processChildren($node);
         }
 
-        if (in_array($tag, self::BLOCK, true) || in_array($tag, self::INLINE, true)) {
+        if (in_array($tag, self::BLOCK, true)) {
             $inner = $this->processChildren($node);
             if (trim(strip_tags($inner)) === '') {
                 return '';
             }
 
             return "<{$tag}>{$inner}</{$tag}>\n";
+        }
+
+        if (in_array($tag, self::INLINE, true)) {
+            $inner = $this->processChildren($node);
+            if (trim(strip_tags($inner)) === '') {
+                return '';
+            }
+
+            // No trailing newline: inline tags sit mid-sentence, and the extra
+            // whitespace would surface as a gap before the following punctuation.
+            return "<{$tag}>{$inner}</{$tag}>";
         }
 
         // Unknown element — unwrap
