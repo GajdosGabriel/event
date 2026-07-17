@@ -141,17 +141,18 @@ class EventListingService
 	private function isVyveskaArticleUrl(string $url): bool
 	{
 		$host = (string) parse_url($url, PHP_URL_HOST);
-		$path = (string) parse_url($url, PHP_URL_PATH);
 
 		if (! str_contains($host, 'vyveska.sk')) {
 			return false;
 		}
 
-		if (! str_ends_with($path, '.html')) {
-			return false;
-		}
+		// Event detail slugs are a single path segment — either the legacy
+		// "slug.html" or the new (2026) trailing-slash "slug/" form. Section
+		// pages ("zoznam-podujati/…", "kategoria/…") span multiple segments and
+		// the listing root is empty, so both are rejected.
+		$path = trim((string) parse_url($url, PHP_URL_PATH), '/');
 
-		return ! str_contains($path, '/zoznam-podujati/');
+		return $path !== '' && ! str_contains($path, '/');
 	}
 
 	/**
@@ -165,7 +166,10 @@ class EventListingService
 		libxml_clear_errors();
 
 		$xpath = new \DOMXPath($document);
-		$nodes = $xpath->query('//*[@id="content-body"]//h3/a[@href]');
+		// The 2026 redesign renders each listed event as an <article class="…
+		// border-b …"> whose title link sits in an <h4>. Navigation/footer links
+		// live outside these cards, so scoping to them keeps the list clean.
+		$nodes = $xpath->query('//article[contains(concat(" ", normalize-space(@class), " "), " border-b ")]//h4/a[@href]');
 		$urls = [];
 
 		foreach ($nodes ?: [] as $node) {

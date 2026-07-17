@@ -418,9 +418,11 @@ class ImportEventSourcesCommandTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame($canal->id, $event->canal_id);
         $this->assertSame($superAdmin->id, $event->user_id);
-        // The "Miesto konania" line is content; only the trailing byline is chrome.
-        $this->assertStringContainsString('Banská Bystrica, Horná 21', (string) $event->body);
-        $this->assertStringNotContainsString('Bernadeta Zacherová', (string) $event->body);
+        // Body is the .vv-prose description only; the info box (date/venue) and
+        // the trailing "Ďalšie podujatia" related-event cards are chrome.
+        $this->assertStringContainsString('rómskych komunitách', (string) $event->body);
+        $this->assertStringNotContainsString('Ďalšie podujatia', (string) $event->body);
+        $this->assertStringNotContainsString('Iné podujatie', (string) $event->body);
         $this->assertStringContainsString('<h2>Odkazy</h2>', (string) $event->body);
         $this->assertStringContainsString('<li><a href="https://www.inviton.eu/e-21047/vy-ste-svetlo-sveta-banska-bystrica">INVITON</a></li>', (string) $event->body);
         $this->assertSame('2026-04-10 15:00:00', $event->start_at?->format('Y-m-d H:i:s'));
@@ -447,7 +449,7 @@ class ImportEventSourcesCommandTest extends TestCase
         $superAdmin->assignRole('super-admin');
 
         $listingUrl = 'https://www.vyveska.sk/zoznam-podujati/najnovsie.html';
-        $detailUrl = 'https://www.vyveska.sk/28551/vecer-chval-a-adoracia-s-modlitbami-za-uzdravenie-a-oslobodenie-s-pomazanim-olejom-sv-charbela.html';
+        $detailUrl = 'https://www.vyveska.sk/vecer-chval-a-adoracia-s-pomazanim-olejom-sv-charbela/';
         $imageUrl = 'https://www.vyveska.sk/images/cache/details/events/28551-vecer-chval.jpeg';
         $attachmentUrl = 'https://www.vyveska.sk/subor.html?file=%2Fevents%2F28551-program.pdf';
 
@@ -514,7 +516,7 @@ class ImportEventSourcesCommandTest extends TestCase
         $superAdmin->assignRole('super-admin');
 
         $listingUrl = 'https://www.vyveska.sk/zoznam-podujati/najnovsie.html';
-        $detailUrl = 'https://www.vyveska.sk/28551/vecer-chval-a-adoracia-s-modlitbami-za-uzdravenie-a-oslobodenie-s-pomazanim-olejom-sv-charbela.html';
+        $detailUrl = 'https://www.vyveska.sk/vecer-chval-a-adoracia-s-pomazanim-olejom-sv-charbela.html';
         $rssUrl = 'https://www.vyveska.sk/rss.xml';
         $imageUrl = 'https://www.vyveska.sk/images/cache/details/events/28551-vecer-chval.jpeg';
         $attachmentUrl = 'https://www.vyveska.sk/subor.html?file=%2Fevents%2F28551-program.pdf';
@@ -719,11 +721,20 @@ HTML;
         return <<<HTML
 <!DOCTYPE html>
 <html lang="sk">
+<head><meta charset="utf-8"></head>
 <body>
-    <div id="content-body">
-        <h3><a href="{$detailUrl}">Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi? 17:00 - 18:30</a></h3>
-        <a href="https://www.vyveska.sk/zoznam-podujati/najoblubenejsie.html">Najobľúbenejšie</a>
-    </div>
+    <main id="main" class="main">
+        <a href="https://www.vyveska.sk/zoznam-podujati/najoblubenejsie/">Najobľúbenejšie</a>
+        <article class="relative border-b border-line py-[18px]">
+            <div class="flex gap-4">
+                <a href="{$detailUrl}" class="shrink-0"><img src="https://www.vyveska.sk/thumb.jpg" alt=""></a>
+                <div class="min-w-0 flex-1 pr-8">
+                    <span class="text-xs text-muted">10.04.2026 · 17:00</span>
+                    <h4 class="mt-1.5 font-extrabold"><a href="{$detailUrl}" class="underline">Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi?</a></h4>
+                </div>
+            </div>
+        </article>
+    </main>
 </body>
 </html>
 HTML;
@@ -734,14 +745,23 @@ HTML;
         return <<<HTML
 <!DOCTYPE html>
 <html lang="sk">
+<head><meta charset="utf-8"></head>
 <body>
-    <div id="content-body">
+    <header>
         <a href="https://www.vyveska.sk/login.html">Prihlásenie do systému</a>
         <a href="https://www.vyveska.sk/o-vyveske.html">Dve 2% pre Vývesku</a>
         <a href="https://www.vyveska.sk/chcem-pomoct.html">Vaša propagácia</a>
         <a href="https://www.vyveska.sk/odkazy.html">Partneri</a>
-        <h3><a href="{$detailUrl}">Večer chvál a adorácia s modlitbami za uzdravenie a oslobodenie 17:45 - 19:45</a></h3>
-    </div>
+    </header>
+    <main id="main" class="main">
+        <article class="relative border-b border-line py-[18px]">
+            <div class="flex gap-4">
+                <div class="min-w-0 flex-1 pr-8">
+                    <h4 class="mt-1.5 font-extrabold"><a href="{$detailUrl}" class="underline">Večer chvál a adorácia s modlitbami za uzdravenie a oslobodenie</a></h4>
+                </div>
+            </div>
+        </article>
+    </main>
 </body>
 </html>
 HTML;
@@ -753,31 +773,44 @@ HTML;
 <!DOCTYPE html>
 <html lang="sk">
 <head>
+    <meta charset="utf-8">
     <title>Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi? - Výveska.sk</title>
 </head>
-<body>
-    <div id="content-body">
-        <div id="event">
-            <table>
-                <tr>
-                    <td>
-                        <div id="event-side">
-                            <h1>Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi?</h1>
-                            <h2><span class="nadpis">10.04.2026 17:00-18:30</span> <span class="datetime">Piatok</span></h2>
-                            <p class="creator"><strong>Miesto konania:</strong> Banská Bystrica, Horná 21 (Evanjelický spolok, 1.poschodie)</p>
-                            <p>V mnohých rómskych komunitách predovšetkým na východnom Slovensku už roky funguje množstvo kresťanských misií.</p>
-                            <p>Po diskusii bude nasledovať koncert rómskej gospelovej kapely F6.</p>
-                            <p>Diskusiu budete môcť sledovať aj online. Vstupenky na <a href="https://www.inviton.eu/e-21047/vy-ste-svetlo-sveta-banska-bystrica">INVITON</a>.</p>
-                            <p>Príloha: <a href="{$attachmentUrl}">vecer-chval-a-adoracia-s-modlitbami-za-uzdravenie-a-oslobodenie-s-pomazanim-olejom-sv-charbela.pdf</a></p>
+<body class="wp-singular podujatie-template-default single single-podujat">
+    <div id="app">
+        <main id="main" class="main">
+            <div class="wrap">
+                <article>
+                    <img src="{$imageUrl}" alt="Evanjelium v osadách" class="h-[220px] w-full rounded-2xl object-cover">
+                    <div class="mt-5 flex items-center justify-between">
+                        <span class="font-extrabold">Piatok</span>
+                        <span class="font-extrabold text-brand">10.04.2026</span>
+                    </div>
+                    <h1 class="mt-1 font-extrabold">Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi?</h1>
+                    <div class="mt-4 rounded-xl bg-sky p-4">
+                        <p><span class="text-muted">Kedy:</span> <span class="font-extrabold">17:00 - 18:30</span></p>
+                        <p class="flex items-center gap-1.5"><span class="text-muted">Kde:</span> <img src="https://www.vyveska.sk/icon-pin.svg" alt=""> <span class="font-extrabold">Banská Bystrica, Horná 21 (Evanjelický spolok, 1.poschodie) · Banskobystrický</span></p>
+                        <p><span class="text-muted">Organizátor:</span> <span class="font-extrabold">Evanjelický spolok</span></p>
+                        <p><span class="text-muted">Kategórie:</span> <a href="https://www.vyveska.sk/kategoria/duchovne/" class="text-brand">Duchovné</a></p>
+                    </div>
+                    <div class="vv-prose mt-6">
+                        <p>V mnohých rómskych komunitách predovšetkým na východnom Slovensku už roky funguje množstvo kresťanských misií.</p>
+                        <p>Po diskusii bude nasledovať koncert rómskej gospelovej kapely F6.</p>
+                        <p>Diskusiu budete môcť sledovať aj online. Vstupenky na <a href="https://www.inviton.eu/e-21047/vy-ste-svetlo-sveta-banska-bystrica">INVITON</a>.</p>
+                        <p>Príloha: <a href="{$attachmentUrl}">vecer-chval-a-adoracia-s-modlitbami-za-uzdravenie-a-oslobodenie-s-pomazanim-olejom-sv-charbela.pdf</a></p>
+                    </div>
+                    <h2 class="mt-10 border-b border-line pb-3 font-extrabold">Ďalšie podujatia</h2>
+                    <article class="relative border-b border-line py-[18px]">
+                        <div class="flex gap-4">
+                            <a href="https://www.vyveska.sk/ine-podujatie/" class="shrink-0"><img src="https://www.vyveska.sk/related-thumb.jpg" alt=""></a>
+                            <div class="min-w-0 flex-1 pr-8">
+                                <h4 class="font-extrabold"><a href="https://www.vyveska.sk/ine-podujatie/" class="underline">Iné podujatie</a></h4>
+                            </div>
                         </div>
-                    </td>
-                    <td>
-                        <img class="fll" src="{$imageUrl}" alt="Evanjelium v osadách: Sú Rómovia budúcnosťou Cirkvi?" />
-                    </td>
-                </tr>
-            </table>
-            <p class="creator"><strong>Akciu pridal/a:</strong> Bernadeta Zacherová, 7.4.2026 14:41</p>
-        </div>
+                    </article>
+                </article>
+            </div>
+        </main>
     </div>
 </body>
 </html>
@@ -790,27 +823,26 @@ HTML;
 <!DOCTYPE html>
 <html lang="sk">
 <head>
+    <meta charset="utf-8">
     <title>Večer chvál a adorácia s modlitbami za uzdravenie a oslobodenie - Výveska.sk</title>
 </head>
-<body>
-    <div id="content-body">
-        <div id="event">
-            <table>
-                <tr>
-                    <td>
-                        <div id="event-side">
-                            <h1>Večer chvál a adorácia s modlitbami za uzdravenie a oslobodenie</h1>
-                            <p class="creator"><strong>Miesto konania:</strong> Sabinov</p>
-                            <p>Večer chvál s modlitbami za uzdravenie a oslobodenie.</p>
-                            <p>Príloha: <a href="{$attachmentUrl}">program.pdf</a></p>
-                        </div>
-                    </td>
-                    <td>
-                        <img class="fll" src="{$imageUrl}" alt="Večer chvál" />
-                    </td>
-                </tr>
-            </table>
-        </div>
+<body class="wp-singular podujatie-template-default single single-podujat">
+    <div id="app">
+        <main id="main" class="main">
+            <div class="wrap">
+                <article>
+                    <img src="{$imageUrl}" alt="Večer chvál" class="h-[220px] w-full rounded-2xl object-cover">
+                    <h1 class="mt-1 font-extrabold">Večer chvál a adorácia s modlitbami za uzdravenie a oslobodenie</h1>
+                    <div class="mt-4 rounded-xl bg-sky p-4">
+                        <p class="flex items-center gap-1.5"><span class="text-muted">Kde:</span> <img src="https://www.vyveska.sk/icon-pin.svg" alt=""> <span class="font-extrabold">Sabinov</span></p>
+                    </div>
+                    <div class="vv-prose mt-6">
+                        <p>Večer chvál s modlitbami za uzdravenie a oslobodenie.</p>
+                        <p>Príloha: <a href="{$attachmentUrl}">program.pdf</a></p>
+                    </div>
+                </article>
+            </div>
+        </main>
     </div>
 </body>
 </html>

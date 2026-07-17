@@ -77,7 +77,7 @@ return [
         'sources' => [
             'urls' => array_values(array_filter(array_map(
                 static fn (string $url) => trim($url),
-                explode(',', (string) env('IMPORT_SOURCE_URLS', 'https://www.ecav.sk/aktuality/pozvanky,https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl,https://www.vyveska.sk/zoznam-podujati/najnovsie.html'))
+                explode(',', (string) env('IMPORT_SOURCE_URLS', 'https://www.ecav.sk/aktuality/pozvanky,https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl,https://www.vyveska.sk/zoznam-podujati/najnovsie/'))
             ))),
             'max_pages' => max(1, (int) env('IMPORT_SOURCE_MAX_PAGES', 1)),
         ],

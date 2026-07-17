@@ -129,30 +129,40 @@ class EventDetailService
 	 */
 	private function extractVyveskaDetail(string $html, string $sourceUrl): array
 	{
-		$xpath       = $this->createXPath($html);
-		$title       = $this->firstNodeText($xpath, '//*[@id="event"]//h1 | //h1');
-		$bodyText    = $this->normalizeWhitespace($this->firstNode($xpath, '//*[@id="event"]')?->textContent ?? '');
-		// Read the whole event container rather than just its <p>: anything the
-		// source puts outside a paragraph (lists, headings) belongs in the body
-		// too. Only the trailing byline and the date heading are chrome shown
-		// elsewhere — the "Miesto konania" line shares their class but is real
-		// content, and is what the venue label extractor reads.
-		$body        = $this->htmlCleaner->cleanFromXPath(
-			$xpath,
-			'//*[@id="event"]',
-			'(//*[@id="event"]//p[contains(@class, "creator")])[last()] | //*[@id="event"]//h2',
-		);
-		$linkItems   = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
+		$xpath = $this->createXPath($html);
+
+		// The 2026 Výveska redesign renders each event as the first <article>
+		// under <main id="main">. The trailing "Ďalšie podujatia" block reuses
+		// <article class="… border-b …"> for related events and must stay out of
+		// the body, media and dates — every selector below is anchored to this
+		// first article and, for the description, to its .vv-prose container.
+		$article   = self::VYVESKA_ARTICLE;
+		$prose     = $article . '//div[' . self::hasClass('vv-prose') . ']';
+
+		$title     = $this->firstNodeText($xpath, $article . '//h1 | //h1');
+		$proseNode = $this->firstNode($xpath, $prose);
+		$body      = $proseNode ? $this->htmlCleaner->cleanInner($proseNode) : '';
+
+		// The info box ("Kedy:", "Kde:", "Organizátor:", "Kategórie:") carries the
+		// labelled fields the venue/organizer extractor reads, so it is prepended
+		// to the description in the plain-text body. Related events are excluded.
+		$infoText  = $this->extractVyveskaInfoText($xpath);
+		$proseText = $this->normalizeWhitespace($proseNode?->textContent ?? '');
+		$bodyText  = trim($infoText . "\n\n" . $proseText);
+
+		$linkItems   = $this->extractLinkItems($xpath, $sourceUrl, $prose . '//a[@href]');
 		$links       = array_values(array_unique(array_column($linkItems, 'url')));
-		$images      = $this->extractImages($xpath, $sourceUrl, '//*[@id="event"]//img[@src]');
-		$attachments = $this->extractAttachments($xpath, $sourceUrl, '//*[@id="event"]//a[@href]');
-		$dateText    = $this->firstNodeText($xpath, '//*[@id="event"]//h2//*[contains(@class, "nadpis")] | //*[@id="event"]//h2');
-		[$startAt, $endAt] = $this->extractVyveskaDateRange($dateText);
-		// Parenthesised so last() picks the final byline across the document —
-		// unparenthesised the predicate applies per parent and also matches the
-		// "Miesto konania" line, which carries no publish date.
-		$creatorText = $this->firstNodeText($xpath, '(//*[@id="event"]//p[contains(@class, "creator")])[last()]');
-		$rssItem     = $this->vyveskaRssService->findByUrl($sourceUrl);
+		// Featured image is a direct child of the article; the rest live inside
+		// the description. The "Kde" pin icon and related thumbnails sit elsewhere
+		// and are intentionally not matched.
+		$images      = $this->extractImages($xpath, $sourceUrl, $article . '/img[@src] | ' . $prose . '//img[@src]');
+		$attachments = $this->extractAttachments($xpath, $sourceUrl, $prose . '//a[@href]');
+
+		$headerDate  = $this->extractVyveskaHeaderDate($xpath);
+		$kedy        = $this->vyveskaInfoRowValue($xpath, 'Kedy');
+		[$startAt, $endAt] = $this->extractVyveskaDateRange($kedy, $headerDate);
+
+		$rssItem = $this->vyveskaRssService->findByUrl($sourceUrl);
 
 		$startAt ??= $rssItem['start_at'] ?? null;
 		$endAt ??= $rssItem['end_at'] ?? null;
@@ -169,13 +179,90 @@ class EventDetailService
 			'end_at'                   => $endAt,
 			'start_at_precise'         => true,
 			'registration_deadline_at' => null,
-			'published_at_source'      => $this->extractVyveskaPublishedAt($creatorText) ?? ($rssItem['published_at'] ?? null),
+			'published_at_source'      => $rssItem['published_at'] ?? null,
 			'links'                    => $links,
 			'link_items'               => $linkItems,
 			'image_urls'               => $images,
 			'attachments'              => $attachments,
 			'source_url'               => $sourceUrl,
 		];
+	}
+
+	/**
+	 * XPath to the event's own <article> (the first one under <main id="main">),
+	 * excluding the "Ďalšie podujatia" related-event cards nested below it.
+	 */
+	private const VYVESKA_ARTICLE = '(//main[@id="main"]//article)[1]';
+
+	/**
+	 * Whitespace-safe class-token match for use inside an XPath predicate.
+	 */
+	private static function hasClass(string $class): string
+	{
+		return 'contains(concat(" ", normalize-space(@class), " "), " ' . $class . ' ")';
+	}
+
+	/**
+	 * The "DD.MM.YYYY" shown in the date header above the <h1>. Carries the day
+	 * for the time-only "Kedy" variants ("15:30", "18:00 - 19:00").
+	 */
+	private function extractVyveskaHeaderDate(\DOMXPath $xpath): ?string
+	{
+		$spans = $xpath->query(self::VYVESKA_ARTICLE . '/div[' . self::hasClass('justify-between') . ']//span');
+
+		foreach ($spans ?: [] as $span) {
+			$text = $this->normalizeWhitespace($span->textContent ?? '');
+			if (preg_match('/\d{1,2}\.\d{1,2}\.\d{4}/', $text, $matches)) {
+				return $matches[0];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Value of a single info-box row (e.g. "Kedy", "Kde"), read from the sky-blue
+	 * box below the title. Returns '' when the row is absent.
+	 */
+	private function vyveskaInfoRowValue(\DOMXPath $xpath, string $label): string
+	{
+		$rows = $xpath->query(self::VYVESKA_ARTICLE . '//div[' . self::hasClass('bg-sky') . ']//p');
+
+		foreach ($rows ?: [] as $row) {
+			$text = $this->normalizeWhitespace($row->textContent ?? '');
+			if (preg_match('/^' . preg_quote($label, '/') . '\s*:?\s*(.*)$/iu', $text, $matches)) {
+				return trim($matches[1]);
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Info-box lines prepended to the plain-text body. Only "Kedy" (a date
+	 * fallback for the AI when the regex parse fails) and "Kde" (read by the
+	 * venue extractor) are kept. "Organizátor" is deliberately dropped: Výveska
+	 * is an aggregator, so its events stay under one host-named "vyveska.sk"
+	 * canal rather than being split per third-party organizer. The trailing
+	 * region middot on the "Kde" line ("… · Trnavský") is stripped so it does
+	 * not leak into the extracted venue name.
+	 */
+	private function extractVyveskaInfoText(\DOMXPath $xpath): string
+	{
+		$rows = $xpath->query(self::VYVESKA_ARTICLE . '//div[' . self::hasClass('bg-sky') . ']//p');
+		$lines = [];
+
+		foreach ($rows ?: [] as $row) {
+			$text = $this->normalizeWhitespace($row->textContent ?? '');
+
+			if (preg_match('/^Kde\s*:/iu', $text)) {
+				$lines[] = preg_replace('/\s*·\s*\S+\s*$/u', '', $text) ?? $text;
+			} elseif (preg_match('/^Kedy\s*:/iu', $text)) {
+				$lines[] = $text;
+			}
+		}
+
+		return implode("\n", $lines);
 	}
 
 	private function createXPath(string $html): \DOMXPath
@@ -489,27 +576,50 @@ class EventDetailService
 	}
 
 	/**
+	 * Parses the info-box "Kedy" value into a start/end range. It comes in three
+	 * shapes, two of which rely on the header date for the day:
+	 *   - "D.M.YYYY H:i - D.M.YYYY H:i"  → full multi-day range (self-contained)
+	 *   - "H:i - H:i"                    → header date + start/end time
+	 *   - "H:i"                          → header date + start time, no end
+	 *
 	 * @return array{0:?Carbon,1:?Carbon}
 	 */
-	private function extractVyveskaDateRange(string $text): array
+	private function extractVyveskaDateRange(string $kedy, ?string $headerDate): array
 	{
-		if (! preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/u', $text, $matches)) {
+		$kedy = $this->normalizeWhitespace($kedy);
+
+		// Self-contained "D.M.YYYY H:i - D.M.YYYY H:i" range.
+		if (preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})/u', $kedy, $m)) {
+			return [
+				$this->sourceDateTime((int) $m[3], (int) $m[2], (int) $m[1], (int) $m[4], (int) $m[5], 0),
+				$this->sourceDateTime((int) $m[8], (int) $m[7], (int) $m[6], (int) $m[9], (int) $m[10], 0),
+			];
+		}
+
+		$day = $month = $year = null;
+		if ($headerDate !== null && preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})/', $headerDate, $hm)) {
+			[$day, $month, $year] = [(int) $hm[1], (int) $hm[2], (int) $hm[3]];
+		}
+
+		if ($year === null) {
 			return [null, null];
 		}
 
-		return [
-			$this->sourceDateTime((int) $matches[3], (int) $matches[2], (int) $matches[1], (int) $matches[4], (int) $matches[5], 0),
-			$this->sourceDateTime((int) $matches[3], (int) $matches[2], (int) $matches[1], (int) $matches[6], (int) $matches[7], 0),
-		];
-	}
-
-	private function extractVyveskaPublishedAt(string $text): ?Carbon
-	{
-		if (! preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})/u', $text, $matches)) {
-			return null;
+		// Time range on the header day: "H:i - H:i".
+		if (preg_match('/(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/u', $kedy, $m)) {
+			return [
+				$this->sourceDateTime($year, $month, $day, (int) $m[1], (int) $m[2], 0),
+				$this->sourceDateTime($year, $month, $day, (int) $m[3], (int) $m[4], 0),
+			];
 		}
 
-		return $this->sourceDateTime((int) $matches[3], (int) $matches[2], (int) $matches[1], (int) $matches[4], (int) $matches[5], 0);
+		// Single start time on the header day: "H:i".
+		if (preg_match('/(\d{1,2}):(\d{2})/u', $kedy, $m)) {
+			return [$this->sourceDateTime($year, $month, $day, (int) $m[1], (int) $m[2], 0), null];
+		}
+
+		// Date known but no time — start at the beginning of the header day.
+		return [$this->sourceDateTime($year, $month, $day, 0, 0, 0), null];
 	}
 
 	private function sourceDateTime(int $year, int $month, int $day, int $hour, int $minute, int $second): Carbon

@@ -165,7 +165,6 @@ class VyveskaRssService
 			return null;
 		}
 
-		$scheme = (string) (parse_url($url, PHP_URL_SCHEME) ?: 'https');
 		$host = (string) parse_url($url, PHP_URL_HOST);
 		$path = (string) parse_url($url, PHP_URL_PATH);
 
@@ -173,7 +172,13 @@ class VyveskaRssService
 			return null;
 		}
 
-		return strtolower($scheme . '://' . $host . $path);
+		// Match on the bare slug so the two URL shapes Výveska now mixes — the
+		// legacy "…/slug.html" (still used in the RSS feed for many items) and
+		// the new "…/slug/" (used on the listing) — resolve to the same key.
+		$slug = trim($path, '/');
+		$slug = preg_replace('/\.html$/i', '', $slug) ?? $slug;
+
+		return strtolower($host . '/' . $slug);
 	}
 
 	private function normalizeWhitespace(string $value): string
