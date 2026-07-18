@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Services\Files\FileManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 trait HasFile
 {
@@ -77,7 +78,35 @@ trait HasFile
 
     protected function defaultThumbImageUrl(): string
     {
-        return url('images/foto.jpg');
+        return $this->publicImageUrl('images/foto.jpg', 'images/default.png');
+    }
+
+    /**
+     * Build a URL for a bundled default image on the public disk, returning the
+     * first candidate that exists (falling back to the last one either way).
+     *
+     * Must go through the public disk rather than the url() helper: production
+     * serves the public disk under /api/storage (FILESYSTEM_PUBLIC_URL), while
+     * APP_URL has no /api — so url('storage/images/...') would drop the /api
+     * prefix and 404. Uploaded images already use the disk URL, so this keeps
+     * fallbacks consistent with them.
+     */
+    protected function publicImageUrl(string ...$candidates): string
+    {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+
+        $last = 'images/default.png';
+
+        foreach ($candidates as $path) {
+            $last = $path;
+
+            if ($disk->exists($path)) {
+                return $disk->url($path);
+            }
+        }
+
+        return $disk->url($last);
     }
 
     protected function defaultPrimaryImage(): array

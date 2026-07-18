@@ -167,13 +167,7 @@ class Event extends Model implements Messageable
             return $canal->thumb_image;
         }
 
-        $modelFallback = 'storage/images/event-default.svg';
-        $legacyFallback = 'storage/images/canal-man.png';
-        $sharedFallback = 'storage/images/default.png';
-
-        if (file_exists(public_path($modelFallback))) return url($modelFallback);
-        if (file_exists(public_path($legacyFallback))) return url($legacyFallback);
-        return url($sharedFallback);
+        return $this->publicImageUrl('images/event-default.svg', 'images/canal-man.png', 'images/default.png');
     }
 
     protected function defaultPrimaryImage(): array

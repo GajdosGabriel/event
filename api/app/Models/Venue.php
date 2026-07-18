@@ -181,11 +181,6 @@ class Venue extends Model implements Messageable
 
     protected function defaultThumbImageUrl(): string
     {
-        $modelFallback = 'storage/images/venue.jpg';
-        $sharedFallback = 'storage/images/default.png';
-
-        return file_exists(public_path($modelFallback))
-            ? url($modelFallback)
-            : url($sharedFallback);
+        return $this->publicImageUrl('images/venue.jpg', 'images/default.png');
     }
 }

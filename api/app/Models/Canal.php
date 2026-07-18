@@ -114,12 +114,6 @@ class Canal extends Model implements Messageable
 
     protected function defaultThumbImageUrl(): string
     {
-        $modelFallback = 'storage/images/canal-default.svg';
-        $legacyFallback = 'storage/images/canal.png';
-        $sharedFallback = 'storage/images/default.png';
-
-        if (file_exists(public_path($modelFallback))) return url($modelFallback);
-        if (file_exists(public_path($legacyFallback))) return url($legacyFallback);
-        return url($sharedFallback);
+        return $this->publicImageUrl('images/canal-default.svg', 'images/canal.png', 'images/default.png');
     }
 }
