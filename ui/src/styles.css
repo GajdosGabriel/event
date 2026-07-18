@@ -44,7 +44,7 @@
   .index-row-thumb img { @apply block size-full object-cover; }
   .index-row-status { @apply whitespace-nowrap rounded-full border border-slate-300 px-2 py-1 text-[0.72rem] uppercase tracking-wide text-slate-600; }
   .index-row-status.status-live { @apply border-green-300 bg-green-100 text-green-800; }
-  .index-row-actions { @apply col-span-2 flex flex-wrap items-center justify-start gap-1.5 md:col-span-1 md:justify-end; }
+  .index-row-actions { @apply flex flex-wrap items-center justify-start gap-1.5 md:col-span-1 md:justify-end; }
   .action-btn { @apply rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-700 no-underline hover:bg-slate-100; }
   .action-btn-publish { @apply border-green-300 bg-green-50 text-green-800; }
   .action-btn-danger { @apply border-red-300 bg-red-50 text-red-800; }

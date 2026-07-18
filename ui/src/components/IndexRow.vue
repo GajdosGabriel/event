@@ -15,7 +15,7 @@
       <slot name="detail" />
     </div>
 
-    <div class="col-span-2 flex justify-start md:col-span-1 md:justify-center">
+    <div class="flex justify-start md:col-span-1 md:justify-center">
       <span class="index-row-status" :class="{ 'status-live': statusValue === 'published' }">{{ status }}</span>
     </div>
 
