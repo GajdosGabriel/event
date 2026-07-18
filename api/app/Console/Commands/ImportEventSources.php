@@ -70,6 +70,13 @@ class ImportEventSources extends Command
             $total['errors'],
         ));
 
-        return $total['errors'] > 0 ? self::FAILURE : self::SUCCESS;
+        // Per-article errors are logged individually by the import service and are
+        // expected occasionally (a source article that can't be fetched/parsed), so
+        // they must not fail the whole scheduled run — that only spammed the scheduler
+        // log with a generic "exit code 1" stacktrace that hid the real cause. Report
+        // failure only on a total failure: errors occurred and nothing succeeded.
+        $succeeded = $total['imported'] + $total['updated'] + $total['skipped'];
+
+        return ($total['errors'] > 0 && $succeeded === 0) ? self::FAILURE : self::SUCCESS;
     }
 }

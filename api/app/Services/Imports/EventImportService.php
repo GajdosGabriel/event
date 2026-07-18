@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class EventImportService
@@ -43,8 +44,17 @@ class EventImportService
             try {
                 $result = $this->importArticle($articleUrl, $force);
                 $summary[$result]++;
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                // Tolerate a single unparseable/unreachable article: log the real
+                // cause (which URL, which exception) so it's actionable, then keep
+                // going. Without this the exception was swallowed and the scheduler
+                // only saw a generic "exit code 1" with no clue what failed.
                 $summary['errors']++;
+                Log::error('Event import failed for article.', [
+                    'listing_url' => $listingUrl,
+                    'article_url' => $articleUrl,
+                    'exception' => $e,
+                ]);
             } finally {
                 $summary['processed']++;
             }

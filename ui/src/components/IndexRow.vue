@@ -6,7 +6,7 @@
     </div>
 
     <div class="min-w-0">
-      <p class="text-[0.97rem]">
+      <p class="text-base md:text-[0.97rem]">
         <RouterLink v-if="showLink" :to="showLink" class="text-slate-900 no-underline hover:underline">{{ title }}</RouterLink>
         <span v-else class="text-slate-900">{{ title }}</span>
       </p>

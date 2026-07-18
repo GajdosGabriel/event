@@ -39,8 +39,8 @@
   .detail-card dd { @apply mt-1 font-medium text-slate-800; }
 
   /* Index row */
-  .index-row { @apply grid grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[72px_minmax(0,1fr)_auto_auto] md:items-center; }
-  .index-row-thumb { @apply block h-14 w-14 overflow-hidden rounded-md border border-slate-200 md:h-14 md:w-[72px]; }
+  .index-row { @apply grid grid-cols-1 gap-2.5 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[72px_minmax(0,1fr)_auto_auto] md:gap-3 md:items-center; }
+  .index-row-thumb { @apply block h-40 w-full overflow-hidden rounded-md border border-slate-200 md:h-14 md:w-[72px]; }
   .index-row-thumb img { @apply block size-full object-cover; }
   .index-row-status { @apply whitespace-nowrap rounded-full border border-slate-300 px-2 py-1 text-[0.72rem] uppercase tracking-wide text-slate-600; }
   .index-row-status.status-live { @apply border-green-300 bg-green-100 text-green-800; }

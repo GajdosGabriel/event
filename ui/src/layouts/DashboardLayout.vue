@@ -151,4 +151,18 @@ const munResource = computed(() => {
     overflow-y: auto;
   }
 }
+
+/* Mobile: aside becomes a compact bottom tab bar instead of a tall block */
+@media (max-width: 767px) {
+  .aside {
+    @apply fixed inset-x-0 bottom-0 top-auto z-50 h-auto flex-row items-stretch justify-around gap-1 border-r-0 border-t border-teal-300/30 p-1;
+  }
+  .aside-brand,
+  .toggle-btn { @apply hidden; }
+  .aside-nav { @apply mt-0 flex-1 flex-row justify-around gap-0.5; }
+  .aside-link { @apply flex-1 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[0.62rem] font-medium; }
+  .nav-label { @apply w-auto text-[0.62rem] leading-none opacity-100; }
+  /* Keep footer/content clear of the fixed bar */
+  .content-shell { @apply pb-16; }
+}
 </style>
