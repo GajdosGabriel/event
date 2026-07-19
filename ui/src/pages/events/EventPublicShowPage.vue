@@ -151,7 +151,7 @@
               </p>
               <div class="mt-1 flex flex-wrap gap-2 text-sm">
                 <a v-if="event.venue?.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
-                <a v-if="event.venue?.website" :href="event.venue.website" target="_blank" class="text-blue-600">{{ event.venue.website }}</a>
+                <a v-if="event.venue?.website" :href="event.venue.website" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">web ↗</a>
               </div>
               <template v-if="venueOpeningHours.length">
                 <div class="mt-3 border-t border-slate-100 pt-3">
@@ -176,6 +176,8 @@
               </div>
               <RouterLink :to="`/canals/${event.canal.id}`"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
+              <a v-if="event.canal.website" :href="event.canal.website" target="_blank" rel="noopener noreferrer"
+                class="ml-2 text-sm text-blue-600 hover:underline">web ↗</a>
             </div>
 
             <!-- Kontakt -->

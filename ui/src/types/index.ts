@@ -167,7 +167,7 @@ export interface EventItem {
   /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */
   contactable: boolean
   municipality: { id: number; name: string; fullname?: string } | null
-  canal: { id: number; name: string; thumbImage?: string } | null
+  canal: { id: number; name: string; thumbImage?: string; website?: string | null } | null
   venue: {
     id: number
     name: string

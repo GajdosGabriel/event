@@ -66,8 +66,8 @@
             <RouterView />
           </div>
 
-          <aside class="right-aside">
-            <MunicipalityAside v-if="munResource" scope="admin" :resource="munResource" />
+          <aside v-if="munResource" class="right-aside">
+            <MunicipalityAside scope="admin" :resource="munResource" />
           </aside>
         </div>
       </main>

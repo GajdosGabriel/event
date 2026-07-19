@@ -67,6 +67,7 @@ class EventResource extends JsonResource
         $data['canal'] = $canal ? [
             'id' => $canal->id,
             'name' => $canal->name,
+            'website' => $canal->website,
         ] : null;
 
         $venue = $this->venue;

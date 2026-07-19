@@ -152,6 +152,8 @@
                   class="font-medium text-blue-700 no-underline hover:underline">
                   {{ event.canal.name }}
                 </RouterLink>
+                <a v-if="event.canal.website" :href="event.canal.website" target="_blank" rel="noopener noreferrer"
+                  class="ml-2 text-sm text-blue-600 hover:underline">web ↗</a>
               </dd>
             </div>
           </dl>
@@ -171,7 +173,7 @@
                 </p>
                 <div class="mt-1 flex flex-wrap gap-2 text-sm">
                   <a v-if="event.venue.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
-                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" class="truncate text-blue-600">{{ event.venue.website }}</a>
+                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">web ↗</a>
                 </div>
               </dd>
             </div>
