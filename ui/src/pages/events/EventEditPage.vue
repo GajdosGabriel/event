@@ -40,10 +40,14 @@
             <label class="form-label lg:col-span-2">
               Miesto konania
               <div class="flex gap-2">
-                <select v-model="form.venue_id" class="form-input min-w-0" :class="{ invalid: errors.venue_id }">
-                  <option :value="null">— bez miesta —</option>
-                  <option v-for="v in venuesForCanal" :key="v.id" :value="v.id">{{ v.name }}</option>
-                </select>
+                <div class="min-w-0 flex-1">
+                  <SearchableSelect
+                    v-model="form.venue_id"
+                    :options="venuesForCanal"
+                    placeholder="— bez miesta —"
+                    :invalid="!!errors.venue_id"
+                  />
+                </div>
                 <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
                   + Pridať nové
                 </button>

@@ -35,10 +35,12 @@
             </label>
             <label class="form-label">
               Obec / Mesto *
-              <select v-model="form.municipality_id" class="form-input" :class="{ invalid: errors.municipality_id }">
-                <option :value="null">— vyberte obec —</option>
-                <option v-for="m in municipalities" :key="m.id" :value="m.id">{{ m.name }}</option>
-              </select>
+              <SearchableSelect
+                v-model="form.municipality_id"
+                :options="municipalities"
+                placeholder="— vyberte obec —"
+                :invalid="!!errors.municipality_id"
+              />
               <span v-if="errors.municipality_id" class="field-error">{{ errors.municipality_id }}</span>
             </label>
             <label class="form-label lg:col-span-2">
@@ -116,6 +118,7 @@ import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { scrollToError } from '@/utils/scrollToError'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import VenueMapPicker from '@/components/VenueMapPicker.vue'

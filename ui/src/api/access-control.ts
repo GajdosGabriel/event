@@ -22,6 +22,11 @@ export async function listUsers(scope: ACScope = 'dashboard'): Promise<Record<st
   return (data.data ?? data) as Record<string, unknown>[]
 }
 
+export async function showUser(userId: number, scope: ACScope = 'dashboard'): Promise<Record<string, unknown>> {
+  const { data } = await http.get(`/${scope}/users/${userId}`)
+  return (data.data ?? data) as Record<string, unknown>
+}
+
 export async function restoreUser(userId: number, scope: ACScope = 'dashboard'): Promise<void> {
   await http.post(`/${scope}/users/${userId}/restore`, {})
 }

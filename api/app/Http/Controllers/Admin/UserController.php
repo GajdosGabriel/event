@@ -44,7 +44,7 @@ class UserController extends Controller
         $user = $this->userRepository->adminShow($id);
         $this->authorize('view', $user);
 
-        return response()->json(['admin-show' => $user]);
+        return response()->json(new UserResource($user), 200);
     }
 
     public function update(AdminUserUpdateRequest $request, string $id): JsonResponse

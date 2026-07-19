@@ -73,6 +73,7 @@ const router = createRouter({
         { path: 'venues/:id/edit', name: 'admin-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue'), props: { scope: 'admin' } },
         { path: 'municipalities', name: 'admin-municipalities', component: () => import('@/pages/admin/AdminMunicipalitiesPage.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
+        { path: 'users/:id', name: 'admin-users-show', component: () => import('@/pages/admin/AdminUserShowPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },
         { path: 'files', name: 'admin-files', component: () => import('@/pages/admin/AdminFilesPage.vue') },
         { path: 'tools', name: 'admin-tools', component: () => import('@/pages/admin/AdminToolsPage.vue') },

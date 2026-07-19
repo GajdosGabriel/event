@@ -1,21 +1,44 @@
 <template>
   <div class="flex flex-wrap items-center gap-2">
-    <!-- Search with "/" shortcut hint -->
-    <div class="relative w-full max-w-xs">
-      <input
-        ref="searchInput"
-        v-model="search"
-        type="search"
-        placeholder="Hľadať…"
-        class="form-input pr-8"
-        @input="onSearchInput"
-      />
-      <kbd
-        class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-300 bg-slate-50 px-1.5 text-xs text-slate-400"
-        title="Stlač / pre vyhľadávanie"
-      >/</kbd>
+    <!-- Search + mobile toggle -->
+    <div class="flex w-full items-center gap-2 sm:w-auto">
+      <!-- Search with "/" shortcut hint -->
+      <div class="relative w-full max-w-xs">
+        <input
+          ref="searchInput"
+          v-model="search"
+          type="search"
+          placeholder="Hľadať…"
+          class="form-input pr-8"
+          @input="onSearchInput"
+        />
+        <kbd
+          class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-300 bg-slate-50 px-1.5 text-xs text-slate-400"
+          title="Stlač / pre vyhľadávanie"
+        >/</kbd>
+      </div>
+
+      <!-- Mobile toggle for the rest of the filters -->
+      <button
+        type="button"
+        class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 sm:hidden"
+        :aria-expanded="expanded"
+        @click="expanded = !expanded"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 12h12M10 20h4"/></svg>
+        Filtre
+        <span
+          v-if="activeCount > 0"
+          class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700"
+        >{{ activeCount }}</span>
+      </button>
     </div>
 
+    <!-- Collapsible filter group (always visible from sm up) -->
+    <div
+      class="w-full flex-wrap items-center gap-2 sm:flex sm:w-auto"
+      :class="expanded ? 'flex' : 'hidden'"
+    >
     <!-- Status -->
     <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" @change="emitChange">
       <option value="">Všetky stavy</option>
@@ -74,6 +97,7 @@
       Zrušiť filtre
       <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700">{{ activeCount }}</span>
     </button>
+    </div>
   </div>
 </template>
 
@@ -116,6 +140,7 @@ const dateTo = defineModel<string>('dateTo', { default: '' })
 const onlyDeleted = defineModel<boolean>('onlyDeleted', { default: false })
 
 const searchInput = ref<HTMLInputElement | null>(null)
+const expanded = ref(false)
 let searchTimer: ReturnType<typeof setTimeout>
 
 const activeCount = computed(() => {

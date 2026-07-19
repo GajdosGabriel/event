@@ -64,6 +64,7 @@ class UserResource extends JsonResource
                 'email_verified'    => $this->email_verified_at !== null,
                 'is_blocked'        => $this->resource->isBlocked(),
                 'blocked_until'     => $this->blocked_until,
+                'blocked_reason'    => $this->blocked_reason,
                 'canals_count'      => $canals->count(),
                 'last_login_at'     => $this->last_login_at,
                 'last_activity'     => $this->last_activity,
