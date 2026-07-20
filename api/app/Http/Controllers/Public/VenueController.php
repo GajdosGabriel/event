@@ -57,6 +57,7 @@ class VenueController extends Controller
             'status' => $ev->status,
             'canal_id' => $ev->canal_id,
             'canal_name' => $ev->canal?->name,
+            'image_url' => $ev->thumb_image,
         ]));
     }
 }

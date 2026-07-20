@@ -104,8 +104,28 @@
             <a :href="file.url" target="_blank" rel="noopener" class="row-menu-item">Otvoriť</a>
             <a :href="file.url" :download="file.name" class="row-menu-item">Stiahnuť</a>
             <button class="row-menu-item" @click="copyLink(file)">Kopírovať odkaz</button>
-            <button v-if="!file.deletedAt" class="row-menu-item row-menu-item-danger" @click="remove(file.id)">Zmazať</button>
-            <button v-else class="row-menu-item" @click="restoreOne(file.id)">Obnoviť</button>
+
+            <div class="my-1 h-px bg-slate-100"></div>
+
+            <!-- Live file: soft delete (recoverable), blocked while primary -->
+            <template v-if="!file.deletedAt">
+              <button v-if="file.isPrimary" type="button" disabled
+                class="row-menu-item cursor-not-allowed opacity-50"
+                title="Primárny súbor nie je možné zmazať — najprv nastavte ako primárny iný súbor.">
+                Zmazať
+              </button>
+              <button v-else type="button" class="row-menu-item row-menu-item-danger" @click="softDelete(file)">
+                Presunúť do koša
+              </button>
+            </template>
+
+            <!-- Trashed file: restore or purge permanently -->
+            <template v-else>
+              <button type="button" class="row-menu-item" @click="restoreOne(file.id)">Obnoviť</button>
+              <button type="button" class="row-menu-item row-menu-item-danger" @click="hardDelete(file)">
+                Zmazať natrvalo
+              </button>
+            </template>
           </RowActions>
         </li>
       </ul>
@@ -135,7 +155,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { listAdminFiles, deleteFile, restoreFile, type FileItem } from '@/api/files'
+import { listAdminFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import RowActions from '@/components/RowActions.vue'
 
@@ -207,14 +227,27 @@ async function load(page = 1) {
   }
 }
 
-async function remove(id: number) {
-  try { await deleteFile(id, 'admin'); await load(currentPage.value); toast.success('Súbor zmazaný.') }
-  catch { toast.error('Mazanie zlyhalo.') }
+function errMsg(e: unknown): string | null {
+  return (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? null
+}
+
+// First stage — recoverable. Soft-deleted files stay visible under the
+// "Vrátane zmazaných" filter, where they can be restored or purged.
+async function softDelete(file: FileItem) {
+  try { await deleteFile(file.id, 'admin'); await load(currentPage.value); toast.success('Súbor presunutý do koša.') }
+  catch (e) { toast.error(errMsg(e) ?? 'Mazanie zlyhalo.') }
+}
+
+// Second stage — irreversible: purges the DB row and the physical files.
+async function hardDelete(file: FileItem) {
+  if (!confirm(`Natrvalo zmazať „${file.name}"?\nTúto akciu nie je možné vrátiť späť.`)) return
+  try { await forceDeleteFile(file.id); await load(currentPage.value); toast.success('Súbor natrvalo zmazaný.') }
+  catch (e) { toast.error(errMsg(e) ?? 'Trvalé mazanie zlyhalo.') }
 }
 
 async function restoreOne(id: number) {
   try { await restoreFile(id, 'admin'); await load(currentPage.value); toast.success('Súbor obnovený.') }
-  catch { toast.error('Obnova zlyhala.') }
+  catch (e) { toast.error(errMsg(e) ?? 'Obnova zlyhala.') }
 }
 
 async function copyLink(file: FileItem) {

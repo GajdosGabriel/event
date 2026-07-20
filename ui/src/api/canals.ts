@@ -45,6 +45,7 @@ export interface CanalEventItem {
   startAt: string | null
   endAt: string | null
   status: string
+  imageUrl: string | null
 }
 
 export async function listCanalEvents(scope: Scope | 'public', canalId: number): Promise<CanalEventItem[]> {
@@ -56,6 +57,7 @@ export async function listCanalEvents(scope: Scope | 'public', canalId: number):
     startAt: (r['start_at'] as string) ?? null,
     endAt: (r['end_at'] as string) ?? null,
     status: (r['status'] as string) ?? 'draft',
+    imageUrl: (r['image_url'] as string) ?? null,
   }))
 }
 

@@ -328,11 +328,13 @@ watch(canals, (list) => {
   }
 })
 
-// Only offer venues that actually belong to the selected canal — picking an
-// incompatible pair would be rejected by the backend at submit time anyway.
-// Admins manage venues across all canals, so they see the full list unfiltered.
+// Only offer venues that actually belong to the selected canal — the backend
+// rejects an incompatible canal+venue pair (activeCanals, published pivot), so
+// showing the rest is misleading. This holds for admins too: even though they
+// can manage venues across all canals, an event's venue must live in the event's
+// canal. To use a venue from another canal, switch the canal or add a new venue.
 const venuesForCanal = computed(() => {
-  if (scope.value === 'admin' || !form.value.canal_id) return venues.value
+  if (!form.value.canal_id) return venues.value
   return venues.value.filter(v => v.canalIds.includes(form.value.canal_id as number))
 })
 

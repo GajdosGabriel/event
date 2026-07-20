@@ -71,11 +71,6 @@ class AiDetector extends Command
             'meta' => $meta,
         ]);
 
-        Log::info('AiDetector processed event.', [
-            'event_id' => $event->id,
-            'source_url' => $event->orginal_source,
-        ]);
-
         $this->info('AiDetector processed event id ' . $event->id . '.');
 
         return self::SUCCESS;

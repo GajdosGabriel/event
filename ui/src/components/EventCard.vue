@@ -1,32 +1,61 @@
 <template>
-  <div class="flex h-full gap-4 border-b border-dotted border-slate-300 p-3 md:flex-col">
-    <RouterLink :to="`/events/${event.id}`" class="w-[42%] shrink-0 md:block md:w-full">
+  <!-- Univerzálna karta eventu — používa sa vo verejnom výpise, na stránke kanála aj miesta.
+       Vizuál zámerne kopíruje riadok v admine/dashboarde (IndexRow): obrázok navrchu,
+       pod ním názov a badge pre dátum/kanál/miesto v rovnakých farbách. -->
+  <div class="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-sm">
+    <RouterLink :to="link" class="block">
       <img
-        v-if="event.imageUrl"
-        :src="event.imageUrl"
-        :alt="event.name"
-        class="block h-full max-h-[120px] w-full rounded-lg object-cover md:h-[180px] md:max-h-none"
+        v-if="imageUrl"
+        :src="imageUrl"
+        :alt="name"
+        class="block h-40 w-full object-cover"
       />
-      <div v-else class="block h-full max-h-[120px] w-full rounded-lg bg-slate-100 md:h-[180px] md:max-h-none" />
+      <div v-else class="block h-40 w-full bg-slate-100" />
     </RouterLink>
 
-    <div class="flex min-w-0 flex-1 flex-col">
-      <h3 class="mb-1 text-base leading-tight">
-        <RouterLink :to="`/events/${event.id}`" class="text-slate-900 no-underline hover:underline">{{ event.name }}</RouterLink>
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5 p-3">
+      <h3 class="text-[0.97rem] leading-tight">
+        <RouterLink :to="link" class="text-slate-900 no-underline hover:underline">{{ name }}</RouterLink>
       </h3>
-      <p v-if="event.dateRangeLabel" class="mb-2 text-sm leading-snug text-slate-500">{{ event.dateRangeLabel }}</p>
-      <p v-if="event.canalName" class="mb-1 text-sm text-slate-600">{{ event.canalName }}</p>
-      <p v-if="event.publishedAt" class="mt-auto text-xs text-slate-400">{{ formatDate(event.publishedAt) }}</p>
+
+      <div v-if="dateLabel || canalName || venueName" class="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+        <span
+          v-if="dateLabel"
+          class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200"
+        >
+          <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          {{ dateLabel }}
+        </span>
+        <span
+          v-if="canalName"
+          class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200"
+        >
+          {{ canalName }}
+        </span>
+        <span
+          v-if="venueName"
+          class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+        >
+          {{ venueName }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { EventItem } from '@/types'
+import { computed } from 'vue'
 
-defineProps<{ event: EventItem }>()
+const props = defineProps<{
+  id: number
+  name: string
+  imageUrl?: string | null
+  dateLabel?: string | null
+  canalName?: string | null
+  venueName?: string | null
+  /** Cieľ odkazu; predvolene detail eventu. */
+  to?: string
+}>()
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('sk-SK')
-}
+const link = computed(() => props.to ?? `/events/${props.id}`)
 </script>

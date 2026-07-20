@@ -57,8 +57,17 @@
         <p v-else-if="error" class="text-red-600">{{ error }}</p>
         <p v-else-if="events.length === 0" class="rounded-xl border border-slate-200 bg-white p-3 text-slate-500">Žiadne eventy.</p>
         <EventAgenda v-else-if="view === 'agenda'" :events="events" />
-        <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-3">
-          <EventCard v-for="event in events" :key="event.id" :event="event" />
+        <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
+          <EventCard
+            v-for="event in events"
+            :key="event.id"
+            :id="event.id"
+            :name="event.name"
+            :image-url="event.imageUrl"
+            :date-label="event.dateRangeLabel"
+            :canal-name="event.canalName"
+            :venue-name="event.venue?.name ?? null"
+          />
         </div>
         <AppPaginator :current-page="page" :last-page="lastPage" @change="loadPage" />
         </div>

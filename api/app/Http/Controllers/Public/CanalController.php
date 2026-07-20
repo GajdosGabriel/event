@@ -66,9 +66,10 @@ class CanalController extends Controller
 
         $events = Event::where('canal_id', $canal->id)
             ->where('status', ModelStatus::Published->value)
+            ->with('canal')
             ->orderByDesc('start_at')
             ->limit(100)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
 
         return response()->json($events->map(fn ($ev) => [
             'id' => $ev->id,
@@ -76,6 +77,7 @@ class CanalController extends Controller
             'start_at' => $ev->start_at,
             'end_at' => $ev->end_at,
             'status' => $ev->status,
+            'image_url' => $ev->thumb_image,
         ]));
     }
 }

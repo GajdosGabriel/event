@@ -97,6 +97,7 @@ export interface VenueEventItem {
   endAt: string | null
   status: string
   canalName: string | null
+  imageUrl: string | null
 }
 
 function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
@@ -107,6 +108,7 @@ function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
     endAt: (r['end_at'] as string) ?? null,
     status: (r['status'] as string) ?? 'draft',
     canalName: (r['canal_name'] as string) ?? null,
+    imageUrl: (r['image_url'] as string) ?? null,
   }
 }
 

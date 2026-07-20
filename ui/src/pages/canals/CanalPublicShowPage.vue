@@ -54,18 +54,17 @@
               <h2 class="mb-4 text-base font-semibold text-slate-800">Eventy organizátora</h2>
               <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
               <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne publikované eventy.</p>
-              <ul v-else class="grid gap-2">
-                <li v-for="ev in events" :key="ev.id"
-                  class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <div class="min-w-0 flex-1">
-                    <RouterLink :to="`/events/${ev.id}`"
-                      class="block truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
-                      {{ ev.name }}
-                    </RouterLink>
-                    <span v-if="ev.startAt" class="mt-0.5 block text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
-                  </div>
-                </li>
-              </ul>
+              <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <EventCard
+                  v-for="ev in events"
+                  :key="ev.id"
+                  :id="ev.id"
+                  :name="ev.name"
+                  :image-url="ev.imageUrl"
+                  :date-label="ev.startAt ? formatDate(ev.startAt) : null"
+                  :canal-name="canal.name"
+                />
+              </div>
             </div>
 
             <!-- Miesta -->
@@ -126,6 +125,7 @@ import { useRoute } from 'vue-router'
 import { showCanalPublic, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import ContactButton from '@/components/ContactButton.vue'
+import EventCard from '@/components/EventCard.vue'
 
 const route = useRoute()
 const canal = ref<CanalItem | null>(null)

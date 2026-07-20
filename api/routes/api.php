@@ -276,6 +276,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::delete('files/{id}', [AdminFileController::class, 'destroy'])
         ->name('files.destroy')
         ->middleware('permission:file.delete');
+    Route::delete('files/{id}/force', [AdminFileController::class, 'forceDestroy'])
+        ->name('files.force-destroy')
+        ->middleware('permission:file.delete');
     Route::post('files/{id}/restore', [AdminFileController::class, 'restore'])
         ->name('files.restore')
         ->middleware('permission:file.delete');

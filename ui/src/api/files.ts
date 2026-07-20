@@ -116,6 +116,11 @@ export async function deleteFile(id: number, scope: 'dashboard' | 'admin' = 'das
   await http.delete(`/${scope}/files/${id}`)
 }
 
+// Permanent deletion — admin only, and only for files already in the trash.
+export async function forceDeleteFile(id: number): Promise<void> {
+  await http.delete(`/admin/files/${id}/force`)
+}
+
 export async function restoreFile(id: number, scope: 'dashboard' | 'admin' = 'dashboard'): Promise<void> {
   await http.post(`/${scope}/files/${id}/restore`)
 }

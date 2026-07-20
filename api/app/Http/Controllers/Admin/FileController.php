@@ -59,10 +59,45 @@ class FileController extends Controller
         return response()->json(new FileResource($file));
     }
 
+    /**
+     * Soft delete — move the file to the trash. First stage of the two-step
+     * removal: the file stays recoverable via restore() until it is force-deleted.
+     *
+     * A primary file is refused: it is the model's active image/attachment, so
+     * removing it would leave the entity without one. The operator must promote
+     * another file to primary first.
+     */
     public function destroy(string $id): JsonResponse
     {
         $file = File::withTrashed()->findOrFail($id);
+        $this->authorize('delete', $file);
+
+        if ($file->trashed()) {
+            abort(409, 'Súbor je už v koši. Na trvalé zmazanie použite „Zmazať natrvalo".');
+        }
+
+        if ($file->is_primary) {
+            abort(422, 'Primárny súbor nie je možné zmazať. Najprv nastavte ako primárny iný súbor.');
+        }
+
+        $this->fileManager->delete($file, false);
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * Hard delete — permanently remove the DB row and the physical files.
+     * Second stage: only a file already in the trash can be purged, which keeps
+     * the destructive action behind a deliberate two-step flow.
+     */
+    public function forceDestroy(string $id): JsonResponse
+    {
+        $file = File::withTrashed()->findOrFail($id);
         $this->authorize('forceDelete', $file);
+
+        if (! $file->trashed()) {
+            abort(422, 'Najprv presuňte súbor do koša („Zmazať"), potom ho možno zmazať natrvalo.');
+        }
 
         $this->fileManager->delete($file, true);
 
