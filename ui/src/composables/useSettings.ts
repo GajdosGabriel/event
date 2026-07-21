@@ -28,7 +28,10 @@ function loadFromStorage(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return { ...DEFAULTS, ...JSON.parse(raw) }
-  } catch {}
+  } catch {
+    // Poškodený alebo nedostupný localStorage (napr. privátny režim) nie je
+    // chyba, ktorú by malo zmysel hlásiť — vraciame defaulty.
+  }
   return { ...DEFAULTS }
 }
 

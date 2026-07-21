@@ -209,9 +209,7 @@
       <Transition enter-active-class="transition duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100"
         leave-active-class="transition duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
         <div v-if="lightboxIdx !== null" class="fixed inset-0 z-9999 flex items-center justify-center bg-black/85 p-4"
-          @click.self="lightboxIdx = null" @keydown.esc.window="lightboxIdx = null"
-          @keydown.left.window="lightboxIdx !== null && lightboxIdx > 0 && lightboxIdx--"
-          @keydown.right.window="lightboxIdx !== null && event?.uploadedImages && lightboxIdx < event.uploadedImages.length - 1 && lightboxIdx++">
+          @click.self="lightboxIdx = null">
           <button class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" @click="lightboxIdx = null">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -250,6 +248,7 @@ import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
+import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import type { EventItem, TicketTypeItem } from '@/types'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
@@ -267,6 +266,23 @@ const workshopError = ref<string | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const lightboxIdx = ref<number | null>(null)
+
+// Ovládanie lightboxu klávesnicou. Musí ísť cez window listener — vo Vue
+// neexistuje modifikátor `.window`, takže pôvodné @keydown.*.window nič nerobili
+// a Esc ani šípky v galérii nefungovali.
+useWindowKeydown((keyEvent) => {
+  if (lightboxIdx.value === null) return
+
+  const lastIdx = (event.value?.uploadedImages?.length ?? 0) - 1
+
+  if (keyEvent.key === 'Escape') {
+    lightboxIdx.value = null
+  } else if (keyEvent.key === 'ArrowLeft' && lightboxIdx.value > 0) {
+    lightboxIdx.value--
+  } else if (keyEvent.key === 'ArrowRight' && lightboxIdx.value < lastIdx) {
+    lightboxIdx.value++
+  }
+})
 
 const workshops = computed(() => ticketTypes.value.filter(t => t.kind === 'workshop'))
 

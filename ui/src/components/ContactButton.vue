@@ -14,7 +14,7 @@
       <Transition enter-active-class="transition duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100"
         leave-active-class="transition duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
         <div v-if="open" class="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4"
-          @click.self="close" @keydown.esc.window="close">
+          @click.self="close">
           <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div class="mb-4 flex items-start justify-between gap-2">
               <div>
@@ -84,6 +84,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { sendMessage, type MessageTargetType } from '@/api/messages'
+import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { useAuthStore } from '@/stores/auth'
 
 const props = withDefaults(defineProps<{
@@ -117,6 +118,14 @@ function close() {
   }
   error.value = null
 }
+
+// Zatvorenie Escapom. Musí ísť cez window listener — vo Vue neexistuje
+// modifikátor `.window`, takže pôvodné @keydown.esc.window nič nerobilo.
+useWindowKeydown((event) => {
+  if (event.key === 'Escape' && open.value) {
+    close()
+  }
+})
 
 async function submit() {
   loading.value = true

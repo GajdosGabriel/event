@@ -118,7 +118,10 @@ const saving = ref(false)
 
 onMounted(async () => {
   loading.value = true
-  try { orgs.value = (await listOrganizations('admin')).data } catch {}
+  // Bez ohlásenia chyby by zlyhané načítanie vyzeralo ako prázdny zoznam
+  // („Žiadne organizácie."), čo je nerozoznateľné od skutočne prázdneho stavu.
+  try { orgs.value = (await listOrganizations('admin')).data }
+  catch { toast.error('Načítanie organizácií zlyhalo.') }
   finally { loading.value = false }
 })
 

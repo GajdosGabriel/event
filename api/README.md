@@ -1,21 +1,76 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Event API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+REST API portálu Event — podujatia, miesta, kanály, vstupenky s QR check-inom,
+import z externých zdrojov a spracovanie cez OpenAI. Frontend je samostatná
+SPA v [`../ui`](../ui); prehľad celého projektu je v [koreňovom README](../README.md).
+
+**Stack:** Laravel 12, PHP 8.3, MySQL 8, Sanctum (auth), spatie/laravel-permission
+(role a oprávnenia).
+
+## Inštalácia
+
+```bash
+composer install && cp .env.example .env && php artisan key:generate && php artisan migrate --seed
+```
+
+`.env.example` je komentovaný vrátane neštandardných kľúčov (`CRON_SECRET`,
+`IMPORT_SOURCE_URLS`, `PDF_CONVERTER_URL`, prepnutie úložiska na S3).
+
+## Testy
+
+```bash
+php artisan test tests/Feature/Auth
+```
+
+Testy bežia proti MySQL databáze `event-api-test` (pozri [phpunit.xml](phpunit.xml)),
+nie proti sqlite. **Celá suite trvá ~10 minút**, preto pri vývoji púšťaj konkrétne
+cesty. Rate limity sú v testoch globálne vypnuté v [tests/TestCase.php](tests/TestCase.php);
+test, ktorý ich overuje, si ich zapne cez `$this->withMiddleware(ThrottleRequests::class)`.
+
+Časť testov v `tests/Feature/Events/` je náhodne flaky: `EventFactory` generuje
+dátumy a keď hodnota padne do hodiny, ktorá pri prechode na letný čas neexistuje
+(posledná nedeľa v marci), MySQL insert odmietne. Pri takom páde test zopakuj.
+
+## Rate limiting
+
+Limity sú definované v [AppServiceProvider](app/Providers/AppServiceProvider.php)
+a priradené v [routes/api.php](routes/api.php) cez `throttle:<meno>`:
+
+| Limiter | Limit | Kde |
+|---|---|---|
+| `api` | 300/min | globálne (`throttleApi()` v bootstrap/app.php) |
+| `auth` | 5/min na IP+e-mail | prihlásenie |
+| `register` | 3/min, 10/hod | registrácia a overovacie e-maily |
+| `public-write` | 10/min | rezervácia vstupeniek, RSVP |
+| `messages` | 10/hod | odosielanie správ |
+| `ai` | 10/min, 100/deň | endpointy volajúce OpenAI (platené) |
+| `ops` | 6/min | údržbové endpointy |
 
 ## Scheduler a cron
 
-Laravel scheduler je v projekte zapojený v [routes/console.php](routes/console.php) a aktuálne spúšťa:
+Laravel scheduler je zapojený v [routes/console.php](routes/console.php) a spúšťa:
 
 - `app:ai-detector` každú minútu
 - `app:events-archive-finished` každých 10 minút
-- `app:import-event-sources` každú hodinu
+- `app:tickets-expire-unconfirmed` každých 10 minút
+- `app:registrations-expire-pending` každých 10 minút
+- `app:import-event-sources` denne o 16:00 (`Europe/Bratislava`)
+- `queue:work database --stop-when-empty` každú minútu
 
 Poznámka k `app:import-event-sources`: pri importe sa časy zo zdrojov `ecav.sk`, `vyveska.sk` a `tkkbs.sk` interpretujú ako lokálny čas `Europe/Bratislava`, aby sa do aplikácie neukladali časovo posunuté eventy.
+
+### Fronta bez shellu
+
+`QUEUE_CONNECTION` je predvolene `sync`, čiže generovanie variantov obrázkov aj
+odosielanie e-mailov beží priamo v HTTP requeste a spomaľuje odpoveď. Keďže
+hosting nemá shell, klasický `queue:work` daemon tam bežať nemôže — scheduler
+preto každú minútu spustí krátky beh, ktorý po vyprázdnení fronty skončí.
+
+Prepnutie je vec `.env`, kód sa meniť nemusí:
+
+```
+QUEUE_CONNECTION=database
+```
 
 Scheduler sa nespúšťa sám. Na serveri musí bežať systémový cron, ktorý každú minútu zavolá Laravel scheduler.
 

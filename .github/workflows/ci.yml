@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (Laravel)
+    runs-on: ubuntu-latest
+
+    services:
+      # Testy bežia proti MySQL, nie sqlite — schéma aj správanie sa musia
+      # zhodovať s produkciou (pozri api/phpunit.xml).
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: event-api-test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Pint kontroluje len zmenené súbory, na to treba históriu.
+          fetch-depth: 0
+
+      - name: Nastav PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, gd, zip, bcmath
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('api/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Nainštaluj závislosti
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Priprav .env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Zámerne len zmenené súbory: existujúci kód má 235 súborov, ktoré Pint
+      # chce preformátovať. Plošná kontrola by bola červená od prvého dňa.
+      # Takto sa nový kód drží štandardu a legacy sa dá dočistiť samostatne
+      # jedným behom `vendor/bin/pint` v vlastnom commite.
+      - name: Skontroluj formátovanie zmenených súborov (Pint)
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "Nemám s čím porovnať, preskakujem."
+            exit 0
+          fi
+          FILES=$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD -- '*.php' \
+                  | sed 's|^api/||' | grep -v '^vendor/' || true)
+          if [ -z "$FILES" ]; then
+            echo "Žiadne zmenené PHP súbory."
+            exit 0
+          fi
+          echo "$FILES"
+          echo "$FILES" | xargs vendor/bin/pint --test
+
+      # Nutné: 21 test súborov používa DatabaseTransactions, ktorý schému
+      # nevytvára (na rozdiel od RefreshDatabase) a na prázdnej DB by padli.
+      # Kľúč DB_MIGRATE_BEFORE_TEST v phpunit.xml je mŕtvy, nič ho nečíta.
+      - name: Priprav testovaciu databázu
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: event-api-test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan migrate --force --env=testing
+
+      - name: Spusti testy
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: event-api-test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan test
+
+  ui:
+    name: UI (Vue)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nastav Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Nainštaluj závislosti
+        run: npm ci
+
+      # --max-warnings sa zámerne nenastavuje na 0: v projekte ostáva ~27
+      # varovaní (najmä v-html a `any`), ktoré sa budú uberať postupne.
+      # Errory ale CI zhodia — tých je teraz 0.
+      - name: Lint
+        run: npm run lint
+
+      # `npm run build` = vue-tsc -b && vite build, čiže typová kontrola aj build.
+      # Zámerne sa neporovnáva s commitnutým ui/dist: Vite dáva do názvov súborov
+      # hash obsahu a ten sa medzi verziami Node/npm líši, takže by taká kontrola
+      # bola trvalo červená. Aktuálnosť dist je vec deploy postupu, nie CI.
+      - name: Typová kontrola a build
+        run: npm run build
