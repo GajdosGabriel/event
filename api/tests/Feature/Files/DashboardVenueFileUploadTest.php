@@ -12,6 +12,20 @@ use Tests\TestSupport\EventSetupTest;
 
 class DashboardVenueFileUploadTest extends EventSetupTest
 {
+    /**
+     * Tento test ako jediný nahráva cez dedikovaný endpoint POST /dashboard/files,
+     * ktorý je chránený `permission:file.create`. Ostatné testy nahrávania idú
+     * cez event/canal endpointy, takže im stačia oprávnenia z EventSetupTest —
+     * tie súborové tam zámerne nie sú, aby sa nezakrývali chýbajúce kontroly
+     * v iných testoch.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->user->givePermissionTo(['file.view', 'file.create', 'file.update', 'file.delete']);
+    }
+
     #[Test]
     public function dashboard_file_store_marks_uploaded_venue_image_as_primary_when_canal_has_no_primary_image(): void
     {

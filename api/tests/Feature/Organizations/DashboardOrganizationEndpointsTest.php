@@ -28,6 +28,10 @@ class DashboardOrganizationEndpointsTest extends UserSetupTest
     #[Test]
     public function user_with_permissions_can_create_organization(): void
     {
+        // Rola canal-editor z UserSetupTest má len organization.view, takže
+        // výpis prejde, ale zakladanie nie. Test overuje práve povolený prípad.
+        $this->user->givePermissionTo('organization.create');
+
         $payload = [
             'title' => 'New Organization',
             'status' => 'draft',

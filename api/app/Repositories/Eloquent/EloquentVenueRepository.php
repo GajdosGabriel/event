@@ -62,7 +62,18 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
     public function dashboardShow($id)
     {
-        $venue = $this->model()->withTrashed()->with(['municipality', 'canals'])->findOrFail($id);
+        // Scopované rovnako ako EloquentEventRepository::dashboardShow — miesto
+        // mimo kanálov používateľa vráti 404, nie 403, aby sa neprezrádzalo, že
+        // taký záznam vôbec existuje.
+        //
+        // Množina prístupných miest sa nemení: VenuePolicy::view() vyžaduje
+        // presne tú istú podmienku ako dashboardIndexQuery(), takže ide len
+        // o zmenu stavového kódu.
+        $venue = $this->dashboardIndexQuery()
+            ->with('municipality')
+            ->where('venues.id', $id)
+            ->firstOrFail();
+
         Gate::authorize('view', $venue);
 
         return $venue;

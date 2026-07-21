@@ -130,6 +130,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Testy (Vitest)
+        run: npm test
+
       # `npm run build` = vue-tsc -b && vite build, čiže typová kontrola aj build.
       # Zámerne sa neporovnáva s commitnutým ui/dist: Vite dáva do názvov súborov
       # hash obsahu a ten sa medzi verziami Node/npm líši, takže by taká kontrola
