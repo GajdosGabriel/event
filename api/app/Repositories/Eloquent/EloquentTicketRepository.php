@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\AttendeeConfirmationStatus;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Enums\TicketTypeKind;
@@ -15,10 +16,12 @@ use App\Notifications\WorkshopSeatGranted;
 use App\Notifications\WorkshopWaitlisted;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\AttendeeConfirmation;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 class EloquentTicketRepository extends AbstractRepository implements TicketRepository
 {
@@ -307,7 +310,11 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
     }
 
     /**
-     * Uvoľnilo sa miesto → posunie prvého náhradníka (FIFO) a pošle mu lístok.
+     * Uvoľnilo sa miesto → ponúkne ho prvému náhradníkovi (FIFO).
+     *
+     * Miesto mu držíme, ale ešte nie je jeho — vstupenku s QR kódom dostane až
+     * po potvrdení ponuky. Ak do lehoty nepotvrdí, ponuka prepadne (cron
+     * `app:tickets-expire-unconfirmed`) a miesto ide ďalšiemu v poradí.
      * Volá sa po každom zrušení platného miesta na workshope.
      */
     public function promoteFromWaitlist(TicketType $type): ?Admission
@@ -323,7 +330,9 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             return null;
         }
 
-        $promoted = DB::transaction(function () use ($type) {
+        $confirmation = app(AttendeeConfirmation::class);
+
+        $promoted = DB::transaction(function () use ($type, $confirmation) {
             $locked = TicketType::query()->lockForUpdate()->find($type->id);
 
             if (! $locked || ! $locked->is_active || $this->remainingSeats($locked) <= 0) {
@@ -342,8 +351,19 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 return null;
             }
 
-            $next->update(['status' => AdmissionStatus::Valid->value]);
-            $next->ticket?->update(['status' => TicketStatus::Confirmed->value]);
+            // Valid = miesto je obsadené (ráta sa do kapacity), aby ho medzitým
+            // nedostal nikto iný. Pending = ešte ho však musí prijať.
+            $next->update([
+                'status' => AdmissionStatus::Valid->value,
+                'confirmation_status' => AttendeeConfirmationStatus::Pending->value,
+                'confirmation_token' => (string) Str::random(64),
+                'confirmation_deadline_at' => $confirmation->deadlineFor(
+                    $next->ticket,
+                    (int) config('tickets.waitlist_confirmation_hours', 24),
+                    $locked->starts_at,
+                ),
+                'meta' => array_merge((array) $next->meta, ['from_waitlist' => true]),
+            ]);
 
             return $next;
         });
@@ -354,7 +374,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
 
         $promoted->load(['ticketType', 'event', 'ticket']);
 
-        Notification::route('mail', $promoted->ticket->holder_email)
+        Notification::route('mail', $promoted->attendee_email ?: $promoted->ticket->holder_email)
             ->notify(new WorkshopSeatGranted($promoted));
 
         return $promoted;
@@ -442,10 +462,14 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             'payment_status' => TicketPaymentStatus::None->value,
         ]);
 
+        // Meno + e-mail sú tu povinné: keď na náhradníka príde rad, ponuku miesta
+        // preňho hľadáme (a posielame) práve podľa e-mailu účastníka.
         return Admission::create([
             'ticket_id' => $order->id,
             'ticket_type_id' => $type->id,
             'event_id' => $event->id,
+            'attendee_name' => $this->displayNameFor($user),
+            'attendee_email' => mb_strtolower(trim((string) $user->email)),
             'status' => AdmissionStatus::Waitlisted->value,
         ]);
     }

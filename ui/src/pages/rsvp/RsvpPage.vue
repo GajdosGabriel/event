@@ -14,7 +14,9 @@
     <div v-else-if="info" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <!-- Hlavička -->
       <div class="p-6" :class="headerClass">
-        <p class="text-xs font-semibold uppercase tracking-wider opacity-80">Potvrdenie účasti</p>
+        <p class="text-xs font-semibold uppercase tracking-wider opacity-80">
+          {{ isWaitlistOffer ? 'Uvoľnilo sa miesto' : 'Potvrdenie účasti' }}
+        </p>
         <h1 class="mt-1 text-2xl font-bold">{{ info.event?.name }}</h1>
         <p v-if="info.event?.dateRangeLabel" class="mt-1 text-sm opacity-90">{{ info.event.dateRangeLabel }}</p>
       </div>
@@ -22,7 +24,11 @@
       <div class="space-y-5 p-6">
         <!-- Zhrnutie -->
         <div>
-          <p class="text-sm text-slate-600">
+          <p v-if="isWaitlistOffer" class="text-sm text-slate-600">
+            Bol(a) si náhradník a <strong>miesto sa uvoľnilo</strong>. Držíme ti ho — potvrď ho a pošleme ti
+            vstupenku s QR kódom.
+          </p>
+          <p v-else class="text-sm text-slate-600">
             <strong>{{ info.holderName }}</strong> {{ info.isPaid ? 'ti objednal(a) vstupenku' : 'ti rezervoval(a) miesto' }}
             na toto podujatie.
           </p>
@@ -38,7 +44,8 @@
         <!-- Stav: čaká na potvrdenie -->
         <template v-if="info.status === 'pending'">
           <p v-if="info.deadlineAt" class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Potvrď prosím <strong>do {{ formatDateTime(info.deadlineAt) }}</strong>, inak sa rezervácia automaticky zruší.
+            Potvrď prosím <strong>do {{ formatDateTime(info.deadlineAt) }}</strong>,
+            {{ isWaitlistOffer ? 'inak miesto ponúkneme ďalšiemu náhradníkovi.' : 'inak sa rezervácia automaticky zruší.' }}
           </p>
 
           <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
@@ -47,30 +54,47 @@
             <button type="button" :disabled="acting"
               class="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
               @click="doConfirm">
-              {{ acting ? 'Spracúvam…' : 'Potvrdiť účasť' }}
+              {{ acting ? 'Spracúvam…' : isWaitlistOffer ? 'Potvrdiť miesto' : 'Potvrdiť účasť' }}
             </button>
             <button type="button" :disabled="acting"
               class="w-full rounded-lg border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
               @click="doDecline">
-              Zrušiť lístok
+              {{ isWaitlistOffer ? 'Odmietnuť miesto' : 'Zrušiť lístok' }}
             </button>
           </div>
         </template>
 
         <!-- Stav: potvrdené -->
-        <div v-else-if="info.status === 'confirmed'" class="rounded-xl bg-green-50 p-4 text-center">
-          <p class="text-2xl">✅</p>
-          <p class="mt-1 font-semibold text-green-800">Účasť potvrdená</p>
-          <p class="mt-1 text-sm text-green-700">Vstupenku s QR kódom sme ti poslali e-mailom. Uvidíme sa na akcii!</p>
-        </div>
+        <template v-else-if="info.status === 'confirmed'">
+          <div class="rounded-xl bg-green-50 p-4 text-center">
+            <p class="text-2xl">✅</p>
+            <p class="mt-1 font-semibold text-green-800">Účasť potvrdená</p>
+            <p class="mt-1 text-sm text-green-700">Vstupenku s QR kódom sme ti poslali e-mailom. Uvidíme sa na akcii!</p>
+          </div>
+
+          <!-- Bezplatnú vstupenku môžeš ešte zrušiť (odkaz z e-mailu so vstupenkou). -->
+          <template v-if="info.canCancel">
+            <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+            <div class="text-center">
+              <p class="text-xs text-slate-500">Nemôžeš prísť? Uvoľni miesto ďalším záujemcom.</p>
+              <button type="button" :disabled="acting"
+                class="mt-2 text-sm font-semibold text-red-600 hover:underline disabled:opacity-60"
+                @click="doDecline">
+                {{ acting ? 'Spracúvam…' : 'Zrušiť vstupenku' }}
+              </button>
+            </div>
+          </template>
+        </template>
 
         <!-- Stav: zrušené / nepotvrdené -->
         <div v-else class="rounded-xl bg-slate-100 p-4 text-center">
           <p class="text-2xl">{{ info.status === 'expired' ? '⏰' : '❌' }}</p>
           <p class="mt-1 font-semibold text-slate-700">
-            {{ info.status === 'expired' ? 'Lehota na potvrdenie uplynula' : 'Lístok zrušený' }}
+            {{ info.status === 'expired' ? 'Lehota na potvrdenie uplynula' : isWaitlistOffer ? 'Miesto odmietnuté' : 'Lístok zrušený' }}
           </p>
-          <p class="mt-1 text-sm text-slate-500">Miesto sme uvoľnili ďalším záujemcom.</p>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ isWaitlistOffer ? 'Miesto sme ponúkli ďalšiemu náhradníkovi.' : 'Miesto sme uvoľnili ďalším záujemcom.' }}
+          </p>
         </div>
       </div>
     </div>
@@ -91,6 +115,9 @@ const loading = ref(true)
 const notFound = ref(false)
 const acting = ref(false)
 const actionError = ref<string | null>(null)
+
+/** Ponuka uvoľneného miesta z čakačky — hovorí o mieste, nie o cudzej rezervácii. */
+const isWaitlistOffer = computed(() => info.value?.reason === 'waitlist')
 
 const headerClass = computed(() => {
   switch (info.value?.status) {

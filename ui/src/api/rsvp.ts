@@ -7,9 +7,11 @@ function mapRsvp(raw: Record<string, unknown>): RsvpInfo {
   return {
     status: (raw['status'] as RsvpInfo['status']) ?? null,
     statusLabel: (raw['status_label'] as string) ?? null,
+    reason: (raw['reason'] as RsvpInfo['reason']) ?? 'order',
     attendeeName: (raw['attendee_name'] as string) ?? null,
     holderName: (raw['holder_name'] as string) ?? null,
     isPaid: Boolean(raw['is_paid']),
+    canCancel: Boolean(raw['can_cancel']),
     deadlineAt: (raw['deadline_at'] as string) ?? null,
     event: event
       ? {

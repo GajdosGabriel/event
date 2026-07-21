@@ -73,6 +73,28 @@ class Admission extends Model
     }
 
     /**
+     * Účastník môže už potvrdenú vstupenku sám zrušiť — len bezplatnú (pri
+     * platenej ide o vrátenie peňazí) a len kým sa podujatie nezačalo.
+     */
+    public function isCancellableByAttendee(): bool
+    {
+        if ($this->confirmation_status !== AttendeeConfirmationStatus::Confirmed
+            || $this->status !== AdmissionStatus::Valid) {
+            return false;
+        }
+
+        $ticket = $this->ticket;
+
+        if ((int) ($ticket?->price_amount ?? 0) > 0) {
+            return false;
+        }
+
+        $start = $ticket?->event?->start_at;
+
+        return $start === null || $start->isFuture();
+    }
+
+    /**
      * Platné hlavné vstupenky (nie workshopy) daného podujatia —
      * len tie sa rátajú do kapacity eventu a nároku na workshopy.
      */

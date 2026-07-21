@@ -4,6 +4,8 @@ namespace App\Services\Tickets;
 
 use App\Enums\AdmissionStatus;
 use App\Enums\AttendeeConfirmationStatus;
+use App\Enums\TicketPaymentStatus;
+use App\Enums\TicketStatus;
 use App\Models\Admission;
 use App\Models\Ticket;
 use App\Models\User;
@@ -132,6 +134,12 @@ class AttendeeConfirmation
         $ticket = $first->ticket()->with(['event', 'admissions.ticketType'])->first();
         $attendeeEmail = (string) $first->attendee_email;
 
+        // Objednávka držaná do potvrdenia (napr. ponuka miesta z čakačky) je teraz
+        // platná. Platené objednávky necháme na platobnom stave.
+        if ($ticket?->status === TicketStatus::Reserved && $ticket->payment_status === TicketPaymentStatus::None) {
+            $ticket->update(['status' => TicketStatus::Confirmed->value]);
+        }
+
         $user = User::where('email', $attendeeEmail)->first();
         $needsActivation = $user !== null && $user->email_verified_at === null;
 
@@ -139,9 +147,13 @@ class AttendeeConfirmation
         Notification::route('mail', $attendeeEmail)
             ->notify(new AttendeeTicketIssued($ticket, $ids, $needsActivation));
 
-        // Objednávateľovi dáme vedieť, že účastník potvrdil účasť.
-        Notification::route('mail', $ticket->holder_email)
-            ->notify(new AttendeeConfirmed($ticket, $first->attendee_name, $attendeeEmail, count($ids)));
+        // Objednávateľovi dáme vedieť, že účastník potvrdil účasť. Pri samoobslužnej
+        // registrácii (napr. prijatie miesta z čakačky) je to tá istá osoba — druhý
+        // e-mail o sebe samom by bol mätúci.
+        if (! $this->isSelfService($ticket, $attendeeEmail)) {
+            Notification::route('mail', $ticket->holder_email)
+                ->notify(new AttendeeConfirmed($ticket, $first->attendee_name, $attendeeEmail, count($ids)));
+        }
     }
 
     /**
@@ -150,21 +162,51 @@ class AttendeeConfirmation
      */
     public function decline(Collection $group, bool $expired = false): void
     {
-        $pending = $group->filter(fn (Admission $a) => $a->isPendingConfirmation());
+        $this->release(
+            $group,
+            fn (Admission $a) => $a->isPendingConfirmation(),
+            $expired ? AttendeeConfirmationStatus::Expired : AttendeeConfirmationStatus::Declined,
+            $expired,
+        );
+    }
+
+    /**
+     * Zrušenie už potvrdenej bezplatnej vstupenky samotným účastníkom
+     * (odkaz „Zrušiť vstupenku" v e-maile so vstupenkou). Idempotentné.
+     *
+     * @param Collection<int, Admission> $group
+     */
+    public function cancel(Collection $group): void
+    {
+        $this->release(
+            $group,
+            fn (Admission $a) => $a->isCancellableByAttendee(),
+            AttendeeConfirmationStatus::Declined,
+        );
+    }
+
+    /**
+     * Spoločné uvoľnenie miest skupiny — zruší vstupenky, ktoré prejdú cez
+     * $eligible (kontroluje sa aj pod zámkom), posunie workshopových
+     * náhradníkov a oznámi to objednávateľovi.
+     *
+     * @param Collection<int, Admission> $group
+     */
+    private function release(Collection $group, \Closure $eligible, AttendeeConfirmationStatus $status, bool $expired = false): void
+    {
+        $pending = $group->filter($eligible);
 
         if ($pending->isEmpty()) {
             return;
         }
 
-        $status = $expired ? AttendeeConfirmationStatus::Expired : AttendeeConfirmationStatus::Declined;
-
-        $freedTypes = DB::transaction(function () use ($pending, $status) {
+        $freedTypes = DB::transaction(function () use ($pending, $eligible, $status) {
             $freed = collect();
 
             foreach ($pending as $admission) {
-                $locked = Admission::query()->with('ticketType')->lockForUpdate()->find($admission->id);
+                $locked = Admission::query()->with(['ticketType', 'ticket.event'])->lockForUpdate()->find($admission->id);
 
-                if (! $locked || ! $locked->isPendingConfirmation()) {
+                if (! $locked || ! $eligible($locked)) {
                     continue;
                 }
 
@@ -188,9 +230,22 @@ class AttendeeConfirmation
         /** @var Admission $first */
         $first = $pending->first();
         $ticket = $first->ticket()->with('event')->first();
+        $attendeeEmail = (string) $first->attendee_email;
 
-        Notification::route('mail', $ticket->holder_email)
-            ->notify(new AttendeeDeclined($ticket, $first->attendee_name, (string) $first->attendee_email, $pending->count(), $expired));
+        // Pri samoobslužnej registrácii je objednávateľ ten istý človek, ktorý
+        // práve odmietol — správu „X nepotvrdil(a) účasť" mu neposielame.
+        if (! $this->isSelfService($ticket, $attendeeEmail)) {
+            Notification::route('mail', $ticket->holder_email)
+                ->notify(new AttendeeDeclined($ticket, $first->attendee_name, $attendeeEmail, $pending->count(), $expired));
+        }
+    }
+
+    /** Objednávateľ a účastník sú tá istá osoba — netreba mu písať o sebe samom. */
+    private function isSelfService(?Ticket $ticket, string $attendeeEmail): bool
+    {
+        $holder = mb_strtolower(trim((string) $ticket?->holder_email));
+
+        return $holder !== '' && $holder === mb_strtolower(trim($attendeeEmail));
     }
 
     /**
@@ -218,14 +273,19 @@ class AttendeeConfirmation
         return $released;
     }
 
-    /** Lehota na potvrdenie — nikdy nie neskôr než termín registrácie / začiatok podujatia. */
-    public function deadlineFor(Ticket $ticket): Carbon
+    /**
+     * Lehota na potvrdenie — nikdy nie neskôr než termín registrácie / začiatok podujatia.
+     *
+     * @param int|null    $hours   Vlastná dĺžka lehoty (default: tickets.confirmation_hours).
+     * @param Carbon|null $notAfter Ďalší strop, napr. začiatok workshopu.
+     */
+    public function deadlineFor(?Ticket $ticket, ?int $hours = null, ?Carbon $notAfter = null): Carbon
     {
-        $deadline = now()->addHours((int) config('tickets.confirmation_hours', 48));
+        $deadline = now()->addHours($hours ?? (int) config('tickets.confirmation_hours', 48));
 
-        $event = $ticket->event ?? $ticket->event()->first();
+        $event = $ticket?->event ?? $ticket?->event()->first();
 
-        foreach ([$event?->registration_deadline_at, $event?->start_at] as $cap) {
+        foreach ([$event?->registration_deadline_at, $event?->start_at, $notAfter] as $cap) {
             if ($cap !== null && $cap->lt($deadline)) {
                 $deadline = $cap;
             }

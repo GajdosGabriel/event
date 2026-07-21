@@ -121,6 +121,52 @@ class AttendeeConfirmationTest extends EventSetupTest
     }
 
     #[Test]
+    public function a_confirmed_free_ticket_can_still_be_cancelled(): void
+    {
+        $main = $this->mainType();
+        $pending = $this->orderForFriend($main);
+
+        $this->postJson("/api/rsvp/{$pending->confirmation_token}/confirm")->assertOk();
+
+        // Práve tento príznak zapína odkaz „Zrušiť vstupenku" v e-maile aj na RSVP stránke.
+        $this->getJson("/api/rsvp/{$pending->confirmation_token}")
+            ->assertJsonPath('status', 'confirmed')
+            ->assertJsonPath('can_cancel', true);
+
+        Notification::fake();
+
+        $this->postJson("/api/rsvp/{$pending->confirmation_token}/decline")
+            ->assertOk()
+            ->assertJsonPath('status', 'declined')
+            ->assertJsonPath('can_cancel', false);
+
+        $pending->refresh();
+        $this->assertSame(AdmissionStatus::Cancelled, $pending->status);
+        $this->assertSame(1, $main->fresh()->sold_count);
+
+        Notification::assertSentOnDemand(AttendeeDeclined::class);
+    }
+
+    #[Test]
+    public function a_confirmed_paid_ticket_cannot_be_cancelled_by_the_attendee(): void
+    {
+        $main = $this->mainType();
+        $pending = $this->orderForFriend($main);
+
+        $this->postJson("/api/rsvp/{$pending->confirmation_token}/confirm")->assertOk();
+
+        // Platená objednávka — zrušenie by znamenalo vrátenie peňazí, to rieši organizátor.
+        $pending->ticket->update(['price_amount' => 1000]);
+
+        $this->postJson("/api/rsvp/{$pending->confirmation_token}/decline")
+            ->assertOk()
+            ->assertJsonPath('status', 'confirmed')
+            ->assertJsonPath('can_cancel', false);
+
+        $this->assertSame(AdmissionStatus::Valid, $pending->fresh()->status);
+    }
+
+    #[Test]
     public function unconfirmed_reservations_expire_after_the_deadline(): void
     {
         $main = $this->mainType();

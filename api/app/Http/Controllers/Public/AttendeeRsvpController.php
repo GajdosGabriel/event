@@ -35,7 +35,11 @@ class AttendeeRsvpController extends Controller
     public function decline(string $token): JsonResponse
     {
         $group = $this->resolve($token);
+
+        // Nepotvrdenú rezerváciu odmietame, už potvrdenú bezplatnú vstupenku
+        // rušíme. Vždy sa uplatní najviac jedna z ciest, druhá je bez efektu.
         $this->confirmation->decline($group);
+        $this->confirmation->cancel($group);
 
         return response()->json($this->present($this->resolve($token)));
     }
@@ -63,9 +67,14 @@ class AttendeeRsvpController extends Controller
         return [
             'status' => $first->confirmation_status?->value,
             'status_label' => $first->confirmation_status?->label(),
+            // Odkiaľ rezervácia prišla — objednávateľ ju urobil za účastníka,
+            // alebo ide o ponuku uvoľneného miesta z čakačky. Text sa líši.
+            'reason' => ($first->meta['from_waitlist'] ?? false) ? 'waitlist' : 'order',
             'attendee_name' => $first->attendee_name,
             'holder_name' => $ticket?->holder_name,
             'is_paid' => (int) ($ticket?->price_amount ?? 0) > 0,
+            // Potvrdenú bezplatnú vstupenku môže účastník ešte zrušiť.
+            'can_cancel' => $first->isCancellableByAttendee(),
             'deadline_at' => $first->confirmation_deadline_at,
             'event' => $event ? [
                 'id' => $event->id,

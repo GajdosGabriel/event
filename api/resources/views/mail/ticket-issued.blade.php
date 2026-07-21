@@ -27,5 +27,5 @@ Ešte **{{ $pendingCount }}** {{ $pendingCount === 1 ? 'vstupenka čaká' : ($pe
 Zobraziť lístok a QR kód
 @endcomponent
 
-Lístok si preneste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.
+Lístok si prineste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.
 @endcomponent

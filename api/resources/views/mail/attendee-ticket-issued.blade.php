@@ -13,7 +13,11 @@
 @endforeach
 @endif
 
-Vstupenku si preneste v telefóne alebo vytlačte a QR kód predložte pri vstupe na akciu.
+Vstupenku si prineste v telefóne alebo vytlačte a QR kód predložte pri vstupe na akciu.
+
+@if ($cancelUrl)
+Nemôžete prísť? [Zrušiť vstupenku]({{ $cancelUrl }}) — miesto uvoľníme ďalším záujemcom.
+@endif
 
 @if ($needsActivation)
 ---

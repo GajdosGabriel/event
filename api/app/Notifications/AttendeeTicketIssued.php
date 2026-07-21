@@ -38,7 +38,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
         $generator = app(QrCodeGenerator::class);
 
         $admissions = $this->ticket->admissions()
-            ->with('ticketType')
+            ->with(['ticketType', 'ticket.event'])
             ->whereIn('id', $this->admissionIds)
             ->where('status', AdmissionStatus::Valid->value)
             ->orderBy('id')
@@ -57,6 +57,15 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
         $activationUrl = rtrim((string) config('app.frontend_url'), '/') . '/login';
 
+        // Bezplatnú vstupenku môže účastník sám zrušiť — odkaz vedie na RSVP
+        // stránku, kde zrušenie ešte potvrdí (aby ho neurobil náhľad e-mailu).
+        $cancelToken = $admissions->first(fn (\App\Models\Admission $a) => $a->isCancellableByAttendee())
+            ?->confirmation_token;
+
+        $cancelUrl = $cancelToken
+            ? rtrim((string) config('app.frontend_url'), '/') . '/rsvp/' . $cancelToken
+            : null;
+
         return (new MailMessage())
             ->subject('Vaša vstupenka na ' . $eventName)
             ->markdown('mail.attendee-ticket-issued', [
@@ -65,6 +74,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
                 'eventName'       => $eventName,
                 'isPaid'          => (int) ($this->ticket->price_amount ?? 0) > 0,
                 'seats'           => $seats,
+                'cancelUrl'       => $cancelUrl,
                 'needsActivation' => $this->needsActivation,
                 'activationUrl'   => $activationUrl,
             ]);

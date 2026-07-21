@@ -392,9 +392,13 @@ export interface TicketCheckinResult {
 export interface RsvpInfo {
   status: 'pending' | 'confirmed' | 'declined' | 'expired' | null
   statusLabel: string | null
+  /** 'order' = objednávateľ rezervoval za účastníka, 'waitlist' = ponuka uvoľneného miesta. */
+  reason: 'order' | 'waitlist'
   attendeeName: string | null
   holderName: string | null
   isPaid: boolean
+  /** Potvrdenú bezplatnú vstupenku môže účastník ešte zrušiť. */
+  canCancel: boolean
   deadlineAt: string | null
   event: { id: number; name: string; dateRangeLabel: string | null } | null
   seats: { label: string; type: string | null }[]

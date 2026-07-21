@@ -3,12 +3,15 @@
 namespace Tests\Feature\Events;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\AttendeeConfirmationStatus;
 use App\Enums\TicketTypeKind;
 use App\Models\Admission;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Notifications\AttendeeTicketIssued;
 use App\Notifications\WorkshopSeatGranted;
+use App\Services\Tickets\AttendeeConfirmation;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
@@ -414,6 +417,95 @@ class WorkshopRegistrationTest extends EventSetupTest
         $this->assertSame(1, $workshop->fresh()->sold_count);
 
         Notification::assertSentOnDemand(WorkshopSeatGranted::class);
+    }
+
+    #[Test]
+    public function promoted_seat_needs_confirmation_before_the_qr_is_issued(): void
+    {
+        Notification::fake();
+
+        [$workshop, , $second] = $this->promoteSecondFromWaitlist();
+
+        $promoted = Admission::where('ticket_type_id', $workshop->id)
+            ->whereHas('ticket', fn ($q) => $q->where('holder_email', $second->email))
+            ->firstOrFail();
+
+        // Miesto je držané, ale ešte nie je jeho — QR kód nedostane.
+        $this->assertSame(AdmissionStatus::Valid, $promoted->status);
+        $this->assertTrue($promoted->isPendingConfirmation());
+        $this->assertNotNull($promoted->confirmation_token);
+        $this->getJson("/api/admissions/{$promoted->uuid}/qr")->assertStatus(404);
+
+        // Až potvrdenie ponuky z neho spraví platnú vstupenku.
+        $this->postJson("/api/rsvp/{$promoted->confirmation_token}/confirm")
+            ->assertOk()
+            ->assertJsonPath('status', 'confirmed')
+            ->assertJsonPath('reason', 'waitlist');
+
+        $this->assertFalse($promoted->fresh()->isPendingConfirmation());
+        $this->getJson("/api/admissions/{$promoted->uuid}/qr")->assertOk();
+
+        Notification::assertSentOnDemand(AttendeeTicketIssued::class);
+    }
+
+    #[Test]
+    public function unconfirmed_seat_offer_expires_to_the_next_person_in_line(): void
+    {
+        Notification::fake();
+
+        [$workshop, , $second, $third] = $this->promoteSecondFromWaitlist();
+
+        $offered = Admission::where('ticket_type_id', $workshop->id)
+            ->whereHas('ticket', fn ($q) => $q->where('holder_email', $second->email))
+            ->firstOrFail();
+
+        // Lehota uplynula bez reakcie → miesto ide ďalšiemu v poradí.
+        $offered->update(['confirmation_deadline_at' => now()->subMinute()]);
+        app(AttendeeConfirmation::class)->expirePending();
+
+        $offered->refresh();
+        $this->assertSame(AdmissionStatus::Cancelled, $offered->status);
+        $this->assertSame(AttendeeConfirmationStatus::Expired, $offered->confirmation_status);
+
+        $next = Admission::where('ticket_type_id', $workshop->id)
+            ->whereHas('ticket', fn ($q) => $q->where('holder_email', $third->email))
+            ->firstOrFail();
+
+        $this->assertSame(AdmissionStatus::Valid, $next->status);
+        $this->assertTrue($next->isPendingConfirmation());
+
+        // Workshop zostáva plný — miesto len putuje čakačkou.
+        $this->assertSame(1, $workshop->fresh()->sold_count);
+    }
+
+    /**
+     * Plný workshop (1 miesto), traja záujemcovia; prvý sa odhlási, takže miesto
+     * sa ponúkne druhému. Vráti [workshop, prvý, druhý, tretí].
+     */
+    private function promoteSecondFromWaitlist(): array
+    {
+        $main = $this->futureEvent->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
+        $workshop = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Keramika',
+            'kind' => TicketTypeKind::Workshop->value,
+            'price_amount' => 0,
+            'capacity' => 1,
+            'is_active' => true,
+        ]);
+
+        $first = $this->attendeeWithTicket($main, 'prvy@example.com');
+        $this->postJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")->assertStatus(201);
+
+        $second = $this->attendeeWithTicket($main, 'druhy@example.com');
+        $this->postJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")->assertStatus(201);
+
+        $third = $this->attendeeWithTicket($main, 'treti@example.com');
+        $this->postJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")->assertStatus(201);
+
+        $this->actingAs($first, 'sanctum');
+        $this->deleteJson("/api/events/{$this->futureEvent->id}/workshops/{$workshop->id}")->assertOk();
+
+        return [$workshop, $first, $second, $third];
     }
 
     #[Test]
