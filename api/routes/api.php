@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{HomeController, TestController};
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\{ CanalController as AdminCanalController, DashboardController as AdminDashboardController, EventController as AdminEventController, FileController as AdminFileController, UserController as AdminUserController, MunicipalityController as AdminMunicipalityController, VenueController as AdminVenueController };
 use App\Http\Controllers\Admin\AdminToolsController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
@@ -19,19 +19,8 @@ use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
 use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Artisan, Route};
-use Illuminate\Support\Facades\Auth;
-
-// if (app()->environment('local') && ! app()->runningUnitTests()) {
-//      $user = User::whereKey(1)->first(); // ?? User::first();
-//     // $user =  User::first(1);
-
-//     if ($user !== null) {
-//         Auth::login($user);
-//     }
-// }
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return new UserResource($request->user());
@@ -41,14 +30,23 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/login-form', [AuthController::class, 'loginForm'])->name('auth.loginForm');
-Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
-Route::post('/login/google', [AuthController::class, 'googleAuth'])->name('auth.login.google');
-Route::post('/login/facebook', [AuthController::class, 'facebookAuth'])->name('auth.login.facebook');
-Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
-Route::post('/register/google', [AuthController::class, 'googleAuth'])->name('auth.register.google');
-Route::post('/register/facebook', [AuthController::class, 'facebookAuth'])->name('auth.register.facebook');
-Route::post('/register/resend', [AuthController::class, 'resendRegistrationVerification'])->name('auth.register.resend');
-Route::post('/register/verify', [AuthController::class, 'verifyRegistration'])->name('auth.register.verify');
+
+// Prihlásenie: prísny limit proti skúšaniu hesiel.
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+    Route::post('/login/google', [AuthController::class, 'googleAuth'])->name('auth.login.google');
+    Route::post('/login/facebook', [AuthController::class, 'facebookAuth'])->name('auth.login.facebook');
+});
+
+// Registrácia: zakladá účty a posiela e-maily, preto vlastný limit.
+Route::middleware('throttle:register')->group(function () {
+    Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
+    Route::post('/register/google', [AuthController::class, 'googleAuth'])->name('auth.register.google');
+    Route::post('/register/facebook', [AuthController::class, 'facebookAuth'])->name('auth.register.facebook');
+    Route::post('/register/resend', [AuthController::class, 'resendRegistrationVerification'])->name('auth.register.resend');
+    Route::post('/register/verify', [AuthController::class, 'verifyRegistration'])->name('auth.register.verify');
+});
+
 Route::get('/register/verify/{token}', [AuthController::class, 'verifyRegistrationLink'])->name('auth.register.verify.link');
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:sanctum');
 
@@ -58,10 +56,14 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
 
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
-Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])->name('public.events.tickets.store');
+Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])
+    ->name('public.events.tickets.store')
+    ->middleware('throttle:public-write');
 
 // Generické „Poslať správu" pre ľubovoľný cieľ (podujatie / miesto / kanál…).
-Route::post('messages', [PublicMessageController::class, 'store'])->name('public.messages.store');
+Route::post('messages', [PublicMessageController::class, 'store'])
+    ->name('public.messages.store')
+    ->middleware('throttle:messages');
 
 // Prihlásenie / odhlásenie prihláseného používateľa na workshop podujatia.
 Route::middleware('auth:sanctum')->group(function () {
@@ -76,8 +78,12 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 // Potvrdenie účasti účastníkom z e-mailu (chránené tokenom, bez prihlásenia).
 Route::get('rsvp/{token}', [PublicAttendeeRsvpController::class, 'show'])->name('public.rsvp.show');
-Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confirm'])->name('public.rsvp.confirm');
-Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])->name('public.rsvp.decline');
+Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confirm'])
+    ->name('public.rsvp.confirm')
+    ->middleware('throttle:public-write');
+Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])
+    ->name('public.rsvp.decline')
+    ->middleware('throttle:public-write');
 
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
@@ -91,7 +97,6 @@ Route::get('canals/{id}/events', [PublicCanalController::class, 'events'])->name
 Route::apiResources([
     'events' => PublicEventController::class,
     'canals' => PublicCanalController::class,
-    'test'   => TestController::class,
 ]);
 
 
@@ -142,10 +147,10 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('permission:event.view');
     Route::post('events/detect-from-text', [DashboardEventController::class, 'detectFromText'])
         ->name('events.detect-from-text')
-        ->middleware('permission:event.create');
+        ->middleware(['permission:event.create', 'throttle:ai']);
     Route::post('events/improve-text', [DashboardEventController::class, 'improveText'])
         ->name('events.improve-text')
-        ->middleware('permission:event.create');
+        ->middleware(['permission:event.create', 'throttle:ai']);
 
     Route::apiResource('events', DashboardEventController::class)
         ->only(['index', 'show'])
@@ -218,7 +223,7 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
 
     Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
         ->name('venues.detect')
-        ->middleware('permission:venue.create');
+        ->middleware(['permission:venue.create', 'throttle:ai']);
     Route::get('venues/municipalities-overview', [DashboardVenueController::class, 'municipalitiesOverview'])
         ->name('venues.municipalities.overview')
         ->middleware('permission:venue.view');
@@ -301,7 +306,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->middleware('permission:event.view');
     Route::post('events/improve-text', [AdminEventController::class, 'improveText'])
         ->name('events.improve-text')
-        ->middleware('permission:event.update');
+        ->middleware(['permission:event.update', 'throttle:ai']);
 
     Route::apiResource('events', AdminEventController::class)
         ->only(['index', 'show'])
@@ -324,7 +329,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
 
     Route::post('tools/import-events', [AdminToolsController::class, 'runImportEvents'])->name('tools.import-events');
     Route::get('tools/import-events/runs/{runId}', [AdminToolsController::class, 'importRunStatus'])->name('tools.import-events.status');
-    Route::post('tools/ai-detector', [AdminToolsController::class, 'runAiDetector'])->name('tools.ai-detector');
+    Route::post('tools/ai-detector', [AdminToolsController::class, 'runAiDetector'])
+        ->name('tools.ai-detector')
+        ->middleware('throttle:ai');
     Route::post('tools/archive-events', [AdminToolsController::class, 'runArchiveEvents'])->name('tools.archive-events');
 
     Route::apiResource('users', AdminUserController::class)
@@ -365,7 +372,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
 
     Route::post('venues/detect', [AdminVenueController::class, 'detect'])
         ->name('venues.detect')
-        ->middleware('permission:venue.create');
+        ->middleware(['permission:venue.create', 'throttle:ai']);
     Route::get('venues/municipalities-overview', [AdminVenueController::class, 'municipalitiesOverview'])
         ->name('venues.municipalities.overview')
         ->middleware('permission:venue.view');
@@ -381,12 +388,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
 
 
 
-Route::get('artisan/run', function () {
-    Artisan::call('cache:clear');
-    Artisan::call('view:clear');
-    Artisan::call('config:clear');
-    Artisan::call('optimize:clear');
-    Artisan::call('queue:work');
+// Po-deploy vyčistenie cache. Hosting nemá shell, preto sa spúšťa cez URL —
+// rovnako ako webcron chránené tokenom z CRON_SECRET.
+//
+// Pozor: zámerne tu nie je queue:work. Ten beží ako blokujúci daemon a v HTTP
+// requeste by držal PHP worker až do timeoutu.
+Route::get('artisan/run', function (Request $request) {
+    if (! hash_equals((string) config('app.cron_secret'), (string) $request->query('token'))) {
+        abort(403);
+    }
 
-    // dd("All is cleared");
-});
+    Artisan::call('optimize:clear');
+
+    return response()->json(['status' => 'ok', 'output' => Artisan::output()]);
+})->middleware('throttle:ops')->name('artisan.run');

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useToast } from '@/composables/useToast'
 
 export const BASE_URL = '/api'
 
@@ -40,6 +41,15 @@ http.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token')
     }
+
+    // Rate limit z API. Bez tohto by prekročený limit vyzeral ako tichá chyba —
+    // volajúci väčšinou zobrazuje len validačné chyby (422).
+    if (error.response?.status === 429) {
+      useToast().error(
+        error.response.data?.message ?? 'Priveľa požiadaviek. Skúste to o chvíľu znova.',
+      )
+    }
+
     return Promise.reject(error)
   },
 )

@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(LogLastUserActivity::class);
+        // Základný strop na celé API. Citlivé endpointy majú navyše vlastný
+        // prísnejší limiter — limity sú definované v AppServiceProvider.
+        $middleware->throttleApi();
         $middleware->statefulApi();
         $middleware->alias([
             'role' => RoleMiddleware::class,
