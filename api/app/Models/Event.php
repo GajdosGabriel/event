@@ -167,7 +167,7 @@ class Event extends Model implements Messageable
             return $canal->thumb_image;
         }
 
-        return $this->publicImageUrl('images/event-default.svg', 'images/canal-man.png', 'images/default.png');
+        return $this->publicImageUrl('images/event.svg', 'images/default.svg');
     }
 
     protected function defaultPrimaryImage(): array

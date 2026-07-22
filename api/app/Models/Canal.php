@@ -114,6 +114,6 @@ class Canal extends Model implements Messageable
 
     protected function defaultThumbImageUrl(): string
     {
-        return $this->publicImageUrl('images/canal-default.svg', 'images/canal.png', 'images/default.png');
+        return $this->publicImageUrl('images/canal.svg', 'images/default.svg');
     }
 }

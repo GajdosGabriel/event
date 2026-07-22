@@ -181,6 +181,6 @@ class Venue extends Model implements Messageable
 
     protected function defaultThumbImageUrl(): string
     {
-        return $this->publicImageUrl('images/venue.jpg', 'images/default.png');
+        return $this->publicImageUrl('images/venue.svg', 'images/default.svg');
     }
 }

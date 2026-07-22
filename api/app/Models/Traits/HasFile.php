@@ -7,7 +7,6 @@ use App\Models\File;
 use App\Services\Files\FileManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 trait HasFile
 {
@@ -78,35 +77,48 @@ trait HasFile
 
     protected function defaultThumbImageUrl(): string
     {
-        return $this->publicImageUrl('images/foto.jpg', 'images/default.png');
+        return $this->publicImageUrl('images/default.svg');
     }
 
     /**
-     * Build a URL for a bundled default image on the public disk, returning the
-     * first candidate that exists (falling back to the last one either way).
+     * Build a URL for a bundled default image, returning the first candidate
+     * that exists (falling back to the last one either way).
      *
-     * Must go through the public disk rather than the url() helper: production
-     * serves the public disk under /api/storage (FILESYSTEM_PUBLIC_URL), while
-     * APP_URL has no /api — so url('storage/images/...') would drop the /api
-     * prefix and 404. Uploaded images already use the disk URL, so this keeps
-     * fallbacks consistent with them.
+     * The images live in public/ — they're part of the code, so they ship with
+     * every deploy. Do NOT move them onto the public disk: that directory is
+     * gitignored and holds uploads only, so a fresh deploy (or the switch to S3)
+     * leaves it without them and every fallback 404s.
      */
     protected function publicImageUrl(string ...$candidates): string
     {
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
-
-        $last = 'images/default.png';
+        $last = 'images/default.svg';
 
         foreach ($candidates as $path) {
             $last = $path;
 
-            if ($disk->exists($path)) {
-                return $disk->url($path);
+            if (is_file(public_path($path))) {
+                return $this->bundledAssetUrl($path);
             }
         }
 
-        return $disk->url($last);
+        return $this->bundledAssetUrl($last);
+    }
+
+    /**
+     * URL of a file in public/. Can't use the url() helper: production serves
+     * public/ under /api while APP_URL has no /api, so url('images/…') would
+     * drop the prefix and hit the SPA instead. The public disk already knows
+     * where public/ sits — its URL is that root plus '/storage'.
+     */
+    private function bundledAssetUrl(string $path): string
+    {
+        $diskUrl = (string) config('filesystems.disks.public.url');
+
+        $root = $diskUrl !== ''
+            ? dirname($diskUrl)
+            : rtrim((string) config('app.url'), '/');
+
+        return $root . '/' . ltrim($path, '/');
     }
 
     protected function defaultPrimaryImage(): array

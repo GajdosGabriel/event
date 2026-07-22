@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Miesto konania">
+  <rect width="400" height="300" fill="#eef2f7"/>
+  <circle cx="200" cy="150" r="68" fill="#dde5ee"/>
+  <g fill="#8fa1b6">
+    <path d="M197 96h6v10h10v6h-10v12h-6v-12h-10v-6h10z"/>
+    <path d="M200 126l28 24v52h-56v-52z"/>
+    <path d="M172 160l-22 16v26h22zM228 160l22 16v26h-22z"/>
+  </g>
+  <path d="M193 202v-20a7 7 0 0114 0v20z" fill="#eef2f7"/>
+</svg>

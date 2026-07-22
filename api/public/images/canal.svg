@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Kanál">
+  <rect width="400" height="300" fill="#eef2f7"/>
+  <circle cx="200" cy="150" r="68" fill="#dde5ee"/>
+  <g fill="#8fa1b6">
+    <path d="M172 128l68-26v96l-68-26z"/>
+    <path d="M172 128h-16a13 13 0 00-13 13v10a13 13 0 0013 13h16z"/>
+    <path d="M178 168h20v30a10 10 0 01-20 0z"/>
+  </g>
+  <path d="M256 122a46 46 0 010 56" fill="none" stroke="#8fa1b6" stroke-width="9" stroke-linecap="round"/>
+</svg>
