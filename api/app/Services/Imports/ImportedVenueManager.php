@@ -13,6 +13,7 @@ class ImportedVenueManager
 {
     public function __construct(
         private readonly Detector $detector = new Detector(),
+        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber(),
     ) {}
 
     public function resolveOrDetect(
@@ -47,6 +48,13 @@ class ImportedVenueManager
                         $payload = array_merge($detected['venue_store_payload'], [
                             'status' => ModelStatus::Draft->value,
                         ]);
+                        // Wikipedia popis je presnejší; keď ho enrichment nenašiel, dopíše ho AI.
+                        if (blank($payload['body'] ?? null)) {
+                            $payload['body'] = $this->describer->forVenue(
+                                is_string($payload['name'] ?? null) && $payload['name'] !== '' ? $payload['name'] : $venueName,
+                                $venueCity,
+                            );
+                        }
                         // A map-pin from the source article beats the geocoder guess.
                         if ($hasCoordinates) {
                             $payload['latitude'] = $latitude;
@@ -73,6 +81,7 @@ class ImportedVenueManager
                         'village_id' => $villageId,
                         'name'       => Str::limit($venueName, 250, ''),
                         'street'     => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
+                        'body'       => $this->describer->forVenue($venueName, $venueCity),
                         'category'   => null,
                         'status'     => ModelStatus::Draft->value,
                         'country'    => 'Slovensko',
@@ -166,7 +175,11 @@ class ImportedVenueManager
     {
         $slug = Str::slug($name);
         return Venue::query()
-            ->where('category', '!=', 'fallback')
+            // Pozor na NULL: importované miesta majú category = NULL a v SQL
+            // sa `NULL != 'fallback'` vyhodnotí ako NULL, nie TRUE — taká
+            // podmienka by ich všetky odfiltrovala a import by pri každom
+            // behu zakladal nový duplikát namiesto nájdenia existujúceho.
+            ->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback'))
             ->where(function ($q) use ($name, $slug) {
                 $q->where('slug', $slug)
                   ->orWhere('name', $name)

@@ -74,6 +74,9 @@ return [
     'imports' => [
         'user_agent' => env('IMPORTS_USER_AGENT', env('APP_NAME', 'Event API') . ' importer'),
         'detect_canal_with_ai' => (bool) env('IMPORTS_DETECT_CANAL_WITH_AI', false),
+        // Popisy nových kanálov/miest z importu píše AI; pri vypnutí sa použije
+        // neutrálny vetný fallback (kanál) alebo prázdny popis (miesto).
+        'describe_with_ai' => (bool) env('IMPORTS_DESCRIBE_WITH_AI', env('IMPORTS_DETECT_CANAL_WITH_AI', false)),
         'sources' => [
             'urls' => array_values(array_filter(array_map(
                 static fn (string $url) => trim($url),

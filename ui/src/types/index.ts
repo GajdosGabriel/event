@@ -190,6 +190,8 @@ export interface CanalItem {
   municipalityId: number | null
   venueId: number | null
   identityMode: CanalIdentityMode
+  /** Preložený popisok typu identity z API (lang), nie z frontu. */
+  identityModeLabel: string | null
   name: string
   slug: string
   titlePrefix: string | null

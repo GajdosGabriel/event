@@ -26,8 +26,8 @@
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <h1 class="text-3xl font-bold text-slate-900">{{ canal.name }}</h1>
-                  <span class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
-                    {{ identityModeLabel(canal.identityMode) }}
+                  <span v-if="canal.identityModeLabel" class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
+                    {{ canal.identityModeLabel }}
                   </span>
                 </div>
                 <p v-if="canal.titlePrefix || canal.titleSuffix" class="mt-1 text-sm text-slate-500">
@@ -185,10 +185,6 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
-
-function identityModeLabel(mode: string) {
-  return { personal: 'Osobný', organization: 'Organizácia', pseudonymous: 'Pseudonymný' }[mode] ?? mode
-}
 
 function statusClass(status: string) {
   return {

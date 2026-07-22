@@ -3,11 +3,14 @@ import http from '@/api/index'
 
 export interface SelectOption { id: number; name: string }
 export interface VenueOption extends SelectOption { canalIds: number[] }
+/** { value, label } z enumu na API — popisky sa prekladajú tam, nie tu. */
+export interface EnumOption { value: string; label: string }
 
 export function useFormOptions(scope: 'dashboard' | 'admin') {
   const municipalities = ref<SelectOption[]>([])
   const canals = ref<SelectOption[]>([])
   const venues = ref<VenueOption[]>([])
+  const canalIdentityModes = ref<EnumOption[]>([])
 
   async function loadMunicipalities() {
     try {
@@ -42,5 +45,21 @@ export function useFormOptions(scope: 'dashboard' | 'admin') {
     } catch { /* ignore */ }
   }
 
-  return { municipalities, canals, venues, loadMunicipalities, loadCanals, loadVenues }
+  async function loadCanalIdentityModes() {
+    try {
+      const { data } = await http.get(`/${scope}/canals/identity-modes`)
+      canalIdentityModes.value = (data.data ?? data) as EnumOption[]
+    } catch { /* ignore */ }
+  }
+
+  return {
+    municipalities,
+    canals,
+    venues,
+    canalIdentityModes,
+    loadMunicipalities,
+    loadCanals,
+    loadVenues,
+    loadCanalIdentityModes,
+  }
 }

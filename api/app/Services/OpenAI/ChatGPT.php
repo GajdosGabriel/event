@@ -5,7 +5,7 @@ namespace App\Services\OpenAI;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptTextEditor, PromptVenue};
+use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptProfile, PromptTextEditor, PromptVenue};
 
 class ChatGPT
 {
@@ -15,6 +15,7 @@ class ChatGPT
         private readonly PromptVenue $promptVenue = new PromptVenue(),
         private readonly PromptCanal $promptCanal = new PromptCanal(),
         private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
+        private readonly PromptProfile $promptProfile = new PromptProfile(),
     ) {}
 
     public function extractData(array|string $input, ?Carbon $referenceDate = null): array
@@ -117,6 +118,38 @@ class ChatGPT
         $name = trim($name);
 
         return $name !== '' ? $name : null;
+    }
+
+    /**
+     * Krátky popis organizátora alebo miesta. Vráti null, keď model subjekt
+     * spoľahlivo nepozná — volajúci si vtedy zvolí neutrálny fallback.
+     */
+    public function extractProfileDescription(string $kind, string $name, ?string $context = null): ?string
+    {
+        $content = $this->chatComplete(
+            'gpt-4o-mini',
+            0.2,
+            $this->promptProfile->prompt($kind, $name, $context),
+            $this->promptProfile->jsonSchema(),
+        );
+
+        $data = $this->decodeJson($content);
+
+        $validator = Validator::make($data, $this->promptProfile->validator());
+
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+        }
+
+        $description = $this->normalizeStringValue($data['description'] ?? null);
+
+        if ($description === null) {
+            return null;
+        }
+
+        $description = trim($description);
+
+        return $description !== '' ? $description : null;
     }
 
     private function applyEventDateTimeFallbackFromText(array $data, string $text): array

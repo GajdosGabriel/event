@@ -29,6 +29,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="IMPORTS_DETECT_CANAL_WITH_AI" value="false"/>
+        <env name="IMPORTS_DESCRIBE_WITH_AI" value="false"/>
          <env name="DB_CONNECTION" value="mysql"/>
     <env name="DB_DATABASE" value="event-api-test"/>
     <env name="DB_USERNAME" value="root"/>

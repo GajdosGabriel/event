@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CanalIdentityMode;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\CanalStoreRequest;
@@ -40,6 +41,15 @@ class CanalController extends Controller
                     'allowed_statuses' => $this->allowedStatuses($request),
                 ],
             ]);
+    }
+
+    /**
+     * Možnosti pre výber typu identity vo formulári — popisky idú cez lang,
+     * front si ich nedrží natvrdo.
+     */
+    public function identityModes(): JsonResponse
+    {
+        return response()->json(['data' => CanalIdentityMode::options()]);
     }
 
     public function municipalitiesOverview(): JsonResponse

@@ -2,6 +2,7 @@
 
 namespace App\Services\Imports;
 
+use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
@@ -10,6 +11,10 @@ use Illuminate\Support\Str;
 
 class ImportedCanalManager
 {
+    public function __construct(
+        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber(),
+    ) {}
+
     public function resolveOrCreate(string $canalName, ?string $detectedName, string $sourceOrigin): Canal
     {
         // Fuzzy name lookup: AI-detected organizer name matched against existing canals
@@ -67,11 +72,14 @@ class ImportedCanalManager
             'name' => $canalName,
             'title_prefix' => null,
             'title_suffix' => null,
-            'body' => 'Systémom vytvorený canal pre importované eventy.',
+            'body' => $this->describer->forCanal($detectedName ?? $canalName, $sourceOrigin),
             'published_at' => now(),
             'status' => ModelStatus::Published->value,
             'website' => $sourceOrigin,
             'registration_source' => RegistrationSource::IMPORT->value,
+            // Importované kanály nikdy nie sú osobné — patria organizátorovi
+            // (farnosť, mesto, klub), nie fyzickej osobe, ktorá sa registrovala.
+            'identity_mode' => CanalIdentityMode::Organization->value,
         ]);
 
         $this->ensureSystemOwnership($canal);

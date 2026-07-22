@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class CanalResource extends JsonResource
 
         $data['status_label'] = $this->statusLabel();
         $data['allowed_statuses'] = $this->allowedStatuses($request);
+        $data['identity_mode_label'] = $this->identityModeLabel();
 
         $isPublished = $this->status === ModelStatus::Published;
 
@@ -64,5 +66,14 @@ class CanalResource extends JsonResource
         }
 
         return $data;
+    }
+
+    private function identityModeLabel(): ?string
+    {
+        $mode = $this->identity_mode instanceof CanalIdentityMode
+            ? $this->identity_mode
+            : CanalIdentityMode::tryFrom((string) $this->identity_mode);
+
+        return $mode?->label();
     }
 }

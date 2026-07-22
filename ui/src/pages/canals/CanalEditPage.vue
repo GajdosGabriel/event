@@ -27,9 +27,7 @@
             <label class="form-label">
               Typ identity
               <select v-model="form.identity_mode" class="form-input" :class="{ invalid: errors.identity_mode }">
-                <option value="personal">Osobná</option>
-                <option value="organization">Organizácia</option>
-                <option value="pseudonymous">Pseudonymná</option>
+                <option v-for="opt in canalIdentityModes" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
               <span v-if="errors.identity_mode" class="field-error">{{ errors.identity_mode }}</span>
             </label>
@@ -137,7 +135,7 @@ const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
-const { municipalities, loadMunicipalities } = useFormOptions(scope.value)
+const { municipalities, loadMunicipalities, canalIdentityModes, loadCanalIdentityModes } = useFormOptions(scope.value)
 
 const form = ref({
   name: '',
@@ -160,6 +158,7 @@ const saving = ref(false)
 
 onMounted(async () => {
   loadMunicipalities()
+  loadCanalIdentityModes()
   if (!isCreate.value) {
     try {
       const c = await showCanal(scope.value, Number(route.params.id))

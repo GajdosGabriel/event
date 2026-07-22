@@ -38,6 +38,11 @@ class ImportedCanalNameResolver
         $detectedName = $this->labelExtractor->extractOrganizerName($text)
             ?? $this->extractByHeuristics($title, $text);
 
+        // Jedno miesto pre orezanie vety pozvánky — platí pre oba zdroje názvu.
+        if ($detectedName !== null) {
+            $detectedName = $this->sanitizeName($detectedName);
+        }
+
         // Heuristic venue extraction — source-agnostic, works without AI
         $heuristicVenue      = $this->labelExtractor->extractVenue($text);
         $detectedVenueName   = $heuristicVenue['name'] ?? null;
@@ -131,19 +136,20 @@ class ImportedCanalNameResolver
         return $v !== '' ? $v : null;
     }
 
+    /**
+     * Miesto konania sa zámerne nepoužíva ako náhrada za organizátora.
+     *
+     * Kým tu bol fallback na názov venue, vznikali kanály ako „kostol",
+     * „Tipsport Aréna" či „Jakubovo námestie" — teda miesta vydávané za
+     * organizátorov. Keď organizátor nie je známy, je správne nechať
+     * detected_name prázdne: podujatie potom spadne do zberného kanála
+     * zdroja a miesto sa aj tak založí z detected_venue_name.
+     */
     private function resolveOrganizerFromAiData(array $aiData): ?string
     {
         $organizer = $aiData['organizer'] ?? null;
         if (is_array($organizer)) {
             $name = is_string($organizer['name'] ?? null) ? trim((string) $organizer['name']) : null;
-            if ($name !== null && $name !== '') {
-                return $this->sanitizeName($name);
-            }
-        }
-
-        $venue = $aiData['venue'] ?? null;
-        if (is_array($venue)) {
-            $name = is_string($venue['name'] ?? null) ? trim((string) $venue['name']) : null;
             if ($name !== null && $name !== '') {
                 return $this->sanitizeName($name);
             }
@@ -188,16 +194,50 @@ class ImportedCanalNameResolver
         return null;
     }
 
+    /** Za týmito slovami už nepokračuje názov organizátora, ale veta pozvánky. */
+    private const SENTENCE_MARKERS = [
+        'vás', 'vas', 'ťa', 'ta',
+        'srdečne', 'srdecne',
+        'pozýva', 'pozyva', 'pozývajú', 'pozyvaju', 'pozývame', 'pozyvame',
+        'organizuje', 'organizujú', 'usporiada', 'usporadúva',
+        'pripravuje', 'pripravujú', 'oznamuje', 'ponúka',
+    ];
+
     private function sanitizeName(string $value): ?string
     {
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+        $value = $this->cutTrailingSentence($value);
         $value = trim($value, " \t\n\r\0\x0B,.;:-/");
 
         if ($value === '') {
             return null;
         }
 
-        return Str::limit($value, 250, '');
+        // Názov organizátora nad 120 znakov je v praxi vždy zvyšok vety, nie
+        // názov — najdlhšie reálne názvy v dátach majú okolo 80 znakov.
+        return Str::limit($value, 120, '');
+    }
+
+    /**
+     * Odreže vetu pozvánky nalepenú za názov.
+     *
+     * Heuristiky zachytávajú aj text ako „Cirkevný zbor ECAV Liptovský Mikuláš
+     * vás srdečne pozývajú na uvedenie knihy…", z ktorého je názvom len prvá
+     * časť. Rez sa robí na hranici slova, takže názvy so slovom vnútri
+     * (napr. „Ponúkame n. o.") ostanú nedotknuté.
+     */
+    private function cutTrailingSentence(string $value): string
+    {
+        $pattern = '/\s+(' . implode('|', array_map('preg_quote', self::SENTENCE_MARKERS)) . ')\b.*$/iu';
+
+        $cut = preg_replace($pattern, '', $value);
+
+        // Rez, po ktorom by nezostalo nič zmysluplné, radšej neurobíme.
+        if (is_string($cut) && trim($cut) !== '') {
+            return $cut;
+        }
+
+        return $value;
     }
 
     private function hostLabel(string $url): string

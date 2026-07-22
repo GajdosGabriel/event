@@ -10,7 +10,7 @@ use App\Models\User;
 use Illuminate\Support\Str;
 
 /**
- * Vytvorí používateľovi osobný (pseudonymný) kanál, ak ešte žiadny nemá.
+ * Vytvorí používateľovi osobný kanál, ak ešte žiadny nemá.
  *
  * Jediné miesto, kde osobný kanál vzniká — volá ho UserObserver po overení
  * e-mailu aj AttendeeRegistrar pri založení účtu účastníka. Guard na
@@ -40,7 +40,7 @@ class PersonalCanalProvisioner
             'body' => 'Osobný kanál používateľa ' . $displayName,
             'published_at' => now(),
             'registration_source' => RegistrationSource::SELF->value,
-            'identity_mode' => CanalIdentityMode::Pseudonymous->value,
+            'identity_mode' => CanalIdentityMode::Personal->value,
         ]);
 
         $user->canals()->attach($canal->id, [

@@ -106,6 +106,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('canals/municipalities-overview', [DashboardCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');
+    Route::get('canals/identity-modes', [DashboardCanalController::class, 'identityModes'])
+        ->name('canals.identity-modes')
+        ->middleware('permission:canal.view');
 
     Route::apiResource('canals', DashboardCanalController::class)
         ->only(['index', 'show'])
@@ -275,6 +278,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('municipalities/all', [AdminMunicipalityController::class, 'all']);
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
+        ->middleware('permission:canal.view');
+    Route::get('canals/identity-modes', [AdminCanalController::class, 'identityModes'])
+        ->name('canals.identity-modes')
         ->middleware('permission:canal.view');
     Route::get('files', [AdminFileController::class, 'index'])
         ->name('files.index');
