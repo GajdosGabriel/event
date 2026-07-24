@@ -114,10 +114,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 24 = npm 11, teda tá istá major verzia npm, akou sa generuje
+      # ui/package-lock.json. Na Node 22 (npm 10) `npm ci` padá na
+      # „Missing: @emnapi/core … from lock file“ — npm 11 tieto nested wasm
+      # závislosti @tailwindcss/oxide-wasm32-wasi do locku nezapisuje.
       - name: Nastav Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: ui/package-lock.json
 
