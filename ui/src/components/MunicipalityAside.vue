@@ -4,7 +4,7 @@
       <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
       </svg>
-      Okresy Slovenska
+      Kraje Slovenska
     </div>
 
     <ul class="list">
@@ -18,22 +18,44 @@
       </li>
 
       <template v-if="loading">
-        <li v-for="n in 6" :key="n" class="item">
-          <span class="skeleton" style="width: 70%" />
-          <span class="skeleton" style="width: 1.5rem" />
+        <li v-for="n in 6" :key="n" class="item px-4 py-2">
+          <span class="skeleton" style="width: 60%" />
+          <span class="skeleton ml-2" style="width: 1.5rem" />
         </li>
       </template>
 
-      <li
-        v-for="item in items"
-        :key="item.municipalityId"
-        class="item"
-        :class="{ 'item-active': active === item.municipalityId }"
-      >
-        <RouterLink :to="linkFor(item.municipalityId)" class="item-row">
-          <span class="link">{{ item.municipalityName }}</span>
-          <span class="count">{{ item.eventsCount }}</span>
-        </RouterLink>
+      <li v-for="group in groups" v-else :key="group.regionId" class="item">
+        <button
+          type="button"
+          class="group-header"
+          :class="{ 'group-header-open': isOpen(group.regionId) }"
+          :aria-expanded="isOpen(group.regionId)"
+          :aria-controls="`region-${group.regionId}`"
+          @click="toggle(group.regionId)"
+        >
+          <svg
+            class="chevron"
+            :class="{ 'chevron-open': isOpen(group.regionId) }"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+          <span class="group-name">{{ group.regionName }}</span>
+          <span class="count">{{ group.totalCount }}</span>
+        </button>
+
+        <ul v-show="isOpen(group.regionId)" :id="`region-${group.regionId}`" class="sublist">
+          <li
+            v-for="item in group.municipalities"
+            :key="item.municipalityId"
+            :class="{ 'item-active': active === item.municipalityId }"
+          >
+            <RouterLink :to="linkFor(item.municipalityId)" class="item-row">
+              <span class="link">{{ item.municipalityName }}</span>
+              <span class="count">{{ item.eventsCount }}</span>
+            </RouterLink>
+          </li>
+        </ul>
       </li>
     </ul>
   </div>
@@ -53,16 +75,69 @@ interface MunItem {
   municipalityId: number
   municipalityName: string
   eventsCount: number
+  regionId: number
+  regionName: string
 }
+
+interface RegionGroup {
+  regionId: number
+  regionName: string
+  municipalities: MunItem[]
+  totalCount: number
+}
+
+// Pseudo-kraj pre celoslovenské podujatia — drží sa navrchu zoznamu.
+const NATIONWIDE_REGION_ID = 9
 
 const route = useRoute()
 const items = ref<MunItem[]>([])
 const loading = ref(false)
+const openRegions = ref<Set<number>>(new Set())
 
 const basePath = computed(() =>
   props.scope === 'public' ? '/' : `/${props.scope}/${props.resource}`
 )
 const active = computed(() => route.query.municipality ? Number(route.query.municipality) : null)
+
+const groups = computed<RegionGroup[]>(() => {
+  const byRegion = new Map<number, RegionGroup>()
+
+  for (const item of items.value) {
+    let group = byRegion.get(item.regionId)
+    if (!group) {
+      group = { regionId: item.regionId, regionName: item.regionName, municipalities: [], totalCount: 0 }
+      byRegion.set(item.regionId, group)
+    }
+    group.municipalities.push(item)
+    group.totalCount += item.eventsCount
+  }
+
+  return [...byRegion.values()].sort((a, b) => {
+    if (a.regionId === NATIONWIDE_REGION_ID) return -1
+    if (b.regionId === NATIONWIDE_REGION_ID) return 1
+    return a.regionName.localeCompare(b.regionName, 'sk')
+  })
+})
+
+function isOpen(regionId: number) {
+  return openRegions.value.has(regionId)
+}
+
+function toggle(regionId: number) {
+  const next = new Set(openRegions.value)
+  if (next.has(regionId)) next.delete(regionId)
+  else next.add(regionId)
+  openRegions.value = next
+}
+
+/** Rozbalí kraj, v ktorom je práve filtrovaná obec — ručne otvorené necháva otvorené. */
+function openActiveRegion() {
+  if (active.value === null) return
+  const group = groups.value.find(g => g.municipalities.some(m => m.municipalityId === active.value))
+  if (group && !openRegions.value.has(group.regionId)) {
+    openRegions.value = new Set(openRegions.value).add(group.regionId)
+  }
+}
 
 function linkFor(id: number) {
   if (active.value === id) return basePath.value
@@ -80,7 +155,10 @@ async function load() {
       municipalityId: r['municipality_id'] as number,
       municipalityName: (r['municipality_name'] ?? r['municipality_shortname']) as string,
       eventsCount: r['events_count'] as number,
+      regionId: Number(r['region_id'] ?? 0),
+      regionName: (r['region_name'] as string) ?? 'Ostatné',
     }))
+    openActiveRegion()
   } catch {
     items.value = []
   } finally {
@@ -88,6 +166,7 @@ async function load() {
   }
 }
 
+watch(active, openActiveRegion)
 watch(() => [props.scope, props.resource], load)
 onMounted(load)
 </script>
@@ -111,8 +190,20 @@ onMounted(load)
 .item-active .link { @apply font-semibold text-blue-700; }
 .item-active .count { @apply text-blue-500; }
 
+.group-header {
+  @apply flex w-full cursor-pointer items-center gap-1.5 border-0 bg-transparent px-4 py-2 text-left hover:bg-slate-50;
+}
+.group-header-open { @apply bg-slate-50/60; }
+.group-name { @apply min-w-0 flex-1 truncate text-sm font-medium text-slate-700; }
+.group-header-open .group-name { @apply text-slate-900; }
+
+.chevron { @apply h-3 w-3 shrink-0 text-slate-400 transition-transform duration-150; }
+.chevron-open { @apply rotate-90 text-slate-600; }
+
+.sublist { @apply m-0 list-none border-t border-dashed border-slate-100 p-0; }
+
 .item-row {
-  @apply flex w-full items-center justify-between px-4 py-1.5 no-underline hover:bg-slate-50;
+  @apply flex w-full items-center justify-between py-1.5 pr-4 pl-9 no-underline hover:bg-slate-50;
 }
 .item-active .item-row { @apply hover:bg-blue-50; }
 
