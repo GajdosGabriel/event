@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Services\Stats\OverviewStats;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
-     public function index()
+    /** Prehľad za celý systém — bez obmedzenia na kanály. */
+    public function index(): JsonResponse
     {
-        // Logic to retrieve and return a list of users
-        return response()->json(['message' => 'Admin Dashboard page']);
+        return response()->json(
+            OverviewStats::forSystem()->build()
+        );
     }
 }

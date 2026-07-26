@@ -411,3 +411,80 @@ export interface CheckinStats {
   arrived: number
   remaining: number
 }
+
+// Prehľadová štatistika pre úvodnú stránku dashboardu a adminu.
+export type StatsScope = 'dashboard' | 'admin'
+export type StatsPeriodKey = 'day' | 'week' | 'month' | 'all'
+export type AttentionSeverity = 'info' | 'warning' | 'serious' | 'critical'
+
+export interface StatsMetric {
+  label: string
+  /** 'money' = suma v centoch, inak celé číslo. */
+  format: 'number' | 'money'
+  value: number
+  previous: number | null
+  /** Percentuálna zmena voči predchádzajúcemu rovnako dlhému oknu. */
+  change: number | null
+}
+
+export interface StatsPeriod {
+  key: StatsPeriodKey
+  label: string
+  from: string | null
+  to: string | null
+  metrics: Record<string, StatsMetric>
+}
+
+export interface StatsTrendDay {
+  date: string
+  events: number
+  tickets: number
+  admissions: number
+  checkins: number
+}
+
+export interface StatsAttentionItem {
+  key: string
+  severity: AttentionSeverity
+  label: string
+  hint: string
+  count: number
+  /** Cesta relatívna k rozsahu (dashboard/admin), bez vedúcej lomky. */
+  link: string | null
+}
+
+export interface StatsOverview {
+  scope: StatsScope
+  generatedAt: string
+  trendDays: number
+  periods: StatsPeriod[]
+  totals: {
+    events: {
+      total: number
+      published: number
+      draft: number
+      archived: number
+      active: number
+      running: number
+      today: number
+      next7d: number
+      withTicketing: number
+    }
+    venues: { total: number }
+    canals: { total: number }
+  }
+  trend: StatsTrendDay[]
+  ticketing: {
+    orders: { total: number; paid: number; awaitingPayment: number; revenuePaid: number; revenueAwaiting: number }
+    seats: { total: number; valid: number; cancelled: number; waitlisted: number; awaitingConfirmation: number }
+    capacity: { seats: number; sold: number; limitedTypes: number; unlimitedTypes: number; rate: number | null }
+    attendance: { expected: number; arrived: number; rate: number | null }
+  }
+  statuses: { key: ModelStatus; label: string; count: number }[]
+  sources: { own: number; imported: number; importedRate: number | null }
+  attention: StatsAttentionItem[]
+  topEvents: { id: number; name: string; startAt: string | null; status: ModelStatus | null; seats: number; capacity: number | null; rate: number | null }[]
+  upcoming: { id: number; name: string; startAt: string | null; endAt: string | null; status: ModelStatus | null; venue: string | null; seats: number }[]
+  topCanals: { id: number; name: string; eventsTotal: number; eventsRecent: number }[]
+  users: { total: number; verified: number; blocked: number; active30d: number } | null
+}

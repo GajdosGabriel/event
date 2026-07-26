@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Services\Stats\OverviewStats;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DashboardHomeController extends Controller
 {
-    public function index()
+    /** Prehľad za kanály, ku ktorým má prihlásený používateľ prístup. */
+    public function index(Request $request): JsonResponse
     {
-        // Logic to retrieve and return a list of users
-        return response()->json(['message' => 'Dashboard page']);
+        return response()->json(
+            OverviewStats::forUser($request->user())->build()
+        );
     }
 }

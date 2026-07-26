@@ -1,27 +1,33 @@
 <template>
-  <div>
-    <h1 class="mb-1 text-3xl">Admin</h1>
-    <p class="mb-5 text-slate-500">Správa systému.</p>
+  <div class="grid gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-3xl">Admin</h1>
+        <p class="text-slate-500">Prehľad celého systému.</p>
+      </div>
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-3">
-      <RouterLink v-for="link in links" :key="link.to" :to="link.to"
-        class="rounded-xl border border-slate-200 bg-white p-4 no-underline hover:border-slate-300">
-        <h2 class="mb-1 text-sm text-slate-700">{{ link.label }}</h2>
-        <p class="text-2xl font-bold text-slate-900">→</p>
-      </RouterLink>
+      <nav class="flex flex-wrap gap-2">
+        <RouterLink v-for="item in links" :key="item.to" :to="item.to" class="btn btn-secondary btn-sm">
+          {{ item.label }}
+        </RouterLink>
+      </nav>
     </div>
+
+    <StatsOverview scope="admin" />
   </div>
 </template>
 
 <script setup lang="ts">
+import StatsOverview from '@/components/stats/StatsOverview.vue'
+
 const links = [
   { to: '/admin/events', label: 'Eventy' },
   { to: '/admin/canals', label: 'Kanály' },
   { to: '/admin/venues', label: 'Miesta' },
   { to: '/admin/municipalities', label: 'Obce' },
   { to: '/admin/users', label: 'Používatelia' },
-  { to: '/admin/settings', label: 'Nastavenia' },
   { to: '/admin/files', label: 'Súbory' },
   { to: '/admin/tools', label: 'Nástroje' },
+  { to: '/admin/settings', label: 'Nastavenia' },
 ]
 </script>
