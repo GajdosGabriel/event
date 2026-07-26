@@ -198,6 +198,11 @@ class EventImportService
                 return 'skipped';
             }
 
+            // Kanál už raz priradený nechávame tak. Detekcia organizátora nie je
+            // deterministická, takže prepisovaním by event každú noc preskakoval
+            // medzi kanálmi a zmazala by sa aj ručná oprava od administrátora.
+            unset($payload['canal_id']);
+
             $existingEvent->update($payload);
             $event = $existingEvent->fresh();
             $status = 'updated';
@@ -234,9 +239,14 @@ class EventImportService
     {
         $sourceUrl = (string) ($detail['source_url'] ?? '');
         if ($sourceUrl !== '') {
+            // Zdrojová URL je jednoznačný identifikátor článku, takže sa na ňu
+            // pýtame naprieč všetkými kanálmi. Kým bolo hľadanie zúžené na
+            // canal_id, stačilo, aby AI pri ďalšom behu určila organizátora
+            // inak (alebo aby medzitým vznikol duplicitný kanál), a ten istý
+            // článok sa naimportoval druhýkrát ako nový event.
             $event = Event::query()
-                ->where('canal_id', $canalId)
                 ->where('orginal_source', $sourceUrl)
+                ->orderBy('id')
                 ->first();
 
             if ($event instanceof Event) {

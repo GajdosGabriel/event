@@ -5,6 +5,7 @@ namespace App\Services\OpenAI;
 use App\Models\Canal;
 use App\Models\Venue;
 use App\Services\Geocoding\NominatimGeocoder;
+use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Support\Str;
@@ -122,6 +123,10 @@ class Detector
             })
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);
+
+        // Rovnaká zhoda na holom slugu ako v ImportedCanalManager, aby nápoveda
+        // v admine ukázala ten istý kanál, na ktorý napojí import.
+        $canal ??= ImportedNameMatcher::firstByBaseName(Canal::query(), $normalizedName);
 
         if (! $canal instanceof Canal) {
             return null;

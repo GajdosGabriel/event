@@ -128,7 +128,7 @@ class ImportedCanalManager
     private function findByFuzzyName(string $name): ?Canal
     {
         $slug = Str::slug($name);
-        return Canal::query()
+        $canal = Canal::query()
             ->where(function ($q) use ($name, $slug) {
                 $q->where('slug', $slug)
                   ->orWhere('name', $name)
@@ -136,6 +136,17 @@ class ImportedCanalManager
             })
             ->orderByDesc('created_at')
             ->first();
+
+        if ($canal instanceof Canal) {
+            return $canal;
+        }
+
+        // LIKE '%nový názov%' zaberie len vtedy, keď je existujúci názov dlhší.
+        // Keď AI pridá alias v zátvorke — "Spoločenstvo evanjelických žien"
+        // → "… žien (SEŽ)" — je dlhší ten nový a zhoda zlyhá, takže vznikne
+        // druhý kanál pre tú istú organizáciu. Porovnanie holých slugov to
+        // podchytí v oboch smeroch (aj "ACN – Pomoc" vs "ACN .- Pomoc").
+        return ImportedNameMatcher::firstByBaseName(Canal::query(), $name);
     }
 
     private function shouldUpgradeName(string $currentName, string $detectedName, string $sourceOrigin): bool

@@ -3,11 +3,13 @@
 namespace App\Services\OpenAI;
 
 /**
- * Krátky informačný popis organizátora (canal) alebo miesta (venue).
+ * Informačný popis organizátora (canal) alebo miesta (venue).
  *
  * Používa sa pri importe, kde by inak vznikol kanál/miesto s prázdnym alebo
  * systémovým textom. Prompt je zámerne konzervatívny: keď model subjekt
- * nepozná, má vrátiť null a volajúci použije neutrálny fallback.
+ * nepozná, má vrátiť null a volajúci použije neutrálny fallback. Dĺžka je
+ * horný limit, nie cieľ — pri málo známom subjekte má model napísať menej,
+ * nie dopĺňať vatu.
  */
 class PromptProfile
 {
@@ -46,11 +48,12 @@ class PromptProfile
         return [
             [
                 'role' => 'system',
-                'content' => 'Si konzervativny asistent, ktory pise kratke informacne popisy v slovencine.
+                'content' => 'Si konzervativny asistent, ktory pise vecne informacne popisy v slovencine.
 
                 PRAVIDLA:
-                - Pis 2 az 4 vety, spolu maximalne 600 znakov, v spisovnej slovencine s diakritikou.
-                - Pis iba fakty, ktorymi si si isty: typ subjektu, zameranie, obec/mesto, region, historicky kontext.
+                - Pis 4 az 8 viet, spolu maximalne 1200 znakov, v spisovnej slovencine s diakritikou.
+                - Dlzka nesmie ist na ukor presnosti: ked o subjekte vies malo, napis radsej kratsi text. Nikdy nedoplnaj vety len preto, aby si sa dostal na pozadovanu dlzku.
+                - Pis iba fakty, ktorymi si si isty: typ subjektu, zameranie, obec/mesto, region, historicky kontext, architektura ci patrocinium (pri mieste), cinnost a cielova skupina (pri organizatorovi).
                 - Nikdy nevymyslaj kontakty, adresy, webstranky, telefonne cisla, datumy zalozenia, mena osob ani statistiky.
                 - Obec, mesto, okres, diecezu ci kraj uved iba vtedy, ak vyplyva z nazvu alebo z doplnujuceho kontextu. Ak poloha nie je dana, o polohe vobec nepis — nehadaj ju.
                 - Nepis marketingove frazy ("srdecne vas pozyvame", "jedinecny zazitok") ani hodnotenia.
@@ -65,7 +68,7 @@ class PromptProfile
                     . $contextLine
                     . "\nVrat JSON objekt s jedinym klucom:\n"
                     . "- description (string s popisom, alebo null ak subjekt spolahlivo nepoznas)\n\n"
-                    . 'Priklad: {"description":"Farnost Bela je rimskokatolicka farnost v obci Bela v okrese Zilina. Patri do Zilinskej diecezy a stara sa o duchovny zivot v obci a okolitych osadach."}',
+                    . 'Priklad: {"description":"Farnost Bela je rimskokatolicka farnost v obci Bela v okrese Zilina. Patri do Zilinskej diecezy a stara sa o duchovny zivot v obci a okolitych osadach. Farnost spravuje miestny farsky kostol a zabezpecuje pravidelne bohosluzby, vysluhovanie sviatosti a vyucbu nabozenstva. Okrem liturgickeho zivota organizuje aj podujatia pre rodiny, mladez a seniorov. Sucastou jej cinnosti su tradicne farske slavnosti a putnicke podujatia, ktore sa viazu na cirkevny rok."}',
             ],
         ];
     }

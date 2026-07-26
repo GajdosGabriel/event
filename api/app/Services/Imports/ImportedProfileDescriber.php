@@ -16,7 +16,11 @@ use Illuminate\Support\Str;
  */
 class ImportedProfileDescriber
 {
-    private const MAX_LENGTH = 1000;
+    /**
+     * Tvrdý strop na dĺžku popisu. Musí zostať nad limitom z promptu
+     * (1200 znakov), inak by orezal aj text, ktorý model vrátil správne.
+     */
+    private const MAX_LENGTH = 2000;
 
     public function __construct(
         private readonly ChatGPT $chatGPT = new ChatGPT(),

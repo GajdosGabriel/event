@@ -29,15 +29,7 @@ class ImportedVenueManager
         if (is_string($venueName) && $venueName !== '') {
             $existing = $this->findByName($venueName);
             if ($existing instanceof Venue) {
-                // Ensure the venue is linked to this canal so the repository validation passes
-                if (!$existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
-                    $existing->assignCanal($canal, isOwner: false);
-                }
-                // Backfill coordinates from an event's map pin only when the venue has none.
-                if ($hasCoordinates && $existing->latitude === null && $existing->longitude === null) {
-                    $existing->update(['latitude' => $latitude, 'longitude' => $longitude]);
-                }
-                return $existing;
+                return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
             }
 
             if ((bool) config('services.imports.detect_canal_with_ai', false)
@@ -60,6 +52,27 @@ class ImportedVenueManager
                             $payload['latitude'] = $latitude;
                             $payload['longitude'] = $longitude;
                         }
+                        // Druhá kontrola duplicity — už na normalizovanom názve.
+                        // Detektor prepíše "Evanjelickom kostole v Liptovskom
+                        // Mikuláši" na "Evanjelický kostol (Liptovský Mikuláš)" a
+                        // pod týmto názvom miesto aj uloží. findByName() vyššie sa
+                        // však pýtala na surový názov z článku, takže existujúci
+                        // záznam nikdy nenašla a každý beh importu založil ďalší
+                        // duplikát. Pýtame sa preto ešte raz na to, čo ideme uložiť.
+                        $normalizedName = is_string($payload['name'] ?? null) && $payload['name'] !== ''
+                            ? (string) $payload['name']
+                            : $venueName;
+
+                        if ($normalizedName !== $venueName) {
+                            $existing = $this->findByName(
+                                $normalizedName,
+                                is_numeric($payload['village_id'] ?? null) ? (int) $payload['village_id'] : null,
+                            );
+                            if ($existing instanceof Venue) {
+                                return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
+                            }
+                        }
+
                         $venue = Venue::create($payload);
                         $venue->assignCanal($canal, isOwner: false);
                         return $venue;
@@ -171,21 +184,66 @@ class ImportedVenueManager
         return null;
     }
 
-    private function findByName(string $name): ?Venue
+    /**
+     * Prevezme už existujúce miesto: pripojí ho ku kanálu a doplní súradnice.
+     */
+    private function adopt(
+        Venue $existing,
+        Canal $canal,
+        bool $hasCoordinates,
+        ?float $latitude,
+        ?float $longitude,
+    ): Venue {
+        // Ensure the venue is linked to this canal so the repository validation passes
+        if (!$existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
+            $existing->assignCanal($canal, isOwner: false);
+        }
+        // Backfill coordinates from an event's map pin only when the venue has none.
+        if ($hasCoordinates && $existing->latitude === null && $existing->longitude === null) {
+            $existing->update(['latitude' => $latitude, 'longitude' => $longitude]);
+        }
+
+        return $existing;
+    }
+
+    /**
+     * @param int|null $villageId keď je známa obec, dovolí aj voľnejšiu zhodu
+     *                            na holom slugu — bez nej by sa zlúčil
+     *                            "Evanjelický kostol (Bratislava)" s
+     *                            "Evanjelický kostol (Liptovský Mikuláš)".
+     */
+    private function findByName(string $name, ?int $villageId = null): ?Venue
     {
         $slug = Str::slug($name);
-        return Venue::query()
-            // Pozor na NULL: importované miesta majú category = NULL a v SQL
-            // sa `NULL != 'fallback'` vyhodnotí ako NULL, nie TRUE — taká
-            // podmienka by ich všetky odfiltrovala a import by pri každom
-            // behu zakladal nový duplikát namiesto nájdenia existujúceho.
-            ->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback'))
+        // Pozor na NULL: importované miesta majú category = NULL a v SQL
+        // sa `NULL != 'fallback'` vyhodnotí ako NULL, nie TRUE — taká
+        // podmienka by ich všetky odfiltrovala a import by pri každom
+        // behu zakladal nový duplikát namiesto nájdenia existujúceho.
+        $notFallback = fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback');
+
+        $venue = Venue::query()
+            ->where($notFallback)
             ->where(function ($q) use ($name, $slug) {
                 $q->where('slug', $slug)
                   ->orWhere('name', $name)
                   ->orWhere('name', 'like', '%' . addslashes(Str::limit($name, 100, '')) . '%');
             })
             ->first();
+
+        if ($venue instanceof Venue) {
+            return $venue;
+        }
+
+        if ($villageId === null) {
+            return null;
+        }
+
+        // Zhoda na holom slugu v rámci tej istej obce podchytí prípad, keď sa
+        // upresňujúca zátvorka medzi behmi importu zmenila alebo pribudla.
+        return ImportedNameMatcher::firstByBaseName(
+            Venue::query()->where($notFallback)->where('village_id', $villageId),
+            $name,
+        );
     }
 }
 
