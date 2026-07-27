@@ -1,5 +1,6 @@
 <?php
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -18,9 +19,24 @@ Schedule::command('app:events-ai-tag')->everyTwoMinutes()->withoutOverlapping();
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 Schedule::command('app:views-prune')->dailyAt('03:20');
+// Každý zdroj má vlastný beh s vlastným časom. Kým išli všetky v jednom
+// príkaze za sebou, posledný z nich hladoval: 27. 7. 2026 zjedli ecav.sk a
+// tkkbs.sk 13 minút a na vyveska.sk sa už nedostalo — hosting nemá shell,
+// schedule:run volá webcron, a taký dlhý HTTP request sa nedobehne. Takto je
+// každý beh krátky a žiadny zdroj nezávisí od toho predošlého.
+//
 // Timezone je explicitný, lebo app beží v UTC — bez neho by import šiel o 18:00
 // slovenského času v lete a o 17:00 v zime.
-Schedule::command('app:import-event-sources')->dailyAt('16:00')->timezone('Europe/Bratislava');
+foreach (array_values((array) config('services.imports.sources.urls', [])) as $index => $sourceUrl) {
+    $startsAt = Carbon::createFromTime(16, 0)->addMinutes(20 * $index)->format('H:i');
+
+    Schedule::command('app:import-event-sources', ['--url' => $sourceUrl])
+        ->dailyAt($startsAt)
+        ->timezone('Europe/Bratislava')
+        // Strop je kratší než rozostup medzi zdrojmi, aby zaseknutý zámok
+        // nezablokoval zajtrajší beh toho istého zdroja.
+        ->withoutOverlapping(15);
+}
 
 // Spracovanie fronty. Hosting nemá shell, takže klasický `queue:work` daemon
 // tu bežať nemôže — webcron ale volá schedule:run každú minútu, čo stačí na

@@ -113,7 +113,15 @@ class EventImportService
             referenceDate: $detail['published_at_source'] ?? now(),
         );
 
-        $canal = $this->canalManager->resolveOrCreate(
+        // Kanál sa zakladá až vtedy, keď článok ešte žiadny event nemá. Keď ho
+        // má, prevezme sa kanál toho eventu: detekcia organizátora nie je
+        // deterministická, takže AI môže pri ďalšom behu vrátiť iný názov a
+        // resolveOrCreate() by preň založil nový kanál — ten by ale ostal
+        // navždy prázdny, lebo canal_id existujúceho eventu sa nižšie zámerne
+        // neprepisuje. Presne takto vznikali kanály bez jediného podujatia.
+        $existingEvent = $this->findEventBySourceUrl((string) ($detail['source_url'] ?? ''));
+
+        $canal = $existingEvent?->canal ?? $this->canalManager->resolveOrCreate(
             $resolvedCanal['name'],
             $resolvedCanal['detected_name'],
             $resolvedCanal['source_origin'],
@@ -137,7 +145,9 @@ class EventImportService
         );
 
         $systemOwner = $this->canalManager->systemOwner();
-        $existingEvent = $this->findExistingEvent($canal->id, $detail);
+        // Zhoda podľa zdrojovej URL je vyriešená vyššie; tu ostáva už len
+        // záložné hľadanie podľa názvu a dátumu v rámci kanála.
+        $existingEvent ??= $this->findExistingEvent($canal->id, $detail);
 
         $body = $this->appendRelevantLinksToBody(
             (string) $detail['body'],
@@ -233,25 +243,32 @@ class EventImportService
     }
 
     /**
+     * Zdrojová URL je jednoznačný identifikátor článku, takže sa na ňu pýtame
+     * naprieč všetkými kanálmi. Kým bolo hľadanie zúžené na canal_id, stačilo,
+     * aby AI pri ďalšom behu určila organizátora inak (alebo aby medzitým
+     * vznikol duplicitný kanál), a ten istý článok sa naimportoval druhýkrát
+     * ako nový event.
+     */
+    private function findEventBySourceUrl(string $sourceUrl): ?Event
+    {
+        if ($sourceUrl === '') {
+            return null;
+        }
+
+        return Event::query()
+            ->where('orginal_source', $sourceUrl)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
      * @param array<string, mixed> $detail
      */
     private function findExistingEvent(int $canalId, array $detail): ?Event
     {
-        $sourceUrl = (string) ($detail['source_url'] ?? '');
-        if ($sourceUrl !== '') {
-            // Zdrojová URL je jednoznačný identifikátor článku, takže sa na ňu
-            // pýtame naprieč všetkými kanálmi. Kým bolo hľadanie zúžené na
-            // canal_id, stačilo, aby AI pri ďalšom behu určila organizátora
-            // inak (alebo aby medzitým vznikol duplicitný kanál), a ten istý
-            // článok sa naimportoval druhýkrát ako nový event.
-            $event = Event::query()
-                ->where('orginal_source', $sourceUrl)
-                ->orderBy('id')
-                ->first();
-
-            if ($event instanceof Event) {
-                return $event;
-            }
+        $event = $this->findEventBySourceUrl((string) ($detail['source_url'] ?? ''));
+        if ($event instanceof Event) {
+            return $event;
         }
 
         $title = trim((string) ($detail['title'] ?? ''));
