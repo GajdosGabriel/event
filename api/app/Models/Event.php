@@ -85,6 +85,23 @@ class Event extends Model implements Messageable
     }
 
     /**
+     * Obsahové štítky naprieč facetmi (druh, téma, publikum, charakter).
+     *
+     * Pivot drží, kto štítok priradil — preštítkovanie cez AI sa dotýka len
+     * riadkov so source='ai', takže ručný výber organizátora prežije.
+     *
+     * Zámerne NIE JE v $appends: accessor by pri výpise strieľal dotaz na každý
+     * riadok. Štítky sa načítavajú eager loadom (indexEagerLoads, publicIndexQuery,
+     * publicShow) a do odpovede ich dáva EventResource.
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class)
+            ->withPivot(['confidence', 'source'])
+            ->withTimestamps();
+    }
+
+    /**
      * Registrácia / predaj lístkov je dostupná, keď má podujatie aspoň jeden
      * aktívny typ lístka. Nie je to samostatný prepínač — odvádza sa z typov.
      */

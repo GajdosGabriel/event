@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(TagSeeder::class);
 
         $users = User::factory()->count(20)->create();
         $users->take(2)->each(function (User $user) {

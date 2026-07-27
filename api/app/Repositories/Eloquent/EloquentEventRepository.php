@@ -11,6 +11,7 @@ use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Files\FileManager;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
+use App\Services\Tags\EventAttributeDeriver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,8 +24,23 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
+        private readonly EventAttributeDeriver $attributeDeriver,
     ) {
         parent::__construct();
+    }
+
+    /**
+     * Prepočíta štítky facetu „charakter" (viacdňové, s registráciou, vstup
+     * voľný, vonku, online).
+     *
+     * Volá sa pri každom zápise, nie len z AI príkazu: odvodenie je zadarmo
+     * a deterministické, kým AI beh sa spúšťa len pri zmene textu. Bez toho by
+     * novo vytvorené podujatie nemalo tieto štítky vôbec a zmena termínu
+     * z jednodňového na trojdňový by ich nechala zastarané.
+     */
+    private function deriveEventAttributes(Event $event): void
+    {
+        $this->attributeDeriver->sync($event->fresh() ?? $event);
     }
 
     public function entity(): string
@@ -35,19 +51,23 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     public function create(array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $tagIds = $this->extractTagIds($properties);
         $this->normalizeLocationPayload($properties);
 
         /** @var Event $event */
         $event = parent::create($properties);
 
         $this->syncEventFiles($event, $filePayload);
+        $this->syncEventTags($event, $tagIds);
+        $this->deriveEventAttributes($event);
 
-        return $event->fresh(['files']);
+        return $event->fresh(['files', 'tags']);
     }
 
     public function createForUser(User $user, array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $tagIds = $this->extractTagIds($properties);
 
         $canal = $user->canal
             ?? $user->canals()->wherePivot('status', ModelStatus::Published->value)->first()
@@ -64,8 +84,10 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $event = $canal->events()->create($properties);
 
         $this->syncEventFiles($event, $filePayload);
+        $this->syncEventTags($event, $tagIds);
+        $this->deriveEventAttributes($event);
 
-        return $event->fresh(['files']);
+        return $event->fresh(['files', 'tags']);
     }
 
     public function duplicateForUser(User $user, Event $source): Event
@@ -99,13 +121,29 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                 $typeCopy->save();
             }
 
-            return $copy->fresh(['files', 'ticketTypes']);
+            // replicate() pivot riadky neprenáša — štítky treba skopírovať ručne,
+            // aj s tým, kto ich priradil.
+            $sourceTags = DB::table('event_tag')->where('event_id', $source->id)->get();
+
+            if ($sourceTags->isNotEmpty()) {
+                DB::table('event_tag')->insert($sourceTags->map(fn ($row) => [
+                    'event_id' => $copy->id,
+                    'tag_id' => $row->tag_id,
+                    'confidence' => $row->confidence,
+                    'source' => $row->source,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ])->all());
+            }
+
+            return $copy->fresh(['files', 'ticketTypes', 'tags']);
         });
     }
 
     public function update($id, array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $tagIds = $this->extractTagIds($properties, false);
 
         /** @var Event $event */
         $event = $this->model()->withTrashed()->findOrFail($id);
@@ -138,7 +176,25 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         $this->syncEventFiles($event, $filePayload);
 
-        return $event->fresh(['files']);
+        if ($tagIds !== null) {
+            $this->syncEventTags($event, $tagIds);
+        }
+
+        // Bezpodmienečne — termín alebo cena sa mohli zmeniť aj bez zásahu
+        // do štítkov a odvodené štítky by inak ostali zastarané.
+        $this->deriveEventAttributes($event);
+
+        return $event->fresh(['files', 'tags']);
+    }
+
+    /**
+     * Verejný detail. Prekrýva AbstractRepository::publicShow(), ktorý nerobí
+     * žiadny eager load — Public\EventController::show() serializuje model cez
+     * toArray(), takže bez načítanej relácie by na detaile štítky chýbali.
+     */
+    public function publicShow($id)
+    {
+        return $this->model()->with('tags')->find($id);
     }
 
     public function publish($id)
@@ -214,6 +270,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             'canal.files',
             'venue:id,name,street,postcode,latitude,longitude,phone,website,opening_hours',
             'files',
+            'tags',
         ];
     }
 
@@ -304,6 +361,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                     ->select(['id', 'name', 'street', 'postcode', 'latitude', 'longitude', 'phone', 'website', 'opening_hours', 'village_id'])
                     ->with('municipality'),
                 'files',
+                'tags',
             ])
             ->where('status', ModelStatus::Published->value)
             ->where(function ($q) {
@@ -408,6 +466,80 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         if (! $user->dashboardCanalIds()->contains($canalId)) {
             abort(422, 'Selected venue does not belong to an accessible canal.');
         }
+    }
+
+    /**
+     * Vytiahne tag_ids z payloadu, aby ich $event->update() neskúšal zapísať
+     * ako stĺpec.
+     *
+     * Rozdiel medzi „chýba" a „prázdne pole" je podstatný: pri update znamená
+     * chýbajúci kľúč „štítkov sa nedotýkaj" (napr. rýchla zmena stavu), kým
+     * prázdne pole znamená „odpoj všetky". Rovnaká konvencia ako pri canal_ids
+     * v EloquentVenueRepository.
+     *
+     * @return array<int, int>|null
+     */
+    private function extractTagIds(array &$properties, bool $required = true): ?array
+    {
+        $hasKey = array_key_exists('tag_ids', $properties);
+        $tagIds = $properties['tag_ids'] ?? null;
+
+        unset($properties['tag_ids']);
+
+        if (! $hasKey || $tagIds === null) {
+            return $required ? [] : null;
+        }
+
+        return collect((array) $tagIds)
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Ručný výber človeka. Prepisuje len riadky so source='manual' — priradenia
+     * od AI a odvodené z dát zostávajú, pretože ich vlastnia príslušné služby
+     * (EventTagger, EventAttributeDeriver) a tie ich vedia prepočítať.
+     *
+     * @param  array<int, int>  $tagIds
+     */
+    private function syncEventTags(Event $event, array $tagIds): void
+    {
+        DB::transaction(function () use ($event, $tagIds) {
+            $automatedIds = DB::table('event_tag')
+                ->where('event_id', $event->id)
+                ->where('source', '<>', 'manual')
+                ->pluck('tag_id')
+                ->all();
+
+            DB::table('event_tag')
+                ->where('event_id', $event->id)
+                ->where('source', 'manual')
+                ->delete();
+
+            $payload = [];
+
+            foreach ($tagIds as $tagId) {
+                // Štítok, ktorý už na podujatí visí od AI, sa nedá pridať druhý
+                // raz — kompozitný primárny kľúč by to odmietol.
+                if (in_array($tagId, $automatedIds, true)) {
+                    continue;
+                }
+
+                $payload[$tagId] = [
+                    'confidence' => 100,
+                    'source' => 'manual',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if ($payload !== []) {
+                $event->tags()->attach($payload);
+            }
+        });
     }
 
     private function extractFilePayload(array &$properties): array

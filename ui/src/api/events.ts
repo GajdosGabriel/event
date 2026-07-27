@@ -93,6 +93,7 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
         openingHours: (v['opening_hours'] as Record<string, string | null>) ?? null,
       }
     })(),
+    tags: (raw['tags'] as EventItem['tags']) ?? [],
     uploadedImages: (() => {
       const files = raw['files'] as Record<string, unknown>[] | null
       if (!files?.length) {

@@ -32,9 +32,30 @@ class EventController extends Controller
             'municipality' => $municipality,
             'search' => $search,
             'list' => $list,
+            'tags' => $this->tagSlugs($request),
         ]);
 
         return EventResource::collection($events);
+    }
+
+    /**
+     * Štítky chodia ako ?tags=koncert,folklor. Slugy sa nevalidujú proti
+     * číselníku — neznámy slug jednoducho nič nenájde, čo je pre filter
+     * správnejšie než 422 pri zastaralom odkaze.
+     *
+     * @return array<int, string>|null
+     */
+    private function tagSlugs(Request $request): ?array
+    {
+        $raw = $request->input('tags');
+        $raw = is_array($raw) ? $raw : explode(',', (string) $raw);
+
+        $slugs = array_values(array_filter(
+            array_map(static fn ($slug) => trim((string) $slug), $raw),
+            static fn (string $slug) => $slug !== '',
+        ));
+
+        return $slugs !== [] ? array_slice(array_unique($slugs), 0, 10) : null;
     }
 
     public function show($id)

@@ -127,6 +127,37 @@ trait HasCommonFilters
         return $query;
     }
 
+    /**
+     * Filtrovanie podľa obsahových štítkov.
+     *
+     * Slugy, nie id — URL zostáva čitateľná (?tags=koncert,folklor) a prežije
+     * preseedovanie číselníka. Viac štítkov znamená AND: „koncert AND folklór"
+     * je zúženie, tak to od filtra čaká používateľ.
+     *
+     * @param  array<int, string>|null  $slugs
+     */
+    public function scopeByTags(Builder $query, ?array $slugs): Builder
+    {
+        if ($slugs === null || ! method_exists($this, 'tags')) {
+            return $query;
+        }
+
+        $slugs = array_values(array_filter(array_unique(array_map(
+            static fn ($slug) => trim((string) $slug),
+            $slugs,
+        ))));
+
+        if ($slugs === []) {
+            return $query;
+        }
+
+        foreach ($slugs as $slug) {
+            $query->whereHas('tags', fn (Builder $q) => $q->where('tags.slug', $slug));
+        }
+
+        return $query;
+    }
+
     public function scopeByCanal(Builder $query, ?int $canalId): Builder
     {
         if ($canalId === null || ! $this->hasCommonFilterColumn('canal_id')) {
@@ -205,6 +236,7 @@ trait HasCommonFilters
             ->byBlocked($filters['blocked'] ?? null)
             ->byDeleted($filters['deleted'] ?? null)
             ->byMunicipality($filters['municipality'] ?? null)
+            ->byTags($filters['tags'] ?? null)
             ->byCanal($filters['canal_id'] ?? null);
     }
 

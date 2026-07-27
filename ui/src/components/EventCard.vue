@@ -39,12 +39,30 @@
           {{ venueName }}
         </span>
       </div>
+
+      <!-- Obsahové štítky. Modrá patrí dátumu, tyrkysová kanálu — štítky sú
+           preto fialové, aby sa dali odlíšiť na prvý pohľad. -->
+      <div v-if="visibleTags.length" class="flex flex-wrap items-center gap-1">
+        <span
+          v-for="tag in visibleTags"
+          :key="tag.id"
+          class="inline-flex items-center gap-0.5 rounded-full bg-violet-50 px-2 py-0.5 text-[0.7rem] text-violet-700 ring-1 ring-inset ring-violet-200"
+        >
+          <span v-if="tag.emoji">{{ tag.emoji }}</span>
+          {{ tag.name }}
+        </span>
+        <span v-if="hiddenTagCount" class="text-[0.7rem] text-slate-400">+{{ hiddenTagCount }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TagItem } from '@/types'
+
+/** Viac čipov než toľko kartu rozbije — zvyšok sa zhrnie do „+N". */
+const MAX_VISIBLE_TAGS = 3
 
 const props = defineProps<{
   id: number
@@ -53,9 +71,13 @@ const props = defineProps<{
   dateLabel?: string | null
   canalName?: string | null
   venueName?: string | null
+  /** Obsahové štítky; karta ukáže prvé tri. */
+  tags?: TagItem[] | null
   /** Cieľ odkazu; predvolene detail eventu. */
   to?: string
 }>()
 
 const link = computed(() => props.to ?? `/events/${props.id}`)
+const visibleTags = computed(() => (props.tags ?? []).slice(0, MAX_VISIBLE_TAGS))
+const hiddenTagCount = computed(() => Math.max(0, (props.tags?.length ?? 0) - MAX_VISIBLE_TAGS))
 </script>

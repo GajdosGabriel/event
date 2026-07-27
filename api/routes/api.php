@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\{ CanalController as AdminCanalController, Dashbo
 use App\Http\Controllers\Admin\AdminToolsController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
+use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardEventController;
@@ -17,7 +18,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
+use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, TagController as PublicTagController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Artisan, Route};
@@ -53,6 +54,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->
 
 Route::get('events/municipalities-overview', [PublicEventController::class, 'municipalitiesOverview'])
     ->name('public.events.municipalities.overview');
+
+// Číselník obsahových štítkov pre verejný filter (?tags=koncert,folklor).
+Route::get('tags', [PublicTagController::class, 'index'])->name('public.tags.index');
 
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
@@ -276,6 +280,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
 Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('home');
     Route::get('municipalities/all', [AdminMunicipalityController::class, 'all']);
+    // Podklad na rozšírenie číselníka štítkov (číselník sám je v TagSeeder-i).
+    Route::get('tag-suggestions', [AdminTagSuggestionController::class, 'index'])->name('tag-suggestions.index');
+    Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');

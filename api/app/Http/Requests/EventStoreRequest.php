@@ -52,6 +52,10 @@ class EventStoreRequest extends FormRequest
             'phone' => 'nullable|string|max:20',
             'price_amount' => ['nullable', 'integer', 'min:0'],
             'price_currency' => ['sometimes', 'string', 'size:3'],
+            // Chýbajúci kľúč znamená „štítkov sa nedotýkaj", prázdne pole
+            // „odpoj všetky" — viď EloquentEventRepository::extractTagIds().
+            'tag_ids' => ['sometimes', 'array', 'max:12'],
+            'tag_ids.*' => ['integer', 'distinct', 'exists:tags,id'],
             'files' => ['sometimes', 'array'],
             'files.*' => ['file', 'max:10240'],
             'file_type' => ['sometimes', 'string', Rule::enum(FileType::class)],

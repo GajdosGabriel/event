@@ -5,7 +5,7 @@ namespace App\Services\OpenAI;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptProfile, PromptTextEditor, PromptVenue};
+use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
 
 class ChatGPT
 {
@@ -16,7 +16,56 @@ class ChatGPT
         private readonly PromptCanal $promptCanal = new PromptCanal(),
         private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
         private readonly PromptProfile $promptProfile = new PromptProfile(),
+        private readonly PromptTags $promptTags = new PromptTags(),
     ) {}
+
+    /**
+     * Obsahové štítky podujatia z pevného číselníka.
+     *
+     * Povolené slugy idú do JSON schémy ako `enum`, takže model nemá ako vrátiť
+     * hodnotu mimo číselníka. Rozsahy a počty sa tu NEorezávajú — surová
+     * odpoveď patrí volajúcemu (App\Services\Tags\EventTagger), ktorý jediný
+     * vie, čo je v databáze ešte platné.
+     *
+     * @param  array<string, array<int, array{slug: string, name: string}>>  $catalog  facet => štítky
+     * @return array{tags: array<int, array{slug: string, confidence: mixed}>, suggested: array<int, string>}
+     */
+    public function extractTags(string $text, array $catalog): array
+    {
+        $allowedSlugs = [];
+
+        foreach ($catalog as $tags) {
+            foreach ($tags as $tag) {
+                $allowedSlugs[] = $tag['slug'];
+            }
+        }
+
+        if ($allowedSlugs === []) {
+            throw new \RuntimeException('Ciselnik stitkov je prazdny.');
+        }
+
+        $content = $this->chatComplete(
+            'gpt-4o-mini',
+            0,
+            $this->promptTags->prompt($this->sanitizeUtf8($text), $catalog),
+            $this->promptTags->jsonSchema($allowedSlugs),
+        );
+
+        $data = $this->decodeJson($content);
+
+        // normalizeResponseData() sa tu zámerne NEvolá — sploštila by polia
+        // na reťazec oddelený čiarkami.
+        $validator = Validator::make($data, $this->promptTags->validator());
+
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+        }
+
+        return [
+            'tags' => $data['tags'] ?? [],
+            'suggested' => $data['suggested'] ?? [],
+        ];
+    }
 
     public function extractData(array|string $input, ?Carbon $referenceDate = null): array
     {

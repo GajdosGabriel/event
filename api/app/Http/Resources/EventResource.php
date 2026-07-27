@@ -47,6 +47,24 @@ class EventResource extends JsonResource
             $data['ticket_types'] = TicketTypeResource::collection($this->ticketTypes);
         }
 
+        // Štítky sú v odpovedi len keď sú načítané — accessor v $appends by pri
+        // výpise strieľal dotaz na každý riadok. Eager load robí repozitár
+        // (indexEagerLoads, publicIndexQuery, publicShow).
+        if ($this->resource->relationLoaded('tags')) {
+            $data['tags'] = $this->tags
+                ->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'slug' => $tag->slug,
+                    'name' => $tag->name,
+                    'group' => $tag->group?->value,
+                    'emoji' => $tag->emoji,
+                    // Kto štítok priradil. Editor podľa toho vie, ktoré štítky
+                    // spravuje človek a ktoré prepočítava AI / odvodenie.
+                    'source' => $tag->pivot?->source ?? 'manual',
+                ])
+                ->values();
+        }
+
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
         // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží

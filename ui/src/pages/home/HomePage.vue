@@ -52,6 +52,7 @@
     <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div class="min-w-0 space-y-4">
         <OngoingEventsStrip v-if="!search.trim()" :municipality="municipalityFilter" />
+        <TagChips />
         <div>
         <p v-if="loading" class="text-slate-600">Načítavam…</p>
         <p v-else-if="error" class="text-red-600">{{ error }}</p>
@@ -67,6 +68,7 @@
             :date-label="event.dateRangeLabel"
             :canal-name="event.canalName"
             :venue-name="event.venue?.name ?? null"
+            :tags="event.tags"
           />
         </div>
         <AppPaginator :current-page="page" :last-page="lastPage" @change="loadPage" />
@@ -90,6 +92,7 @@ import EventAgenda from '@/components/EventAgenda.vue'
 import OngoingEventsStrip from '@/components/OngoingEventsStrip.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
+import TagChips from '@/components/TagChips.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 
 const route = useRoute()
@@ -142,6 +145,7 @@ async function loadPage(p = 1) {
     const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
     params['list'] = search.value.trim() ? 'all' : 'upcoming'
     if (route.query.municipality) params['municipality'] = route.query.municipality
+    if (route.query.tags) params['tags'] = route.query.tags
     if (search.value.trim()) params['search'] = search.value.trim()
     const res = await indexEvents('public', params)
     events.value = res.data
@@ -154,7 +158,7 @@ async function loadPage(p = 1) {
   }
 }
 
-watch(() => route.query.municipality, () => loadPage(1))
+watch(() => [route.query.municipality, route.query.tags], () => loadPage(1))
 onMounted(() => loadPage())
 onBeforeUnmount(() => clearTimeout(searchTimer))
 </script>

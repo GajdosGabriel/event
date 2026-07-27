@@ -33,6 +33,17 @@ class IndexFilterRequest extends FormRequest
         if ($normalized !== []) {
             $this->merge($normalized);
         }
+
+        // Štítky chodia z URL ako ?tags=koncert,folklor — do validácie ich
+        // treba dostať ako pole.
+        if ($this->has('tags') && ! is_array($this->input('tags'))) {
+            $this->merge([
+                'tags' => array_values(array_filter(
+                    array_map('trim', explode(',', (string) $this->input('tags'))),
+                    static fn (string $slug) => $slug !== '',
+                )),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -47,6 +58,8 @@ class IndexFilterRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'municipality' => ['nullable', 'integer', 'min:1'],
             'canal_id' => ['nullable', 'integer', 'min:1'],
+            'tags' => ['nullable', 'array', 'max:10'],
+            'tags.*' => ['string', 'max:60'],
             'sort' => ['nullable', 'in:newest,oldest,name,upcoming'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
@@ -64,6 +77,7 @@ class IndexFilterRequest extends FormRequest
             'per_page' => $this->input('per_page', 15),
             'municipality' => $this->input('municipality') ? (int) $this->input('municipality') : null,
             'canal_id' => $this->input('canal_id') ? (int) $this->input('canal_id') : null,
+            'tags' => $this->getTagsFilter(),
             'sort' => $this->input('sort'),
             'date_from' => $this->input('date_from'),
             'date_to' => $this->input('date_to'),
@@ -99,6 +113,25 @@ class IndexFilterRequest extends FormRequest
             return !$this->boolean('unpublished');
         }
         return null;
+    }
+
+    /**
+     * @return array<int, string>|null
+     */
+    private function getTagsFilter(): ?array
+    {
+        $tags = $this->input('tags');
+
+        if (! is_array($tags)) {
+            return null;
+        }
+
+        $tags = array_values(array_filter(array_map(
+            static fn ($slug) => trim((string) $slug),
+            $tags,
+        ), static fn (string $slug) => $slug !== ''));
+
+        return $tags !== [] ? $tags : null;
     }
 
     private function getSearchFilter(): ?string

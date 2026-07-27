@@ -12,6 +12,9 @@ Schedule::command('app:ai-detector')->everyMinute();
 Schedule::command('app:events-archive-finished')->everyTenMinutes();
 Schedule::command('app:tickets-expire-unconfirmed')->everyTenMinutes();
 Schedule::command('app:registrations-expire-pending')->everyTenMinutes();
+// Obsahové štítky podujatí. Malá dávka a vlastný časový strop — všetky príkazy
+// bežia sekvenčne v jednom webcron requeste spolu s app:ai-detector.
+Schedule::command('app:events-ai-tag')->everyTwoMinutes()->withoutOverlapping();
 // Timezone je explicitný, lebo app beží v UTC — bez neho by import šiel o 18:00
 // slovenského času v lete a o 17:00 v zime.
 Schedule::command('app:import-event-sources')->dailyAt('16:00')->timezone('Europe/Bratislava');

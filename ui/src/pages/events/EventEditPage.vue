@@ -87,6 +87,12 @@
         </fieldset>
 
         <fieldset class="field-group">
+          <legend class="field-legend">Štítky</legend>
+          <TagPicker v-model="form.tag_ids" :automated="automatedTags" />
+          <span v-if="errors.tag_ids" class="field-error">{{ errors.tag_ids }}</span>
+        </fieldset>
+
+        <fieldset class="field-group">
           <legend class="field-legend">Popis akcie</legend>
           <HtmlEditor v-model="form.body" placeholder="Napíšte popis eventu…" min-height="180px" />
 
@@ -279,6 +285,7 @@ import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import DateTimeInput from '@/components/DateTimeInput.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
+import TagPicker from '@/components/TagPicker.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -310,7 +317,13 @@ const form = ref({
   phone: '',
   body: '',
   body_ai: '',
+  // Len ručne zvolené štítky — tie od AI a odvodené z dát spravuje backend
+  // a prepočítava ich, takže do formulára nepatria.
+  tag_ids: [] as number[],
 })
+
+/** Štítky priradené automaticky; v editore sa len vypisujú ako informácia. */
+const automatedTags = ref<{ name: string }[]>([])
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
@@ -458,7 +471,9 @@ onMounted(async () => {
         phone: ev.phone ?? '',
         body: ev.body ?? '',
         body_ai: ev.bodyAi ?? '',
+        tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),
       }
+      automatedTags.value = (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') !== 'manual')
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }
   }

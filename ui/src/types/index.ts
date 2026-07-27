@@ -180,6 +180,24 @@ export interface EventItem {
     openingHours: Record<string, string | null> | null
   } | null
   uploadedImages: { thumb: string; large: string; original: string }[]
+  tags: TagItem[]
+}
+
+/** Obsahový štítok podujatia. `group` je facet — viď TagGroup na backende. */
+export interface TagItem {
+  id: number
+  slug: string
+  name: string
+  group: string
+  emoji: string | null
+  /** Kto štítok priradil: ručne človek, AI, alebo odvodenie z dát. */
+  source?: 'manual' | 'ai' | 'derived' | 'import'
+}
+
+export interface TagGroupItem {
+  group: string
+  label: string
+  tags: (TagItem & { eventsCount: number })[]
 }
 
 // Canal
