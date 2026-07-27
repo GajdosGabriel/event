@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
 use App\Models\Municipality;
-use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
+use App\Models\Traits\{HasCommonFilters, HasFile, HasViews, InteractsAsMessageable};
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +17,7 @@ class Venue extends Model implements Messageable
     /**
      * Venue je fyzicke miesto, kde sa event kona alebo kde ma canal sidlo.
      */
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
     protected $guarded = [];
     protected $appends = ['primary_image', 'thumb_image', 'files', 'canal_id', 'canal_ids'];

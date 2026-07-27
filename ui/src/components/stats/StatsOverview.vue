@@ -74,6 +74,53 @@
       <ActivityChart :trend="stats.trend" />
 
       <div class="grid gap-4 lg:grid-cols-2">
+        <!-- Návštevnosť verejných detailov -->
+        <section class="panel-card grid gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900">Návštevnosť</h2>
+            <p class="text-sm text-slate-500">
+              Zobrazenia verejných detailov · jeden návštevník sa za deň ráta raz.
+            </p>
+          </div>
+
+          <dl class="grid grid-cols-3 gap-2 text-sm">
+            <div class="detail-card">
+              <dt>Podujatia</dt>
+              <dd>{{ fmtCount(views.events) }}</dd>
+            </div>
+            <div class="detail-card">
+              <dt>Miesta</dt>
+              <dd>{{ fmtCount(views.venues) }}</dd>
+            </div>
+            <div class="detail-card">
+              <dt>Kanály</dt>
+              <dd>{{ fmtCount(views.canals) }}</dd>
+            </div>
+          </dl>
+
+          <p class="text-sm text-slate-600">
+            Priemerne
+            <strong class="text-slate-900">{{ views.perPublishedEvent ?? '—' }}</strong>
+            zobrazení na zverejnené podujatie.
+          </p>
+
+          <!-- Koľko zo záujmu skončí registráciou — jediné číslo, ktoré spája
+               návštevnosť s predajom. -->
+          <MeterBar
+            v-if="views.events > 0"
+            label="Z pozretia na registráciu"
+            :part="ticketing.seats.valid"
+            :whole="views.events"
+            :rate="views.conversion"
+            unit="zobrazení podujatí"
+            :note="`${fmtCount(ticketing.seats.valid)} vstupeniek`"
+            color="#4a3aa7"
+          />
+          <p v-else class="text-sm text-slate-500">
+            Zatiaľ žiadne zobrazenia — počítadlo sa napĺňa z verejných stránok.
+          </p>
+        </section>
+
         <!-- Predaj a dochádzka -->
         <section class="panel-card grid gap-4">
           <div>
@@ -120,7 +167,9 @@
             </div>
           </dl>
         </section>
+      </div>
 
+      <div class="grid gap-4 lg:grid-cols-2">
         <!-- Skladba obsahu -->
         <section class="panel-card grid gap-4">
           <div>
@@ -176,9 +225,7 @@
             <p class="mt-1 text-xs text-slate-400">za 30 dní / celkovo</p>
           </div>
         </section>
-      </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
         <!-- Najbližší program -->
         <section class="panel-card">
           <h2 class="mb-3 text-lg font-semibold text-slate-900">Najbližší program</h2>
@@ -197,6 +244,25 @@
             </li>
           </ul>
           <p v-else class="text-sm text-slate-500">Žiadne naplánované podujatia.</p>
+        </section>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <!-- Najviac zobrazené -->
+        <section class="panel-card">
+          <h2 class="mb-3 text-lg font-semibold text-slate-900">Najviac zobrazené</h2>
+          <ul v-if="views.top.length" class="index-list">
+            <li v-for="event in views.top" :key="event.id" class="flex items-baseline justify-between gap-3 text-sm">
+              <RouterLink :to="link(`events/${event.id}`)" class="truncate font-medium text-slate-900 no-underline hover:underline">
+                {{ event.name }}
+              </RouterLink>
+              <span class="shrink-0 text-right text-xs">
+                <strong class="block tabular-nums text-slate-900">{{ fmtCount(event.views) }}×</strong>
+                <span v-if="event.seats" class="block text-slate-500">{{ fmtCount(event.seats) }} vstupeniek</span>
+              </span>
+            </li>
+          </ul>
+          <p v-else class="text-sm text-slate-500">Zatiaľ žiadne zobrazenia verejných detailov.</p>
         </section>
 
         <!-- Najväčší záujem -->
@@ -268,6 +334,7 @@ const SEVERITY: Record<AttentionSeverity, { color: string; label: string }> = {
 
 /** Ktorá séria trendu patrí ku ktorej metrike prehľadu. */
 const SPARK_SOURCE: Record<string, keyof StatsOverview['trend'][number]> = {
+  views: 'views',
   events: 'events',
   tickets: 'tickets',
   admissions: 'admissions',
@@ -295,6 +362,7 @@ async function load() {
 
 const totals = computed(() => stats.value!.totals)
 const ticketing = computed(() => stats.value!.ticketing)
+const views = computed(() => stats.value!.views)
 
 const activePeriod = computed(() =>
   stats.value!.periods.find(p => p.key === periodKey.value) ?? stats.value!.periods[0],

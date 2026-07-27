@@ -94,6 +94,7 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
       }
     })(),
     tags: (raw['tags'] as EventItem['tags']) ?? [],
+    viewsCount: typeof raw['views_count'] === 'number' ? (raw['views_count'] as number) : null,
     uploadedImages: (() => {
       const files = raw['files'] as Record<string, unknown>[] | null
       if (!files?.length) {

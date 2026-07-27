@@ -6,11 +6,13 @@ use App\Enums\AdmissionStatus;
 use App\Enums\ModelStatus;
 use App\Enums\TicketPaymentStatus;
 use App\Models\Admission;
+use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -183,6 +185,73 @@ class OverviewStatsTest extends EventSetupTest
         $this->assertSame(10, $ticketing['capacity']['seats']);
         $this->assertSame(2, $ticketing['capacity']['sold']);
         $this->assertEquals(20, $ticketing['capacity']['rate']);
+    }
+
+    /** Riadok zobrazenia — hash musí byť unikátny, index ho stráži na deň. */
+    private function recordView(string $type, int $id, ?string $day = null): void
+    {
+        DB::table('views')->insert([
+            'viewable_type' => $type,
+            'viewable_id' => $id,
+            'visitor_hash' => hash('sha256', $type . $id . ($day ?? 'now') . uniqid('', true)),
+            'viewed_on' => $day ?? now()->toDateString(),
+            'created_at' => $day ? now()->parse($day) : now(),
+        ]);
+    }
+
+    #[Test]
+    public function views_are_scoped_to_own_canals(): void
+    {
+        $this->recordView(Event::class, $this->futureEvent->id);
+        $this->recordView(Event::class, $this->futureEvent->id);
+        $this->recordView(Canal::class, $this->canalPrimary->id);
+        // Zobrazenie cudzieho podujatia do môjho prehľadu nepatrí.
+        $this->recordView(Event::class, $this->cudziEvent->id);
+
+        $this->actingAs($this->user, 'sanctum');
+        $this->assertSame(3, $this->getJson('/api/dashboard')->json('periods.day.metrics.views.value'));
+
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        $this->assertSame(4, $this->getJson('/api/admin')->json('periods.day.metrics.views.value'));
+    }
+
+    #[Test]
+    public function views_block_reports_totals_and_the_most_viewed_events(): void
+    {
+        // Celkové čísla čítame z views_count, nie z tabuľky views — tá sa
+        // po 90 dňoch preriedi.
+        $this->futureEvent->forceFill(['views_count' => 40])->save();
+        $this->pastEvent->forceFill(['views_count' => 10])->save();
+
+        $type = TicketType::query()->create([
+            'event_id' => $this->futureEvent->id,
+            'name' => 'Vstupenka',
+            'is_active' => true,
+        ]);
+        $ticket = Ticket::query()->create([
+            'event_id' => $this->futureEvent->id,
+            'holder_name' => 'Gabriel',
+            'holder_email' => 'gabriel@example.com',
+            'quantity' => 1,
+        ]);
+        Admission::query()->create([
+            'ticket_id' => $ticket->id,
+            'ticket_type_id' => $type->id,
+            'event_id' => $this->futureEvent->id,
+            'status' => AdmissionStatus::Valid->value,
+        ]);
+
+        $this->actingAs($this->user, 'sanctum');
+        $views = $this->getJson('/api/dashboard')->json('views');
+
+        $this->assertSame(50, $views['events']);
+        $this->assertSame(50, $views['total']);
+        // 1 platná vstupenka na 50 zobrazení podujatí.
+        $this->assertEquals(2, $views['conversion']);
+
+        $this->assertSame($this->futureEvent->id, $views['top'][0]['id']);
+        $this->assertSame(40, $views['top'][0]['views']);
+        $this->assertSame(1, $views['top'][0]['seats']);
     }
 
     #[Test]

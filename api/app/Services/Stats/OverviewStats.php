@@ -15,6 +15,7 @@ use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\View;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -98,14 +99,21 @@ final class OverviewStats
 
     public function build(): array
     {
+        // Súhrny si podáme ďalej — návštevnosť ich potrebuje na pomery
+        // (zobrazenia na podujatie, registrácie na 100 zobrazení) a nemá zmysel
+        // rátať tie isté čísla druhýkrát.
+        $totals = $this->totals();
+        $ticketing = $this->ticketing();
+
         return [
             'scope' => $this->canalIds === null ? 'admin' : 'dashboard',
             'generated_at' => $this->now->toIso8601String(),
             'trend_days' => self::TREND_DAYS,
             'periods' => $this->periods(),
-            'totals' => $this->totals(),
+            'totals' => $totals,
             'trend' => $this->trend(),
-            'ticketing' => $this->ticketing(),
+            'ticketing' => $ticketing,
+            'views' => $this->views($totals['events']['published'], $ticketing['seats']['valid']),
             'statuses' => $this->statusBreakdown(),
             'sources' => $this->sourceBreakdown(),
             'attention' => $this->attention(),
@@ -200,6 +208,34 @@ final class OverviewStats
         return $query;
     }
 
+    /**
+     * Zobrazenia visia na troch rôznych typoch záznamov naraz, takže rozsah sa
+     * skladá z troch vetiev — v admin rozsahu odpadá celý filter.
+     */
+    private function viewQuery(): Builder
+    {
+        $query = View::query();
+
+        if ($this->canalIds === null) {
+            return $query;
+        }
+
+        $venueIds = DB::table('canal_venue')
+            ->select('venue_id')
+            ->whereIn('canal_id', $this->canalIds);
+
+        return $query->where(fn ($outer) => $outer
+            ->where(fn ($branch) => $branch
+                ->where('views.viewable_type', Event::class)
+                ->whereIn('views.viewable_id', $this->scopedEventIds()))
+            ->orWhere(fn ($branch) => $branch
+                ->where('views.viewable_type', Venue::class)
+                ->whereIn('views.viewable_id', $venueIds))
+            ->orWhere(fn ($branch) => $branch
+                ->where('views.viewable_type', Canal::class)
+                ->whereIn('views.viewable_id', $this->canalIds)));
+    }
+
     private function messageQuery(): Builder
     {
         $query = Message::query();
@@ -288,6 +324,15 @@ final class OverviewStats
     private function periods(): array
     {
         $definitions = [
+            // Návštevnosť je prvá zámerne — je to jediná metrika, ktorá meria
+            // dopyt zvonku; ostatné merajú, čo sme narobili my.
+            'views' => [
+                'label' => 'Zobrazenia',
+                'format' => 'number',
+                // Zámerne created_at, nie viewed_on: dátumový stĺpec by pri
+                // porovnávacom okne vnútri dňa vypadol pod jeho dolnú hranicu.
+                'buckets' => $this->buckets($this->viewQuery(), 'views.created_at'),
+            ],
             'events' => [
                 'label' => 'Nové podujatia',
                 'format' => 'number',
@@ -424,6 +469,7 @@ final class OverviewStats
         $from = $this->now->subDays(self::TREND_DAYS - 1)->startOfDay();
 
         $series = [
+            'views' => $this->dailyCounts($this->viewQuery(), 'views.created_at', $from),
             'events' => $this->dailyCounts($this->eventQuery(), 'events.created_at', $from),
             'tickets' => $this->dailyCounts($this->ticketQuery(), 'tickets.created_at', $from),
             'admissions' => $this->dailyCounts($this->admissionQuery(), 'ticket_admissions.created_at', $from),
@@ -437,6 +483,7 @@ final class OverviewStats
 
             $days[] = [
                 'date' => $date,
+                'views' => $series['views'][$date] ?? 0,
                 'events' => $series['events'][$date] ?? 0,
                 'tickets' => $series['tickets'][$date] ?? 0,
                 'admissions' => $series['admissions'][$date] ?? 0,
@@ -537,6 +584,60 @@ final class OverviewStats
     private function rate(int $part, int $whole): ?float
     {
         return $whole > 0 ? round($part / $whole * 100, 1) : null;
+    }
+
+    // ------------------------------------------------------------ návštevnosť
+
+    /**
+     * Návštevnosť verejných detailov.
+     *
+     * Celkové počty čítame z denormalizovaného `views_count` na zázname, nie
+     * z tabuľky `views` — tá sa po 90 dňoch preriedi (app:views-prune), takže
+     * ako zdroj celkového čísla by postupne klamala. Časový priebeh naopak
+     * vie dať len tabuľka, a tá 30-dňové okno prehľadu pokrýva s rezervou.
+     */
+    private function views(int $publishedEvents, int $validSeats): array
+    {
+        $events = (int) $this->eventQuery()->sum('events.views_count');
+        $venues = (int) $this->venueQuery()->sum('venues.views_count');
+        $canals = (int) $this->canalQuery()->sum('canals.views_count');
+
+        return [
+            'events' => $events,
+            'venues' => $venues,
+            'canals' => $canals,
+            'total' => $events + $venues + $canals,
+            'per_published_event' => $publishedEvents > 0
+                ? round($events / $publishedEvents, 1)
+                : null,
+            // Koľko zo záujmu sa premenilo na registráciu. Pomer je hrubý —
+            // obe strany sú celoživotné súčty — ale ako trend dáva zmysel.
+            'conversion' => $this->rate($validSeats, $events),
+            'top' => $this->topViewed(),
+        ];
+    }
+
+    /** Podujatia, ktoré ľudí zaujali najviac. */
+    private function topViewed(): array
+    {
+        return $this->eventQuery()
+            ->select(['events.id', 'events.name', 'events.status', 'events.start_at', 'events.views_count'])
+            ->where('events.views_count', '>', 0)
+            ->withCount([
+                'admissions as seats' => fn ($seat) => $seat->where('ticket_admissions.status', AdmissionStatus::Valid->value),
+            ])
+            ->orderByDesc('events.views_count')
+            ->limit(5)
+            ->get()
+            ->map(fn (Event $event) => [
+                'id' => $event->id,
+                'name' => $event->name,
+                'status' => $event->status?->value,
+                'start_at' => $event->start_at?->toIso8601String(),
+                'views' => (int) $event->views_count,
+                'seats' => (int) $event->seats,
+            ])
+            ->all();
     }
 
     // ------------------------------------------------------------- rozdelenia

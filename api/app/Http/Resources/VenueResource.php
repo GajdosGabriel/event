@@ -23,6 +23,11 @@ class VenueResource extends JsonResource
         $data['status_label'] = $this->statusLabel();
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
+        // Len pre organizátora a admina — model ho drží v $hidden (HasViews).
+        if ($user?->can('view', $this->resource)) {
+            $data['views_count'] = (int) $this->views_count;
+        }
+
         $isPublished = $this->status === ModelStatus::Published;
 
         $data['permissions'] = [

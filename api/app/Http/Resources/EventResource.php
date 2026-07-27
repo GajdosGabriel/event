@@ -67,6 +67,12 @@ class EventResource extends JsonResource
 
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
+        // Počet zobrazení je len pre organizátora a admina — model ho drží
+        // v $hidden (HasViews), tu sa pridáva späť po kontrole práv.
+        if ($user?->can('view', $this->resource)) {
+            $data['views_count'] = (int) $this->views_count;
+        }
+
         // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží
         // backend (lang + policy), front ich len vykreslí.
         $data['ticket_type_kind_options'] = TicketTypeKindOption::options(

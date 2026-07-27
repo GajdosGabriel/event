@@ -8,20 +8,24 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
+use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class VenueController extends Controller
 {
     public function __construct(protected VenueRepository $venueRepository)
     {}
 
-    public function show($id)
+    public function show($id, Request $request, ViewRecorder $viewRecorder)
     {
         $venue = $this->venueRepository->publicShow($id);
 
         if (! $venue) {
             abort(404);
         }
+
+        $viewRecorder->record($venue, $request);
 
         $data = $venue->toArray();
         // Kontaktovateľné len ak má miesto vlastnícky kanál s aktívnym majiteľom

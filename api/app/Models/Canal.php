@@ -11,12 +11,12 @@ use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\User;
-use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
+use App\Models\Traits\{HasCommonFilters, HasFile, HasViews, InteractsAsMessageable};
 
 class Canal extends Model implements Messageable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
     /**
      * The attributes that are mass assignable.

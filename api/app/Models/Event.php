@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Casts\StringLength250;
 use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
-use App\Models\Traits\{HasCommonFilters, HasFile, InteractsAsMessageable};
+use App\Models\Traits\{HasCommonFilters, HasFile, HasViews, InteractsAsMessageable};
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 
 class Event extends Model implements Messageable
 {
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, InteractsAsMessageable;
+    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
     protected $guarded = [];
     protected $hidden = [];

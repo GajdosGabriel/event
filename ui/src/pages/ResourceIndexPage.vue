@@ -34,6 +34,7 @@
           :status="item.statusLabel ?? item.status"
           :status-value="item.status"
           :show-link="`${prefix}/${item.id}`"
+          :views-count="item.viewsCount"
         >
           <template v-if="resource === 'event'" #detail>
             <div class="mt-1.5 flex flex-col gap-1">
@@ -191,6 +192,8 @@ interface ResourceItem {
   venueName?: string | null
   startLabel?: string | null
   endLabel?: string | null
+  /** Počet zobrazení; chýba, keď naň používateľ nemá právo. */
+  viewsCount?: number | null
   [key: string]: unknown
 }
 
@@ -255,6 +258,9 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     canalId,
     canalName,
     venueName,
+    // Backend ho do odpovede dáva len organizátorovi a adminovi — pre ostatných
+    // kľúč vôbec neexistuje a počítadlo sa nevykreslí.
+    viewsCount: typeof raw['views_count'] === 'number' ? (raw['views_count'] as number) : null,
     ...restRaw,
   }
 }

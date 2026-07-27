@@ -7,6 +7,7 @@ use App\Http\Resources\EventResource;
 use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -58,13 +59,15 @@ class EventController extends Controller
         return $slugs !== [] ? array_slice(array_unique($slugs), 0, 10) : null;
     }
 
-    public function show($id)
+    public function show($id, Request $request, ViewRecorder $viewRecorder)
     {
         $event = $this->eventRepository->publicShow($id);
 
         if (! $event) {
             abort(404);
         }
+
+        $viewRecorder->record($event, $request);
 
         $data = $event->toArray();
 

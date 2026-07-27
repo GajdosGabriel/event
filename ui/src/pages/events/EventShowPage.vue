@@ -131,6 +131,22 @@
 
         <!-- Pravý stĺpec -->
         <aside class="grid gap-4 self-start">
+          <!-- Zobrazenia. Číslo chodí z API len organizátorovi a adminovi;
+               návštevník ho v odpovedi vôbec nemá. -->
+          <dl v-if="event.viewsCount !== null" class="show-card grid gap-3">
+            <div class="detail-card">
+              <dt>Zobrazenia</dt>
+              <dd class="flex items-center gap-1.5 font-semibold text-slate-800">
+                <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {{ event.viewsCount }}
+              </dd>
+              <dd class="text-xs text-slate-400">Unikátni návštevníci verejného detailu, jeden za deň.</dd>
+            </div>
+          </dl>
+
           <!-- Termín -->
           <dl class="show-card grid gap-3">
             <div v-if="event.startAt" class="detail-card">

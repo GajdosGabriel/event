@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Repositories\Contracts\CanalRepository;
+use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,13 +25,15 @@ class CanalController extends Controller
         return response()->json($this->canalRepository->publicIndex());
     }
 
-    public function show($id)
+    public function show($id, Request $request, ViewRecorder $viewRecorder)
     {
         $canal = $this->canalRepository->publicShow($id);
 
         if (! $canal) {
             abort(404);
         }
+
+        $viewRecorder->record($canal, $request);
 
         $data = $canal->toArray();
         // Kontaktovateľné len ak má kanál aktívneho majiteľa (self/admin

@@ -181,6 +181,11 @@ export interface EventItem {
   } | null
   uploadedImages: { thumb: string; large: string; original: string }[]
   tags: TagItem[]
+  /**
+   * Počet zobrazení verejného detailu. null pre návštevníka — backend ho
+   * do odpovede dáva len organizátorovi a adminovi.
+   */
+  viewsCount: number | null
 }
 
 /** Obsahový štítok podujatia. `group` je facet — viď TagGroup na backende. */
@@ -455,10 +460,23 @@ export interface StatsPeriod {
 
 export interface StatsTrendDay {
   date: string
+  views: number
   events: number
   tickets: number
   admissions: number
   checkins: number
+}
+
+export interface StatsViews {
+  events: number
+  venues: number
+  canals: number
+  total: number
+  /** Priemer zobrazení na jedno zverejnené podujatie. */
+  perPublishedEvent: number | null
+  /** Koľko percent zo zobrazení podujatí skončilo registráciou. */
+  conversion: number | null
+  top: { id: number; name: string; status: ModelStatus | null; startAt: string | null; views: number; seats: number }[]
 }
 
 export interface StatsAttentionItem {
@@ -498,6 +516,7 @@ export interface StatsOverview {
     capacity: { seats: number; sold: number; limitedTypes: number; unlimitedTypes: number; rate: number | null }
     attendance: { expected: number; arrived: number; rate: number | null }
   }
+  views: StatsViews
   statuses: { key: ModelStatus; label: string; count: number }[]
   sources: { own: number; imported: number; importedRate: number | null }
   attention: StatsAttentionItem[]

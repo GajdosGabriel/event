@@ -1,1 +1,0 @@
-import{p as o}from"./index-KSFBfmkB.js";async function p(n={}){const{data:e}=await o.get("/tags",{params:n.onlyUsed?{only_used:1}:{}});return(e.data??e).map(a=>({group:a.group,label:a.label,tags:(a.tags??[]).map(s=>({id:s.id,slug:s.slug,name:s.name,group:s.group,emoji:s.emoji??null,eventsCount:s.events_count??0}))}))}export{p as i};

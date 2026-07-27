@@ -120,16 +120,17 @@ const PAD_R = 6
 const PAD_T = 10
 const PAD_B = 24
 
-type MetricKey = 'events' | 'tickets' | 'admissions' | 'checkins'
+type MetricKey = 'views' | 'events' | 'tickets' | 'admissions' | 'checkins'
 
 const options: { key: MetricKey; label: string; unit: string }[] = [
+  { key: 'views', label: 'Zobrazenia', unit: 'zobrazení' },
   { key: 'events', label: 'Podujatia', unit: 'podujatí' },
   { key: 'tickets', label: 'Objednávky', unit: 'objednávok' },
   { key: 'admissions', label: 'Vstupenky', unit: 'vstupeniek' },
   { key: 'checkins', label: 'Príchody', unit: 'príchodov' },
 ]
 
-const metric = ref<MetricKey>('events')
+const metric = ref<MetricKey>('views')
 const activeIndex = ref<number | null>(null)
 
 const active = computed(() => options.find(o => o.key === metric.value) ?? options[0])

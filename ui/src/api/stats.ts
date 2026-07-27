@@ -60,6 +60,7 @@ export async function fetchOverviewStats(scope: StatsScope): Promise<StatsOvervi
   const seats = ticketing['seats'] ?? {}
   const capacity = ticketing['capacity'] ?? {}
   const attendance = ticketing['attendance'] ?? {}
+  const views = (raw['views'] as Record<string, unknown>) ?? {}
   const sources = (raw['sources'] as Record<string, unknown>) ?? {}
   const users = raw['users'] as Record<string, unknown> | null
 
@@ -85,6 +86,7 @@ export async function fetchOverviewStats(scope: StatsScope): Promise<StatsOvervi
     },
     trend: ((raw['trend'] as Record<string, unknown>[]) ?? []).map((day): StatsTrendDay => ({
       date: day['date'] as string,
+      views: num(day['views']),
       events: num(day['events']),
       tickets: num(day['tickets']),
       admissions: num(day['admissions']),
@@ -117,6 +119,22 @@ export async function fetchOverviewStats(scope: StatsScope): Promise<StatsOvervi
         arrived: num(attendance['arrived']),
         rate: nullableNum(attendance['rate']),
       },
+    },
+    views: {
+      events: num(views['events']),
+      venues: num(views['venues']),
+      canals: num(views['canals']),
+      total: num(views['total']),
+      perPublishedEvent: nullableNum(views['per_published_event']),
+      conversion: nullableNum(views['conversion']),
+      top: ((views['top'] as Record<string, unknown>[]) ?? []).map(row => ({
+        id: num(row['id']),
+        name: row['name'] as string,
+        status: (row['status'] as ModelStatus) ?? null,
+        startAt: (row['start_at'] as string) ?? null,
+        views: num(row['views']),
+        seats: num(row['seats']),
+      })),
     },
     statuses: ((raw['statuses'] as Record<string, unknown>[]) ?? []).map(row => ({
       key: row['key'] as ModelStatus,
