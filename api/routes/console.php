@@ -47,6 +47,11 @@ foreach (array_values((array) config('services.imports.sources.urls', [])) as $i
 // prepnutie na QUEUE_CONNECTION=database čisto vec .env, bez zásahu do kódu.
 //
 // max-time drží beh pod minútou, aby sa jednotlivé behy neprekrývali.
-Schedule::command('queue:work database --stop-when-empty --max-time=50 --tries=3')
+//
+// Fronty sú vymenované explicitne: bez `--queue` berie worker len `default`,
+// takže ručný import z /admin/tools (job ide na frontu `imports`) by v tabuľke
+// visel donekonečna a UI by navždy hlásilo „čaká v poradí". Poradie určuje
+// prioritu — krátke joby z `default` idú prvé, dlhý import až po nich.
+Schedule::command('queue:work database --queue=default,imports --stop-when-empty --max-time=50 --tries=3')
     ->everyMinute()
     ->withoutOverlapping();

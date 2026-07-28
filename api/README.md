@@ -55,7 +55,7 @@ Laravel scheduler je zapojený v [routes/console.php](routes/console.php) a spú
 - `app:tickets-expire-unconfirmed` každých 10 minút
 - `app:registrations-expire-pending` každých 10 minút
 - `app:import-event-sources` denne o 16:00 (`Europe/Bratislava`)
-- `queue:work database --stop-when-empty` každú minútu
+- `queue:work database --queue=default,imports --stop-when-empty` každú minútu
 
 Poznámka k `app:import-event-sources`: pri importe sa časy zo zdrojov `ecav.sk`, `vyveska.sk` a `tkkbs.sk` interpretujú ako lokálny čas `Europe/Bratislava`, aby sa do aplikácie neukladali časovo posunuté eventy.
 

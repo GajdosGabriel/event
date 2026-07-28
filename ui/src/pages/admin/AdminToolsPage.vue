@@ -87,7 +87,9 @@ async function runImport() {
   outputs.value['import'] = 'Import spustený na pozadí, čakám na výsledok…'
 
   // Poll the run status until it finishes. The job runs on the queue, so this
-  // requires an active worker (php artisan queue:work database --queue=imports).
+  // requires a worker consuming the 'imports' queue — on production that is the
+  // scheduled queue:work in routes/console.php, locally:
+  // php artisan queue:work database --queue=default,imports
   for (;;) {
     await sleep(2000)
     const run = await getEventImportStatus(run_id)
