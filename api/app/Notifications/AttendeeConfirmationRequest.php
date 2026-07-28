@@ -34,7 +34,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? 'podujatie';
+        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
 
         $admissions = $this->ticket->admissions()
             ->with('ticketType')
@@ -46,7 +46,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
         $seats = $admissions
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
-                'label' => $admission->attendee_name ?: ('Vstupenka ' . ($i + 1)),
+                'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type'  => $admission->ticketType?->name,
             ])
             ->all();
@@ -55,7 +55,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
         $deadline = $admissions->first()?->confirmation_deadline_at;
 
         return (new MailMessage())
-            ->subject('Potvrďte účasť na ' . $eventName)
+            ->subject(__('mail.attendee_confirmation_request.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-confirmation-request', [
                 'greetingName' => $admissions->first()?->attendee_name,
                 'holderName'   => $this->ticket->holder_name,
@@ -64,7 +64,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
                 'seats'        => $seats,
                 'confirmUrl'   => $base . '?do=confirm',
                 'declineUrl'   => $base . '?do=cancel',
-                'deadline'     => $deadline?->locale('sk')->translatedFormat('j. F Y, H:i'),
+                'deadline'     => $deadline?->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
                 'needsActivation' => $this->needsActivation,
             ]);
     }

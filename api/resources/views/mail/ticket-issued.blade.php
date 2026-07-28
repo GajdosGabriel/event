@@ -1,31 +1,33 @@
 @component('mail::message')
-# Dobrý deň, {{ $greetingName }}!
+# {{ __('mail.common.greeting_named', ['name' => $greetingName]) }}
 
-Váš lístok na akciu **„{{ $eventName }}"** bol úspešne vytvorený.
+{{ __('mail.ticket_issued.intro', ['event' => $eventName]) }}
 
 @if ($quantity > 1)
-Počet rezervovaných miest: **{{ $quantity }}**.
+{{ __('mail.ticket_issued.quantity', ['count' => $quantity]) }}
 @endif
 
 @if (count($seats))
 @foreach ($seats as $seat)
-**{{ $seat['label'] }}**@if (!empty($seat['type'])) · {{ $seat['type'] }}@endif
+{{ empty($seat['type'])
+    ? __('mail.common.seat', ['label' => $seat['label']])
+    : __('mail.common.seat_typed', ['label' => $seat['label'], 'type' => $seat['type']]) }}
 
-<img src="{{ $message->embedData($seat['png'], 'qr-'.$loop->index.'.png', 'image/png') }}" alt="QR kód" width="200" height="200" style="display:block;border:0;outline:none;margin:6px 0 6px;" />
+<img src="{{ $message->embedData($seat['png'], 'qr-'.$loop->index.'.png', 'image/png') }}" alt="{{ __('mail.common.qr_alt') }}" width="200" height="200" style="display:block;border:0;outline:none;margin:6px 0 6px;" />
 
-[Otvoriť QR kód]({{ $seat['qrUrl'] }})
+[{{ __('mail.common.qr_open') }}]({{ $seat['qrUrl'] }})
 @endforeach
 
-Každá vstupenka má vlastný QR kód. Jednotlivé kódy môžete preposlať aj ďalším účastníkom — pri vstupe sa každý načíta samostatne.
+{{ __('mail.ticket_issued.qr_note') }}
 @endif
 
 @if (!empty($pendingCount) && $pendingCount > 0)
-Ešte **{{ $pendingCount }}** {{ $pendingCount === 1 ? 'vstupenka čaká' : ($pendingCount <= 4 ? 'vstupenky čakajú' : 'vstupeniek čaká') }} na potvrdenie účastníkmi. Ich QR kód sa vytvorí až po tom, čo potvrdia účasť — o každom potvrdení vás upozorníme e-mailom.
+{{ trans_choice('mail.ticket_issued.pending', $pendingCount) }} {{ __('mail.ticket_issued.pending_note') }}
 @endif
 
 @component('mail::button', ['url' => $ticketUrl])
-Zobraziť lístok a QR kód
+{{ __('mail.ticket_issued.action') }}
 @endcomponent
 
-Lístok si prineste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.
+{{ __('mail.ticket_issued.outro') }}
 @endcomponent

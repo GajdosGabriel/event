@@ -30,12 +30,12 @@ class AttendeeConfirmed extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? 'podujatie';
+        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
         $who = $this->attendeeName ?: $this->attendeeEmail;
         $ticketUrl = rtrim((string) config('app.frontend_url'), '/') . '/tickets/' . $this->ticket->uuid;
 
         return (new MailMessage())
-            ->subject($who . ' potvrdil(a) účasť na ' . $eventName)
+            ->subject(__('mail.attendee_confirmed.subject', ['attendee' => $who, 'event' => $eventName]))
             ->markdown('mail.attendee-confirmed', [
                 'holderName'    => $this->ticket->holder_name,
                 'attendeeName'  => $who,

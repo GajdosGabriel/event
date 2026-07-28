@@ -32,11 +32,11 @@ class AttendeeDeclined extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? 'podujatie';
+        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
         $who = $this->attendeeName ?: $this->attendeeEmail;
 
         return (new MailMessage())
-            ->subject('Uvoľnené miesto na ' . $eventName)
+            ->subject(__('mail.attendee_declined.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-declined', [
                 'holderName'    => $this->ticket->holder_name,
                 'attendeeName'  => $who,

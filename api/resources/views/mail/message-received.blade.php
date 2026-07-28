@@ -1,17 +1,17 @@
 @component('mail::message')
-# Nová správa
+# {{ __('mail.message_received.heading') }}
 
-Dostali ste správu k {{ $label }} **„{{ $targetName }}"**.
+{{ __('mail.message_received.intro', ['label' => $label, 'name' => $targetName]) }}
 
-**Od:** {{ $senderName }} ({{ $senderEmail }})
+{{ __('mail.message_received.from', ['name' => $senderName, 'email' => $senderEmail]) }}
 
 @component('mail::panel')
 {{ $body }}
 @endcomponent
 
-Odpovedať môžete priamo na tento e-mail — odpoveď dorazí odosielateľovi.
+{{ __('mail.message_received.reply_hint') }}
 
 @component('mail::button', ['url' => $targetUrl])
-Zobraziť {{ $label }}
+{{ __('mail.message_received.action', ['label' => $label]) }}
 @endcomponent
 @endcomponent

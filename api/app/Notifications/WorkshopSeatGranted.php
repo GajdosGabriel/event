@@ -30,27 +30,30 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $workshop = $this->admission->ticketType?->name ?? 'workshop';
-        $eventName = $this->admission->event?->name ?? 'podujatie';
+        $workshop = $this->admission->ticketType?->name ?? __('mail.common.workshop_fallback');
+        $eventName = $this->admission->event?->name ?? __('mail.common.event_fallback');
         $base = rtrim((string) config('app.frontend_url'), '/') . '/rsvp/' . $this->admission->confirmation_token;
 
         $message = (new MailMessage())
-            ->subject('Uvoľnilo sa miesto na workshope ' . $workshop)
-            ->greeting('Dobrý deň!')
-            ->line('Na workshope „' . $workshop . '" (' . $eventName . ') sa uvoľnilo miesto a ponúkame ho vám ako prvému náhradníkovi.');
+            ->subject(__('mail.workshop_seat_granted.subject', ['workshop' => $workshop]))
+            ->greeting(__('mail.common.greeting'))
+            ->line(__('mail.workshop_seat_granted.intro', ['workshop' => $workshop, 'event' => $eventName]));
 
         if ($this->admission->ticketType?->starts_at) {
-            $message->line('Termín: ' . $this->admission->ticketType->starts_at->format('j. n. Y H:i') . '.');
+            $message->line(__('mail.workshop_seat_granted.starts_at', [
+                'date' => $this->admission->ticketType->starts_at->format('j. n. Y H:i'),
+            ]));
         }
 
         if ($deadline = $this->admission->confirmation_deadline_at) {
-            $message->line('Miesto vám držíme do **' . $deadline->locale('sk')->translatedFormat('j. F Y, H:i')
-                . '**. Ak ho dovtedy nepotvrdíte, ponúkneme ho ďalšiemu náhradníkovi.');
+            $message->line(__('mail.workshop_seat_granted.deadline', [
+                'deadline' => $deadline->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
+            ]));
         }
 
         return $message
-            ->action('Potvrdiť miesto', $base . '?do=confirm')
-            ->line('Vstupenku s QR kódom vám pošleme hneď po potvrdení.')
-            ->line('Ak sa workshopu zúčastniť nemôžete, [odmietnite miesto](' . $base . '?do=cancel) — pustíme naň ďalšieho v poradí.');
+            ->action(__('mail.workshop_seat_granted.action'), $base . '?do=confirm')
+            ->line(__('mail.workshop_seat_granted.after_confirm'))
+            ->line(__('mail.workshop_seat_granted.decline', ['url' => $base . '?do=cancel']));
     }
 }

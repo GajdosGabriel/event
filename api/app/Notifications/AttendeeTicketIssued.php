@@ -33,7 +33,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? 'podujatie';
+        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
 
         $generator = app(QrCodeGenerator::class);
 
@@ -47,7 +47,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
         $seats = $admissions
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
-                'label' => $admission->attendee_name ?: ('Vstupenka ' . ($i + 1)),
+                'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type'  => $admission->ticketType?->name,
                 'png'   => $generator->forToken($admission->qr_token)->getString(),
                 // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
@@ -67,7 +67,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
             : null;
 
         return (new MailMessage())
-            ->subject('Vaša vstupenka na ' . $eventName)
+            ->subject(__('mail.attendee_ticket_issued.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-ticket-issued', [
                 'greetingName'    => $admissions->first()?->attendee_name,
                 'holderName'      => $this->ticket->holder_name,

@@ -32,12 +32,12 @@ class MessageReceived extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $target = $this->message->messageable;
-        $targetName = $target?->name ?? 'váš profil';
+        $targetName = $target?->name ?? __('mail.message_received.target_fallback');
         $label = $this->targetLabel();
         $targetUrl = $this->targetUrl();
 
         return (new MailMessage())
-            ->subject('Nová správa – ' . $label . ' „' . $targetName . '"')
+            ->subject(__('mail.message_received.subject', ['label' => $label, 'name' => $targetName]))
             // Vlastník vie odpovedať priamo odosielateľovi.
             ->replyTo($this->senderEmail, $this->senderName)
             ->markdown('mail.message-received', [
@@ -50,15 +50,15 @@ class MessageReceived extends Notification implements ShouldQueue
             ]);
     }
 
-    /** Slovenský názov typu cieľa pre predmet a text e-mailu. */
+    /** Preložený názov typu cieľa pre predmet a text e-mailu. */
     private function targetLabel(): string
     {
-        return match ($this->message->targetType()) {
-            'event' => 'podujatie',
-            'venue' => 'miesto',
-            'canal' => 'kanál',
-            default => 'profil',
+        $type = match ($this->message->targetType()) {
+            'event', 'venue', 'canal' => $this->message->targetType(),
+            default => 'default',
         };
+
+        return __('mail.message_received.targets.' . $type);
     }
 
     /** Odkaz na cieľ vo frontende podľa jeho typu. */

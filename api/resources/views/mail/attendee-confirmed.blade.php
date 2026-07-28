@@ -1,11 +1,11 @@
 @component('mail::message')
-# Dobrá správa{{ $holderName ? ', ' . $holderName : '' }}!
+# {{ $holderName ? __('mail.attendee_confirmed.heading_named', ['name' => $holderName]) : __('mail.attendee_confirmed.heading') }}
 
-**{{ $attendeeName }}** potvrdil(a) účasť na akcii **„{{ $eventName }}"**@if ($seats > 1) ({{ $seats }} {{ $seats <= 4 ? 'miesta' : 'miest' }})@endif.
+{{ trans_choice('mail.attendee_confirmed.intro', $seats, ['attendee' => $attendeeName, 'event' => $eventName]) }}
 
-Jeho/jej vstupenku s QR kódom sme práve poslali na **{{ $attendeeEmail }}**.
+{{ __('mail.attendee_confirmed.ticket_sent', ['email' => $attendeeEmail]) }}
 
 @component('mail::button', ['url' => $ticketUrl])
-Zobraziť objednávku
+{{ __('mail.attendee_confirmed.action') }}
 @endcomponent
 @endcomponent

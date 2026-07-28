@@ -27,11 +27,11 @@ class PendingRegistrationVerification extends Notification implements ShouldQueu
         $verifyUrl = rtrim(config('app.url'), '/') . '/api/register/verify/' . $this->token;
 
         return (new MailMessage())
-            ->subject('Verify your email')
-            ->greeting('Hello!')
-            ->line('Thanks for registering. Verify your email to finish your registration.')
-            ->action('Verify Email', $verifyUrl)
-            ->line("This link will expire in {$this->ttlHours} hours.")
-            ->line('If you did not create this account, no action is required.');
+            ->subject(__('mail.verification.subject'))
+            ->greeting(__('mail.common.greeting'))
+            ->line(__('mail.verification.intro'))
+            ->action(__('mail.verification.action'), $verifyUrl)
+            ->line(trans_choice('mail.verification.expires', $this->ttlHours))
+            ->line(__('mail.verification.ignore'));
     }
 }

@@ -26,16 +26,16 @@ class WorkshopWaitlisted extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $workshop = $this->admission->ticketType?->name ?? 'workshop';
-        $eventName = $this->admission->event?->name ?? 'podujatie';
+        $workshop = $this->admission->ticketType?->name ?? __('mail.common.workshop_fallback');
+        $eventName = $this->admission->event?->name ?? __('mail.common.event_fallback');
         $eventUrl = rtrim(config('app.frontend_url'), '/') . '/events/' . $this->admission->event_id;
 
         return (new MailMessage())
-            ->subject('Ste náhradník na workshop ' . $workshop)
-            ->greeting('Dobrý deň!')
-            ->line('Workshop „' . $workshop . '" na akcii „' . $eventName . '" je momentálne plný, zaradili sme vás medzi náhradníkov.')
-            ->line('Vaše poradie: ' . $this->position . '.')
-            ->line('Ak sa miesto uvoľní, automaticky vám ho pridelíme a pošleme vám lístok s QR kódom.')
-            ->action('Zobraziť podujatie', $eventUrl);
+            ->subject(__('mail.workshop_waitlisted.subject', ['workshop' => $workshop]))
+            ->greeting(__('mail.common.greeting'))
+            ->line(__('mail.workshop_waitlisted.intro', ['workshop' => $workshop, 'event' => $eventName]))
+            ->line(__('mail.workshop_waitlisted.position', ['position' => $this->position]))
+            ->line(__('mail.workshop_waitlisted.note'))
+            ->action(__('mail.workshop_waitlisted.action'), $eventUrl);
     }
 }

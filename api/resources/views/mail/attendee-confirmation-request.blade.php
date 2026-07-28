@@ -1,33 +1,35 @@
 @component('mail::message')
-# Dobrý deň{{ $greetingName ? ', ' . $greetingName : '' }}!
+# {{ $greetingName ? __('mail.common.greeting_named', ['name' => $greetingName]) : __('mail.common.greeting') }}
 
-**{{ $holderName }}** {{ $isPaid ? 'vám objednal(a) vstupenku' : 'vám rezervoval(a) miesto' }} na akciu **„{{ $eventName }}"**.
+{{ __('mail.attendee_confirmation_request.' . ($isPaid ? 'intro_paid' : 'intro_free'), ['holder' => $holderName, 'event' => $eventName]) }}
 
-Aby sme vám miesto podržali, potvrďte prosím svoju účasť.
+{{ __('mail.attendee_confirmation_request.ask') }}
 
 @if (count($seats))
 @foreach ($seats as $seat)
-- **{{ $seat['label'] }}**@if (!empty($seat['type'])) · {{ $seat['type'] }}@endif
+- {{ empty($seat['type'])
+    ? __('mail.common.seat', ['label' => $seat['label']])
+    : __('mail.common.seat_typed', ['label' => $seat['label'], 'type' => $seat['type']]) }}
 @endforeach
 @endif
 
 @if ($deadline)
-Potvrďte prosím **do {{ $deadline }}**. Ak sa tak nestane, rezervácia sa automaticky zruší a miesto uvoľníme ďalším záujemcom.
+{{ __('mail.attendee_confirmation_request.deadline', ['deadline' => $deadline]) }}
 @endif
 
 @component('mail::button', ['url' => $confirmUrl, 'color' => 'success'])
-Potvrdiť účasť
+{{ __('mail.attendee_confirmation_request.confirm') }}
 @endcomponent
 
 @component('mail::button', ['url' => $declineUrl, 'color' => 'error'])
-Zrušiť lístok
+{{ __('mail.attendee_confirmation_request.decline') }}
 @endcomponent
 
-Ak ste o túto rezerváciu nežiadali, jednoducho lístok zrušte alebo tento e-mail ignorujte — miesto sa po lehote uvoľní samo.
+{{ __('mail.attendee_confirmation_request.ignore') }}
 
 @if ($needsActivation)
 ---
 
-Na túto e-mailovú adresu sme vám založili účet, aby ste mali svoje lístky vždy poruke. Plne ho aktivujete prihlásením.
+{{ __('mail.attendee_confirmation_request.activation') }}
 @endif
 @endcomponent
