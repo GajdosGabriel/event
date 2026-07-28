@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Číselníky zanáša migrácia 2026_07_28_120000_seed_reference_data;
+        // tu ostávajú kvôli databázam vytvoreným ešte pred ňou. Oba seedre sú
+        // idempotentné, takže druhé spustenie nič nepokazí.
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(TagSeeder::class);
 

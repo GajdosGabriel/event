@@ -116,6 +116,16 @@ class EventTagger
         return $this->catalogVersion ??= md5((string) json_encode($this->catalog()));
     }
 
+    /**
+     * Prázdny číselník nie je zlyhanie podujatia, ale nedokončený deploy
+     * (chýba TagSeeder). Príkaz sa pýta pred dávkou, aby ňou zbytočne
+     * nespálil pokusy — zlyhalo by na ňom každé podujatie rovnako.
+     */
+    public function hasCatalog(): bool
+    {
+        return $this->catalog() !== [];
+    }
+
     private function sourceText(Event $event): string
     {
         // Prednosť má `body`, hoci je to HTML z editora: `body_ai` drží surový

@@ -42,6 +42,18 @@ class AiTagEvents extends Command
         // už každú minútu beží aj app:ai-detector — preto nízky predvolený strop.
         $timeBudget = max(0, (int) $this->option('time-budget'));
 
+        // Bez tejto zarážky zlyhá dávka na každom podujatí rovnako, každému
+        // pritom spáli pokus a po treťom behu podujatia vypadnú z výberu
+        // natrvalo — hoci chyba je v deployi, nie v dátach.
+        if (! $tagger->hasCatalog()) {
+            $message = 'AiTagEvents: číselník štítkov je prázdny — spustite `php artisan db:seed --class=TagSeeder --force`.';
+
+            Log::error($message);
+            $this->error($message);
+
+            return self::FAILURE;
+        }
+
         $query = Event::query()
             ->whereIn('status', [ModelStatus::Published->value, ModelStatus::Scheduled->value])
             ->where('ai_tags_attempts', '<', self::MAX_ATTEMPTS)

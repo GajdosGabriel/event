@@ -48,6 +48,7 @@ class AiTagEventsCommandTest extends EventSetupTest
     private function fakeTagger(bool $success = true, int $expectedCalls = 1): void
     {
         $tagger = Mockery::mock(EventTagger::class);
+        $tagger->shouldReceive('hasCatalog')->andReturnTrue();
         $tagger->shouldReceive('catalogVersion')->andReturn(self::CATALOG_VERSION);
         $tagger->shouldReceive('tag')
             ->times($expectedCalls)
@@ -77,6 +78,7 @@ class AiTagEventsCommandTest extends EventSetupTest
         Event::query()->update(['status' => ModelStatus::Draft->value]);
 
         $tagger = Mockery::mock(EventTagger::class);
+        $tagger->shouldReceive('hasCatalog')->andReturnTrue();
         $tagger->shouldReceive('catalogVersion')->andReturn('stub-version');
         $tagger->shouldNotReceive('tag');
         $this->app->instance(EventTagger::class, $tagger);
@@ -123,6 +125,22 @@ class AiTagEventsCommandTest extends EventSetupTest
         $this->artisan('app:events-ai-tag --limit=1')
             ->expectsOutput('AiTagEvents: no eligible event found.')
             ->assertSuccessful();
+    }
+
+    /**
+     * Presne to zhodilo produkciu po prvom nasadení: migrácie prebehli,
+     * TagSeeder nie, a plánovaný beh míňal pokusy podujatiam, kým nevypadli
+     * z výberu natrvalo.
+     */
+    #[Test]
+    public function empty_catalog_stops_the_batch_before_it_burns_attempts(): void
+    {
+        Tag::query()->delete();
+
+        $this->artisan('app:events-ai-tag --limit=1')->assertFailed();
+
+        $this->assertSame(0, (int) $this->futureEvent->fresh()->ai_tags_attempts);
+        $this->assertNull($this->futureEvent->fresh()->ai_tagged_at);
     }
 
     #[Test]
