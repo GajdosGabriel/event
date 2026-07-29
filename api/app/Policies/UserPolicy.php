@@ -29,15 +29,23 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->ownedCanals()->exists();
+        return $user->hasAnyCanalAbility('canal.team');
     }
 
     /**
      * Determine whether the user can update the model.
+     *
+     * Zámerne prísnejšie než view(): úprava mení aj e-mail, takže by cez ňu šiel
+     * prevziať účet. Odkedy sú v kanáli tímoví členovia (brigádnik na vstupe,
+     * editor), „zdieľame kanál" na to nestačí — musí ísť o vlastníka kanála.
      */
     public function update(User $user, User $model): bool
     {
-        return $this->isNotArchived($model) && $this->isSelfOrSharesCanal($user, $model);
+        if ((int) $user->id === (int) $model->id) {
+            return $this->isNotArchived($model);
+        }
+
+        return $this->isNotArchived($model) && $this->canManageOtherUserAsOwner($user, $model);
     }
 
     /**
@@ -82,10 +90,7 @@ class UserPolicy
             return false;
         }
 
-        $ownedCanalIds = $user->ownedCanals()
-            ->pluck('canals.id')
-            ->map(fn ($id) => (int) $id)
-            ->values();
+        $ownedCanalIds = $user->canalIdsWithAbility('canal.team');
 
         if ($ownedCanalIds->isEmpty()) {
             return false;

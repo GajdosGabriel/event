@@ -30,6 +30,24 @@ return [
         'ignore'  => 'Ak ste si účet nevytvárali, nemusíte robiť nič.',
     ],
 
+    // App\Notifications\CanalInvitationSent — pozvánka do tímu kanála.
+    'canal_invitation' => [
+        'subject'        => 'Pozvánka do tímu :canal',
+        'canal_fallback' => 'kanál',
+        'intro'          => 'Boli ste pozvaný(á) do tímu kanála **„:canal"**.',
+        'intro_named'    => '**:inviter** vás pozýva do tímu kanála **„:canal"**.',
+        'role'           => 'Vaša rola: **:role**.',
+        'role_note'      => [
+            'owner'   => 'Ako vlastník budete môcť spravovať kanál, jeho podujatia aj tím.',
+            'editor'  => 'Ako editor budete môcť vytvárať a upravovať podujatia, miesta a lístky.',
+            'checkin' => 'Ako obsluha vstupu budete môcť načítavať QR kódy a odbavovať príchody.',
+        ],
+        'action'         => 'Prijať pozvánku',
+        'expires'        => 'Pozvánka platí do :date.',
+        'email_note'     => 'Pozvánku prijmite po prihlásení účtom s adresou **:email**. Ak účet ešte nemáte, najprv sa na túto adresu zaregistrujte.',
+        'ignore'         => 'Ak ste pozvánku nečakali, stačí tento e-mail ignorovať.',
+    ],
+
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
         'subject'      => 'Váš lístok na :event',

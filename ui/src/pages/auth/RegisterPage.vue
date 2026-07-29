@@ -38,9 +38,16 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { register } from '@/api/auth'
 
-const form = ref({ display_name: '', email: '', password: '', password_confirmation: '' })
+const route = useRoute()
+
+// Adresu vie predvyplniť ten, kto sem posiela (napr. pozvánka do tímu kanála) —
+// tá sa musí zhodovať s adresou pozvánky, inak ju účet neprijme.
+const prefillEmail = typeof route.query.email === 'string' ? route.query.email : ''
+
+const form = ref({ display_name: '', email: prefillEmail, password: '', password_confirmation: '' })
 const error = ref<string | null>(null)
 const success = ref(false)
 const loading = ref(false)

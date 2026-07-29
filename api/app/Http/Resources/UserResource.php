@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\CanalRole;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,8 +20,10 @@ class UserResource extends JsonResource
         $allRoles = $this->relationLoaded('roles')
             ? $this->roles->pluck('name')
             : $this->getRoleNames();
+        // Role odvodené z členstva v kanáli sa navonok neukazujú — o právach
+        // hovorí rola v konkrétnom kanáli (canal_context.role), nie globálna.
         $globalRoles = $allRoles
-            ->reject(fn (string $role) => $role === 'canal-owner')
+            ->reject(fn (string $role) => in_array($role, CanalRole::globalRoles(), true))
             ->values();
 
         $canals = $this->canals()
@@ -31,7 +34,12 @@ class UserResource extends JsonResource
                 'name'   => $c->name,
                 'slug'   => $c->slug,
                 'status' => $c->status,
+                'role'   => $c->pivot->role,
             ]);
+
+        $activeCanalRole = $activeCanal !== null
+            ? $this->resource->canalRole((int) $activeCanal->id)
+            : null;
 
         return [
             'id'           => $this->id,
@@ -47,6 +55,10 @@ class UserResource extends JsonResource
                 'is_owner' => $activeCanal !== null
                     ? $this->ownedCanals()->where('canals.id', $activeCanal->id)->exists()
                     : false,
+                // Rola v práve aktívnom kanáli — front podľa nej skrýva akcie,
+                // ktoré by mu backend aj tak zamietol (policy je zdroj pravdy).
+                'role' => $activeCanalRole?->value,
+                'role_label' => $activeCanalRole?->label(),
             ],
             'permissions' => [
                 'view'    => $user?->can('view', $this->resource) ?? false,

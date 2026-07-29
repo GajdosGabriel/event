@@ -81,6 +81,9 @@
             </ul>
           </div>
 
+          <!-- Tím kanála (len v dashboarde — admin spravuje používateľov inde) -->
+          <CanalTeamPanel v-if="scope === 'dashboard'" :canal-id="canal.id" />
+
           <!-- Eventy kanálu -->
           <div class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -124,8 +127,8 @@
               <dd><a :href="canal.website" target="_blank" class="break-all text-blue-700">{{ canal.website }}</a></dd>
             </div>
 
-            <!-- Členovia -->
-            <div v-if="canal.membersList.length" class="detail-card">
+            <!-- Členovia sú v dashboarde v paneli „Tím kanála"; tu už len pre admina. -->
+            <div v-if="scope === 'admin' && canal.membersList.length" class="detail-card">
               <dt>Členovia</dt>
               <dd class="mt-1 grid gap-1">
                 <span v-for="m in canal.membersList" :key="m.id"
@@ -169,6 +172,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
+import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import type { CanalItem } from '@/types'
 

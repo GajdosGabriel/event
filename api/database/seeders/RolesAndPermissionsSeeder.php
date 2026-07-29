@@ -58,6 +58,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        // Role canal-* sa nepriraďujú ručne — odvodzuje ich CanalMembership
+        // z členstva v kanáli (canal_user.role) a slúžia len ako hrubé sito pre
+        // `permission:` middleware na routách. O tom, čo smie člen v konkrétnom
+        // kanáli, rozhoduje až policy cez User::canInCanal().
         $ownerRole = Role::firstOrCreate([
             'name' => 'canal-owner',
             'guard_name' => 'web',
@@ -65,6 +69,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $editorRole = Role::firstOrCreate([
             'name' => 'canal-editor',
+            'guard_name' => 'web',
+        ]);
+
+        $checkinRole = Role::firstOrCreate([
+            'name' => 'canal-checkin',
             'guard_name' => 'web',
         ]);
 
@@ -99,13 +108,33 @@ class RolesAndPermissionsSeeder extends Seeder
             'ticket.checkin',
         ]);
 
+        // Editor je „dramaturg" — robí obsah. Doteraz mal len právo pozerať,
+        // takže pozvaný editor by v dashboarde nedokázal založiť podujatie.
         $editorRole->syncPermissions([
+            'canal.view',
             'event.view',
             'event.comment',
+            'event.create',
+            'event.update',
             'venue.view',
+            'venue.create',
+            'venue.update',
             'organization.view',
             'user.view',
             'file.view',
+            'file.create',
+            'file.update',
+            'file.delete',
+            'ticket.view',
+            'ticket.create',
+            'ticket.update',
+            'ticket.checkin',
+        ]);
+
+        // Brigádnik na vstupe: vidí podujatia a lístky, robí len check-in.
+        $checkinRole->syncPermissions([
+            'canal.view',
+            'event.view',
             'ticket.view',
             'ticket.checkin',
         ]);

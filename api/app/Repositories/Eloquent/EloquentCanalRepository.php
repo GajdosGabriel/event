@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\CanalRole;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
@@ -108,10 +109,13 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         $user->canals()->attach($canal->id, [
             'is_owner' => true,
+            'role' => CanalRole::Owner->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $user->forgetCanalRoles();
 
         $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);

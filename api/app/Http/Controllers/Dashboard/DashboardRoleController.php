@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\CanalRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRoleSyncRequest;
 use App\Models\User;
@@ -14,7 +15,7 @@ class DashboardRoleController extends Controller
     public function roles(): JsonResponse
     {
         $roles = Role::query()
-            ->where('name', '!=', 'canal-owner')
+            ->where('name', '!=', CanalRole::Owner->globalRole())
             ->with('permissions:id,name')
             ->orderBy('name')
             ->get(['id', 'name', 'guard_name']);
@@ -36,7 +37,7 @@ class DashboardRoleController extends Controller
         $authUser = $request->user();
         $targetUser = User::query()->findOrFail($id);
         $requestedRoles = collect($request->validated('roles'))
-            ->reject(fn (string $role): bool => $role === 'canal-owner')
+            ->reject(fn (string $role): bool => $role === CanalRole::Owner->globalRole())
             ->values()
             ->all();
 
@@ -44,7 +45,12 @@ class DashboardRoleController extends Controller
 
         $this->authorizeRoleSync($authUser, $targetUser, $requestedRoles);
 
-        $targetUser->syncRoles($requestedRoles);
+        // Role odvodené z členstva v kanáli spravuje CanalMembership — ručný
+        // sync ich nesmie zhodiť, inak by člen prišiel o prístup do dashboardu.
+        $derived = $targetUser->getRoleNames()
+            ->filter(fn (string $name) => in_array($name, CanalRole::globalRoles(), true));
+
+        $targetUser->syncRoles($derived->merge($requestedRoles)->unique()->values()->all());
 
         return response()->json([
             'user_id' => $targetUser->id,

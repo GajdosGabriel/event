@@ -23,7 +23,7 @@ class EventPolicy
      */
     public function view(User $user, Event $event): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $event->canal_id);
+        return $user->canInCanal((int) $event->canal_id, 'event.view');
     }
 
     /**
@@ -31,7 +31,7 @@ class EventPolicy
      */
     public function create(User $user): bool
     {
-        return $user->dashboardCanalIds()->isNotEmpty();
+        return $user->hasAnyCanalAbility('event.create');
     }
 
     /**
@@ -40,7 +40,7 @@ class EventPolicy
     public function update(User $user, Event $event): bool
     {
         return $this->isNotArchived($event)
-            && $user->dashboardCanalIds()->contains((int) $event->canal_id);
+            && $user->canInCanal((int) $event->canal_id, 'event.update');
     }
 
     public function publish(User $user, Event $event): bool
@@ -66,7 +66,7 @@ class EventPolicy
      */
     public function duplicate(User $user, Event $event): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $event->canal_id);
+        return $user->canInCanal((int) $event->canal_id, 'event.create');
     }
 
     /**
@@ -75,7 +75,7 @@ class EventPolicy
     public function archive(User $user, Event $event): bool
     {
         return $event->status === ModelStatus::Published
-            && $user->ownedCanals()->where('canals.id', $event->canal_id)->exists();
+            && $user->canInCanal((int) $event->canal_id, 'event.delete');
     }
 
     /**
@@ -85,7 +85,7 @@ class EventPolicy
     {
         return $this->isNotArchived($event)
             && $event->status !== ModelStatus::Published
-            && $user->ownedCanals()->where('canals.id', $event->canal_id)->exists();
+            && $user->canInCanal((int) $event->canal_id, 'event.delete');
     }
 
     /**
@@ -93,7 +93,7 @@ class EventPolicy
      */
     public function restore(User $user, Event $event): bool
     {
-        return $user->ownedCanals()->where('canals.id', $event->canal_id)->exists();
+        return $user->canInCanal((int) $event->canal_id, 'event.delete');
     }
 
     /**

@@ -62,13 +62,19 @@ class Canal extends Model implements Messageable
 
     public function users()
     {
-        return $this->belongsToMany(User::class)->withPivot(['is_owner', 'status'])->withTimestamps();
+        return $this->belongsToMany(User::class)->withPivot(['is_owner', 'status', 'role'])->withTimestamps();
     }
 
     public function owners()
     {
         return $this->belongsToMany(User::class)
             ->wherePivot('is_owner', true);
+    }
+
+    /** Nevybavené pozvánky do tímu kanála. */
+    public function invitations()
+    {
+        return $this->hasMany(CanalInvitation::class);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CanalRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRoleSyncRequest;
 use App\Models\User;
@@ -16,7 +17,7 @@ class RoleController extends Controller
         $this->ensureSuperAdmin();
 
         $roles = Role::query()
-            ->where('name', '!=', 'canal-owner')
+            ->where('name', '!=', CanalRole::Owner->globalRole())
             ->with('permissions:id,name')
             ->orderBy('name')
             ->get(['id', 'name', 'guard_name']);
@@ -41,13 +42,19 @@ class RoleController extends Controller
 
         $targetUser = User::query()->findOrFail($id);
         $requestedRoles = collect($request->validated('roles'))
-            ->reject(fn (string $role): bool => $role === 'canal-owner')
+            ->reject(fn (string $role): bool => $role === CanalRole::Owner->globalRole())
             ->values()
             ->all();
 
         abort_if(empty($requestedRoles), 422, 'At least one assignable role is required.');
 
-        $targetUser->syncRoles($requestedRoles);
+        // Role odvodené z členstva v kanáli sa ručne nepriraďujú ani neberú —
+        // spravuje ich CanalMembership. Bez tohto by ich syncRoles zmazal a
+        // vlastník kanála by prišiel o prístup do dashboardu.
+        $derived = $targetUser->getRoleNames()
+            ->filter(fn (string $name) => in_array($name, CanalRole::globalRoles(), true));
+
+        $targetUser->syncRoles($derived->merge($requestedRoles)->unique()->values()->all());
 
         return response()->json([
             'user_id' => $targetUser->id,

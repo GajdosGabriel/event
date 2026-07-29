@@ -77,6 +77,11 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             abort(422, 'Active canal not found for this user.');
         }
 
+        // EventPolicy::create() vie len to, či používateľ smie zakladať podujatia
+        // niekde. Podujatie však vzniká v jeho práve aktívnom kanáli, a v tom
+        // môže mať slabšiu rolu (brigádnik na vstupe) než vo vlastnom.
+        abort_unless($user->canInCanal((int) $canal->id, 'event.create'), 403);
+
         $this->normalizeLocationPayload($properties, (int) $canal->id);
         $properties['user_id'] = $properties['user_id'] ?? $user->id;
 
@@ -149,6 +154,18 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $event = $this->model()->withTrashed()->findOrFail($id);
 
         $canalChanged = isset($properties['canal_id']) && (int) $properties['canal_id'] !== (int) $event->canal_id;
+
+        // Presun podujatia do iného kanála je fakticky založenie v cieľovom
+        // kanáli — policy nad podujatím pozná len ten pôvodný, preto sa právo
+        // v cieli overuje tu. Bez toho by sa dalo podujatie presunúť kamkoľvek,
+        // kde je používateľ hoci len brigádnikom na vstupe.
+        // Import a konzolové príkazy bežia bez prihláseného účtu — tam sa
+        // nekontroluje nič, cudzie právo tam nie je čo zneužiť.
+        $mover = auth('sanctum')->user();
+
+        if ($canalChanged && $mover instanceof User && ! $mover->hasRole('super-admin')) {
+            abort_unless($mover->canInCanal((int) $properties['canal_id'], 'event.create'), 403);
+        }
 
         // When the user explicitly picks a new canal, the existing venue may belong to the old canal.
         // Rather than silently reverting canal_id to the venue's canal, clear venue_id so the

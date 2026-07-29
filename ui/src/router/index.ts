@@ -21,6 +21,9 @@ const router = createRouter({
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
         { path: 'venues/:id', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },
         { path: 'canals/:id', name: 'canal-public-show', component: () => import('@/pages/canals/CanalPublicShowPage.vue') },
+        // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
+        // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
+        { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
       ],
     },
 

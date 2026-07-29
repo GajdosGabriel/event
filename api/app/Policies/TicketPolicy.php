@@ -12,7 +12,7 @@ class TicketPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->dashboardCanalIds()->isNotEmpty();
+        return $user->hasAnyCanalAbility('ticket.view');
     }
 
     /**
@@ -20,7 +20,7 @@ class TicketPolicy
      */
     public function view(User $user, Ticket $ticket): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $ticket->event->canal_id);
+        return $user->canInCanal((int) $ticket->event->canal_id, 'ticket.view');
     }
 
     /**
@@ -28,7 +28,7 @@ class TicketPolicy
      */
     public function update(User $user, Ticket $ticket): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $ticket->event->canal_id);
+        return $user->canInCanal((int) $ticket->event->canal_id, 'ticket.update');
     }
 
     /**
@@ -36,6 +36,6 @@ class TicketPolicy
      */
     public function checkin(User $user, Ticket $ticket): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $ticket->event->canal_id);
+        return $user->canInCanal((int) $ticket->event->canal_id, 'ticket.checkin');
     }
 }

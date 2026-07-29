@@ -3,6 +3,7 @@
 namespace App\Services\Users;
 
 use App\Enums\CanalIdentityMode;
+use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
@@ -45,10 +46,13 @@ class PersonalCanalProvisioner
 
         $user->canals()->attach($canal->id, [
             'is_owner' => true,
+            'role' => CanalRole::Owner->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $user->forgetCanalRoles();
 
         $user->canal_id = $canal->id;
         $user->save();

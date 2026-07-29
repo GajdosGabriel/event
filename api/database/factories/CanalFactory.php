@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use App\Enums\{CanalIdentityMode, ModelStatus, RegistrationSource};
+use App\Enums\{CanalIdentityMode, CanalRole, ModelStatus, RegistrationSource};
 use App\Models\User;
 
 /**
@@ -71,6 +71,7 @@ class CanalFactory extends Factory
 
             $canal->users()->attach($owner->id, [
                 'is_owner' => true,
+                'role' => CanalRole::Owner->value,
                 'status' => ModelStatus::Published->value,
                 'created_at' => now(),
                 'updated_at' => now(),

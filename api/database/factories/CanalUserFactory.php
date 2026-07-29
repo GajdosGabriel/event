@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\User;
@@ -23,6 +24,7 @@ class CanalUserFactory extends Factory
             'canal_id' => Canal::inRandomOrder()->first()->id ?? Canal::factory(),
             'user_id' => User::inRandomOrder()->first()->id ?? User::factory(),
             'is_owner' => false,
+            'role' => CanalRole::Editor->value,
             'status' => ModelStatus::Published->value,
         ];
     }
@@ -42,6 +44,7 @@ class CanalUserFactory extends Factory
             return [
                 'user_id' => $user->id,
                 'is_owner' => true,
+                'role' => CanalRole::Owner->value,
                 'status' => ModelStatus::Published->value,
             ];
         });
@@ -55,6 +58,7 @@ class CanalUserFactory extends Factory
         return $this->state(function (array $attributes) {
             return [
                 'is_owner' => false,
+                'role' => CanalRole::Editor->value,
                 'status' => ModelStatus::Published->value,
             ];
         });

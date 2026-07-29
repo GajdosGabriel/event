@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
+use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
 use App\Http\Controllers\Dashboard\DashboardEventController;
 use App\Http\Controllers\Dashboard\DashboardFileController;
 use App\Http\Controllers\Dashboard\DashboardHomeController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
+use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
 use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, TagController as PublicTagController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -89,6 +91,14 @@ Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decli
     ->name('public.rsvp.decline')
     ->middleware('throttle:public-write');
 
+// Pozvánka do tímu kanála z e-mailu. Detail je verejný (autorizuje token
+// v odkaze), prijatie vyžaduje prihlásený účet s rovnakou adresou.
+Route::get('invitations/{token}', [PublicCanalInvitationController::class, 'show'])
+    ->name('public.invitations.show');
+Route::post('invitations/{token}/accept', [PublicCanalInvitationController::class, 'accept'])
+    ->name('public.invitations.accept')
+    ->middleware(['auth:sanctum', 'throttle:public-write']);
+
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('admissions/{uuid}/qr', [PublicAdmissionQrController::class, 'show'])->name('public.admissions.qr');
@@ -129,6 +139,23 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('canals/{canal}/events', [DashboardCanalController::class, 'events'])
         ->name('canals.events')
         ->middleware('permission:canal.view');
+
+    // Tím kanála. Bez `permission:` middlewaru — právo je per kanál a rieši ho
+    // CanalPolicy (viewTeam / manageTeam), nie globálna rola používateľa.
+    Route::get('canals/{canal}/team', [DashboardCanalTeamController::class, 'index'])
+        ->name('canals.team.index');
+    Route::post('canals/{canal}/team/invitations', [DashboardCanalTeamController::class, 'invite'])
+        ->name('canals.team.invite')
+        ->middleware('throttle:messages');
+    Route::post('canals/{canal}/team/invitations/{invitation}/resend', [DashboardCanalTeamController::class, 'resendInvitation'])
+        ->name('canals.team.invitations.resend')
+        ->middleware('throttle:messages');
+    Route::delete('canals/{canal}/team/invitations/{invitation}', [DashboardCanalTeamController::class, 'destroyInvitation'])
+        ->name('canals.team.invitations.destroy');
+    Route::put('canals/{canal}/team/{user}', [DashboardCanalTeamController::class, 'updateRole'])
+        ->name('canals.team.update');
+    Route::delete('canals/{canal}/team/{user}', [DashboardCanalTeamController::class, 'destroy'])
+        ->name('canals.team.destroy');
 
     Route::apiResource('files', DashboardFileController::class)
         ->only(['index', 'show'])

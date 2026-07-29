@@ -97,6 +97,8 @@ export interface AuthCanalItem {
   name: string
   slug: string
   status: string
+  /** Rola používateľa v tomto kanáli — App\Enums\CanalRole. */
+  role?: string
 }
 
 export interface AuthIdentity {
@@ -109,6 +111,9 @@ export interface AuthIdentity {
   canal_context?: {
     active: AuthCanalContextActive | null
     is_owner: boolean
+    /** Rola v práve aktívnom kanáli; o právach rozhoduje backend. */
+    role?: string | null
+    role_label?: string | null
   } | null
   permissions?: Record<string, boolean>
   [key: string]: unknown

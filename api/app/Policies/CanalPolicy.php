@@ -23,7 +23,7 @@ class CanalPolicy
      */
     public function view(User $user, Canal $canal): bool
     {
-        return $this->canManageCanal($user, $canal);
+        return $user->canInCanal((int) $canal->id, 'canal.view');
     }
 
     /**
@@ -39,7 +39,7 @@ class CanalPolicy
      */
     public function update(User $user, Canal $canal): bool
     {
-        return $this->isNotArchived($canal) && $this->canManageCanal($user, $canal);
+        return $this->isNotArchived($canal) && $user->canInCanal((int) $canal->id, 'canal.update');
     }
 
     public function publish(User $user, Canal $canal): bool
@@ -54,7 +54,7 @@ class CanalPolicy
     public function archive(User $user, Canal $canal): bool
     {
         return $canal->status === ModelStatus::Published
-            && $this->isCanalOwner($user, $canal);
+            && $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
     /**
@@ -64,7 +64,7 @@ class CanalPolicy
     {
         return $this->isNotArchived($canal)
             && $canal->status !== ModelStatus::Published
-            && $this->isCanalOwner($user, $canal);
+            && $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
     /**
@@ -72,7 +72,7 @@ class CanalPolicy
      */
     public function restore(User $user, Canal $canal): bool
     {
-        return $this->isCanalOwner($user, $canal);
+        return $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
     /**
@@ -83,13 +83,17 @@ class CanalPolicy
         return false;
     }
 
-    private function canManageCanal(User $user, Canal $canal): bool
+    /**
+     * Zloženie tímu vidí každý člen kanála — kto ešte v tíme je, je bežná
+     * prevádzková informácia. Meniť ho smie len vlastník.
+     */
+    public function viewTeam(User $user, Canal $canal): bool
     {
-        return $user->dashboardCanalIds()->contains((int) $canal->id);
+        return $user->canInCanal((int) $canal->id, 'canal.view');
     }
 
-    private function isCanalOwner(User $user, Canal $canal): bool
+    public function manageTeam(User $user, Canal $canal): bool
     {
-        return $user->ownedCanals()->where('canals.id', $canal->id)->exists();
+        return $this->isNotArchived($canal) && $user->canInCanal((int) $canal->id, 'canal.team');
     }
 }

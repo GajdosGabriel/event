@@ -69,18 +69,7 @@ Profesionál si vyberá platformu podľa dvoch čísel: poplatok a dosah. Dosah 
 | Bez 2FA | Super-admin má prístup k celej DB a k `/admin/tools`, chránený iba heslom |
 | `!==` na porovnanie cron tokenu | [api/routes/web.php:16](api/routes/web.php) vs. správne `hash_equals` v [api/routes/api.php:410](api/routes/api.php) |
 
-### Blokátor špecificky pre „profi organizátorov a miesta"
 
-**Do kanála sa nedá pridať druhý človek.** `canal_user` sa zapisuje iba pri vytvorení kanála
-a pri auto-provisioningu osobného kanála
-([EloquentCanalRepository.php:109](api/app/Repositories/Eloquent/EloquentCanalRepository.php),
-[PersonalCanalProvisioner.php:46](api/app/Services/Users/PersonalCanalProvisioner.php)).
-Neexistuje endpoint na pozvanie člena ani na správu tímu. Role sa navyše priraďujú
-**globálne na používateľa** (`syncRoles`, [DashboardRoleController.php:47](api/app/Http/Controllers/Dashboard/DashboardRoleController.php)),
-takže sa nedá byť správcom jedného kanála a len prispievateľom druhého.
-
-Divadlo, ktoré má dramaturga, marketingárku a brigádnika na vstupe, dnes musí zdieľať jedno heslo.
-Pre cieľovku „profi organizátori a miesta" je to samostatný dôvod, prečo platformu nepoužijú.
 
 ### Menšie, ale hlásené nálezy
 
@@ -160,7 +149,7 @@ platobná brána čo spracovať.
 
 | # | Práca | Prečo |
 |---|---|---|
-| 3.1 | **Tím kanála**: pozvánka e-mailom, per-kanál rola (owner / editor / vstup), zápis do `canal_user` | Dnes nemožné — blokátor pre miesta a agentúry |
+| 3.1 | ~~**Tím kanála**: pozvánka e-mailom, per-kanál rola (owner / editor / vstup), zápis do `canal_user`~~ **HOTOVÉ** | Rola je v `canal_user.role` ([CanalRole](api/app/Enums/CanalRole.php)), pozvánky v `canal_invitations`, práva rieši `User::canInCanal()` v policies. Globálna spatie rola ostáva len ako hrubé sito pre `permission:` middleware |
 | 3.2 | **Séria / opakované termíny** — jedno podujatie, viac termínov, spoločný popis a typy lístkov | Najväčšia denná bolesť klubu a divadla; dnes je riešením „duplikovať" |
 | 3.3 | Zapojiť `detect-from-text` do UI + nahranie plagátu/PDF → koncept podujatia | Backend hotový, stačí UI. **Najlacnejší diferenciátor, aký máme** |
 | 3.4 | Inbox správ v dashboarde | `read_at` a `recipient_user_id` už v schéme sú; „neprečítané správy" v štatistikách dnes odkazujú na `null` |
