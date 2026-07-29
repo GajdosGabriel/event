@@ -19,6 +19,12 @@ class Venue extends Model implements Messageable
      */
     use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
+    /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
+    protected function usesFulltextSearch(): bool
+    {
+        return true;
+    }
+
     protected $guarded = [];
     protected $appends = ['primary_image', 'thumb_image', 'files', 'canal_id', 'canal_ids'];
 

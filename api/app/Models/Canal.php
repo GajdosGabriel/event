@@ -18,6 +18,12 @@ class Canal extends Model implements Messageable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
+    /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
+    protected function usesFulltextSearch(): bool
+    {
+        return true;
+    }
+
     /**
      * The attributes that are mass assignable.
      *

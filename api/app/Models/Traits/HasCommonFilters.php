@@ -9,11 +9,35 @@ use Illuminate\Support\Facades\Schema;
 
 trait HasCommonFilters
 {
+    /**
+     * Slová kratšie než innodb_ft_min_token_size v FULLTEXT indexe vôbec nie sú,
+     * takže by ich „+slovo*" nikdy nenašlo. 3 je default MySQL aj MariaDB.
+     */
+    protected const FULLTEXT_MIN_TOKEN_LENGTH = 3;
+
     protected static array $commonFilterColumnCache = [];
+
+    protected static array $commonFulltextIndexCache = [];
 
     protected array $commonPrimarySearchColumns = ['name', 'title', 'email'];
 
     protected array $commonSecondarySearchColumns = ['body'];
+
+    /**
+     * Zapína FULLTEXT vyhľadávanie. Model to smie prepnúť na `true` len vtedy,
+     * keď má indexy z migrácie `add_fulltext_search_indexes` — inak trait ticho
+     * spadne späť na LIKE. Malé administratívne tabuľky (users, files,
+     * organizations) ostávajú zámerne na LIKE: hľadá sa v nich podreťazec (kus
+     * e-mailu, kus názvu súboru), čo FULLTEXT nerobí, a na ich objeme to nič
+     * nestojí.
+     *
+     * Metóda, nie vlastnosť — PHP nedovolí modelu prekryť typovanú vlastnosť
+     * z traitu inou predvolenou hodnotou.
+     */
+    protected function usesFulltextSearch(): bool
+    {
+        return false;
+    }
 
     public function scopeByStatus(Builder $query, ?string $status): Builder
     {
@@ -95,6 +119,12 @@ trait HasCommonFilters
 
         if ($allColumns === []) {
             return $query;
+        }
+
+        $tokens = $this->fulltextTokens($search);
+
+        if ($tokens !== [] && $this->supportsFulltextSearch()) {
+            return $this->applyFulltextSearch($query, $primaryColumns, $allColumns, $tokens);
         }
 
         $escapedSearch = $this->escapeLike($search);
@@ -286,6 +316,15 @@ trait HasCommonFilters
             $bindings
         );
 
+        return $this->restoreExistingOrders($query, $existingOrders);
+    }
+
+    /**
+     * Zoradenie podľa relevancie prepisuje poradie z `bySort()`, ktoré beží skôr —
+     * pôvodné kľúče sa preto vracajú späť ako sekundárne.
+     */
+    protected function restoreExistingOrders(Builder $query, array $existingOrders): Builder
+    {
         foreach ($existingOrders as $order) {
             if (isset($order['column'], $order['direction'])) {
                 $query->orderBy($order['column'], $order['direction']);
@@ -295,6 +334,96 @@ trait HasCommonFilters
         }
 
         return $query;
+    }
+
+    /**
+     * Rozpad hľadaného výrazu na tokeny tak, ako ho tokenizuje samotný index:
+     * všetko okrem písmen a číslic je oddeľovač. Zároveň tým z výrazu vypadnú
+     * operátory boolean módu (+ - * " ~ < > ( )), takže sa doň nedá nič prepašovať.
+     *
+     * Príliš krátke slová sa zahodia, nie odmietnu — „koncert v Košiciach"
+     * má hľadať koncert + Košiciach, nie skončiť s prázdnym výsledkom.
+     *
+     * @return array<int, string>
+     */
+    protected function fulltextTokens(string $search): array
+    {
+        $parts = preg_split('/[^\p{L}\p{N}]+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_values(array_filter(
+            $parts,
+            fn (string $token) => mb_strlen($token) >= self::FULLTEXT_MIN_TOKEN_LENGTH
+        ));
+    }
+
+    protected function supportsFulltextSearch(): bool
+    {
+        if (! $this->usesFulltextSearch()) {
+            return false;
+        }
+
+        if (! in_array($this->getConnection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
+        // InnoDB dopĺňa FULLTEXT index až pri commite, takže v otvorenej
+        // transakcii by MATCH nevidel riadky zapísané v tej istej transakcii
+        // a vyhľadávanie by ticho vracalo menej výsledkov. LIKE takú dieru
+        // nemá, tak sa v transakcii použije on. Verejné výpisy v transakcii
+        // nebežia — reálne sa to týka testov a kódu, ktorý zapíše a hneď hľadá.
+        if ($this->getConnection()->transactionLevel() > 0) {
+            return false;
+        }
+
+        return $this->hasCommonFulltextIndex($this->getTable() . '_search_primary_fulltext')
+            && $this->hasCommonFulltextIndex($this->getTable() . '_search_fulltext');
+    }
+
+    /**
+     * @param  array<int, string>  $primaryColumns
+     * @param  array<int, string>  $allColumns
+     * @param  array<int, string>  $tokens
+     */
+    protected function applyFulltextSearch(Builder $query, array $primaryColumns, array $allColumns, array $tokens): Builder
+    {
+        // Každý token je povinný (`+`) a hľadá sa aj ako predpona (`*`), takže
+        // „konc" nájde „koncert" a viacslovný dopyt funguje ako AND.
+        $expression = implode(' ', array_map(fn (string $token) => '+' . $token . '*', $tokens));
+
+        $query->whereRaw($this->matchSql($allColumns) . ' AGAINST (? IN BOOLEAN MODE)', [$expression]);
+
+        $existingOrders = $query->getQuery()->orders ?? [];
+
+        $query->reorder()->orderByRaw(
+            'CASE WHEN ' . $this->matchSql($primaryColumns) . ' AGAINST (? IN BOOLEAN MODE) THEN 0 ELSE 1 END',
+            [$expression]
+        );
+
+        return $this->restoreExistingOrders($query, $existingOrders);
+    }
+
+    /**
+     * @param  array<int, string>  $columns
+     */
+    protected function matchSql(array $columns): string
+    {
+        return 'MATCH (' . implode(', ', array_map(
+            fn (string $column) => $this->qualifyColumn($column),
+            $columns
+        )) . ')';
+    }
+
+    protected function hasCommonFulltextIndex(string $index): bool
+    {
+        $table = $this->getTable();
+        $cacheKey = $table . ':' . $index;
+
+        if (! array_key_exists($cacheKey, self::$commonFulltextIndexCache)) {
+            $names = array_column($this->getConnection()->getSchemaBuilder()->getIndexes($table), 'name');
+            self::$commonFulltextIndexCache[$cacheKey] = in_array($index, $names, true);
+        }
+
+        return self::$commonFulltextIndexCache[$cacheKey];
     }
 
     protected function buildLikeConditionSql(array $columns): string

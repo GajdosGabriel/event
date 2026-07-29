@@ -86,10 +86,6 @@ Pre cieľovku „profi organizátori a miesta" je to samostatný dôvod, prečo 
 
 - `POST /dashboard/events/detect-from-text` (z textu plagátu spraví podujatie) je hotový
   na backende aj v `ui/src/api/events.ts`, ale **žiadna komponenta ho nevolá**.
-- Vyhľadávanie je `LIKE '%term%'` cez `name` + `body`
-  ([HasCommonFilters.php:84](api/app/Models/Traits/HasCommonFilters.php)) — nevyužije index,
-  bez tokenizácie (hľadanie „koncert Košice" nenájde nič). Pri dnešných ~200 podujatiach
-  netrápi, pri 20 000 áno.
 - Frontend má 3 testy (iba utility), nula testov komponentov, žiadne E2E.
 
 ---
@@ -179,7 +175,6 @@ platobná brána čo spracovať.
 | 4.1 | **Embed widget + API** — organizátor predáva na vlastnom webe, provízia stále tečie k nám. Toto je typicky moment, keď platforma prestane byť nahraditeľná |
 | 4.2 | Mikrostránka kanála (vlastná doména / podstránka) |
 | 4.3 | Reporting predaja pre organizátora: lievik zobrazenie → objednávka → check-in | `View` model a konverzia už existujú |
-| 4.4 | Vyhľadávanie na MySQL FULLTEXT alebo Meilisearch — až keď počet podujatí prekročí nízke tisíce |
 
 ---
 

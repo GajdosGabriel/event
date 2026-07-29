@@ -15,6 +15,12 @@ class Event extends Model implements Messageable
 {
     use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
 
+    /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
+    protected function usesFulltextSearch(): bool
+    {
+        return true;
+    }
+
     protected $guarded = [];
     protected $hidden = [];
     protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
