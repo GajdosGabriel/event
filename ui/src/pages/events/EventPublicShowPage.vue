@@ -71,6 +71,7 @@
                   class="group relative aspect-square cursor-zoom-in overflow-hidden rounded-xl bg-slate-100"
                   @click="lightboxIdx = idx">
                   <img :src="img.thumb || img.large" :alt="event.name"
+                    loading="lazy" decoding="async"
                     class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
                 </div>
               </div>

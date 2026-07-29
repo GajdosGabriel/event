@@ -197,15 +197,25 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         return $this->model()->with('tags')->find($id);
     }
 
-    public function publish($id)
+    /**
+     * Publikuje alebo zruší publikovanie. Zrušenie vracia podujatie do konceptu
+     * a maže `published_at` — verejné scope-y filtrujú podľa oboch
+     * (status + published_at), takže musia ísť dole spolu.
+     */
+    public function publish($id, bool $published = true)
     {
         /** @var Event $event */
         $event = $this->model()->findOrFail($id);
 
-        $event->update([
-            'status' => ModelStatus::Published->value,
-            'published_at' => $event->published_at ?? now(),
-        ]);
+        $event->update($published
+            ? [
+                'status' => ModelStatus::Published->value,
+                'published_at' => $event->published_at ?? now(),
+            ]
+            : [
+                'status' => ModelStatus::Draft->value,
+                'published_at' => null,
+            ]);
 
         return $event->fresh(['files']);
     }

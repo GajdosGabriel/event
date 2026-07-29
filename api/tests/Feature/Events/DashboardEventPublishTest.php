@@ -65,4 +65,63 @@ class DashboardEventPublishTest extends EventSetupTest
 
         $this->assertNotNull($event->fresh()->published_at);
     }
+
+    #[Test]
+    public function published_event_can_be_unpublished_back_to_draft(): void
+    {
+        $event = Event::query()->create([
+            'name' => 'Published event ' . uniqid(),
+            'status' => ModelStatus::Published->value,
+            'canal_id' => $this->canalPrimary->id,
+            'user_id' => $this->user->id,
+            'published_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/dashboard/events/' . $event->id . '/publish', [
+            'published' => false,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', ModelStatus::Draft->value);
+
+        $this->assertDatabaseHas('events', [
+            'id' => $event->id,
+            'status' => ModelStatus::Draft->value,
+            'published_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function unpublish_skips_content_validation(): void
+    {
+        // Podujatie bez miesta a termínu — publikovanie by spadlo na 422,
+        // zrušenie publikovania musí prejsť, inak sa nedá stiahnuť z webu.
+        $event = Event::query()->create([
+            'name' => 'Incomplete published ' . uniqid(),
+            'status' => ModelStatus::Published->value,
+            'canal_id' => $this->canalPrimary->id,
+            'user_id' => $this->user->id,
+            'published_at' => now(),
+        ]);
+
+        $this->postJson('/api/dashboard/events/' . $event->id . '/publish', ['published' => false])
+            ->assertOk();
+
+        $this->assertSame(ModelStatus::Draft, $event->fresh()->status);
+    }
+
+    #[Test]
+    public function draft_event_cannot_be_unpublished(): void
+    {
+        $event = Event::query()->create([
+            'name' => 'Draft event ' . uniqid(),
+            'status' => ModelStatus::Draft->value,
+            'canal_id' => $this->canalPrimary->id,
+            'user_id' => $this->user->id,
+        ]);
+
+        $this->postJson('/api/dashboard/events/' . $event->id . '/publish', ['published' => false])
+            ->assertForbidden();
+    }
 }

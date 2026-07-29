@@ -12,10 +12,14 @@
         :to="`/events/${event.id}`"
         class="flex gap-4 border-b border-dotted border-slate-300 px-4 py-3 no-underline transition-colors last:border-b-0 hover:bg-slate-50"
       >
+        <!-- Náhľad je 56×56, takže thumb (320px) stačí aj na retine — srcset by
+             tu len sťahoval zbytočné kilobajty. -->
         <img
           v-if="event.imageUrl"
           :src="event.imageUrl"
           :alt="event.name"
+          loading="lazy"
+          decoding="async"
           class="h-14 w-14 shrink-0 rounded-lg object-cover"
         />
         <div v-else class="h-14 w-14 shrink-0 rounded-lg bg-slate-100" />

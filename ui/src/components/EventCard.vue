@@ -7,7 +7,11 @@
       <img
         v-if="imageUrl"
         :src="imageUrl"
+        :srcset="srcset"
+        :sizes="srcset ? CARD_IMAGE_SIZES : undefined"
         :alt="name"
+        loading="lazy"
+        decoding="async"
         class="block h-40 w-full object-cover"
       />
       <div v-else class="block h-40 w-full bg-slate-100" />
@@ -64,10 +68,18 @@ import type { TagItem } from '@/types'
 /** Viac čipov než toľko kartu rozbije — zvyšok sa zhrnie do „+N". */
 const MAX_VISIBLE_TAGS = 3
 
+/**
+ * Šírky kopírujú mriežky výpisov: 1 stĺpec do 640px, 2 do 768px, 3 nad ním.
+ * Nemusí sedieť na pixel — prehliadaču to stačí ako horný odhad.
+ */
+const CARD_IMAGE_SIZES = '(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw'
+
 const props = defineProps<{
   id: number
   name: string
   imageUrl?: string | null
+  /** Veľký variant; bez neho sa srcset nevykreslí a použije sa len `imageUrl`. */
+  imageUrlLarge?: string | null
   dateLabel?: string | null
   canalName?: string | null
   venueName?: string | null
@@ -78,6 +90,14 @@ const props = defineProps<{
 }>()
 
 const link = computed(() => props.to ?? `/events/${props.id}`)
+
+// Deskriptory zodpovedajú dlhšej hrane variantov z ImageVariantGenerator
+// (thumb 320, large 1280). Pri portrétovom plagáte je skutočná šírka menšia,
+// takže ide o horný odhad — prehliadač si vyberie skôr väčší súbor, nie horší.
+const srcset = computed(() => {
+  if (!props.imageUrl || !props.imageUrlLarge || props.imageUrlLarge === props.imageUrl) return undefined
+  return `${props.imageUrl} 320w, ${props.imageUrlLarge} 1280w`
+})
 const visibleTags = computed(() => (props.tags ?? []).slice(0, MAX_VISIBLE_TAGS))
 const hiddenTagCount = computed(() => Math.max(0, (props.tags?.length ?? 0) - MAX_VISIBLE_TAGS))
 </script>

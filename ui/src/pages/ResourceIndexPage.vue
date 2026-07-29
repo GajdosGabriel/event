@@ -87,10 +87,10 @@
                 @click="duplicate(item)"
               >Kopírovať</button>
               <button
-                v-if="item.permissions?.publish"
+                v-if="item.permissions?.publish || item.permissions?.unpublish"
                 class="row-menu-item"
                 @click="togglePublish(item)"
-              >{{ item.publishedAt ? 'Zrušiť publikovanie' : 'Publikovať' }}</button>
+              >{{ item.permissions?.unpublish ? 'Zrušiť publikovanie' : 'Publikovať' }}</button>
               <button
                 v-if="item.permissions?.delete && !item.deletedAt"
                 class="row-menu-item row-menu-item-danger"
@@ -370,9 +370,12 @@ function setCanalFilter(item: ResourceItem) {
 }
 
 async function togglePublish(item: ResourceItem) {
+  // Smer určuje právo, nie published_at — publikované podujatie má `unpublish`,
+  // koncept `publish`. Endpoint je ten istý, líši sa len príznakom.
+  const publishing = !item.permissions?.unpublish
   try {
-    await http.post(`${apiBase.value}/${item.id}/publish`, { published: !item.publishedAt })
-    toast.success(item.publishedAt ? 'Zrušené publikovanie.' : 'Publikované.')
+    await http.post(`${apiBase.value}/${item.id}/publish`, { published: publishing })
+    toast.success(publishing ? 'Publikované.' : 'Zrušené publikovanie.')
     load(page.value)
   } catch { toast.error('Akcia zlyhala.') }
 }

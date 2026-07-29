@@ -36,12 +36,17 @@ enum ModelStatus: string implements HasLabel
     /**
      * Returns the allowed statuses for a given user as [value, label] pairs.
      *
+     * Zámerne nevracia PendingReview/Rejected/Scheduled — moderačný workflow ani
+     * naplánované publikovanie neexistujú, takže by to boli stavy, z ktorých sa
+     * podujatie už nikdy nepohne. Prípady v enume ostávajú, aby sa dali načítať
+     * historické riadky; keď workflow pribudne, stačí ich sem vrátiť.
+     *
      * @return array<int, array{value: string, label: string}>
      */
     public static function allowedForUser(?User $user): array
     {
         $cases = ($user && $user->hasRole('super-admin'))
-            ? self::cases()
+            ? [self::Draft, self::Published, self::Archived, self::Blocked]
             : [self::Draft, self::Published, self::Archived];
 
         return self::options($cases);

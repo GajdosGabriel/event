@@ -24,8 +24,6 @@
                 <option value="draft">Koncept</option>
                 <option value="published">Publikovaný</option>
                 <option value="archived">Archivovaný</option>
-                <option value="scheduled">Naplánovaný</option>
-                <option value="pending_review">Čaká na schválenie</option>
               </select>
               <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
             </label>

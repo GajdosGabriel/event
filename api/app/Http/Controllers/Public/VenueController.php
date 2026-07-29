@@ -62,6 +62,8 @@ class VenueController extends Controller
             'canal_id' => $ev->canal_id,
             'canal_name' => $ev->canal?->name,
             'image_url' => $ev->thumb_image,
+            // Pozri Public\CanalController::events() — dvojica pre srcset karty.
+            'image_url_large' => $ev->primary_image['large'],
         ]));
     }
 }

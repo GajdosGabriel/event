@@ -22,6 +22,7 @@ export interface ModelPermissions {
   view: boolean
   update: boolean
   publish?: boolean
+  unpublish?: boolean
   delete: boolean
   archive?: boolean
   duplicate?: boolean
@@ -157,6 +158,8 @@ export interface EventItem {
   latitude: number | null
   longitude: number | null
   imageUrl: string | null
+  /** Veľký variant (1280px) — spolu s `imageUrl` tvorí srcset na kartách. */
+  imageUrlLarge: string | null
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
   allowedStatuses: AllowedStatusOption[]

@@ -50,6 +50,16 @@ class EventPolicy
     }
 
     /**
+     * Opačný smer k publish() — publikované podujatie späť do konceptu.
+     * Archivované sem nepatrí, to je koncová stanica (pozri archive()).
+     */
+    public function unpublish(User $user, Event $event): bool
+    {
+        return $this->update($user, $event)
+            && $event->status === ModelStatus::Published;
+    }
+
+    /**
      * Determine whether the user can create a new draft event based on this one.
      * Intentionally does NOT check isNotArchived() — duplicating an archived event
      * is the whole point (it's the "edit" replacement once an event is locked).

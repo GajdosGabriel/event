@@ -61,6 +61,7 @@
                   :id="ev.id"
                   :name="ev.name"
                   :image-url="ev.imageUrl"
+                  :image-url-large="ev.imageUrlLarge"
                   :date-label="ev.startAt ? formatDate(ev.startAt) : null"
                   :canal-name="canal.name"
                 />

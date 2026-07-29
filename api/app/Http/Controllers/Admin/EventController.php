@@ -87,11 +87,11 @@ class EventController extends Controller
     public function publish(string $id, EventPublishRequest $request): JsonResponse
     {
         $event = $this->eventRepository->adminShow($id);
-        $this->authorize('publish', $event);
+        $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $event);
 
         $request->validated();
 
-        $event = $this->eventRepository->publish($id);
+        $event = $this->eventRepository->publish($id, $request->shouldPublish());
 
         return response()->json(new EventResource($event), 200);
     }

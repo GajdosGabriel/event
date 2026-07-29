@@ -65,6 +65,7 @@
             :id="event.id"
             :name="event.name"
             :image-url="event.imageUrl"
+            :image-url-large="event.imageUrlLarge"
             :date-label="event.dateRangeLabel"
             :canal-name="event.canalName"
             :venue-name="event.venue?.name ?? null"

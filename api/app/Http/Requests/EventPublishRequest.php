@@ -14,8 +14,24 @@ class EventPublishRequest extends FormRequest
         return true;
     }
 
+    /**
+     * `published: false` z frontendu znamená zrušenie publikovania. Bez tohto
+     * príznaku (napr. priame volanie endpointu) sa publikuje — pôvodné správanie.
+     */
+    public function shouldPublish(): bool
+    {
+        return $this->boolean('published', true);
+    }
+
     protected function prepareForValidation(): void
     {
+        // Pri zrušení publikovania nie je čo kontrolovať — obsah sa nemení
+        // a podujatie musí ísť dole aj vtedy, keď mu medzitým vypadlo miesto
+        // konania alebo termín.
+        if (! $this->shouldPublish()) {
+            return;
+        }
+
         $routeEvent = $this->route('event') ?? $this->route('id');
         $eventId = $routeEvent instanceof Event ? $routeEvent->id : $routeEvent;
 
@@ -42,7 +58,12 @@ class EventPublishRequest extends FormRequest
 
     public function rules(): array
     {
+        if (! $this->shouldPublish()) {
+            return ['published' => ['required', 'boolean']];
+        }
+
         return [
+            'published' => ['sometimes', 'boolean'],
             'name' => ['required', 'string', 'max:250'],
             'body' => ['nullable', 'string'],
             'start_at' => ['required', new EventDatetimeRule],

@@ -81,6 +81,9 @@ class CanalController extends Controller
             'end_at' => $ev->end_at,
             'status' => $ev->status,
             'image_url' => $ev->thumb_image,
+            // Karta si z dvojice thumb/large poskladá srcset — na retina displeji
+            // je 320px thumb na 160px vysokej karte viditeľne rozmazaný.
+            'image_url_large' => $ev->primary_image['large'],
         ]));
     }
 }
