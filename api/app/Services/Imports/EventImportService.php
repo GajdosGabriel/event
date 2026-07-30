@@ -213,6 +213,15 @@ class EventImportService
             // medzi kanálmi a zmazala by sa aj ručná oprava od administrátora.
             unset($payload['canal_id']);
 
+            // Stav existujúceho podujatia import nikdy neznižuje ani nevracia
+            // späť medzi publikované — archiváciu aj zrušenie publikovania robí
+            // človek (alebo app:events-archive-finished) a import ich nesmie
+            // prebiť. Jediný povolený posun je koncept -> publikované, keď sa
+            // pri opakovanom behu konečne doplnil termín a obsah.
+            if (! ($isComplete && $existingEvent->status === ModelStatus::Draft)) {
+                unset($payload['status'], $payload['published_at']);
+            }
+
             $existingEvent->update($payload);
             $event = $existingEvent->fresh();
             $status = 'updated';
@@ -230,14 +239,19 @@ class EventImportService
 
     /**
      * An imported event is considered "complete" once it has everything a
-     * re-import would otherwise try to fill in: it's published, has a date
-     * range, and a resolved venue. Complete events are skipped on subsequent
-     * import runs (unless $force is set) to avoid redundant scraping/AI/PDF work.
+     * re-import would otherwise try to fill in: a date range and a resolved
+     * venue. Complete events are skipped on subsequent import runs (unless
+     * $force is set) to avoid redundant scraping/AI/PDF work.
+     *
+     * Zámerne sa nepozerá na stav. Kým sa vyžadoval status = published,
+     * archivované podujatie nebolo nikdy "kompletné" — a keďže
+     * app:events-archive-finished archivuje všetko, čo sa už skončilo, každý
+     * nočný import znovu sťahoval a prehnal AI všetky staré články zo zoznamu.
+     * Stav podujatia riadi administrátor a archivačný príkaz, nie scraper.
      */
     private function isComplete(Event $event): bool
     {
-        return $event->status === ModelStatus::Published
-            && $event->start_at !== null
+        return $event->start_at !== null
             && $event->end_at !== null
             && $event->venue_id !== null;
     }
