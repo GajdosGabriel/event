@@ -272,11 +272,13 @@ class PosterController extends Controller
                 (array) ($draft->overrides ?? []),
             ),
             // Rovnaké poradie ako v materializéri: vlastná oprava → copywriter
-            // → surový text z dokumentu. Bez prvého kroku by sa človeku po
-            // návrate z e-mailu prepísal jeho vlastný text späť na AI verziu;
-            // bez tretieho by videl prázdne pole napriek tomu, že text máme.
+            // → prepis plagátu → surový text z dokumentu. Bez prvého kroku by
+            // sa človeku po návrate z e-mailu prepísal jeho vlastný text späť
+            // na AI verziu; bez ďalších by videl prázdne pole napriek tomu, že
+            // text máme.
             'description' => $this->stringOrNull($draft->overrides['description'] ?? null)
                 ?? $this->stringOrNull($draft->detection['corrected_text'] ?? null)
+                ?? $this->stringOrNull($draft->detection['poster_text'] ?? null)
                 ?? $this->stringOrNull($draft->extracted_text),
         ];
     }

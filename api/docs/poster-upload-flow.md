@@ -86,6 +86,46 @@ metóda deleguje na `extractData()`, takže volajúci sa nemusí rozhodovať.
 Timeout je 120 s (oproti 60 s pri texte): plagát na výšku v `detail: high` sa
 rozpadá na desiatky dlaždíc a 60 s pravidelne nestíhalo.
 
+#### `poster_text` — prepis plagátu
+
+Keď má dokument menej než 120 znakov textovej vrstvy (JPG plagát, sken), pribudne
+do schémy pole **`poster_text`**: doslovný prepis všetkého textu z obrázkov,
+riadok po riadku aj s celým programom. Bez neho vznikalo podujatie **bez popisu** —
+copywriter je čisto textový, takže z prázdnej textovej vrstvy nemal čo rozšíriť a
+`extracted_text` bol tiež prázdny. Pri plagáte s harmonogramom (časy bohoslužieb,
+program púte) tak zmizlo presne to, kvôli čomu ho človek nahráva.
+
+Prepis pýtame v **tom istom volaní** ako štruktúrované dáta — vision je drahé a
+druhý prechod tými istými obrázkami by cenu zdvojnásobil. Pri použiteľnej textovej
+vrstve sa pole do schémy nepridáva vôbec.
+
+`Detector` prepis z `event_payload` vyberie (do formulára nepatrí, nie je to pole
+podujatia), pošle ho copywriterovi namiesto prázdneho textu a vráti ho zvlášť ako
+`detection.poster_text`.
+
+### Obec, keď ju model nevráti
+
+Plagát obec málokedy uvádza ako samostatný údaj — býva v adresnom riadku
+(„Klokočov - Zemplínska Šírava") alebo v názve podujatia, a model ju potom vráti
+ako súčasť ulice. `venue.city` ostane `null` a doplatia na to dve veci: v
+sprievodcovi ostane prázdne povinné pole **Mesto / obec** a `detectVenueDetails()`
+sa vôbec nespustí (chce názov aj mesto), takže miesto príde bez adresy, súradníc
+aj popisu.
+
+`Detector::fillMissingVenueCity()` preto obec hľadá v číselníku cez
+[`MunicipalityNameFinder`](../app/Services/Geocoding/MunicipalityNameFinder.php) —
+a to len v poliach, ktoré sa miesta týkajú (`street_and_number` → `venue.name` →
+`title`), **nie v celom texte plagátu**. Hľadá sa najdlhšia zhoda a iba od slova
+s veľkým začiatočným písmenom; hádať obec z náhodnej vety by podujatie odsunulo
+do iného okresu, čo je horšie než prázdne pole. Keď obec pochádza z adresného
+riadku a ten neobsahuje číslo domu, ulica sa zahodí — nie je to ulica.
+
+Rovnaké pravidlo je aj v prompte (`PromptData`), fallback je poistka pre prípad,
+že ho model nedodrží.
+
+**Rovnomenné obce sa tu neriešia**: „Klokočov" sú v SR dva a von ide len názov —
+konkrétny záznam číselníka vyberá človek v sprievodcovi.
+
 ---
 
 ## Čo vidí človek
@@ -101,10 +141,11 @@ výstup detektora na zoznam polí so stavom:
 percentuálne skóre spoľahlivosti** — model žiadne poctivé neposkytuje a vymyslené
 číslo by len klamalo.
 
-### Popis má tri zdroje a jedno poradie
+### Popis má štyri zdroje a jedno poradie
 
-`overrides.description` → `detection.corrected_text` (copywriter) → surový
-`extracted_text`. Toto poradie musia držať **všetky tri** miesta: report
+`overrides.description` → `detection.corrected_text` (copywriter) →
+`detection.poster_text` (prepis plagátu z vision) → surový `extracted_text`.
+Toto poradie musia držať **všetky tri** miesta: report
 ([`PosterAnalysisReport`](../app/Services/Posters/PosterAnalysisReport.php)),
 predvyplnenie formulára (`PosterController::draftPayload()`) aj zápis
 ([`PosterDraftMaterializer::resolveBody()`](../app/Services/Posters/PosterDraftMaterializer.php)).

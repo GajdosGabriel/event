@@ -6,6 +6,7 @@ use App\Models\Canal;
 use App\Models\Venue;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Imports\ImportedNameMatcher;
+use App\Services\Geocoding\MunicipalityNameFinder;
 use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +23,7 @@ class Detector
         private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher(),
         private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader(),
         private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor(),
+        private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder(),
     ) {}
 
 
@@ -72,12 +74,24 @@ class Detector
         try {
             $eventPayload = $this->chatGPT->extractDataFromPoster($text, $imageDataUrls);
 
+            // Prepis plagátu nepatrí medzi polia formulára — `event_payload` sa
+            // v UI predvypĺňa kľúč po kľúči a text plagátu by tam bol pole
+            // navyše. Ide vlastnou cestou ako náhrada chýbajúcej textovej vrstvy.
+            $posterText = $this->firstString($eventPayload['poster_text'] ?? null);
+            unset($eventPayload['poster_text']);
+
+            $eventPayload = $this->fillMissingVenueCity($eventPayload);
+
+            // Copywriter je čisto textový. Pri obrázkovom plagáte nemá z čoho
+            // vychádzať — jediný text, ktorý o ňom máme, je prepis z vision.
+            // Bez neho ostal popis podujatia prázdny aj pri plagáte, ktorý mal
+            // celý program vysádzaný v grafike.
+            $sourceText = mb_strlen(trim($text)) >= 50 ? $text : ($posterText ?? $text);
+
             $correctedText = null;
-            // Copywriter je čisto textový — na plagát bez textovej vrstvy
-            // nemá čo aplikovať a volanie by len stálo peniaze a čas.
             try {
-                if (mb_strlen(trim($text)) >= 50) {
-                    $copywriter = $this->chatGPT->extractCopywriter($text);
+                if (mb_strlen(trim($sourceText)) >= 50) {
+                    $copywriter = $this->chatGPT->extractCopywriter($sourceText);
                     $correctedText = $copywriter['event_body'] ?? null;
                 }
             } catch (\Throwable $e) {
@@ -85,7 +99,8 @@ class Detector
                 // surový text. Bez logu sa to ale nedalo vôbec zistiť: navonok
                 // to vyzeralo, akoby dokument popis neobsahoval.
                 Log::warning('Copywriter neprepísal text podujatia.', [
-                    'text_length' => mb_strlen(trim($text)),
+                    'text_length' => mb_strlen(trim($sourceText)),
+                    'from_poster_text' => $sourceText !== $text,
                     'error' => $e->getMessage(),
                 ]);
             }
@@ -119,6 +134,9 @@ class Detector
             return [
                 'success' => true,
                 'corrected_text' => $correctedText,
+                // Záloha za `corrected_text`: keď copywriter zlyhá, je prepis
+                // plagátu jediný text, ktorý o obrázkovom plagáte máme.
+                'poster_text' => $posterText,
                 'event_payload' => $eventPayload,
                 'organizer_canal' => [
                     'name' => $organizerName,
@@ -133,6 +151,70 @@ class Detector
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Doplní obec, keď ju model nevrátil ako samostatný údaj.
+     *
+     * Plagát mesto zvyčajne nepíše do vlastného riadku — býva v adrese
+     * („Chrám Zosnutia presvätej Bohorodičky, Klokočov - Zemplínska Šírava")
+     * alebo priamo v názve podujatia. Model ho potom vráti ako súčasť ulice
+     * a `venue.city` ostane null. Dôsledky sú dva a oba nepríjemné: v
+     * sprievodcovi ostane prázdne povinné pole „Mesto / obec" a `detectVenueDetails()`
+     * sa vôbec nespustí (chce názov aj mesto), takže miesto príde bez adresy,
+     * súradníc aj popisu.
+     *
+     * Preto sa obec hľadá v číselníku — nie v celom texte plagátu, ale len
+     * v poliach, ktoré sa miesta naozaj týkajú. Hádať obec z náhodnej vety by
+     * podujatie odsunulo do iného okresu, a to je horšie než prázdne pole.
+     *
+     * @param  array<string, mixed>  $eventPayload
+     * @return array<string, mixed>
+     */
+    private function fillMissingVenueCity(array $eventPayload): array
+    {
+        $venue = $eventPayload['venue'] ?? null;
+
+        if (! is_array($venue) || $this->firstString($venue['city'] ?? null) !== null) {
+            return $eventPayload;
+        }
+
+        $street = $this->firstString($venue['street_and_number'] ?? null);
+
+        $sources = [
+            'street_and_number' => $street,
+            'venue_name' => $this->firstString($venue['name'] ?? null),
+            'title' => $this->firstString($eventPayload['title'] ?? null),
+        ];
+
+        foreach ($sources as $source => $value) {
+            $city = $this->municipalityNameFinder->find($value);
+
+            if ($city === null) {
+                continue;
+            }
+
+            $venue['city'] = $city;
+
+            // Adresný riadok bez čísla domu nie je ulica — „Klokočov - Zemplínska
+            // Šírava" je poloha, ktorú sme práve preložili na obec. Nechať ho
+            // v `street_and_number` by na detaile miesta vyrobilo adresu
+            // „Klokočov - Zemplínska Šírava, Klokočov".
+            if ($source === 'street_and_number' && preg_match('/\d/', (string) $value) !== 1) {
+                $venue['street_and_number'] = null;
+            }
+
+            Log::info('Detector: obec doplnená z číselníka.', [
+                'source' => $source,
+                'city' => $city,
+            ]);
+
+            break;
+        }
+
+        $eventPayload['venue'] = $venue;
+
+        return $eventPayload;
     }
 
     private function lookupCanalByName(string $name): ?array

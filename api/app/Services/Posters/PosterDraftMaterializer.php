@@ -350,9 +350,9 @@ class PosterDraftMaterializer
     }
 
     /**
-     * Telo podujatia: oprava z formulára → text od copywritera → surový text
-     * z dokumentu. Rovnaké poradie drží aj `PosterAnalysisReport`, aby report
-     * ukazoval presne to, čo sa naozaj uloží.
+     * Telo podujatia: oprava z formulára → text od copywritera → prepis plagátu
+     * z vision → surový text z dokumentu. Rovnaké poradie drží aj
+     * `PosterAnalysisReport`, aby report ukazoval presne to, čo sa naozaj uloží.
      */
     private function resolveBody(PosterDraft $draft): ?string
     {
@@ -373,7 +373,11 @@ class PosterDraftMaterializer
         // Surový text z dokumentu nie je HTML nikdy. `fromPlainText()` z neho
         // spraví odstavce so zalomeniami — inak by sa harmonogram púte zlial
         // do jedného bloku, lebo v HTML sú nové riadky len medzery.
-        $raw = $this->stringOrNull($draft->extracted_text);
+        //
+        // Pri obrázkovom plagáte je `extracted_text` prázdny (dokument textovú
+        // vrstvu nemá) a text plagátu máme len ako prepis z vision.
+        $raw = $this->stringOrNull($draft->detection['poster_text'] ?? null)
+            ?? $this->stringOrNull($draft->extracted_text);
 
         return $raw === null ? null : ($this->cleaner->fromPlainText($raw) ?: null);
     }

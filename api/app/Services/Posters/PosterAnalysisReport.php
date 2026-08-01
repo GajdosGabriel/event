@@ -101,7 +101,10 @@ class PosterAnalysisReport
             return $this->field('description', 'Popis', $corrected, required: false, preview: true);
         }
 
-        $raw = $this->stringOrNull($extraction->text);
+        // Prepis plagátu z vision je pri obrázkovom plagáte jediný text, ktorý
+        // máme — dokument textovú vrstvu nemá, takže `extraction->text` je prázdny.
+        $transcribed = $this->stringOrNull($detection['poster_text'] ?? null);
+        $raw = $transcribed ?? $this->stringOrNull($extraction->text);
 
         return $this->field(
             'description',
@@ -109,7 +112,11 @@ class PosterAnalysisReport
             $raw,
             required: false,
             status: $raw !== null ? self::STATUS_GUESSED : null,
-            note: $raw !== null ? 'Prevzaté z dokumentu bez úpravy — pokojne ho prepíšte.' : null,
+            note: match (true) {
+                $raw === null => null,
+                $transcribed !== null => 'Prepísané z plagátu — skontrolujte a pokojne prepíšte.',
+                default => 'Prevzaté z dokumentu bez úpravy — pokojne ho prepíšte.',
+            },
             preview: true,
         );
     }

@@ -19,6 +19,13 @@ class ChatGPT
     /** Strop vstupu pre copywritera — viď extractCopywriter(). */
     private const MAX_COPYWRITER_INPUT_CHARS = 5000;
 
+    /**
+     * Odkiaľ považujeme textovú vrstvu dokumentu za použiteľnú. Rovnaká hranica
+     * ako v `PosterExtraction::hasUsableText()` — pod ňou ide o zvyšok po
+     * neúspešnej extrakcii a text plagátu si necháme prepísať cez vision.
+     */
+    private const MIN_TEXT_LAYER_CHARS = 120;
+
     public function __construct(
         private readonly PromptData $promptData = new PromptData(),
         private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter(),
@@ -124,9 +131,15 @@ class ChatGPT
         $text = $this->sanitizeUtf8(trim($text));
         $referenceDate ??= Carbon::now(config('app.timezone', 'Europe/Bratislava'));
 
+        // Prepis plagátu pýtame len vtedy, keď textová vrstva chýba alebo je
+        // útržkovitá — inak popis vznikne z nej a prepis by len platený výstup
+        // predĺžil o to isté, čo už máme presnejšie.
+        $withPosterText = mb_strlen($text) < self::MIN_TEXT_LAYER_CHARS;
+
         $messages = $this->promptData->prompt(
             $text !== '' ? $text : '(Dokument nemá použiteľnú textovú vrstvu — všetky údaje čítaj z priložených obrázkov plagátu.)',
             $referenceDate,
+            $withPosterText,
         );
 
         // Vision je pomalšie než textové volanie — plagát na výšku v „high"
@@ -135,7 +148,7 @@ class ChatGPT
             'gpt-4o-mini',
             0,
             $this->attachImages($messages, $imageDataUrls),
-            $this->promptData->jsonSchema(),
+            $this->promptData->jsonSchema($withPosterText),
             timeout: 120,
         );
 

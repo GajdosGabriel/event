@@ -137,6 +137,57 @@ class PosterUploadTest extends TestCase
     }
 
     #[Test]
+    public function description_falls_back_to_the_poster_transcript_when_the_document_has_no_text(): void
+    {
+        // Obrázkový plagát nemá textovú vrstvu: `extracted_text` je prázdny a
+        // keď zlyhá aj copywriter, ostane popis jedine v prepise z vision.
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $detection = $this->detection();
+        $detection['corrected_text'] = null;
+        $detection['poster_text'] = "Sobota 15.8.2026\n16:00 Malé svätenie vody\n17:00 Veľká večiereň s lítiou";
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')->andReturn($detection);
+        $this->app->instance(Detector::class, $detector);
+
+        $response = $this->post(
+            '/api/poster/analyze',
+            ['file' => UploadedFile::fake()->image('plagat.jpg', 800, 1130)],
+            ['Accept' => 'application/json'],
+        );
+
+        $response->assertStatus(201);
+
+        $description = collect($response->json('draft.analysis.fields'))
+            ->firstWhere('key', 'description');
+
+        $this->assertNotSame('missing', $description['status']);
+        $this->assertStringContainsString('Malé svätenie vody', (string) $description['value']);
+
+        // Formulár musí byť predvyplnený tým istým textom.
+        $this->assertStringContainsString('Malé svätenie vody', (string) $response->json('draft.description'));
+
+        $user = User::factory()->create();
+        $this->actingAs($user, 'sanctum');
+
+        $claim = $this->postJson(
+            "/api/poster/drafts/{$response->json('draft.id')}/claim",
+            ['token' => $response->json('draft.token')],
+        );
+
+        $claim->assertStatus(201);
+
+        // A rovnaký text musí skončiť aj v tele podujatia — s riadkovaním,
+        // inak sa program zlepí do jedného bloku.
+        $body = (string) Event::query()->findOrFail($claim->json('event_id'))->body;
+
+        $this->assertStringContainsString('Malé svätenie vody', $body);
+        $this->assertStringContainsString('<br>', $body);
+    }
+
+    #[Test]
     public function analysis_rejects_unsupported_file_types(): void
     {
         // Zámerne `post()`, nie `postJson()` — súbor musí ísť ako multipart.

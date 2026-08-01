@@ -6,8 +6,28 @@ use Carbon\Carbon;
 
 class PromptData
 {
-    public function jsonSchema(): array
+    /**
+     * @param  bool  $withPosterText  pridá `poster_text` — doslovný prepis plagátu.
+     *                                Má zmysel len pri vision volaní: pri textovom
+     *                                vstupe by model len vrátil to, čo už máme.
+     */
+    public function jsonSchema(bool $withPosterText = false): array
     {
+        $required = [
+            'title',
+            'start_at',
+            'end_at',
+            'organizer',
+            'venue',
+            'email',
+            'phone',
+            'persons',
+        ];
+
+        if ($withPosterText) {
+            $required[] = 'poster_text';
+        }
+
         return [
             'type' => 'json_schema',
             'json_schema' => [
@@ -15,16 +35,9 @@ class PromptData
                 'strict' => true,
                 'schema' => [
                     'type' => 'object',
-                    'required' => [
-                        'title',
-                        'start_at',
-                        'end_at',
-                        'organizer',
-                        'venue',
-                        'email',
-                        'phone',
-                        'persons',
-                    ],
+                    // `strict: true` vyžaduje, aby v `required` boli všetky
+                    // properties — voliteľné pole preto pribúda do oboch naraz.
+                    'required' => $required,
                     'properties' => [
 
                         'title' => ['type' => ['string', 'null']],
@@ -72,6 +85,10 @@ class PromptData
                                 'additionalProperties' => false,
                             ],
                         ],
+
+                        ...($withPosterText
+                            ? ['poster_text' => ['type' => ['string', 'null']]]
+                            : []),
                     ],
                     'additionalProperties' => false,
                 ],
@@ -79,7 +96,12 @@ class PromptData
         ];
     }
 
-    public function prompt(string $text, Carbon $referenceDate): array
+    /**
+     * @param  bool  $withPosterText  viď jsonSchema() — musí sedieť so schémou,
+     *                                inak model pole buď nevráti, alebo ho vráti
+     *                                bez toho, aby vedel, čo doň patrí.
+     */
+    public function prompt(string $text, Carbon $referenceDate, bool $withPosterText = false): array
     {
         $referenceDateFormatted = $referenceDate->format('Y-m-d');
         $referenceYear = $referenceDate->year;
@@ -129,6 +151,9 @@ VENUE Z PRÓZY:
 - Venue hľadaj aj vo vete formátu "o HH:MM v [Miesto] v [Mesto]" — prvý veľkým písmenom začínajúci výraz po čase je venue, druhý (za druhým "v") je mesto.
 - Príklad: "o 18:00 v Katedrále svätého Martina v Bratislave" → venue.name = "Katedrála svätého Martina", venue.city = "Bratislava".
 - Venue name vráť v nominatíve (základný tvar), nie v lokáli ("Katedrála" nie "Katedrále").
+- Názov obce alebo mesta patrí VŽDY do venue.city, nikdy do venue.street_and_number — aj keď je na plagáte napísaný v jednom riadku s ulicou alebo s okolím ("Klokočov - Zemplínska Šírava" → venue.city = "Klokočov").
+- Do street_and_number daj len ulicu s číslom domu. Ak plagát ulicu neuvádza, nastav ju na null.
+- Ak obec nie je uvedená pri mieste, ale je v názve podujatia ("Odpustová slávnosť Klokočov"), použi ju ako venue.city.
 
 HEURISTIKA:
 - Slová ako "usporadúva", "organizuje", "v spolupráci s" označujú organizátora.
@@ -150,9 +175,28 @@ Vráť iba validný JSON bez komentárov.',
                     . "- email\n"
                     . "- phone\n"
                     . "- persons: zahrn kazdu fyzicku osobu z textu; aj bez kontaktu; description je rola alebo kontext; chybajuci email/telefon nastav na null\n"
+                    . ($withPosterText ? $this->posterTextInstruction() : '')
                     . "Vrat iba validny JSON bez dalsieho textu.",
             ],
         ];
+    }
+
+    /**
+     * Prepis plagátu. Bez neho z obrázkového plagátu nevznikne popis podujatia:
+     * textová vrstva je prázdna, takže copywriter nemá čo rozšíriť a v tele
+     * podujatia ostane prázdno — a to je pri plagáte s programom (harmonogram
+     * púte, časy bohoslužieb) presne tá informácia, kvôli ktorej ho človek
+     * nahráva. Preto sa pýta v tom istom volaní: vision je drahé a druhý
+     * prechod tými istými obrázkami by cenu zdvojnásobil.
+     */
+    private function posterTextInstruction(): string
+    {
+        return "- poster_text: DOSLOVNY prepis vsetkeho textu z prilozenych obrazkov plagatu.\n"
+            . "  * Prepisuj v poradi, v akom je text na plagate, riadok po riadku.\n"
+            . "  * Zachovaj cely program: kazdy datum, cas aj nazov bodu programu.\n"
+            . "  * Zachovaj mena, ceny, kontakty a poznamky pod ciarou.\n"
+            . "  * Riadky oddeluj znakom nového riadku, nic nesumarizuj a nic nedopisuj.\n"
+            . "  * Ak je vstupom iba text (ziadny obrazok), nastav poster_text na null.\n";
     }
 
     public function validator(): array
@@ -166,6 +210,7 @@ Vráť iba validný JSON bez komentárov.',
             'email' => 'sometimes|nullable|string',
             'phone' => 'sometimes|nullable|string',
             'persons' => 'sometimes|array',
+            'poster_text' => 'sometimes|nullable|string',
         ];
     }
 }
