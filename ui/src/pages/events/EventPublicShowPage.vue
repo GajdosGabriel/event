@@ -206,39 +206,7 @@
     </div>
 
     <!-- Lightbox -->
-    <Teleport to="body">
-      <Transition enter-active-class="transition duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100"
-        leave-active-class="transition duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="lightboxIdx !== null" class="fixed inset-0 z-9999 flex items-center justify-center bg-black/85 p-4"
-          @click.self="lightboxIdx = null">
-          <button class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" @click="lightboxIdx = null">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-          <button v-if="lightboxIdx > 0" class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
-            @click="lightboxIdx--">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <button v-if="event && lightboxIdx < event.uploadedImages.length - 1"
-            class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
-            @click="lightboxIdx++">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-            </svg>
-          </button>
-          <img v-if="event && lightboxIdx !== null"
-            :src="event.uploadedImages[lightboxIdx]?.large || event.uploadedImages[lightboxIdx]?.thumb"
-            :alt="event.name"
-            class="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
-          <div v-if="event && event.uploadedImages.length > 1" class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
-            {{ lightboxIdx !== null ? lightboxIdx + 1 : '' }} / {{ event.uploadedImages.length }}
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ImageLightbox v-model:index="lightboxIdx" :images="lightboxImages" />
   </div>
 </template>
 
@@ -249,8 +217,8 @@ import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
-import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import type { EventItem, TicketTypeItem } from '@/types'
+import ImageLightbox from '@/components/ImageLightbox.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
@@ -268,22 +236,12 @@ const loading = ref(false)
 const error = ref(false)
 const lightboxIdx = ref<number | null>(null)
 
-// Ovládanie lightboxu klávesnicou. Musí ísť cez window listener — vo Vue
-// neexistuje modifikátor `.window`, takže pôvodné @keydown.*.window nič nerobili
-// a Esc ani šípky v galérii nefungovali.
-useWindowKeydown((keyEvent) => {
-  if (lightboxIdx.value === null) return
-
-  const lastIdx = (event.value?.uploadedImages?.length ?? 0) - 1
-
-  if (keyEvent.key === 'Escape') {
-    lightboxIdx.value = null
-  } else if (keyEvent.key === 'ArrowLeft' && lightboxIdx.value > 0) {
-    lightboxIdx.value--
-  } else if (keyEvent.key === 'ArrowRight' && lightboxIdx.value < lastIdx) {
-    lightboxIdx.value++
-  }
-})
+// Ovládanie klávesnicou (Esc, šípky) aj priblíženie rieši ImageLightbox.
+const lightboxImages = computed(() => (event.value?.uploadedImages ?? []).map(img => ({
+  src: img.large || img.thumb,
+  zoomSrc: img.original || undefined,
+  alt: event.value?.name,
+})))
 
 const workshops = computed(() => ticketTypes.value.filter(t => t.kind === 'workshop'))
 

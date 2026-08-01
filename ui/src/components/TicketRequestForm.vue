@@ -86,7 +86,18 @@
             Prvá vstupenka patrí tebe. Vyplň údaje ostatných účastníkov — každému pošleme jeho vstupenku e-mailom.
           </p>
           <div v-for="i in extraSeatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
-            <p class="text-xs font-semibold text-slate-600">Vstupenka {{ i + 1 }}</p>
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-xs font-semibold text-slate-600">Vstupenka {{ i + 1 }}</p>
+              <!-- Zruší práve túto vstupenku; „−" v stepperi vždy uberá poslednú. -->
+              <button type="button"
+                class="-mr-0.5 rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                :title="`Zrušiť vstupenku ${i + 1}`" :aria-label="`Zrušiť vstupenku ${i + 1}`"
+                @click="removeSeat(type, i)">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
             <input v-model.trim="attendee(type, i).name" type="text" required maxlength="250"
               placeholder="Meno a priezvisko"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
@@ -263,6 +274,20 @@ function inc(type: TicketTypeItem) {
 
 function dec(type: TicketTypeItem) {
   if (qty(type) > 0) quantities[type.id!] = qty(type) - 1
+}
+
+/**
+ * Zruší konkrétnu vstupenku — na rozdiel od „−" nezmaže poslednú, ale tú
+ * vybranú, a údaje ďalších účastníkov sa posunú o miesto vyššie.
+ */
+function removeSeat(type: TicketTypeItem, index: number) {
+  const id = type.id!
+  const list = attendees[id]
+  if (list && index < list.length) list.splice(index, 1)
+
+  const left = Math.max(0, qty(type) - 1)
+  quantities[id] = left
+  if (left === 0) delete attendees[id]
 }
 
 const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))

@@ -34,61 +34,15 @@
     </div>
 
     <!-- Lightbox (images only) -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-150"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-100"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="lightboxIdx !== null"
-          ref="lightboxEl"
-          tabindex="-1"
-          class="fixed inset-0 z-9999 flex items-center justify-center bg-black/85 p-4"
-          @click.self="close"
-          @keydown.esc="close"
-          @keydown.left="prev"
-          @keydown.right="next"
-        >
-          <button class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" @click="close">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-
-          <button v-if="lightboxIdx > 0" class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" @click="prev">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <button v-if="lightboxIdx < imageFiles.length - 1" class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" @click="next">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-            </svg>
-          </button>
-
-          <img
-            :src="lightboxSrc"
-            :alt="imageFiles[lightboxIdx]?.name"
-            class="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
-          />
-
-          <div v-if="imageFiles.length > 1" class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
-            {{ lightboxIdx + 1 }} / {{ imageFiles.length }}
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ImageLightbox v-model:index="lightboxIdx" :images="lightboxImages" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { listFiles, listPublicEventFiles, listPublicVenueFiles, type FileItem } from '@/api/files'
 import { isImageFile as isImage, extensionLabel, openOriginal, useFilePreview } from '@/composables/useFilePreview'
+import ImageLightbox from '@/components/ImageLightbox.vue'
 
 const props = defineProps<{
   fileableType: 'canal' | 'event' | 'venue'
@@ -98,17 +52,16 @@ const props = defineProps<{
 
 const allFiles = ref<FileItem[]>([])
 const lightboxIdx = ref<number | null>(null)
-const lightboxEl = ref<HTMLElement | null>(null)
 
 const { imgSrc, onImgError: onError } = useFilePreview()
 
 const imageFiles = computed(() => allFiles.value.filter(f => isImage(f)))
 
-const lightboxSrc = computed(() => {
-  if (lightboxIdx.value === null) return ''
-  const img = imageFiles.value[lightboxIdx.value]
-  return img?.largeUrl ?? img?.thumbUrl ?? img?.url ?? ''
-})
+const lightboxImages = computed(() => imageFiles.value.map(img => ({
+  src: img.largeUrl ?? img.thumbUrl ?? img.url ?? '',
+  zoomSrc: img.url ?? undefined,
+  alt: img.name,
+})))
 
 function handleClick(file: FileItem) {
   if (!isImage(file)) {
@@ -116,15 +69,8 @@ function handleClick(file: FileItem) {
     return
   }
   const idx = imageFiles.value.findIndex(f => f.id === file.id)
-  if (idx !== -1) {
-    lightboxIdx.value = idx
-    nextTick(() => lightboxEl.value?.focus())
-  }
+  if (idx !== -1) lightboxIdx.value = idx
 }
-
-function close() { lightboxIdx.value = null }
-function prev() { if (lightboxIdx.value !== null && lightboxIdx.value > 0) lightboxIdx.value-- }
-function next() { if (lightboxIdx.value !== null && lightboxIdx.value < imageFiles.value.length - 1) lightboxIdx.value++ }
 
 onMounted(async () => {
   try {
