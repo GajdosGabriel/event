@@ -51,11 +51,13 @@ class VenueController extends Controller
             ->with('canal:id,name')
             ->orderByDesc('start_at')
             ->limit(100)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
+            ->get(['id', 'name', 'slug', 'start_at', 'end_at', 'status', 'canal_id']);
 
         return response()->json($events->map(fn ($ev) => [
             'id' => $ev->id,
             'name' => $ev->name,
+            // Pozri Public\CanalController::events() — kanonická adresa karty.
+            'slug' => $ev->slug,
             'start_at' => $ev->start_at,
             'end_at' => $ev->end_at,
             'status' => $ev->status,

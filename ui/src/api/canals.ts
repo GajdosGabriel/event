@@ -43,6 +43,7 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
 export interface CanalEventItem {
   id: number
   name: string
+  slug: string | null
   startAt: string | null
   endAt: string | null
   status: string
@@ -56,6 +57,7 @@ export async function listCanalEvents(scope: Scope | 'public', canalId: number):
   return ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
     id: r['id'] as number,
     name: r['name'] as string,
+    slug: (r['slug'] as string) ?? null,
     startAt: (r['start_at'] as string) ?? null,
     endAt: (r['end_at'] as string) ?? null,
     status: (r['status'] as string) ?? 'draft',

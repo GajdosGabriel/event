@@ -76,15 +76,31 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { indexTags } from '@/api/tags'
 import type { TagGroupItem } from '@/types'
+import { PUBLIC_EVENTS, publicTagPath } from '@/utils/publicUrl'
 
 const route = useRoute()
-const basePath = '/'
+
+/**
+ * Kam vedie „bez štítkov". Na landing stránke obce zostávame na nej — štítok je
+ * tam zúženie mesta, nie odchod z neho.
+ */
+const basePath = computed(() =>
+  route.name === 'events-public-municipality' ? route.path : PUBLIC_EVENTS,
+)
 
 const groups = ref<TagGroupItem[]>([])
 const expanded = ref(false)
 
-/** Aktívne slugy z URL. */
+/**
+ * Aktívne slugy z URL. Jeden štítok má vlastnú landing adresu
+ * (`/podujatia/tema/{slug}`), kombinácia viacerých ostáva v `?tags=` —
+ * kartézsky súčin štítkov by boli tisíce takmer prázdnych stránok.
+ */
 const active = computed<string[]>(() => {
+  if (route.name === 'events-public-tag') {
+    return [String(route.params.slug)]
+  }
+
   const raw = route.query.tags
   if (!raw) return []
   return String(raw).split(',').map((s) => s.trim()).filter(Boolean)
@@ -111,14 +127,20 @@ function linkFor(slug: string) {
 
   const query: LocationQueryRaw = { ...route.query }
   delete query.page
+  delete query.tags
 
-  if (next.length) {
-    query.tags = next.join(',')
-  } else {
-    delete query.tags
+  if (next.length === 0) {
+    return { path: basePath.value, query }
   }
 
-  return { path: basePath, query }
+  // Vlastnú adresu dostane len samotný štítok na neobmedzenom výpise. Vnútri
+  // obce a pri kombinácii viacerých štítkov ostáva filter v `?tags=` — inak by
+  // vznikli tisíce takmer prázdnych priesečníkových stránok.
+  if (next.length === 1 && route.name !== 'events-public-municipality') {
+    return { path: publicTagPath(next[0]!), query }
+  }
+
+  return { path: basePath.value, query: { ...query, tags: next.join(',') } }
 }
 
 onMounted(async () => {

@@ -43,20 +43,19 @@ podujatie sa dá zablokovať fiktívnymi objednávkami.
 
 #### B. Portál dnes nedodá organizátorovi publikum — a to je to, čo si profík kupuje
 
-Profesionál si vyberá platformu podľa dvoch čísel: poplatok a dosah. Dosah je dnes prakticky nulový:
+**Stav k 1. 8. 2026: vyriešené (fáza 1, body 1.1–1.5).** Pôvodná diagnóza a čo ju
+nahradilo:
 
-- SPA sa renderuje až v prehliadači. [ui/index.html](ui/index.html) je prázdna škrupina
-  s `<title>Event</title>`. OG tagy sa dopĺňajú JavaScriptom **až po načítaní**, a to len
-  na detaile podujatia ([EventPublicShowPage.vue:380](ui/src/pages/events/EventPublicShowPage.vue)).
-  Facebook, Messenger, WhatsApp ani LinkedIn JS nespúšťajú → **každé zdieľanie podujatia
-  vyzerá ako holý odkaz bez názvu, popisu a obrázka.** Pre portál s podujatiami je zdieľanie
-  hlavný distribučný kanál.
-- **Žiadne JSON-LD `Event`** → podujatia nemôžu padnúť do Google Events / „čo robiť v okolí".
-- **Žiadny `sitemap.xml`**, `robots.txt` len na API hoste.
-- URL sú `/events/42` — číselné ID, hoci `slug` v DB existuje a nepoužíva sa.
-- **Neexistuje verejná routa so zoznamom podujatí.** Všetko je homepage `/` s query
-  parametrami ([ui/src/router/index.ts:14](ui/src/router/index.ts)) → žiadne indexovateľné
-  stránky typu „koncerty v Košiciach" alebo „podujatia tento víkend".
+| Bolo | Je |
+|---|---|
+| SPA sa renderuje až v prehliadači, `ui/index.html` je prázdna škrupina s `<title>Event</title>`; OG tagy dopĺňal JS až po načítaní, a to len na detaile podujatia → každé zdieľanie vyzeralo ako holý odkaz | [`PrerenderController`](api/app/Http/Controllers/Public/PrerenderController.php) vracia crawlerom serverom vykreslené HTML s plnou `<head>` a čitateľným telom; Apache ich tam púšťa podľa `User-Agent` ([deploy/htaccess.md](deploy/htaccess.md)) |
+| Žiadne JSON-LD `Event` | [`JsonLd`](api/app/Services/Seo/JsonLd.php) — `Event` s `offers` z typov lístkov, `Place`, `Organization`, `ItemList`, `BreadcrumbList` |
+| Žiadny `sitemap.xml`, `robots.txt` len na API hoste | [`SitemapController`](api/app/Http/Controllers/Public/SitemapController.php) (cache 1 h, len živý publikovaný obsah) + [`ui/public/robots.txt`](ui/public/robots.txt) |
+| URL `/events/42` — číselné id, hoci `slug` v DB je | `/podujatia/{slug}-{id}`, `/miesta/…`, `/organizatori/…`; staré adresy presmerúvajú a `canonical` ukazuje na novú. Zdroj pravdy je [`PublicUrl`](api/app/Support/PublicUrl.php) a jeho dvojička [`publicUrl.ts`](ui/src/utils/publicUrl.ts) |
+| Neexistuje verejná routa so zoznamom — všetko je homepage `/` s query parametrami | [`EventListPage`](ui/src/pages/events/EventListPage.vue): `/podujatia`, `/podujatia/mesto/{slug}`, `/podujatia/tema/{slug}`, `/podujatia/tento-vikend`, každá s vlastným `title`, popisom a `canonical` |
+
+Otvorené ostáva 1.6 (ICS export a tlačidlá na zdieľanie) a nasadenie Apache
+pravidiel na produkcii — bez nich crawler stále dostane prázdnu škrupinu.
 
 #### C. Prevádzková podlaha je nižšia, než unesie cudzie peniaze
 
@@ -123,13 +122,13 @@ platobná brána čo spracovať.
 
 | # | Práca | Poznámka |
 |---|---|---|
-| 1.1 | **Bot-render vrstva**: Laravel blade routa, ktorá pre `/podujatia/*`, `/miesta/*`, `/organizatori/*` vráti plnú `<head>` s OG + Twitter + JSON-LD. Apache podľa User-Agent presmeruje crawlerov sem, ľudia idú do SPA | Najmenší zásah — žiadne SSR prepísanie. Alternatíva: prerender verejnej sekcie do statického HTML pri builde |
-| 1.2 | **JSON-LD `Event`** — `name`, `startDate`, `endDate`, `location` (Venue má lat/lng), `image`, `organizer`, `offers` (cena + `availability` z `remaining_capacity`) | Vstupenka do Google Events |
-| 1.3 | **Slug URL** `/podujatia/{slug}-{id}` + 301 z `/events/{id}` | `slug` už v DB je |
-| 1.4 | **`sitemap.xml`** z publikovaných podujatí, kanálov, miest a landing stránok + `robots.txt` na UI hoste | Laravel routa, cache 1 h |
-| 1.5 | **Indexovateľné landing stránky**: `/podujatia/{mesto}`, `/podujatia/{stitok}`, `/podujatia/tento-vikend` s vlastným title/description a JSON-LD `ItemList` | Dáta už existujú — `Municipality`, `Tag`, `scopeByDateRange` |
+| 1.1 | ~~**Bot-render vrstva**~~ **HOTOVÉ** | [`PrerenderController`](api/app/Http/Controllers/Public/PrerenderController.php) + [šablóny](api/resources/views/prerender). **Zostáva nasadiť Apache pravidlá** — postup v [deploy/htaccess.md](deploy/htaccess.md) |
+| 1.2 | ~~**JSON-LD `Event`**~~ **HOTOVÉ** | [`JsonLd`](api/app/Services/Seo/JsonLd.php). `offers` berie cenu a `availability` z typov lístkov, s fallbackom na `price_amount` |
+| 1.3 | ~~**Slug URL** `/podujatia/{slug}-{id}`~~ **HOTOVÉ** | Routuje sa len id za poslednou pomlčkou, takže odkaz prežije premenovanie. Staré `/events/{id}` presmerúva SPA; 301 na úrovni Apache je súčasťou nasadenia 1.1 |
+| 1.4 | ~~**`sitemap.xml`** + `robots.txt`~~ **HOTOVÉ** | [`SitemapController`](api/app/Http/Controllers/Public/SitemapController.php), cache 1 h; obce a štítky sú v mape len ak majú živé podujatia |
+| 1.5 | ~~**Indexovateľné landing stránky**~~ **HOTOVÉ** | [`EventListPage`](ui/src/pages/events/EventListPage.vue). Obce dostali `slug` (migrácia `add_slug_to_municipalities_table`), víkendové okno drží [`EventTimeframe`](api/app/Support/EventTimeframe.php) pre SPA aj prerender |
 | 1.6 | **ICS export** (`/podujatia/{id}.ics`) + „Pridať do kalendára" + tlačidlá na zdieľanie | |
-| 1.7 | Dátumový filter a počet výsledkov na verejnom zozname | `scopeByDateRange` existuje, verejný controller ho neposiela |
+| 1.7 | ~~Počet výsledkov na verejnom zozname~~ **HOTOVÉ**; dátumový filter v UI ostáva | Verejný controller už berie `range=weekend` (`date_from`/`date_to`), chýba len ovládanie v rozhraní |
 
 ### Fáza 2 — Peniaze (~6–10 týždňov)
 
@@ -190,14 +189,18 @@ cd api && php artisan test tests/Feature/Events tests/Feature/Tickets
   Doplniť test do `api/tests/Feature/Events/`.
 - **Fronta (0.4):** `php artisan queue:work --once` a overiť, že notifikácia odíde;
   na produkcii skontrolovať tabuľku `jobs`, či sa nehromadí.
-- **Bot render (1.1–1.2):**
+- **Dosah (1.1–1.5):** `cd api && php artisan test tests/Feature/Seo` pokrýva OG tagy,
+  JSON-LD, sanitizáciu `body`, kanonickú adresu zo starej číselnej cesty aj obsah
+  sitemapy. Po nasadení Apache pravidiel ešte na produkcii:
   ```bash
-  curl -A "facebookexternalhit/1.1" https://event.hlascirkvi.sk/podujatia/42 | head -40
+  curl -A "facebookexternalhit/1.1" https://event.hlascirkvi.sk/podujatia/nazov-42 | head -40
+  curl -s https://event.hlascirkvi.sk/sitemap.xml | head -20
   ```
-  musí vrátiť `og:title`, `og:image` a `application/ld+json` **v HTML odpovedi**, nie až po JS.
-  Potom overiť cez Facebook Sharing Debugger a Google Rich Results Test.
-- **Sitemap (1.4):** `curl https://event.hlascirkvi.sk/sitemap.xml` — validné XML,
-  obsahuje len publikované podujatia.
+  Prvé musí vrátiť `og:title`, `og:image` a `application/ld+json` **v HTML odpovedi**,
+  nie až po JS; druhé validné XML len s publikovanými podujatiami. Potom Facebook
+  Sharing Debugger, Google Rich Results Test a odoslanie sitemapy v Search Console.
+  Detailný postup a riešenie, keď interný prepis na `/api/` nefunguje:
+  [deploy/htaccess.md](deploy/htaccess.md).
 
 Po každej fáze: `cd ui && npm run build` a **commitnúť `ui/dist`** — inak sa na produkciu
 nasadí starý frontend (pozri [README.md](README.md)).

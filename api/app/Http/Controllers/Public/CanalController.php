@@ -72,11 +72,14 @@ class CanalController extends Controller
             ->with('canal')
             ->orderByDesc('start_at')
             ->limit(100)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
+            ->get(['id', 'name', 'slug', 'start_at', 'end_at', 'status', 'canal_id']);
 
         return response()->json($events->map(fn ($ev) => [
             'id' => $ev->id,
             'name' => $ev->name,
+            // Slug ide von, aby karta odkazovala na kanonickú adresu
+            // `/podujatia/{slug}-{id}` a nie na holé číslo.
+            'slug' => $ev->slug,
             'start_at' => $ev->start_at,
             'end_at' => $ev->end_at,
             'status' => $ev->status,

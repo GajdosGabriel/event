@@ -1,0 +1,445 @@
+<?php
+
+namespace App\Http\Controllers\Public;
+
+use App\Enums\ModelStatus;
+use App\Http\Controllers\Controller;
+use App\Models\Canal;
+use App\Models\Event;
+use App\Models\Municipality;
+use App\Models\Tag;
+use App\Models\Venue;
+use App\Services\Imports\HtmlBodyCleaner;
+use App\Services\Seo\JsonLd;
+use App\Support\EventTimeframe;
+use App\Support\PublicUrl;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+
+/**
+ * Bot-render vrstva.
+ *
+ * SPA sa renderuje až v prehliadači, takže Facebook, Messenger, WhatsApp,
+ * LinkedIn ani vyhľadávače z nej nevidia nič — každé zdieľanie podujatia
+ * vyzeralo ako holý odkaz. Táto routa vráti tú istú stránku ako serverom
+ * vykreslené HTML: plnú `<head>` s OG/Twitter, JSON-LD a čitateľné telo.
+ *
+ * Apache sem podľa `User-Agent` presmeruje crawlerov, ľudia idú do SPA
+ * (pravidlá a postup nasadenia: `deploy/htaccess.md` v koreni repozitára).
+ * Cesta chodí v `?path=`, aby routa nemusela zrkadliť router SPA.
+ *
+ * `canonical` je vždy slugová adresa — crawler smie doraziť aj na starú
+ * `/events/42`, indexovať sa má nová.
+ */
+class PrerenderController extends Controller
+{
+    /** Koľko podujatí ukáže výpis. Crawler potrebuje odkazy, nie stránkovanie. */
+    private const LIST_LIMIT = 60;
+
+    /**
+     * Facebook si pri zdieľaní ťahá stránku opakovane a v nárazoch. Minútová
+     * cache drží náraz mimo DB a zároveň je dosť krátka na to, aby sa oprava
+     * názvu prejavila skôr, než si ju stihne niekto všimnúť.
+     */
+    private const CACHE_SECONDS = 300;
+
+    public function __invoke(Request $request, JsonLd $jsonLd): Response
+    {
+        $path = $this->normalizePath((string) $request->query('path', '/'));
+
+        $render = fn () => $this->render($path, $jsonLd);
+
+        [$html, $status] = app()->hasDebugModeEnabled()
+            ? $render()
+            : Cache::remember("prerender:{$path}", self::CACHE_SECONDS, $render);
+
+        return response($html, $status)
+            ->header('Content-Type', 'text/html; charset=utf-8')
+            // Crawler nikdy nie je prihlásený a odpoveď nezávisí od cookie —
+            // nech ju smie držať aj proxy pred aplikáciou.
+            ->header('Cache-Control', 'public, max-age=300');
+    }
+
+    /**
+     * @return array{0: string, 1: int}
+     */
+    private function render(string $path, JsonLd $jsonLd): array
+    {
+        $view = $this->resolve($path, $jsonLd);
+
+        return $view === null
+            ? [$this->notFound()->render(), 404]
+            : [$view->render(), 200];
+    }
+
+    private function resolve(string $path, JsonLd $jsonLd): ?View
+    {
+        $segments = $path === '' ? [] : explode('/', $path);
+        $first = $segments[0] ?? '';
+
+        return match (true) {
+            $segments === [], $first === PublicUrl::EVENTS => $this->eventsBranch($segments, $jsonLd),
+            $first === PublicUrl::VENUES || $first === 'venues' => $this->venue($segments[1] ?? '', $jsonLd),
+            $first === PublicUrl::CANALS || $first === 'canals' => $this->canal($segments[1] ?? '', $jsonLd),
+            $first === 'events' => $this->event($segments[1] ?? '', $jsonLd),
+            default => null,
+        };
+    }
+
+    /**
+     * `/podujatia/*` nesie detail aj tri landing výpisy. Rozlišuje ich druhý
+     * segment: `mesto`/`tema`/`tento-vikend` sú výpisy, čokoľvek končiace na
+     * `-{id}` je detail.
+     */
+    private function eventsBranch(array $segments, JsonLd $jsonLd): ?View
+    {
+        $second = $segments[1] ?? null;
+
+        return match (true) {
+            $second === null => $this->eventList($jsonLd),
+            $second === PublicUrl::THIS_WEEKEND => $this->weekendList($jsonLd),
+            $second === PublicUrl::BY_MUNICIPALITY => $this->municipalityList($segments[2] ?? '', $jsonLd),
+            $second === PublicUrl::BY_TAG => $this->tagList($segments[2] ?? '', $jsonLd),
+            default => $this->event($second, $jsonLd),
+        };
+    }
+
+    private function event(string $segment, JsonLd $jsonLd): ?View
+    {
+        $id = PublicUrl::idFromSegment($segment);
+
+        if ($id === null) {
+            return null;
+        }
+
+        /** @var Event|null $event */
+        $event = Event::query()
+            ->with([
+                'canal:id,name,slug,website',
+                'venue' => fn ($query) => $query->with('municipality'),
+                'files',
+                'tags',
+                'ticketTypes' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order'),
+            ])
+            ->where('status', ModelStatus::Published->value)
+            ->find($id);
+
+        if (! $event) {
+            return null;
+        }
+
+        $description = $this->description(
+            $event->body ?? $event->body_ai,
+            trim(implode(' · ', array_filter([
+                $event->start_at?->translatedFormat('j. F Y, H:i'),
+                $event->venue?->name,
+                $event->municipality?->shortname,
+            ]))),
+        );
+
+        return view('prerender.event', [
+            'meta' => $this->meta(
+                title: $event->name,
+                description: $description,
+                canonical: PublicUrl::event($event),
+                image: $event->has_primary_image ? $event->primary_image['large'] : null,
+                type: 'article',
+            ),
+            'event' => $event,
+            'bodyHtml' => $this->safeBody($event->body ?? $event->body_ai),
+            'structuredData' => [
+                $jsonLd->event($event),
+                $jsonLd->breadcrumbs([
+                    ['name' => 'Podujatia', 'url' => PublicUrl::events()],
+                    ['name' => $event->name, 'url' => PublicUrl::event($event)],
+                ]),
+            ],
+        ]);
+    }
+
+    private function venue(string $segment, JsonLd $jsonLd): ?View
+    {
+        $id = PublicUrl::idFromSegment($segment);
+
+        if ($id === null) {
+            return null;
+        }
+
+        /** @var Venue|null $venue */
+        $venue = Venue::query()
+            ->with(['municipality', 'files'])
+            ->where('status', ModelStatus::Published->value)
+            ->find($id);
+
+        if (! $venue) {
+            return null;
+        }
+
+        $events = $this->upcomingEvents(fn (Builder $query) => $query->where('venue_id', $venue->id));
+
+        return view('prerender.venue', [
+            'meta' => $this->meta(
+                title: $venue->name,
+                description: $this->description(
+                    $venue->body,
+                    trim(implode(', ', array_filter([$venue->street, $venue->municipality?->shortname])))
+                        ?: "Podujatia na mieste {$venue->name}.",
+                ),
+                canonical: PublicUrl::venue($venue),
+                image: $venue->has_primary_image ? $venue->primary_image['large'] : null,
+            ),
+            'venue' => $venue,
+            'bodyHtml' => $this->safeBody($venue->body),
+            'events' => $events,
+            'structuredData' => [
+                $jsonLd->venue($venue),
+                $jsonLd->eventList($events, PublicUrl::venue($venue), "Podujatia — {$venue->name}"),
+            ],
+        ]);
+    }
+
+    private function canal(string $segment, JsonLd $jsonLd): ?View
+    {
+        $id = PublicUrl::idFromSegment($segment);
+
+        if ($id === null) {
+            return null;
+        }
+
+        /** @var Canal|null $canal */
+        $canal = Canal::query()
+            ->with('files')
+            ->where('status', ModelStatus::Published->value)
+            ->find($id);
+
+        if (! $canal) {
+            return null;
+        }
+
+        $events = $this->upcomingEvents(fn (Builder $query) => $query->where('canal_id', $canal->id));
+
+        return view('prerender.canal', [
+            'meta' => $this->meta(
+                title: $canal->name,
+                description: $this->description($canal->body, "Podujatia organizátora {$canal->name}."),
+                canonical: PublicUrl::canal($canal),
+                image: $canal->has_primary_image ? $canal->primary_image['large'] : null,
+            ),
+            'canal' => $canal,
+            'bodyHtml' => $this->safeBody($canal->body),
+            'events' => $events,
+            'structuredData' => [
+                $jsonLd->canal($canal),
+                $jsonLd->eventList($events, PublicUrl::canal($canal), "Podujatia — {$canal->name}"),
+            ],
+        ]);
+    }
+
+    private function eventList(JsonLd $jsonLd): View
+    {
+        return $this->list(
+            heading: 'Podujatia',
+            title: 'Podujatia na Slovensku',
+            description: 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.',
+            canonical: PublicUrl::events(),
+            events: $this->upcomingEvents(),
+            jsonLd: $jsonLd,
+        );
+    }
+
+    private function weekendList(JsonLd $jsonLd): View
+    {
+        [$from, $to] = EventTimeframe::thisWeekend();
+
+        $events = $this->upcomingEvents(
+            fn (Builder $query) => $query->whereBetween('start_at', [max(now(), $from), $to]),
+        );
+
+        return $this->list(
+            heading: 'Podujatia tento víkend',
+            title: 'Podujatia tento víkend',
+            description: sprintf(
+                'Čo sa deje %s – %s: koncerty, divadlo, workshopy a podujatia pre rodiny.',
+                $from->format('j. n.'),
+                $to->format('j. n. Y'),
+            ),
+            canonical: PublicUrl::thisWeekend(),
+            events: $events,
+            jsonLd: $jsonLd,
+        );
+    }
+
+    private function municipalityList(string $slug, JsonLd $jsonLd): ?View
+    {
+        $municipality = Municipality::query()->where('slug', $slug)->first();
+
+        if (! $municipality) {
+            return null;
+        }
+
+        $events = $this->upcomingEvents(
+            fn (Builder $query) => $query->whereHas('venue', fn (Builder $venue) => $venue->where('village_id', $municipality->id)),
+        );
+
+        return $this->list(
+            heading: "Podujatia — {$municipality->shortname}",
+            title: "Podujatia v obci {$municipality->shortname}",
+            description: "Nadchádzajúce podujatia v obci {$municipality->shortname} a okolí — koncerty, divadlo, workshopy.",
+            canonical: PublicUrl::municipality($municipality),
+            events: $events,
+            jsonLd: $jsonLd,
+        );
+    }
+
+    private function tagList(string $slug, JsonLd $jsonLd): ?View
+    {
+        $tag = Tag::query()->where('slug', $slug)->first();
+
+        if (! $tag) {
+            return null;
+        }
+
+        $events = $this->upcomingEvents(
+            fn (Builder $query) => $query->whereHas('tags', fn (Builder $tags) => $tags->where('tags.id', $tag->id)),
+        );
+
+        return $this->list(
+            heading: "Podujatia — {$tag->name}",
+            title: "{$tag->name} — podujatia",
+            description: "Nadchádzajúce podujatia so štítkom {$tag->name}.",
+            canonical: PublicUrl::tag($tag),
+            events: $events,
+            jsonLd: $jsonLd,
+        );
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     */
+    private function list(
+        string $heading,
+        string $title,
+        string $description,
+        string $canonical,
+        Collection $events,
+        JsonLd $jsonLd,
+    ): View {
+        return view('prerender.list', [
+            'meta' => $this->meta($title, $description, $canonical, $this->listImage($events), type: 'website'),
+            'heading' => $heading,
+            'events' => $events,
+            'structuredData' => [$jsonLd->eventList($events, $canonical, $heading)],
+        ]);
+    }
+
+    /**
+     * @param  (callable(Builder): Builder)|null  $filter
+     * @return Collection<int, Event>
+     */
+    private function upcomingEvents(?callable $filter = null): Collection
+    {
+        $query = Event::query()
+            ->with([
+                'canal:id,name,slug',
+                'venue' => fn ($relation) => $relation->with('municipality'),
+                'files',
+            ])
+            ->where('status', ModelStatus::Published->value)
+            ->where(function (Builder $timeframe) {
+                $timeframe->where('end_at', '>=', now())
+                    ->orWhere(function (Builder $inner) {
+                        $inner->whereNull('end_at')->where('start_at', '>=', now()->startOfDay());
+                    });
+            })
+            ->orderBy('start_at');
+
+        if ($filter) {
+            $filter($query);
+        }
+
+        return $query->limit(self::LIST_LIMIT)->get();
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     */
+    private function listImage(Collection $events): ?string
+    {
+        $withImage = $events->first(fn (Event $event) => $event->has_primary_image);
+
+        return $withImage ? $withImage->primary_image['large'] : null;
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function meta(
+        string $title,
+        ?string $description,
+        string $canonical,
+        ?string $image = null,
+        string $type = 'website',
+    ): array {
+        return [
+            'title' => $title,
+            'site_title' => $title.' | '.config('app.name'),
+            'description' => $description,
+            'canonical' => $canonical,
+            'image' => $image,
+            'type' => $type,
+        ];
+    }
+
+    private function notFound(): View
+    {
+        return view('prerender.list', [
+            'meta' => $this->meta(
+                title: 'Stránka sa nenašla',
+                description: 'Podujatie už nie je zverejnené alebo bola adresa zadaná nesprávne.',
+                canonical: PublicUrl::events(),
+            ),
+            'heading' => 'Stránka sa nenašla',
+            'events' => collect(),
+            'structuredData' => [],
+        ]);
+    }
+
+    /**
+     * `body` sa dnes ukladá bez sanitizácie (ROADMAP 0.1), takže surové HTML
+     * z DB sa sem nesmie dostať — prerender je verejná HTML odpoveď, nie JSON.
+     * `HtmlBodyCleaner` už v projekte je, len bežal iba na importe a AI výstupe.
+     */
+    private function safeBody(?string $html): ?string
+    {
+        $html = trim((string) $html);
+
+        if ($html === '') {
+            return null;
+        }
+
+        return app(HtmlBodyCleaner::class)->cleanHtmlString($html) ?: null;
+    }
+
+    private function description(?string $html, string $fallback): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $html)) ?? '');
+
+        return $text !== '' ? mb_strimwidth($text, 0, 200, '…') : $fallback;
+    }
+
+    /**
+     * Cesta zo SPA hostu: bez domény, bez query, bez lomiek navyše. Prerender
+     * z nej robí kľúč do cache aj vstup do routovania, takže musí byť
+     * jednoznačná — inak by `/podujatia/` a `/podujatia` boli dva záznamy.
+     */
+    private function normalizePath(string $path): string
+    {
+        $path = (string) parse_url($path, PHP_URL_PATH);
+
+        return trim(rawurldecode($path), '/');
+    }
+}

@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TagItem } from '@/types'
+import { publicEventPath } from '@/utils/publicUrl'
 
 /** Viac čipov než toľko kartu rozbije — zvyšok sa zhrnie do „+N". */
 const MAX_VISIBLE_TAGS = 3
@@ -77,6 +78,8 @@ const CARD_IMAGE_SIZES = '(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100v
 const props = defineProps<{
   id: number
   name: string
+  /** Slug do kanonickej adresy `/podujatia/{slug}-{id}`. */
+  slug?: string | null
   imageUrl?: string | null
   /** Veľký variant; bez neho sa srcset nevykreslí a použije sa len `imageUrl`. */
   imageUrlLarge?: string | null
@@ -89,7 +92,7 @@ const props = defineProps<{
   to?: string
 }>()
 
-const link = computed(() => props.to ?? `/events/${props.id}`)
+const link = computed(() => props.to ?? publicEventPath({ id: props.id, slug: props.slug }))
 
 // Deskriptory zodpovedajú dlhšej hrane variantov z ImageVariantGenerator
 // (thumb 320, large 1280). Pri portrétovom plagáte je skutočná šírka menšia,

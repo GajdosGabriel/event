@@ -30,8 +30,11 @@ class MunicipalityOverviewQuery
             ->reorder()
             ->join('municipalities', 'municipalities.id', '=', $municipalityColumn)
             ->whereNotNull($municipalityColumn)
-            ->selectRaw("{$municipalityColumn} as municipality_id, municipalities.fullname as municipality_name, municipalities.shortname as municipality_shortname, municipalities.region_id as region_id, {$regionNameExpression} as region_name, {$countExpression} as events_count")
-            ->groupBy($municipalityColumn, 'municipalities.fullname', 'municipalities.shortname', 'municipalities.region_id')
+            // Slug ide von spolu s názvom, aby verejný facet vedel odkazovať na
+            // indexovateľnú landing stránku `/podujatia/mesto/{slug}` namiesto
+            // `?municipality={id}` — inak by filter obce nikdy nemal vlastnú URL.
+            ->selectRaw("{$municipalityColumn} as municipality_id, municipalities.fullname as municipality_name, municipalities.shortname as municipality_shortname, municipalities.slug as municipality_slug, municipalities.region_id as region_id, {$regionNameExpression} as region_name, {$countExpression} as events_count")
+            ->groupBy($municipalityColumn, 'municipalities.fullname', 'municipalities.shortname', 'municipalities.slug', 'municipalities.region_id')
             ->orderByDesc('events_count')
             ->orderBy('municipalities.fullname');
     }

@@ -33,6 +33,21 @@ export async function listPublicMunicipalities(): Promise<LookupOption[]> {
   return (data.data ?? data) as LookupOption[]
 }
 
+/**
+ * Obec podľa slugu — landing stránka `/podujatia/mesto/{slug}` z nej berie
+ * čitateľný názov do nadpisu a `title`. Neznámy slug vracia 404.
+ */
+export async function showPublicMunicipality(slug: string): Promise<{ id: number; name: string; slug: string }> {
+  const { data } = await http.get(`/municipalities/${slug}`)
+  const raw = (data.data ?? data) as Record<string, unknown>
+
+  return {
+    id: raw['id'] as number,
+    name: raw['name'] as string,
+    slug: raw['slug'] as string,
+  }
+}
+
 export async function indexMunicipalities(
   scope: MunicipalityScope,
   params?: Record<string, unknown>,

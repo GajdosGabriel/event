@@ -93,6 +93,7 @@ export async function detectVenue(
 export interface VenueEventItem {
   id: number
   name: string
+  slug: string | null
   startAt: string | null
   endAt: string | null
   status: string
@@ -105,6 +106,7 @@ function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
   return {
     id: r['id'] as number,
     name: r['name'] as string,
+    slug: (r['slug'] as string) ?? null,
     startAt: (r['start_at'] as string) ?? null,
     endAt: (r['end_at'] as string) ?? null,
     status: (r['status'] as string) ?? 'draft',

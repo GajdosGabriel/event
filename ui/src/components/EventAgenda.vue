@@ -9,7 +9,7 @@
       <RouterLink
         v-for="event in group.events"
         :key="event.id"
-        :to="`/events/${event.id}`"
+        :to="publicEventPath(event)"
         class="flex gap-4 border-b border-dotted border-slate-300 px-4 py-3 no-underline transition-colors last:border-b-0 hover:bg-slate-50"
       >
         <!-- Náhľad je 96 px (112 px od `sm`). Thumb má 320 px, takže pokryje aj
@@ -48,6 +48,7 @@
 import { computed } from 'vue'
 import type { EventItem } from '@/types'
 import { dayName, fmtDate } from '@/utils/dateFormat'
+import { publicEventPath } from '@/utils/publicUrl'
 
 const props = defineProps<{ events: EventItem[] }>()
 

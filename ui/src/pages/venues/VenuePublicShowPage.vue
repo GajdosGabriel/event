@@ -73,6 +73,7 @@
                   v-for="ev in events"
                   :key="ev.id"
                   :id="ev.id"
+                  :slug="ev.slug"
                   :name="ev.name"
                   :image-url="ev.imageUrl"
                   :image-url-large="ev.imageUrlLarge"
@@ -135,15 +136,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@vueuse/head'
 import { showVenuePublic, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import type { VenueItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import EventCard from '@/components/EventCard.vue'
+import { absoluteUrl, idFromRouteParam, publicVenuePath } from '@/utils/publicUrl'
 
 const route = useRoute()
-const venueId = computed(() => Number(route.params.id))
+const router = useRouter()
+const venueId = computed(() => Number(idFromRouteParam(route.params.slugId)))
 
 const venue = ref<VenueItem | null>(null)
 const loading = ref(false)
@@ -158,10 +162,42 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+// Miesto doteraz nemalo žiadne meta tagy — zdieľaný odkaz na klub či kultúrny
+// dom vyzeral ako holá adresa bez názvu aj obrázka.
+useHead(computed(() => {
+  const v = venue.value
+  if (!v) return { title: 'Načítavam…' }
+
+  const description = v.body
+    ? v.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
+    : `Podujatia na mieste ${v.name}.`
+  const url = absoluteUrl(publicVenuePath(v))
+
+  return {
+    title: `${v.name} | Event`,
+    link: [{ rel: 'canonical', href: url }],
+    meta: [
+      { name: 'description', content: description },
+      { property: 'og:type', content: 'place' },
+      { property: 'og:title', content: v.name },
+      { property: 'og:description', content: description },
+      { property: 'og:url', content: url },
+      ...(v.imageUrl ? [{ property: 'og:image', content: v.imageUrl }] : []),
+      { name: 'twitter:card', content: v.imageUrl ? 'summary_large_image' : 'summary' },
+    ],
+  }
+}))
+
 onMounted(async () => {
   loading.value = true
   try {
     venue.value = await showVenuePublic(venueId.value)
+
+    const canonicalPath = publicVenuePath(venue.value)
+    if (route.path !== canonicalPath) {
+      router.replace(canonicalPath)
+    }
+
     eventsLoading.value = true
     events.value = await listVenueEvents('public', venueId.value)
   }

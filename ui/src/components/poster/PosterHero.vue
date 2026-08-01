@@ -52,7 +52,7 @@
         <p v-if="expanded" id="poster-hero-details" class="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
           Nahrajte PDF, Word, fotku plagátu alebo len text pozvánky. Prečítame z neho termín, miesto
           aj organizátora, napojíme podujatie na existujúce miesto či kanál a ukážeme vám, čo sme
-          našli a čo treba doplniť. Účet si vypýtame až na konci, pri ukladaní.
+          našli a čo treba doplniť. Podujatie hneď zverejníme.
         </p>
       </div>
 

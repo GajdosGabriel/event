@@ -50,7 +50,7 @@
             :key="item.municipalityId"
             :class="{ 'item-active': active === item.municipalityId }"
           >
-            <RouterLink :to="linkFor(item.municipalityId)" class="item-row">
+            <RouterLink :to="linkFor(item)" class="item-row">
               <span class="link">{{ item.municipalityName }}</span>
               <span class="count">{{ item.eventsCount }}</span>
             </RouterLink>
@@ -65,6 +65,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import http from '@/api/index'
+import { PUBLIC_EVENTS, publicMunicipalityPath } from '@/utils/publicUrl'
 
 const props = defineProps<{
   scope: 'dashboard' | 'admin' | 'public'
@@ -74,6 +75,8 @@ const props = defineProps<{
 interface MunItem {
   municipalityId: number
   municipalityName: string
+  /** Slug pre verejnú landing adresu; dashboard/admin ho nepoužívajú. */
+  municipalitySlug: string | null
   eventsCount: number
   regionId: number
   regionName: string
@@ -95,9 +98,25 @@ const loading = ref(false)
 const openRegions = ref<Set<number>>(new Set())
 
 const basePath = computed(() =>
-  props.scope === 'public' ? '/' : `/${props.scope}/${props.resource}`
+  props.scope === 'public' ? PUBLIC_EVENTS : `/${props.scope}/${props.resource}`
 )
-const active = computed(() => route.query.municipality ? Number(route.query.municipality) : null)
+
+/**
+ * Vo verejnom rozsahu je zvolená obec segmentom cesty
+ * (`/podujatia/mesto/{slug}`), nie query parametrom — filter tak má vlastnú
+ * indexovateľnú adresu. Dashboard a admin ostávajú na `?municipality={id}`,
+ * ich zoznamy do vyhľadávača nepatria.
+ */
+const activeSlug = computed(() => (route.params.slug as string | undefined) ?? null)
+
+const active = computed(() => {
+  if (props.scope === 'public') {
+    const bySlug = items.value.find((item) => item.municipalitySlug === activeSlug.value)
+    return bySlug?.municipalityId ?? null
+  }
+
+  return route.query.municipality ? Number(route.query.municipality) : null
+})
 
 const groups = computed<RegionGroup[]>(() => {
   const byRegion = new Map<number, RegionGroup>()
@@ -139,9 +158,14 @@ function openActiveRegion() {
   }
 }
 
-function linkFor(id: number) {
-  if (active.value === id) return basePath.value
-  return { path: basePath.value, query: { municipality: id } }
+function linkFor(item: MunItem) {
+  if (active.value === item.municipalityId) return basePath.value
+
+  if (props.scope === 'public' && item.municipalitySlug) {
+    return publicMunicipalityPath(item.municipalitySlug)
+  }
+
+  return { path: basePath.value, query: { municipality: item.municipalityId } }
 }
 
 async function load() {
@@ -154,6 +178,7 @@ async function load() {
     items.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
       municipalityId: r['municipality_id'] as number,
       municipalityName: (r['municipality_name'] ?? r['municipality_shortname']) as string,
+      municipalitySlug: (r['municipality_slug'] as string) ?? null,
       eventsCount: r['events_count'] as number,
       regionId: Number(r['region_id'] ?? 0),
       regionName: (r['region_name'] as string) ?? 'Ostatné',

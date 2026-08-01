@@ -212,7 +212,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { showPublicEvent } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
@@ -223,8 +223,10 @@ import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
+import { absoluteUrl, idFromRouteParam, publicEventPath } from '@/utils/publicUrl'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const event = ref<EventItem | null>(null)
 const ticketTypes = ref<TicketTypeItem[]>([])
@@ -343,10 +345,14 @@ useHead(computed(() => {
   const description = e.body
     ? e.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
     : e.dateRangeLabel ? `${e.dateRangeLabel}${e.venue ? ` · ${e.venue.name}` : ''}` : title
-  const image = e.imageUrl ?? undefined
-  const url = window.location.href
+  const image = e.imageUrlLarge ?? e.imageUrl ?? undefined
+  // Kanonická adresa, nie `window.location.href` — ten nesie aj parametre
+  // z kampaní (`?fbclid=…`) a zo starej číselnej cesty, čo by z jedného
+  // podujatia urobilo v indexe niekoľko rôznych stránok.
+  const url = absoluteUrl(publicEventPath(e))
   return {
     title: `${title} | Event`,
+    link: [{ rel: 'canonical', href: url }],
     meta: [
       { name: 'description', content: description },
       { property: 'og:title', content: title },
@@ -365,7 +371,15 @@ useHead(computed(() => {
 onMounted(async () => {
   loading.value = true
   try {
-    const ev = await showPublicEvent(route.params.id as string)
+    const ev = await showPublicEvent(idFromRouteParam(route.params.slugId))
+
+    // Adresa sa zosúladí s kanonickou podobou — na detail sa dá doraziť aj
+    // zo starého číselného odkazu alebo so zastaraným slugom po premenovaní.
+    // `replace`, nie `push`: v histórii nemá vzniknúť krok navyše.
+    const canonicalPath = publicEventPath(ev)
+    if (route.path !== canonicalPath) {
+      router.replace(canonicalPath)
+    }
 
     // Typy lístkov (vrátane workshopov) načítame tu — používa ich sekcia
     // workshopov aj registračný formulár, aby sa nerobili dva rovnaké requesty.

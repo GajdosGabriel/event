@@ -23,7 +23,7 @@
     <ul v-if="open" class="m-0 list-none divide-y divide-dashed divide-slate-100 border-t border-slate-100 p-0">
       <li v-for="event in events" :key="event.id">
         <RouterLink
-          :to="`/events/${event.id}`"
+          :to="publicEventPath(event)"
           class="flex items-baseline gap-3 px-4 py-1.5 no-underline hover:bg-slate-50"
         >
           <span class="min-w-0 truncate text-sm text-slate-700 hover:underline">{{ event.name }}</span>
@@ -39,6 +39,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
 import { fmtDate } from '@/utils/dateFormat'
+import { publicEventPath } from '@/utils/publicUrl'
 import { useSettings } from '@/composables/useSettings'
 
 const props = defineProps<{ municipality?: number | null }>()

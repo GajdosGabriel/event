@@ -59,6 +59,7 @@
                   v-for="ev in events"
                   :key="ev.id"
                   :id="ev.id"
+                  :slug="ev.slug"
                   :name="ev.name"
                   :image-url="ev.imageUrl"
                   :image-url-large="ev.imageUrlLarge"
@@ -121,14 +122,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@vueuse/head'
 import { showCanalPublic, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import ContactButton from '@/components/ContactButton.vue'
 import EventCard from '@/components/EventCard.vue'
+import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
 
 const route = useRoute()
+const router = useRouter()
 const canal = ref<CanalItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
@@ -137,11 +141,43 @@ const eventsLoading = ref(false)
 
 function formatDate(d: string) { return new Date(d).toLocaleDateString('sk-SK') }
 
+// Organizátor doteraz nemal žiadne meta tagy — pri zdieľaní jeho profilu
+// nevidel Facebook ani názov kanála.
+useHead(computed(() => {
+  const c = canal.value
+  if (!c) return { title: 'Načítavam…' }
+
+  const description = c.body
+    ? c.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
+    : `Podujatia organizátora ${c.name}.`
+  const url = absoluteUrl(publicCanalPath(c))
+
+  return {
+    title: `${c.name} | Event`,
+    link: [{ rel: 'canonical', href: url }],
+    meta: [
+      { name: 'description', content: description },
+      { property: 'og:type', content: 'profile' },
+      { property: 'og:title', content: c.name },
+      { property: 'og:description', content: description },
+      { property: 'og:url', content: url },
+      ...(c.imageUrl ? [{ property: 'og:image', content: c.imageUrl }] : []),
+      { name: 'twitter:card', content: c.imageUrl ? 'summary_large_image' : 'summary' },
+    ],
+  }
+}))
+
 onMounted(async () => {
-  const id = Number(route.params.id)
+  const id = Number(idFromRouteParam(route.params.slugId))
   loading.value = true
   try {
     canal.value = await showCanalPublic(id)
+
+    const canonicalPath = publicCanalPath(canal.value)
+    if (route.path !== canonicalPath) {
+      router.replace(canonicalPath)
+    }
+
     eventsLoading.value = true
     events.value = await listCanalEvents('public', id)
   }

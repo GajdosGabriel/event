@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
+const EventListPage = () => import('@/pages/events/EventListPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,7 +17,36 @@ const router = createRouter({
         { path: 'register', name: 'register', component: () => import('@/pages/auth/RegisterPage.vue') },
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
         { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
-        { path: 'events/:id', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
+        // Verejný katalóg. Statické segmenty (`tento-vikend`, `mesto`, `tema`)
+        // sú landing stránky s vlastným title a popisom — bez nich existoval
+        // zoznam podujatí len ako homepage s query parametrami, ktorú nemá
+        // vyhľadávač ako indexovať.
+        { path: 'podujatia', name: 'events-public-index', component: EventListPage },
+        { path: 'podujatia/tento-vikend', name: 'events-public-weekend', component: EventListPage, props: { variant: 'weekend' } },
+        {
+          path: 'podujatia/mesto/:slug',
+          name: 'events-public-municipality',
+          component: EventListPage,
+          props: (route) => ({ variant: 'municipality', slug: route.params.slug }),
+        },
+        {
+          path: 'podujatia/tema/:slug',
+          name: 'events-public-tag',
+          component: EventListPage,
+          props: (route) => ({ variant: 'tag', slug: route.params.slug }),
+        },
+        // `:slugId` je `{slug}-{id}`; routuje sa len id za poslednou pomlčkou,
+        // takže odkaz prežije premenovanie aj holé číslo zo starej adresy.
+        { path: 'podujatia/:slugId', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
+        { path: 'miesta/:slugId', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },
+        { path: 'organizatori/:slugId', name: 'canal-public-show', component: () => import('@/pages/canals/CanalPublicShowPage.vue') },
+
+        // Pôvodné číselné adresy. Sú rozposlané v e-mailoch a zdieľané, takže
+        // musia ostať funkčné; kanonickú podobu z nich urobí presmerovanie
+        // (na produkcii navyše 301 v .htaccess — pozri deploy/htaccess.md).
+        { path: 'events/:id', redirect: (to) => `/podujatia/${to.params.id}` },
+        { path: 'venues/:id', redirect: (to) => `/miesta/${to.params.id}` },
+        { path: 'canals/:id', redirect: (to) => `/organizatori/${to.params.id}` },
         // „Nahrajte plagát, o všetko ostatné sa postaráme." Zámerne verejné —
         // analýza beží bez účtu, registráciu si sprievodca vypýta až na konci.
         { path: 'nahrat-plagat', name: 'poster-upload', component: () => import('@/pages/posters/PosterUploadPage.vue') },
@@ -24,8 +54,6 @@ const router = createRouter({
         { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
-        { path: 'venues/:id', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },
-        { path: 'canals/:id', name: 'canal-public-show', component: () => import('@/pages/canals/CanalPublicShowPage.vue') },
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },

@@ -1,11 +1,16 @@
 <?php
 
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Admin\{ CanalController as AdminCanalController, DashboardController as AdminDashboardController, EventController as AdminEventController, FileController as AdminFileController, UserController as AdminUserController, MunicipalityController as AdminMunicipalityController, VenueController as AdminVenueController };
 use App\Http\Controllers\Admin\AdminToolsController;
+use App\Http\Controllers\Admin\CanalController as AdminCanalController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\FileController as AdminFileController;
+use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
@@ -15,22 +20,35 @@ use App\Http\Controllers\Dashboard\DashboardHomeController;
 use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
 use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
-use App\Http\Controllers\Dashboard\DashboardUserController;
-use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
+use App\Http\Controllers\Dashboard\DashboardUserController;
+use App\Http\Controllers\Dashboard\DashboardVenueController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
+use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpController;
+use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\EventController as PublicEventController;
+use App\Http\Controllers\Public\MessageController as PublicMessageController;
 use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
 use App\Http\Controllers\Public\PosterController as PublicPosterController;
-use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, TagController as PublicTagController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
+use App\Http\Controllers\Public\PrerenderController;
+use App\Http\Controllers\Public\SitemapController;
+use App\Http\Controllers\Public\TagController as PublicTagController;
+use App\Http\Controllers\Public\TicketController as PublicTicketController;
+use App\Http\Controllers\Public\TicketQrController as PublicTicketQrController;
+use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeController;
+use App\Http\Controllers\Public\VenueController as PublicVenueController;
+use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{Artisan, Route};
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return new UserResource($request->user());
 });
-
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -55,6 +73,16 @@ Route::middleware('throttle:register')->group(function () {
 Route::get('/register/verify/{token}', [AuthController::class, 'verifyRegistrationLink'])->name('auth.register.verify.link');
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:sanctum');
 
+// Dosah pre vyhľadávače a zdieľanie. Obe routy vracajú HTML/XML, nie JSON —
+// Apache na ne prepisuje `/sitemap.xml` a požiadavky crawlerov (pozri
+// `deploy/htaccess.md`). Limiter chráni generovanie pred volaním v slučke;
+// samotná odpoveď je cachovaná (sitemap 1 h, prerender 5 min).
+Route::get('sitemap.xml', SitemapController::class)
+    ->name('public.sitemap')
+    ->middleware('throttle:60,1');
+Route::get('prerender', PrerenderController::class)
+    ->name('public.prerender')
+    ->middleware('throttle:120,1');
 
 Route::get('events/municipalities-overview', [PublicEventController::class, 'municipalitiesOverview'])
     ->name('public.events.municipalities.overview');
@@ -75,6 +103,8 @@ Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])
 // takže dashboardová `municipalities/all` sa použiť nedá.
 Route::get('municipalities', [PublicMunicipalityController::class, 'index'])
     ->name('public.municipalities.index');
+Route::get('municipalities/{slug}', [PublicMunicipalityController::class, 'show'])
+    ->name('public.municipalities.show');
 Route::post('poster/analyze', [PublicPosterController::class, 'analyze'])
     ->name('public.poster.analyze')
     ->middleware('throttle:ai');
@@ -133,7 +163,6 @@ Route::apiResources([
     'events' => PublicEventController::class,
     'canals' => PublicCanalController::class,
 ]);
-
 
 Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
@@ -300,7 +329,7 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('venues/{venue}/events', [DashboardVenueController::class, 'events'])
         ->name('venues.events')
         ->middleware('permission:venue.view');
-    Route::apiResource('users',  DashboardUserController::class);
+    Route::apiResource('users', DashboardUserController::class);
     Route::post('users/{user}/restore', [DashboardUserController::class, 'restore'])->name('users.restore');
     Route::post('users/active-canal', [DashboardUserController::class, 'setActiveCanal']);
 
@@ -446,8 +475,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->name('venues.events')
         ->middleware('permission:venue.delete');
 });
-
-
 
 // Po-deploy vyčistenie cache. Hosting nemá shell, preto sa spúšťa cez URL —
 // rovnako ako webcron chránené tokenom z CRON_SECRET.

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\EventResource;
 use App\Http\Resources\FileResource;
 use App\Models\Event;
+use App\Models\Municipality;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Views\ViewRecorder;
+use App\Support\EventTimeframe;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,20 +25,62 @@ class EventController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $municipality = $request->integer('municipality') ?: null;
         $perPage = max(1, min((int) $request->integer('per_page') ?: 15, 100));
         $search = trim((string) $request->input('search', '')) ?: null;
         $list = $request->input('list');
         $list = in_array($list, ['upcoming', 'ongoing', 'all'], true) ? $list : 'upcoming';
 
+        [$dateFrom, $dateTo] = $this->range($request);
+
         $events = $this->eventRepository->publicIndexWithFilters($perPage, [
-            'municipality' => $municipality,
+            'municipality' => $this->municipalityId($request),
             'search' => $search,
             'list' => $list,
             'tags' => $this->tagSlugs($request),
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
         ]);
 
         return EventResource::collection($events);
+    }
+
+    /**
+     * Obec chodí ako id (dashboardové filtre) alebo ako slug (landing stránka
+     * `/podujatia/mesto/{slug}`). Neznámy slug zámerne nekončí 422, ale
+     * prázdnym výsledkom — rovnako ako pri štítkoch je to pre zastaralý odkaz
+     * správnejšie správanie než chyba.
+     */
+    private function municipalityId(Request $request): ?int
+    {
+        $raw = trim((string) $request->input('municipality', ''));
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (ctype_digit($raw)) {
+            return (int) $raw;
+        }
+
+        return Municipality::query()->where('slug', $raw)->value('id');
+    }
+
+    /**
+     * Pomenované časové okno pre landing stránky. Dnes jediné: `weekend`.
+     * Výpočet drží [EventTimeframe], aby SPA aj bot-render vrstva ukazovali
+     * ten istý zoznam.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function range(Request $request): array
+    {
+        if ($request->input('range') !== 'weekend') {
+            return [null, null];
+        }
+
+        [$from, $to] = EventTimeframe::thisWeekend();
+
+        return [$from->toDateString(), $to->toDateString()];
     }
 
     /**
@@ -83,6 +127,7 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
         $files = $event->files()->orderBy('sort_order')->orderBy('id')->get();
+
         return response()->json(FileResource::collection($files));
     }
 

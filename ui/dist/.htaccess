@@ -1,16 +1,41 @@
-# SPA (Vue Router) fallback pre Apache.
-# Priame vstupy na client-side routy (/dashboard, /login, ...) sa servujú
-# cez index.html, inak Apache vráti "Not Found", lebo taký súbor neexistuje.
+# SPA + dosah (Vue Router, bot-render, sitemap) — Apache.
+#
+# Build ho kopíruje do ui/dist/. Na produkcii ale routovanie rieši .htaccess
+# v docroote subdomény, ktorý je mimo gitu — po zmene tohto súboru ho treba
+# preniesť ručne. Postup a overenie: deploy/htaccess.md
+#
+# Poradie pravidiel je podstatné: sitemap a crawler musia byť pred SPA
+# fallbackom, inak by ich prepísal na index.html.
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
 
+    # --- 1. sitemap.xml -------------------------------------------------
+    # Mapu generuje Laravel (cache 1 h). Na SPA hoste musí byť dostupná na
+    # koreňovej ceste — inak ju Search Console odmietne ako mimo rozsahu.
+    RewriteRule ^sitemap\.xml$ /api/sitemap.xml [L]
+
+    # --- 2. crawlery a náhľady odkazov ----------------------------------
+    # Facebook, Messenger, WhatsApp, LinkedIn ani vyhľadávače nespúšťajú JS.
+    # Dostanú serverom vykreslenú verziu tej istej stránky; ľudia idú do SPA.
+    #
+    # Podmienky zdola nahor: nikdy neprepisuj backend prefixy (inak vznikne
+    # slučka pri internom podrequeste) a nikdy statické súbory (og:image musí
+    # ostať obrázkom, nie HTML stránkou).
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|SkypeUriPreview|Applebot|Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|bingbot|YandexBot|DuckDuckBot|SeznamBot|redditbot|Pinterest|vkShare|Embedly|Quora\ Link\ Preview|W3C_Validator) [NC]
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
+    RewriteCond %{REQUEST_URI} !\.(js|mjs|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|map|txt|xml|pdf)$
+    RewriteRule ^(.*)$ /api/prerender?path=/$1 [QSA,L]
+
+    # --- 3. statické súbory ---------------------------------------------
     # Ak požadovaný súbor alebo priečinok reálne existuje (assets, favicon,
-    # index.html), servuj ho priamo bez prepisu.
+    # robots.txt, index.html), servuj ho priamo bez prepisu.
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
+    # --- 4. SPA fallback -------------------------------------------------
     # Backend prefixy nechaj tak, ako sú (nikdy ich neprepisuj na index.html).
     RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
     # Všetko ostatné smeruj na SPA vstupný bod.

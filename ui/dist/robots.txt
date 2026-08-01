@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Prihlásená a transakčná časť portálu nemá čo robiť v indexe — sú to stránky
+# viazané na účet alebo na jednorazový token, nie obsah.
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /tickets/
+Disallow: /rsvp/
+Disallow: /pozvanka/
+Disallow: /nahrat-plagat
+
+# Bot-render vrstva. Crawler ju dostane pod normálnou adresou (prepis podľa
+# User-Agent v .htaccess), priama adresa by bola len duplicita toho istého.
+Disallow: /api/prerender
+
+Sitemap: https://event.hlascirkvi.sk/sitemap.xml
