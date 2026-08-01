@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Canal;
 use App\Models\Event;
+use App\Models\Municipality;
 use App\Models\User;
 use App\Observers\CanalObserver;
+use App\Observers\MunicipalityObserver;
 use App\Observers\UserObserver;
 use App\Observers\EventObserver;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         Canal::observe(CanalObserver::class);
         Event::observe(EventObserver::class);
+        Municipality::observe(MunicipalityObserver::class);
 
         $this->configureRateLimiting();
     }

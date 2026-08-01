@@ -12,17 +12,17 @@
         :to="`/events/${event.id}`"
         class="flex gap-4 border-b border-dotted border-slate-300 px-4 py-3 no-underline transition-colors last:border-b-0 hover:bg-slate-50"
       >
-        <!-- Náhľad je 56×56, takže thumb (320px) stačí aj na retine — srcset by
-             tu len sťahoval zbytočné kilobajty. -->
+        <!-- Náhľad je 96 px (112 px od `sm`). Thumb má 320 px, takže pokryje aj
+             retinu (112 × 2 = 224) — srcset by tu len sťahoval kilobajty navyše. -->
         <img
           v-if="event.imageUrl"
           :src="event.imageUrl"
           :alt="event.name"
           loading="lazy"
           decoding="async"
-          class="h-14 w-14 shrink-0 rounded-lg object-cover"
+          class="h-24 w-24 shrink-0 rounded-lg object-cover sm:h-28 sm:w-28"
         />
-        <div v-else class="h-14 w-14 shrink-0 rounded-lg bg-slate-100" />
+        <div v-else class="h-24 w-24 shrink-0 rounded-lg bg-slate-100 sm:h-28 sm:w-28" />
 
         <div class="min-w-0 flex-1">
           <h3 class="text-base leading-tight text-slate-900">

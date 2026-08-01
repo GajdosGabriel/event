@@ -140,4 +140,15 @@ return [
         'action'   => 'Zobraziť podujatie',
     ],
 
+    // App\Notifications\PosterDraftSaved — odkaz späť na nahratý plagát.
+    'poster_draft' => [
+        'subject'     => 'Váš plagát čaká — dokončite podujatie',
+        'intro'       => 'Plagát sme spracovali a podujatie máme pripravené.',
+        'intro_named' => 'Plagát sme spracovali a podujatie **„:name"** máme pripravené.',
+        'next'        => 'Zostáva ho už len skontrolovať a uložiť. Ak tu ešte účet nemáte, vytvoríte si ho pri ukladaní.',
+        'action'      => 'Dokončiť podujatie',
+        'expires'     => 'Rozpracované podujatie vám držíme do **:date**.',
+        'ignore'      => 'Ak ste plagát nenahrávali vy, tento e-mail pokojne ignorujte — bez potvrdenia sa nikde nič nezverejní.',
+    ],
+
 ];

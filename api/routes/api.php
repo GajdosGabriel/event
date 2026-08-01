@@ -20,6 +20,8 @@ use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
+use App\Http\Controllers\Public\PosterController as PublicPosterController;
 use App\Http\Controllers\Public\{CanalController as PublicCanalController, EventController as PublicEventController, MessageController as PublicMessageController, TicketController as PublicTicketController, TicketQrController as PublicTicketQrController, TicketTypeController as PublicTicketTypeController, AdmissionQrController as PublicAdmissionQrController, AttendeeRsvpController as PublicAttendeeRsvpController, TagController as PublicTagController, VenueController as PublicVenueController, WorkshopRegistrationController as PublicWorkshopRegistrationController};
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -65,6 +67,25 @@ Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'i
 Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])
     ->name('public.events.tickets.store')
     ->middleware('throttle:public-write');
+
+// „Nahrajte plagát, o všetko ostatné sa postaráme" — analýza beží bez účtu,
+// registráciu pýtame až v `claim`, keď človek vidí, čo z plagátu vzniklo.
+// `analyze` má limiter `ai`, lebo každé volanie ide do OpenAI a stojí peniaze.
+// Číselník obcí pre výber mesta v sprievodcovi — človek pri ňom ešte nemá účet,
+// takže dashboardová `municipalities/all` sa použiť nedá.
+Route::get('municipalities', [PublicMunicipalityController::class, 'index'])
+    ->name('public.municipalities.index');
+Route::post('poster/analyze', [PublicPosterController::class, 'analyze'])
+    ->name('public.poster.analyze')
+    ->middleware('throttle:ai');
+Route::get('poster/drafts/{draft}', [PublicPosterController::class, 'show'])
+    ->name('public.poster.drafts.show');
+Route::post('poster/drafts/{draft}/remember', [PublicPosterController::class, 'remember'])
+    ->name('public.poster.drafts.remember')
+    ->middleware('throttle:public-write');
+Route::post('poster/drafts/{draft}/claim', [PublicPosterController::class, 'claim'])
+    ->name('public.poster.drafts.claim')
+    ->middleware(['auth:sanctum', 'throttle:public-write']);
 
 // Generické „Poslať správu" pre ľubovoľný cieľ (podujatie / miesto / kanál…).
 Route::post('messages', [PublicMessageController::class, 'store'])

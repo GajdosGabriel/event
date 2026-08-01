@@ -1,5 +1,7 @@
 <template>
   <div class="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-8">
+    <PosterHero />
+
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 class="mb-1 text-2xl text-slate-900">Eventy</h1>
@@ -94,6 +96,7 @@ import OngoingEventsStrip from '@/components/OngoingEventsStrip.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
+import PosterHero from '@/components/poster/PosterHero.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 
 const route = useRoute()

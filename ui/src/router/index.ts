@@ -17,6 +17,11 @@ const router = createRouter({
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
         { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
         { path: 'events/:id', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
+        // „Nahrajte plagát, o všetko ostatné sa postaráme." Zámerne verejné —
+        // analýza beží bez účtu, registráciu si sprievodca vypýta až na konci.
+        { path: 'nahrat-plagat', name: 'poster-upload', component: () => import('@/pages/posters/PosterUploadPage.vue') },
+        // Návrat k rozpracovanému plagátu z odkazu v e-maile (token je v query).
+        { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
         { path: 'venues/:id', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },

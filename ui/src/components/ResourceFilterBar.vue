@@ -65,16 +65,6 @@
       </label>
     </template>
 
-    <!-- Only deleted (admin) -->
-    <label
-      v-if="showDeleted"
-      class="flex h-10 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
-      :class="{ 'border-red-300 bg-red-50 text-red-700': onlyDeleted }"
-    >
-      <input v-model="onlyDeleted" type="checkbox" class="accent-red-500" @change="emitChange" />
-      Len zmazané
-    </label>
-
     <!-- Active canal filter chip -->
     <button
       v-if="canalFilter"
@@ -113,7 +103,6 @@ const props = withDefaults(defineProps<{
   statusOptions?: FilterOption[]
   sortOptions?: FilterOption[]
   showDateRange?: boolean
-  showDeleted?: boolean
   canalFilter?: { id: number; name: string } | null
 }>(), {
   statusOptions: () => [],
@@ -123,7 +112,6 @@ const props = withDefaults(defineProps<{
     { value: 'name', label: 'Názov A–Z' },
   ],
   showDateRange: false,
-  showDeleted: false,
   canalFilter: null,
 })
 
@@ -137,7 +125,6 @@ const status = defineModel<string>('status', { default: '' })
 const sort = defineModel<string>('sort', { default: 'newest' })
 const dateFrom = defineModel<string>('dateFrom', { default: '' })
 const dateTo = defineModel<string>('dateTo', { default: '' })
-const onlyDeleted = defineModel<boolean>('onlyDeleted', { default: false })
 
 const searchInput = ref<HTMLInputElement | null>(null)
 const expanded = ref(false)
@@ -150,7 +137,6 @@ const activeCount = computed(() => {
   if (sort.value && sort.value !== 'newest') n++
   if (dateFrom.value) n++
   if (dateTo.value) n++
-  if (onlyDeleted.value) n++
   if (props.canalFilter) n++
   return n
 })
@@ -176,7 +162,6 @@ function reset() {
   sort.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''
-  onlyDeleted.value = false
   if (props.canalFilter) emit('clear-canal')
   emitChange()
 }

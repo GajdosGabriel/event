@@ -84,11 +84,8 @@
           </div>
         </fieldset>
 
-        <fieldset class="field-group">
-          <legend class="field-legend">Štítky</legend>
-          <TagPicker v-model="form.tag_ids" :automated="automatedTags" />
-          <span v-if="errors.tag_ids" class="field-error">{{ errors.tag_ids }}</span>
-        </fieldset>
+        <!-- Štítky sa v editore nezobrazujú: prideľuje ich `app:events-ai-tag`
+             a odvodenie z dát, ručný zásah tu nemá čo meniť. -->
 
         <fieldset class="field-group">
           <legend class="field-legend">Popis akcie</legend>
@@ -283,7 +280,6 @@ import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import DateTimeInput from '@/components/DateTimeInput.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
-import TagPicker from '@/components/TagPicker.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -319,9 +315,6 @@ const form = ref({
   // a prepočítava ich, takže do formulára nepatria.
   tag_ids: [] as number[],
 })
-
-/** Štítky priradené automaticky; v editore sa len vypisujú ako informácia. */
-const automatedTags = ref<{ name: string }[]>([])
 
 const errors = ref<Record<string, string>>({})
 const serverError = ref<string | null>(null)
@@ -469,9 +462,10 @@ onMounted(async () => {
         phone: ev.phone ?? '',
         body: ev.body ?? '',
         body_ai: ev.bodyAi ?? '',
+        // Ručné štítky sa naďalej posielajú späť nezmenené — editor ich len
+        // neukazuje, mazať ich pri uložení by bola tichá strata dát.
         tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),
       }
-      automatedTags.value = (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') !== 'manual')
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }
   }

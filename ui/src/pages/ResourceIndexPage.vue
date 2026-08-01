@@ -11,11 +11,9 @@
         v-model:sort="sortFilter"
         v-model:date-from="dateFrom"
         v-model:date-to="dateTo"
-        v-model:only-deleted="onlyDeleted"
-        :status-options="apiStatusOptions"
+        :status-options="statusOptions"
         :sort-options="sortOptions"
         :show-date-range="resource === 'event'"
-        :show-deleted="scope === 'admin'"
         :canal-filter="canalFilter"
         @change="load(1)"
         @clear-canal="canalFilter = null"
@@ -277,9 +275,19 @@ const statusFilter = ref('')
 const sortFilter = ref('newest')
 const dateFrom = ref('')
 const dateTo = ref('')
-const onlyDeleted = ref(false)
 const canalFilter = ref<{ id: number; name: string } | null>(null)
 const apiStatusOptions = ref<FilterOption[]>([])
+
+/**
+ * „Zmazaný" nie je stav z backendu (je to soft delete), ale pre používateľa je
+ * to tá istá otázka — „v akom stave to je". Vo filtri preto stojí vedľa
+ * ostatných stavov a do API sa prekladá na `deleted=1`.
+ */
+const DELETED_STATUS = 'deleted'
+const statusOptions = computed<FilterOption[]>(() => [
+  ...apiStatusOptions.value,
+  { value: DELETED_STATUS, label: 'Zmazaný' },
+])
 const sortOptions = computed<FilterOption[]>(() => {
   const opts: FilterOption[] = [
     { value: 'newest', label: 'Najnovšie' },
@@ -302,7 +310,6 @@ function filtersToQuery(): Record<string, string> {
   if (sortFilter.value && sortFilter.value !== 'newest') q['sort'] = sortFilter.value
   if (dateFrom.value) q['from'] = dateFrom.value
   if (dateTo.value) q['to'] = dateTo.value
-  if (onlyDeleted.value) q['deleted'] = '1'
   if (canalFilter.value) {
     q['canal_id'] = String(canalFilter.value.id)
     q['canal_name'] = canalFilter.value.name
@@ -317,7 +324,8 @@ function filtersFromQuery() {
   sortFilter.value = typeof q.sort === 'string' ? q.sort : 'newest'
   dateFrom.value = typeof q.from === 'string' ? q.from : ''
   dateTo.value = typeof q.to === 'string' ? q.to : ''
-  onlyDeleted.value = q.deleted === '1'
+  // Staré odkazy s ?deleted=1 nech ďalej fungujú.
+  if (q.deleted === '1') statusFilter.value = DELETED_STATUS
   canalFilter.value = typeof q.canal_id === 'string' && Number(q.canal_id) > 0
     ? { id: Number(q.canal_id), name: typeof q.canal_name === 'string' ? q.canal_name : `Kanál #${q.canal_id}` }
     : null
@@ -337,11 +345,14 @@ async function load(p = 1) {
   try {
     const params: Record<string, unknown> = { page: p, per_page: perPage.value }
     if (search.value) params['search'] = search.value
-    if (statusFilter.value) params['status'] = statusFilter.value
+    if (statusFilter.value === DELETED_STATUS) {
+      params['deleted'] = 1
+    } else if (statusFilter.value) {
+      params['status'] = statusFilter.value
+    }
     if (sortFilter.value && sortFilter.value !== 'newest') params['sort'] = sortFilter.value
     if (dateFrom.value) params['date_from'] = dateFrom.value
     if (dateTo.value) params['date_to'] = dateTo.value
-    if (onlyDeleted.value) params['deleted'] = 1
     if (canalFilter.value) params['canal_id'] = canalFilter.value.id
     if (route.query.municipality) params['municipality'] = route.query.municipality
     syncQuery()
@@ -413,7 +424,6 @@ watch(() => props.resource, () => {
   sortFilter.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''
-  onlyDeleted.value = false
   canalFilter.value = null
   apiStatusOptions.value = []
   load(1)

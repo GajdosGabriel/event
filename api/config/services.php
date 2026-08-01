@@ -69,6 +69,11 @@ return [
     'pdf_converter' => [
         'url'   => env('PDF_CONVERTER_URL', 'http://78.47.38.184'),
         'token' => env('PDF_CONVERTER_TOKEN', ''),
+        // Strop uploadu na strane konvertora (nginx `client_max_body_size`).
+        // Keď je nastavený, väčšie PDF odmietneme hneď so zrozumiteľnou hláškou
+        // namiesto toho, aby sme čakali na 413 po zbytočnom prenose súboru.
+        // 0 = nekontrolovať a spoľahnúť sa na odpoveď konvertora.
+        'max_upload_bytes' => (int) env('PDF_CONVERTER_MAX_UPLOAD_BYTES', 0),
     ],
 
     'imports' => [

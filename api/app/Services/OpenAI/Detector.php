@@ -8,6 +8,7 @@ use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Places\WikipediaPlaceEnricher;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class Detector
@@ -54,15 +55,39 @@ class Detector
      */
     public function detectFromText(string $text): array
     {
+        return $this->detectFromPoster($text);
+    }
+
+    /**
+     * To isté ako detectFromText(), ale s obrázkami plagátu navyše.
+     *
+     * Nahratý plagát je typicky grafika: text z neho buď nevytiahneme vôbec
+     * (JPG, sken), alebo len útržky. Obrázky preto idú priamo do modelu spolu
+     * s tým, čo sa z textovej vrstvy podarilo prečítať.
+     *
+     * @param  array<int, string>  $imageDataUrls  `data:image/...;base64,…` URL
+     */
+    public function detectFromPoster(string $text, array $imageDataUrls = []): array
+    {
         try {
-            $eventPayload = $this->chatGPT->extractData($text);
+            $eventPayload = $this->chatGPT->extractDataFromPoster($text, $imageDataUrls);
 
             $correctedText = null;
+            // Copywriter je čisto textový — na plagát bez textovej vrstvy
+            // nemá čo aplikovať a volanie by len stálo peniaze a čas.
             try {
-                $copywriter = $this->chatGPT->extractCopywriter($text);
-                $correctedText = $copywriter['event_body'] ?? null;
-            } catch (\Throwable) {
-                // copywriter je non-fatal
+                if (mb_strlen(trim($text)) >= 50) {
+                    $copywriter = $this->chatGPT->extractCopywriter($text);
+                    $correctedText = $copywriter['event_body'] ?? null;
+                }
+            } catch (\Throwable $e) {
+                // Zlyhanie copywritera nie je fatálne — volajúci má fallback na
+                // surový text. Bez logu sa to ale nedalo vôbec zistiť: navonok
+                // to vyzeralo, akoby dokument popis neobsahoval.
+                Log::warning('Copywriter neprepísal text podujatia.', [
+                    'text_length' => mb_strlen(trim($text)),
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             $organizerName = $this->resolveOrganizerCanalName($eventPayload);

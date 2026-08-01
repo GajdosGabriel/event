@@ -5,6 +5,7 @@ namespace App\Services\Imports;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PdfConverterService
 {
@@ -45,9 +46,17 @@ class PdfConverterService
     /**
      * Convert a PDF already held in memory (e.g. a just-uploaded file) without
      * needing a publicly reachable URL to download it from first.
+     *
+     * `$failureStatus` receives the HTTP status the converter answered with when
+     * the conversion failed. Volajúci to potrebuje na rozlíšenie dočasnej chyby
+     * od trvalej: 413 (nginx `client_max_body_size` na strane konvertora) sa
+     * opakovaním nikdy nespraví, kým 5xx áno — a používateľovi treba poradiť
+     * inak. Importu na tom nezáleží, preto je parameter voliteľný.
      */
-    public function convertFromBinary(string $pdfContent, string $filename): ?PdfConvertResult
+    public function convertFromBinary(string $pdfContent, string $filename, ?int &$failureStatus = null): ?PdfConvertResult
     {
+        $failureStatus = null;
+
         $apiUrl = rtrim((string) config('services.pdf_converter.url', self::FALLBACK_URL), '/');
         $token  = (string) config('services.pdf_converter.token', '');
 
@@ -60,13 +69,13 @@ class PdfConverterService
             return null;
         }
 
-        return $this->convert($apiUrl, $token, $pdfContent, $filename, ['filename' => $filename]);
+        return $this->convert($apiUrl, $token, $pdfContent, $filename, ['filename' => $filename], $failureStatus);
     }
 
     /**
      * @param array<string, string> $logContext
      */
-    private function convert(string $apiUrl, string $token, string $pdfContent, string $filename, array $logContext): ?PdfConvertResult
+    private function convert(string $apiUrl, string $token, string $pdfContent, string $filename, array $logContext, ?int &$failureStatus = null): ?PdfConvertResult
     {
         if (!$this->looksLikePdf($pdfContent)) {
             Log::debug('PdfConverterService: not a PDF, skipping converter', $logContext);
@@ -84,10 +93,14 @@ class PdfConverterService
                 ]);
 
             if (!$response->successful()) {
+                $failureStatus = $response->status();
+
                 Log::warning('PdfConverterService: converter returned error', [
                     ...$logContext,
                     'status' => $response->status(),
-                    'body'   => $response->body(),
+                    // Telo býva celá HTML chybovka z nginxu — do logu z nej stačí
+                    // začiatok, inak jeden 413 zaplní pol obrazovky.
+                    'body'   => Str::limit(trim(strip_tags($response->body())), 200),
                 ]);
                 return null;
             }

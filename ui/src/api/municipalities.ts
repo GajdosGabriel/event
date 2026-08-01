@@ -24,6 +24,15 @@ export async function listMunicipalities(scope: MunicipalityScope = 'dashboard')
   return (data.data ?? data) as LookupOption[]
 }
 
+/**
+ * Číselník obcí bez prihlásenia — pre sprievodcu nahratím plagátu, kde človek
+ * účet ešte nemá. Dashboardová varianta je za `auth:sanctum`.
+ */
+export async function listPublicMunicipalities(): Promise<LookupOption[]> {
+  const { data } = await http.get('/municipalities')
+  return (data.data ?? data) as LookupOption[]
+}
+
 export async function indexMunicipalities(
   scope: MunicipalityScope,
   params?: Record<string, unknown>,

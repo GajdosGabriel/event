@@ -19,6 +19,8 @@ Schedule::command('app:events-ai-tag')->everyTwoMinutes()->withoutOverlapping();
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 Schedule::command('app:views-prune')->dailyAt('03:20');
+// Plagáty nahraté bez účtu, ktoré si nikto neprivlastnil — aj so súbormi.
+Schedule::command('app:poster-drafts-prune')->dailyAt('03:40');
 // Každý zdroj má vlastný beh s vlastným časom. Kým išli všetky v jednom
 // príkaze za sebou, posledný z nich hladoval: 27. 7. 2026 zjedli ecav.sk a
 // tkkbs.sk 13 minút a na vyveska.sk sa už nedostalo — hosting nemá shell,

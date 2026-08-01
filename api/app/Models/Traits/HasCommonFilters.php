@@ -96,9 +96,15 @@ trait HasCommonFilters
         return $query;
     }
 
+    /**
+     * Zmazané záznamy sú vo výpise len vtedy, keď si ich filter vyžiada.
+     * Bez tohto by sa v zoznamoch miešali so živými (dashboard/admin dopyty
+     * stavajú na `withTrashed()`, aby sa dali obnoviť) a nedalo by sa rozoznať,
+     * čo je ešte platné.
+     */
     public function scopeByDeleted(Builder $query, ?bool $deleted): Builder
     {
-        if ($deleted === null || ! $this->usesSoftDeletes()) {
+        if (! $this->usesSoftDeletes()) {
             return $query;
         }
 

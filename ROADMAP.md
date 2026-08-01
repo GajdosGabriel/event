@@ -151,7 +151,7 @@ platobná brána čo spracovať.
 |---|---|---|
 | 3.1 | ~~**Tím kanála**: pozvánka e-mailom, per-kanál rola (owner / editor / vstup), zápis do `canal_user`~~ **HOTOVÉ** | Rola je v `canal_user.role` ([CanalRole](api/app/Enums/CanalRole.php)), pozvánky v `canal_invitations`, práva rieši `User::canInCanal()` v policies. Globálna spatie rola ostáva len ako hrubé sito pre `permission:` middleware |
 | 3.2 | **Séria / opakované termíny** — jedno podujatie, viac termínov, spoločný popis a typy lístkov | Najväčšia denná bolesť klubu a divadla; dnes je riešením „duplikovať" |
-| 3.3 | Zapojiť `detect-from-text` do UI + nahranie plagátu/PDF → koncept podujatia | Backend hotový, stačí UI. **Najlacnejší diferenciátor, aký máme** |
+| 3.3 | ~~Zapojiť `detect-from-text` do UI + nahranie plagátu/PDF → koncept podujatia~~ **HOTOVÉ** | Verejný tok bez účtu: `POST /api/poster/analyze` → kontrola nálezov → registrácia → `claim` založí event, kanál aj miesto. PDF/DOCX/TXT/obrázok, skenovaný plagát cez vision. Popis: [api/docs/poster-upload-flow.md](api/docs/poster-upload-flow.md) |
 | 3.4 | Inbox správ v dashboarde | `read_at` a `recipient_user_id` už v schéme sú; „neprečítané správy" v štatistikách dnes odkazujú na `null` |
 | 3.5 | Export účastníkov (CSV), hromadný e-mail účastníkom, pripomienka pred akciou | |
 | 3.6 | Naplánované publikovanie | `scheduled` už v enume |

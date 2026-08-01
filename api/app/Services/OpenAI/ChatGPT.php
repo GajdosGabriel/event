@@ -9,6 +9,16 @@ use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptProfil
 
 class ChatGPT
 {
+    /**
+     * Koľko strán plagátu ide do jedného vision volania. Každý obrázok v „high"
+     * detaile stojí rádovo tisíce tokenov a plagát má podstatné údaje takmer
+     * vždy na prvej strane — ďalšie strany bývajú program alebo partneri.
+     */
+    private const MAX_VISION_IMAGES = 3;
+
+    /** Strop vstupu pre copywritera — viď extractCopywriter(). */
+    private const MAX_COPYWRITER_INPUT_CHARS = 5000;
+
     public function __construct(
         private readonly PromptData $promptData = new PromptData(),
         private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter(),
@@ -87,9 +97,118 @@ class ChatGPT
         return $data;
     }
 
+    /**
+     * Extrakcia z plagátu: textová vrstva + obrázky.
+     *
+     * `extractData()` vidí len text, čo pri plagáte zlyhá — plagát býva grafika
+     * bez textovej vrstvy (sken, JPG, „obrázkové" PDF) a textová extrakcia z neho
+     * vráti prázdno alebo pár útržkov z pätičky. Preto sa k rovnakému promptu
+     * a rovnakej JSON schéme priložia aj obrázky a model si termín, miesto
+     * aj organizátora prečíta priamo z grafiky.
+     *
+     * Bez obrázkov je to presne `extractData()` — volajúci sa nemusí rozhodovať.
+     *
+     * @param  array<int, string>  $imageDataUrls  `data:image/...;base64,…` URL
+     */
+    public function extractDataFromPoster(string $text, array $imageDataUrls = [], ?Carbon $referenceDate = null): array
+    {
+        $imageDataUrls = array_values(array_filter(
+            $imageDataUrls,
+            static fn ($url) => is_string($url) && $url !== '',
+        ));
+
+        if ($imageDataUrls === []) {
+            return $this->extractData($text, $referenceDate);
+        }
+
+        $text = $this->sanitizeUtf8(trim($text));
+        $referenceDate ??= Carbon::now(config('app.timezone', 'Europe/Bratislava'));
+
+        $messages = $this->promptData->prompt(
+            $text !== '' ? $text : '(Dokument nemá použiteľnú textovú vrstvu — všetky údaje čítaj z priložených obrázkov plagátu.)',
+            $referenceDate,
+        );
+
+        // Vision je pomalšie než textové volanie — plagát na výšku v „high"
+        // detaile sa rozpadá na desiatky dlaždíc. 60 s default by tu padalo.
+        $content = $this->chatComplete(
+            'gpt-4o-mini',
+            0,
+            $this->attachImages($messages, $imageDataUrls),
+            $this->promptData->jsonSchema(),
+            timeout: 120,
+        );
+
+        $data = $this->decodeJson($content);
+        $data = $this->normalizeResponseData($data);
+        $data = $this->applyEventDateTimeFallbackFromText($data, $text);
+        $data = $this->enforceCurrentOrFutureYear($data, $referenceDate);
+
+        $validator = Validator::make($data, $this->promptData->validator());
+
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+        }
+
+        return $data;
+    }
+
+    /**
+     * Obrázky sa vešajú na poslednú `user` správu. Chat Completions ich prijíma
+     * len ako pole blokov `{type: text|image_url}`, nie ako obyčajný reťazec,
+     * takže sa pôvodný text zabalí do prvého bloku.
+     *
+     * @param  array<int, array{role: string, content: mixed}>  $messages
+     * @param  array<int, string>  $imageDataUrls
+     * @return array<int, array{role: string, content: mixed}>
+     */
+    private function attachImages(array $messages, array $imageDataUrls): array
+    {
+        $lastUserIndex = null;
+
+        foreach ($messages as $index => $message) {
+            if (($message['role'] ?? '') === 'user') {
+                $lastUserIndex = $index;
+            }
+        }
+
+        if ($lastUserIndex === null) {
+            return $messages;
+        }
+
+        $parts = [['type' => 'text', 'text' => (string) $messages[$lastUserIndex]['content']]];
+
+        foreach (array_slice($imageDataUrls, 0, self::MAX_VISION_IMAGES) as $dataUrl) {
+            $parts[] = [
+                'type' => 'image_url',
+                'image_url' => ['url' => $dataUrl, 'detail' => 'high'],
+            ];
+        }
+
+        $messages[$lastUserIndex]['content'] = $parts;
+
+        return $messages;
+    }
+
     public function extractCopywriter(array|string $input): array
     {
         $text = $this->normalizeInput($input);
+
+        // Copywriter má text ROZŠÍRIŤ, takže výstup je dlhší než vstup. Pri
+        // celom programe púte (harmonogram, ceny, strava — cez 7 000 znakov)
+        // odpoveď narazí na strop tokenov a vráti sa useknutý JSON.
+        //
+        // Vstup sa tu zámerne NEoreZáva: výsledok nahrádza celé telo podujatia,
+        // takže z orezaného vstupu by ticho zmizol koniec programu a nikto by
+        // si toho nevšimol. Radšej sa o rozšírenie vôbec nepokúsime — volajúci
+        // má fallback na surový text, ktorý je celý.
+        if (mb_strlen($text) > self::MAX_COPYWRITER_INPUT_CHARS) {
+            throw new \RuntimeException(sprintf(
+                'Text je na rozsirenie prilis dlhy (%d znakov, limit %d).',
+                mb_strlen($text),
+                self::MAX_COPYWRITER_INPUT_CHARS,
+            ));
+        }
 
         $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text), $this->promptCopywriter->jsonSchema());
         $data = $this->decodeJson($content);
@@ -445,14 +564,14 @@ class ChatGPT
      * Direct HTTP call to OpenAI Chat Completions — bypasses the SDK's CreateResponse which
      * breaks when OpenAI routes certain requests to the new Responses API format.
      */
-    private function chatComplete(string $model, float $temperature, array $messages, ?array $responseFormat = null): string
+    private function chatComplete(string $model, float $temperature, array $messages, ?array $responseFormat = null, int $timeout = 60): string
     {
         $apiKey = config('openai.api_key', '');
         if ($apiKey === '') {
             throw new \RuntimeException('OpenAI API key is not configured.');
         }
 
-        $response = Http::timeout(60)
+        $response = Http::timeout($timeout)
             ->withToken($apiKey)
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model'           => $model,
@@ -466,6 +585,17 @@ class ChatGPT
         }
 
         $data = $response->json();
+
+        // Odpoveď useknutá na limite tokenov je nedokončený JSON. Bez tejto
+        // kontroly z toho o dva riadky nižšie vypadlo len „Neplatny JSON:
+        // Syntax error", čo vyzeralo ako chyba modelu — pritom stačí kratší
+        // vstup alebo vyšší strop. Týka sa to najmä copywritera, ktorý má text
+        // rozšíriť: pri dlhom dokumente je výstup dlhší než vstup.
+        if (($data['choices'][0]['finish_reason'] ?? null) === 'length') {
+            throw new \RuntimeException(
+                'Odpoved modelu bola useknuta na limite tokenov (model: ' . $model . ').'
+            );
+        }
 
         // Standard Chat Completions format
         $content = $data['choices'][0]['message']['content'] ?? null;
