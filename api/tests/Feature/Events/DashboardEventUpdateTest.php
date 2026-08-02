@@ -2,12 +2,11 @@
 
 namespace Tests\Feature\Events;
 
-
-use PHPUnit\Framework\Attributes\Test;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Venue;
-use Illuminate\Support\Str; // For generating random strings
+use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Test; // For generating random strings
 use Tests\TestSupport\EventSetupTest;
 
 class DashboardEventUpdateTest extends EventSetupTest
@@ -23,8 +22,11 @@ class DashboardEventUpdateTest extends EventSetupTest
         ]);
 
         $this->formEvent = array_merge($this->futureEvent->toArray(), [
-            'name' => 'Updated Event Name - ' . Str::random(5),
-            'body' => 'Updated event body content - ' . Str::random(30),
+            'name' => 'Updated Event Name - '.Str::random(5),
+            // Popis prechádza pri zápise cez HtmlBodyCleaner (SanitizesHtmlBody),
+            // takže sa posiela rovno ako HTML — inak by ho čistenie obalilo do
+            // <p> a odpoveď by sa s odoslanou hodnotou nezhodovala.
+            'body' => '<p>Updated event body content - '.Str::random(30).'</p>',
             'start_at' => now()->addDays(3),
             'end_at' => now()->addDays(3)->addHours(2),
             'registration_deadline_at' => now()->addDays(2)->addHours(19),
@@ -54,7 +56,7 @@ class DashboardEventUpdateTest extends EventSetupTest
             'registration_deadline_at',
             'user_id',
             'created_at',
-            'updated_at'
+            'updated_at',
         ]);
 
         // Overíme, či bola odpoveď úspešná (201 Created)
@@ -63,7 +65,7 @@ class DashboardEventUpdateTest extends EventSetupTest
         // Overenie konkrétnych hodnôt
         $response->assertJsonFragment([
             'name' => $this->formEvent['name'],
-            'body' => $this->formEvent['body']
+            'body' => $this->formEvent['body'],
         ]);
 
         // Overíme, či sa údaje v databáze zmenili
@@ -139,4 +141,3 @@ class DashboardEventUpdateTest extends EventSetupTest
         ]);
     }
 }
-

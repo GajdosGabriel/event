@@ -69,12 +69,14 @@ class AiDetectorCommandTest extends TestCase
         $this->app->instance(Detector::class, $detector);
 
         $this->artisan('app:ai-detector')
-            ->expectsOutput('AiDetector processed event id ' . $event->id . '.')
+            ->expectsOutput('AiDetector processed event id '.$event->id.'.')
             ->assertSuccessful();
 
         $event->refresh();
 
-        $this->assertSame('AI extracted body text', $event->body_ai);
+        // Detektor vracia čistý text, ale `body_ai` sa vykresľuje cez v-html —
+        // mutator ho preto pri zápise prevedie na HTML (viď SanitizesHtmlBody).
+        $this->assertSame('<p>AI extracted body text</p>', $event->body_ai);
         $this->assertSame('https://example.test/event', $event->meta['ai_detector']['source_url'] ?? null);
         $this->assertSame(['https://example.test/info'], $event->meta['ai_detector']['links'] ?? null);
         $this->assertSame('Detected name', $event->meta['ai_detector']['event_payload']['name'] ?? null);

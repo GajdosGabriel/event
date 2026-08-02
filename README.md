@@ -70,3 +70,17 @@ verejná adresa SPA hostu — skladajú sa z nej kanonické adresy a sitemap.
 
 Podrobnosti k scheduleru sú v [api/README.md](api/README.md), tematické
 poznámky (import, varianty súborov, waitlist) v [api/docs/](api/docs).
+
+## Prevádzka a monitoring
+
+Tieto tri veci sú čisto o `.env` na produkcii — v kóde je všetko pripravené
+a bez vyplnenia zostáva ticho vypnuté.
+
+| Kľúč | Prečo |
+|---|---|
+| `SENTRY_LARAVEL_DSN` | Bez neho sa o produkčnej chybe dozvieme až od používateľa. Prázdna hodnota = SDK je úplne ticho, takže lokálne netreba nič riešiť. |
+| `CRON_HEARTBEAT_URL` | Po každom úspešnom `schedule:run` sa pingne watchdog (healthchecks.io, Better Stack…). Watchdog alarmuje, keď ping **neprišiel** — čiže keď webcron vypadol. Bez neho je výpadok scheduleru neviditeľný. |
+| `QUEUE_CONNECTION=database` | Pri `sync` bežia joby (varianty obrázkov, e-maily) priamo v HTTP requeste a predlžujú odpoveď. Worker spúšťa scheduler (`queue:work --stop-when-empty`), takže netreba daemon — ale po prepnutí over, že sa tabuľka `jobs` nehromadí. |
+
+Chyby zo scheduleru idú do Sentry rovnakou cestou ako chyby z HTTP —
+`schedule:run` beží vo webcron requeste a jeho výnimky spracuje ten istý handler.

@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
-use App\Models\Municipality;
-use App\Models\Traits\{HasCommonFilters, HasFile, HasViews, InteractsAsMessageable};
-use App\Models\User;
+use App\Models\Traits\HasCommonFilters;
+use App\Models\Traits\HasFile;
+use App\Models\Traits\HasViews;
+use App\Models\Traits\InteractsAsMessageable;
+use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,7 +19,7 @@ class Venue extends Model implements Messageable
     /**
      * Venue je fyzicke miesto, kde sa event kona alebo kde ma canal sidlo.
      */
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
+    use HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool
@@ -26,6 +28,7 @@ class Venue extends Model implements Messageable
     }
 
     protected $guarded = [];
+
     protected $appends = ['primary_image', 'thumb_image', 'files', 'canal_id', 'canal_ids'];
 
     protected array $pendingCanalIds = [];

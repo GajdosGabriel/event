@@ -42,6 +42,7 @@ use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeControll
 use App\Http\Controllers\Public\VenueController as PublicVenueController;
 use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
 use App\Http\Resources\UserResource;
+use App\Support\CronToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -482,7 +483,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
 // Pozor: zámerne tu nie je queue:work. Ten beží ako blokujúci daemon a v HTTP
 // requeste by držal PHP worker až do timeoutu.
 Route::get('artisan/run', function (Request $request) {
-    if (! hash_equals((string) config('app.cron_secret'), (string) $request->query('token'))) {
+    if (! CronToken::isValid($request->query('token'))) {
         abort(403);
     }
 

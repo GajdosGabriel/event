@@ -11,19 +11,31 @@ use SplObjectStorage;
  * Cleans raw HTML scraped from event sources into safe, semantic HTML
  * suitable for storage and rendering with Tailwind Typography (prose).
  *
- * Keeps:  p, h2–h6, ul, ol, li, blockquote, strong, em, br, a[href]
+ * Keeps:  p, h2–h6, ul, ol, li, blockquote, pre, hr, strong, em, u, s, code,
+ *         br, a[href]
  * Drops:  script, style, noscript, nav, form, iframe, h1 (it's the title)
  * Unwraps: div, section, article, span, figure, figcaption, header, footer
- * Converts: b → strong, i → em
+ * Converts: b → strong, i → em, del/strike → s
  * Wraps:  loose text left over after unwrapping into p — sources that mark
  *         paragraphs with <br> instead of <p> would otherwise yield one block
+ *
+ * Povolený zoznam pokrýva všetko, čo vie vyrobiť editor v UI (TipTap
+ * StarterKit) — inak by čistenie pri zápise potichu zahodilo formátovanie,
+ * ktoré si používateľ práve naklikal.
  */
 class HtmlBodyCleaner
 {
-    private const BLOCK = ['p', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote'];
-    private const INLINE = ['strong', 'em'];
-    private const TRANSFORM = ['b' => 'strong', 'i' => 'em', 'u' => 'em'];
+    private const BLOCK = ['p', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'pre'];
+
+    private const INLINE = ['strong', 'em', 'u', 's', 'code'];
+
+    private const TRANSFORM = ['b' => 'strong', 'i' => 'em', 'del' => 's', 'strike' => 's'];
+
+    /** Prázdne elementy — nemajú obsah, ktorý by sa dal skontrolovať. */
+    private const VOID = ['br', 'hr'];
+
     private const UNWRAP = ['div', 'section', 'article', 'main', 'span', 'figure', 'figcaption', 'header', 'footer', 'aside', 'table', 'tbody', 'thead', 'tr', 'td', 'th'];
+
     private const DROP = ['script', 'style', 'noscript', 'form', 'nav', 'iframe', 'button', 'input', 'select', 'textarea', 'h1', 'img', 'picture', 'video', 'audio', 'canvas', 'svg'];
 
     /** Nodes the current cleanFromXPath() call must skip; null outside such a call. */
@@ -75,7 +87,7 @@ class HtmlBodyCleaner
             return null;
         }
 
-        $excluded = new SplObjectStorage();
+        $excluded = new SplObjectStorage;
         foreach ($nodes as $node) {
             $excluded->attach($node);
         }
@@ -102,9 +114,9 @@ class HtmlBodyCleaner
             return '';
         }
 
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="utf-8" ?><body>' . $html . '</body>', LIBXML_NOERROR | LIBXML_NOWARNING);
+        $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>', LIBXML_NOERROR | LIBXML_NOWARNING);
         libxml_clear_errors();
 
         $xpath = new DOMXPath($document);
@@ -133,7 +145,7 @@ class HtmlBodyCleaner
             }
             $lines = explode("\n", $para);
             $lines = array_map(fn (string $l) => htmlspecialchars(trim($l), ENT_QUOTES | ENT_HTML5, 'UTF-8'), $lines);
-            $html .= '<p>' . implode('<br>', $lines) . "</p>\n";
+            $html .= '<p>'.implode('<br>', $lines)."</p>\n";
         }
 
         return trim($html);
@@ -177,9 +189,16 @@ class HtmlBodyCleaner
                 return [];
             }
 
+            // Oddeľovač je blok bez obsahu — cez processNode() by neprešiel,
+            // lebo tá zahadzuje bloky s prázdnym vnútrom.
+            if ($tag === 'hr') {
+                return [['type' => 'block', 'html' => "<hr>\n"]];
+            }
+
             $isLeaf = in_array($tag, self::BLOCK, true)
                 || in_array($tag, self::INLINE, true)
-                || in_array($tag, ['br', 'a'], true);
+                || in_array($tag, self::VOID, true)
+                || $tag === 'a';
 
             if (! $isLeaf) {
                 return $this->segments($node);
@@ -206,7 +225,7 @@ class HtmlBodyCleaner
     }
 
     /**
-     * @param array<int, array{type: string, html: string}> $segments
+     * @param  array<int, array{type: string, html: string}>  $segments
      */
     private function renderSegments(array $segments): string
     {
@@ -216,14 +235,15 @@ class HtmlBodyCleaner
         foreach ($segments as $segment) {
             if ($segment['type'] === 'inline') {
                 $inlineRun .= $segment['html'];
+
                 continue;
             }
 
-            $output .= $this->wrapInlineRun($inlineRun) . $segment['html'];
+            $output .= $this->wrapInlineRun($inlineRun).$segment['html'];
             $inlineRun = '';
         }
 
-        return $output . $this->wrapInlineRun($inlineRun);
+        return $output.$this->wrapInlineRun($inlineRun);
     }
 
     /**
@@ -292,6 +312,10 @@ class HtmlBodyCleaner
 
         if ($tag === 'br') {
             return '<br>';
+        }
+
+        if ($tag === 'hr') {
+            return "<hr>\n";
         }
 
         if ($tag === 'a') {

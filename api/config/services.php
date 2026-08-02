@@ -46,8 +46,15 @@ return [
 
     'nominatim' => [
         'base_url' => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org'),
-        'user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Event API') . ' geocoder'),
+        'user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Event API').' geocoder'),
         'cache_ttl' => env('NOMINATIM_CACHE_TTL', 86400),
+    ],
+
+    // Externý watchdog, ktorý zaalarmuje, keď mu ping neprišiel — teda keď
+    // webcron prestal volať /cron/schedule-run. Prázdna URL = heartbeat vypnutý.
+    'cron_heartbeat' => [
+        'url' => env('CRON_HEARTBEAT_URL', ''),
+        'timeout' => (int) env('CRON_HEARTBEAT_TIMEOUT', 5),
     ],
 
     'municipality_resolver' => [
@@ -55,7 +62,7 @@ return [
     ],
 
     'wikipedia' => [
-        'user_agent' => env('WIKIPEDIA_USER_AGENT', env('APP_NAME', 'Event API') . ' wikipedia-enricher'),
+        'user_agent' => env('WIKIPEDIA_USER_AGENT', env('APP_NAME', 'Event API').' wikipedia-enricher'),
         'cache_ttl' => env('WIKIPEDIA_CACHE_TTL', 86400),
     ],
 
@@ -67,7 +74,7 @@ return [
     ],
 
     'pdf_converter' => [
-        'url'   => env('PDF_CONVERTER_URL', 'http://78.47.38.184'),
+        'url' => env('PDF_CONVERTER_URL', 'http://78.47.38.184'),
         'token' => env('PDF_CONVERTER_TOKEN', ''),
         // Strop uploadu na strane konvertora (nginx `client_max_body_size`).
         // Keď je nastavený, väčšie PDF odmietneme hneď so zrozumiteľnou hláškou
@@ -77,7 +84,7 @@ return [
     ],
 
     'imports' => [
-        'user_agent' => env('IMPORTS_USER_AGENT', env('APP_NAME', 'Event API') . ' importer'),
+        'user_agent' => env('IMPORTS_USER_AGENT', env('APP_NAME', 'Event API').' importer'),
         'detect_canal_with_ai' => (bool) env('IMPORTS_DETECT_CANAL_WITH_AI', false),
         // Popisy nových kanálov/miest z importu píše AI; pri vypnutí sa použije
         // neutrálny vetný fallback (kanál) alebo prázdny popis (miesto).

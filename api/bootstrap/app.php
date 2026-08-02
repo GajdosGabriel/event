@@ -6,16 +6,16 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Sentry\Laravel\Integration;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
-        api: __DIR__ . '/../routes/api.php',
-        commands: __DIR__ . '/../routes/console.php',
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -31,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Hlásenie produkčných chýb do Sentry. Bez SENTRY_LARAVEL_DSN je SDK
+        // ticho — lokálne a v testoch sa teda nič nikam neposiela a v .env
+        // netreba nič nastavovať.
+        Integration::handles($exceptions);
+
         // Všetko pod /api je JSON API. Bez tohto Laravel pri chýbajúcej hlavičke
         // Accept: application/json vráti HTML chybovú stránku a SPA dostane
         // namiesto chyby kus HTML, ktorý nevie spracovať.

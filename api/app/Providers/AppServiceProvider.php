@@ -7,15 +7,15 @@ use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\User;
 use App\Observers\CanalObserver;
+use App\Observers\EventObserver;
 use App\Observers\MunicipalityObserver;
 use App\Observers\UserObserver;
-use App\Observers\EventObserver;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
         Canal::observe(CanalObserver::class);
         Event::observe(EventObserver::class);
         Municipality::observe(MunicipalityObserver::class);
+
+        // Poistka proti N+1: mimo produkcie je lazy load relácie tvrdá chyba,
+        // takže sa chýbajúci eager load ukáže pri vývoji a v testoch, nie až
+        // ako pomalý výpis na produkcii. Na produkcii ostáva vypnutá — tam by
+        // z prehliadnutého dotazu spravila 500 namiesto pomalšej odpovede.
+        Model::preventLazyLoading(! $this->app->isProduction());
 
         $this->configureRateLimiting();
     }
@@ -65,7 +71,7 @@ class AppServiceProvider extends ServiceProvider
         // nezablokuje prihlásenie ostatným z tej istej siete.
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)
-                ->by($request->ip() . '|' . Str::lower((string) $request->input('email')))
+                ->by($request->ip().'|'.Str::lower((string) $request->input('email')))
                 ->response($this->tooManyRequests('Priveľa pokusov o prihlásenie. Skúste to o chvíľu znova.')),
         ]);
 
@@ -118,7 +124,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $id = auth('sanctum')->id();
 
-        return $id ? 'user:' . $id : 'ip:' . $request->ip();
+        return $id ? 'user:'.$id : 'ip:'.$request->ip();
     }
 
     /**

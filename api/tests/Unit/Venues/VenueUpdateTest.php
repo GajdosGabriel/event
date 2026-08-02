@@ -27,10 +27,13 @@ class VenueUpdateTest extends EventSetupTest
 
         $payload = [
             'canal_id' => $this->canalPrimary->id,
-            'name' => 'Updated Venue ' . Str::random(5),
+            'name' => 'Updated Venue '.Str::random(5),
             'street' => 'Updated Street 1',
             'postcode' => '81101',
-            'body' => 'Updated venue body ' . Str::random(20),
+            // Popis prechádza pri zápise cez HtmlBodyCleaner (SanitizesHtmlBody),
+            // takže sa posiela rovno ako HTML — inak by ho čistenie obalilo do
+            // <p> a uložená hodnota by sa s odoslanou nezhodovala.
+            'body' => '<p>Updated venue body '.Str::random(20).'</p>',
         ];
 
         /** @var Venue $updatedVenue */

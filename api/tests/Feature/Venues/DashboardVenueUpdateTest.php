@@ -5,8 +5,8 @@ namespace Tests\Feature\Venues;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Venue;
-use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
 class DashboardVenueUpdateTest extends EventSetupTest
@@ -17,7 +17,10 @@ class DashboardVenueUpdateTest extends EventSetupTest
             'canal_id' => $canalId,
             'village_id' => (int) $this->canalPrimary->municipality_id,
             'name' => $name,
-            'body' => $body,
+            // Popis prechádza pri zápise cez HtmlBodyCleaner (SanitizesHtmlBody),
+            // takže sa posiela rovno ako HTML — inak by ho čistenie obalilo do
+            // <p> a uložená hodnota by sa s odoslanou nezhodovala.
+            'body' => '<p>'.$body.'</p>',
             'status' => ModelStatus::Draft->value,
         ];
     }
@@ -32,11 +35,11 @@ class DashboardVenueUpdateTest extends EventSetupTest
         ]);
         $payload = $this->validUpdatePayload(
             $this->canalPrimary->id,
-            'Updated Venue ' . Str::random(5),
-            'Updated venue body ' . Str::random(20),
+            'Updated Venue '.Str::random(5),
+            'Updated venue body '.Str::random(20),
         );
 
-        $response = $this->putJson('/api/dashboard/venues/' . $venue->id, $payload);
+        $response = $this->putJson('/api/dashboard/venues/'.$venue->id, $payload);
 
         $response->assertStatus(200);
 
@@ -59,14 +62,14 @@ class DashboardVenueUpdateTest extends EventSetupTest
 
         $payload = $this->validUpdatePayload(
             $this->canalPrimary->id,
-            'Member Update Venue ' . Str::random(5),
-            'Member update body ' . Str::random(20),
+            'Member Update Venue '.Str::random(5),
+            'Member update body '.Str::random(20),
         );
 
-        $this->getJson('/api/dashboard/venues/' . $venue->id)
+        $this->getJson('/api/dashboard/venues/'.$venue->id)
             ->assertStatus(200);
 
-        $response = $this->putJson('/api/dashboard/venues/' . $venue->id, $payload);
+        $response = $this->putJson('/api/dashboard/venues/'.$venue->id, $payload);
 
         $response->assertStatus(403);
 
@@ -88,11 +91,11 @@ class DashboardVenueUpdateTest extends EventSetupTest
 
         $payload = $this->validUpdatePayload(
             $this->canalPrimary->id,
-            'Soft Deleted Venue ' . Str::random(5),
-            'Updated soft deleted venue body ' . Str::random(20),
+            'Soft Deleted Venue '.Str::random(5),
+            'Updated soft deleted venue body '.Str::random(20),
         );
 
-        $response = $this->putJson('/api/dashboard/venues/' . $venue->id, $payload);
+        $response = $this->putJson('/api/dashboard/venues/'.$venue->id, $payload);
 
         $response->assertStatus(200);
 
@@ -125,13 +128,13 @@ class DashboardVenueUpdateTest extends EventSetupTest
         ]);
         $payload = $this->validUpdatePayload(
             $this->canalPrimary->id,
-            'Multi Canal Venue ' . Str::random(5),
-            'Updated multi canal venue body ' . Str::random(20),
+            'Multi Canal Venue '.Str::random(5),
+            'Updated multi canal venue body '.Str::random(20),
         );
         unset($payload['canal_id']);
         $payload['canal_ids'] = [$this->canalPrimary->id, $secondCanal->id];
 
-        $response = $this->putJson('/api/dashboard/venues/' . $venue->id, $payload);
+        $response = $this->putJson('/api/dashboard/venues/'.$venue->id, $payload);
 
         $response->assertStatus(200);
         $response->assertJsonFragment([
@@ -159,13 +162,13 @@ class DashboardVenueUpdateTest extends EventSetupTest
         ]);
         $payload = $this->validUpdatePayload(
             $this->canalPrimary->id,
-            'Forbidden Venue ' . Str::random(5),
-            'Forbidden venue body ' . Str::random(20),
+            'Forbidden Venue '.Str::random(5),
+            'Forbidden venue body '.Str::random(20),
         );
         unset($payload['canal_id']);
         $payload['canal_ids'] = [$this->canalPrimary->id, $foreignCanal->id];
 
-        $response = $this->putJson('/api/dashboard/venues/' . $venue->id, $payload);
+        $response = $this->putJson('/api/dashboard/venues/'.$venue->id, $payload);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['canal_ids']);
@@ -180,4 +183,3 @@ class DashboardVenueUpdateTest extends EventSetupTest
         ]);
     }
 }
-

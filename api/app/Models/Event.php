@@ -5,15 +5,20 @@ namespace App\Models;
 use App\Casts\StringLength250;
 use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
-use App\Models\Traits\{HasCommonFilters, HasFile, HasViews, InteractsAsMessageable};
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
+use App\Models\Traits\HasCommonFilters;
+use App\Models\Traits\HasFile;
+use App\Models\Traits\HasViews;
+use App\Models\Traits\InteractsAsMessageable;
+use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class Event extends Model implements Messageable
 {
-    use HasFactory, SoftDeletes, HasFile, HasCommonFilters, HasViews, InteractsAsMessageable;
+    use HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool
@@ -22,7 +27,9 @@ class Event extends Model implements Messageable
     }
 
     protected $guarded = [];
+
     protected $hidden = [];
+
     protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
 
     protected $casts = [
@@ -37,11 +44,16 @@ class Event extends Model implements Messageable
         'meta' => 'array',
     ];
 
-
     public function setNameAttribute($value)
     {
         $this->attributes['name'] = $value;
-        $this->attributes['slug']  = Str::slug($value);
+        $this->attributes['slug'] = Str::slug($value);
+    }
+
+    /** Popis od AI sa vykresľuje rovnako cez v-html — viď SanitizesHtmlBody. */
+    public function setBodyAiAttribute(mixed $value): void
+    {
+        $this->attributes['body_ai'] = static::sanitizeHtmlBody($value);
     }
 
     public function canal()
