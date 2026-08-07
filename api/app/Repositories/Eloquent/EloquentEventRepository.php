@@ -102,9 +102,11 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             $copy = $source->replicate([
                 'status',
                 'published_at',
+                'publish_at',
                 'start_at',
                 'end_at',
                 'registration_deadline_at',
+                'reminder_sent_at',
                 'orginal_source',
                 'deleted_at',
             ]);
@@ -189,6 +191,13 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             $properties['published_at'] = now();
         }
 
+        // Naplánovaný termín patrí výhradne k stavu `scheduled`. Pri prechode
+        // inam by ostal visieť vo formulári ako sľub, ktorý už nikto nesplní —
+        // príkaz app:events-publish-scheduled berie len `scheduled` riadky.
+        if (isset($properties['status']) && $properties['status'] !== ModelStatus::Scheduled->value) {
+            $properties['publish_at'] = null;
+        }
+
         $event->update($properties);
 
         $this->syncEventFiles($event, $filePayload);
@@ -208,16 +217,27 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
      * Verejný detail. Prekrýva AbstractRepository::publicShow(), ktorý nerobí
      * žiadny eager load — Public\EventController::show() serializuje model cez
      * toArray(), takže bez načítanej relácie by na detaile štítky chýbali.
+     *
+     * Filter na stav je tu, nie až v kontroléri: bez neho sa dal koncept aj
+     * naplánované podujatie prečítať uhádnutím id, čím by naplánované
+     * publikovanie stratilo zmysel.
      */
     public function publicShow($id)
     {
-        return $this->model()->with('tags')->find($id);
+        return $this->model()
+            ->with('tags')
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->find($id);
     }
 
     /**
      * Publikuje alebo zruší publikovanie. Zrušenie vracia podujatie do konceptu
      * a maže `published_at` — verejné scope-y filtrujú podľa oboch
      * (status + published_at), takže musia ísť dole spolu.
+     *
+     * `publish_at` v oboch smeroch padá: publikovanie „hneď" naplánovaný termín
+     * predbehlo a zrušenie ho ruší. Bez toho by naplánované podujatie stiahnuté
+     * do konceptu ostalo v čakárni príkazu app:events-publish-scheduled.
      */
     public function publish($id, bool $published = true)
     {
@@ -228,10 +248,12 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             ? [
                 'status' => ModelStatus::Published->value,
                 'published_at' => $event->published_at ?? now(),
+                'publish_at' => null,
             ]
             : [
                 'status' => ModelStatus::Draft->value,
                 'published_at' => null,
+                'publish_at' => null,
             ]);
 
         return $event->fresh(['files']);

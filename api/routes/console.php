@@ -11,7 +11,14 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:ai-detector')->everyMinute();
 Schedule::command('app:events-archive-finished')->everyTenMinutes();
+// Naplánované publikovanie. Päť minút je kompromis: organizátor plánuje na
+// celé hodiny, takže presnosť na minútu nikto nepotrebuje, a beh je lacný
+// (indexovaný dopyt nad status + publish_at, väčšinou prázdny).
+Schedule::command('app:events-publish-scheduled')->everyFiveMinutes();
 Schedule::command('app:tickets-expire-unconfirmed')->everyTenMinutes();
+// Pripomienky účastníkom. Presnosť na desať minút stačí — organizátor si volí
+// hodiny pred akciou, nie minúty.
+Schedule::command('app:events-send-reminders')->everyTenMinutes();
 Schedule::command('app:registrations-expire-pending')->everyTenMinutes();
 // Obsahové štítky podujatí. Malá dávka a vlastný časový strop — všetky príkazy
 // bežia sekvenčne v jednom webcron requeste spolu s app:ai-detector.

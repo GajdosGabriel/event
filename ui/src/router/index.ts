@@ -85,6 +85,9 @@ const router = createRouter({
         { path: 'venues/:id', name: 'dashboard-venues-show', component: () => import('@/pages/venues/VenueShowPage.vue') },
         { path: 'venues/:id/edit', name: 'dashboard-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue') },
         { path: 'municipalities', name: 'dashboard-municipalities', component: () => import('@/pages/dashboard/DashboardMunicipalitiesPage.vue') },
+        // Inbox prijatých správ. Slovenská cesta zámerne — odkazuje naň e-mail
+        // s odpoveďou aj dlaždica „Neprečítané správy" v štatistikách.
+        { path: 'spravy', name: 'dashboard-messages', component: () => import('@/pages/dashboard/DashboardMessagesPage.vue') },
       ],
     },
 

@@ -131,6 +131,12 @@ class EventResource extends JsonResource
         return $data;
     }
 
+    /** Podujatie sa dá naplánovať na neskôr — viď ModelStatus::allowedForEvent(). */
+    protected function allowedStatuses(Request $request): array
+    {
+        return ModelStatus::allowedForEvent($request->user());
+    }
+
     private function dateRangeLabel(): ?string
     {
         if (! $this->start_at instanceof CarbonInterface) {

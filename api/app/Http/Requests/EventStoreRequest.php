@@ -27,7 +27,7 @@ class EventStoreRequest extends FormRequest
     public function rules(): array
     {
         $allowedStatuses = array_column(
-            ModelStatus::allowedForUser($this->user()),
+            ModelStatus::allowedForEvent($this->user()),
             'value'
         );
 
@@ -42,6 +42,14 @@ class EventStoreRequest extends FormRequest
             'canal_id' => ['nullable', 'integer', 'exists:canals,id'],
             'venue_id' => ['nullable', 'integer', 'exists:venues,id'],
             'published_at' => ['nullable', 'date'],
+            // Naplánované publikovanie. `published_at` je čas prvého zverejnenia
+            // (história), `publish_at` je čas, kedy sa má podujatie zverejniť —
+            // preklopí ho príkaz app:events-publish-scheduled. Termín v minulosti
+            // nemá zmysel: podujatie by vyšlo hneď pri najbližšom behu, čo je
+            // „publikovať", nie „naplánovať".
+            'publish_at' => $this->input('status') === ModelStatus::Scheduled->value
+                ? ['required', 'date', 'after:now']
+                : ['nullable', 'date'],
             'website' => [
                 'nullable',
                 'url',

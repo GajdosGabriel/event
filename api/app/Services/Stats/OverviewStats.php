@@ -808,7 +808,9 @@ final class OverviewStats
                 'label' => 'Neprečítané správy',
                 'hint' => 'Otázky od návštevníkov, na ktoré nikto neodpovedal.',
                 'count' => $this->messageQuery()->whereNull('messages.read_at')->count(),
-                'link' => null,
+                // Inbox je len v dashboarde — a sem sa položka dostane tiež len
+                // tam (recipientUserId je null vo všetkých ostatných scope-och).
+                'link' => 'spravy',
             ];
         }
 

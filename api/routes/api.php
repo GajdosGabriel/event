@@ -12,11 +12,13 @@ use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionCont
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
 use App\Http\Controllers\Dashboard\DashboardEventController;
 use App\Http\Controllers\Dashboard\DashboardFileController;
 use App\Http\Controllers\Dashboard\DashboardHomeController;
+use App\Http\Controllers\Dashboard\DashboardMessageController;
 use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
 use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
@@ -282,6 +284,19 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('events/{event}/checkin-stats', [DashboardTicketController::class, 'checkinStats'])
         ->name('events.checkin-stats')
         ->middleware('permission:ticket.view');
+
+    // Zoznam prihlásených: export a hromadný e-mail. Export má právo `ticket.view`
+    // (je to čítanie zoznamu), rozposlanie `event.update` — je to komunikácia
+    // v mene organizátora, na to obsluha vstupu nestačí.
+    Route::get('events/{event}/attendees/export', [DashboardAttendeeController::class, 'export'])
+        ->name('events.attendees.export')
+        ->middleware('permission:ticket.view');
+    Route::get('events/{event}/attendees/recipients', [DashboardAttendeeController::class, 'recipientCount'])
+        ->name('events.attendees.recipients')
+        ->middleware('permission:ticket.view');
+    Route::post('events/{event}/attendees/email', [DashboardAttendeeController::class, 'email'])
+        ->name('events.attendees.email')
+        ->middleware(['permission:event.update', 'throttle:messages']);
     Route::post('tickets/checkin', [DashboardTicketController::class, 'checkin'])
         ->name('tickets.checkin')
         ->middleware('permission:ticket.checkin');
@@ -303,6 +318,18 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('admissions/{admission}/cancel', [DashboardTicketController::class, 'cancelAdmission'])
         ->name('admissions.cancel')
         ->middleware('permission:ticket.update');
+
+    // Inbox správ. Bez `permission:` middlewaru — inbox je osobný, právo drží
+    // MessagePolicy podľa recipient_user_id, nie globálna rola.
+    Route::get('messages', [DashboardMessageController::class, 'index'])->name('messages.index');
+    Route::get('messages/unread-count', [DashboardMessageController::class, 'unreadCount'])
+        ->name('messages.unread-count');
+    Route::get('messages/{message}', [DashboardMessageController::class, 'show'])->name('messages.show');
+    Route::post('messages/{message}/read', [DashboardMessageController::class, 'markRead'])
+        ->name('messages.read');
+    Route::post('messages/{message}/reply', [DashboardMessageController::class, 'reply'])
+        ->name('messages.reply')
+        ->middleware('throttle:messages');
 
     Route::apiResource('municipalities', DashboardMunicipalityController::class);
 

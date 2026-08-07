@@ -237,6 +237,7 @@
             <div class="detail-card">
               <dt>Záznam</dt>
               <dd class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span v-if="event.publishAt" class="font-medium text-amber-700">Zverejní sa {{ fmt(event.publishAt) }}</span>
                 <span v-if="event.publishedAt">Publikované {{ fmt(event.publishedAt) }}</span>
                 <span v-if="event.createdAt">Vytvorené {{ fmt(event.createdAt) }}</span>
                 <span v-if="event.updatedAt">Upravené {{ fmt(event.updatedAt) }}</span>

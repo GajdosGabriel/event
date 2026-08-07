@@ -101,6 +101,8 @@ export async function deleteTicketType(eventId: number, typeId: number): Promise
 
 export interface TicketingSettingsPayload {
   workshop_lock_on_start?: boolean
+  /** Koľko hodín pred začiatkom poslať pripomienku; null = neposielať. */
+  reminder_hours_before?: number | null
 }
 
 export async function updateTicketingSettings(

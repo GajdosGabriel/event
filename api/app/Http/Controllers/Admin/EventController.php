@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Services\Imports\HtmlBodyCleaner;
@@ -24,6 +25,12 @@ class EventController extends Controller
     public function __construct(EventRepository $eventRepository)
     {
         $this->eventRepository = $eventRepository;
+    }
+
+    /** Podujatie sa dá naplánovať na neskôr — viď ModelStatus::allowedForEvent(). */
+    protected function allowedStatuses(Request $request): array
+    {
+        return ModelStatus::allowedForEvent($request->user());
     }
 
     public function index(IndexFilterRequest $request): AnonymousResourceCollection

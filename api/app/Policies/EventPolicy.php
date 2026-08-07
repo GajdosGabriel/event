@@ -43,20 +43,24 @@ class EventPolicy
             && $user->canInCanal((int) $event->canal_id, 'event.update');
     }
 
+    /**
+     * Naplánované podujatie sa dá publikovať aj ručne — je to „vydať teraz,
+     * nečakať na termín", nie obídenie nejakej kontroly.
+     */
     public function publish(User $user, Event $event): bool
     {
         return $this->update($user, $event)
-            && $event->status === ModelStatus::Draft;
+            && in_array($event->status, [ModelStatus::Draft, ModelStatus::Scheduled], true);
     }
 
     /**
-     * Opačný smer k publish() — publikované podujatie späť do konceptu.
-     * Archivované sem nepatrí, to je koncová stanica (pozri archive()).
+     * Opačný smer k publish() — publikované (alebo naplánované) podujatie späť
+     * do konceptu. Archivované sem nepatrí, to je koncová stanica (pozri archive()).
      */
     public function unpublish(User $user, Event $event): bool
     {
         return $this->update($user, $event)
-            && $event->status === ModelStatus::Published;
+            && in_array($event->status, [ModelStatus::Published, ModelStatus::Scheduled], true);
     }
 
     /**

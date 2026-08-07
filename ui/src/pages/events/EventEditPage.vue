@@ -22,10 +22,21 @@
               Stav
               <select v-model="form.status" class="form-input" :class="{ invalid: errors.status }">
                 <option value="draft">Koncept</option>
+                <option value="scheduled">Naplánovaný</option>
                 <option value="published">Publikovaný</option>
                 <option value="archived">Archivovaný</option>
               </select>
               <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
+            </label>
+            <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
+                 stavoch ho backend aj tak zahodí, tak ho ani neukazujeme. -->
+            <label v-if="form.status === 'scheduled'" class="form-label lg:col-span-2">
+              Zverejniť dňa *
+              <DateTimeInput v-model="form.publish_at" class="form-input" :class="{ invalid: errors.publish_at }" />
+              <span v-if="errors.publish_at" class="field-error">{{ errors.publish_at }}</span>
+              <span v-else class="mt-1 text-xs text-slate-500">
+                Do tohto času event nie je verejne viditeľný. Zverejní sa sám, na minútu presne to nie je — kontrola beží každých päť minút.
+              </span>
             </label>
             <label class="form-label">
               Kanál
@@ -302,6 +313,7 @@ const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipaliti
 const form = ref({
   name: '',
   status: 'draft',
+  publish_at: '',
   canal_id: auth.canalId ?? null,
   venue_id: null as number | null,
   start_at: '',
@@ -453,6 +465,7 @@ onMounted(async () => {
       form.value = {
         name: ev.name,
         status: ev.status,
+        publish_at: ev.publishAt?.slice(0, 16) ?? '',
         canal_id: ev.canalId ?? auth.canalId ?? null,
         venue_id: ev.venueId ?? null,
         start_at: ev.startAt?.slice(0, 16) ?? '',
@@ -476,7 +489,9 @@ async function submit() {
   serverError.value = null
   saving.value = true
   try {
-    const payload = { ...form.value }
+    // Prázdny reťazec z <input type="datetime-local"> by prešiel ako neplatný
+    // dátum — backend chce buď termín, alebo null.
+    const payload = { ...form.value, publish_at: form.value.publish_at || null }
     if (isCreate.value) {
       const ev = await createEvent(payload, scope.value)
       savedId.value = ev.id

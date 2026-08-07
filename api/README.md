@@ -27,9 +27,16 @@ nie proti sqlite. **Celá suite trvá ~10 minút**, preto pri vývoji púšťaj 
 cesty. Rate limity sú v testoch globálne vypnuté v [tests/TestCase.php](tests/TestCase.php);
 test, ktorý ich overuje, si ich zapne cez `$this->withMiddleware(ThrottleRequests::class)`.
 
-Časť testov v `tests/Feature/Events/` je náhodne flaky: `EventFactory` generuje
-dátumy a keď hodnota padne do hodiny, ktorá pri prechode na letný čas neexistuje
-(posledná nedeľa v marci), MySQL insert odmietne. Pri takom páde test zopakuj.
+Časť testov v `tests/Feature/Events/` je náhodne flaky, a to z dvoch dôvodov:
+
+- `EventFactory` generuje dátumy a keď hodnota padne do hodiny, ktorá pri prechode
+  na letný čas neexistuje (posledná nedeľa v marci), MySQL insert odmietne.
+- `EventFactory` losuje `status` zo **všetkých** stavov, takže `futureEvent` môže byť
+  aj archivovaný či blokovaný. Testy, ktoré nad ním niečo publikujú, mažú alebo
+  upravujú, si stav musia pripnúť samy (`$this->futureEvent->update(['status' => …])`).
+  `DashboardEventDestroyTest` a `EventTagAssignmentTest` to zatiaľ nerobia.
+
+Pri takom páde test zopakuj — alebo mu doplň pripnutie stavu.
 
 ## Rate limiting
 
@@ -52,7 +59,9 @@ Laravel scheduler je zapojený v [routes/console.php](routes/console.php) a spú
 
 - `app:ai-detector` každú minútu
 - `app:events-archive-finished` každých 10 minút
+- `app:events-publish-scheduled` každých 5 minút (naplánované publikovanie, `events.publish_at`)
 - `app:tickets-expire-unconfirmed` každých 10 minút
+- `app:events-send-reminders` každých 10 minút (pripomienka účastníkom, `events.reminder_hours_before`)
 - `app:registrations-expire-pending` každých 10 minút
 - `app:import-event-sources` denne o 16:00 (`Europe/Bratislava`)
 - `queue:work database --queue=default,imports --stop-when-empty` každú minútu

@@ -15,8 +15,9 @@ class ViewCountingTest extends EventSetupTest
     {
         parent::setUp();
 
-        // EventFactory losuje stav aj dátumy — verejný detail ich nekontroluje,
-        // ale ostatné testy áno, tak nech je východisko deterministické.
+        // EventFactory losuje stav aj dátumy a verejný detail ukazuje len
+        // publikované (a archivované) podujatie — bez pripnutia by test závisel
+        // od hodu kockou.
         $this->futureEvent->update(['status' => ModelStatus::Published->value]);
     }
 

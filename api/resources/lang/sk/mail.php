@@ -120,6 +120,32 @@ return [
         'target_fallback' => 'váš profil',
     ],
 
+    // App\Notifications\MessageReplied — odpoveď organizátora z inboxu.
+    'message_replied' => [
+        'subject'    => 'Odpoveď – :label „:name"',
+        'heading'    => 'Prišla vám odpoveď',
+        'intro'      => '**:name** odpovedal(a) na vašu správu k :label **„:target"**.',
+        'reply_hint' => 'Odpovedať môžete priamo na tento e-mail.',
+        'action'     => 'Zobraziť konverzáciu',
+    ],
+
+    // App\Notifications\EventAnnouncement — hromadný e-mail organizátora.
+    // Predmet aj telo píše organizátor, tu sú len rámcové texty.
+    'event_announcement' => [
+        'action' => 'Zobraziť podujatie',
+        'outro'  => 'Tento e-mail vám prišiel, lebo máte lístok na uvedené podujatie.',
+    ],
+
+    // App\Notifications\EventReminder — pripomienka pred akciou.
+    'event_reminder' => [
+        'subject'   => 'Pripomienka: :event',
+        'intro'     => 'Pripomíname, že sa blíži akcia **„:event"**, na ktorú máte lístok.',
+        'starts_at' => 'Začiatok: **:date**.',
+        'venue'     => 'Miesto: **:venue**.',
+        'action'    => 'Zobraziť podujatie',
+        'outro'     => 'Vstupenku s QR kódom nájdete v e-maile, ktorý vám prišiel pri objednávke.',
+    ],
+
     // App\Notifications\WorkshopSeatGranted — náhradníkovi sa uvoľnilo miesto.
     'workshop_seat_granted' => [
         'subject'       => 'Uvoľnilo sa miesto na workshope :workshop',

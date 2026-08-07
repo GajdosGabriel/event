@@ -19,6 +19,9 @@ class TicketingSettingsRequest extends FormRequest
     {
         return [
             'workshop_lock_on_start' => ['sometimes', 'boolean'],
+            // Pripomienka účastníkom: koľko hodín pred začiatkom. null = neposielať.
+            // Strop 336 h (14 dní) drží aj predvýber v app:events-send-reminders.
+            'reminder_hours_before' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:336'],
         ];
     }
 }

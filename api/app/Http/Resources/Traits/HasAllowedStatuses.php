@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 
 trait HasAllowedStatuses
 {
+    /**
+     * Stavy do <select> vo formulári. Podujatia majú navyše `scheduled` —
+     * pýtajú si ho prekrytím tejto metódy (ModelStatus::allowedForEvent).
+     */
     protected function allowedStatuses(Request $request): array
     {
         return ModelStatus::allowedForUser($request->user());

@@ -158,3 +158,36 @@ export async function cancelAdmission(admissionId: number): Promise<AdmissionIte
 export async function resendTicket(id: number): Promise<void> {
   await http.post(`/dashboard/tickets/${id}/resend`)
 }
+
+/**
+ * CSV so zoznamom prihlásených. Sťahuje sa cez axios (blob), nie ako obyčajný
+ * odkaz — inak by request išiel bez Authorization hlavičky a skončil na 401.
+ */
+export async function exportAttendees(eventId: number): Promise<void> {
+  const response = await http.get(`/dashboard/events/${eventId}/attendees/export`, {
+    responseType: 'blob',
+  })
+
+  const disposition = String(response.headers['content-disposition'] ?? '')
+  const name = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `ucastnici-${eventId}.csv`
+
+  const url = URL.createObjectURL(response.data as Blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function attendeeRecipientCount(eventId: number): Promise<number> {
+  const { data } = await http.get(`/dashboard/events/${eventId}/attendees/recipients`)
+  return Number(data.recipients ?? 0)
+}
+
+export async function emailAttendees(
+  eventId: number,
+  payload: { subject: string; body: string },
+): Promise<number> {
+  const { data } = await http.post(`/dashboard/events/${eventId}/attendees/email`, payload)
+  return Number(data.recipients ?? 0)
+}

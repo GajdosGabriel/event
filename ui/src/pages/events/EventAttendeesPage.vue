@@ -7,9 +7,44 @@
       <p v-if="eventName" class="text-sm text-slate-500">Prihlásení / objednávky</p>
     </div>
 
-    <input v-model="search" type="search" placeholder="Hľadať podľa mena alebo e-mailu…"
-      class="mb-4 w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-      @input="onSearch" />
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <input v-model="search" type="search" placeholder="Hľadať podľa mena alebo e-mailu…"
+        class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        @input="onSearch" />
+      <button type="button" class="btn btn-secondary" :disabled="exporting" @click="onExport">
+        {{ exporting ? 'Pripravujem…' : 'Export CSV' }}
+      </button>
+      <button type="button" class="btn btn-secondary" @click="openBulk">Napísať všetkým</button>
+    </div>
+
+    <!-- Hromadný e-mail účastníkom -->
+    <div v-if="bulk.show" class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" @click.self="bulk.show = false">
+      <form class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" @submit.prevent="sendBulk">
+        <h2 class="mb-1 text-lg font-semibold text-slate-900">Hromadný e-mail účastníkom</h2>
+        <p class="mb-4 text-sm text-slate-500">
+          Odíde na {{ bulk.recipients }} {{ bulk.recipients === 1 ? 'adresu' : 'adries' }}.
+          Každý účastník dostane e-mail raz, aj keď má viac lístkov. Odpovede vám prídu na váš e-mail.
+        </p>
+
+        <label class="form-label">
+          Predmet *
+          <input v-model="bulk.subject" type="text" maxlength="150" class="form-input" required />
+        </label>
+        <label class="form-label mt-3">
+          Text správy *
+          <textarea v-model="bulk.body" rows="7" maxlength="5000" class="form-input" required></textarea>
+        </label>
+
+        <p v-if="bulk.error" class="mt-2 text-sm text-red-600">{{ bulk.error }}</p>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="bulk.show = false">Zrušiť</button>
+          <button type="submit" class="btn btn-primary" :disabled="bulk.sending || !bulk.recipients">
+            {{ bulk.sending ? 'Odosielam…' : 'Odoslať' }}
+          </button>
+        </div>
+      </form>
+    </div>
 
     <p v-if="loading" class="text-slate-500">Načítavam…</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
@@ -105,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   indexEventTickets,
@@ -114,6 +149,9 @@ import {
   checkinAdmissionManual,
   undoCheckin,
   resendTicket,
+  exportAttendees,
+  attendeeRecipientCount,
+  emailAttendees,
 } from '@/api/tickets'
 import { showEvent } from '@/api/events'
 import { useToast } from '@/composables/useToast'
@@ -193,6 +231,51 @@ async function onUndo(admissionId: number) {
   await undoCheckin(admissionId)
   toast.success('Vstup zrušený.')
   await load(page.value)
+}
+
+const exporting = ref(false)
+
+async function onExport() {
+  exporting.value = true
+  try {
+    await exportAttendees(eventId)
+  } catch {
+    toast.error('Export sa nepodaril.')
+  } finally {
+    exporting.value = false
+  }
+}
+
+const bulk = reactive({
+  show: false,
+  sending: false,
+  error: null as string | null,
+  recipients: 0,
+  subject: '',
+  body: '',
+})
+
+async function openBulk() {
+  bulk.show = true
+  bulk.error = null
+  bulk.subject = eventName.value ? `${eventName.value} – informácia pre účastníkov` : ''
+  bulk.body = ''
+  bulk.recipients = await attendeeRecipientCount(eventId).catch(() => 0)
+}
+
+async function sendBulk() {
+  bulk.error = null
+  bulk.sending = true
+  try {
+    const count = await emailAttendees(eventId, { subject: bulk.subject, body: bulk.body })
+    bulk.show = false
+    toast.success(`E-mail odoslaný na ${count} adries.`)
+  } catch (e: unknown) {
+    const resp = (e as { response?: { data?: { message?: string } } })?.response?.data
+    bulk.error = resp?.message ?? 'E-mail sa nepodarilo odoslať.'
+  } finally {
+    bulk.sending = false
+  }
 }
 
 async function onResend(ticket: TicketItem) {

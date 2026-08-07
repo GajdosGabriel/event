@@ -22,6 +22,11 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
           <span class="nav-label">Miesta</span>
         </RouterLink>
+        <RouterLink to="/dashboard/spravy" class="aside-link" active-class="active" :title="collapsed ? 'Správy' : undefined">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span class="nav-label">Správy</span>
+          <span v-if="unread > 0" class="nav-badge">{{ unread > 99 ? '99+' : unread }}</span>
+        </RouterLink>
       </nav>
 
       <button class="toggle-btn" @click="toggle" :title="collapsed ? 'Rozbaliť' : 'Zbaliť'">
@@ -58,14 +63,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { unreadMessageCount } from '@/api/messages'
 import UserDropdown from '@/components/UserDropdown.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
+
+// Odznak neprečítaných. Bez pollingu — obnoví sa pri prechode medzi stránkami
+// dashboardu, čo na inbox stačí a nedrží otvorený request na pozadí.
+const unread = ref(0)
+
+async function refreshUnread() {
+  try {
+    unread.value = await unreadMessageCount()
+  } catch {
+    unread.value = 0
+  }
+}
+
+onMounted(refreshUnread)
+watch(() => route.path, refreshUnread)
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed'
 const collapsed = ref(localStorage.getItem(STORAGE_KEY) === '1')
@@ -124,6 +145,12 @@ const munResource = computed(() => {
   @apply flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-semibold text-teal-50/80 no-underline hover:bg-teal-200/12 hover:text-white overflow-hidden;
 }
 .aside-link.active { @apply bg-teal-300 text-teal-950; }
+.nav-badge {
+  @apply ml-auto shrink-0 rounded-full bg-teal-300 px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-teal-950;
+}
+.aside-link.active .nav-badge { @apply bg-teal-900 text-teal-50; }
+/* V zbalenom paneli nie je miesto na číslo — ostane len bodka pri ikone. */
+.collapsed .nav-badge { @apply ml-0 size-2 p-0 text-transparent; }
 
 /* Toggle button */
 .toggle-btn {

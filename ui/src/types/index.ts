@@ -149,9 +149,15 @@ export interface EventItem {
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
   workshopLockOnStart?: boolean
+  /** Pripomienka účastníkom: hodiny pred začiatkom, null = neposielať. */
+  reminderHoursBefore: number | null
+  /** Kedy pripomienka odišla — posiela sa raz. */
+  reminderSentAt: string | null
   priceAmount: number | null
   priceCurrency: string | null
   publishedAt: string | null
+  /** Naplánované zverejnenie — čas, kedy event sám prejde do „Publikovaný". */
+  publishAt: string | null
   deletedAt: string | null
   createdAt: string | null
   updatedAt: string | null

@@ -28,6 +28,21 @@
             </span>
           </span>
         </label>
+        <label class="form-label max-w-sm">
+          Pripomienka účastníkom
+          <select v-model="settings.reminder_hours_before" class="form-input">
+            <option :value="null">Neposielať</option>
+            <option :value="2">2 hodiny pred začiatkom</option>
+            <option :value="24">Deň pred začiatkom</option>
+            <option :value="48">Dva dni pred začiatkom</option>
+            <option :value="168">Týždeň pred začiatkom</option>
+          </select>
+          <span class="mt-1 text-xs text-slate-500">
+            E-mail dostane každý prihlásený účastník, raz. Posiela sa len pri publikovanom podujatí.
+            <template v-if="reminderSentAt"> Naposledy odoslaná {{ reminderSentAt }}.</template>
+          </span>
+        </label>
+
         <div class="mt-4">
           <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">
             {{ savingSettings ? 'Ukladám…' : 'Uložiť nastavenia' }}
@@ -116,7 +131,10 @@ const eventName = ref('')
 
 const settings = reactive({
   workshop_lock_on_start: true,
+  reminder_hours_before: null as number | null,
 })
+
+const reminderSentAt = ref<string | null>(null)
 
 const types = ref<TicketTypeItem[]>([])
 
@@ -131,6 +149,10 @@ async function loadAll() {
     const ev = await showEvent('dashboard', eventId)
     eventName.value = ev.name
     settings.workshop_lock_on_start = ev.workshopLockOnStart ?? true
+    settings.reminder_hours_before = ev.reminderHoursBefore
+    reminderSentAt.value = ev.reminderSentAt
+      ? new Date(ev.reminderSentAt).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : null
     types.value = await indexTicketTypes(eventId)
   } catch {
     loadError.value = 'Údaje sa nepodarilo načítať.'
@@ -144,6 +166,7 @@ async function saveSettings() {
   try {
     await updateTicketingSettings(eventId, {
       workshop_lock_on_start: settings.workshop_lock_on_start,
+      reminder_hours_before: settings.reminder_hours_before,
     })
     toast.success('Nastavenia uložené.')
   } catch {

@@ -29,6 +29,12 @@ class DashboardEventController extends Controller
         $this->eventRepository = $eventRepository;
     }
 
+    /** Podujatie sa dá naplánovať na neskôr — viď ModelStatus::allowedForEvent(). */
+    protected function allowedStatuses(Request $request): array
+    {
+        return ModelStatus::allowedForEvent($request->user());
+    }
+
     public function index(IndexFilterRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Event::class);

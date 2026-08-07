@@ -7,6 +7,8 @@ agentúry), ktorý sa uživí z **provízie z predaja lístkov**. Požiadavka je
 nie ďalšia appka v poradí".
 
 Tento dokument je audit stavu k **29. 7. 2026** (commit `860f7c8`) a návrh poradia prác.
+Priebežne sa dopĺňa: hotové body sú prečiarknuté a doplnené o odkaz do kódu.
+Posledná aktualizácia **2. 8. 2026** — fáza 0 (okrem 0.4 a 0.5) a body 3.4–3.6.
 
 ---
 
@@ -46,7 +48,13 @@ podujatie sa dá zablokovať fiktívnymi objednávkami.
 **Stav k 1. 8. 2026: vyriešené (fáza 1, body 1.1–1.5).** Pôvodná diagnóza a čo ju
 nahradilo:
 
-
+| Bolo | Je |
+|---|---|
+| SPA sa renderuje až v prehliadači, `ui/index.html` je prázdna škrupina s `<title>Event</title>`; OG tagy dopĺňal JS až po načítaní, a to len na detaile podujatia → každé zdieľanie vyzeralo ako holý odkaz | [`PrerenderController`](api/app/Http/Controllers/Public/PrerenderController.php) vracia crawlerom serverom vykreslené HTML s plnou `<head>` a čitateľným telom; Apache ich tam púšťa podľa `User-Agent` ([deploy/htaccess.md](deploy/htaccess.md)) |
+| Žiadne JSON-LD `Event` | [`JsonLd`](api/app/Services/Seo/JsonLd.php) — `Event` s `offers` z typov lístkov, `Place`, `Organization`, `ItemList`, `BreadcrumbList` |
+| Žiadny `sitemap.xml`, `robots.txt` len na API hoste | [`SitemapController`](api/app/Http/Controllers/Public/SitemapController.php) (cache 1 h, len živý publikovaný obsah) + [`ui/public/robots.txt`](ui/public/robots.txt) |
+| URL `/events/42` — číselné id, hoci `slug` v DB je | `/podujatia/{slug}-{id}`, `/miesta/…`, `/organizatori/…`; staré adresy presmerúvajú a `canonical` ukazuje na novú. Zdroj pravdy je [`PublicUrl`](api/app/Support/PublicUrl.php) a jeho dvojička [`publicUrl.ts`](ui/src/utils/publicUrl.ts) |
+| Neexistuje verejná routa so zoznamom — všetko je homepage `/` s query parametrami | [`EventListPage`](ui/src/pages/events/EventListPage.vue): `/podujatia`, `/podujatia/mesto/{slug}`, `/podujatia/tema/{slug}`, `/podujatia/tento-vikend`, každá s vlastným `title`, popisom a `canonical` |
 
 Otvorené ostáva 1.6 (ICS export a tlačidlá na zdieľanie) a nasadenie Apache
 pravidiel na produkcii — bez nich crawler stále dostane prázdnu škrupinu.
@@ -66,15 +74,52 @@ pravidiel na produkcii — bez nich crawler stále dostane prázdnu škrupinu.
 
 ### Menšie, ale hlásené nálezy
 
-- `POST /dashboard/events/detect-from-text` (z textu plagátu spraví podujatie) je hotový
-  na backende aj v `ui/src/api/events.ts`, ale **žiadna komponenta ho nevolá**.
+- ~~`POST /dashboard/events/detect-from-text` nikto nevolá~~ — vyriešené v 3.3, tok je
+  popísaný v [api/docs/poster-upload-flow.md](api/docs/poster-upload-flow.md).
 - Frontend má 3 testy (iba utility), nula testov komponentov, žiadne E2E.
+- `EventFactory` losuje `status` zo **všetkých** stavov, takže testy nad `futureEvent`
+  závisia od hodu kockou a musia si stav pripnúť samy. Nové testy to robia, staršie nie —
+  `DashboardEventDestroyTest` a `EventTagAssignmentTest` preto občas padnú aj na čistom
+  strome.
 
 ---
 
+## 2. Poziciovanie: čo z toho robí „nie ďalšiu appku"
+
+Konkurenčnú výhodu **nezískame** lepším zoznamom podujatí ani nižšou províziou — to sa dá
+skopírovať za týždeň. To, čo už máme a čo je ťažko napodobiteľné, je **AI pipeline na vznik
+podujatia z ľubovoľného materiálu**: URL, PDF plagát, text pozvánky, RSS. Konkurencia
+(Predpredaj, Ticketportal, Inviton, Tootoot, Goout) núti organizátora vypĺňať formulár.
+
+Navrhované poziciovanie: **„Pošli plagát. O zvyšok sa postaráme."**
+
+1. Organizátor hodí do systému plagát/PDF/text/odkaz → vznikne hotový koncept podujatia.
+2. Portál ho dostane tam, kde ho ľudia nájdu — Google Events, sociálne siete, mestské stránky.
+3. Portál predá lístky a vyplatí peniaze.
+
+Body 1 a 3 sú produkt. Bod 2 je dôvod, prečo organizátor zaplatí províziu. Dnes fungujú
+body 1 a 2, bod 3 neexistuje.
+
+**Čo vedome nerobiť:** sedadlové mapy (drahé, malý trh), vlastný newsletter engine,
+mobilné aplikácie, vlastné SSR prepísanie celej SPA.
+
+---
 
 ## 3. Navrhované poradie prác
 
+### Fáza 0 — Prevádzková podlaha (~1–2 týždne)
+
+Musí byť hotové skôr, než sa dotkneme platieb. Malé, uzavreté zmeny.
+
+| # | Práca | Kde |
+|---|---|---|
+| 0.1 | ~~Pustiť existujúci `HtmlBodyCleaner` na `body` pri zápise (event/canal/venue)~~ **HOTOVÉ** | Mutator v [`SanitizesHtmlBody`](api/app/Models/Traits/SanitizesHtmlBody.php) na Evente, Kanáli aj Mieste — čistí sa pri zápise, nech príde odkiaľkoľvek |
+| 0.2 | ~~Sentry + upozornenie na produkčné chyby~~ **HOTOVÉ** | [api/config/sentry.php](api/config/sentry.php), zapína sa cez `SENTRY_LARAVEL_DSN` |
+| 0.3 | ~~Heartbeat pre webcron~~ **HOTOVÉ** | [`CronHeartbeat`](api/app/Support/CronHeartbeat.php) pingne watchdog po úspešnom `schedule-run` |
+| 0.4 | Na produkcii `QUEUE_CONNECTION=database` + overiť, že worker naozaj beží | `.env` (bez zmeny kódu). Kód je pripravený — `queue:work` je v [routes/console.php](api/routes/console.php) |
+| 0.5 | 2FA (TOTP) pre `super-admin` | nový middleware + `users` migrácia |
+| 0.6 | ~~`hash_equals` na cron token~~ **HOTOVÉ** | [`CronToken`](api/app/Support/CronToken.php) — jedno miesto pre web aj API routu |
+| 0.7 | ~~`Model::preventLazyLoading()` v non-produkčnom prostredí~~ **HOTOVÉ** | [AppServiceProvider](api/app/Providers/AppServiceProvider.php) |
 
 ### Fáza 1 — Dosah (~3–5 týždňov)
 
@@ -105,7 +150,17 @@ platobná brána čo spracovať.
 | 2.8 | Zľavové kódy | |
 | 2.9 | **Právne (nie kód, ale bez toho sa provízia vyberať nedá):** VOP, sprostredkovateľská zmluva s organizátorom, GDPR/DPA, reklamačný poriadok, rola prevádzkovateľa vs. sprostredkovateľa platby | Riešiť paralelne s 2.1 |
 
+### Fáza 3 — Práca organizátora (dá sa robiť paralelne s fázou 2)
 
+| # | Práca | Prečo |
+|---|---|---|
+| 3.1 | ~~**Tím kanála**: pozvánka e-mailom, per-kanál rola (owner / editor / vstup), zápis do `canal_user`~~ **HOTOVÉ** | Rola je v `canal_user.role` ([CanalRole](api/app/Enums/CanalRole.php)), pozvánky v `canal_invitations`, práva rieši `User::canInCanal()` v policies. Globálna spatie rola ostáva len ako hrubé sito pre `permission:` middleware |
+| 3.2 | **Séria / opakované termíny** — jedno podujatie, viac termínov, spoločný popis a typy lístkov | Najväčšia denná bolesť klubu a divadla; dnes je riešením „duplikovať" |
+| 3.3 | ~~Zapojiť `detect-from-text` do UI + nahranie plagátu/PDF → koncept podujatia~~ **HOTOVÉ** | Verejný tok bez účtu: `POST /api/poster/analyze` → kontrola nálezov → registrácia → `claim` založí event, kanál aj miesto. PDF/DOCX/TXT/obrázok, skenovaný plagát cez vision. Popis: [api/docs/poster-upload-flow.md](api/docs/poster-upload-flow.md) |
+| 3.4 | ~~Inbox správ v dashboarde~~ **HOTOVÉ** | `/dashboard/spravy` ([DashboardMessagesPage](ui/src/pages/dashboard/DashboardMessagesPage.vue)) nad [DashboardMessageController](api/app/Http/Controllers/Dashboard/DashboardMessageController.php): vlákna, prečítané/neprečítané, odznak v menu a odpoveď priamo z dashboardu (`parent_message_id`, notifikácia [MessageReplied](api/app/Notifications/MessageReplied.php)). E-mail protistrany sa v UI neukazuje — [MessageResource](api/app/Http/Resources/MessageResource.php) ho neposiela |
+| 3.5 | ~~Export účastníkov (CSV), hromadný e-mail účastníkom, pripomienka pred akciou~~ **HOTOVÉ** | Kto je účastník, rieši jedno miesto — [AttendeeDirectory](api/app/Services/Events/AttendeeDirectory.php). CSV s BOM a bodkočiarkou pre slovenský Excel ([AttendeeCsv](api/app/Services/Events/AttendeeCsv.php)), hromadný e-mail cez frontu ([EventAnnouncement](api/app/Notifications/EventAnnouncement.php)), pripomienka X hodín pred začiatkom podľa `events.reminder_hours_before` (príkaz `app:events-send-reminders`, poistka `reminder_sent_at`) |
+| 3.6 | ~~Naplánované publikovanie~~ **HOTOVÉ** | `events.publish_at` + stav `scheduled`; preklápa ho `app:events-publish-scheduled` každých päť minút. `published_at` ostáva časom **prvého** zverejnenia. Verejný detail odvtedy filtruje stav ([`publicShow`](api/app/Repositories/Eloquent/EloquentEventRepository.php)) — predtým sa dal koncept prečítať uhádnutím id |
+| 3.7 | Check-in na viacerých zariadeniach + offline režim | |
 
 ### Fáza 4 — Diferenciácia
 
@@ -119,13 +174,14 @@ platobná brána čo spracovať.
 
 ## 4. Odporúčanie
 
-Ak treba škrtať, poradie je: **Fáza 0 → 1.1–1.4 → 3.3 → Fáza 2.**
+Pôvodné poradie bolo **Fáza 0 → 1.1–1.4 → 3.3 → Fáza 2.** Z toho je hotové všetko okrem
+Fázy 2 a dvoch zvyškov: **0.4** (prepnúť frontu na produkcii — čistá zmena `.env`) a
+**0.5** (2FA pre super-admina). Spolu s nasadením Apache pravidiel z 1.1 sú to posledné
+veci, ktoré držia „prevádzkovú podlahu" pod úrovňou, na akej sa dajú prijímať cudzie peniaze.
 
-Dôvod: fáza 0 je lacná a odstraňuje riziká, ktoré by pri platbách boli existenčné.
-Body 1.1–1.4 sú jednorazová práca, ktorá odomkne organický dosah a bez nej je provízia
-neobhájiteľná. Bod 3.3 je pár dní práce nad hotovým backendom a je to jediná vec, ktorou
-sa dnes odlíšime. Fáza 2 je najväčšia a má právnu časť, ktorá beží mimo kódu — treba ju
-rozbehnúť skoro, aj keď sa dokončí neskôr.
+Ďalej v poradí: **Fáza 2** (najväčšia a má právnu časť mimo kódu — rozbehnúť skoro, aj keď
+sa dokončí neskôr) a paralelne **3.2** (série termínov), čo je z Fázy 3 jediná vec, ktorú
+organizátori pýtajú denne.
 
 ---
 
@@ -135,9 +191,17 @@ rozbehnúť skoro, aj keď sa dokončí neskôr.
 cd api && php artisan test tests/Feature/Events tests/Feature/Tickets
 ```
 
-- **XSS (0.1):** uložiť podujatie s `body` obsahujúcim `<script>alert(1)</script>` cez
-  `POST /api/dashboard/events`, potom `GET /api/events/{id}` — skript musí byť preč.
-  Doplniť test do `api/tests/Feature/Events/`.
+- **XSS (0.1):** pokrýva `tests/Feature/Events/DashboardEventBodyXssTest.php` a
+  `tests/Unit/Events/BodySanitizationTest.php` — skript uložený cez dashboard sa
+  na verejný detail nesmie dostať.
+- **Fáza 3 (3.4–3.6):**
+  ```bash
+  cd api && php artisan test tests/Feature/Messages tests/Feature/Events/ScheduledPublishingTest.php tests/Feature/Events/AttendeeExportAndMailingTest.php
+  ```
+  Ručne ešte stojí za pozretie: naplánovaný event v `/dashboard/events/{id}/edit`
+  (stav „Naplánovaný" + termín), `/dashboard/spravy` s odznakom neprečítaných
+  a tlačidlo „Export CSV" na karte prihlásených — CSV sa musí v Exceli otvoriť
+  po stĺpcoch a s diakritikou.
 - **Fronta (0.4):** `php artisan queue:work --once` a overiť, že notifikácia odíde;
   na produkcii skontrolovať tabuľku `jobs`, či sa nehromadí.
 - **Dosah (1.1–1.5):** `cd api && php artisan test tests/Feature/Seo` pokrýva OG tagy,
