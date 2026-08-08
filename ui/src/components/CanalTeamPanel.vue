@@ -74,12 +74,11 @@
       <form v-if="team.canManage" class="mt-4 border-t border-slate-100 pt-4" @submit.prevent="invite">
         <label class="mb-1 block text-xs font-medium text-slate-600">Pozvať do tímu</label>
         <div class="flex flex-wrap gap-2">
-          <input v-model.trim="inviteEmail" type="email" required placeholder="meno@divadlo.sk"
-            class="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-          <select v-model="inviteRole"
-            class="rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <FormField v-model="inviteEmail" type="email" required trim placeholder="meno@divadlo.sk"
+            class="min-w-[12rem] flex-1" />
+          <FormField v-model="inviteRole" type="select" class="w-auto">
             <option v-for="r in team.roles" :key="r.value" :value="r.value">{{ r.label }}</option>
-          </select>
+          </FormField>
           <button type="submit" :disabled="busy"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
             {{ busy ? 'Odosielam…' : 'Poslať pozvánku' }}
@@ -110,10 +109,13 @@ import {
 } from '@/api/canalTeam'
 import { avatarColor, initials } from '@/utils/userDisplay'
 import { useToast } from '@/composables/useToast'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ canalId: number }>()
 
 const toast = useToast()
+const validation = provideFormValidation()
 
 const team = ref<CanalTeam | null>(null)
 const loading = ref(false)
@@ -165,11 +167,19 @@ async function run(action: () => Promise<CanalTeam>, successMessage?: string) {
 }
 
 async function invite() {
+  validation.markValidated()
+
   const ok = await run(
     () => inviteCanalMember(props.canalId, inviteEmail.value, inviteRole.value),
     'Pozvánka odoslaná.',
   )
-  if (ok) inviteEmail.value = ''
+
+  // Po odoslaní je pole zámerne zase „nevalidované" — prázdne políčko pre
+  // ďalšiu pozvánku nie je chyba.
+  if (ok) {
+    inviteEmail.value = ''
+    validation.reset()
+  }
 }
 
 async function changeRole(member: CanalTeamMember, role: CanalRole) {

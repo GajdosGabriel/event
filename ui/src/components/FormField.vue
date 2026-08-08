@@ -13,9 +13,25 @@
       <slot name="label">{{ label }}</slot><span v-if="required" class="form-required" aria-hidden="true">*</span>
     </span>
 
+    <!-- Pri `<select>` je default slot zoznam `<option>`, nie náhrada ovládača —
+         inak by sa nedali písať možnosti priamo do značky. -->
+    <select
+      v-if="type === 'select'"
+      v-model="field"
+      class="form-input"
+      :class="{ invalid }"
+      :required="required"
+      :aria-invalid="invalid || undefined"
+      v-bind="controlAttrs"
+    >
+      <slot>
+        <option v-for="opt in options" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
+      </slot>
+    </select>
+
     <!-- Vlastný ovládač (SearchableSelect, HtmlEditor…) dostane `invalid` aj
          zápis hodnoty, aby vyzeral a fungoval ako natívne pole. -->
-    <slot :value="field" :invalid="invalid" :update="update">
+    <slot v-else :value="field" :invalid="invalid" :update="update">
       <textarea
         v-if="type === 'textarea'"
         v-model="text"
@@ -25,20 +41,6 @@
         :aria-invalid="invalid || undefined"
         v-bind="controlAttrs"
       ></textarea>
-
-      <select
-        v-else-if="type === 'select'"
-        v-model="field"
-        class="form-input"
-        :class="{ invalid }"
-        :required="required"
-        :aria-invalid="invalid || undefined"
-        v-bind="controlAttrs"
-      >
-        <slot name="options">
-          <option v-for="opt in options" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
-        </slot>
-      </select>
 
       <PasswordInput
         v-else-if="type === 'password'"
@@ -120,6 +122,9 @@ const props = withDefaults(defineProps<{
   validated?: boolean
 }>(), {
   type: 'text',
+  // Bez explicitnej predvoľby by Vue chýbajúci Boolean prop pretypovalo na
+  // `false` a pole by prestalo počúvať formulár. `undefined` = „nepovedané".
+  validated: undefined,
 })
 
 const model = defineModel<T>()

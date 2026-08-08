@@ -98,12 +98,8 @@
                 </svg>
               </button>
             </div>
-            <input v-model.trim="attendee(type, i).name" type="text" required maxlength="250"
-              placeholder="Meno a priezvisko"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-            <input v-model.trim="attendee(type, i).email" type="email" required maxlength="190"
-              placeholder="E-mail"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <FormField v-model="attendee(type, i).name" required trim maxlength="250" placeholder="Meno a priezvisko" />
+            <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" placeholder="E-mail" />
           </div>
         </div>
       </div>
@@ -121,21 +117,9 @@
 
         <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
         <template v-if="!oneClick">
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">Meno a priezvisko</label>
-            <input v-model.trim="form.holder_name" type="text" required maxlength="250"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">E-mail</label>
-            <input v-model.trim="form.holder_email" type="email" required maxlength="190"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">Telefón (nepovinné)</label>
-            <input v-model.trim="form.holder_phone" type="tel" maxlength="30"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-          </div>
+          <FormField v-model="form.holder_name" label="Meno a priezvisko" required trim maxlength="250" />
+          <FormField v-model="form.holder_email" type="email" label="E-mail" required trim maxlength="190" />
+          <FormField v-model="form.holder_phone" type="tel" label="Telefón (nepovinné)" trim maxlength="30" />
         </template>
 
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
@@ -159,7 +143,9 @@
 import { computed, reactive, ref } from 'vue'
 import { requestTicket, cancelOwnRegistration } from '@/api/tickets'
 import { useAuthStore } from '@/stores/auth'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
+import FormField from '@/components/FormField.vue'
 import type { TicketItem, TicketTypeItem } from '@/types'
 
 const props = defineProps<{
@@ -175,6 +161,7 @@ const props = defineProps<{
 const emit = defineEmits<{ changed: [] }>()
 
 const auth = useAuthStore()
+const validation = provideFormValidation()
 
 const form = reactive({
   holder_name: '',
@@ -308,6 +295,7 @@ function formatPrice(amount: number, curr: string | null) {
 
 async function submit() {
   if (totalSeats.value === 0) return
+  validation.markValidated()
   loading.value = true
   error.value = null
   try {

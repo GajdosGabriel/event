@@ -72,8 +72,7 @@
         </article>
 
         <form v-if="thread.permissions.reply" class="mt-4 border-t border-slate-100 pt-3" @submit.prevent="sendReply">
-          <textarea v-model="replyBody" rows="4" placeholder="Napíšte odpoveď…"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></textarea>
+          <FormField v-model="replyBody" type="textarea" rows="4" placeholder="Napíšte odpoveď…" />
           <p v-if="replyError" class="mt-1 text-sm text-red-600">{{ replyError }}</p>
           <div class="mt-2 flex items-center gap-2">
             <button type="submit" class="btn btn-primary" :disabled="replying || replyBody.trim().length < 2">
@@ -112,6 +111,7 @@ import {
   type MessageTargetType,
 } from '@/api/messages'
 import { useToast } from '@/composables/useToast'
+import FormField from '@/components/FormField.vue'
 import type { PaginatedResponse } from '@/types'
 
 const toast = useToast()

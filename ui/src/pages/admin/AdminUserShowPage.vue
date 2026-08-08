@@ -174,6 +174,7 @@ import type { AccessRole } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { fmtDate } from '@/utils/dateFormat'
+import FormField from '@/components/FormField.vue'
 import {
   displayName, initials, avatarColor, roleLabel, roleClass,
   statusOf, providerMeta, relTime, fullDate,

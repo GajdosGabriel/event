@@ -18,30 +18,26 @@
           Registrácia je pre návštevníkov dostupná automaticky, keď má podujatie aspoň jeden
           aktívny typ lístka (nižšie). Bez typov sa formulár na verejnej stránke nezobrazí.
         </p>
-        <label class="mb-3 flex items-start gap-2 text-sm font-medium text-slate-700">
-          <input v-model="settings.workshop_lock_on_start" type="checkbox" class="mt-0.5 accent-blue-600" />
-          <span>
-            Po začiatku podujatia zamknúť zmeny na workshopoch
-            <span class="block text-xs font-normal text-slate-500">
-              Účastníci sa po začiatku podujatia už nebudú môcť na workshopy prihlásiť ani odhlásiť.
-              Po skončení podujatia sú zmeny zamknuté vždy.
+        <FormField
+          v-model="settings.workshop_lock_on_start"
+          type="checkbox"
+          label="Po začiatku podujatia zamknúť zmeny na workshopoch"
+          hint="Účastníci sa po začiatku podujatia už nebudú môcť na workshopy prihlásiť ani odhlásiť. Po skončení podujatia sú zmeny zamknuté vždy."
+          class="mb-3"
+        />
+        <FormField v-model="settings.reminder_hours_before" type="select" label="Pripomienka účastníkom" class="max-w-sm">
+          <option :value="null">Neposielať</option>
+          <option :value="2">2 hodiny pred začiatkom</option>
+          <option :value="24">Deň pred začiatkom</option>
+          <option :value="48">Dva dni pred začiatkom</option>
+          <option :value="168">Týždeň pred začiatkom</option>
+          <template #footer>
+            <span class="form-hint">
+              E-mail dostane každý prihlásený účastník, raz. Posiela sa len pri publikovanom podujatí.
+              <template v-if="reminderSentAt"> Naposledy odoslaná {{ reminderSentAt }}.</template>
             </span>
-          </span>
-        </label>
-        <label class="form-label max-w-sm">
-          Pripomienka účastníkom
-          <select v-model="settings.reminder_hours_before" class="form-input">
-            <option :value="null">Neposielať</option>
-            <option :value="2">2 hodiny pred začiatkom</option>
-            <option :value="24">Deň pred začiatkom</option>
-            <option :value="48">Dva dni pred začiatkom</option>
-            <option :value="168">Týždeň pred začiatkom</option>
-          </select>
-          <span class="mt-1 text-xs text-slate-500">
-            E-mail dostane každý prihlásený účastník, raz. Posiela sa len pri publikovanom podujatí.
-            <template v-if="reminderSentAt"> Naposledy odoslaná {{ reminderSentAt }}.</template>
-          </span>
-        </label>
+          </template>
+        </FormField>
 
         <div class="mt-4">
           <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">

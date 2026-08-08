@@ -55,12 +55,16 @@
 
             <!-- Prihlásený → posiela z účtu -->
             <form v-else class="space-y-4" @submit.prevent="submit">
-              <div>
-                <label class="mb-1 block text-xs font-medium text-slate-600">Vaša správa</label>
-                <textarea v-model.trim="body" required rows="4" maxlength="5000"
-                  placeholder="Napíšte správu…"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
-              </div>
+              <FormField
+                v-model="body"
+                type="textarea"
+                label="Vaša správa"
+                required
+                trim
+                rows="4"
+                maxlength="5000"
+                placeholder="Napíšte správu…"
+              />
 
               <div class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
                 Píšete ako <strong>{{ auth.displayName || 'prihlásený používateľ' }}</strong>. Odpoveď dorazí na e-mail vášho účtu.
@@ -85,7 +89,9 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { sendMessage, type MessageTargetType } from '@/api/messages'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import { useAuthStore } from '@/stores/auth'
+import FormField from '@/components/FormField.vue'
 
 const props = withDefaults(defineProps<{
   /** Typ cieľa — 'event' | 'venue' | 'canal' (musí byť vo whitelist na backende). */
@@ -102,6 +108,7 @@ const props = withDefaults(defineProps<{
 
 const auth = useAuthStore()
 const route = useRoute()
+const validation = provideFormValidation()
 
 const open = ref(false)
 const loading = ref(false)
@@ -117,6 +124,7 @@ function close() {
     body.value = ''
   }
   error.value = null
+  validation.reset()
 }
 
 // Zatvorenie Escapom. Musí ísť cez window listener — vo Vue neexistuje
@@ -128,6 +136,7 @@ useWindowKeydown((event) => {
 })
 
 async function submit() {
+  validation.markValidated()
   loading.value = true
   error.value = null
   try {
