@@ -84,6 +84,9 @@ const router = createRouter({
         { path: 'venues/create', name: 'dashboard-venues-create', component: () => import('@/pages/venues/VenueEditPage.vue') },
         { path: 'venues/:id', name: 'dashboard-venues-show', component: () => import('@/pages/venues/VenueShowPage.vue') },
         { path: 'venues/:id/edit', name: 'dashboard-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue') },
+        { path: 'organizations', name: 'dashboard-organizations', component: () => import('@/pages/organizations/OrganizationListPage.vue') },
+        { path: 'organizations/create', name: 'dashboard-organizations-create', component: () => import('@/pages/organizations/OrganizationEditPage.vue') },
+        { path: 'organizations/:id/edit', name: 'dashboard-organizations-edit', component: () => import('@/pages/organizations/OrganizationEditPage.vue') },
         { path: 'municipalities', name: 'dashboard-municipalities', component: () => import('@/pages/dashboard/DashboardMunicipalitiesPage.vue') },
         // Inbox prijatých správ. Slovenská cesta zámerne — odkazuje naň e-mail
         // s odpoveďou aj dlaždica „Neprečítané správy" v štatistikách.
@@ -110,7 +113,13 @@ const router = createRouter({
         { path: 'venues/create', name: 'admin-venues-create', component: () => import('@/pages/venues/VenueEditPage.vue'), props: { scope: 'admin' } },
         { path: 'venues/:id', name: 'admin-venues-show', component: () => import('@/pages/venues/VenueShowPage.vue'), props: { scope: 'admin' } },
         { path: 'venues/:id/edit', name: 'admin-venues-edit', component: () => import('@/pages/venues/VenueEditPage.vue'), props: { scope: 'admin' } },
+        { path: 'organizations', name: 'admin-organizations', component: () => import('@/pages/organizations/OrganizationListPage.vue'), props: { scope: 'admin' } },
+        { path: 'organizations/create', name: 'admin-organizations-create', component: () => import('@/pages/organizations/OrganizationEditPage.vue'), props: { scope: 'admin' } },
+        { path: 'organizations/:id/edit', name: 'admin-organizations-edit', component: () => import('@/pages/organizations/OrganizationEditPage.vue'), props: { scope: 'admin' } },
         { path: 'municipalities', name: 'admin-municipalities', component: () => import('@/pages/admin/AdminMunicipalitiesPage.vue') },
+        // Oznamy a bannery verejného layoutu. Slovenská cesta zámerne — rovnako
+        // ako `spravy` v dashboarde.
+        { path: 'oznamy', name: 'admin-announcements', component: () => import('@/pages/admin/AdminAnnouncementsPage.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
         { path: 'users/:id', name: 'admin-users-show', component: () => import('@/pages/admin/AdminUserShowPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },

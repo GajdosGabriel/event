@@ -12,24 +12,19 @@
         <p class="text-sm text-slate-500">Spustí <code class="text-xs bg-slate-100 px-1 rounded">app:import-event-sources</code> — stiahne eventy z nakonfigurovaných URL.</p>
       </div>
       <div class="grid gap-2">
-        <label class="form-label text-sm">
-          URL zdrojov (voliteľné — prázdne = použijú sa zo config)
-          <textarea v-model="importUrls" class="form-textarea text-sm" rows="3" placeholder="https://example.com/events&#10;https://other.com/list" />
-        </label>
+        <FormField
+          v-model="importUrls"
+          type="textarea"
+          label="URL zdrojov (voliteľné — prázdne = použijú sa zo config)"
+          rows="3"
+          placeholder="https://example.com/events&#10;https://other.com/list"
+          class="text-sm"
+        />
         <div class="flex flex-wrap gap-3">
-          <label class="form-label text-sm flex-1 min-w-32">
-            Strán max
-            <input v-model.number="importPages" type="number" min="1" max="20" class="form-input" />
-          </label>
-          <label class="form-label text-sm flex-1 min-w-32">
-            Limit detailov (0 = bez limitu)
-            <input v-model.number="importLimit" type="number" min="0" max="100" class="form-input" />
-          </label>
+          <FormField v-model="importPages" type="number" label="Strán max" min="1" max="20" class="text-sm flex-1 min-w-32" />
+          <FormField v-model="importLimit" type="number" label="Limit detailov (0 = bez limitu)" min="0" max="100" class="text-sm flex-1 min-w-32" />
         </div>
-        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-          <input type="checkbox" v-model="importForce" class="accent-blue-600" />
-          Vynútiť refresh aj u už kompletných eventov (ignoruje skip)
-        </label>
+        <FormField v-model="importForce" type="checkbox" label="Vynútiť refresh aj u už kompletných eventov (ignoruje skip)" />
       </div>
       <ToolRunButton label="Spustiť import" :running="running === 'import'" @run="runTool('import')" />
       <ToolOutput :output="outputs['import']" />
@@ -61,12 +56,14 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { runAdminTool, startEventImport, getEventImportStatus } from '@/api/events'
 import { useToast } from '@/composables/useToast'
+import FormField from '@/components/FormField.vue'
 
 const toast = useToast()
 
 const importUrls = ref('')
-const importPages = ref(1)
-const importLimit = ref(0)
+// Vymazané číselné pole je `null` — pri spustení sa doplní rozumná predvoľba.
+const importPages = ref<number | null>(1)
+const importLimit = ref<number | null>(0)
 const importForce = ref(false)
 
 type ToolKey = 'import' | 'ai-detector' | 'archive'

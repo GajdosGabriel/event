@@ -49,9 +49,9 @@
         <h2 class="mb-3 text-lg font-semibold">{{ editingItem ? 'Upraviť' : 'Nová' }} obec</h2>
         <p v-if="formError" class="mb-2 text-sm text-red-600">{{ formError }}</p>
         <div class="grid gap-3">
-          <label class="form-label">Názov <input v-model="form.name" type="text" class="form-input" required /></label>
-          <label class="form-label">Skratka <input v-model="form.shortname" type="text" class="form-input" /></label>
-          <label class="form-label">PSČ <input v-model="form.zip" type="text" class="form-input" /></label>
+          <FormField v-model="form.name" label="Názov" required />
+          <FormField v-model="form.shortname" label="Skratka" />
+          <FormField v-model="form.zip" label="PSČ" />
         </div>
         <div class="mt-4 flex gap-2">
           <button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
@@ -67,10 +67,13 @@ import { ref, onMounted } from 'vue'
 import { indexMunicipalities, createMunicipality, updateMunicipality, deleteMunicipality } from '@/api/municipalities'
 import type { MunicipalityItem } from '@/types'
 import { useToast } from '@/composables/useToast'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
 
 const SCOPE = 'dashboard' as const
 
 const toast = useToast()
+const validation = provideFormValidation()
 const items = ref<MunicipalityItem[]>([])
 const loading = ref(false)
 const search = ref('')
@@ -106,6 +109,7 @@ function openCreate() {
   editingItem.value = null
   form.value = { name: '', shortname: '', zip: '' }
   formError.value = null
+  validation.reset()
   showForm.value = true
 }
 
@@ -113,10 +117,12 @@ function openEdit(item: MunicipalityItem) {
   editingItem.value = item
   form.value = { name: item.name, shortname: item.shortname ?? '', zip: item.zip ?? '' }
   formError.value = null
+  validation.reset()
   showForm.value = true
 }
 
 async function save() {
+  validation.markValidated()
   formError.value = null
   saving.value = true
   try {

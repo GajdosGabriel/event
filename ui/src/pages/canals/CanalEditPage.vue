@@ -9,64 +9,33 @@
         <fieldset class="field-group">
           <legend class="field-legend">Základné info</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label lg:col-span-2">
-              Názov *
-              <input v-model="form.name" type="text" class="form-input" :class="{ invalid: errors.name }" required />
-              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-            </label>
-            <label class="form-label">
-              Predpona názvu
-              <input v-model="form.title_prefix" type="text" class="form-input" :class="{ invalid: errors.title_prefix }" placeholder="napr. Spoločnosť" />
-              <span v-if="errors.title_prefix" class="field-error">{{ errors.title_prefix }}</span>
-            </label>
-            <label class="form-label">
-              Prípona názvu
-              <input v-model="form.title_suffix" type="text" class="form-input" :class="{ invalid: errors.title_suffix }" placeholder="napr. o.z." />
-              <span v-if="errors.title_suffix" class="field-error">{{ errors.title_suffix }}</span>
-            </label>
-            <label class="form-label">
-              Typ identity
-              <select v-model="form.identity_mode" class="form-input" :class="{ invalid: errors.identity_mode }">
-                <option v-for="opt in canalIdentityModes" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-              <span v-if="errors.identity_mode" class="field-error">{{ errors.identity_mode }}</span>
-            </label>
-            <label class="form-label">
-              Obec / Mesto *
-              <SearchableSelect
-                v-model="form.municipality_id"
-                :options="municipalities"
-                placeholder="— vyberte obec —"
-                :invalid="!!errors.municipality_id"
-              />
-              <span v-if="errors.municipality_id" class="field-error">{{ errors.municipality_id }}</span>
-            </label>
-            <label class="form-label lg:col-span-2">
-              Popis
+            <FormField v-model="form.name" label="Názov" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.title_prefix" label="Predpona názvu" :error="errors.title_prefix" placeholder="napr. Spoločnosť" />
+            <FormField v-model="form.title_suffix" label="Prípona názvu" :error="errors.title_suffix" placeholder="napr. o.z." />
+            <FormField v-model="form.identity_mode" type="select" label="Typ identity" :options="canalIdentityModes" :error="errors.identity_mode" />
+            <FormField v-model="form.municipality_id" label="Obec / Mesto" required :error="errors.municipality_id">
+              <template #default="{ value, invalid, update }">
+                <SearchableSelect
+                  :model-value="value ?? null"
+                  :options="municipalities"
+                  placeholder="— vyberte obec —"
+                  :invalid="invalid"
+                  @update:model-value="update"
+                />
+              </template>
+            </FormField>
+            <FormField label="Popis" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
-              <span v-if="errors.body" class="field-error">{{ errors.body }}</span>
-            </label>
+            </FormField>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Email
-              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
-              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
-            </label>
-            <label class="form-label">
-              Telefón
-              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
-              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
-            </label>
-            <label class="form-label">
-              Web
-              <input v-model="form.website" type="url" class="form-input" :class="{ invalid: errors.website }" />
-              <span v-if="errors.website" class="field-error">{{ errors.website }}</span>
-            </label>
+            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
           </div>
         </fieldset>
 
@@ -90,12 +59,8 @@
           @update:lng="form.longitude = $event"
         />
         <div class="mt-2 grid grid-cols-2 gap-2">
-          <label class="form-label text-xs">Lat
-            <input v-model.number="form.latitude" type="number" step="any" class="form-input" />
-          </label>
-          <label class="form-label text-xs">Lng
-            <input v-model.number="form.longitude" type="number" step="any" class="form-input" />
-          </label>
+          <FormField v-model="form.latitude" type="number" label="Lat" step="any" class="text-xs" />
+          <FormField v-model="form.longitude" type="number" label="Lng" step="any" class="text-xs" />
         </div>
       </div>
 
@@ -115,7 +80,9 @@ import { showCanal, createCanal, updateCanal } from '@/api/canals'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import { scrollToError } from '@/utils/scrollToError'
+import FormField from '@/components/FormField.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
@@ -136,6 +103,8 @@ const fileableId = computed(() => route.params.id ? Number(route.params.id) : sa
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { municipalities, loadMunicipalities, canalIdentityModes, loadCanalIdentityModes } = useFormOptions(scope.value)
+
+const validation = provideFormValidation()
 
 const form = ref({
   name: '',
@@ -180,6 +149,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  validation.markValidated()
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {

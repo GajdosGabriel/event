@@ -37,22 +37,10 @@
 
         <!-- Základné polia — vždy viditeľné -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label class="form-label sm:col-span-2">
-            Názov *
-            <input v-model.trim="form.name" type="text" class="form-input" placeholder="napr. Štandard" />
-          </label>
-          <label class="form-label">
-            Cena (€, 0 = zdarma)
-            <input v-model="priceEuro" type="number" min="0" step="0.01" class="form-input" placeholder="0" />
-          </label>
-          <label class="form-label">
-            Kapacita (prázdne = neobmedzené)
-            <input v-model.number="form.capacity" type="number" min="1" class="form-input" placeholder="neobmedzené" />
-          </label>
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
-            <input v-model="form.is_active" type="checkbox" class="accent-blue-600" />
-            Aktívny (v predaji)
-          </label>
+          <FormField v-model="form.name" label="Názov" required trim placeholder="napr. Štandard" class="sm:col-span-2" />
+          <FormField v-model="priceEuro" type="number" label="Cena (€, 0 = zdarma)" min="0" step="0.01" placeholder="0" />
+          <FormField v-model="form.capacity" type="number" label="Kapacita (prázdne = neobmedzené)" min="1" placeholder="neobmedzené" />
+          <FormField v-model="form.is_active" type="checkbox" label="Aktívny (v predaji)" class="sm:col-span-2" />
         </div>
 
         <!-- Rozšírené nastavenia — schované, nech základ pôsobí jednoducho -->
@@ -66,46 +54,17 @@
         </button>
 
         <div v-show="showAdvanced" class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
-          <label class="form-label sm:col-span-2">
-            Druh
-            <select v-model="kindOption" class="form-input">
-              <option v-for="opt in kindOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-          </label>
-          <label class="form-label sm:col-span-2">
-            Popis
-            <input v-model.trim="form.description" type="text" class="form-input" placeholder="nepovinné" />
-          </label>
+          <FormField v-model="kindOption" type="select" label="Druh" :options="kindOptions" class="sm:col-span-2" />
+          <FormField v-model="form.description" label="Popis" trim placeholder="nepovinné" class="sm:col-span-2" />
           <template v-if="form.kind === 'workshop'">
-            <label class="form-label">
-              {{ tf('workshop_starts_at', 'Začiatok workshopu') }}
-              <DateTimeInput v-model="form.starts_at" class="form-input" />
-            </label>
-            <label class="form-label">
-              {{ tf('workshop_ends_at', 'Koniec workshopu') }}
-              <DateTimeInput v-model="form.ends_at" class="form-input" />
-            </label>
+            <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', 'Začiatok workshopu')" />
+            <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', 'Koniec workshopu')" />
           </template>
-          <label class="form-label">
-            Min. na objednávku
-            <input v-model.number="form.min_per_order" type="number" min="1" class="form-input" />
-          </label>
-          <label class="form-label">
-            Max. na objednávku
-            <input v-model.number="form.max_per_order" type="number" min="1" class="form-input" />
-          </label>
-          <label class="form-label">
-            {{ tf('sale_starts_at', 'Predaj od') }}
-            <DateTimeInput v-model="form.sale_starts_at" class="form-input" />
-          </label>
-          <label class="form-label">
-            {{ tf('sale_ends_at', 'Predaj do') }}
-            <DateTimeInput v-model="form.sale_ends_at" class="form-input" />
-          </label>
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
-            <input v-model="form.requires_attendee_name" type="checkbox" class="accent-blue-600" />
-            Vyžadovať mená účastníkov
-          </label>
+          <FormField v-model="form.min_per_order" type="number" label="Min. na objednávku" min="1" />
+          <FormField v-model="form.max_per_order" type="number" label="Max. na objednávku" min="1" />
+          <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', 'Predaj od')" />
+          <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', 'Predaj do')" />
+          <FormField v-model="form.requires_attendee_name" type="checkbox" label="Vyžadovať mená účastníkov" class="sm:col-span-2" />
         </div>
 
         <div class="mt-6 flex gap-2">
@@ -132,7 +91,8 @@ import {
   type TicketTypePayload,
 } from '@/api/ticketTypes'
 import { useToast } from '@/composables/useToast'
-import DateTimeInput from '@/components/DateTimeInput.vue'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { SelectOption } from '@/types'
 
@@ -149,7 +109,10 @@ const loadError = ref<string | null>(null)
 const saving = ref(false)
 const error = ref<string | null>(null)
 const eventName = ref('')
-const priceEuro = ref('')
+/** Cena v eurách; API pracuje s centmi, prevod je až v `save()`. */
+const priceEuro = ref<number | null>(null)
+
+const validation = provideFormValidation()
 
 // Možnosti „Druhu" a popisky polí drží backend (lang + policy). Fallback pre istotu.
 const kindOptions = ref<SelectOption[]>([
@@ -184,15 +147,15 @@ interface TicketTemplate {
   title: string
   subtitle: string
   patch: Partial<TypeForm>
-  price: string
+  price: number | null
 }
 
 const templates: TicketTemplate[] = [
-  { key: 'free',     icon: '🎟️', title: 'Vstup zdarma', subtitle: 'Bezplatná registrácia',       patch: { name: 'Vstup zdarma', kind: 'ticket', requires_attendee_name: false }, price: '0' },
-  { key: 'standard', icon: '🎫', title: 'Štandard',     subtitle: 'Bežná platená vstupenka',      patch: { name: 'Štandardný lístok', kind: 'ticket' }, price: '' },
-  { key: 'vip',      icon: '⭐', title: 'VIP',          subtitle: 'Prémiová vstupenka',           patch: { name: 'VIP', kind: 'ticket' }, price: '' },
-  { key: 'workshop', icon: '🛠️', title: 'Workshop',     subtitle: 'Pre prihlásených účastníkov',  patch: { name: 'Workshop', kind: 'workshop', requires_attendee_name: true }, price: '' },
-  { key: 'custom',   icon: '✏️', title: 'Vlastný',      subtitle: 'Začať od nuly',                patch: { name: '' }, price: '' },
+  { key: 'free',     icon: '🎟️', title: 'Vstup zdarma', subtitle: 'Bezplatná registrácia',       patch: { name: 'Vstup zdarma', kind: 'ticket', requires_attendee_name: false }, price: 0 },
+  { key: 'standard', icon: '🎫', title: 'Štandard',     subtitle: 'Bežná platená vstupenka',      patch: { name: 'Štandardný lístok', kind: 'ticket' }, price: null },
+  { key: 'vip',      icon: '⭐', title: 'VIP',          subtitle: 'Prémiová vstupenka',           patch: { name: 'VIP', kind: 'ticket' }, price: null },
+  { key: 'workshop', icon: '🛠️', title: 'Workshop',     subtitle: 'Pre prihlásených účastníkov',  patch: { name: 'Workshop', kind: 'workshop', requires_attendee_name: true }, price: null },
+  { key: 'custom',   icon: '✏️', title: 'Vlastný',      subtitle: 'Začať od nuly',                patch: { name: '' }, price: null },
 ]
 
 const selectedTemplate = ref<string | null>(null)
@@ -267,7 +230,7 @@ async function load() {
         loadError.value = 'Typ lístka sa nenašiel.'
         return
       }
-      priceEuro.value = t.priceAmount ? (t.priceAmount / 100).toString() : ''
+      priceEuro.value = t.priceAmount ? t.priceAmount / 100 : null
       Object.assign(form, {
         name: t.name,
         kind: t.kind ?? 'ticket',
@@ -295,6 +258,7 @@ async function load() {
 }
 
 async function save() {
+  validation.markValidated()
   saving.value = true
   error.value = null
   try {
@@ -305,7 +269,7 @@ async function save() {
       description: form.description || null,
       starts_at: form.kind === 'workshop' ? form.starts_at || null : null,
       ends_at: form.kind === 'workshop' ? form.ends_at || null : null,
-      price_amount: priceEuro.value ? Math.round(parseFloat(priceEuro.value) * 100) : 0,
+      price_amount: priceEuro.value ? Math.round(priceEuro.value * 100) : 0,
       capacity: form.capacity || null,
       min_per_order: form.min_per_order,
       max_per_order: form.max_per_order,

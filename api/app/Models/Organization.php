@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Str;
-use App\Models\User;
 use App\Models\Traits\HasCommonFilters;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Organization extends Model
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, SoftDeletes, HasCommonFilters;
+    use HasCommonFilters, HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -32,13 +32,20 @@ class Organization extends Model
         'website' => \App\Casts\Website::class,
         'published_at' => 'datetime',
         'email_verified_at' => 'datetime',
+        'account_synced_at' => 'datetime',
         'status' => \App\Enums\ModelStatus::class,
     ];
+
+    /** Firma má protipól v Accounte, takže sa dajú čítať fakturačné údaje. */
+    public function isLinkedToAccount(): bool
+    {
+        return filled($this->account_uuid);
+    }
 
     public function setTitleAttribute($value)
     {
         $this->attributes['title'] = $value;
-        $this->attributes['slug']  = Str::slug($value);
+        $this->attributes['slug'] = Str::slug($value);
     }
 
     public function users()

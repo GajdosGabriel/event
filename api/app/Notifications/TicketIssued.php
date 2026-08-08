@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
+use App\Services\Calendar\EventCalendarLinks;
 use App\Services\Tickets\QrCodeGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -55,7 +56,9 @@ class TicketIssued extends Notification implements ShouldQueue
             ])
             ->all();
 
-        return (new MailMessage())
+        $calendar = new EventCalendarLinks($this->ticket->event);
+
+        $mail = (new MailMessage())
             ->subject(__('mail.ticket_issued.subject', ['event' => $eventName]))
             ->markdown('mail.ticket-issued', [
                 'greetingName' => $this->ticket->holder_name,
@@ -64,6 +67,10 @@ class TicketIssued extends Notification implements ShouldQueue
                 'seats'        => $seats,
                 'pendingCount' => $pendingCount,
                 'ticketUrl'    => $ticketUrl,
+                'calendarUrl'  => $calendar->downloadUrl,
+                'googleUrl'    => $calendar->googleUrl,
             ]);
+
+        return $calendar->attachTo($mail);
     }
 }

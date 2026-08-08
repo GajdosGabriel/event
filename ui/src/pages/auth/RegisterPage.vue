@@ -10,22 +10,10 @@
       </div>
 
       <form v-if="!success" class="grid gap-3" @submit.prevent="submit">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Meno
-          <input v-model="form.display_name" type="text" class="form-input" required />
-        </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Email
-          <input v-model="form.email" type="email" class="form-input" required />
-        </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Heslo
-          <input v-model="form.password" type="password" class="form-input" required />
-        </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Potvrdiť heslo
-          <input v-model="form.password_confirmation" type="password" class="form-input" required />
-        </label>
+        <FormField v-model="form.display_name" label="Meno" required />
+        <FormField v-model="form.email" type="email" label="Email" required />
+        <FormField v-model="form.password" type="password" label="Heslo" required autocomplete="new-password" />
+        <FormField v-model="form.password_confirmation" type="password" label="Potvrdiť heslo" required autocomplete="new-password" />
         <button type="submit" class="btn btn-primary" :disabled="loading">
           {{ loading ? 'Registrujem…' : 'Registrovať sa' }}
         </button>
@@ -40,8 +28,12 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { register } from '@/api/auth'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
 
 const route = useRoute()
+
+const validation = provideFormValidation()
 
 // Adresu vie predvyplniť ten, kto sem posiela (napr. pozvánka do tímu kanála) —
 // tá sa musí zhodovať s adresou pozvánky, inak ju účet neprijme.
@@ -53,6 +45,7 @@ const success = ref(false)
 const loading = ref(false)
 
 async function submit() {
+  validation.markValidated()
   error.value = null
   loading.value = true
   try {

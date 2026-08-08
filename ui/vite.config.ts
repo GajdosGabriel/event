@@ -13,24 +13,24 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://event-api.local',
+        target: 'http://event.local',
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: '',
       },
       '/sanctum': {
-        target: 'http://event-api.local',
+        target: 'http://event.local',
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: '',
       },
       '/storage': {
-        target: 'http://event-api.local',
+        target: 'http://event.local',
         changeOrigin: true,
         secure: false,
       },
       '/images': {
-        target: 'http://event-api.local',
+        target: 'http://event.local',
         changeOrigin: true,
         secure: false,
       },

@@ -18,6 +18,15 @@ export interface SelectOption {
   label: string
 }
 
+/** Hodnota, ktorú vie niesť jedno pole formulára (FormField). */
+export type FieldValue = string | number | boolean | null | undefined
+
+/** Položka do `<select>` vo FormField — na rozdiel od SelectOption aj číselná. */
+export interface FieldOption {
+  value: FieldValue
+  label: string
+}
+
 export interface ModelPermissions {
   view: boolean
   update: boolean
@@ -302,16 +311,128 @@ export interface MunicipalityItem {
 // Organization
 export interface OrganizationItem {
   id: number
-  name: string
+  title: string
+  /** Súkromná osoba namiesto firmy — nemá IČO ani zápis v registri. */
+  person: boolean
   slug: string
-  body: string | null
+  description: string | null
   website: string | null
   email: string | null
   phone: string | null
+  villageId: number | null
   status: ModelStatus
+  published: boolean
+  /** Väzba na Account — centrálnu evidenciu firiem. */
+  accountUuid: string | null
+  accountSyncedAt: string | null
+  /** Fakturačné údaje z Accountu. Vyplnené len v detaile, nie vo výpise. */
+  account: OrganizationAccountData | null
   deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** Odpoveď Accountu na `/api/v1/organizations/{uuid}` (len časti, ktoré Event zobrazuje). */
+export interface OrganizationAccountData {
+  id: string
+  name: string
+  legal_name: string | null
+  legal_form: string | null
+  legal_form_label: string | null
+  status: string | null
+  identifiers?: {
+    ico: string | null
+    dic: string | null
+    ic_dph: string | null
+    vat_mode: string | null
+    is_vat_payer: boolean
+    ico_verified_at: string | null
+    vat_verified_at: string | null
+  }
+  registration?: {
+    court: string | null
+    section: string | null
+    insert: string | null
+    line: string | null
+  }
+  address?: {
+    street: string | null
+    city: string | null
+    postal_code: string | null
+    region: string | null
+    country: string | null
+    line: string | null
+  }
+  contact?: {
+    email: string | null
+    billing_email: string | null
+    phone: string | null
+    website: string | null
+    /** Adresa, na ktorú doklady reálne odchádzajú, a či ju zákazník potvrdil. */
+    billing_email_effective: string | null
+    billing_email_verified: boolean
+    billing_email_verified_at: string | null
+  }
+  bank?: {
+    name: string | null
+    iban: string | null
+    swift: string | null
+  }
+  billing?: {
+    currency: string | null
+    /** Údaje, bez ktorých Account nevystaví faktúru. */
+    missing: string[]
+  }
+}
+
+/** Plochý tvar fakturačných údajov, s ktorým pracuje formulár. */
+export interface OrganizationAccountForm {
+  legal_name: string
+  legal_form: string
+  ico: string
+  dic: string
+  ic_dph: string
+  vat_mode: string
+  register_court: string
+  register_section: string
+  register_insert: string
+  street: string
+  city: string
+  postal_code: string
+  country: string
+  email: string
+  billing_email: string
+  phone: string
+  website: string
+  bank_name: string
+  iban: string
+  swift: string
+}
+
+/**
+ * Výsledok vyhľadania IČO v registri (RPO/ARES) cez Account.
+ * Register nie je zmluvne garantovaný, preto je `found: false` bežný stav,
+ * nie chyba — používateľ údaje jednoducho dopíše ručne.
+ */
+export interface IcoLookupResult {
+  found: boolean
+  source?: string
+  error?: string
+  name?: string | null
+  legal_name?: string | null
+  legal_form?: string | null
+  ico?: string | null
+  dic?: string | null
+  ic_dph?: string | null
+  street?: string | null
+  street_no?: string | null
+  city?: string | null
+  postal_code?: string | null
+  region?: string | null
+  country?: string | null
+  register_court?: string | null
+  register_section?: string | null
+  register_insert?: string | null
 }
 
 // Access control

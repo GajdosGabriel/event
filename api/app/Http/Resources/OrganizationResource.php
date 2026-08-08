@@ -10,6 +10,23 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class OrganizationResource extends JsonResource
 {
     use HasAllowedStatuses;
+
+    /**
+     * Fakturačné údaje z Accountu. Nepatria do modelu ani do tabuľky —
+     * pripájajú sa až v detaile, kde sa Account naozaj volá.
+     *
+     * @var array<string, mixed>|null
+     */
+    protected ?array $account = null;
+
+    /** @param  array<string, mixed>|null  $account */
+    public function withAccount(?array $account): static
+    {
+        $this->account = $account;
+
+        return $this;
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -23,6 +40,8 @@ class OrganizationResource extends JsonResource
             'id' => $this->id,
             'village_id' => $this->village_id,
             'title' => $this->title,
+            // Súkromná osoba namiesto firmy – riadi, či sa vôbec pýta IČO.
+            'person' => (bool) $this->person,
             'slug' => $this->slug,
             'email' => $this->email,
             'phone' => $this->phone,
@@ -33,6 +52,11 @@ class OrganizationResource extends JsonResource
             'updated_at' => $this->updated_at,
             'deleted_at' => $this->deleted_at,
             'allowed_statuses' => $this->allowedStatuses($request),
+            // Väzba na centrálnu evidenciu firiem. `account` je vyplnené len
+            // v detaile; v zozname by to znamenalo volanie na riadok.
+            'account_uuid' => $this->account_uuid,
+            'account_synced_at' => $this->account_synced_at,
+            'account' => $this->account,
             'permissions' => [
                 'view' => $user?->can('view', $this->resource) ?? false,
                 'update' => $user?->can('update', $this->resource) ?? false,

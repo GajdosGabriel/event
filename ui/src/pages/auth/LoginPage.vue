@@ -7,14 +7,8 @@
       <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</div>
 
       <form class="grid gap-3" @submit.prevent="submit">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Email
-          <input v-model="form.email" type="email" class="form-input" required autocomplete="email" />
-        </label>
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Heslo
-          <input v-model="form.password" type="password" class="form-input" required autocomplete="current-password" />
-        </label>
+        <FormField v-model="form.email" type="email" label="Email" required autocomplete="email" />
+        <FormField v-model="form.password" type="password" label="Heslo" required autocomplete="current-password" />
         <button type="submit" class="btn btn-primary" :disabled="loading">
           {{ loading ? 'Prihlasujem…' : 'Prihlásiť sa' }}
         </button>
@@ -39,16 +33,21 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { startSocialLogin } from '@/api/auth'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const validation = provideFormValidation()
 
 const form = ref({ email: '', password: '' })
 const error = ref<string | null>(null)
 const loading = ref(false)
 
 async function submit() {
+  validation.markValidated()
   error.value = null
   loading.value = true
   try {

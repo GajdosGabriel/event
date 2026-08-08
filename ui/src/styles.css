@@ -56,8 +56,6 @@
   .auth-card { @apply grid w-full max-w-[420px] gap-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm; }
   .auth-card h1 { @apply m-0 text-2xl; }
   .auth-card p { @apply mb-2 text-slate-500; }
-  .auth-card label { @apply text-sm text-slate-700; }
-  .auth-card input { @apply h-10 rounded-lg border border-slate-300 px-3 text-slate-900 outline-none ring-blue-200 focus:ring; }
 
   /* Edit form */
   .edit-shell { @apply mx-auto my-5 w-full max-w-[1320px] px-4; }
@@ -66,7 +64,34 @@
   .field-legend { @apply mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-slate-500; }
   .form-label { @apply grid gap-1.5 font-semibold text-slate-900 text-sm; }
   .form-input { @apply h-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none ring-blue-200 focus:ring w-full; }
-  .form-input.invalid { @apply border-red-500 ring-1 ring-red-200; }
   .form-textarea { @apply rounded-lg border border-slate-300 px-3 py-2 text-slate-900 resize-y w-full outline-none ring-blue-200 focus:ring; }
   .field-error { @apply text-sm font-medium text-red-600; }
+  .form-hint { @apply text-xs font-normal text-slate-500; }
+  .form-required { @apply ml-0.5 text-red-500; }
+  .form-check { @apply flex cursor-pointer items-start gap-2 text-sm font-medium text-slate-700; }
+  .form-checkbox { @apply mt-0.5 accent-blue-600; }
+
+  /*
+   * Červená len po validácii. Sú na to dva zdroje a oba znamenajú „už sme to
+   * kontrolovali": trieda .invalid (chyba zo servera alebo prázdne povinné pole
+   * po pokuse o odoslanie) a natívne :user-invalid, ktoré prehliadač nasadí až
+   * keď človek do poľa písal alebo odoslal formulár. Samotné `required` na
+   * nedotknutom prázdnom poli nefarbí nič — preto tu zámerne nie je `:invalid`.
+   */
+  .form-input.invalid,
+  .form-textarea.invalid { @apply border-red-500 ring-1 ring-red-200; }
+  .form-input:user-invalid,
+  .form-textarea:user-invalid { @apply border-red-500 ring-1 ring-red-200; }
+
+  /*
+   * Oznamy a bannery. Farebná schéma je tu, nie v databáze: Tailwind generuje
+   * CSS zo zdrojákov, takže trieda uložená len v riadku by v builde neexistovala.
+   * Kľúče musia sedieť s App\Enums\AnnouncementVariant.
+   */
+  .announcement-blue { @apply bg-sky-700 text-slate-100; }
+  .announcement-green { @apply bg-emerald-600 text-slate-100; }
+  .announcement-orange { @apply bg-orange-600 text-slate-100; }
+  .announcement-red { @apply bg-rose-700 text-slate-100; }
+  .announcement-purple { @apply bg-fuchsia-700 text-slate-100; }
+  .announcement-dark { @apply bg-slate-800 text-slate-100; }
 }

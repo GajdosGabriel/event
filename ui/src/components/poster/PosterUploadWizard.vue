@@ -111,77 +111,58 @@
 
       <!-- Opravy -->
       <div class="grid gap-3 sm:grid-cols-2">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900 sm:col-span-2">
-          Názov podujatia *
-          <input v-model="form.title" type="text" class="form-input" maxlength="250" />
-        </label>
+        <FormField v-model="form.title" label="Názov podujatia" required maxlength="250" class="sm:col-span-2" />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Začiatok *
-          <DateTimeInput v-model="form.start_at" class="form-input" allow-past />
-        </label>
+        <FormField v-model="form.start_at" type="datetime" label="Začiatok" required allow-past />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Koniec
-          <DateTimeInput v-model="form.end_at" class="form-input" allow-past />
-        </label>
+        <FormField v-model="form.end_at" type="datetime" label="Koniec" allow-past />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Miesto konania *
-          <input v-model="form.venueName" type="text" class="form-input" maxlength="250" placeholder="napr. Kultúrny dom" />
-        </label>
+        <FormField v-model="form.venueName" label="Miesto konania" required maxlength="250" placeholder="napr. Kultúrny dom" />
 
         <!-- Mesto musí byť záznam z číselníka, nie voľný text: `village_id` je
              na `venues` povinné a z preklepu ako „Nové Zámky-mesto" by vzniklo
              miesto bez obce. AI dodá len reťazec, ktorý sa tu snažíme na
              číselník napasovať — keď sa netrafí, vyberie ho človek. -->
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Mesto / obec *
-          <SearchableSelect
-            v-model="form.municipalityId"
-            :options="municipalities"
-            placeholder="— vyberte obec —"
-            :invalid="form.municipalityId === null"
-          />
-          <span v-if="form.municipalityId === null && detectedCity" class="text-xs font-normal text-slate-500">
-            Z plagátu sme prečítali „{{ detectedCity }}", v číselníku sme to nenašli — vyberte prosím obec.
-          </span>
-        </label>
+        <FormField v-model="form.municipalityId" label="Mesto / obec" required>
+          <template #default="{ value, invalid, update }">
+            <SearchableSelect
+              :model-value="value ?? null"
+              :options="municipalities"
+              placeholder="— vyberte obec —"
+              :invalid="invalid"
+              @update:model-value="update"
+            />
+          </template>
+          <template #footer>
+            <span v-if="form.municipalityId === null && detectedCity" class="form-hint">
+              Z plagátu sme prečítali „{{ detectedCity }}", v číselníku sme to nenašli — vyberte prosím obec.
+            </span>
+          </template>
+        </FormField>
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Ulica a číslo
-          <input v-model="form.venueStreet" type="text" class="form-input" maxlength="250" />
-        </label>
+        <FormField v-model="form.venueStreet" label="Ulica a číslo" maxlength="250" />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Organizátor
-          <input v-model="form.organizerName" type="text" class="form-input" maxlength="250" />
-        </label>
+        <FormField v-model="form.organizerName" label="Organizátor" maxlength="250" />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Kontaktný e-mail
-          <input v-model="form.email" type="email" class="form-input" maxlength="250" />
-        </label>
+        <FormField v-model="form.email" type="email" label="Kontaktný e-mail" maxlength="250" />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Telefón
-          <input v-model="form.phone" type="text" class="form-input" maxlength="50" />
-        </label>
+        <FormField v-model="form.phone" label="Telefón" maxlength="50" />
 
-        <div class="grid gap-1.5 text-sm font-semibold text-slate-900 sm:col-span-2">
-          Popis
+        <FormField label="Popis" class="sm:col-span-2">
           <HtmlEditor v-model="form.description" placeholder="Popis podujatia…" />
-        </div>
+        </FormField>
       </div>
 
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
 
-      <p v-if="!formComplete" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      <!-- Výzva sa objaví až po prvom kliknutí na „Pokračovať" — vypísať ju nad
+           práve načítaným formulárom by vyzeralo, že človek už niečo pokazil. -->
+      <p v-if="validation.validated.value && !formComplete" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
         Doplňte prosím názov, začiatok, miesto a mesto — bez nich podujatie uložiť nevieme.
       </p>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
-        <button type="button" class="btn btn-primary" :disabled="!formComplete" @click="goToAccount">
+        <button type="button" class="btn btn-primary" @click="goToAccount">
           Pokračovať
         </button>
         <button type="button" class="text-sm font-medium text-slate-500 hover:text-slate-800" @click="reset">
@@ -204,10 +185,7 @@
       </div>
 
       <div v-else class="grid gap-3">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Váš e-mail *
-          <input v-model="account.email" type="email" class="form-input" required />
-        </label>
+        <FormField v-model="account.email" type="email" label="Váš e-mail" required :validated="accountValidated" />
 
         <div class="flex gap-2 text-sm">
           <button
@@ -224,20 +202,32 @@
           >Už tu účet mám</button>
         </div>
 
-        <label v-if="account.mode === 'register'" class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Meno / názov organizátora *
-          <input v-model="account.displayName" type="text" class="form-input" required />
-        </label>
+        <FormField
+          v-if="account.mode === 'register'"
+          v-model="account.displayName"
+          label="Meno / názov organizátora"
+          required
+          :validated="accountValidated"
+        />
 
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Heslo *
-          <input v-model="account.password" type="password" class="form-input" required autocomplete="new-password" />
-        </label>
+        <FormField
+          v-model="account.password"
+          type="password"
+          label="Heslo"
+          required
+          :validated="accountValidated"
+          autocomplete="new-password"
+        />
 
-        <label v-if="account.mode === 'register'" class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Heslo znova *
-          <input v-model="account.passwordConfirmation" type="password" class="form-input" required autocomplete="new-password" />
-        </label>
+        <FormField
+          v-if="account.mode === 'register'"
+          v-model="account.passwordConfirmation"
+          type="password"
+          label="Heslo znova"
+          required
+          :validated="accountValidated"
+          autocomplete="new-password"
+        />
       </div>
 
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
@@ -277,7 +267,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import DateTimeInput from '@/components/DateTimeInput.vue'
+import FormField from '@/components/FormField.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { listPublicMunicipalities } from '@/api/municipalities'
@@ -285,6 +275,7 @@ import type { LookupOption } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { register as registerAccount } from '@/api/auth'
 import { useToast } from '@/composables/useToast'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import {
   analyzePoster,
   claimPosterDraft,
@@ -324,6 +315,12 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const createdEventId = ref<number | null>(null)
 const progressMessage = ref('Čítame plagát…')
 let progressTimer: ReturnType<typeof setInterval> | undefined
+
+// Sprievodca validuje dvakrát a nezávisle: najprv údaje o podujatí (krok
+// „Kontrola"), potom prihlasovacie údaje (krok „Účet"). Kým sa na daný krok
+// neklikne „ďalej", jeho prázdne povinné polia nie sú červené.
+const validation = provideFormValidation()
+const accountValidated = ref(false)
 
 const isAuthenticated = computed(() => auth.isAuthenticated)
 const stepIndex = computed(() => ({ upload: 0, analyzing: 1, review: 2, account: 3, verify: 3, done: 3 }[step.value]))
@@ -538,12 +535,19 @@ function overrides(): PosterOverrides {
 function goToAccount() {
   error.value = null
   info.value = null
+
+  // Tlačidlo už nie je zablokované — chýbajúce polia radšej ukážeme červené
+  // aj s vysvetlením, než aby človek hľadal, prečo sa nedá kliknúť.
+  validation.markValidated()
+  if (!formComplete.value) return
+
   if (!account.email && form.email) account.email = form.email
   if (!account.displayName && form.organizerName) account.displayName = form.organizerName
   step.value = 'account'
 }
 
 async function finish() {
+  accountValidated.value = true
   error.value = null
   info.value = null
   busy.value = true

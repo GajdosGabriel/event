@@ -105,6 +105,13 @@
                 Termín
               </div>
               <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
+              <a v-if="event.startAt" :href="eventCalendarUrl(event.id)" download
+                class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 no-underline hover:underline">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M12 14v4m0 0l-2-2m2 2l2-2"/>
+                </svg>
+                Pridať do kalendára
+              </a>
               <div v-if="event.registrationDeadlineAt" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 Registrácia do: <strong>{{ formatDate(event.registrationDeadlineAt) }}</strong>
               </div>
@@ -214,7 +221,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
-import { showPublicEvent } from '@/api/events'
+import { showPublicEvent, eventCalendarUrl } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
 import type { EventItem, TicketTypeItem } from '@/types'

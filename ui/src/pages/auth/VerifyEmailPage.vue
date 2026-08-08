@@ -8,10 +8,7 @@
       <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</div>
 
       <form class="grid gap-3" @submit.prevent="resend">
-        <label class="grid gap-1.5 text-sm font-semibold text-slate-900">
-          Email
-          <input v-model="email" type="email" class="form-input" required />
-        </label>
+        <FormField v-model="email" type="email" label="Email" required />
         <button type="submit" class="btn btn-secondary" :disabled="loading">
           {{ loading ? 'Posielam…' : 'Znova odoslať overovací email' }}
         </button>
@@ -25,6 +22,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { resendVerification } from '@/api/auth'
+import { provideFormValidation } from '@/composables/useFormValidation'
+import FormField from '@/components/FormField.vue'
+
+const validation = provideFormValidation()
 
 const email = ref('')
 const message = ref<string | null>(null)
@@ -32,6 +33,7 @@ const error = ref<string | null>(null)
 const loading = ref(false)
 
 async function resend() {
+  validation.markValidated()
   error.value = null
   message.value = null
   loading.value = true

@@ -1,5 +1,9 @@
 <template>
-  <div class="grid min-h-screen grid-rows-[auto_1fr_auto] bg-slate-100">
+  <!-- Flex, nie pevná mriežka riadkov: pásy s oznamami sa nevykreslia, keď
+       žiadny aktívny oznam nie je, a počet riadkov by tak nesedel. -->
+  <div class="flex min-h-screen flex-col bg-slate-100">
+    <AnnouncementBar placement="top" />
+
     <header class="flex items-center justify-between bg-slate-900 px-5 py-3 text-white">
       <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
       <nav class="flex items-center gap-3">
@@ -18,9 +22,11 @@
       </nav>
     </header>
 
-    <main class="mx-auto w-full max-w-[1300px]">
+    <main class="mx-auto w-full max-w-[1300px] flex-1">
       <RouterView />
     </main>
+
+    <AnnouncementBar placement="bottom" />
 
     <footer class="border-t border-slate-200 bg-white px-5 py-4 text-slate-600">
       © {{ new Date().getFullYear() }} Event
@@ -32,6 +38,7 @@
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
+import AnnouncementBar from '@/components/AnnouncementBar.vue'
 
 const auth = useAuthStore()
 

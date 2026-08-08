@@ -29,22 +29,72 @@ class OrganizationStoreRequest extends FormRequest
         );
 
         return [
+            /*
+             * Vlastný profil organizátora. Adresa tu zámerne nie je –
+             * tú drží Account a číta sa cez `account.address`.
+             */
             'village_id' => ['nullable', 'integer', 'exists:municipalities,id'],
             'person' => ['sometimes', 'boolean'],
-            'avatar' => ['nullable', 'string', 'max:200'],
             'title' => ['required', 'string', 'max:250'],
-            'street' => ['nullable', 'string', 'max:191'],
-            'psc' => ['nullable', 'integer'],
             'email' => ['nullable', 'email', 'max:100'],
             'description' => ['nullable', 'string'],
-            'mod_title' => ['nullable', 'string', 'max:20'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'phone_numeric' => ['nullable', 'string', 'max:20'],
-            'youtube_channel' => ['nullable', 'string', 'max:40'],
-            'youtube_playlist' => ['nullable', 'string', 'max:40'],
             'website' => ['nullable', 'url', 'max:150'],
             'published' => ['sometimes', 'boolean'],
             'status' => ['sometimes', Rule::in($allowedStatuses)],
+
+            /*
+             * Fakturačné údaje pre Account. Tvar sa tu kontroluje len zhruba,
+             * aby sa do Accountu neposielal nezmysel — platnosť IČO a IČ DPH
+             * rozhoduje Account, aby sa všetky projekty správali rovnako
+             * a pravidlá neboli na troch miestach.
+             */
+            'account' => ['sometimes', 'array'],
+            'account.name' => ['nullable', 'string', 'max:255'],
+            'account.legal_name' => ['nullable', 'string', 'max:255'],
+            'account.legal_form' => ['nullable', 'string', 'max:40'],
+            'account.ico' => ['nullable', 'string', 'max:12'],
+            'account.dic' => ['nullable', 'string', 'max:15'],
+            'account.ic_dph' => ['nullable', 'string', 'max:15'],
+            'account.vat_mode' => ['nullable', 'string', 'max:40'],
+            'account.oss_registered' => ['sometimes', 'boolean'],
+            'account.register_court' => ['nullable', 'string', 'max:255'],
+            'account.register_section' => ['nullable', 'string', 'max:20'],
+            'account.register_insert' => ['nullable', 'string', 'max:30'],
+            'account.established_at' => ['nullable', 'date'],
+            'account.street' => ['nullable', 'string', 'max:255'],
+            'account.street_no' => ['nullable', 'string', 'max:30'],
+            'account.city' => ['nullable', 'string', 'max:120'],
+            'account.postal_code' => ['nullable', 'string', 'max:12'],
+            'account.region' => ['nullable', 'string', 'max:80'],
+            'account.country' => ['nullable', 'string', 'size:2'],
+            'account.email' => ['nullable', 'email', 'max:255'],
+            'account.billing_email' => ['nullable', 'email', 'max:255'],
+            'account.phone' => ['nullable', 'string', 'max:40'],
+            'account.website' => ['nullable', 'url', 'max:255'],
+            'account.bank_name' => ['nullable', 'string', 'max:120'],
+            'account.iban' => ['nullable', 'string', 'max:34'],
+            'account.swift' => ['nullable', 'string', 'max:11'],
+            'account.currency' => ['nullable', 'string', 'size:3'],
+            'account.payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:180'],
+            'account.payment_method' => ['nullable', 'in:transfer,card,cash,cod'],
+            'account.invoice_language' => ['nullable', 'string', 'size:2'],
+            'account.invoice_delivery' => ['nullable', 'in:email,post,both'],
+            'account.supplier_number' => ['nullable', 'string', 'max:40'],
         ];
+    }
+
+    /** Fakturačné údaje pre Account — do lokálnej tabuľky sa neukladajú. */
+    /** @return array<string, mixed> */
+    public function accountData(): array
+    {
+        return $this->validated()['account'] ?? [];
+    }
+
+    /** Lokálne polia organizácie, bez fakturačného bloku. */
+    /** @return array<string, mixed> */
+    public function organizationData(): array
+    {
+        return collect($this->validated())->except('account')->all();
     }
 }

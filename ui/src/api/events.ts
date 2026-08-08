@@ -1,4 +1,4 @@
-import http from './index'
+import http, { BASE_URL } from './index'
 import type { EventItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'public' | 'dashboard' | 'admin'
@@ -204,6 +204,14 @@ export async function startEventImport(options: Record<string, unknown>): Promis
 export async function getEventImportStatus(runId: string): Promise<ToolRunStatus> {
   const { data } = await http.get(`/admin/tools/import-events/runs/${runId}`)
   return data as ToolRunStatus
+}
+
+/**
+ * Podujatie ako `.ics`. Nejde cez axios — prehliadač si súbor stiahne sám
+ * a odovzdá ho systémovému kalendáru, takže stačí obyčajný odkaz.
+ */
+export function eventCalendarUrl(eventId: number): string {
+  return `${BASE_URL}/events/${eventId}/calendar.ics`
 }
 
 export async function municipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

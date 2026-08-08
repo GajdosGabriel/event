@@ -26,14 +26,8 @@
           Každý účastník dostane e-mail raz, aj keď má viac lístkov. Odpovede vám prídu na váš e-mail.
         </p>
 
-        <label class="form-label">
-          Predmet *
-          <input v-model="bulk.subject" type="text" maxlength="150" class="form-input" required />
-        </label>
-        <label class="form-label mt-3">
-          Text správy *
-          <textarea v-model="bulk.body" rows="7" maxlength="5000" class="form-input" required></textarea>
-        </label>
+        <FormField v-model="bulk.subject" label="Predmet" required maxlength="150" />
+        <FormField v-model="bulk.body" type="textarea" label="Text správy" required rows="7" maxlength="5000" class="mt-3" />
 
         <p v-if="bulk.error" class="mt-2 text-sm text-red-600">{{ bulk.error }}</p>
 
@@ -155,7 +149,9 @@ import {
 } from '@/api/tickets'
 import { showEvent } from '@/api/events'
 import { useToast } from '@/composables/useToast'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
+import FormField from '@/components/FormField.vue'
 import RowActions from '@/components/RowActions.vue'
 import type { PaginatedResponse, TicketItem } from '@/types'
 
@@ -246,6 +242,8 @@ async function onExport() {
   }
 }
 
+const validation = provideFormValidation()
+
 const bulk = reactive({
   show: false,
   sending: false,
@@ -258,12 +256,14 @@ const bulk = reactive({
 async function openBulk() {
   bulk.show = true
   bulk.error = null
+  validation.reset()
   bulk.subject = eventName.value ? `${eventName.value} – informácia pre účastníkov` : ''
   bulk.body = ''
   bulk.recipients = await attendeeRecipientCount(eventId).catch(() => 0)
 }
 
 async function sendBulk() {
+  validation.markValidated()
   bulk.error = null
   bulk.sending = true
   try {

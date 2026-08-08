@@ -14,15 +14,9 @@
         </button>
         <div v-if="detectOpen" class="mt-3 grid gap-3">
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <label class="form-label">Názov miesta
-              <input v-model="detectForm.name" type="text" class="form-input" placeholder="napr. Kultúrny dom" />
-            </label>
-            <label class="form-label">Mesto / Obec
-              <input v-model="detectForm.city" type="text" class="form-input" placeholder="napr. Trenčín" />
-            </label>
-            <label class="form-label">Krajina
-              <input v-model="detectForm.country" type="text" class="form-input" placeholder="Slovensko" />
-            </label>
+            <FormField v-model="detectForm.name" label="Názov miesta" placeholder="napr. Kultúrny dom" />
+            <FormField v-model="detectForm.city" label="Mesto / Obec" placeholder="napr. Trenčín" />
+            <FormField v-model="detectForm.country" label="Krajina" placeholder="Slovensko" />
           </div>
           <div class="flex items-center gap-3">
             <button type="button" class="btn btn-primary" :disabled="detecting || !detectForm.name || !detectForm.city"
@@ -48,105 +42,52 @@
         <fieldset class="field-group">
           <legend class="field-legend">Základné info</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label lg:col-span-2">
-              Názov *
-              <input v-model="form.name" type="text" class="form-input" :class="{ invalid: errors.name }" required />
-              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-            </label>
-            <label class="form-label">
-              Kanál
-              <select v-model="form.canal_id" class="form-input">
-                <option :value="null">— vyberte kanál —</option>
-                <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-              <span v-if="errors.canal_id" class="field-error">{{ errors.canal_id }}</span>
-            </label>
-            <label class="form-label">
-              Stav
-              <select v-model="form.status" class="form-input" :class="{ invalid: errors.status }">
-                <option value="draft">Koncept</option>
-                <option value="published">Publikovaný</option>
-                <option value="archived">Archivovaný</option>
-              </select>
-              <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
-            </label>
-            <label class="form-label">
-              Kategória
-              <input v-model="form.category" type="text" class="form-input" :class="{ invalid: errors.category }" placeholder="napr. kultúrny dom, škola…" />
-              <span v-if="errors.category" class="field-error">{{ errors.category }}</span>
-            </label>
-            <label class="form-label">
-              Kapacita
-              <input v-model.number="form.capacity" type="number" min="0" class="form-input" :class="{ invalid: errors.capacity }" />
-              <span v-if="errors.capacity" class="field-error">{{ errors.capacity }}</span>
-            </label>
-            <label class="form-label lg:col-span-2">
-              Popis
+            <FormField v-model="form.name" label="Názov" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.canal_id" type="select" label="Kanál" :error="errors.canal_id">
+              <option :value="null">— vyberte kanál —</option>
+              <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </FormField>
+            <FormField v-model="form.status" type="select" label="Stav" :error="errors.status">
+              <option value="draft">Koncept</option>
+              <option value="published">Publikovaný</option>
+              <option value="archived">Archivovaný</option>
+            </FormField>
+            <FormField v-model="form.category" label="Kategória" :error="errors.category" placeholder="napr. kultúrny dom, škola…" />
+            <FormField v-model="form.capacity" type="number" label="Kapacita" min="0" :error="errors.capacity" />
+            <FormField label="Popis" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
-              <span v-if="errors.body" class="field-error">{{ errors.body }}</span>
-            </label>
+            </FormField>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
           <legend class="field-legend">Adresa</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Obec / Mesto *
-              <SearchableSelect
-                v-model="form.village_id"
-                :options="municipalities"
-                placeholder="— vyberte obec —"
-                :invalid="!!errors.village_id"
-              />
-              <span v-if="errors.village_id" class="field-error">{{ errors.village_id }}</span>
-            </label>
-            <label class="form-label">
-              Ulica
-              <input v-model="form.street" type="text" class="form-input" :class="{ invalid: errors.street }" />
-              <span v-if="errors.street" class="field-error">{{ errors.street }}</span>
-            </label>
-            <label class="form-label">
-              PSČ
-              <input v-model="form.postcode" type="text" class="form-input" :class="{ invalid: errors.postcode }" />
-              <span v-if="errors.postcode" class="field-error">{{ errors.postcode }}</span>
-            </label>
-            <label class="form-label">
-              Krajina
-              <input v-model="form.country" type="text" class="form-input" :class="{ invalid: errors.country }" placeholder="Slovensko" />
-              <span v-if="errors.country" class="field-error">{{ errors.country }}</span>
-            </label>
-            <label class="form-label">
-              Zemepisná šírka (lat)
-              <input v-model="form.latitude" type="number" step="any" class="form-input" :class="{ invalid: errors.latitude }" />
-              <span v-if="errors.latitude" class="field-error">{{ errors.latitude }}</span>
-            </label>
-            <label class="form-label">
-              Zemepisná dĺžka (lng)
-              <input v-model="form.longitude" type="number" step="any" class="form-input" :class="{ invalid: errors.longitude }" />
-              <span v-if="errors.longitude" class="field-error">{{ errors.longitude }}</span>
-            </label>
+            <FormField v-model="form.village_id" label="Obec / Mesto" required :error="errors.village_id">
+              <template #default="{ value, invalid, update }">
+                <SearchableSelect
+                  :model-value="value ?? null"
+                  :options="municipalities"
+                  placeholder="— vyberte obec —"
+                  :invalid="invalid"
+                  @update:model-value="update"
+                />
+              </template>
+            </FormField>
+            <FormField v-model="form.street" label="Ulica" :error="errors.street" />
+            <FormField v-model="form.postcode" label="PSČ" :error="errors.postcode" />
+            <FormField v-model="form.country" label="Krajina" :error="errors.country" placeholder="Slovensko" />
+            <FormField v-model="form.latitude" type="number" label="Zemepisná šírka (lat)" step="any" :error="errors.latitude" />
+            <FormField v-model="form.longitude" type="number" label="Zemepisná dĺžka (lng)" step="any" :error="errors.longitude" />
           </div>
         </fieldset>
 
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Web
-              <input v-model="form.website" type="url" class="form-input" :class="{ invalid: errors.website }" />
-              <span v-if="errors.website" class="field-error">{{ errors.website }}</span>
-            </label>
-            <label class="form-label">
-              Email
-              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
-              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
-            </label>
-            <label class="form-label">
-              Telefón
-              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
-              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
-            </label>
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
+            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
           </div>
         </fieldset>
 
@@ -167,12 +108,8 @@
           @update:lng="form.longitude = $event"
         />
         <div class="mt-2 grid grid-cols-2 gap-2">
-          <label class="form-label text-xs">Lat
-            <input v-model.number="form.latitude" type="number" step="any" class="form-input" />
-          </label>
-          <label class="form-label text-xs">Lng
-            <input v-model.number="form.longitude" type="number" step="any" class="form-input" />
-          </label>
+          <FormField v-model="form.latitude" type="number" label="Lat" step="any" class="text-xs" />
+          <FormField v-model="form.longitude" type="number" label="Lng" step="any" class="text-xs" />
         </div>
       </div>
 
@@ -192,7 +129,9 @@ import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import { scrollToError } from '@/utils/scrollToError'
+import FormField from '@/components/FormField.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
@@ -211,6 +150,8 @@ const fileableId = computed(() => route.params.id ? Number(route.params.id) : sa
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { municipalities, canals, loadMunicipalities, loadCanals } = useFormOptions(scope.value)
+
+const validation = provideFormValidation()
 
 const form = ref({
   name: '',
@@ -313,6 +254,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  validation.markValidated()
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {

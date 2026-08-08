@@ -71,6 +71,14 @@ verejná adresa SPA hostu — skladajú sa z nej kanonické adresy a sitemap.
 Podrobnosti k scheduleru sú v [api/README.md](api/README.md), tematické
 poznámky (import, varianty súborov, waitlist) v [api/docs/](api/docs).
 
+## Napojenie na Account
+
+Fakturačnú identitu organizátorov (IČO, DIČ, sídlo, banka) nedrží Event, ale
+centrálny **Account** — Event si k organizácii ukladá len `account_uuid`.
+Bez `ACCOUNT_TOKEN` v `api/.env` je napojenie ticho vypnuté a organizácie
+zostávajú lokálne. Postup sprevádzkovania, tvar volaní a správanie pri výpadku:
+[api/docs/account-integration.md](api/docs/account-integration.md).
+
 ## Prevádzka a monitoring
 
 Tieto tri veci sú čisto o `.env` na produkcii — v kóde je všetko pripravené

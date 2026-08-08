@@ -17,6 +17,8 @@
 
 {{ __('mail.attendee_ticket_issued.outro') }}
 
+@include('mail.partials.calendar', ['calendarUrl' => $calendarUrl ?? null, 'googleUrl' => $googleUrl ?? null])
+
 @if ($cancelUrl)
 {{ __('mail.attendee_ticket_issued.cancel', ['url' => $cancelUrl]) }}
 @endif

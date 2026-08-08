@@ -132,6 +132,7 @@ Import zo zdroja `vyveska.sk` používa ako primárny zdroj HTML detail stránky
 - Správanie generovania náhľadov a mazania redundantných originálov je popísané v [docs/file-variant-pruning-behavior.md](docs/file-variant-pruning-behavior.md).
 - Timezone pravidlá importu externých zdrojov sú popísané v [docs/import-source-timezones.md](docs/import-source-timezones.md).
 - Výveska RSS fallback pre dátumy importovaných eventov je popísaný v [docs/vyveska-rss-fallback.md](docs/vyveska-rss-fallback.md).
+- Napojenie organizácií na Account (fakturačné údaje, IČO, webhooky) je popísané v [docs/account-integration.md](docs/account-integration.md).
 
 ## About Laravel
 

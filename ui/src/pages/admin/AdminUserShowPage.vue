@@ -129,15 +129,18 @@
             </template>
 
             <template v-else>
-              <label class="grid gap-1 text-sm">
-                <span class="font-medium text-slate-700">Dôvod <span class="text-slate-400">(voliteľné)</span></span>
-                <textarea v-model="blockReason" rows="2" class="form-textarea" placeholder="napr. porušenie pravidiel"></textarea>
-              </label>
-              <label class="mt-3 grid gap-1 text-sm">
-                <span class="font-medium text-slate-700">Blokovať do <span class="text-slate-400">(voliteľné)</span></span>
-                <input v-model="blockUntil" type="datetime-local" class="form-input" />
-                <span class="text-xs text-slate-400">Prázdne = blok bez časového obmedzenia.</span>
-              </label>
+              <FormField v-model="blockReason" type="textarea" rows="2" placeholder="napr. porušenie pravidiel">
+                <template #label>Dôvod <span class="font-normal text-slate-400">(voliteľné)</span></template>
+              </FormField>
+              <FormField
+                v-model="blockUntil"
+                type="datetime"
+                allow-past
+                hint="Prázdne = blok bez časového obmedzenia."
+                class="mt-3"
+              >
+                <template #label>Blokovať do <span class="font-normal text-slate-400">(voliteľné)</span></template>
+              </FormField>
               <button class="btn btn-danger mt-3 w-full" :disabled="savingBlock" @click="block">
                 {{ savingBlock ? 'Ukladám…' : 'Blokovať' }}
               </button>

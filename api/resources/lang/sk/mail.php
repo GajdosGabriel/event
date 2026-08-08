@@ -19,6 +19,10 @@ return [
         'seat_typed'        => '**:label** · :type',
         'qr_alt'            => 'QR kód',
         'qr_open'           => 'Otvoriť QR kód',
+        // Sekcia „Pridať do kalendára" (resources/views/mail/partials/calendar).
+        'calendar_intro'    => 'Aby ste na termín nezabudli, zapíšte si podujatie do kalendára:',
+        'calendar_ics'      => 'Pridať do kalendára',
+        'calendar_google'   => 'Google Kalendár',
     ],
 
     // App\Notifications\PendingRegistrationVerification

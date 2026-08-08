@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminToolsController;
+use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CanalController as AdminCanalController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
@@ -28,9 +29,11 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
+use App\Http\Controllers\Public\AnnouncementController as PublicAnnouncementController;
 use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
 use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
@@ -43,6 +46,7 @@ use App\Http\Controllers\Public\TicketQrController as PublicTicketQrController;
 use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeController;
 use App\Http\Controllers\Public\VenueController as PublicVenueController;
 use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
+use App\Http\Controllers\Webhooks\AccountWebhookController;
 use App\Http\Resources\UserResource;
 use App\Support\CronToken;
 use Illuminate\Http\Request;
@@ -93,7 +97,18 @@ Route::get('events/municipalities-overview', [PublicEventController::class, 'mun
 // Číselník obsahových štítkov pre verejný filter (?tags=koncert,folklor).
 Route::get('tags', [PublicTagController::class, 'index'])->name('public.tags.index');
 
+// Oznamy a bannery vo verejnom layoute (?placement=top|bottom).
+Route::get('announcements', [PublicAnnouncementController::class, 'index'])
+    ->name('public.announcements.index');
+
 Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('public.events.files');
+
+// Podujatie ako `.ics` — odkaz „Pridať do kalendára" v e-maile o lístku.
+// Prípona je súčasťou cesty, aby ju kalendáre a mobilné systémy poznali už
+// podľa URL.
+Route::get('events/{id}/calendar.ics', [PublicEventCalendarController::class, 'show'])
+    ->name('public.events.calendar');
+
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
 Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])
     ->name('public.events.tickets.store')
@@ -361,6 +376,10 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('users/{user}/restore', [DashboardUserController::class, 'restore'])->name('users.restore');
     Route::post('users/active-canal', [DashboardUserController::class, 'setActiveCanal']);
 
+    // Musí byť pred apiResource, inak by `{organization}` pohltilo `lookup-ico`.
+    Route::post('organizations/lookup-ico', [DashboardOrganizationController::class, 'lookupIco'])
+        ->name('organizations.lookup-ico')
+        ->middleware(['permission:organization.create', 'throttle:6,1']);
     Route::apiResource('organizations', DashboardOrganizationController::class)
         ->only(['index', 'show'])
         ->middleware('permission:organization.view');
@@ -464,6 +483,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('users/{user}/restore', [AdminUserController::class, 'restore'])
         ->name('users.restore')
         ->middleware('permission:user.delete');
+    // Musí byť pred apiResource, inak by `{organization}` pohltilo `lookup-ico`.
+    Route::post('organizations/lookup-ico', [AdminOrganizationController::class, 'lookupIco'])
+        ->name('organizations.lookup-ico')
+        ->middleware(['permission:organization.create', 'throttle:6,1']);
     Route::apiResource('organizations', AdminOrganizationController::class)
         ->only(['index', 'show'])
         ->middleware('permission:organization.view');
@@ -488,6 +511,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
 
     Route::apiResource('municipalities', AdminMunicipalityController::class);
 
+    // Oznamy a bannery verejného layoutu — celá skupina je za `role:super-admin`.
+    Route::apiResource('announcements', AdminAnnouncementController::class);
+
     Route::post('venues/detect', [AdminVenueController::class, 'detect'])
         ->name('venues.detect')
         ->middleware(['permission:venue.create', 'throttle:ai']);
@@ -503,6 +529,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->name('venues.events')
         ->middleware('permission:venue.delete');
 });
+
+// Webhooky z Accountu. Autentizáciu rieši HMAC podpis v hlavičke, nie session —
+// volá ich server Accountu, nie prehliadač.
+Route::post('webhooks/account', AccountWebhookController::class)
+    ->middleware('throttle:ops')
+    ->name('webhooks.account');
 
 // Po-deploy vyčistenie cache. Hosting nemá shell, preto sa spúšťa cez URL —
 // rovnako ako webcron chránené tokenom z CRON_SECRET.

@@ -13,72 +13,55 @@
         <fieldset class="field-group">
           <legend class="field-legend">Základné info</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label lg:col-span-2">
-              Názov *
-              <input v-model="form.name" type="text" class="form-input" :class="{ invalid: errors.name }" required />
-              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-            </label>
-            <label class="form-label">
-              Stav
-              <select v-model="form.status" class="form-input" :class="{ invalid: errors.status }">
-                <option value="draft">Koncept</option>
-                <option value="scheduled">Naplánovaný</option>
-                <option value="published">Publikovaný</option>
-                <option value="archived">Archivovaný</option>
-              </select>
-              <span v-if="errors.status" class="field-error">{{ errors.status }}</span>
-            </label>
+            <FormField v-model="form.name" label="Názov" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.status" type="select" label="Stav" :error="errors.status">
+              <option value="draft">Koncept</option>
+              <option value="scheduled">Naplánovaný</option>
+              <option value="published">Publikovaný</option>
+              <option value="archived">Archivovaný</option>
+            </FormField>
             <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
                  stavoch ho backend aj tak zahodí, tak ho ani neukazujeme. -->
-            <label v-if="form.status === 'scheduled'" class="form-label lg:col-span-2">
-              Zverejniť dňa *
-              <DateTimeInput v-model="form.publish_at" class="form-input" :class="{ invalid: errors.publish_at }" />
-              <span v-if="errors.publish_at" class="field-error">{{ errors.publish_at }}</span>
-              <span v-else class="mt-1 text-xs text-slate-500">
-                Do tohto času event nie je verejne viditeľný. Zverejní sa sám, na minútu presne to nie je — kontrola beží každých päť minút.
-              </span>
-            </label>
-            <label class="form-label">
-              Kanál
-              <select v-model="form.canal_id" class="form-input" :class="{ invalid: errors.canal_id }">
-                <option v-if="!form.canal_id" :value="null" disabled>— vyberte kanál —</option>
-                <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-              <span v-if="errors.canal_id" class="field-error">{{ errors.canal_id }}</span>
-            </label>
-            <label class="form-label lg:col-span-2">
-              Miesto konania
-              <div class="flex gap-2">
-                <div class="min-w-0 flex-1">
-                  <SearchableSelect
-                    v-model="form.venue_id"
-                    :options="venuesForCanal"
-                    placeholder="— bez miesta —"
-                    :invalid="!!errors.venue_id"
-                  />
+            <FormField
+              v-if="form.status === 'scheduled'"
+              v-model="form.publish_at"
+              type="datetime"
+              label="Zverejniť dňa"
+              required
+              :error="errors.publish_at"
+              hint="Do tohto času event nie je verejne viditeľný. Zverejní sa sám, na minútu presne to nie je — kontrola beží každých päť minút."
+              class="lg:col-span-2"
+            />
+            <FormField v-model="form.canal_id" type="select" label="Kanál" :error="errors.canal_id">
+              <option v-if="!form.canal_id" :value="null" disabled>— vyberte kanál —</option>
+              <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </FormField>
+            <FormField v-model="form.venue_id" label="Miesto konania" :error="errors.venue_id" class="lg:col-span-2">
+              <template #default="{ value, invalid, update }">
+                <div class="flex gap-2">
+                  <div class="min-w-0 flex-1">
+                    <SearchableSelect
+                      :model-value="value ?? null"
+                      :options="venuesForCanal"
+                      placeholder="— bez miesta —"
+                      :invalid="invalid"
+                      @update:model-value="update"
+                    />
+                  </div>
+                  <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
+                    + Pridať nové
+                  </button>
                 </div>
-                <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
-                  + Pridať nové
-                </button>
-              </div>
-              <span v-if="errors.venue_id" class="field-error">{{ errors.venue_id }}</span>
-            </label>
+              </template>
+            </FormField>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
           <legend class="field-legend">Termín</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Začiatok
-              <DateTimeInput v-model="form.start_at" class="form-input" :class="{ invalid: errors.start_at }" />
-              <span v-if="errors.start_at" class="field-error">{{ errors.start_at }}</span>
-            </label>
-            <label class="form-label">
-              Koniec
-              <DateTimeInput v-model="form.end_at" class="form-input" :class="{ invalid: errors.end_at }" />
-              <span v-if="errors.end_at" class="field-error">{{ errors.end_at }}</span>
-            </label>
+            <FormField v-model="form.start_at" type="datetime" label="Začiatok" :error="errors.start_at" />
+            <FormField v-model="form.end_at" type="datetime" label="Koniec" :error="errors.end_at" />
           </div>
         </fieldset>
 
@@ -199,21 +182,9 @@
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <label class="form-label">
-              Web
-              <input v-model="form.website" type="url" class="form-input" :class="{ invalid: errors.website }" />
-              <span v-if="errors.website" class="field-error">{{ errors.website }}</span>
-            </label>
-            <label class="form-label">
-              Email
-              <input v-model="form.email" type="email" class="form-input" :class="{ invalid: errors.email }" />
-              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
-            </label>
-            <label class="form-label">
-              Telefón
-              <input v-model="form.phone" type="tel" class="form-input" :class="{ invalid: errors.phone }" />
-              <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
-            </label>
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
+            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
           </div>
         </fieldset>
 
@@ -237,32 +208,37 @@
       <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
         <h2 class="mb-4 text-lg font-semibold text-slate-900">Nové miesto konania</h2>
         <p v-if="venueModal.error" class="mb-3 text-sm text-red-600">{{ venueModal.error }}</p>
+        <!-- Modál má vlastný stav validácie — červená sa v ňom rozsvieti až po
+             kliknutí na „Vytvoriť miesto", nezávisle od hlavného formulára. -->
         <div class="grid gap-3">
-          <label class="form-label">
-            Názov *
-            <input v-model="venueModal.form.name" type="text" class="form-input"
-              :class="{ invalid: venueModal.errors.name }" placeholder="napr. Kultúrny dom" />
-            <span v-if="venueModal.errors.name" class="field-error">{{ venueModal.errors.name }}</span>
-          </label>
-          <label class="form-label">
-            Obec *
-            <SearchableSelect
-              v-model="venueModal.form.village_id"
-              :options="municipalities"
-              placeholder="— vyberte obec —"
-              :invalid="!!venueModal.errors.village_id"
-            />
-            <span v-if="venueModal.errors.village_id" class="field-error">{{ venueModal.errors.village_id }}</span>
-          </label>
+          <FormField
+            v-model="venueModal.form.name"
+            label="Názov"
+            required
+            :validated="venueModal.validated"
+            :error="venueModal.errors.name"
+            placeholder="napr. Kultúrny dom"
+          />
+          <FormField
+            v-model="venueModal.form.village_id"
+            label="Obec"
+            required
+            :validated="venueModal.validated"
+            :error="venueModal.errors.village_id"
+          >
+            <template #default="{ value, invalid, update }">
+              <SearchableSelect
+                :model-value="value ?? null"
+                :options="municipalities"
+                placeholder="— vyberte obec —"
+                :invalid="invalid"
+                @update:model-value="update"
+              />
+            </template>
+          </FormField>
           <div class="grid grid-cols-2 gap-3">
-            <label class="form-label">
-              Ulica
-              <input v-model="venueModal.form.street" type="text" class="form-input" placeholder="napr. Hlavná 12" />
-            </label>
-            <label class="form-label">
-              PSČ
-              <input v-model="venueModal.form.postcode" type="text" class="form-input" placeholder="01234" />
-            </label>
+            <FormField v-model="venueModal.form.street" label="Ulica" placeholder="napr. Hlavná 12" />
+            <FormField v-model="venueModal.form.postcode" label="PSČ" placeholder="01234" />
           </div>
         </div>
         <div class="mt-5 flex gap-2">
@@ -284,12 +260,13 @@ import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
+import { provideFormValidation } from '@/composables/useFormValidation'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
+import FormField from '@/components/FormField.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
-import DateTimeInput from '@/components/DateTimeInput.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -309,6 +286,8 @@ const fileableId = computed(() => route.params.id ? Number(route.params.id) : sa
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
+
+const validation = provideFormValidation()
 
 const form = ref({
   name: '',
@@ -377,16 +356,18 @@ watch(() => form.value.start_at, (startAt) => {
 const venueModal = ref({
   show: false,
   saving: false,
+  validated: false,
   error: null as string | null,
   errors: {} as Record<string, string>,
   form: { name: '', village_id: null as number | null, street: '', postcode: '' },
 })
 
 function openVenueModal() {
-  venueModal.value = { show: true, saving: false, error: null, errors: {}, form: { name: '', village_id: null, street: '', postcode: '' } }
+  venueModal.value = { show: true, saving: false, validated: false, error: null, errors: {}, form: { name: '', village_id: null, street: '', postcode: '' } }
 }
 
 async function saveNewVenue() {
+  venueModal.value.validated = true
   venueModal.value.errors = {}
   venueModal.value.error = null
   venueModal.value.saving = true
@@ -485,6 +466,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  validation.markValidated()
   errors.value = {}
   serverError.value = null
   saving.value = true
