@@ -66,6 +66,30 @@ class Canal extends Model implements Messageable
         return $this->belongsTo(\App\Models\Municipality::class, 'municipality_id');
     }
 
+    /**
+     * Fakturačná identita kanála. `null` je bežný stav — osobný kanál
+     * z registrácie žiadnu firmu nemá a beží v neplatenom režime.
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Má tento kanál nárok na platené funkcie?
+     *
+     * Jediné miesto, kde sa reťazec vyhodnocuje. Pretrhne sa kdekoľvek —
+     * kanál bez organizácie, organizácia bez Accountu, archivovaná alebo
+     * zmazaná firma — a kanál spadne na neplatený režim.
+     *
+     * Kontroluj cez User::hasPaidAccessTo(), nie priamo: samotný nárok kanála
+     * ešte nehovorí, že sa naň pýta jeho člen.
+     */
+    public function hasPaidAccess(): bool
+    {
+        return $this->organization?->canBill() ?? false;
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class)->withPivot(['is_owner', 'status', 'role'])->withTimestamps();

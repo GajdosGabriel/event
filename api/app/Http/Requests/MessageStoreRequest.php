@@ -33,7 +33,7 @@ class MessageStoreRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'body' => 'správa',
+            'body' => __('messages.attributes.body'),
         ];
     }
 }

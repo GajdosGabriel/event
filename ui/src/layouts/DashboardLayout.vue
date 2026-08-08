@@ -5,46 +5,47 @@
         <span class="brand-mark">E</span>
         <span class="brand-copy">
           <strong>Event</strong>
-          <small>{{ auth.canalName || 'Dashboard' }}</small>
+          <small>{{ auth.canalName || t('nav.dashboard') }}</small>
         </span>
       </RouterLink>
 
       <nav class="aside-nav">
-        <RouterLink to="/dashboard/events" class="aside-link" active-class="active" :title="collapsed ? 'Eventy' : undefined">
+        <RouterLink to="/dashboard/events" class="aside-link" active-class="active" :title="collapsed ? t('nav.events') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg>
-          <span class="nav-label">Eventy</span>
+          <span class="nav-label">{{ t('nav.events') }}</span>
         </RouterLink>
-        <RouterLink to="/dashboard/canals" class="aside-link" active-class="active" :title="collapsed ? 'Kanály' : undefined">
+        <RouterLink to="/dashboard/canals" class="aside-link" active-class="active" :title="collapsed ? t('nav.canals') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
-          <span class="nav-label">Kanály</span>
+          <span class="nav-label">{{ t('nav.canals') }}</span>
         </RouterLink>
-        <RouterLink to="/dashboard/venues" class="aside-link" active-class="active" :title="collapsed ? 'Miesta' : undefined">
+        <RouterLink to="/dashboard/venues" class="aside-link" active-class="active" :title="collapsed ? t('nav.venues') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
-          <span class="nav-label">Miesta</span>
+          <span class="nav-label">{{ t('nav.venues') }}</span>
         </RouterLink>
-        <RouterLink to="/dashboard/organizations" class="aside-link" active-class="active" :title="collapsed ? 'Organizácie' : undefined">
+        <RouterLink to="/dashboard/organizations" class="aside-link" active-class="active" :title="collapsed ? t('nav.organizations') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
-          <span class="nav-label">Organizácie</span>
+          <span class="nav-label">{{ t('nav.organizations') }}</span>
         </RouterLink>
-        <RouterLink to="/dashboard/spravy" class="aside-link" active-class="active" :title="collapsed ? 'Správy' : undefined">
+        <RouterLink to="/dashboard/spravy" class="aside-link" active-class="active" :title="collapsed ? t('nav.messages') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          <span class="nav-label">Správy</span>
+          <span class="nav-label">{{ t('nav.messages') }}</span>
           <span v-if="unread > 0" class="nav-badge">{{ unread > 99 ? '99+' : unread }}</span>
         </RouterLink>
       </nav>
 
-      <button class="toggle-btn" @click="toggle" :title="collapsed ? 'Rozbaliť' : 'Zbaliť'">
+      <button class="toggle-btn" @click="toggle" :title="collapsed ? t('nav.expand') : t('nav.collapse')">
         <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" :d="collapsed ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'" />
         </svg>
-        <span class="nav-label">Zbaliť</span>
+        <span class="nav-label">{{ t('nav.collapse') }}</span>
       </button>
     </aside>
 
     <div class="content-shell">
       <header class="header">
-        <RouterLink to="/dashboard" class="brand">Dashboard</RouterLink>
+        <RouterLink to="/dashboard" class="brand">{{ t('nav.dashboard') }}</RouterLink>
         <nav class="header-nav">
+          <LangSwitcher variant="teal" />
           <UserDropdown variant="teal" logout-to="login" />
         </nav>
       </header>
@@ -73,9 +74,12 @@ import { useAuthStore } from '@/stores/auth'
 import { unreadMessageCount } from '@/api/messages'
 import UserDropdown from '@/components/UserDropdown.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
+import LangSwitcher from '@/components/LangSwitcher.vue'
+import { useI18n } from '@/i18n'
 
 const auth = useAuthStore()
 const route = useRoute()
+const { t } = useI18n()
 
 // Odznak neprečítaných. Bez pollingu — obnoví sa pri prechode medzi stránkami
 // dashboardu, čo na inbox stačí a nedrží otvorený request na pozadí.

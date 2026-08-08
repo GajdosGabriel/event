@@ -34,7 +34,7 @@ class PosterAnalyzeRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             if (! $this->hasFile('file') && blank($this->input('text'))) {
-                $validator->errors()->add('file', 'Nahrajte plagát alebo vložte text pozvánky.');
+                $validator->errors()->add('file', __('poster.errors.input_missing'));
             }
         });
     }
@@ -42,9 +42,9 @@ class PosterAnalyzeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.mimes' => 'Podporujeme PDF, Word (.docx), obrázok plagátu (JPG, PNG, WEBP) alebo textový súbor.',
-            'file.max' => 'Súbor je príliš veľký — maximum je 12 MB.',
-            'text.min' => 'Text je príliš krátky na to, aby sa z neho dalo podujatie zostaviť.',
+            'file.mimes' => __('poster.errors.file_mimes'),
+            'file.max' => __('poster.errors.file_max'),
+            'text.min' => __('poster.errors.text_min'),
         ];
     }
 }

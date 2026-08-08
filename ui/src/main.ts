@@ -3,7 +3,10 @@ import { createPinia } from 'pinia'
 import { createHead } from '@vueuse/head'
 import router from './router'
 import App from './App.vue'
+import { initI18n } from './i18n'
 import './styles.css'
+
+initI18n()
 
 const app = createApp(App)
 app.use(createPinia())

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useToast } from '@/composables/useToast'
+import { currentLocale } from '@/i18n'
 
 export const BASE_URL = '/api'
 
@@ -22,6 +23,10 @@ function getCookie(name: string): string | null {
 }
 
 http.interceptors.request.use((config) => {
+  // Jazyk sa posiela pri každom requeste — validačné hlášky, statusy aj maily
+  // z API tak prídu v tom, čo má používateľ prepnuté v navigácii.
+  config.headers['X-Locale'] = currentLocale()
+
   const xsrf = getCookie('XSRF-TOKEN')
   if (xsrf) {
     config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)

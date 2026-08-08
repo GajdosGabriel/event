@@ -17,7 +17,7 @@
     </div>
 
     <p class="mt-1 text-xs text-slate-500">
-      <span class="font-semibold text-slate-700">{{ fmtCount(part) }}</span> z {{ fmtCount(whole) }} {{ unit }}
+      <span class="font-semibold text-slate-700">{{ fmtCount(part) }}</span> {{ t('stats.meterOf') }} {{ fmtCount(whole) }} {{ unit }}
       <span v-if="note"> · {{ note }}</span>
     </p>
   </div>
@@ -25,7 +25,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/i18n'
 import { fmtCount, fmtPercent } from '@/utils/statsFormat'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   label: string

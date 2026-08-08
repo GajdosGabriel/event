@@ -327,9 +327,35 @@ export interface OrganizationItem {
   accountSyncedAt: string | null
   /** Fakturačné údaje z Accountu. Vyplnené len v detaile, nie vo výpise. */
   account: OrganizationAccountData | null
+  /** Počet kanálov, ktoré pod firmou fakturujú. Vo výpise aj v detaile. */
+  canalsCount: number
+  /** Kanály aj s tímom. Naplnené len v detaile — vo výpise je prázdne pole. */
+  canals: OrganizationCanal[]
   deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+/**
+ * Kanál, ktorý fakturuje pod organizáciou.
+ *
+ * Ľudia nevisia na firme priamo — členom sa je vždy v konkrétnom kanáli
+ * a tam platí aj rola. Firma je len fakturačná strecha nad kanálmi.
+ */
+export interface OrganizationCanal {
+  id: number
+  name: string
+  status: ModelStatus
+  identityMode: string | null
+  members: OrganizationCanalMember[]
+}
+
+export interface OrganizationCanalMember {
+  id: number
+  name: string
+  /** owner | editor | checkin — platí len v tomto kanáli. */
+  role: string | null
+  isOwner: boolean
 }
 
 /** Odpoveď Accountu na `/api/v1/organizations/{uuid}` (len časti, ktoré Event zobrazuje). */

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\LogLastUserActivity;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Locale sa nastavuje ako prvé — validačné hlášky aj chyby zo súbežných
+        // middlewarov už majú byť v jazyku, ktorý si klient vypýtal.
+        $middleware->prepend(SetLocale::class);
         $middleware->append(LogLastUserActivity::class);
         // Základný strop na celé API. Citlivé endpointy majú navyše vlastný
         // prísnejší limiter — limity sú definované v AppServiceProvider.

@@ -76,7 +76,7 @@ class VenueStoreRequest extends FormRequest
                 ->values();
 
             if ($unauthorizedCanalIds->isNotEmpty()) {
-                $validator->errors()->add('canal_ids', 'Selected canal is not accessible.');
+                $validator->errors()->add('canal_ids', __('venues.errors.canal_not_accessible'));
             }
         });
     }

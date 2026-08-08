@@ -44,6 +44,14 @@ class OrganizationStoreRequest extends FormRequest
             'status' => ['sometimes', Rule::in($allowedStatuses)],
 
             /*
+             * Kanál, ktorý pod touto firmou fakturuje. Do tabuľky `organizations`
+             * sa neukladá — väzbu nesie `canals.organization_id`. Právo na kanál
+             * sa overuje v controlleri (policy `update` nad kanálom), tu sa
+             * kontroluje len existencia.
+             */
+            'canal_id' => ['sometimes', 'nullable', 'integer', 'exists:canals,id'],
+
+            /*
              * Fakturačné údaje pre Account. Tvar sa tu kontroluje len zhruba,
              * aby sa do Accountu neposielal nezmysel — platnosť IČO a IČ DPH
              * rozhoduje Account, aby sa všetky projekty správali rovnako
@@ -91,10 +99,21 @@ class OrganizationStoreRequest extends FormRequest
         return $this->validated()['account'] ?? [];
     }
 
-    /** Lokálne polia organizácie, bez fakturačného bloku. */
+    /**
+     * Lokálne polia organizácie, bez fakturačného bloku a bez `canal_id` —
+     * ani jedno nie je stĺpec tabuľky `organizations`.
+     */
     /** @return array<string, mixed> */
     public function organizationData(): array
     {
-        return collect($this->validated())->except('account')->all();
+        return collect($this->validated())->except(['account', 'canal_id'])->all();
+    }
+
+    /** Kanál, ktorý sa má naviazať na firmu, ak ho klient poslal. */
+    public function canalId(): ?int
+    {
+        $canalId = $this->validated()['canal_id'] ?? null;
+
+        return $canalId !== null ? (int) $canalId : null;
     }
 }

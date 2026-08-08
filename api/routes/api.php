@@ -395,6 +395,14 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('organizations/{organization}/restore', [DashboardOrganizationController::class, 'restore'])
         ->name('organizations.restore')
         ->middleware('permission:organization.delete');
+    // Väzba firma ↔ kanál. Členov nespravuje organizácia, ale tím kanála
+    // (`canals/{canal}/team`) — rola platí vždy len v konkrétnom kanáli.
+    Route::post('organizations/{organization}/canals', [DashboardOrganizationController::class, 'attachCanal'])
+        ->name('organizations.canals.store')
+        ->middleware('permission:organization.update');
+    Route::delete('organizations/{organization}/canals/{canal}', [DashboardOrganizationController::class, 'detachCanal'])
+        ->name('organizations.canals.destroy')
+        ->middleware('permission:organization.update');
 
     Route::get('roles', [DashboardRoleController::class, 'roles'])->name('roles.index');
     Route::get('permissions', [DashboardRoleController::class, 'permissions'])->name('permissions.index');
@@ -502,6 +510,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('organizations/{organization}/restore', [AdminOrganizationController::class, 'restore'])
         ->name('organizations.restore')
         ->middleware('permission:organization.delete');
+    // Väzba firma ↔ kanál; členov spravuje tím kanála, nie organizácia.
+    Route::post('organizations/{organization}/canals', [AdminOrganizationController::class, 'attachCanal'])
+        ->name('organizations.canals.store')
+        ->middleware('permission:organization.update');
+    Route::delete('organizations/{organization}/canals/{canal}', [AdminOrganizationController::class, 'detachCanal'])
+        ->name('organizations.canals.destroy')
+        ->middleware('permission:organization.update');
 
     Route::middleware('role:super-admin')->group(function () {
         Route::get('roles', [AdminRoleController::class, 'roles'])->name('roles.index');

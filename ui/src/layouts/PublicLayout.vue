@@ -7,16 +7,19 @@
     <header class="flex items-center justify-between bg-slate-900 px-5 py-3 text-white">
       <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
       <nav class="flex items-center gap-3">
+        <LangSwitcher />
         <template v-if="auth.isAuthenticated">
           <UserDropdown />
         </template>
         <template v-else>
-          <RouterLink to="/login" class="text-sm text-slate-300 no-underline hover:text-white">Prihlásenie</RouterLink>
+          <RouterLink to="/login" class="text-sm text-slate-300 no-underline hover:text-white">
+            {{ t('nav.login') }}
+          </RouterLink>
           <RouterLink
             to="/register"
             class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white no-underline hover:bg-blue-500"
           >
-            Registrácia
+            {{ t('nav.register') }}
           </RouterLink>
         </template>
       </nav>
@@ -39,8 +42,11 @@ import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
 import AnnouncementBar from '@/components/AnnouncementBar.vue'
+import LangSwitcher from '@/components/LangSwitcher.vue'
+import { useI18n } from '@/i18n'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 onMounted(() => {
   if (auth.isAuthenticated && !auth.identity) {

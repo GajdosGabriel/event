@@ -46,7 +46,7 @@ class PosterClaimRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'overrides.end_at.after_or_equal' => 'Koniec podujatia nemôže byť skôr než jeho začiatok.',
+            'overrides.end_at.after_or_equal' => __('poster.errors.end_before_start'),
         ];
     }
 }

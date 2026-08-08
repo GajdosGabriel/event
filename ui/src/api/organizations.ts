@@ -3,6 +3,7 @@ import type {
   IcoLookupResult,
   OrganizationAccountData,
   OrganizationAccountForm,
+  OrganizationCanal,
   OrganizationItem,
   PaginatedResponse,
 } from '@/types'
@@ -31,10 +32,33 @@ function mapOrg(raw: Record<string, unknown>): OrganizationItem {
     accountUuid: (raw['account_uuid'] as string) ?? null,
     accountSyncedAt: (raw['account_synced_at'] as string) ?? null,
     account: (raw['account'] as OrganizationAccountData) ?? null,
+    // Kanály nesie len detail — výpis vracia iba počet, inak by to bol
+    // dotaz na riadok.
+    canalsCount: (raw['canals_count'] as number) ?? 0,
+    canals: mapCanals(raw['canals']),
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt: (raw['created_at'] as string) ?? '',
     updatedAt: (raw['updated_at'] as string) ?? '',
   }
+}
+
+function mapCanals(raw: unknown): OrganizationCanal[] {
+  if (!Array.isArray(raw)) return []
+
+  return (raw as Record<string, unknown>[]).map(canal => ({
+    id: canal['id'] as number,
+    name: (canal['name'] as string) ?? '',
+    status: (canal['status'] as OrganizationCanal['status']) ?? 'draft',
+    identityMode: (canal['identity_mode'] as string) ?? null,
+    members: Array.isArray(canal['members'])
+      ? (canal['members'] as Record<string, unknown>[]).map(member => ({
+          id: member['id'] as number,
+          name: (member['name'] as string) ?? '',
+          role: (member['role'] as string) ?? null,
+          isOwner: Boolean(member['is_owner']),
+        }))
+      : [],
+  }))
 }
 
 export async function listOrganizations(scope: Scope): Promise<PaginatedResponse<OrganizationItem>> {
@@ -64,6 +88,21 @@ export async function deleteOrganization(scope: Scope, id: number): Promise<void
 
 export async function restoreOrganization(scope: Scope, id: number): Promise<void> {
   await http.post(`${base(scope)}/${id}/restore`)
+}
+
+/**
+ * Väzba firma ↔ kanál.
+ *
+ * Ľudia sa k firme nepriraďujú priamo — členom sa je v kanáli
+ * (`canals/{id}/team`) a firma je len jeho fakturačná strecha. Preto sa tu
+ * pripája a odpája kanál, nie používateľ.
+ */
+export async function attachCanalToOrganization(scope: Scope, id: number, canalId: number): Promise<void> {
+  await http.post(`${base(scope)}/${id}/canals`, { canal_id: canalId })
+}
+
+export async function detachCanalFromOrganization(scope: Scope, id: number, canalId: number): Promise<void> {
+  await http.delete(`${base(scope)}/${id}/canals/${canalId}`)
 }
 
 /**

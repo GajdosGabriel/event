@@ -2,14 +2,14 @@
   <section class="panel-card">
     <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h2 class="text-lg font-semibold text-slate-900">Denná aktivita</h2>
-        <p class="text-sm text-slate-500">Posledných {{ trend.length }} dní · {{ active.label }}</p>
+        <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.activity.title') }}</h2>
+        <p class="text-sm text-slate-500">{{ t('stats.activity.subtitle', { days: trend.length, metric: active.label }) }}</p>
       </div>
 
       <!-- Prepínač namiesto viacerých sérií v jednom grafe: počty podujatí
            a vstupeniek majú úplne iný rád, spoločná os by menšiu z nich
            zarovnala k nule. -->
-      <div class="flex flex-wrap gap-1" role="group" aria-label="Metrika grafu">
+      <div class="flex flex-wrap gap-1" role="group" :aria-label="t('stats.activity.group')">
         <button
           v-for="option in options"
           :key="option.key"
@@ -25,11 +25,11 @@
     </div>
 
     <p v-if="max === 0" class="rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-      Za posledných {{ trend.length }} dní tu zatiaľ nič nepribudlo.
+      {{ t('stats.activity.empty', { days: trend.length }) }}
     </p>
 
     <div v-else class="relative" @mouseleave="activeIndex = null">
-      <svg :viewBox="`0 0 ${W} ${H}`" class="block h-auto w-full" role="img" :aria-label="`${active.label} po dňoch`">
+      <svg :viewBox="`0 0 ${W} ${H}`" class="block h-auto w-full" role="img" :aria-label="t('stats.activity.byDays', { metric: active.label })">
         <!-- Mriežka ustupuje do pozadia, aby stĺpce zostali hlavným tvarom. -->
         <g>
           <line
@@ -103,10 +103,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from '@/i18n'
 import type { StatsTrendDay } from '@/types'
 import { fmtCount, fmtShortDate } from '@/utils/statsFormat'
 
 const props = defineProps<{ trend: StatsTrendDay[] }>()
+
+const { t, locale } = useI18n()
 
 // Sekvenčné kódovanie: jedna séria, jeden odtieň. Aktívny stĺpec je tmavší
 // krok tej istej škály, nie iná farba.
@@ -122,18 +125,20 @@ const PAD_B = 24
 
 type MetricKey = 'views' | 'events' | 'tickets' | 'admissions' | 'checkins'
 
-const options: { key: MetricKey; label: string; unit: string }[] = [
-  { key: 'views', label: 'Zobrazenia', unit: 'zobrazení' },
-  { key: 'events', label: 'Podujatia', unit: 'podujatí' },
-  { key: 'tickets', label: 'Objednávky', unit: 'objednávok' },
-  { key: 'admissions', label: 'Vstupenky', unit: 'vstupeniek' },
-  { key: 'checkins', label: 'Príchody', unit: 'príchodov' },
-]
+const METRIC_KEYS: MetricKey[] = ['views', 'events', 'tickets', 'admissions', 'checkins']
+
+// Computed, nie konštanta — popisky aj jednotky sa musia prekresliť pri
+// prepnutí jazyka.
+const options = computed(() => METRIC_KEYS.map(key => ({
+  key,
+  label: t(`stats.activity.metrics.${key}`),
+  unit: t(`stats.activity.units.${key}`),
+})))
 
 const metric = ref<MetricKey>('views')
 const activeIndex = ref<number | null>(null)
 
-const active = computed(() => options.find(o => o.key === metric.value) ?? options[0])
+const active = computed(() => options.value.find(o => o.key === metric.value) ?? options.value[0])
 const trend = computed(() => props.trend)
 const values = computed(() => trend.value.map(day => day[metric.value]))
 
@@ -190,7 +195,7 @@ const dateLabels = computed(() =>
 )
 
 function fmtLongDate(date: string): string {
-  return new Date(date).toLocaleDateString('sk-SK', { weekday: 'short', day: 'numeric', month: 'long' })
+  return new Date(date).toLocaleDateString(locale.value, { weekday: 'short', day: 'numeric', month: 'long' })
 }
 </script>
 

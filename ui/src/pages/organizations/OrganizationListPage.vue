@@ -21,6 +21,13 @@
 
           <span class="text-xs text-slate-500">{{ statusLabel(org.status) }}</span>
 
+          <!-- Komu firma patrí, sa pozná podľa kanálov — ľudia visia na nich,
+               nie na firme. Detail ukáže aj mená a role. -->
+          <span class="rounded-full px-2 py-0.5 text-xs"
+            :class="org.canalsCount > 0 ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'">
+            {{ canalsLabel(org.canalsCount) }}
+          </span>
+
           <span v-if="org.accountUuid"
             class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
             v Accounte
@@ -62,6 +69,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 function statusLabel(status: ModelStatus) {
   return STATUS_LABELS[status] ?? status
+}
+
+/** Firma bez kanála nemá za koho fakturovať — preto to nie je len číslo. */
+function canalsLabel(count: number) {
+  if (count === 0) return 'bez kanála'
+  if (count === 1) return '1 kanál'
+  if (count < 5) return `${count} kanály`
+  return `${count} kanálov`
 }
 
 onMounted(async () => {

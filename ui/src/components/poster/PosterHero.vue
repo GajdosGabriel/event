@@ -9,8 +9,8 @@
     <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-5 py-4 sm:px-6">
       <div class="min-w-0">
         <h2 class="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">
-          <span>Nahrajte plagát<span class="text-emerald-700">, o všetko ostatné sa postaráme</span></span>
-          <span class="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Nové</span>
+          <span>{{ t('poster.hero.title') }}<span class="text-emerald-700">{{ t('poster.hero.titleAccent') }}</span></span>
+          <span class="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">{{ t('poster.hero.badge') }}</span>
         </h2>
 
         <!-- Tri kroky nahradili odstavec s popisom: povedia to isté (nič sa
@@ -33,7 +33,7 @@
           aria-controls="poster-hero-details"
           @click="expanded = !expanded"
         >
-          Ako to funguje?
+          {{ t('poster.hero.how') }}
           <svg
             class="h-3.5 w-3.5 transition-transform"
             :class="expanded ? 'rotate-180' : ''"
@@ -50,24 +50,30 @@
         </button>
 
         <p v-if="expanded" id="poster-hero-details" class="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-          Nahrajte PDF, Word, fotku plagátu alebo len text pozvánky. Prečítame z neho termín, miesto
-          aj organizátora, napojíme podujatie na existujúce miesto či kanál a ukážeme vám, čo sme
-          našli a čo treba doplniť. Podujatie hneď zverejníme.
+          {{ t('poster.hero.details') }}
         </p>
       </div>
 
       <div class="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
-        <RouterLink to="/nahrat-plagat" class="btn btn-primary">Nahrať plagát</RouterLink>
-        <span class="text-xs text-slate-500">PDF, Word, obrázok alebo text</span>
+        <RouterLink to="/nahrat-plagat" class="btn btn-primary">{{ t('poster.hero.cta') }}</RouterLink>
+        <span class="text-xs text-slate-500">{{ t('poster.hero.formats') }}</span>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from '@/i18n'
 
-const steps = ['Nahráte plagát', 'Ukážeme, čo sme našli', 'Uložíte podujatie']
+const { t } = useI18n()
+
+// Computed, nie obyčajné pole — pri prepnutí jazyka sa musia prekresliť aj kroky.
+const steps = computed(() => [
+  t('poster.hero.stepUpload'),
+  t('poster.hero.stepReview'),
+  t('poster.hero.stepSave'),
+])
 
 const expanded = ref(false)
 </script>

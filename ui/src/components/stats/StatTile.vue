@@ -18,9 +18,9 @@
         </svg>
         {{ changeLabel }}
       </span>
-      <span v-else-if="previous !== null" class="stat-hint">bez porovnania</span>
+      <span v-else-if="previous !== null" class="stat-hint">{{ t('stats.noComparison') }}</span>
       <span v-if="previous !== null" class="stat-hint">
-        predtým {{ fmtMetric(previous, format) }}
+        {{ t('stats.previous', { value: fmtMetric(previous, format) }) }}
       </span>
     </div>
 
@@ -31,7 +31,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import StatSparkline from './StatSparkline.vue'
+import { useI18n } from '@/i18n'
 import { fmtChange, fmtMetric } from '@/utils/statsFormat'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   label: string

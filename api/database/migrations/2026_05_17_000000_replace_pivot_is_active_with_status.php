@@ -10,16 +10,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // `organization_user` tu bývala tretia, ale tá tabuľka nikdy nevznikla —
+        // žiadna migrácia ju nevytvára. Členstvo drží `canal_user`; organizácia
+        // je fakturačná identita kanála (canals.organization_id), nie druhý tím.
         $this->replaceIsActiveWithStatus('canal_user');
         $this->replaceIsActiveWithStatus('canal_venue');
-        $this->replaceIsActiveWithStatus('organization_user');
     }
 
     public function down(): void
     {
         $this->replaceStatusWithIsActive('canal_user');
         $this->replaceStatusWithIsActive('canal_venue');
-        $this->replaceStatusWithIsActive('organization_user');
     }
 
     private function replaceIsActiveWithStatus(string $table): void

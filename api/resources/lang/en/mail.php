@@ -1,0 +1,184 @@
+<?php
+
+// Texty e-mailových notifikácií (App\Notifications\*) a ich šablón
+// (resources/views/mail/*). Predmet aj telo držíme tu, nie v kóde, aby sa dali
+// preložiť do ďalších jazykov. Markdown (**tučné**, [odkaz](:url)) je súčasťou
+// textu — šablóny ho prechádzajú Markdown parserom.
+return [
+
+    // Texty zdieľané viacerými e-mailami.
+    'common' => [
+        'greeting'          => 'Hello!',
+        'greeting_named'    => 'Hello :name!',
+        'event_fallback'    => 'event',
+        'workshop_fallback' => 'workshop',
+        // Náhradný popis vstupenky, keď účastník nemá vyplnené meno.
+        'seat_label'        => 'Ticket :number',
+        // Riadok jednej vstupenky v zozname (s typom lístka a bez neho).
+        'seat'              => '**:label**',
+        'seat_typed'        => '**:label** · :type',
+        'qr_alt'            => 'QR code',
+        'qr_open'           => 'Open QR code',
+        // Sekcia „Pridať do kalendára" (resources/views/mail/partials/calendar).
+        'calendar_intro'    => 'So the date does not slip your mind, add the event to your calendar:',
+        'calendar_ics'      => 'Add to calendar',
+        'calendar_google'   => 'Google Calendar',
+    ],
+
+    // App\Notifications\PendingRegistrationVerification
+    'verification' => [
+        'subject' => 'Verify your e-mail address',
+        'intro'   => 'Thanks for signing up. Finish it by verifying your e-mail address.',
+        'action'  => 'Verify e-mail',
+        'expires' => '{1} The link is valid for :count hour.|[2,*] The link is valid for :count hours.',
+        'ignore'  => 'If you did not create an account, no action is required.',
+    ],
+
+    // App\Notifications\CanalInvitationSent — pozvánka do tímu kanála.
+    'canal_invitation' => [
+        'subject'        => 'Invitation to the :canal team',
+        'canal_fallback' => 'canal',
+        'intro'          => 'You have been invited to the team of canal **":canal"**.',
+        'intro_named'    => '**:inviter** invites you to the team of canal **":canal"**.',
+        'role'           => 'Your role: **:role**.',
+        'role_note'      => [
+            'owner'   => 'As an owner you will be able to manage the canal, its events and its team.',
+            'editor'  => 'As an editor you will be able to create and edit events, venues and tickets.',
+            'checkin' => 'On check-in duty you will be able to scan QR codes and admit arrivals.',
+        ],
+        'action'         => 'Accept invitation',
+        'expires'        => 'The invitation is valid until :date.',
+        'email_note'     => 'Accept the invitation while signed in with the address **:email**. If you do not have an account yet, register that address first.',
+        'ignore'         => 'If you were not expecting this invitation, simply ignore this e-mail.',
+    ],
+
+    // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
+    'ticket_issued' => [
+        'subject'      => 'Your ticket for :event',
+        'intro'        => 'Your ticket for **":event"** has been created.',
+        'quantity'     => 'Seats reserved: **:count**.',
+        'qr_note'      => 'Each ticket has its own QR code. You can forward individual codes to other attendees — every code is scanned separately at the door.',
+        'pending'      => '{1} **:count** more ticket is awaiting confirmation by its attendee.|[2,*] **:count** more tickets are awaiting confirmation by their attendees.',
+        'pending_note' => 'Their QR code is generated only once they confirm — we will e-mail you about every confirmation.',
+        'action'       => 'View ticket and QR code',
+        'outro'        => 'Bring the ticket on your phone or print it and present it at the door.',
+    ],
+
+    // App\Notifications\AttendeeTicketIssued — ďalšiemu účastníkovi objednávky.
+    'attendee_ticket_issued' => [
+        'subject'           => 'Your ticket for :event',
+        'intro_paid'        => '**:holder** has bought you a ticket for **":event"**.',
+        'intro_free'        => '**:holder** has reserved you a seat at **":event"**.',
+        'outro'             => 'Bring the ticket on your phone or print it and present the QR code at the door.',
+        'cancel'            => 'Cannot make it? [Cancel the ticket](:url) — we will release the seat to someone else.',
+        'activation'        => 'We created an account for this e-mail address so your tickets are always at hand. Signing in fully activates it — that confirms your e-mail address and accepts the terms.',
+        'activation_action' => 'Activate account',
+    ],
+
+    // App\Notifications\AttendeeConfirmationRequest — žiadosť o potvrdenie účasti.
+    'attendee_confirmation_request' => [
+        'subject'    => 'Confirm your attendance at :event',
+        'intro_paid' => '**:holder** has bought you a ticket for **":event"**.',
+        'intro_free' => '**:holder** has reserved you a seat at **":event"**.',
+        'ask'        => 'Please confirm your attendance so we can hold the seat for you.',
+        'deadline'   => 'Please confirm **by :deadline**. Otherwise the reservation is cancelled automatically and the seat goes to someone else.',
+        'confirm'    => 'Confirm attendance',
+        'decline'    => 'Cancel ticket',
+        'ignore'     => 'If you did not ask for this reservation, just cancel the ticket or ignore this e-mail — the seat is released on its own once the deadline passes.',
+        'activation' => 'We created an account for this e-mail address so your tickets are always at hand. Signing in fully activates it.',
+    ],
+
+    // App\Notifications\AttendeeConfirmed — objednávateľovi, keď účastník potvrdil.
+    'attendee_confirmed' => [
+        'subject'        => ':attendee confirmed attendance at :event',
+        'heading'        => 'Good news!',
+        'heading_named'  => 'Good news, :name!',
+        'intro'          => '{1} **:attendee** confirmed attendance at **":event"**.|[2,*] **:attendee** confirmed attendance at **":event"** (:count seats).',
+        'ticket_sent'    => 'We have just sent their ticket with the QR code to **:email**.',
+        'action'         => 'View order',
+    ],
+
+    // App\Notifications\AttendeeDeclined — účastník lístok zrušil alebo nepotvrdil.
+    'attendee_declined' => [
+        'subject'       => 'Seat released at :event',
+        'expired'       => '{1} **:attendee** did not confirm attendance at **":event"** in time, so we released their reserved seat.|[2,*] **:attendee** did not confirm attendance at **":event"** in time, so we released :count reserved seats.',
+        'declined'      => '{1} **:attendee** (:email) cancelled their ticket for **":event"**, so the seat is free again.|[2,*] **:attendee** (:email) cancelled their ticket for **":event"** (:count seats), so the seats are free again.',
+        'waitlist_note' => 'If a seat opened up at a sold-out event or workshop, we automatically moved the first person on the waitlist into it.',
+    ],
+
+    // App\Notifications\MessageReceived — správa cez tlačidlo „Poslať správu".
+    'message_received' => [
+        'subject'    => 'New message – :label ":name"',
+        'heading'    => 'New message',
+        'intro'      => 'You have received a message about the :label **":name"**.',
+        'from'       => '**From:** :name (:email)',
+        'reply_hint' => 'You can reply straight to this e-mail — your reply reaches the sender.',
+        'action'     => 'View :label',
+        // Názov typu cieľa správy (App\Models\Message::targetType()).
+        'targets'    => [
+            'event'   => 'event',
+            'venue'   => 'venue',
+            'canal'   => 'canal',
+            'default' => 'profile',
+        ],
+        'target_fallback' => 'your profile',
+    ],
+
+    // App\Notifications\MessageReplied — odpoveď organizátora z inboxu.
+    'message_replied' => [
+        'subject'    => 'Reply – :label ":name"',
+        'heading'    => 'You have a reply',
+        'intro'      => '**:name** replied to your message about the :label **":target"**.',
+        'reply_hint' => 'You can reply straight to this e-mail.',
+        'action'     => 'View conversation',
+    ],
+
+    // App\Notifications\EventAnnouncement — hromadný e-mail organizátora.
+    // Predmet aj telo píše organizátor, tu sú len rámcové texty.
+    'event_announcement' => [
+        'action' => 'View event',
+        'outro'  => 'You are receiving this e-mail because you hold a ticket for this event.',
+    ],
+
+    // App\Notifications\EventReminder — pripomienka pred akciou.
+    'event_reminder' => [
+        'subject'   => 'Reminder: :event',
+        'intro'     => 'A reminder that **":event"**, which you hold a ticket for, is coming up.',
+        'starts_at' => 'Starts: **:date**.',
+        'venue'     => 'Venue: **:venue**.',
+        'action'    => 'View event',
+        'outro'     => 'Your ticket with the QR code is in the e-mail you received with your order.',
+    ],
+
+    // App\Notifications\WorkshopSeatGranted — náhradníkovi sa uvoľnilo miesto.
+    'workshop_seat_granted' => [
+        'subject'       => 'A seat opened up at the :workshop workshop',
+        'intro'         => 'A seat opened up at the workshop ":workshop" (:event) and we are offering it to you as first on the waitlist.',
+        'starts_at'     => 'Date: :date.',
+        'deadline'      => 'We are holding the seat until **:deadline**. If you do not confirm by then, we offer it to the next person on the waitlist.',
+        'action'        => 'Confirm seat',
+        'after_confirm' => 'We will send your ticket with the QR code as soon as you confirm.',
+        'decline'       => 'If you cannot attend the workshop, [decline the seat](:url) — we will pass it to the next person in line.',
+    ],
+
+    // App\Notifications\WorkshopWaitlisted — zaradenie medzi náhradníkov.
+    'workshop_waitlisted' => [
+        'subject'  => 'You are on the waitlist for the :workshop workshop',
+        'intro'    => 'The workshop ":workshop" at ":event" is currently full, so we put you on the waitlist.',
+        'position' => 'Your position: :position.',
+        'note'     => 'If a seat opens up, we assign it to you automatically and send you a ticket with a QR code.',
+        'action'   => 'View event',
+    ],
+
+    // App\Notifications\PosterDraftSaved — odkaz späť na nahratý plagát.
+    'poster_draft' => [
+        'subject'     => 'Your poster is waiting — finish the event',
+        'intro'       => 'We processed the poster and your event is ready.',
+        'intro_named' => 'We processed the poster and the event **":name"** is ready.',
+        'next'        => 'All that is left is to review and save it. If you do not have an account here yet, you create one while saving.',
+        'action'      => 'Finish event',
+        'expires'     => 'We keep the draft event for you until **:date**.',
+        'ignore'      => 'If you did not upload the poster, feel free to ignore this e-mail — nothing is published anywhere without confirmation.',
+    ],
+
+];

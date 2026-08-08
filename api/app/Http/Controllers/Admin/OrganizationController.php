@@ -7,6 +7,7 @@ use App\Http\Requests\IndexFilterRequest;
 use App\Http\Requests\OrganizationStoreRequest;
 use App\Http\Resources\OrganizationResource;
 use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Models\Canal;
 use App\Models\Organization;
 use App\Repositories\Contracts\OrganizationRepository;
 use App\Services\Account\AccountClient;
@@ -125,5 +126,40 @@ class OrganizationController extends Controller
         $organization = $this->organizationRepository->restore($id);
 
         return response()->json(new OrganizationResource($organization));
+    }
+
+    /**
+     * Odpojí kanál od firmy — prestane pod ňou fakturovať. Kanál ani jeho
+     * obsah sa nemaže.
+     *
+     * Na rozdiel od dashboardu tu smie odísť aj posledný kanál: admin vidí
+     * firmy naprieč systémom, takže sa k nej dostane aj bez väzby.
+     */
+    public function detachCanal(string $id, string $canalId): JsonResponse
+    {
+        $organization = $this->organizationRepository->adminShow($id);
+        $this->authorize('update', $organization);
+
+        $canal = Canal::where('organization_id', $organization->getKey())->findOrFail($canalId);
+        $canal->forceFill(['organization_id' => null])->save();
+
+        return response()->json(null, 204);
+    }
+
+    /** Priradí ďalší kanál pod firmu — divízie a značky s jednou faktúrou. */
+    public function attachCanal(string $id, Request $request): JsonResponse
+    {
+        $organization = $this->organizationRepository->adminShow($id);
+        $this->authorize('update', $organization);
+
+        $validated = $request->validate([
+            'canal_id' => ['required', 'integer', 'exists:canals,id'],
+        ]);
+
+        Canal::findOrFail($validated['canal_id'])
+            ->forceFill(['organization_id' => $organization->getKey()])
+            ->save();
+
+        return response()->json(null, 204);
     }
 }

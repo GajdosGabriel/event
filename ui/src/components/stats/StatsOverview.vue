@@ -1,23 +1,23 @@
 <template>
   <div class="grid gap-4">
-    <p v-if="loading" class="index-status">Načítavam štatistiku…</p>
+    <p v-if="loading" class="index-status">{{ t('stats.loading') }}</p>
     <p v-else-if="error" class="index-status index-status-error">{{ error }}</p>
 
     <template v-else-if="stats">
       <!-- Aktuálny stav: čo práve beží, nie čo pribudlo. -->
       <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Aktívne podujatia" :value="totals.events.active" :to="link('events')" />
-        <StatTile label="Práve prebieha" :value="totals.events.running" :to="link('events')" />
-        <StatTile label="Dnes v programe" :value="totals.events.today" :to="link('events')" />
-        <StatTile label="Najbližších 7 dní" :value="totals.events.next7d" :to="link('events')" />
+        <StatTile :label="t('stats.now.activeEvents')" :value="totals.events.active" :to="link('events')" />
+        <StatTile :label="t('stats.now.running')" :value="totals.events.running" :to="link('events')" />
+        <StatTile :label="t('stats.now.today')" :value="totals.events.today" :to="link('events')" />
+        <StatTile :label="t('stats.now.next7d')" :value="totals.events.next7d" :to="link('events')" />
       </section>
 
       <!-- Vyžaduje pozornosť -->
       <section v-if="stats.attention.length" class="panel-card">
-        <h2 class="mb-3 text-lg font-semibold text-slate-900">Vyžaduje pozornosť</h2>
+        <h2 class="mb-3 text-lg font-semibold text-slate-900">{{ t('stats.attention.title') }}</h2>
         <ul class="index-list">
           <li v-for="item in stats.attention" :key="item.key" class="attention-row">
-            <span class="attention-dot" :style="{ backgroundColor: SEVERITY[item.severity].color }" aria-hidden="true" />
+            <span class="attention-dot" :style="{ backgroundColor: SEVERITY_COLORS[item.severity] }" aria-hidden="true" />
             <span class="min-w-0">
               <component
                 :is="item.link ? 'RouterLink' : 'span'"
@@ -26,10 +26,10 @@
               >{{ item.label }}</component>
               <span class="block text-xs text-slate-500">{{ item.hint }}</span>
             </span>
-            <span class="attention-count" :style="{ color: SEVERITY[item.severity].color }">
+            <span class="attention-count" :style="{ color: SEVERITY_COLORS[item.severity] }">
               {{ fmtCount(item.count) }}
             </span>
-            <span class="attention-tag">{{ SEVERITY[item.severity].label }}</span>
+            <span class="attention-tag">{{ t(`stats.attention.${item.severity}`) }}</span>
           </li>
         </ul>
       </section>
@@ -38,11 +38,11 @@
       <section class="grid gap-3">
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900">Prírastky</h2>
+            <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.periods.title') }}</h2>
             <p class="text-sm text-slate-500">{{ periodSubtitle }}</p>
           </div>
 
-          <div class="flex flex-wrap gap-1" role="group" aria-label="Obdobie">
+          <div class="flex flex-wrap gap-1" role="group" :aria-label="t('stats.periods.group')">
             <button
               v-for="period in stats.periods"
               :key="period.key"
@@ -77,92 +77,90 @@
         <!-- Návštevnosť verejných detailov -->
         <section class="panel-card grid gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900">Návštevnosť</h2>
-            <p class="text-sm text-slate-500">
-              Zobrazenia verejných detailov · jeden návštevník sa za deň ráta raz.
-            </p>
+            <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.views.title') }}</h2>
+            <p class="text-sm text-slate-500">{{ t('stats.views.subtitle') }}</p>
           </div>
 
           <dl class="grid grid-cols-3 gap-2 text-sm">
             <div class="detail-card">
-              <dt>Podujatia</dt>
+              <dt>{{ t('stats.views.events') }}</dt>
               <dd>{{ fmtCount(views.events) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Miesta</dt>
+              <dt>{{ t('stats.views.venues') }}</dt>
               <dd>{{ fmtCount(views.venues) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Kanály</dt>
+              <dt>{{ t('stats.views.canals') }}</dt>
               <dd>{{ fmtCount(views.canals) }}</dd>
             </div>
           </dl>
 
           <p class="text-sm text-slate-600">
-            Priemerne
+            {{ t('stats.views.averagePrefix') }}
             <strong class="text-slate-900">{{ views.perPublishedEvent ?? '—' }}</strong>
-            zobrazení na zverejnené podujatie.
+            {{ t('stats.views.averageSuffix') }}
           </p>
 
           <!-- Koľko zo záujmu skončí registráciou — jediné číslo, ktoré spája
                návštevnosť s predajom. -->
           <MeterBar
             v-if="views.events > 0"
-            label="Z pozretia na registráciu"
+            :label="t('stats.views.conversion')"
             :part="ticketing.seats.valid"
             :whole="views.events"
             :rate="views.conversion"
-            unit="zobrazení podujatí"
-            :note="`${fmtCount(ticketing.seats.valid)} vstupeniek`"
+            :unit="t('stats.views.conversionUnit')"
+            :note="t('stats.views.conversionNote', { count: fmtCount(ticketing.seats.valid) })"
             color="#4a3aa7"
           />
-          <p v-else class="text-sm text-slate-500">
-            Zatiaľ žiadne zobrazenia — počítadlo sa napĺňa z verejných stránok.
-          </p>
+          <p v-else class="text-sm text-slate-500">{{ t('stats.views.empty') }}</p>
         </section>
 
         <!-- Predaj a dochádzka -->
         <section class="panel-card grid gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900">Vstupenky</h2>
+            <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.tickets.title') }}</h2>
             <p class="text-sm text-slate-500">
-              {{ fmtCount(ticketing.orders.total) }} objednávok · {{ fmtCount(ticketing.seats.valid) }} platných vstupeniek
+              {{ t('stats.tickets.subtitle', { orders: fmtCount(ticketing.orders.total), seats: fmtCount(ticketing.seats.valid) }) }}
             </p>
           </div>
 
           <MeterBar
-            label="Obsadenosť nadchádzajúcich podujatí"
+            :label="t('stats.tickets.occupancy')"
             :part="ticketing.capacity.sold"
             :whole="ticketing.capacity.seats"
             :rate="ticketing.capacity.rate"
-            unit="miest"
-            :note="ticketing.capacity.unlimitedTypes ? `${ticketing.capacity.unlimitedTypes} typov bez limitu sa neráta` : null"
+            :unit="t('stats.tickets.occupancyUnit')"
+            :note="ticketing.capacity.unlimitedTypes
+              ? t('stats.tickets.unlimitedNote', { count: ticketing.capacity.unlimitedTypes })
+              : null"
           />
 
           <MeterBar
-            label="Príchody na už prebehnuté podujatia"
+            :label="t('stats.tickets.attendance')"
             :part="ticketing.attendance.arrived"
             :whole="ticketing.attendance.expected"
             :rate="ticketing.attendance.rate"
-            unit="vstupeniek"
+            :unit="t('stats.tickets.attendanceUnit')"
             color="#1baf7a"
           />
 
           <dl class="grid grid-cols-2 gap-2 text-sm">
             <div class="detail-card">
-              <dt>Zaplatené</dt>
+              <dt>{{ t('stats.tickets.paid') }}</dt>
               <dd>{{ fmtMoney(ticketing.orders.revenuePaid) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Čaká na platbu</dt>
+              <dt>{{ t('stats.tickets.awaitingPayment') }}</dt>
               <dd>{{ fmtMoney(ticketing.orders.revenueAwaiting) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Čaká na potvrdenie</dt>
+              <dt>{{ t('stats.tickets.awaitingConfirmation') }}</dt>
               <dd>{{ fmtCount(ticketing.seats.awaitingConfirmation) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Zrušené vstupenky</dt>
+              <dt>{{ t('stats.tickets.cancelled') }}</dt>
               <dd>{{ fmtCount(ticketing.seats.cancelled) }}</dd>
             </div>
           </dl>
@@ -173,9 +171,13 @@
         <!-- Skladba obsahu -->
         <section class="panel-card grid gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900">Skladba podujatí</h2>
+            <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.composition.title') }}</h2>
             <p class="text-sm text-slate-500">
-              {{ fmtCount(totals.events.total) }} celkovo · {{ fmtCount(totals.venues.total) }} miest · {{ fmtCount(totals.canals.total) }} kanálov
+              {{ t('stats.composition.subtitle', {
+                events: fmtCount(totals.events.total),
+                venues: fmtCount(totals.venues.total),
+                canals: fmtCount(totals.canals.total),
+              }) }}
             </p>
           </div>
 
@@ -201,17 +203,17 @@
 
           <MeterBar
             v-if="stats.sources.own + stats.sources.imported > 0"
-            label="Podiel importovaného obsahu"
+            :label="t('stats.composition.imported')"
             :part="stats.sources.imported"
             :whole="stats.sources.own + stats.sources.imported"
             :rate="stats.sources.importedRate"
-            unit="podujatí"
-            :note="`${fmtCount(stats.sources.own)} vlastných`"
+            :unit="t('stats.composition.importedUnit')"
+            :note="t('stats.composition.ownNote', { count: fmtCount(stats.sources.own) })"
             color="#eda100"
           />
 
           <div v-if="stats.topCanals.length">
-            <p class="mb-1.5 text-sm font-semibold text-slate-700">Najaktívnejšie kanály</p>
+            <p class="mb-1.5 text-sm font-semibold text-slate-700">{{ t('stats.composition.topCanals') }}</p>
             <ul class="index-list">
               <li v-for="canal in stats.topCanals" :key="canal.id" class="flex items-baseline justify-between gap-2 text-sm">
                 <RouterLink :to="link(`canals/${canal.id}`)" class="truncate text-slate-800 no-underline hover:underline">
@@ -222,35 +224,37 @@
                 </span>
               </li>
             </ul>
-            <p class="mt-1 text-xs text-slate-400">za 30 dní / celkovo</p>
+            <p class="mt-1 text-xs text-slate-400">{{ t('stats.composition.topCanalsHint') }}</p>
           </div>
         </section>
 
         <!-- Najbližší program -->
         <section class="panel-card">
-          <h2 class="mb-3 text-lg font-semibold text-slate-900">Najbližší program</h2>
+          <h2 class="mb-3 text-lg font-semibold text-slate-900">{{ t('stats.upcoming.title') }}</h2>
           <ul v-if="stats.upcoming.length" class="index-list">
             <li v-for="event in stats.upcoming" :key="event.id" class="flex items-baseline justify-between gap-3 text-sm">
               <span class="min-w-0">
                 <RouterLink :to="link(`events/${event.id}`)" class="block truncate font-medium text-slate-900 no-underline hover:underline">
                   {{ event.name }}
                 </RouterLink>
-                <span class="block truncate text-xs text-slate-500">{{ event.venue ?? 'bez miesta' }}</span>
+                <span class="block truncate text-xs text-slate-500">{{ event.venue ?? t('stats.upcoming.noVenue') }}</span>
               </span>
               <span class="shrink-0 text-right text-xs">
                 <span class="block whitespace-nowrap font-semibold text-slate-700">{{ startLabel(event.startAt) }}</span>
-                <span v-if="event.seats" class="block text-slate-500">{{ fmtCount(event.seats) }} vstupeniek</span>
+                <span v-if="event.seats" class="block text-slate-500">
+                  {{ t('stats.upcoming.seats', { count: fmtCount(event.seats) }) }}
+                </span>
               </span>
             </li>
           </ul>
-          <p v-else class="text-sm text-slate-500">Žiadne naplánované podujatia.</p>
+          <p v-else class="text-sm text-slate-500">{{ t('stats.upcoming.empty') }}</p>
         </section>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
         <!-- Najviac zobrazené -->
         <section class="panel-card">
-          <h2 class="mb-3 text-lg font-semibold text-slate-900">Najviac zobrazené</h2>
+          <h2 class="mb-3 text-lg font-semibold text-slate-900">{{ t('stats.mostViewed.title') }}</h2>
           <ul v-if="views.top.length" class="index-list">
             <li v-for="event in views.top" :key="event.id" class="flex items-baseline justify-between gap-3 text-sm">
               <RouterLink :to="link(`events/${event.id}`)" class="truncate font-medium text-slate-900 no-underline hover:underline">
@@ -258,16 +262,18 @@
               </RouterLink>
               <span class="shrink-0 text-right text-xs">
                 <strong class="block tabular-nums text-slate-900">{{ fmtCount(event.views) }}×</strong>
-                <span v-if="event.seats" class="block text-slate-500">{{ fmtCount(event.seats) }} vstupeniek</span>
+                <span v-if="event.seats" class="block text-slate-500">
+                  {{ t('stats.upcoming.seats', { count: fmtCount(event.seats) }) }}
+                </span>
               </span>
             </li>
           </ul>
-          <p v-else class="text-sm text-slate-500">Zatiaľ žiadne zobrazenia verejných detailov.</p>
+          <p v-else class="text-sm text-slate-500">{{ t('stats.mostViewed.empty') }}</p>
         </section>
 
         <!-- Najväčší záujem -->
         <section class="panel-card">
-          <h2 class="mb-3 text-lg font-semibold text-slate-900">Najväčší záujem</h2>
+          <h2 class="mb-3 text-lg font-semibold text-slate-900">{{ t('stats.mostInterest.title') }}</h2>
           <ul v-if="stats.topEvents.length" class="index-list">
             <li v-for="event in stats.topEvents" :key="event.id" class="text-sm">
               <div class="flex items-baseline justify-between gap-3">
@@ -283,36 +289,39 @@
               </div>
             </li>
           </ul>
-          <p v-else class="text-sm text-slate-500">Zatiaľ nikto nie je prihlásený na nadchádzajúce podujatia.</p>
+          <p v-else class="text-sm text-slate-500">{{ t('stats.mostInterest.empty') }}</p>
         </section>
       </div>
 
       <!-- Používatelia (len admin) -->
       <section v-if="stats.users" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Používatelia" :value="stats.users.total" :to="link('users')" />
-        <StatTile label="Overené účty" :value="stats.users.verified" :to="link('users')" />
-        <StatTile label="Aktívni za 30 dní" :value="stats.users.active30d" :to="link('users')" />
-        <StatTile label="Blokované účty" :value="stats.users.blocked" :to="link('users')" invert />
+        <StatTile :label="t('stats.users.total')" :value="stats.users.total" :to="link('users')" />
+        <StatTile :label="t('stats.users.verified')" :value="stats.users.verified" :to="link('users')" />
+        <StatTile :label="t('stats.users.active30d')" :value="stats.users.active30d" :to="link('users')" />
+        <StatTile :label="t('stats.users.blocked')" :value="stats.users.blocked" :to="link('users')" invert />
       </section>
 
       <p class="text-xs text-slate-400">
-        Aktualizované {{ generatedLabel }} ·
-        <button type="button" class="underline hover:text-slate-600" @click="load">obnoviť</button>
+        {{ t('stats.updated', { time: generatedLabel }) }} ·
+        <button type="button" class="underline hover:text-slate-600" @click="load">{{ t('stats.refresh') }}</button>
       </p>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import ActivityChart from './ActivityChart.vue'
 import MeterBar from './MeterBar.vue'
 import StatTile from './StatTile.vue'
 import { fetchOverviewStats } from '@/api/stats'
+import { useI18n } from '@/i18n'
 import type { AttentionSeverity, ModelStatus, StatsOverview, StatsPeriodKey, StatsScope } from '@/types'
-import { fmtCount, fmtMoney } from '@/utils/statsFormat'
+import { fmtCount, fmtDayMonth, fmtMoney, fmtTime } from '@/utils/statsFormat'
 
 const props = defineProps<{ scope: StatsScope }>()
+
+const { t, locale } = useI18n()
 
 /** Stavy majú význam, preto nesú sémantickú farbu — nie poradový odtieň. */
 const STATUS_COLORS: Record<ModelStatus, string> = {
@@ -325,11 +334,13 @@ const STATUS_COLORS: Record<ModelStatus, string> = {
   archived: '#c3c2b7',
 }
 
-const SEVERITY: Record<AttentionSeverity, { color: string; label: string }> = {
-  info: { color: '#2a78d6', label: 'info' },
-  warning: { color: '#fab219', label: 'sledovať' },
-  serious: { color: '#ec835a', label: 'doriešiť' },
-  critical: { color: '#d03b3b', label: 'súrne' },
+// Popisky závažnosti sú v slovníku (stats.attention.<severity>), tu ostáva
+// len farba — tá sa jazykom nemení.
+const SEVERITY_COLORS: Record<AttentionSeverity, string> = {
+  info: '#2a78d6',
+  warning: '#fab219',
+  serious: '#ec835a',
+  critical: '#d03b3b',
 }
 
 /** Ktorá séria trendu patrí ku ktorej metrike prehľadu. */
@@ -348,13 +359,17 @@ const periodKey = ref<StatsPeriodKey>('week')
 
 onMounted(load)
 
+// Popisky metrík a položiek „vyžaduje pozornosť" počíta server, takže po
+// prepnutí jazyka by v starom jazyku ostali až do najbližšieho načítania.
+watch(locale, load)
+
 async function load() {
   loading.value = true
   error.value = null
   try {
     stats.value = await fetchOverviewStats(props.scope)
   } catch {
-    error.value = 'Štatistiku sa nepodarilo načítať.'
+    error.value = t('stats.loadFailed')
   } finally {
     loading.value = false
   }
@@ -369,7 +384,7 @@ const activePeriod = computed(() =>
 )
 
 const periodSubtitle = computed(() =>
-  activePeriod.value.from ? 'Porovnanie s rovnako dlhým predchádzajúcim obdobím.' : 'Súhrn od začiatku.',
+  activePeriod.value.from ? t('stats.periods.comparison') : t('stats.periods.fromStart'),
 )
 
 /**
@@ -396,7 +411,7 @@ const statusSegments = computed(() => {
 
 const generatedLabel = computed(() => {
   const at = stats.value?.generatedAt
-  return at ? new Date(at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }) : '—'
+  return at ? fmtTime(new Date(at)) : '—'
 })
 
 /** Rovnaké stránky žijú pod /dashboard aj /admin — cieľ sa líši len prefixom. */
@@ -411,9 +426,8 @@ function startLabel(startAt: string | null): string {
   const sameDay = date.toDateString() === today.toDateString()
 
   return sameDay
-    ? `dnes ${date.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}`
-    : date.toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric' })
-      + ` ${date.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}`
+    ? t('stats.upcoming.today', { time: fmtTime(date) })
+    : `${fmtDayMonth(date)} ${fmtTime(date)}`
 }
 </script>
 

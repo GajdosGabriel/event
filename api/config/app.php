@@ -101,6 +101,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Supported Locales
+    |--------------------------------------------------------------------------
+    |
+    | Jazyky, na ktoré smie request prepnúť aplikáciu (SetLocale middleware).
+    | Whitelist, nie voľný vstup — inak by hlavička z prehliadača vedela
+    | nastaviť hocijaký reťazec ako názov priečinka s prekladmi.
+    | Nový jazyk = pridať kód sem a založiť resources/lang/<kód>.
+    |
+    */
+
+    'supported_locales' => ['sk', 'cs', 'de', 'en'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

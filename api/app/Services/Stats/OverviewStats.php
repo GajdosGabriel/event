@@ -56,10 +56,10 @@ final class OverviewStats
         private readonly CarbonImmutable $now,
     ) {
         $this->periodMeta = [
-            'day'   => ['label' => 'Dnes', 'from' => $this->now->startOfDay()],
-            'week'  => ['label' => 'Posledných 7 dní', 'from' => $this->now->subDays(7)],
-            'month' => ['label' => 'Posledných 30 dní', 'from' => $this->now->subDays(self::TREND_DAYS)],
-            'all'   => ['label' => 'Celkovo', 'from' => null],
+            'day'   => ['label' => __('stats.periods.day'), 'from' => $this->now->startOfDay()],
+            'week'  => ['label' => __('stats.periods.week'), 'from' => $this->now->subDays(7)],
+            'month' => ['label' => __('stats.periods.month'), 'from' => $this->now->subDays(self::TREND_DAYS)],
+            'all'   => ['label' => __('stats.periods.all'), 'from' => null],
         ];
 
         $this->windows = [];
@@ -327,39 +327,39 @@ final class OverviewStats
             // Návštevnosť je prvá zámerne — je to jediná metrika, ktorá meria
             // dopyt zvonku; ostatné merajú, čo sme narobili my.
             'views' => [
-                'label' => 'Zobrazenia',
+                'label' => __('stats.metrics.views'),
                 'format' => 'number',
                 // Zámerne created_at, nie viewed_on: dátumový stĺpec by pri
                 // porovnávacom okne vnútri dňa vypadol pod jeho dolnú hranicu.
                 'buckets' => $this->buckets($this->viewQuery(), 'views.created_at'),
             ],
             'events' => [
-                'label' => 'Nové podujatia',
+                'label' => __('stats.metrics.events'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->eventQuery(), 'events.created_at'),
             ],
             'events_published' => [
-                'label' => 'Zverejnené podujatia',
+                'label' => __('stats.metrics.events_published'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->eventQuery(), 'events.published_at'),
             ],
             'tickets' => [
-                'label' => 'Objednávky / rezervácie',
+                'label' => __('stats.metrics.tickets'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->ticketQuery(), 'tickets.created_at'),
             ],
             'admissions' => [
-                'label' => 'Vydané vstupenky',
+                'label' => __('stats.metrics.admissions'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->admissionQuery(), 'ticket_admissions.created_at'),
             ],
             'checkins' => [
-                'label' => 'Príchody (check-in)',
+                'label' => __('stats.metrics.checkins'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->admissionQuery(), 'ticket_admissions.checked_in_at'),
             ],
             'revenue' => [
-                'label' => 'Zaplatené tržby',
+                'label' => __('stats.metrics.revenue'),
                 'format' => 'money',
                 'buckets' => $this->buckets(
                     $this->ticketQuery()->where('tickets.payment_status', TicketPaymentStatus::Paid->value),
@@ -368,17 +368,17 @@ final class OverviewStats
                 ),
             ],
             'venues' => [
-                'label' => 'Nové miesta',
+                'label' => __('stats.metrics.venues'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->venueQuery(), 'venues.created_at'),
             ],
             'canals' => [
-                'label' => 'Nové kanály',
+                'label' => __('stats.metrics.canals'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->canalQuery(), 'canals.created_at'),
             ],
             'messages' => [
-                'label' => 'Prijaté správy',
+                'label' => __('stats.metrics.messages'),
                 'format' => 'number',
                 'buckets' => $this->buckets($this->messageQuery(), 'messages.created_at'),
             ],
@@ -386,7 +386,7 @@ final class OverviewStats
 
         if ($this->canalIds === null) {
             $definitions['users'] = [
-                'label' => 'Noví používatelia',
+                'label' => __('stats.metrics.users'),
                 'format' => 'number',
                 'buckets' => $this->buckets(User::query(), 'users.created_at'),
             ];
@@ -698,8 +698,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'stale_drafts',
             'severity' => 'warning',
-            'label' => 'Koncepty staršie ako týždeň',
-            'hint' => 'Rozpracované podujatia, ktoré nikto nezverejnil.',
+            'label' => __('stats.attention.stale_drafts.label'),
+            'hint' => __('stats.attention.stale_drafts.hint'),
             'count' => $staleDrafts,
             'link' => 'events?status=draft',
         ];
@@ -709,8 +709,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'past_drafts',
             'severity' => 'serious',
-            'label' => 'Koncepty po termíne',
-            'hint' => 'Podujatie sa malo konať, no nikdy nebolo zverejnené.',
+            'label' => __('stats.attention.past_drafts.label'),
+            'hint' => __('stats.attention.past_drafts.hint'),
             'count' => $this->eventQuery()
                 ->where('events.status', ModelStatus::Draft->value)
                 ->whereNotNull('events.start_at')
@@ -722,8 +722,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'missing_image',
             'severity' => 'warning',
-            'label' => 'Zverejnené bez obrázka',
-            'hint' => 'Vo výpise dostanú len zástupnú grafiku.',
+            'label' => __('stats.attention.missing_image.label'),
+            'hint' => __('stats.attention.missing_image.hint'),
             'count' => $this->eventQuery()
                 ->where('events.status', ModelStatus::Published->value)
                 ->where(fn ($query) => $query
@@ -741,8 +741,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'empty_upcoming',
             'severity' => 'warning',
-            'label' => 'Blíži sa termín bez prihlásených',
-            'hint' => 'Podujatia s registráciou do 7 dní, zatiaľ bez vstupeniek.',
+            'label' => __('stats.attention.empty_upcoming.label'),
+            'hint' => __('stats.attention.empty_upcoming.hint'),
             'count' => $this->eventQuery()
                 ->where('events.status', ModelStatus::Published->value)
                 ->whereBetween('events.start_at', [$now, $now->addDays(7)])
@@ -755,8 +755,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'overdue_confirmations',
             'severity' => 'serious',
-            'label' => 'Nepotvrdené účasti po lehote',
-            'hint' => 'Miesta sú blokované, hoci lehota na potvrdenie uplynula.',
+            'label' => __('stats.attention.overdue_confirmations.label'),
+            'hint' => __('stats.attention.overdue_confirmations.hint'),
             'count' => $this->admissionQuery()
                 ->where('ticket_admissions.confirmation_status', AttendeeConfirmationStatus::Pending->value)
                 ->whereNotNull('ticket_admissions.confirmation_deadline_at')
@@ -768,8 +768,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'unpaid_orders',
             'severity' => 'critical',
-            'label' => 'Neuhradené objednávky nad 3 dni',
-            'hint' => 'Držia miesto, ale platba neprišla.',
+            'label' => __('stats.attention.unpaid_orders.label'),
+            'hint' => __('stats.attention.unpaid_orders.hint'),
             'count' => $this->ticketQuery()
                 ->where('tickets.payment_status', TicketPaymentStatus::Pending->value)
                 ->where('tickets.created_at', '<', $now->subDays(3))
@@ -782,8 +782,8 @@ final class OverviewStats
         $items[] = [
             'key' => 'almost_sold_out',
             'severity' => 'warning',
-            'label' => 'Takmer vypredané typy lístkov',
-            'hint' => 'Obsadenosť nad 90 % pri nadchádzajúcich podujatiach.',
+            'label' => __('stats.attention.almost_sold_out.label'),
+            'hint' => __('stats.attention.almost_sold_out.hint'),
             'count' => $this->ticketTypeQuery()
                 ->where('ticket_types.is_active', true)
                 ->whereNotNull('ticket_types.capacity')
@@ -805,8 +805,8 @@ final class OverviewStats
             $items[] = [
                 'key' => 'unread_messages',
                 'severity' => 'info',
-                'label' => 'Neprečítané správy',
-                'hint' => 'Otázky od návštevníkov, na ktoré nikto neodpovedal.',
+                'label' => __('stats.attention.unread_messages.label'),
+                'hint' => __('stats.attention.unread_messages.hint'),
                 'count' => $this->messageQuery()->whereNull('messages.read_at')->count(),
                 // Inbox je len v dashboarde — a sem sa položka dostane tiež len
                 // tam (recipientUserId je null vo všetkých ostatných scope-och).

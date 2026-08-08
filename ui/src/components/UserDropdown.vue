@@ -33,7 +33,7 @@
         <div class="border-b border-slate-100 px-4 py-3">
           <p class="truncate text-sm font-semibold text-slate-900">{{ auth.displayName }}</p>
           <div v-if="auth.isSuperAdmin" class="mt-1.5">
-            <span class="inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Super admin</span>
+            <span class="inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">{{ t('nav.superAdmin') }}</span>
           </div>
         </div>
 
@@ -56,7 +56,7 @@
             @click="handleLogout"
           >
             <IconLogout class="h-4 w-4 shrink-0" />
-            Odhlásiť sa
+            {{ t('nav.logout') }}
           </button>
         </div>
       </div>
@@ -68,6 +68,7 @@
 import { ref, computed, onMounted, onUnmounted, defineComponent, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from '@/i18n'
 
 const props = withDefaults(defineProps<{
   variant?: 'dark' | 'teal' | 'amber'
@@ -79,6 +80,7 @@ const props = withDefaults(defineProps<{
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
 const open = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
 
@@ -106,13 +108,13 @@ const initials = computed(() => {
 const navLinks = computed(() => {
   const links: { to: string; label: string; icon: ReturnType<typeof defineComponent> }[] = []
 
-  links.push({ to: '/dashboard', label: 'Dashboard', icon: IconDashboard })
+  links.push({ to: '/dashboard', label: t('nav.dashboard'), icon: IconDashboard })
 
   if (auth.isSuperAdmin) {
-    links.push({ to: '/admin', label: 'Admin', icon: IconAdmin })
+    links.push({ to: '/admin', label: t('nav.admin'), icon: IconAdmin })
   }
 
-  links.push({ to: '/', label: 'Verejná časť', icon: IconGlobe })
+  links.push({ to: '/', label: t('nav.public'), icon: IconGlobe })
 
   for (const canal of auth.identity?.canals ?? []) {
     links.push({ to: `/dashboard/canals/${canal.id}`, label: canal.name, icon: IconCanal })

@@ -29,6 +29,9 @@ class User extends Authenticatable
     /** @var array<int, CanalRole>|null Memoizované členstvá, viď canalRoleMap(). */
     private ?array $canalRoleMap = null;
 
+    /** @var array<int, array<int, int>>|null Memoizované väzby na firmy, viď organizationCanalMap(). */
+    private ?array $organizationCanalMap = null;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -178,6 +181,104 @@ class User extends Authenticatable
     public function forgetCanalRoles(): void
     {
         $this->canalRoleMap = null;
+        $this->organizationCanalMap = null;
+    }
+
+    /**
+     * Má používateľ v tomto kanáli nárok na platené funkcie?
+     *
+     * Jediná kontrola, ktorú má volať zvyšok aplikácie. Skladá sa z dvoch
+     * nezávislých vecí a obe musia platiť:
+     *
+     *   1. je členom kanála (canal_user, alebo je to jeho osobný kanál),
+     *   2. kanál má fakturovateľnú organizáciu (Canal::hasPaidAccess()).
+     *
+     * Bez bodu 1 by stačilo poznať cudzie `canal_id`; bez bodu 2 by platené
+     * funkcie odomkol ktokoľvek s vlastným kanálom.
+     */
+    public function hasPaidAccessTo(int $canalId): bool
+    {
+        if ($this->canalRole($canalId) === null) {
+            return false;
+        }
+
+        // Zmazaný kanál nárok nemá — preto bez withTrashed(). Zmazanú firmu
+        // odfiltruje SoftDeletes na relácii `organization`.
+        $canal = Canal::with('organization')->find($canalId);
+
+        return $canal?->hasPaidAccess() ?? false;
+    }
+
+    /**
+     * ID kanálov, v ktorých má platený režim. Pre výpisy, kde by inak vznikol
+     * N+1 dotaz na organizáciu pri každom riadku.
+     *
+     * @return Collection<int, int>
+     */
+    public function paidCanalIds(): Collection
+    {
+        $canalIds = $this->dashboardCanalIds(withTrashed: false);
+
+        if ($canalIds->isEmpty()) {
+            return collect();
+        }
+
+        return Canal::query()
+            ->whereIn('canals.id', $canalIds)
+            ->join('organizations', 'organizations.id', '=', 'canals.organization_id')
+            ->whereNotNull('organizations.account_uuid')
+            ->where('organizations.status', ModelStatus::Published->value)
+            ->whereNull('organizations.deleted_at')
+            ->pluck('canals.id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+    }
+
+    /**
+     * Organizácie, ku ktorým sa používateľ dostane cez svoje kanály.
+     * Zdroj pravdy pre scope dashboardu — viď EloquentOrganizationRepository.
+     *
+     * @return Collection<int, int>
+     */
+    public function organizationIds(): Collection
+    {
+        return collect(array_keys($this->organizationCanalMap()))
+            ->map(fn ($id) => (int) $id)
+            ->values();
+    }
+
+    /**
+     * Ktoré z používateľových kanálov patria pod ktorú organizáciu.
+     *
+     * Memoizované z rovnakého dôvodu ako canalRoleMap(): OrganizationPolicy
+     * sa pýta na každý riadok výpisu a bez cache by z toho bol N+1 nad
+     * tabuľkou `canals`.
+     *
+     * @return array<int, array<int, int>> organization_id => canal_ids
+     */
+    public function organizationCanalMap(): array
+    {
+        if ($this->organizationCanalMap !== null) {
+            return $this->organizationCanalMap;
+        }
+
+        $canalIds = $this->dashboardCanalIds();
+
+        if ($canalIds->isEmpty()) {
+            return $this->organizationCanalMap = [];
+        }
+
+        $rows = Canal::withTrashed()
+            ->whereIn('id', $canalIds)
+            ->whereNotNull('organization_id')
+            ->pluck('organization_id', 'id');
+
+        $map = [];
+        foreach ($rows as $canalId => $organizationId) {
+            $map[(int) $organizationId][] = (int) $canalId;
+        }
+
+        return $this->organizationCanalMap = $map;
     }
 
     /**
