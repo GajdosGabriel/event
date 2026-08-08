@@ -100,6 +100,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
+import { formatPrice } from '@/utils/money'
 import type { TicketTypeItem } from '@/types'
 
 const props = defineProps<{
@@ -164,9 +165,5 @@ function confirmLeave(w: TicketTypeItem) {
 
 function timeLabel(w: TicketTypeItem): string {
   return fmtDayTimeRange(w.startsAt, w.endsAt)
-}
-
-function formatPrice(amount: number, currency: string | null) {
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: currency ?? 'EUR' }).format(amount / 100)
 }
 </script>

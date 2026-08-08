@@ -145,6 +145,7 @@ import { requestTicket, cancelOwnRegistration } from '@/api/tickets'
 import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
+import { formatPrice } from '@/utils/money'
 import FormField from '@/components/FormField.vue'
 import type { TicketItem, TicketTypeItem } from '@/types'
 
@@ -288,10 +289,6 @@ const actionLabel = computed(() => {
   if (totalPrice.value > 0) return 'Získať lístky'
   return 'Rezervovať miesta'
 })
-
-function formatPrice(amount: number, curr: string | null) {
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: curr ?? 'EUR' }).format(amount / 100)
-}
 
 async function submit() {
   if (totalSeats.value === 0) return

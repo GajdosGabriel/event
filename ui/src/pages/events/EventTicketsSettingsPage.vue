@@ -115,6 +115,7 @@ import { indexTicketTypes, deleteTicketType, updateTicketingSettings } from '@/a
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { TicketTypeItem } from '@/types'
+import { formatPrice } from '@/utils/money'
 
 const route = useRoute()
 const toast = useToast()
@@ -133,10 +134,6 @@ const settings = reactive({
 const reminderSentAt = ref<string | null>(null)
 
 const types = ref<TicketTypeItem[]>([])
-
-function formatPrice(amount: number, currency: string | null) {
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: currency ?? 'EUR' }).format(amount / 100)
-}
 
 async function loadAll() {
   loading.value = true

@@ -27,16 +27,12 @@
 </template>
 
 <script setup lang="ts">
-import { dayName, fmtDate, fmtTime } from '@/utils/dateFormat'
+import { dayName, fmtDate, fmtTime, isSameDay } from '@/utils/dateFormat'
 
-const props = defineProps<{
+defineProps<{
   startAt?: string | null
   endAt?: string | null
 }>()
-
-function isSameDay(a: string, b: string) {
-  return new Date(a).toDateString() === new Date(b).toDateString()
-}
 
 function isAllDayRange(a: string, b: string) {
   const start = new Date(a)

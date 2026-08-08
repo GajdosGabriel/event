@@ -86,6 +86,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showTicket } from '@/api/tickets'
 import type { TicketItem } from '@/types'
+import { formatPrice } from '@/utils/money'
 
 const route = useRoute()
 const ticket = ref<TicketItem | null>(null)
@@ -103,10 +104,6 @@ const statusClass = computed(() => {
 function formatDateTime(d: string | null) {
   if (!d) return ''
   return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-function formatPrice(amount: number, currency: string | null) {
-  return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: currency ?? 'EUR' }).format(amount / 100)
 }
 
 onMounted(async () => {
