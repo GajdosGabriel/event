@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Event;
 use App\Rules\EventDatetimeRule;
-use App\Rules\ValidUrlRule;
+use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EventPublishRequest extends FormRequest
@@ -71,7 +71,7 @@ class EventPublishRequest extends FormRequest
             'registration_deadline_at' => ['nullable', 'date', 'before_or_equal:start_at'],
             'canal_id' => ['required', 'integer', 'exists:canals,id'],
             'venue_id' => ['required', 'integer', 'exists:venues,id'],
-            'website' => ['nullable', 'url', new ValidUrlRule()],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => ['nullable', 'email', 'max:100'],
             'phone' => ['nullable', 'string', 'max:20'],
         ];

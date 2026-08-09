@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +34,7 @@ class VenueStoreRequest extends FormRequest
             'street' => 'nullable|string|max:250',
             'postcode' => 'nullable|string|max:250',
             'body' => 'nullable|string',
-            'website' => 'nullable|string|max:150',
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => 'nullable|email|max:100',
             'phone' => 'nullable|string|max:20',
             'country' => 'nullable|string|max:100',

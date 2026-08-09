@@ -57,6 +57,9 @@ const router = createRouter({
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
+        // Potvrdenie kontaktného e-mailu z odkazu. Verejné zámerne — adresu
+        // potvrdzuje jej majiteľ, ktorý účet v portáli mať nemusí.
+        { path: 'overenie-emailu/:token', name: 'contact-email-verify', component: () => import('@/pages/ContactEmailVerifyPage.vue') },
       ],
     },
 
@@ -128,6 +131,23 @@ const router = createRouter({
       ],
     },
   ],
+
+  /**
+   * Bez `scrollBehavior` drží Vue Router pozíciu z predchádzajúcej stránky —
+   * detail otvorený z polovice zoznamu tak začínal v strede textu a návrat
+   * späť skončil hocikde.
+   *
+   * Pri „späť" sa vracia uložená pozícia, ale až po krátkej pauze: zoznamy
+   * ťahajú dáta až po namountovaní a do prázdnej stránky sa scrollovať nedá —
+   * prehliadač by posun orezal na aktuálnu (nulovú) výšku dokumentu.
+   */
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) {
+      return new Promise((resolve) => setTimeout(() => resolve(savedPosition), 120))
+    }
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    return { top: 0 }
+  },
 })
 
 router.beforeEach(async (to) => {

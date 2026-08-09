@@ -85,8 +85,21 @@
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
-            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website">
+              <template #footer>
+                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+              </template>
+            </FormField>
+            <ContactEmailField
+              v-model="form.email"
+              target="venue"
+              :target-id="fileableId"
+              :state="emailVerification"
+              :saved-email="savedEmail"
+              label="Email"
+              :error="errors.email"
+              @resent="reloadEmailState"
+            />
             <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
           </div>
         </fieldset>
@@ -126,12 +139,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
+import type { ContactEmailState } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
+import ContactEmailField from '@/components/ContactEmailField.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
@@ -150,6 +167,21 @@ const fileableId = computed(() => route.params.id ? Number(route.params.id) : sa
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { municipalities, canals, loadMunicipalities, loadCanals } = useFormOptions(scope.value)
+
+// Overenie kontaktného e-mailu — `savedEmail` je adresa, ktorej sa stav týka.
+const emailVerification = ref<ContactEmailState | null>(null)
+const savedEmail = ref('')
+
+/** Detaily o čakajúcom overení chodia len z detailu, preto sa načítajú znova. */
+async function reloadEmailState() {
+  const id = fileableId.value
+  if (!id) return
+  try {
+    const v = await showVenue(scope.value, id)
+    savedEmail.value = v.email ?? ''
+    emailVerification.value = v.emailVerification
+  } catch { /* stav overenia nie je kritický */ }
+}
 
 const validation = provideFormValidation()
 
@@ -172,6 +204,10 @@ const form = ref({
 })
 
 const errors = ref<Record<string, string>>({})
+
+// Upozornenie na neodpovedajúcu webovú adresu (overuje sa na pozadí,
+// viď App\Services\Attributes na backende).
+const { apply: applyWebsiteIssue, issue: websiteIssue } = useWebsiteIssue(() => form.value.website)
 const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
@@ -249,6 +285,9 @@ onMounted(async () => {
         body: v.body ?? '',
         status: v.status,
       }
+      applyWebsiteIssue(v)
+      savedEmail.value = v.email ?? ''
+      emailVerification.value = v.emailVerification
     } catch { serverError.value = 'Nepodarilo sa načítať.' }
   }
 })
@@ -269,10 +308,12 @@ async function submit() {
         await uploadFiles(fd)
       }
       toast.success('Miesto vytvorené.')
+      await reloadEmailState()
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
       await updateVenue(Number(route.params.id), form.value as Record<string, unknown>)
       toast.success('Miesto uložené.')
+      await reloadEmailState()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

@@ -34,6 +34,58 @@ return [
         'ignore'  => 'Wenn Sie kein Konto angelegt haben, brauchen Sie nichts zu tun.',
     ],
 
+    // App\Notifications\ContactEmailVerificationRequest — overenie kontaktnej
+    // adresy kanála / miesta / podujatia / firmy.
+    'contact_email_verification' => [
+        'types' => [
+            'canal'        => 'des Kanals',
+            'venue'        => 'des Veranstaltungsorts',
+            'event'        => 'der Veranstaltung',
+            'organization' => 'des Veranstalters',
+        ],
+        'subject'     => 'Bestätigen Sie die Kontakt-E-Mail :type',
+        'intro'       => 'Diese Adresse wurde als Kontakt-E-Mail :type im Veranstaltungsportal angegeben.',
+        'intro_named' => 'Diese Adresse wurde als Kontakt-E-Mail :type **„:name"** im Veranstaltungsportal angegeben.',
+        'why'         => 'Mit der Bestätigung zeigen Sie uns, dass die Adresse wirklich Ihnen gehört. Bis dahin bleibt sie als nicht bestätigt markiert.',
+        'action'      => 'Adresse bestätigen',
+        'expires'     => '{1} Der Link ist :count Stunde gültig.|[2,*] Der Link ist :count Stunden gültig.',
+        'ignore'      => 'Wenn die Adresse nicht Ihnen gehört oder Sie den Kontakt nicht kennen, ignorieren Sie diese E-Mail einfach — ohne Bestätigung passiert nichts.',
+    ],
+
+    // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
+    // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
+    'attribute_issue' => [
+        'types' => [
+            'canal'        => 'Ihres Kanals',
+            'venue'        => 'Ihres Veranstaltungsorts',
+            'event'        => 'Ihrer Veranstaltung',
+            'organization' => 'Ihres Veranstalterprofils',
+        ],
+        'attributes' => [
+            'website' => 'Webadresse',
+        ],
+        'subject'     => 'Nicht funktionierende :attribute in Ihrem Eintrag',
+        'intro'       => 'Bei der Prüfung haben wir festgestellt, dass die :attribute :type im Veranstaltungsportal nicht antwortet.',
+        'intro_named' => 'Bei der Prüfung haben wir festgestellt, dass die :attribute :type **„:name"** im Veranstaltungsportal nicht antwortet.',
+        'reasons'     => [
+            'dns'           => 'Die Domain wurde nicht gefunden — meist ein Tippfehler in der Adresse oder eine abgelaufene Domain.',
+            'not_found'     => 'Der Server hat geantwortet, aber die Seite unter dieser Adresse existiert nicht mehr (Fehler :status). Meist wurde die Unterseite verschoben.',
+            'server_error'  => 'Der Server meldet einen Fehler (:status). Es kann auch ein vorübergehender Ausfall des Hostings sein.',
+            'http_error'    => 'Der Server hat mit Fehler :status geantwortet.',
+            'timeout'       => 'Der Server hat nicht in angemessener Zeit geantwortet.',
+            'ssl'           => 'Eine sichere Verbindung kam nicht zustande — meist wegen eines ungültigen Zertifikats.',
+            'unreachable'   => 'Unter dieser Adresse war kein Server erreichbar.',
+            'redirect'      => 'Die Adresse leitet an eine Stelle weiter, die sich nicht öffnen lässt.',
+            'redirect_loop' => 'Die Adresse leitet im Kreis weiter.',
+            'blocked'       => 'Die Adresse zeigt nicht ins öffentliche Internet, wir können sie daher nicht prüfen.',
+            'invalid'       => 'Die Adresse hat keine gültige Form.',
+        ],
+        'seen_on'     => 'Zuletzt hat jemand hier darauf geklickt: :url',
+        'action'      => 'Adresse korrigieren',
+        'recheck'     => 'Wir prüfen die Adresse regelmäßig — nach der Korrektur hören diese Hinweise von selbst auf.',
+        'false_alarm' => 'Ist die Adresse in Ordnung und war es nur ein kurzer Ausfall, müssen Sie nichts tun.',
+    ],
+
     // App\Notifications\CanalInvitationSent — pozvánka do tímu kanála.
     'canal_invitation' => [
         'subject'        => 'Einladung in das Team :canal',

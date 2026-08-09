@@ -3,7 +3,9 @@
 namespace Tests\Feature\Events;
 
 use App\Enums\ModelStatus;
+use App\Models\Canal;
 use App\Models\Event;
+use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,5 +75,35 @@ class AdminEventFiltersTest extends TestCase
             [$nearFuture->id, $farFuture->id, $past->id],
             $ids
         );
+    }
+
+    /**
+     * Eager load kanála má obmedzený výber stĺpcov. Nevybraný stĺpec Eloquent
+     * nenahlási — ticho vráti null, takže `website` z odpovede roky vypadával
+     * bez jedinej chyby. Test drží výber a to, čo resource vypisuje, spolu.
+     */
+    public function test_admin_events_index_exposes_canal_website_and_organization(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $organization = Organization::factory()->create(['title' => 'Mesto Nitra']);
+        $canal = Canal::factory()->create([
+            'website' => 'https://kultura-nitra.sk',
+            'organization_id' => $organization->id,
+        ]);
+
+        Event::factory()->create([
+            'user_id' => $admin->id,
+            'canal_id' => $canal->id,
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/events');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.canal.website', 'https://kultura-nitra.sk');
+        $response->assertJsonPath('data.0.canal.organization.title', 'Mesto Nitra');
     }
 }

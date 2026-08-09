@@ -12,6 +12,51 @@ export interface AllowedStatusOption {
   name: string
 }
 
+/** Model s overiteľným kontaktným e-mailom (whitelist typov drží API). */
+export type ContactEmailTarget = 'canal' | 'venue' | 'event' | 'organization'
+
+/**
+ * Stav kontaktného e-mailu (`email_verification` v detaile modelu).
+ * `null`, keď model adresu nemá.
+ *
+ * Nepovinné polia chodia len v detaile a len tomu, kto smie model upraviť —
+ * vo výpise by dotaz na čakajúce overenie bežal pre každý riadok.
+ */
+export interface ContactEmailState {
+  verified: boolean
+  /** Čaká adresa na potvrdenie? */
+  pending?: boolean
+  /** Kedy naposledy odišiel overovací e-mail (ISO 8601). */
+  sentAt?: string | null
+  /** Dá sa poslať znova, alebo ešte beží čakacia lehota? */
+  canResend?: boolean
+  retryAfter?: string | null
+}
+
+/** Model, ktorého odkaz sa dá nahlásiť na prednostné overenie. */
+export type LinkReportTarget = 'canal' | 'venue' | 'event' | 'organization'
+
+/**
+ * Údaj, ktorý pri overovaní neprešiel (`attribute_issues` v detaile modelu).
+ *
+ * Chodí len tomu, kto smie záznam upraviť, a len keď je naozaj pokazený —
+ * „zatiaľ sme neoverili" sa nevracia vôbec, nie je čo zobraziť.
+ */
+export interface AttributeIssue {
+  status: 'failed'
+  /** Kľúč dôvodu (dns, not_found, timeout…) — popisky drží front. */
+  reason: string | null
+  httpStatus: number | null
+  /** Koľkokrát po sebe overenie zlyhalo. */
+  failures: number
+  checkedAt: string | null
+  /** Kedy sme o tom majiteľovi napísali; `null` = ešte nie. */
+  notifiedAt: string | null
+}
+
+/** Pokazené údaje záznamu podľa názvu atribútu (dnes len `website`). */
+export type AttributeIssues = Partial<Record<'website', AttributeIssue>>
+
 /** Možnosť pre <select>, ktorej hodnoty aj popisky (cez lang) drží backend. */
 export interface SelectOption {
   value: string
@@ -187,6 +232,10 @@ export interface EventItem {
   ticketTypeLabels: Record<string, string>
   phone: string | null
   email: string | null
+  /** Stav overenia kontaktného e-mailu; `null`, keď adresa nie je vyplnená. */
+  emailVerification: ContactEmailState | null
+  /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
+  attributeIssues: AttributeIssues | null
   /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */
   contactable: boolean
   municipality: { id: number; name: string; fullname?: string } | null
@@ -243,6 +292,10 @@ export interface CanalItem {
   titlePrefix: string | null
   titleSuffix: string | null
   email: string | null
+  /** Stav overenia kontaktného e-mailu; `null`, keď adresa nie je vyplnená. */
+  emailVerification: ContactEmailState | null
+  /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
+  attributeIssues: AttributeIssues | null
   phone: string | null
   body: string | null
   imageUrl: string | null
@@ -276,6 +329,10 @@ export interface VenueItem {
   body: string | null
   website: string | null
   email: string | null
+  /** Stav overenia kontaktného e-mailu; `null`, keď adresa nie je vyplnená. */
+  emailVerification: ContactEmailState | null
+  /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
+  attributeIssues: AttributeIssues | null
   phone: string | null
   country: string | null
   latitude: number | null
@@ -318,6 +375,10 @@ export interface OrganizationItem {
   description: string | null
   website: string | null
   email: string | null
+  /** Stav overenia verejného kontaktu. Fakturačný e-mail si overuje Account. */
+  emailVerification: ContactEmailState | null
+  /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
+  attributeIssues: AttributeIssues | null
   phone: string | null
   villageId: number | null
   status: ModelStatus

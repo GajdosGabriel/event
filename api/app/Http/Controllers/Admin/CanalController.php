@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\CanalIdentityMode;
+use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\CanalStoreRequest;
@@ -17,7 +18,8 @@ use App\Models\Canal;
 
 class CanalController extends Controller
 {
-    use HasAllowedStatuses;
+    use HasAllowedStatuses, VerifiesContactEmail;
+
     protected $canalRepository;
 
     public function __construct(CanalRepository $canalRepository)
@@ -88,6 +90,7 @@ class CanalController extends Controller
         $this->authorize('create', Canal::class);
 
         $canal = $this->canalRepository->create($request->validated());
+        $this->syncContactEmailVerification($canal);
 
         return response()->json(new CanalResource($this->canalRepository->adminShow($canal->id)), 201);
     }
@@ -98,6 +101,7 @@ class CanalController extends Controller
         $this->authorize('update', $canal);
 
         $canal = $this->canalRepository->update($id, $request->validated());
+        $this->syncContactEmailVerification($canal);
 
         return response()->json(new CanalResource($canal), 200);
     }

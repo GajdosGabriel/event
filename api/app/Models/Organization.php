@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
+use App\Models\Traits\HasCheckedAttributes;
 use App\Models\Traits\HasCommonFilters;
+use App\Models\Traits\HasVerifiableEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,7 +31,7 @@ use Illuminate\Support\Str;
 class Organization extends Model
 {
     /** @use HasFactory<\Database\Factories\OrganizationFactory> */
-    use HasCommonFilters, HasFactory, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasVerifiableEmail, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -126,6 +128,18 @@ class Organization extends Model
     public function owners(): Builder
     {
         return User::query()->whereIn('users.id', $this->memberIdsQuery(CanalRole::Owner));
+    }
+
+    /**
+     * Komu sa ozveme, keď firemný údaj (dnes web) prestane fungovať.
+     *
+     * Organizácia nie je Messageable — verejné „Poslať správu" na fakturačnú
+     * identitu nemieri, píše sa kanálu. Upozornenie z overovania ale adresáta
+     * potrebuje, a je ním vlastník: fakturačné údaje smie meniť len on.
+     */
+    public function attributeIssueRecipient(): ?User
+    {
+        return $this->owners()->get()->first(fn (User $owner) => $owner->canReceiveMessages());
     }
 
     /** Poddotaz s ID členov naprieč kanálmi organizácie. */

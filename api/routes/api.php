@@ -31,8 +31,10 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
 use App\Http\Controllers\Public\AnnouncementController as PublicAnnouncementController;
 use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpController;
+use App\Http\Controllers\Public\BrokenLinkReportController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\ContactEmailVerificationController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
@@ -140,6 +142,12 @@ Route::post('messages', [PublicMessageController::class, 'store'])
     ->name('public.messages.store')
     ->middleware('throttle:messages');
 
+// Beacon pri kliknutí na odkaz mimo portál — nechá hodnotu prednostne overiť.
+// Neposiela sa žiadna adresa, len typ a id záznamu (viď controller).
+Route::post('link-reports', [BrokenLinkReportController::class, 'store'])
+    ->name('public.link-reports.store')
+    ->middleware('throttle:public-write');
+
 // Prihlásenie / odhlásenie prihláseného používateľa na workshop podujatia.
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('events/{event}/workshops/{type}', [PublicWorkshopRegistrationController::class, 'store'])
@@ -159,6 +167,17 @@ Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confi
 Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])
     ->name('public.rsvp.decline')
     ->middleware('throttle:public-write');
+
+// Overenie kontaktného e-mailu kanála / miesta / podujatia / firmy.
+// Potvrdenie je bez prihlásenia — adresu potvrdzuje jej majiteľ, ktorý účet
+// v portáli mať nemusí; autorizuje ho token z e-mailu. Opakované odoslanie
+// naopak účet vyžaduje, inak by sa dalo posielať na cudzie adresy podľa id.
+Route::post('contact-email/verify', [ContactEmailVerificationController::class, 'verify'])
+    ->name('public.contact-email.verify')
+    ->middleware('throttle:public-write');
+Route::post('contact-email/resend', [ContactEmailVerificationController::class, 'resend'])
+    ->name('public.contact-email.resend')
+    ->middleware(['auth:sanctum', 'throttle:register']);
 
 // Pozvánka do tímu kanála z e-mailu. Detail je verejný (autorizuje token
 // v odkaze), prijatie vyžaduje prihlásený účet s rovnakou adresou.

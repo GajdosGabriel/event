@@ -35,6 +35,39 @@ export function daysUntil(d: string, now: Date = new Date()): number {
   return Math.max(0, Math.ceil((target.getTime() - now.getTime()) / 86_400_000))
 }
 
+/**
+ * „12. 8. 2026, 18:00 → 22:00" — kompaktný termín do riadku výpisu.
+ * Pri viacdňovom evente sa na pravej strane zopakuje aj dátum.
+ */
+export function fmtRowDateRange(start: string | null, end: string | null): string | null {
+  if (!start) return null
+  const label = `${fmtDate(start)}, ${fmtTime(start)}`
+  if (!end) return label
+  return `${label} → ${isSameDay(start, end) ? fmtTime(end) : `${fmtDate(end)}, ${fmtTime(end)}`}`
+}
+
+/**
+ * V akej fáze je podujatie voči „teraz". Odvodzuje sa z termínu, nie zo
+ * `status` — ten hovorí len o publikovaní, takže dávno skončený a budúci
+ * event vyzerajú vo výpise rovnako.
+ *
+ * Nadchádzajúci je predvolený stav a vracia `null` — vo výpise by bol šum.
+ */
+export function eventTimeState(
+  start: string | null,
+  end: string | null,
+  now: Date = new Date(),
+): 'ongoing' | 'past' | null {
+  if (!start) return null
+  const startsAt = new Date(start).getTime()
+  const endsAt = end ? new Date(end).getTime() : startsAt
+  if (Number.isNaN(startsAt) || Number.isNaN(endsAt)) return null
+  const ms = now.getTime()
+  if (ms > endsAt) return 'past'
+  if (ms >= startsAt) return 'ongoing'
+  return null
+}
+
 /** „Streda 1. 8. 2026 10:00–12:00" — termín workshopu. */
 export function fmtDayTimeRange(start: string | null, end: string | null): string {
   if (!start) return ''

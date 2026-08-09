@@ -23,6 +23,12 @@ Schedule::command('app:registrations-expire-pending')->everyTenMinutes();
 // Obsahové štítky podujatí. Malá dávka a vlastný časový strop — všetky príkazy
 // bežia sekvenčne v jednom webcron requeste spolu s app:ai-detector.
 Schedule::command('app:events-ai-tag')->everyTwoMinutes()->withoutOverlapping();
+// Overovanie uložených hodnôt, ktoré môžu prestať fungovať (webové adresy).
+// Krátke dávky každých päť minút namiesto jednej veľkej v noci: každý beh
+// obsahuje cudzie HTTP dotazy a musí sa zmestiť do webcron requestu spolu
+// s ostatnými príkazmi. Zároveň sa tým rýchlo vybaví podnet od návštevníka,
+// ktorý klikol na odkaz (viď BrokenLinkReportController).
+Schedule::command('app:attribute-checks-run')->everyFiveMinutes()->withoutOverlapping(10);
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 Schedule::command('app:views-prune')->dailyAt('03:20');

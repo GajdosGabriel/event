@@ -264,7 +264,8 @@
               </p>
               <div class="mt-1 flex flex-wrap gap-2 text-sm">
                 <a v-if="event.venue?.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
-                <a v-if="event.venue?.website" :href="event.venue.website" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">web ↗</a>
+                <ExternalLink v-if="event.venue?.website" :href="event.venue.website" target="venue"
+                  :target-id="event.venue.id" class="text-blue-600 hover:underline">web ↗</ExternalLink>
               </div>
               <template v-if="venueOpeningHours.length">
                 <div class="mt-3 border-t border-slate-100 pt-3">
@@ -289,8 +290,8 @@
               </h2>
               <RouterLink :to="publicCanalPath({ id: event.canal.id })"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
-              <a v-if="event.canal.website" :href="event.canal.website" target="_blank" rel="noopener noreferrer"
-                class="ml-2 text-sm text-blue-600 hover:underline">web ↗</a>
+              <ExternalLink v-if="event.canal.website" :href="event.canal.website" target="canal"
+                :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">web ↗</ExternalLink>
             </section>
 
             <!-- Kontakt -->
@@ -305,9 +306,8 @@
                 <a v-if="event.phone" :href="`tel:${event.phone}`" class="flex items-center gap-2 text-slate-700 hover:text-blue-600">
                   {{ event.phone }}
                 </a>
-                <a v-if="event.website" :href="event.website" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 truncate text-blue-600 hover:underline">
-                  {{ event.website.replace(/^https?:\/\//, '') }}
-                </a>
+                <ExternalLink v-if="event.website" :href="event.website" target="event" :target-id="event.id"
+                  class="flex items-center gap-2 truncate text-blue-600 hover:underline" />
               </div>
               <ContactButton v-if="event.contactable" target-type="event" :target-id="event.id" :target-name="event.name"
                 :class="{ 'mt-3': event.phone || event.website }" />
@@ -387,6 +387,7 @@ import ImageLightbox from '@/components/ImageLightbox.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import ExternalLink from '@/components/ExternalLink.vue'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
 import ShareButtons from '@/components/ShareButtons.vue'
 import EventCard from '@/components/EventCard.vue'

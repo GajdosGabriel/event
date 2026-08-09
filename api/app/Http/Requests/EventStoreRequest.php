@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Rules\EventDatetimeRule;
-use App\Rules\ValidUrlRule;
+use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -50,12 +50,7 @@ class EventStoreRequest extends FormRequest
             'publish_at' => $this->input('status') === ModelStatus::Scheduled->value
                 ? ['required', 'date', 'after:now']
                 : ['nullable', 'date'],
-            'website' => [
-                'nullable',
-                'url',
-                'max:150',
-                new ValidUrlRule()
-            ],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => 'nullable|email|max:100',
             'phone' => 'nullable|string|max:20',
             'price_amount' => ['nullable', 'integer', 'min:0'],

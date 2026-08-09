@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ModelStatus;
+use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,7 @@ class OrganizationStoreRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:100'],
             'description' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'website' => ['nullable', 'url', 'max:150'],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'published' => ['sometimes', 'boolean'],
             'status' => ['sometimes', Rule::in($allowedStatuses)],
 
@@ -79,7 +80,7 @@ class OrganizationStoreRequest extends FormRequest
             'account.email' => ['nullable', 'email', 'max:255'],
             'account.billing_email' => ['nullable', 'email', 'max:255'],
             'account.phone' => ['nullable', 'string', 'max:40'],
-            'account.website' => ['nullable', 'url', 'max:255'],
+            'account.website' => ['nullable', 'string', 'max:255', new WebsiteUrl()],
             'account.bank_name' => ['nullable', 'string', 'max:120'],
             'account.iban' => ['nullable', 'string', 'max:34'],
             'account.swift' => ['nullable', 'string', 'max:11'],

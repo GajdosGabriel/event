@@ -182,8 +182,21 @@
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
-            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website">
+              <template #footer>
+                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+              </template>
+            </FormField>
+            <ContactEmailField
+              v-model="form.email"
+              target="event"
+              :target-id="fileableId"
+              :state="emailVerification"
+              :saved-email="savedEmail"
+              label="Email"
+              :error="errors.email"
+              @resent="reloadEmailState"
+            />
             <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
           </div>
         </fieldset>
@@ -256,14 +269,18 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent, improveEventText, type ImproveMode } from '@/api/events'
+import type { ContactEmailState } from '@/types'
 import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
+import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
+import ContactEmailField from '@/components/ContactEmailField.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
@@ -287,6 +304,21 @@ const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
 
+// Overenie kontaktného e-mailu — `savedEmail` je adresa, ktorej sa stav týka.
+const emailVerification = ref<ContactEmailState | null>(null)
+const savedEmail = ref('')
+
+/** Detaily o čakajúcom overení chodia len z detailu, preto sa načítajú znova. */
+async function reloadEmailState() {
+  const id = fileableId.value
+  if (!id) return
+  try {
+    const ev = await showEvent(scope.value, id)
+    savedEmail.value = ev.email ?? ''
+    emailVerification.value = ev.emailVerification
+  } catch { /* stav overenia nie je kritický */ }
+}
+
 const validation = provideFormValidation()
 
 const form = ref({
@@ -308,6 +340,10 @@ const form = ref({
 })
 
 const errors = ref<Record<string, string>>({})
+
+// Upozornenie na neodpovedajúcu webovú adresu (overuje sa na pozadí,
+// viď App\Services\Attributes na backende).
+const { apply: applyWebsiteIssue, issue: websiteIssue } = useWebsiteIssue(() => form.value.website)
 const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
@@ -460,6 +496,9 @@ onMounted(async () => {
         // neukazuje, mazať ich pri uložení by bola tichá strata dát.
         tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),
       }
+      applyWebsiteIssue(ev)
+      savedEmail.value = ev.email ?? ''
+      emailVerification.value = ev.emailVerification
     } catch { serverError.value = 'Event sa nepodarilo načítať.' }
     finally { loadingData.value = false }
   }
@@ -498,10 +537,12 @@ async function submit() {
         }
       }
       toast.success('Event vytvorený.')
+      await reloadEmailState()
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
       await updateEvent(Number(route.params.id), payload, scope.value)
       toast.success('Event uložený.')
+      await reloadEmailState()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

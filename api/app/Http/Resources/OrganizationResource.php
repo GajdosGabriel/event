@@ -4,12 +4,14 @@ namespace App\Http\Resources;
 
 use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Http\Resources\Traits\HasAttributeCheckState;
+use App\Http\Resources\Traits\HasContactEmailState;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class OrganizationResource extends JsonResource
 {
-    use HasAllowedStatuses;
+    use HasAllowedStatuses, HasAttributeCheckState, HasContactEmailState;
 
     /**
      * Fakturačné údaje z Accountu. Nepatria do modelu ani do tabuľky —
@@ -44,6 +46,11 @@ class OrganizationResource extends JsonResource
             'person' => (bool) $this->person,
             'slug' => $this->slug,
             'email' => $this->email,
+            // Overenie verejného kontaktu. Fakturačný e-mail je iná adresa —
+            // ten si overuje Account a chodí v `account.contact`.
+            'email_verification' => $this->contactEmailState($request),
+            // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
+            'attribute_issues' => $this->attributeCheckState($request),
             'phone' => $this->phone,
             'website' => $this->website,
             'status' => $this->status,

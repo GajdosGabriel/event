@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dayName, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil } from './dateFormat'
+import { dayName, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil, fmtRowDateRange, eventTimeState } from './dateFormat'
 
 describe('dayName', () => {
   it('vráti slovenský názov dňa', () => {
@@ -38,6 +38,52 @@ describe('fmtDayTimeRange', () => {
 
   it('bez začiatku vráti prázdny reťazec', () => {
     expect(fmtDayTimeRange(null, '2026-07-22T12:00:00')).toBe('')
+  })
+})
+
+describe('fmtRowDateRange', () => {
+  it('v rámci jedného dňa zopakuje len čas konca', () => {
+    expect(fmtRowDateRange('2026-08-12T18:00:00', '2026-08-12T22:00:00'))
+      .toBe('12. 8. 2026, 18:00 → 22:00')
+  })
+
+  it('pri viacdňovom evente zopakuje aj dátum', () => {
+    expect(fmtRowDateRange('2026-08-12T18:00:00', '2026-08-14T10:00:00'))
+      .toBe('12. 8. 2026, 18:00 → 14. 8. 2026, 10:00')
+  })
+
+  it('bez konca vypíše len začiatok', () => {
+    expect(fmtRowDateRange('2026-08-12T18:00:00', null)).toBe('12. 8. 2026, 18:00')
+  })
+
+  it('bez začiatku nevráti nič', () => {
+    expect(fmtRowDateRange(null, '2026-08-12T22:00:00')).toBeNull()
+  })
+})
+
+describe('eventTimeState', () => {
+  const now = new Date('2026-08-12T20:00:00')
+
+  it('beží počas termínu', () => {
+    expect(eventTimeState('2026-08-12T18:00:00', '2026-08-12T22:00:00', now)).toBe('ongoing')
+  })
+
+  it('po konci je skončený', () => {
+    expect(eventTimeState('2026-08-11T18:00:00', '2026-08-11T22:00:00', now)).toBe('past')
+  })
+
+  it('budúci termín je predvolený stav bez štítku', () => {
+    expect(eventTimeState('2026-08-20T18:00:00', '2026-08-20T22:00:00', now)).toBeNull()
+  })
+
+  it('bez konca sa riadi začiatkom', () => {
+    expect(eventTimeState('2026-08-12T18:00:00', null, now)).toBe('past')
+    expect(eventTimeState('2026-08-13T18:00:00', null, now)).toBeNull()
+  })
+
+  it('bez termínu alebo pri nezmysle nevráti nič', () => {
+    expect(eventTimeState(null, null, now)).toBeNull()
+    expect(eventTimeState('nezmysel', null, now)).toBeNull()
   })
 })
 

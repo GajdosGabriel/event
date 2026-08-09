@@ -291,9 +291,19 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             ->orderBy('end_at', 'asc');
     }
 
+    /**
+     * Admin vidí eventy naprieč celým systémom, takže na rozlíšenie riadkov
+     * potrebuje aj firmu, pod ktorú kanál patrí. V dashboarde je zbytočná —
+     * tam sú všetky eventy z kanálov jedného používateľa.
+     */
     public function adminIndexQuery()
     {
-        return $this->latestFirst($this->model()->withTrashed()->with($this->indexEagerLoads()));
+        return $this->latestFirst(
+            $this->model()->withTrashed()->with([
+                ...$this->indexEagerLoads(),
+                'canal.organization:id,title',
+            ])
+        );
     }
 
     public function dashboardIndexQuery()
@@ -315,7 +325,10 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     private function indexEagerLoads(): array
     {
         return [
-            'canal:id,name',
+            // Výber musí pokryť všetko, čo EventResource z kanála vypisuje —
+            // nevybraný stĺpec sa nesťažuje, len ticho vráti null (`website`).
+            // `organization_id` je navyše cudzí kľúč pre `canal.organization`.
+            'canal:id,name,website,organization_id',
             'canal.files',
             'venue:id,name,street,postcode,latitude,longitude,phone,website,opening_hours',
             'files',
@@ -404,7 +417,9 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     {
         return $this->model()
             ->with([
-                'canal:id,name',
+                // `website` vypisuje EventResource — bez neho vo výbere by na
+                // verejnom výpise ticho chodilo null.
+                'canal:id,name,website',
                 'canal.files',
                 'venue' => fn ($query) => $query
                     ->select(['id', 'name', 'street', 'postcode', 'latitude', 'longitude', 'phone', 'website', 'opening_hours', 'village_id'])

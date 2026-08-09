@@ -153,6 +153,7 @@ return [
     'uploaded'             => 'Nahrávání souboru :attribute selhalo.',
     'uppercase'            => 'Pole :attribute musí být velkými písmeny.',
     'url'                  => 'Pole :attribute musí být platná URL adresa.',
+    'website_url'          => 'Pole :attribute musí být adresa stránky, například divadlo.cz nebo https://divadlo.cz/program.',
     'ulid'                 => 'Pole :attribute musí být platné ULID.',
     'uuid'                 => 'Pole :attribute musí být platné UUID.',
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ModelStatus;
+use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Services\Imports\HtmlBodyCleaner;
@@ -19,7 +20,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class EventController extends Controller
 {
-    use HasAllowedStatuses;
+    use HasAllowedStatuses, VerifiesContactEmail;
+
     protected $eventRepository;
 
     public function __construct(EventRepository $eventRepository)
@@ -67,6 +69,7 @@ class EventController extends Controller
         $payload['user_id'] = $payload['user_id'] ?? $request->user()->id;
 
         $event = $this->eventRepository->create($payload);
+        $this->syncContactEmailVerification($event);
 
         return response()->json(new EventResource($event), 201);
     }
@@ -77,6 +80,7 @@ class EventController extends Controller
         $this->authorize('update', $event);
 
         $event = $this->eventRepository->update($id, $request->validated());
+        $this->syncContactEmailVerification($event);
 
         return response()->json(new EventResource($event), 200);
     }

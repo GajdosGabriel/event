@@ -153,6 +153,9 @@ return [
     'uploaded'             => 'Nahrávanie súboru :attribute zlyhalo.',
     'uppercase'            => 'Pole :attribute musí byť veľkými písmenami.',
     'url'                  => 'Pole :attribute musí byť platná URL adresa.',
+    // App\Rules\WebsiteUrl — schéma sa dopĺňa sama, takže hláška hovorí
+    // o adrese stránky, nie o „platnej URL" s https:// na začiatku.
+    'website_url'          => 'Pole :attribute musí byť adresa stránky, napríklad divadlo.sk alebo https://divadlo.sk/program.',
     'ulid'                 => 'Pole :attribute musí byť platné ULID.',
     'uuid'                 => 'Pole :attribute musí byť platné UUID.',
 

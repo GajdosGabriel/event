@@ -34,6 +34,58 @@ return [
         'ignore'  => 'If you did not create an account, no action is required.',
     ],
 
+    // App\Notifications\ContactEmailVerificationRequest — overenie kontaktnej
+    // adresy kanála / miesta / podujatia / firmy.
+    'contact_email_verification' => [
+        'types' => [
+            'canal'        => 'the channel',
+            'venue'        => 'the venue',
+            'event'        => 'the event',
+            'organization' => 'the organiser',
+        ],
+        'subject'     => 'Confirm the contact e-mail for :type',
+        'intro'       => 'This address was entered as the contact e-mail for :type on the events portal.',
+        'intro_named' => 'This address was entered as the contact e-mail for :type **“:name”** on the events portal.',
+        'why'         => 'Confirming tells us the address really is yours. Until you do, it stays marked as unverified.',
+        'action'      => 'Confirm address',
+        'expires'     => '{1} The link is valid for :count hour.|[2,*] The link is valid for :count hours.',
+        'ignore'      => 'If the address is not yours or you know nothing about the contact, simply ignore this e-mail — nothing happens without confirmation.',
+    ],
+
+    // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
+    // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
+    'attribute_issue' => [
+        'types' => [
+            'canal'        => 'your channel',
+            'venue'        => 'your venue',
+            'event'        => 'your event',
+            'organization' => 'your organiser profile',
+        ],
+        'attributes' => [
+            'website' => 'website address',
+        ],
+        'subject'     => 'A broken :attribute in your record',
+        'intro'       => 'While checking, we found that the :attribute of :type on the events portal does not respond.',
+        'intro_named' => 'While checking, we found that the :attribute of :type **“:name”** on the events portal does not respond.',
+        'reasons'     => [
+            'dns'           => 'The domain could not be found — usually a typo in the address or an expired domain.',
+            'not_found'     => 'The server responded, but the page at this address no longer exists (error :status). Most often the subpage has moved.',
+            'server_error'  => 'The server reports an error (:status). It may also be a temporary hosting outage.',
+            'http_error'    => 'The server responded with error :status.',
+            'timeout'       => 'The server did not respond in reasonable time.',
+            'ssl'           => 'A secure connection could not be established — usually an invalid certificate.',
+            'unreachable'   => 'No server could be reached at this address.',
+            'redirect'      => 'The address redirects somewhere that cannot be opened.',
+            'redirect_loop' => 'The address redirects in a loop.',
+            'blocked'       => 'The address does not point to the public internet, so we cannot verify it.',
+            'invalid'       => 'The address is not in a valid form.',
+        ],
+        'seen_on'     => 'Someone last clicked it here: :url',
+        'action'      => 'Fix the address',
+        'recheck'     => 'We check the address regularly — once fixed, these notices stop on their own.',
+        'false_alarm' => 'If the address is fine and it was only a temporary outage, you need not do anything.',
+    ],
+
     // App\Notifications\CanalInvitationSent — pozvánka do tímu kanála.
     'canal_invitation' => [
         'subject'        => 'Invitation to the :canal team',

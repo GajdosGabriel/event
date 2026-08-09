@@ -153,6 +153,7 @@ return [
     'uploaded'             => 'Das Hochladen von :attribute ist fehlgeschlagen.',
     'uppercase'            => ':attribute darf nur Großbuchstaben enthalten.',
     'url'                  => ':attribute muss eine gültige URL sein.',
+    'website_url'          => ':attribute muss eine Seitenadresse sein, zum Beispiel theater.de oder https://theater.de/programm.',
     'ulid'                 => ':attribute muss eine gültige ULID sein.',
     'uuid'                 => ':attribute muss eine gültige UUID sein.',
 

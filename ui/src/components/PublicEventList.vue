@@ -192,7 +192,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
@@ -203,6 +203,7 @@ import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
+import { usePageQuery } from '@/composables/usePageQuery'
 import { absoluteUrl, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 
 const props = withDefaults(defineProps<{
@@ -227,7 +228,6 @@ const props = withDefaults(defineProps<{
 })
 
 const route = useRoute()
-const router = useRouter()
 const { settings, save } = useSettings()
 
 const view = computed(() => settings.value.publicEventsView)
@@ -263,6 +263,9 @@ const searchInput = ref<HTMLInputElement | null>(null)
 /** Hľadaný výraz žije v adrese (`?q=`), aby sa dal zdieľať a prežil „späť". */
 const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
 let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Stránkovanie drží v adrese `?page=` — bez neho „späť" vracalo na prvú stranu. */
+const { pageFromQuery, load: loadPage, goToPage: pushPage, replaceQuery } = usePageQuery(fetchPage)
 
 const shortcuts = computed(() => [
   {
@@ -314,41 +317,39 @@ useHead(computed(() => {
   }
 }))
 
-/** `?q=` sa mení bez záznamu v histórii — písanie do políčka nie je navigácia. */
-function syncSearchToUrl() {
-  const value = search.value.trim()
-  const current = typeof route.query.q === 'string' ? route.query.q : ''
-  if (value === current) return
-  const query = { ...route.query }
-  if (value) query['q'] = value
-  else delete query['q']
-  void router.replace({ path: route.path, query })
-}
-
 function clearSearch() {
   if (!search.value) return
   search.value = ''
   clearTimeout(searchTimer)
-  syncSearchToUrl()
   void loadPage(1)
   searchInput.value?.focus()
 }
 
 function onSearchInput() {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    syncSearchToUrl()
-    void loadPage(1)
-  }, 400)
+  searchTimer = setTimeout(() => void loadPage(1), 400)
 }
 
 /** Po prestránkovaní sa vracia pohľad na začiatok zoznamu, nie doprostred. */
 function goToPage(p: number) {
-  void loadPage(p)
+  pushPage(p)
   listTop.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-async function loadPage(p = 1) {
+/**
+ * Hľadanie aj strana žijú v adrese, aby sa dali zdieľať a prežili „späť".
+ * Zapisujú sa až tu, pri načítaní — jedno miesto, kde adresa dobehne zoznam.
+ */
+function syncQuery(p: number) {
+  const query = { ...route.query }
+  const value = search.value.trim()
+  if (value) query['q'] = value
+  else delete query['q']
+  replaceQuery(query, p)
+}
+
+async function fetchPage(p: number) {
+  syncQuery(p)
   loading.value = true
   error.value = null
   try {
@@ -370,6 +371,7 @@ async function loadPage(p = 1) {
   }
 }
 
+// Iný filter je iný výsledok — tretia strana v ňom nemusí existovať.
 watch(() => [municipalityParam.value, tagsParam.value, props.range], () => loadPage(1))
 
 // Tlačidlo „späť" mení `?q=` mimo políčka — vstup aj výsledky sa musia dotiahnuť.
@@ -377,9 +379,9 @@ watch(() => route.query.q, (value) => {
   const next = typeof value === 'string' ? value : ''
   if (next === search.value) return
   search.value = next
-  void loadPage(1)
+  void loadPage(pageFromQuery())
 })
 
-onMounted(() => loadPage())
+onMounted(() => loadPage(pageFromQuery()))
 onBeforeUnmount(() => clearTimeout(searchTimer))
 </script>

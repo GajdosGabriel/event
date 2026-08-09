@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\CanalIdentityMode;
 use App\Enums\FileType;
+use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,7 +39,7 @@ class CanalStoreRequest extends FormRequest
             'title_suffix' => 'nullable|string|max:50',
             'body' => 'nullable|string',
             'email' => 'nullable|email|max:150',
-            'website' => 'nullable|string|max:150',
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'phone' => 'nullable|string|max:20',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',

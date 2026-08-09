@@ -1,16 +1,21 @@
 <template>
-  <div class="index-row">
+  <div class="index-row" :class="{ 'index-row-muted': muted }">
     <div class="index-row-thumb">
-      <img v-if="imageUrl" :src="imageUrl" :alt="title" />
-      <div v-else class="size-full bg-slate-100" />
+      <img v-if="imageUrl" :src="imageUrl" :alt="title" loading="lazy" />
+      <div v-else class="index-row-thumb-empty" aria-hidden="true">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      </div>
     </div>
 
     <div class="min-w-0">
       <p class="text-base md:text-[0.97rem]">
-        <RouterLink v-if="showLink" :to="showLink" class="text-slate-900 no-underline hover:underline">{{ title }}</RouterLink>
+        <RouterLink v-if="showLink" :to="showLink" class="index-row-link">{{ title }}</RouterLink>
         <span v-else class="text-slate-900">{{ title }}</span>
       </p>
-      <p v-if="meta || viewsCount !== null" class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+      <p v-if="meta || viewsCount !== null" class="relative z-10 mt-1 flex w-fit items-center gap-2 text-xs text-slate-500">
         <span v-if="meta">{{ meta }}</span>
         <!-- Počet zobrazení verejného detailu. Vidí ho len organizátor a admin,
              backend ho verejnosti do odpovede vôbec nedáva. -->
@@ -30,7 +35,7 @@
       <slot name="detail" />
     </div>
 
-    <div class="flex justify-start md:col-span-1 md:justify-center">
+    <div class="flex justify-start md:justify-center">
       <span class="index-row-status" :class="{ 'status-live': statusValue === 'published' }">{{ status }}</span>
     </div>
 
@@ -49,9 +54,12 @@ withDefaults(defineProps<{
   status?: string
   statusValue?: string
   showLink?: string | object
+  /** Stlmený riadok — zmazaný (soft delete) záznam. */
+  muted?: boolean
   /** Počet zobrazení; null = používateľ naň nemá právo, číslo sa nevykreslí. */
   viewsCount?: number | null
 }>(), {
+  muted: false,
   viewsCount: null,
 })
 </script>

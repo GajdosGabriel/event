@@ -33,9 +33,22 @@
         <fieldset class="field-group">
           <legend class="field-legend">Kontakt</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
+            <ContactEmailField
+              v-model="form.email"
+              target="canal"
+              :target-id="fileableId"
+              :state="emailVerification"
+              :saved-email="savedEmail"
+              label="Email"
+              :error="errors.email"
+              @resent="reloadEmailState"
+            />
             <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
-            <FormField v-model="form.website" type="url" label="Web" :error="errors.website" />
+            <FormField v-model="form.website" type="url" label="Web" :error="errors.website">
+              <template #footer>
+                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+              </template>
+            </FormField>
           </div>
         </fieldset>
 
@@ -77,12 +90,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showCanal, createCanal, updateCanal } from '@/api/canals'
+import type { ContactEmailState } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
+import ContactEmailField from '@/components/ContactEmailField.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
@@ -121,9 +138,33 @@ const form = ref({
 })
 
 const errors = ref<Record<string, string>>({})
+
+// Upozornenie na neodpovedajúcu webovú adresu (overuje sa na pozadí,
+// viď App\Services\Attributes na backende).
+const { apply: applyWebsiteIssue, issue: websiteIssue } = useWebsiteIssue(() => form.value.website)
 const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
+
+// Overenie kontaktného e-mailu. `savedEmail` je adresa, ktorej sa stav týka —
+// rozpísaná zmena v poli sa ním nesmie tváriť ako overená.
+const emailVerification = ref<ContactEmailState | null>(null)
+const savedEmail = ref('')
+
+/**
+ * Detaily o čakajúcom overení chodia len z detailu kanála (na výpise by dotaz
+ * bežal na každý riadok), preto sa po uložení načíta znova.
+ */
+async function reloadEmailState() {
+  const id = fileableId.value
+  if (!id) return
+  try {
+    const c = await showCanal(scope.value, id)
+    applyWebsiteIssue(c)
+    savedEmail.value = c.email ?? ''
+    emailVerification.value = c.emailVerification
+  } catch { /* stav overenia nie je kritický — formulár funguje aj bez neho */ }
+}
 
 onMounted(async () => {
   loadMunicipalities()
@@ -144,6 +185,9 @@ onMounted(async () => {
         longitude: c.longitude ?? null,
         body: c.body ?? '',
       }
+      applyWebsiteIssue(c)
+    savedEmail.value = c.email ?? ''
+      emailVerification.value = c.emailVerification
     } catch { serverError.value = 'Nepodarilo sa načítať.' }
   }
 })
@@ -164,10 +208,12 @@ async function submit() {
         await uploadFiles(fd)
       }
       toast.success('Kanál vytvorený.')
+      await reloadEmailState()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
       await updateCanal(Number(route.params.id), form.value)
       toast.success('Kanál uložený.')
+      await reloadEmailState()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

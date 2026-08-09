@@ -13,6 +13,30 @@ const http = axios.create({
   },
 })
 
+/**
+ * Hlavičky, ktoré API čaká aj mimo axiosu.
+ *
+ * Potrebuje ich všetko, čo sa posiela cez `fetch` — teda to, čo musí prežiť
+ * odchod zo stránky (`keepalive`), na čo axios nemá. Bez XSRF hlavičky by
+ * takú požiadavku odmietol stateful Sanctum.
+ */
+export function apiHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'X-Locale': currentLocale(),
+  }
+
+  const xsrf = getCookie('XSRF-TOKEN')
+  if (xsrf) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
+
+  const token = localStorage.getItem('auth_token')
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  return headers
+}
+
 function getCookie(name: string): string | null {
   const entries = document.cookie.split(';')
   for (const entry of entries) {

@@ -34,6 +34,60 @@ return [
         'ignore'  => 'Ak ste si účet nevytvárali, nemusíte robiť nič.',
     ],
 
+    // App\Notifications\ContactEmailVerificationRequest — overenie kontaktnej
+    // adresy kanála / miesta / podujatia / firmy. Chodí na zadanú adresu, nie
+    // na účet organizátora.
+    'contact_email_verification' => [
+        'types' => [
+            'canal'        => 'kanála',
+            'venue'        => 'miesta',
+            'event'        => 'podujatia',
+            'organization' => 'organizátora',
+        ],
+        'subject'     => 'Potvrďte kontaktný e-mail :type',
+        'intro'       => 'Táto adresa bola zadaná ako kontaktný e-mail :type na portáli podujatí.',
+        'intro_named' => 'Táto adresa bola zadaná ako kontaktný e-mail :type **„:name"** na portáli podujatí.',
+        'why'         => 'Potvrdením nám dáte vedieť, že adresa naozaj patrí vám. Kým ju nepotvrdíte, zostane označená ako neoverená.',
+        'action'      => 'Potvrdiť adresu',
+        'expires'     => '{1} Odkaz je platný :count hodinu.|[2,4] Odkaz je platný :count hodiny.|[5,*] Odkaz je platný :count hodín.',
+        'ignore'      => 'Ak vám adresa nepatrí alebo o kontakte nič neviete, stačí tento e-mail ignorovať — bez potvrdenia sa nič nestane.',
+    ],
+
+    // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
+    // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
+    // Nový overovaný údaj = nový riadok v `attributes`, nie nová notifikácia.
+    'attribute_issue' => [
+        'types' => [
+            'canal'        => 'kanála',
+            'venue'        => 'miesta',
+            'event'        => 'podujatia',
+            'organization' => 'organizátora',
+        ],
+        'attributes' => [
+            'website' => 'webová adresa',
+        ],
+        'subject'     => 'Nefunkčná :attribute vo vašom zázname',
+        'intro'       => 'Pri kontrole sme zistili, že :attribute :type na portáli podujatí neodpovedá.',
+        'intro_named' => 'Pri kontrole sme zistili, že :attribute :type **„:name"** na portáli podujatí neodpovedá.',
+        'reasons'     => [
+            'dns'           => 'Doménu sa nepodarilo nájsť — býva to preklep v adrese alebo doména po expirácii.',
+            'not_found'     => 'Server odpovedal, ale stránka na tejto adrese už neexistuje (chyba :status). Najčastejšie ide o presunutú podstránku.',
+            'server_error'  => 'Server na adrese hlási chybu (:status). Môže ísť aj o dočasný výpadok hostingu.',
+            'http_error'    => 'Server odpovedal chybou :status.',
+            'timeout'       => 'Server na adrese neodpovedal v rozumnom čase.',
+            'ssl'           => 'Zabezpečené spojenie sa nepodarilo nadviazať — obvykle kvôli neplatnému certifikátu.',
+            'unreachable'   => 'Na adrese sa nepodarilo spojiť so žiadnym serverom.',
+            'redirect'      => 'Adresa presmerúva na miesto, ktoré sa nedá otvoriť.',
+            'redirect_loop' => 'Adresa sa presmerúva dokola.',
+            'blocked'       => 'Adresa nesmeruje na verejný internet, takže ju nevieme overiť.',
+            'invalid'       => 'Adresa nemá platný tvar.',
+        ],
+        'seen_on'     => 'Naposledy na ňu niekto klikol tu: :url',
+        'action'      => 'Opraviť adresu',
+        'recheck'     => 'Adresu overujeme pravidelne — po oprave sa upozornenie samo prestane posielať.',
+        'false_alarm' => 'Ak je adresa v poriadku a išlo len o dočasný výpadok, nemusíte robiť nič.',
+    ],
+
     // App\Notifications\CanalInvitationSent — pozvánka do tímu kanála.
     'canal_invitation' => [
         'subject'        => 'Pozvánka do tímu :canal',

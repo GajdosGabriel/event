@@ -5,13 +5,15 @@ namespace App\Http\Resources;
 use App\Enums\ModelStatus;
 use App\Enums\TicketTypeKindOption;
 use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Http\Resources\Traits\HasAttributeCheckState;
+use App\Http\Resources\Traits\HasContactEmailState;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class EventResource extends JsonResource
 {
-    use HasAllowedStatuses;
+    use HasAllowedStatuses, HasAttributeCheckState, HasContactEmailState;
 
     /**
      * Transform the resource into an array.
@@ -37,6 +39,9 @@ class EventResource extends JsonResource
         $data['date_range_label'] = $this->dateRangeLabel();
         $data['date_range_days'] = $this->dateRangeDays();
         $data['status_label'] = $this->statusLabel();
+        $data['email_verification'] = $this->contactEmailState($request);
+        // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
+        $data['attribute_issues'] = $this->attributeCheckState($request);
 
         $data['tickets_enabled'] = $this->tickets_enabled;
         $data['workshop_lock_on_start'] = (bool) $this->workshop_lock_on_start;
@@ -92,6 +97,11 @@ class EventResource extends JsonResource
             'id' => $canal->id,
             'name' => $canal->name,
             'website' => $canal->website,
+            // Len keď ju dotaz eager loadol (admin výpis). Bez tejto podmienky
+            // by sa na každý riadok strieľal dotaz na firmu.
+            'organization' => $canal->relationLoaded('organization') && $canal->organization
+                ? ['id' => $canal->organization->id, 'title' => $canal->organization->title]
+                : null,
         ] : null;
 
         $venue = $this->venue;
