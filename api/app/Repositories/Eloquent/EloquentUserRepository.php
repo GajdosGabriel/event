@@ -2,14 +2,15 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Models\User;
 use App\Models\PendingProfile;
-use Carbon\Carbon;
-use Hash;
+use App\Models\User;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\UserRepository;
+use Carbon\Carbon;
+use Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use LogicException;
 
 class EloquentUserRepository extends AbstractRepository implements UserRepository
 {
@@ -26,7 +27,7 @@ class EloquentUserRepository extends AbstractRepository implements UserRepositor
             'registered_via' => $data['registered_via'] ?? 'local',
         ]);
 
-        if (!empty($data['display_name'])) {
+        if (! empty($data['display_name'])) {
             PendingProfile::create([
                 'user_id' => $user->id,
                 'display_name' => $data['display_name'],
@@ -48,7 +49,7 @@ class EloquentUserRepository extends AbstractRepository implements UserRepositor
             'provider_id' => $value->id ?? null,
         ]);
 
-        if (!empty($value->name)) {
+        if (! empty($value->name)) {
             PendingProfile::create([
                 'user_id' => $user->id,
                 'display_name' => $value->name,
@@ -134,11 +135,24 @@ class EloquentUserRepository extends AbstractRepository implements UserRepositor
         return $user;
     }
 
+    /**
+     * Verejný zoznam používateľov neexistuje a existovať nemá — na rozdiel od
+     * kanálov či podujatí nie je používateľ verejný obsah. Metódu vyžaduje
+     * InterfaceRepository, takže sa nedá vypustiť; namiesto ticho fungujúceho
+     * dotazu radšej spadne, aby sa nedala omylom zavesiť na verejnú routu.
+     */
     public function publicIndexQuery()
     {
-        return $this->latestFirst(
-            $this->model()
-                ->whereNotNull('email_verified_at')
-        );
+        throw new LogicException('Používatelia nemajú verejný zoznam.');
+    }
+
+    /**
+     * To isté pre detail — zdedená implementácia v AbstractRepository vracia
+     * ktorýkoľvek účet podľa id, čo je bez prihlásenia to isté ako zoznam,
+     * len po jednom.
+     */
+    public function publicShow($id)
+    {
+        throw new LogicException('Používatelia nemajú verejný detail.');
     }
 }

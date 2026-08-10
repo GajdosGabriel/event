@@ -2,10 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Enums\CanalIdentityMode;
+use App\Enums\CanalRole;
+use App\Enums\ModelStatus;
+use App\Enums\RegistrationSource;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use App\Enums\{CanalIdentityMode, CanalRole, ModelStatus, RegistrationSource};
-use App\Models\User;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Canal>
@@ -20,6 +23,7 @@ class CanalFactory extends Factory
     public function definition(): array
     {
         $name = $this->faker->name;
+
         return [
             'name' => $this->faker->company,
             'slug' => Str::slug($name),
@@ -32,15 +36,19 @@ class CanalFactory extends Factory
             'identity_mode' => $this->faker->randomElement(CanalIdentityMode::cases())->value,
             'email_verified_at' => now(),
             'status' => $this->faker->randomElement(ModelStatus::cases())->value,
-            'municipality_id' => $this->faker->numberBetween(1, 4200)
+            'municipality_id' => $this->faker->numberBetween(1, 4200),
         ];
     }
 
+    /**
+     * Kanál tak, ako ho vidí verejnosť — publikovaný a s dátumom publikovania.
+     * Presne to, čo filtruje EloquentCanalRepository::publicIndexQuery().
+     */
     public function active(): self
     {
         return $this->state(function (array $attributes) {
             return [
-                'status' => $this->faker->randomElement(ModelStatus::cases())->value,
+                'status' => ModelStatus::Published->value,
                 'published_at' => $this->faker->dateTimeInInterval('-5 years', '1 days'),
             ];
         });
@@ -52,7 +60,7 @@ class CanalFactory extends Factory
         return $this->state(function (array $attributes) {
             return [
                 'status' => 'draft',
-                'published_at' => null
+                'published_at' => null,
             ];
         });
     }

@@ -22,7 +22,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
-        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver(),
+        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver,
     ) {
         parent::__construct();
     }
@@ -127,7 +127,10 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     {
         $filePayload = $this->extractFilePayload($properties);
 
-        $canal = $this->model()->findOrFail($id);
+        // withTrashed: adminShow() zmazaný kanál načíta, takže sa musí dať aj
+        // uložiť — inak si ho admin otvorí a pri uložení dostane 404. Rovnako
+        // to majú EloquentEventRepository aj EloquentVenueRepository.
+        $canal = $this->model()->withTrashed()->findOrFail($id);
         $canal->update($properties);
 
         $this->backfillCoordinates($canal);

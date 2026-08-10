@@ -11,11 +11,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /**
  * Model má hodnoty, ktorých funkčnosť sa dá strojovo overiť (dnes `website`).
  *
- * Evidencia beží z modelu, nie z controllera — a je to zámerný opak toho, ako
- * to má HasVerifiableEmail. Overovací e-mail sa nesmie poslať na adresu, ktorú
- * niekde vyhrabal import; naopak zistiť, či odkaz z importu žije, je slušnosť
- * voči návštevníkovi a nikoho neobťažuje. Preto sa eviduje všetko, nech to
- * zapísal formulár, import alebo konzola.
+ * Evidencia beží z modelu, nie z controllera: zistiť, či odkaz z importu žije,
+ * je slušnosť voči návštevníkovi a nikoho neobťažuje. Preto sa eviduje všetko,
+ * nech to zapísal formulár, import alebo konzola.
  *
  * Obťažovať by mohlo až upozornenie — to preto odchádza len tam, kde je komu
  * (viď attributeIssueRecipient(); importované záznamy majiteľa nemajú).

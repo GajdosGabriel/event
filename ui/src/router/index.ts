@@ -57,9 +57,6 @@ const router = createRouter({
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
-        // Potvrdenie kontaktného e-mailu z odkazu. Verejné zámerne — adresu
-        // potvrdzuje jej majiteľ, ktorý účet v portáli mať nemusí.
-        { path: 'overenie-emailu/:token', name: 'contact-email-verify', component: () => import('@/pages/ContactEmailVerifyPage.vue') },
       ],
     },
 

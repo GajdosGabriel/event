@@ -15,10 +15,8 @@ use Illuminate\Support\Facades\Schema;
  * ďalšieho atribútu neznamená ani migráciu, len novú sondu a zápis do
  * whitelistu (App\Models\AttributeCheck::TARGETS a ATTRIBUTES).
  *
- * Pozor na rozdiel oproti `contact_email_verifications`: tam sa overuje
- * **vlastníctvo** adresy (dokáž, že ju čítaš) a záznam po potvrdení zaniká.
- * Tu sa overuje **funkčnosť** hodnoty (odpovedá tá stránka?) a záznam žije,
- * kým žije hodnota — je to stav, nie rozpracovaný proces.
+ * Overuje sa **funkčnosť** hodnoty (odpovedá tá stránka?), nie jej vlastníctvo.
+ * Preto záznam žije, kým žije hodnota — je to stav, nie rozpracovaný proces.
  */
 return new class extends Migration
 {

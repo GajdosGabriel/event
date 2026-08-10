@@ -2,12 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\Event; // Pridaný import
+use App\Enums\ModelStatus; // Pridaný import
+use App\Models\Canal;
+use App\Models\Event;
+use App\Models\Municipality;
+use App\Models\User;
+use App\Models\Venue;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use App\Models\{Canal, Municipality, User, Venue};
-use App\Enums\ModelStatus;
 
 class EventFactory extends Factory
 {
@@ -25,15 +28,15 @@ class EventFactory extends Factory
         });
     }
 
-
- /**
+    /**
      * Vygeneruje dátum s minútami 00 alebo 30.
      */
     private function halfHourDate($from = '-1 year', $to = '+1 year'): \DateTime
     {
         $dt = $this->faker->dateTimeBetween($from, $to);
         $minute = $this->faker->randomElement([0, 30]);
-        return $dt->setTime((int)$dt->format('H'), $minute);
+
+        return $dt->setTime((int) $dt->format('H'), $minute);
     }
 
     private function registrationDeadlineFor(\DateTimeInterface $startAt): \DateTime
@@ -75,7 +78,6 @@ class EventFactory extends Factory
         $event->venue_id = (int) $venue->id;
     }
 
-
     /**
      * Define the model's default state.
      *
@@ -91,7 +93,7 @@ class EventFactory extends Factory
             'Manažérsky seminár',
             'Motivačný program',
             'Kreatívne myslenie',
-            'Leaderšip tréning'
+            'Leaderšip tréning',
         ]);
 
         $published = $this->faker->dateTimeBetween('-1 year', '+1 year');
@@ -144,6 +146,11 @@ class EventFactory extends Factory
         });
     }
 
+    /**
+     * Posúva len termín — stav si `status` neurčuje, ten patrí volajúcemu.
+     * Predtým tu bol náhodný ModelStatus, čo z každého testu nad verejným
+     * výpisom robilo lotériu.
+     */
     public function future(): self
     {
         return $this->state(function (array $attributes) {
@@ -151,7 +158,6 @@ class EventFactory extends Factory
             $start = Carbon::instance(clone $startAt);
 
             return [
-                'status' => $this->faker->randomElement(ModelStatus::cases())->value,
                 'start_at' => $startAt,
                 'end_at' => $this->faker->dateTimeBetween($start->copy()->addHour(), $start->copy()->addYear()),
                 'published_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
@@ -160,13 +166,17 @@ class EventFactory extends Factory
         });
     }
 
+    /**
+     * Podujatie tak, ako ho vidí verejnosť — publikované a ešte neskončené.
+     * Presne to, čo filtruje EloquentEventRepository::publicIndexQuery().
+     */
     public function active(): self
     {
         return $this->state(function (array $attributes) {
             $startAt = now()->subWeek();
 
             return [
-                'status' => $this->faker->randomElement(ModelStatus::cases())->value,
+                'status' => ModelStatus::Published->value,
                 'published_at' => now()->subMonth(),
                 'start_at' => $startAt,
                 'end_at' => now()->addWeek(),

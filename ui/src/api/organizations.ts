@@ -1,6 +1,5 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapContactEmailState } from './contactEmail'
 import type {
   IcoLookupResult,
   OrganizationAccountData,
@@ -25,7 +24,6 @@ function mapOrg(raw: Record<string, unknown>): OrganizationItem {
     description: (raw['description'] as string) ?? null,
     website: (raw['website'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
-    emailVerification: mapContactEmailState(raw['email_verification']),
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     phone: (raw['phone'] as string) ?? null,
     villageId: (raw['village_id'] as number) ?? null,

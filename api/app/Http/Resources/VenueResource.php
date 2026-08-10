@@ -5,13 +5,12 @@ namespace App\Http\Resources;
 use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
-use App\Http\Resources\Traits\HasContactEmailState;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class VenueResource extends JsonResource
 {
-    use HasAllowedStatuses, HasAttributeCheckState, HasContactEmailState;
+    use HasAllowedStatuses, HasAttributeCheckState;
     /**
      * Transform the resource into an array.
      *
@@ -24,7 +23,6 @@ class VenueResource extends JsonResource
 
         $data['status_label'] = $this->statusLabel();
         $data['allowed_statuses'] = $this->allowedStatuses($request);
-        $data['email_verification'] = $this->contactEmailState($request);
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);
 

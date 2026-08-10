@@ -2,20 +2,18 @@
 
 namespace Tests\Unit\Canals;
 
-use Tests\TestCase; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
-use App\Models\Canal;
+use App\Models\Canal; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Repositories\Contracts\CanalRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
-
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
 
 class CanalDashboardIndexTest extends TestCase // <-- Zmena základnej triedy
 {
-
     use DatabaseTransactions;
 
     protected CanalRepository $canalRepository;
+
     protected $user;
 
     protected function setUp(): void
@@ -25,9 +23,9 @@ class CanalDashboardIndexTest extends TestCase // <-- Zmena základnej triedy
         // Inicializácia repository cez Laravel container
         $this->canalRepository = app(CanalRepository::class);
 
-        $this->user = User::factory()->create([
-            'first_name' => 'ja'
-        ]);
+        // Bez atribútov: tabuľka `users` stĺpec `first_name` nemá, meno je na
+        // kanáli. Test ho aj tak nikde nečíta.
+        $this->user = User::factory()->create();
 
         $this->actingAs($this->user, 'sanctum');
     }
@@ -35,15 +33,18 @@ class CanalDashboardIndexTest extends TestCase // <-- Zmena základnej triedy
     public function test_active_dashboardindex_canals()
     {
         // 1. Vytvorte testovacie eventy
-        $active = Canal::factory()->active()->make(['name' => 'Aktívny kanál']);
-        $inactive = Canal::factory()->inactive()->make();
-        $deleted = Canal::factory()->make([
-            'deleted_at' => now()
-        ]);
-
-        $activeCanal = $this->canalRepository->create($active->toArray());
-        $inactiveCanal = $this->canalRepository->create($inactive->toArray());
-        $deletedCanal = $this->canalRepository->create($deleted->toArray());
+        // raw() a nie make()->toArray(): toArray() pribalí aj $appends
+        // (has_primary_image, primary_image, thumb_image), čo sú accessory,
+        // nie stĺpce — pri $guarded = [] by prešli rovno do INSERTu.
+        $activeCanal = $this->canalRepository->create(
+            Canal::factory()->active()->raw(['name' => 'Aktívny kanál'])
+        );
+        $inactiveCanal = $this->canalRepository->create(
+            Canal::factory()->inactive()->raw()
+        );
+        $deletedCanal = $this->canalRepository->create(
+            Canal::factory()->raw(['deleted_at' => now()])
+        );
 
         // dump(Canal::withTrashed()->get());
 
@@ -80,8 +81,7 @@ class CanalDashboardIndexTest extends TestCase // <-- Zmena základnej triedy
 
         //  $this->assertEquals(1, $response->total());
 
-
-        /* Four items should be returned: 1 active, 1 inactive, and 1 deleted, and 1 user created automatically 
+        /* Four items should be returned: 1 active, 1 inactive, and 1 deleted, and 1 user created automatically
          by creating new user, which is personal canal. **/
         $this->assertCount(4, $response);
 

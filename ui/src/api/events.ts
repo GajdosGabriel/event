@@ -1,6 +1,5 @@
 import http, { BASE_URL } from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapContactEmailState } from './contactEmail'
 import type { EventItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'public' | 'dashboard' | 'admin'
@@ -64,7 +63,6 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     uploadedFiles: (raw['uploaded_files'] as EventItem['uploadedFiles']) ?? [],
     phone: (raw['phone'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
-    emailVerification: mapContactEmailState(raw['email_verification']),
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     contactable: Boolean(raw['contactable']),
     permissions: (() => {

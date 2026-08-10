@@ -2,21 +2,21 @@
 
 namespace Tests\Unit\Events;
 
-use Tests\TestCase; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
-use App\Models\Canal;
+use App\Enums\ModelStatus; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
 use App\Models\Event;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Repositories\Contracts\EventRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
 
 class EventPublicIndexTest extends TestCase // <-- Zmena základnej triedy
 {
-
     use DatabaseTransactions;
 
     protected EventRepository $eventRepository;
+
     protected $user;
+
     protected $canal;
 
     protected function setUp(): void
@@ -32,17 +32,19 @@ class EventPublicIndexTest extends TestCase // <-- Zmena základnej triedy
     public function test_it_returns_only_active_events_in_public_index()
     {
         // 1. Vytvorte testovacie eventy
-        $activeItem = Event::factory()->future()->create();
+        // status explicitne: future() rieši len termín, a publicIndexQuery()
+        // filtruje na published.
+        $activeItem = Event::factory()->future()->create([
+            'status' => ModelStatus::Published->value,
+        ]);
         $pasiveItem = Event::factory()->past()->create();
         $inactiveItem = Event::factory()->create([
             'deleted_at' => now(),
             'status' => 'draft',
         ]);
 
-
         // 2. Získajte výsledky
         $results = $this->eventRepository->publicIndexQuery()->get();
-
 
         // 3. Overte výsledky
         $this->assertTrue(

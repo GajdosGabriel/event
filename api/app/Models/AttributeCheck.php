@@ -13,9 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * Zapisuje ho výhradne App\Services\Attributes\AttributeCheckService; model
  * sám drží len whitelisty, prevody a dopyty.
  *
- * Rozdiel oproti ContactEmailVerification: tam ide o dôkaz vlastníctva adresy
- * (človek klikne v e-maile) a záznam po potvrdení zaniká. Tu ide o funkčnosť
- * hodnoty, overuje ju stroj a záznam žije, kým žije hodnota.
+ * Ide o funkčnosť hodnoty, nie o jej vlastníctvo: overuje ju stroj a záznam
+ * žije, kým žije hodnota.
  */
 class AttributeCheck extends Model
 {
@@ -31,8 +30,8 @@ class AttributeCheck extends Model
 
     /**
      * Modely, ktorých hodnoty sa dajú overovať. Rovnaký princíp ako
-     * Message::TARGETS a ContactEmailVerification::TARGETS — alias v databáze
-     * je stabilný, presun alebo premenovanie triedy tak nezneplatní záznamy.
+     * Message::TARGETS — alias v databáze je stabilný, presun alebo
+     * premenovanie triedy tak nezneplatní záznamy.
      *
      * Model v zozname musí používať trait HasCheckedAttributes.
      *

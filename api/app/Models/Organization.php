@@ -6,7 +6,6 @@ use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Models\Traits\HasCheckedAttributes;
 use App\Models\Traits\HasCommonFilters;
-use App\Models\Traits\HasVerifiableEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +30,7 @@ use Illuminate\Support\Str;
 class Organization extends Model
 {
     /** @use HasFactory<\Database\Factories\OrganizationFactory> */
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasVerifiableEmail, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.

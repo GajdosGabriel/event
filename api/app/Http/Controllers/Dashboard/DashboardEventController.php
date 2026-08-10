@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\ModelStatus;
-use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\EventDetectFromTextRequest;
@@ -22,7 +21,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DashboardEventController extends Controller
 {
-    use HasAllowedStatuses, VerifiesContactEmail;
+    use HasAllowedStatuses;
 
     protected $eventRepository;
 
@@ -69,7 +68,6 @@ class DashboardEventController extends Controller
         $this->authorize('update', $event);
 
         $event = $this->eventRepository->update($id, $request->validated());
-        $this->syncContactEmailVerification($event);
 
         return response()->json(
             new EventResource($event),
@@ -80,7 +78,6 @@ class DashboardEventController extends Controller
     public function store(EventStoreRequest $request): JsonResponse
     {
         $event = $this->eventRepository->createForUser($request->user(), $request->validated());
-        $this->syncContactEmailVerification($event);
 
         return response()->json(
             new EventResource($event),

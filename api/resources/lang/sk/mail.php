@@ -34,25 +34,6 @@ return [
         'ignore'  => 'Ak ste si účet nevytvárali, nemusíte robiť nič.',
     ],
 
-    // App\Notifications\ContactEmailVerificationRequest — overenie kontaktnej
-    // adresy kanála / miesta / podujatia / firmy. Chodí na zadanú adresu, nie
-    // na účet organizátora.
-    'contact_email_verification' => [
-        'types' => [
-            'canal'        => 'kanála',
-            'venue'        => 'miesta',
-            'event'        => 'podujatia',
-            'organization' => 'organizátora',
-        ],
-        'subject'     => 'Potvrďte kontaktný e-mail :type',
-        'intro'       => 'Táto adresa bola zadaná ako kontaktný e-mail :type na portáli podujatí.',
-        'intro_named' => 'Táto adresa bola zadaná ako kontaktný e-mail :type **„:name"** na portáli podujatí.',
-        'why'         => 'Potvrdením nám dáte vedieť, že adresa naozaj patrí vám. Kým ju nepotvrdíte, zostane označená ako neoverená.',
-        'action'      => 'Potvrdiť adresu',
-        'expires'     => '{1} Odkaz je platný :count hodinu.|[2,4] Odkaz je platný :count hodiny.|[5,*] Odkaz je platný :count hodín.',
-        'ignore'      => 'Ak vám adresa nepatrí alebo o kontakte nič neviete, stačí tento e-mail ignorovať — bez potvrdenia sa nič nestane.',
-    ],
-
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     // Nový overovaný údaj = nový riadok v `attributes`, nie nová notifikácia.

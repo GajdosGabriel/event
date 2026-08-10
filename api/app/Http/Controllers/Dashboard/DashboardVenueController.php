@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\FileType;
-use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\VenueDetectRequest;
@@ -22,7 +21,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DashboardVenueController extends Controller
 {
-    use HasAllowedStatuses, VerifiesContactEmail;
+    use HasAllowedStatuses;
 
     private const FILEABLE_MAP = [
         'canal' => Canal::class,
@@ -83,7 +82,6 @@ class DashboardVenueController extends Controller
         $this->authorize('update', $venue);
 
         $venue = $this->venueRepository->update($id, $request->validated());
-        $this->syncContactEmailVerification($venue);
 
         return response()->json(new VenueResource($venue), 200);
     }
@@ -93,7 +91,6 @@ class DashboardVenueController extends Controller
         $this->authorize('create', Venue::class);
 
         $venue = $this->venueRepository->create($request->validated());
-        $this->syncContactEmailVerification($venue);
 
         return response()->json(new VenueResource($venue), 201);
     }

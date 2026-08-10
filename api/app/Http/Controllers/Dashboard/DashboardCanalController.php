@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\CanalIdentityMode;
-use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Repositories\Contracts\CanalRepository;
@@ -19,7 +18,7 @@ use App\Models\Venue;
 
 class DashboardCanalController extends Controller
 {
-    use HasAllowedStatuses, VerifiesContactEmail;
+    use HasAllowedStatuses;
 
     protected $canalRepository;
 
@@ -80,9 +79,7 @@ class DashboardCanalController extends Controller
         $canal = $this->canalRepository->dashboardShow($id);
         $this->authorize('update', $canal);
 
-        $this->syncContactEmailVerification(
-            $this->canalRepository->update($id, $request->validated())
-        );
+        $this->canalRepository->update($id, $request->validated());
 
         return response()->json(
             new CanalResource($this->canalRepository->dashboardShow($id)),
@@ -93,7 +90,6 @@ class DashboardCanalController extends Controller
     public function store(CanalStoreRequest $request): JsonResponse
     {
         $canal = $this->canalRepository->create($request->validated());
-        $this->syncContactEmailVerification($canal);
 
         return response()->json(
             new CanalResource($this->canalRepository->dashboardShow($canal->id)),

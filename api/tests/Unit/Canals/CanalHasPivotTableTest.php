@@ -3,17 +3,12 @@
 namespace Tests\Unit\Canals;
 
 use App\Enums\ModelStatus;
-
-use Tests\TestCase; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
-use App\Models\Canal;
-use Illuminate\Support\Facades\Schema; // <-- Pridajte tento import pre prácu s databázou
+use App\Models\Canal; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
+// <-- Pridajte tento import pre prácu s databázou
 use App\Repositories\Contracts\CanalRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
-use Illuminate\Validation\Rules\Can;
-
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
 
 class CanalHasPivotTableTest extends TestCase // <-- Zmena základnej triedy
 {
@@ -22,7 +17,9 @@ class CanalHasPivotTableTest extends TestCase // <-- Zmena základnej triedy
     use DatabaseTransactions;
 
     protected CanalRepository $canalRepository;
+
     protected $user;
+
     protected $canal;
 
     protected function setUp(): void
@@ -31,7 +28,9 @@ class CanalHasPivotTableTest extends TestCase // <-- Zmena základnej triedy
         $this->canalRepository = app(CanalRepository::class);
         $this->user = User::factory()->create();
         $this->actingAs($this->user, 'sanctum');
-        $canal = $this->canalRepository->create(Canal::factory()->make()->toArray());
+        // raw() a nie make()->toArray() — toArray() pribalí $appends kanála
+        // (has_primary_image a spol.), ktoré v tabuľke nie sú.
+        $canal = $this->canalRepository->create(Canal::factory()->raw());
 
         // Pripoj používateľa ku kanálu cez pivot tabuľku
         $this->canal = $this->user->canals()->where('canal_id', $canal->id)->first();
@@ -56,16 +55,14 @@ class CanalHasPivotTableTest extends TestCase // <-- Zmena základnej triedy
         $this->assertEquals(1, $this->canal->pivot->is_owner, 'is_owner by mal byť 1 (true)');
         $this->assertSame(ModelStatus::Published->value, $this->canal->pivot->status, 'status by mal byt published');
 
-
         // Alebo alternatívne pre boolean check:
-        $this->assertTrue((bool)$this->canal->pivot->is_owner, 'is_owner by mal byť true');
+        $this->assertTrue((bool) $this->canal->pivot->is_owner, 'is_owner by mal byť true');
         $this->assertSame(ModelStatus::Published->value, $this->canal->pivot->status, 'status by mal byt published');
 
         // 5. Vlastníctvo canalu
         $this->assertEquals($this->user->id, $this->canal->pivot->user_id, 'vlastník canalu je $this->user');
         $this->assertEquals($this->canal->id, $this->canal->pivot->canal_id, 'pivot patrí canal');
     }
-
 
     // public function test_pivot_record_creation()
     // {
@@ -171,4 +168,3 @@ class CanalHasPivotTableTest extends TestCase // <-- Zmena základnej triedy
     //     $this->assertTrue((bool)$pivot->status, 'status by mal byť published');
     // }
 }
-

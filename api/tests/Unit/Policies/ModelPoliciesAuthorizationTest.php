@@ -2,10 +2,11 @@
 
 namespace Tests\Unit\Policies;
 
+use App\Enums\CanalRole;
+use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
-use App\Enums\ModelStatus;
 use App\Policies\CanalPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\UserPolicy;
@@ -28,17 +29,22 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $member = User::factory()->create();
         $member->canals()->attach($canal->id, [
             'is_owner' => false,
+            'role' => CanalRole::Editor->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $policy = new CanalPolicy();
+        $policy = new CanalPolicy;
 
-        $this->assertTrue($policy->update($member, $canal));
+        // Editor robí obsah v kanáli, ale samotný kanál nespravuje — z canal.*
+        // má len canal.view (viď CanalRole::abilities()).
+        $this->assertTrue($policy->view($member, $canal));
+        $this->assertFalse($policy->update($member, $canal));
         $this->assertFalse($policy->delete($member, $canal));
         $this->assertFalse($policy->restore($member, $canal));
 
+        $this->assertTrue($policy->update($owner, $canal));
         $this->assertTrue($policy->delete($owner, $canal));
         $this->assertTrue($policy->restore($owner, $canal));
     }
@@ -53,6 +59,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $member = User::factory()->create();
         $member->canals()->attach($canal->id, [
             'is_owner' => false,
+            'role' => CanalRole::Editor->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
@@ -68,7 +75,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'status' => ModelStatus::Draft->value,
         ]);
 
-        $policy = new EventPolicy();
+        $policy = new EventPolicy;
 
         $this->assertTrue($policy->update($member, $event));
         $this->assertFalse($policy->delete($member, $event));
@@ -89,6 +96,16 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $member = User::factory()->create();
         $member->canals()->attach($canal->id, [
             'is_owner' => false,
+            'role' => CanalRole::Editor->value,
+            'status' => ModelStatus::Published->value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $checkin = User::factory()->create();
+        $checkin->canals()->attach($canal->id, [
+            'is_owner' => false,
+            'role' => CanalRole::Checkin->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
@@ -98,12 +115,22 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'status' => ModelStatus::Draft->value,
         ]);
 
-        $policy = new VenuePolicy();
+        $policy = new VenuePolicy;
 
+        // Editor miesta spravuje (venue.view/create/update), ale venue.delete
+        // nemá. delete() mu prejde len preto, že je to preňho odpojenie —
+        // EloquentVenueRepository::delete() nevlastníkovi miesto len odpojí od
+        // jeho kanálov. restore() je naopak čisto vlastnícka vec.
         $this->assertTrue($policy->view($member, $venueByCanal));
-        $this->assertFalse($policy->update($member, $venueByCanal));
-        $this->assertFalse($policy->delete($member, $venueByCanal));
+        $this->assertTrue($policy->update($member, $venueByCanal));
+        $this->assertTrue($policy->delete($member, $venueByCanal));
         $this->assertFalse($policy->restore($member, $venueByCanal));
+
+        // Brigádnik na vstupe s miestami nerobí nič.
+        $this->assertFalse($policy->view($checkin, $venueByCanal));
+        $this->assertFalse($policy->update($checkin, $venueByCanal));
+        $this->assertFalse($policy->delete($checkin, $venueByCanal));
+        $this->assertFalse($policy->restore($checkin, $venueByCanal));
 
         $venueByCanal->canals()->updateExistingPivot($canal->id, ['status' => ModelStatus::Draft->value]);
         $this->assertFalse($policy->view($member, $venueByCanal));
@@ -123,6 +150,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $member = User::factory()->create();
         $member->canals()->attach($ownerCanal->id, [
             'is_owner' => false,
+            'role' => CanalRole::Editor->value,
             'status' => ModelStatus::Published->value,
             'created_at' => now(),
             'updated_at' => now(),
@@ -131,7 +159,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $outsider = User::factory()->create();
         $unverified = User::factory()->unverified()->create();
 
-        $policy = new UserPolicy();
+        $policy = new UserPolicy;
 
         $this->assertTrue($policy->view($owner, $member));
         $this->assertTrue($policy->update($owner, $member));
@@ -148,4 +176,3 @@ class ModelPoliciesAuthorizationTest extends TestCase
         $this->assertFalse($policy->delete($owner, $outsider));
     }
 }
-

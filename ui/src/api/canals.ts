@@ -1,6 +1,5 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapContactEmailState } from './contactEmail'
 import type { CanalItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
@@ -21,7 +20,6 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     titlePrefix: (raw['title_prefix'] as string) ?? null,
     titleSuffix: (raw['title_suffix'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
-    emailVerification: mapContactEmailState(raw['email_verification']),
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     phone: (raw['phone'] as string) ?? null,
     body: (raw['body'] as string) ?? null,

@@ -8,7 +8,6 @@ use App\Enums\ModelStatus;
 use App\Models\Traits\HasCheckedAttributes;
 use App\Models\Traits\HasCommonFilters;
 use App\Models\Traits\HasFile;
-use App\Models\Traits\HasVerifiableEmail;
 use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\SanitizesHtmlBody;
@@ -22,7 +21,7 @@ class Venue extends Model implements Messageable
     /**
      * Venue je fyzicke miesto, kde sa event kona alebo kde ma canal sidlo.
      */
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasVerifiableEmail, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool

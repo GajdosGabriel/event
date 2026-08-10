@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Http\Controllers\Concerns\VerifiesContactEmail;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Requests\OrganizationStoreRequest;
@@ -21,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class DashboardOrganizationController extends Controller
 {
-    use HasAllowedStatuses, VerifiesContactEmail;
+    use HasAllowedStatuses;
 
     protected OrganizationRepository $organizationRepository;
 
@@ -96,10 +95,6 @@ class DashboardOrganizationController extends Controller
             return [$organization, $account];
         });
 
-        // Až po transakcii — overovací e-mail nesmie odísť na adresu, ktorú
-        // odmietnutie zo strany Accountu vzápätí vráti späť.
-        $this->syncContactEmailVerification($organization);
-
         return response()->json(
             (new OrganizationResource($organization))->withAccount($account),
             201
@@ -127,7 +122,6 @@ class DashboardOrganizationController extends Controller
             return [$organization, $account];
         });
 
-        $this->syncContactEmailVerification($organization);
 
         return response()->json(
             (new OrganizationResource($organization))->withAccount($account)

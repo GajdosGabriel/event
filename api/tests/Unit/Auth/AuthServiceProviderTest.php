@@ -2,12 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Providers\AuthServiceProvider;
-use App\Models\User;
 use Illuminate\Support\Facades\Gate;
-use Tests\TestCase;
 use Tests\TestSupport\UserSetupTest;
-
 
 class AuthServiceProviderTest extends UserSetupTest
 {
@@ -19,14 +15,18 @@ class AuthServiceProviderTest extends UserSetupTest
         // (za predpokladu, že máte before() metódu v Policy alebo Gate pre super admina)
         $this->assertTrue(Gate::allows('some-ability'));
 
-
-
         // Pre overenie, že to neovplyvní iných užívateľov
         $this->user->assignRole('canal-editor'); // Pridáme normálnu rolu pre testovanie
         $this->actingAs($this->user, 'sanctum');
 
-        $this->assertFalse(Gate::allows('event.delete')); // Predpokladáme, že normálny užívateľ nemá túto schopnosť
-        $this->assertFalse(Gate::allows('event.create')); // Predpokladáme, že normálny užívateľ nemá túto schopnosť
-        $this->assertFalse(Gate::allows('event.update')); // Predpokladáme, že normálny užívateľ nemá túto schopnosť
+        // Editor podujatia zakladá a upravuje — migrácia
+        // 2026_07_29_130002_seed_canal_team_roles mu tie práva zámerne pridala.
+        $this->assertTrue(Gate::allows('event.create'));
+        $this->assertTrue(Gate::allows('event.update'));
+
+        // Mazanie ostáva vlastníkovi; tu sa ukáže, že Gate::before() nepustí
+        // super-admin skratku na bežného používateľa.
+        $this->assertFalse(Gate::allows('event.delete'));
+        $this->assertFalse(Gate::allows('canal.delete'));
     }
 }

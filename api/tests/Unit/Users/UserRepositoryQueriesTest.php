@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Users;
 
-use App\Enums\ModelStatus;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepository;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use LogicException;
 use Tests\TestCase;
 
 class UserRepositoryQueriesTest extends TestCase
@@ -13,6 +13,7 @@ class UserRepositoryQueriesTest extends TestCase
     use DatabaseTransactions;
 
     private UserRepository $userRepository;
+
     private User $authUser;
 
     protected function setUp(): void
@@ -28,9 +29,11 @@ class UserRepositoryQueriesTest extends TestCase
     {
         $ownedCanalId = $this->authUser->canals()->value('canals.id');
 
-        $visibleUser = User::factory()->create([
-            'canal_id' => $ownedCanalId,
-        ]);
+        // canal_id sa musí prepísať až po vytvorení: UserObserver po overenom
+        // e-maile založí osobný kanál cez PersonalCanalProvisioner a canal_id
+        // si pri tom nastaví sám, takže hodnota podaná factory zanikne.
+        $visibleUser = User::factory()->create();
+        $visibleUser->update(['canal_id' => $ownedCanalId]);
 
         $hiddenUser = User::factory()->create();
 
@@ -53,27 +56,22 @@ class UserRepositoryQueriesTest extends TestCase
         $this->assertTrue($results->contains('id', $deletedUser->id));
     }
 
-    public function test_public_index_query_returns_only_verified_published_users(): void
+    /**
+     * Používateľ nie je verejný obsah — zoznam nesmie existovať. Metódu drží
+     * len InterfaceRepository, takže je zámerne nepoužiteľná; tento test drží
+     * ten zámer, aby ju niekto omylom nedoplnil späť.
+     */
+    public function test_public_index_query_is_not_available(): void
     {
-        $publicUser = User::factory()->create([
-            'status' => ModelStatus::Published->value,
-            'email_verified_at' => now(),
-        ]);
+        $this->expectException(LogicException::class);
 
-        $draftUser = User::factory()->create([
-            'status' => ModelStatus::Draft->value,
-            'email_verified_at' => now(),
-        ]);
+        $this->userRepository->publicIndexQuery();
+    }
 
-        $unverifiedUser = User::factory()->create([
-            'status' => ModelStatus::Published->value,
-            'email_verified_at' => null,
-        ]);
+    public function test_public_show_is_not_available(): void
+    {
+        $this->expectException(LogicException::class);
 
-        $results = $this->userRepository->publicIndexQuery()->get();
-
-        $this->assertTrue($results->contains('id', $publicUser->id));
-        $this->assertFalse($results->contains('id', $draftUser->id));
-        $this->assertFalse($results->contains('id', $unverifiedUser->id));
+        $this->userRepository->publicShow($this->authUser->id);
     }
 }

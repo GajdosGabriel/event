@@ -34,24 +34,6 @@ return [
         'ignore'  => 'If you did not create an account, no action is required.',
     ],
 
-    // App\Notifications\ContactEmailVerificationRequest — overenie kontaktnej
-    // adresy kanála / miesta / podujatia / firmy.
-    'contact_email_verification' => [
-        'types' => [
-            'canal'        => 'the channel',
-            'venue'        => 'the venue',
-            'event'        => 'the event',
-            'organization' => 'the organiser',
-        ],
-        'subject'     => 'Confirm the contact e-mail for :type',
-        'intro'       => 'This address was entered as the contact e-mail for :type on the events portal.',
-        'intro_named' => 'This address was entered as the contact e-mail for :type **“:name”** on the events portal.',
-        'why'         => 'Confirming tells us the address really is yours. Until you do, it stays marked as unverified.',
-        'action'      => 'Confirm address',
-        'expires'     => '{1} The link is valid for :count hour.|[2,*] The link is valid for :count hours.',
-        'ignore'      => 'If the address is not yours or you know nothing about the contact, simply ignore this e-mail — nothing happens without confirmation.',
-    ],
-
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     'attribute_issue' => [

@@ -3,23 +3,23 @@
 namespace Tests\Unit\Users;
 
 use App\Enums\ModelStatus;
-
-use Tests\TestCase; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
-use App\Models\Canal;
-use Illuminate\Support\Facades\Schema; // <-- Pridajte tento import pre prácu s databázou
+use App\Models\Canal; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
+// <-- Pridajte tento import pre prácu s databázou
 use App\Repositories\Contracts\CanalRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
 
 class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
 {
     // Po registrácií usera vytvorý canal a priradí ho k userovi. Pomocou Observeru.
 
     use DatabaseTransactions;
+
     protected CanalRepository $canalRepository;
+
     protected $user;
+
     protected $canal;
 
     protected function setUp(): void
@@ -30,10 +30,10 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
 
         $this->user = User::factory()->create();
 
-
         $this->actingAs($this->user, 'sanctum');
-        $canal = Canal::factory()->make()->toArray();
-        $this->canal = $this->canalRepository->create($canal);
+        // raw() a nie make()->toArray() — toArray() pribalí $appends kanála
+        // (has_primary_image a spol.), ktoré v tabuľke nie sú.
+        $this->canal = $this->canalRepository->create(Canal::factory()->raw());
     }
 
     public function test_create_canal_by_new_registration_user()
@@ -57,10 +57,9 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
         $this->assertSame(ModelStatus::Published->value, $canal->pivot->status, 'status by mal byt published');
 
         // Alebo alternatívne pre boolean check:
-        $this->assertTrue((bool)$canal->pivot->is_owner, 'is_owner by mal byť true');
+        $this->assertTrue((bool) $canal->pivot->is_owner, 'is_owner by mal byť true');
         $this->assertSame(ModelStatus::Published->value, $canal->pivot->status, 'status by mal byt published');
     }
-
 
     public function test_canal_has_pivot_record()
     {
@@ -68,7 +67,7 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
             'user_id' => $this->user->id,
             'canal_id' => $this->canal->id,
             'is_owner' => 1,
-            'status' => ModelStatus::Published->value
+            'status' => ModelStatus::Published->value,
         ]);
     }
 
@@ -76,13 +75,13 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
     {
         // Aktualizácia pivot hodnoty
         $this->user->canals()->updateExistingPivot($this->canal->id, [
-            'status' => ModelStatus::Draft->value
+            'status' => ModelStatus::Draft->value,
         ]);
 
         $this->assertDatabaseHas('canal_user', [
             'user_id' => $this->user->id,
             'canal_id' => $this->canal->id,
-            'status' => ModelStatus::Draft->value
+            'status' => ModelStatus::Draft->value,
         ]);
     }
 
@@ -92,7 +91,7 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
 
         $this->assertDatabaseMissing('canal_user', [
             'user_id' => $this->user->id,
-            'canal_id' => $this->canal->id
+            'canal_id' => $this->canal->id,
         ]);
     }
 
@@ -158,4 +157,3 @@ class UserCreateCanalTest extends TestCase // <-- Zmena základnej triedy
     //     $this->assertTrue((bool)$pivot->status, 'status by mal byť published');
     // }
 }
-

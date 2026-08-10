@@ -28,7 +28,12 @@ class UserFactory extends Factory
 
         return [
             'email' => fake()->unique()->safeEmail(),
-            'canal_id' => $this->faker->numberBetween(1, 20),
+            // Osobný kanál zakladá až UserObserver po overení e-mailu (cez
+            // PersonalCanalProvisioner) a ten si canal_id nastaví sám. Náhodné
+            // číslo tu klamalo: User::canalIdsWithAbility() berie canal_id ako
+            // „som vlastník tohto kanála" bez overenia, že kanál existuje,
+            // takže aj neoverený účet vyzeral, že niečo vlastní.
+            'canal_id' => null,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -45,7 +50,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
     }

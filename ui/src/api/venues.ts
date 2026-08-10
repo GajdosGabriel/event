@@ -1,6 +1,5 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapContactEmailState } from './contactEmail'
 import type { VenueItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
@@ -21,7 +20,6 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     body: (raw['body'] as string) ?? null,
     website: (raw['website'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
-    emailVerification: mapContactEmailState(raw['email_verification']),
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     phone: (raw['phone'] as string) ?? null,
     country: (raw['country'] as string) ?? null,

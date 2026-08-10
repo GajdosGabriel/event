@@ -96,16 +96,7 @@
             Zobrazuje sa na verejnom profile — sem píšu návštevníci.
           </p>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <ContactEmailField
-              v-model="form.email"
-              target="organization"
-              :target-id="organizationId"
-              :state="emailVerification"
-              :saved-email="savedEmail"
-              label="E-mail"
-              :error="errors['email']"
-              @resent="reloadEmailState"
-            />
+            <FormField v-model="form.email" type="email" label="E-mail" :error="errors['email']" />
             <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors['phone']" />
             <FormField v-model="form.website" type="url" label="Web" :error="errors['website']" placeholder="https://" class="lg:col-span-2">
               <template #footer>
@@ -269,7 +260,7 @@ import {
   detachCanalFromOrganization,
 } from '@/api/organizations'
 import { indexCanals } from '@/api/canals'
-import type { CanalItem, ContactEmailState, OrganizationAccountData, OrganizationCanal } from '@/types'
+import type { CanalItem, OrganizationAccountData, OrganizationCanal } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -277,7 +268,6 @@ import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
-import ContactEmailField from '@/components/ContactEmailField.vue'
 import FormSection from '@/components/FormSection.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
@@ -290,20 +280,12 @@ const isCreate = computed(() => !route.params['id'])
 const indexRoute = computed(() => `${prefix.value}/organizations`)
 const organizationId = computed(() => route.params['id'] ? Number(route.params['id']) : null)
 
-// Overenie verejného kontaktu. Fakturačný e-mail je iná adresa — tú si overuje
-// Account a jej stav chodí v `account.contact` (viď billingEmailState nižšie).
-const emailVerification = ref<ContactEmailState | null>(null)
-const savedEmail = ref('')
-
-/** Detaily o čakajúcom overení chodia len z detailu, preto sa načítajú znova. */
-async function reloadEmailState() {
+/** Po uložení sa upozornenie na web načíta znova — adresa sa mohla zmeniť. */
+async function reloadWebsiteIssue() {
   if (organizationId.value === null) return
   try {
-    const o = await showOrganization(scope.value, organizationId.value)
-    applyWebsiteIssue(o)
-    savedEmail.value = o.email ?? ''
-    emailVerification.value = o.emailVerification
-  } catch { /* stav overenia nie je kritický */ }
+    applyWebsiteIssue(await showOrganization(scope.value, organizationId.value))
+  } catch { /* upozornenie nie je kritické — formulár funguje aj bez neho */ }
 }
 
 // Číselníky sú v Accounte (App\Enums), tu ich stačí zobraziť. Hodnoty musia
@@ -510,8 +492,6 @@ onMounted(async () => {
     account.value = accountToForm(o.account)
     canals.value = o.canals
     applyWebsiteIssue(o)
-    savedEmail.value = o.email ?? ''
-    emailVerification.value = o.emailVerification
   } catch {
     serverError.value = 'Organizáciu sa nepodarilo načítať.'
   }
@@ -586,7 +566,7 @@ async function submit() {
       const o = await updateOrganization(scope.value, Number(route.params['id']), payload)
       accountData.value = o.account
       toast.success('Uložené.')
-      await reloadEmailState()
+      await reloadWebsiteIssue()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

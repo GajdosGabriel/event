@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
  * Chodí len na detaile a len tomu, kto smie záznam upravovať. Nie preto, že by
  * to bolo tajomstvo, ale preto, že je to informácia na konanie: návštevníkovi
  * je nanič a vo výpise by za každý riadok pribudol dopyt navyše (rovnaká
- * úvaha ako pri HasContactEmailState).
+ * úvaha ako pri `contactable` v resource).
  *
  * `pending` sa nevracia vôbec — „zatiaľ sme neoverili" nie je čo zobrazovať
  * a v UI by z toho bola blikajúca značka pri každom novom zázname.

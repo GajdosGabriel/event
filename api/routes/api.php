@@ -34,7 +34,6 @@ use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpCont
 use App\Http\Controllers\Public\BrokenLinkReportController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
-use App\Http\Controllers\Public\ContactEmailVerificationController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
@@ -167,17 +166,6 @@ Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confi
 Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])
     ->name('public.rsvp.decline')
     ->middleware('throttle:public-write');
-
-// Overenie kontaktného e-mailu kanála / miesta / podujatia / firmy.
-// Potvrdenie je bez prihlásenia — adresu potvrdzuje jej majiteľ, ktorý účet
-// v portáli mať nemusí; autorizuje ho token z e-mailu. Opakované odoslanie
-// naopak účet vyžaduje, inak by sa dalo posielať na cudzie adresy podľa id.
-Route::post('contact-email/verify', [ContactEmailVerificationController::class, 'verify'])
-    ->name('public.contact-email.verify')
-    ->middleware('throttle:public-write');
-Route::post('contact-email/resend', [ContactEmailVerificationController::class, 'resend'])
-    ->name('public.contact-email.resend')
-    ->middleware(['auth:sanctum', 'throttle:register']);
 
 // Pozvánka do tímu kanála z e-mailu. Detail je verejný (autorizuje token
 // v odkaze), prijatie vyžaduje prihlásený účet s rovnakou adresou.

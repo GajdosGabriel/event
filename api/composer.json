@@ -12,7 +12,6 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "openai-php/laravel": "^0.18.0",
-        "sentry/sentry-laravel": "^4.27",
         "spatie/laravel-permission": "^6.20"
     },
     "require-dev": {

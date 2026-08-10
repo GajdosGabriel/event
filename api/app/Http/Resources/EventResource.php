@@ -6,14 +6,13 @@ use App\Enums\ModelStatus;
 use App\Enums\TicketTypeKindOption;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
-use App\Http\Resources\Traits\HasContactEmailState;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class EventResource extends JsonResource
 {
-    use HasAllowedStatuses, HasAttributeCheckState, HasContactEmailState;
+    use HasAllowedStatuses, HasAttributeCheckState;
 
     /**
      * Transform the resource into an array.
@@ -39,7 +38,6 @@ class EventResource extends JsonResource
         $data['date_range_label'] = $this->dateRangeLabel();
         $data['date_range_days'] = $this->dateRangeDays();
         $data['status_label'] = $this->statusLabel();
-        $data['email_verification'] = $this->contactEmailState($request);
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);
 

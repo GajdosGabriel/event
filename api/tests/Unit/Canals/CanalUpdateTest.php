@@ -16,8 +16,8 @@ class CanalUpdateTest extends CanalSetupTest
         $canal->delete();
 
         $payload = [
-            'name' => 'Updated Canal ' . Str::random(5),
-            'body' => 'Updated canal body ' . Str::random(20),
+            'name' => 'Updated Canal '.Str::random(5),
+            'body' => 'Updated canal body '.Str::random(20),
             'municipality_id' => $canal->municipality_id,
         ];
 
@@ -26,7 +26,8 @@ class CanalUpdateTest extends CanalSetupTest
 
         $this->assertSame($canal->id, $updatedCanal->id);
         $this->assertSame($payload['name'], $updatedCanal->name);
-        $this->assertSame($payload['body'], $updatedCanal->body);
+        // Nie assertSame: SanitizesHtmlBody obalí čistý text do <p>.
+        $this->assertStringContainsString($payload['body'], $updatedCanal->body);
         $this->assertSoftDeleted('canals', [
             'id' => $canal->id,
         ]);
