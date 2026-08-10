@@ -1,0 +1,1 @@
+function l(e){if(!e||typeof e!="object")return null;const o=e,s={};for(const u of["website"]){const n=o[u];if(!n||typeof n!="object")continue;const t=n;s[u]={status:"failed",reason:t.reason??null,httpStatus:t.http_status??null,failures:Number(t.failures??0),checkedAt:t.checked_at??null,notifiedAt:t.notified_at??null}}return Object.keys(s).length>0?s:null}export{l as m};
