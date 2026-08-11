@@ -4,7 +4,7 @@
       <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
       </svg>
-      Kraje Slovenska
+      {{ t('filters.regions.title') }}
     </div>
 
     <ul class="list">
@@ -13,7 +13,7 @@
           <svg class="h-3 w-3 shrink-0 text-blue-500" viewBox="0 0 12 12" fill="currentColor">
             <path d="M10 3L5 8.5 2 5.5l-1 1 4 4 6-7z"/>
           </svg>
-          Všetky regióny
+          {{ t('filters.regions.all') }}
         </RouterLink>
       </li>
 
@@ -66,6 +66,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import http from '@/api/index'
 import { PUBLIC_EVENTS, publicMunicipalityPath } from '@/utils/publicUrl'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   scope: 'dashboard' | 'admin' | 'public'

@@ -8,7 +8,7 @@
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <input v-model="search" type="search" placeholder="Hľadať podľa mena alebo e-mailu…"
+      <input v-model="search" type="search" :placeholder="t('filters.attendees.search')"
         class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         @input="onSearch" />
       <button type="button" class="btn btn-secondary" :disabled="exporting" @click="onExport">
@@ -154,6 +154,9 @@ import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import FormField from '@/components/FormField.vue'
 import RowActions from '@/components/RowActions.vue'
 import type { PaginatedResponse, TicketItem } from '@/types'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const toast = useToast()

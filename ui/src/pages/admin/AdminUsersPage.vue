@@ -20,8 +20,8 @@
       :sort-options="sortOptions"
     >
       <template #filters>
-        <select v-model="roleFilter" class="form-input w-auto" title="Rola">
-          <option value="">Všetky role</option>
+        <select v-model="roleFilter" class="form-input w-auto" :title="t('filters.users.roleTitle')">
+          <option value="">{{ t('filters.users.allRoles') }}</option>
           <option v-for="role in roles" :key="role.name" :value="role.name">
             {{ role.label ?? roleLabel(role.name, roles) }}
           </option>
@@ -154,9 +154,11 @@ import {
 } from '@/utils/userDisplay'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import RowActions from '@/components/RowActions.vue'
+import { useI18n } from '@/i18n'
 
 const SCOPE = 'admin' as const
 
+const { t } = useI18n()
 const toast = useToast()
 const auth = useAuthStore()
 const users = ref<Record<string, unknown>[]>([])
@@ -172,19 +174,19 @@ function isSelf(user: Record<string, unknown>): boolean {
   return Number(user.id) === Number(auth.identity?.id)
 }
 
-const statusOptions: FilterOption[] = [
-  { value: 'active', label: 'Aktívny' },
-  { value: 'blocked', label: 'Blokovaný' },
-  { value: 'unverified', label: 'Neoverený' },
-  { value: 'deleted', label: 'Zmazaný' },
-]
+const statusOptions = computed<FilterOption[]>(() => [
+  { value: 'active', label: t('filters.users.statuses.active') },
+  { value: 'blocked', label: t('filters.users.statuses.blocked') },
+  { value: 'unverified', label: t('filters.users.statuses.unverified') },
+  { value: 'deleted', label: t('filters.users.statuses.deleted') },
+])
 
-const sortOptions: FilterOption[] = [
-  { value: 'newest', label: 'Najnovší' },
-  { value: 'oldest', label: 'Najstarší' },
-  { value: 'activity', label: 'Podľa aktivity' },
-  { value: 'name', label: 'Meno A–Z' },
-]
+const sortOptions = computed<FilterOption[]>(() => [
+  { value: 'newest', label: t('filters.users.sort.newest') },
+  { value: 'oldest', label: t('filters.users.sort.oldest') },
+  { value: 'activity', label: t('filters.users.sort.activity') },
+  { value: 'name', label: t('filters.users.sort.name') },
+])
 
 const filteredUsers = computed(() => {
   const q = search.value.trim().toLowerCase()

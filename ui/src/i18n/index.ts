@@ -25,6 +25,20 @@ type Path<T> = {
 
 export type MessageKey = Path<Messages>
 
+/** Skupina tvarov jedného počítateľného slova. */
+type PluralForms = { one: string; few: string; many: string }
+
+/** Bodková cesta k takej skupine, napr. 'organizations.counts.canals'. */
+type PluralPath<T> = {
+  [K in keyof T & string]: T[K] extends PluralForms
+    ? K
+    : T[K] extends string
+      ? never
+      : `${K}.${PluralPath<T[K]>}`
+}[keyof T & string]
+
+export type PluralKey = PluralPath<Messages>
+
 function isSupported(value: string | null | undefined): value is Locale {
   return !!value && (SUPPORTED_LOCALES as string[]).includes(value)
 }
@@ -70,9 +84,25 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
   return value.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match))
 }
 
+/**
+ * Tvar podľa počtu: „1 kanál“, „2 kanály“, „5 kanálov“. Počet sa do vety
+ * dosadí ako {n}.
+ *
+ * Hranica 2–4 platí pre slovenčinu a češtinu; jazyky s dvoma tvarmi majú
+ * v slovníku `few` rovnaké ako `many`, takže volajúci nemusí vedieť, v akom
+ * jazyku práve je. Na plnú CLDR pluralizáciu (arabčina, poľština, ruština)
+ * to nestačí — tie by si vyžiadali Intl.PluralRules a iný tvar slovníka.
+ */
+export function plural(key: PluralKey, n: number): string {
+  const form = n === 1 ? 'one' : n < 5 ? 'few' : 'many'
+
+  return t(`${key}.${form}`, { n })
+}
+
 export function useI18n() {
   return {
     t,
+    plural,
     locale: computed(() => locale.value),
     setLocale,
     locales: SUPPORTED_LOCALES,

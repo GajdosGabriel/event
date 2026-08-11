@@ -27,7 +27,7 @@
             v-model="search"
             type="text"
             class="form-input h-8 text-sm"
-            placeholder="Hľadať…"
+            :placeholder="t('filters.search')"
             @click.stop
           />
         </div>
@@ -55,6 +55,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 interface Option { id: number; name: string }
 

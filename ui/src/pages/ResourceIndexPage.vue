@@ -96,6 +96,7 @@ import { useToast } from '@/composables/useToast'
 import { useSettings } from '@/composables/useSettings'
 import { fmtDate } from '@/utils/dateFormat'
 import { usePageQuery } from '@/composables/usePageQuery'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{
   resource: 'canal' | 'venue' | 'event'
@@ -106,6 +107,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { settings } = useSettings()
+const { t } = useI18n()
 
 const perPage = computed(() => {
   if (props.resource === 'event') return settings.value.eventsPerPage
@@ -243,15 +245,15 @@ const apiStatusOptions = ref<FilterOption[]>([])
 const DELETED_STATUS = 'deleted'
 const statusOptions = computed<FilterOption[]>(() => [
   ...apiStatusOptions.value,
-  { value: DELETED_STATUS, label: 'Zmazaný' },
+  { value: DELETED_STATUS, label: t('filters.deleted') },
 ])
 const sortOptions = computed<FilterOption[]>(() => {
   const opts: FilterOption[] = [
-    { value: 'newest', label: 'Najnovšie' },
-    { value: 'oldest', label: 'Najstaršie' },
-    { value: 'name', label: 'Názov A–Z' },
+    { value: 'newest', label: t('filters.sort.newest') },
+    { value: 'oldest', label: t('filters.sort.oldest') },
+    { value: 'name', label: t('filters.sort.name') },
   ]
-  if (props.resource === 'event') opts.push({ value: 'upcoming', label: 'Najbližší termín' })
+  if (props.resource === 'event') opts.push({ value: 'upcoming', label: t('filters.sort.upcoming') })
   return opts
 })
 

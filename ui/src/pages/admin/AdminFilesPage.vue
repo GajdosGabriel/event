@@ -17,7 +17,7 @@
           viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
         </svg>
-        <input v-model="filters.search" type="search" placeholder="Hľadať názov súboru…"
+        <input v-model="filters.search" type="search" :placeholder="t('filters.files.search')"
           class="form-input h-10 pl-9" @input="onSearchInput" />
       </div>
 
@@ -31,20 +31,20 @@
         </button>
       </div>
 
-      <input v-model.number="filters.fileable_id" type="number" placeholder="ID entity"
+      <input v-model.number="filters.fileable_id" type="number" :placeholder="t('filters.files.entityId')"
         class="form-input h-10 w-28" @keydown.enter="load(1)" @change="load(1)" />
 
       <label class="flex h-10 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
         :class="{ 'border-red-300 bg-red-50 text-red-700': filters.with_trashed }">
         <input type="checkbox" v-model="filters.with_trashed" class="accent-red-500" @change="load(1)" />
-        Vrátane zmazaných
+        {{ t('filters.files.withTrashed') }}
       </label>
 
       <button v-if="activeFilterCount > 0" type="button"
         class="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
         @click="resetFilters">
         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        Zrušiť filtre
+        {{ t('filters.reset') }}
         <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700">{{ activeFilterCount }}</span>
       </button>
     </div>
@@ -158,7 +158,9 @@ import type { RouteLocationRaw } from 'vue-router'
 import { listAdminFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import RowActions from '@/components/RowActions.vue'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const toast = useToast()
 
 const filters = ref({ fileable_type: '', fileable_id: undefined as number | undefined, search: '', with_trashed: false })
@@ -171,12 +173,12 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 const preview = ref<FileItem | null>(null)
 
-const typeOptions = [
-  { value: '', label: 'Všetky' },
-  { value: 'event', label: 'Event' },
-  { value: 'canal', label: 'Kanál' },
-  { value: 'venue', label: 'Miesto' },
-]
+const typeOptions = computed(() => [
+  { value: '', label: t('filters.files.types.all') },
+  { value: 'event', label: t('filters.files.types.event') },
+  { value: 'canal', label: t('filters.files.types.canal') },
+  { value: 'venue', label: t('filters.files.types.venue') },
+])
 
 const activeFilterCount = computed(() => {
   let n = 0

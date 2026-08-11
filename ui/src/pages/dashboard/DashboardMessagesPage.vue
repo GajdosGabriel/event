@@ -6,12 +6,12 @@
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <input v-model="search" type="search" placeholder="Hľadať v texte správ…"
+      <input v-model="search" type="search" :placeholder="t('filters.messages.search')"
         class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         @input="onSearch" />
       <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
         <input v-model="onlyUnread" type="checkbox" class="accent-teal-600" @change="load(1)" />
-        Len neprečítané
+        {{ t('filters.messages.onlyUnread') }}
       </label>
     </div>
 
@@ -113,7 +113,9 @@ import {
 import { useToast } from '@/composables/useToast'
 import FormField from '@/components/FormField.vue'
 import type { PaginatedResponse } from '@/types'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const toast = useToast()
 
 const messages = ref<MessageItem[]>([])

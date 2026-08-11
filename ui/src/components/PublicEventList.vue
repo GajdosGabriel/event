@@ -13,7 +13,7 @@
         <!-- Hľadanie bolo schované za ikonou a stav sa nedržal v adrese: výsledok
              sa nedal poslať ani založiť a tlačidlo „späť" ho zahodilo. -->
         <div class="relative">
-          <label for="event-search" class="sr-only">Hľadať podujatie podľa názvu</label>
+          <label for="event-search" class="sr-only">{{ t('filters.events.searchLabel') }}</label>
           <svg
             class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
@@ -26,7 +26,7 @@
             ref="searchInput"
             v-model="search"
             type="search"
-            placeholder="Hľadať podujatie…"
+            :placeholder="t('filters.events.search')"
             autocomplete="off"
             class="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-800 outline-none transition-colors focus:border-blue-500 sm:w-64"
             @input="onSearchInput"
@@ -35,7 +35,7 @@
           <button
             v-if="search"
             type="button"
-            aria-label="Zrušiť hľadanie"
+            :aria-label="t('filters.events.clearSearch')"
             class="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
             @click="clearSearch"
           >
@@ -74,7 +74,7 @@
 
         <!-- Časové okná mali vlastné adresy, ale zo zoznamu na ne nič neviedlo —
              „tento víkend" sa dalo nájsť len tak, že o ňom človek už vedel. -->
-        <nav aria-label="Rýchle filtre" class="flex flex-wrap gap-1.5">
+        <nav :aria-label="t('filters.events.quick')" class="flex flex-wrap gap-1.5">
           <RouterLink
             v-for="shortcut in shortcuts"
             :key="shortcut.to"
@@ -205,6 +205,7 @@ import TagChips from '@/components/TagChips.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { absoluteUrl, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { useI18n } from '@/i18n'
 
 const props = withDefaults(defineProps<{
   heading: string
@@ -229,6 +230,7 @@ const props = withDefaults(defineProps<{
 
 const route = useRoute()
 const { settings, save } = useSettings()
+const { t } = useI18n()
 
 const view = computed(() => settings.value.publicEventsView)
 
@@ -269,13 +271,13 @@ const { pageFromQuery, load: loadPage, goToPage: pushPage, replaceQuery } = useP
 
 const shortcuts = computed(() => [
   {
-    label: 'Všetky',
+    label: t('filters.events.all'),
     emoji: '📅',
     to: PUBLIC_EVENTS,
     active: !props.range && !props.tags && !props.municipality,
   },
   {
-    label: 'Tento víkend',
+    label: t('filters.events.weekend'),
     emoji: '🎉',
     to: publicWeekendPath(),
     active: props.range === 'weekend',

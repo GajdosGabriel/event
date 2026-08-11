@@ -59,6 +59,43 @@ class LocaleTest extends TestCase
     }
 
     #[Test]
+    public function accept_language_respects_quality_over_order(): void
+    {
+        // Poradie v hlavičke nie je záväzné — rozhoduje q.
+        $this->withHeader('Accept-Language', 'en;q=0.3,de;q=0.5,cs;q=0.9')
+            ->getJson('/api')
+            ->assertHeader('Content-Language', 'cs');
+    }
+
+    #[Test]
+    public function language_without_quality_beats_one_with_it(): void
+    {
+        // Chýbajúce q znamená 1.0, takže "en" má prednosť pred "cs;q=0.9".
+        $this->withHeader('Accept-Language', 'cs;q=0.9,en')
+            ->getJson('/api')
+            ->assertHeader('Content-Language', 'en');
+    }
+
+    #[Test]
+    public function a_variant_does_not_lower_the_quality_of_its_base_language(): void
+    {
+        // Bežný tvar z prehliadača: "cs-CZ,cs;q=0.9,en;q=0.8". Obe položky
+        // vedú na "cs", platiť musí tá vyššia — inak by vyhralo "en".
+        $this->withHeader('Accept-Language', 'cs-CZ,cs;q=0.9,en;q=0.95')
+            ->getJson('/api')
+            ->assertHeader('Content-Language', 'cs');
+    }
+
+    #[Test]
+    public function language_rejected_with_q_zero_is_skipped(): void
+    {
+        // "q=0" znamená „tento jazyk nechcem" — musí prepadnúť na default.
+        $this->withHeader('Accept-Language', 'cs;q=0,pl;q=0.9')
+            ->getJson('/api')
+            ->assertHeader('Content-Language', 'sk');
+    }
+
+    #[Test]
     public function first_supported_language_in_accept_language_wins(): void
     {
         // Poľštinu nevieme, čeština je až druhá — aj tak sa má chytiť.

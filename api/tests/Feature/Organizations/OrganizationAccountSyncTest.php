@@ -3,6 +3,7 @@
 namespace Tests\Feature\Organizations;
 
 use App\Models\Organization;
+use App\Services\Account\AccountClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -167,7 +168,9 @@ class OrganizationAccountSyncTest extends UserSetupTest
     {
         Http::fake(fn () => throw new ConnectionException('Connection refused'));
 
-        $response = $this->postJson('/api/dashboard/organizations', [
+        // Hláška ide používateľovi, takže je v jeho jazyku — bez X-Locale by
+        // testovací request spadol na implicitné „Accept-Language: en“.
+        $response = $this->withHeader('X-Locale', 'sk')->postJson('/api/dashboard/organizations', [
             'title' => 'Vypnutý Account',
             'status' => 'draft',
         ]);
@@ -204,7 +207,8 @@ class OrganizationAccountSyncTest extends UserSetupTest
 
         $this->user->givePermissionTo('organization.create');
 
-        $response = $this->postJson('/api/dashboard/organizations/lookup-ico', ['ico' => '31820204']);
+        $response = $this->withHeader('X-Locale', 'sk')
+            ->postJson('/api/dashboard/organizations/lookup-ico', ['ico' => '31820204']);
 
         $response->assertOk();
         $response->assertJsonPath('found', false);
@@ -249,10 +253,65 @@ class OrganizationAccountSyncTest extends UserSetupTest
         $response->assertJsonPath('account.identifiers.ico', '87654321');
     }
 
+    /**
+     * Jazyk používateľa musí prejsť aj cez Event do Accountu — validačné
+     * hlášky o IČO či IČ DPH píše Account a číta ich ten, kto vypĺňa
+     * formulár, nie server.
+     */
+    #[Test]
+    public function users_language_travels_with_the_request_to_account(): void
+    {
+        Http::fake([
+            'https://account.test/api/v1/organizations' => Http::response([
+                'data' => ['id' => '11111111-2222-3333-4444-555555555555', 'name' => 'Kulturhaus'],
+                'created' => true,
+            ], 201),
+        ]);
+
+        $this->withHeader('X-Locale', 'de')->postJson('/api/dashboard/organizations', [
+            'title' => 'Kulturhaus',
+            'status' => 'draft',
+            'account' => ['ico' => '12345678'],
+        ])->assertStatus(201);
+
+        Http::assertSent(fn ($request) => $request->header('Accept-Language') === ['de']);
+    }
+
+    /**
+     * Account posiela časť odpovede preloženú (`billing.missing`). Bez jazyka
+     * v kľúči by prvý návštevník zamkol hlášky pre všetkých ostatných.
+     */
+    #[Test]
+    public function billing_data_is_cached_per_language(): void
+    {
+        $uuid = 'ffffffff-0000-1111-2222-333333333333';
+
+        // Account odpovie tým, čo si vypýtal jazyk — tak je vidieť, či sa
+        // druhé volanie vôbec stalo, alebo prišlo z cache prvého jazyka.
+        Http::fake(fn ($request) => Http::response([
+            'data' => ['id' => $uuid, 'billing' => ['missing' => $request->header('Accept-Language')]],
+        ], 200));
+
+        $client = app(AccountClient::class);
+
+        app()->setLocale('sk');
+        $this->assertSame(['sk'], $client->organization($uuid)['billing']['missing']);
+
+        app()->setLocale('de');
+        $this->assertSame(['de'], $client->organization($uuid)['billing']['missing']);
+
+        // A ten istý jazyk druhýkrát už do Accountu nechodí.
+        $this->assertSame(['de'], $client->organization($uuid)['billing']['missing']);
+        Http::assertSentCount(2);
+    }
+
     #[Test]
     public function webhook_with_valid_signature_drops_cached_billing_data(): void
     {
-        Cache::put('account:org:ffffffff-0000-1111-2222-333333333333', ['id' => 'x'], 3600);
+        // Cache je po jazykoch — webhook musí zmazať všetky, inak by zvyšné
+        // jazyky ďalšiu hodinu ukazovali staré údaje.
+        Cache::put('account:org:sk:ffffffff-0000-1111-2222-333333333333', ['id' => 'x'], 3600);
+        Cache::put('account:org:de:ffffffff-0000-1111-2222-333333333333', ['id' => 'x'], 3600);
 
         $payload = [
             'event' => 'organization.updated',
@@ -274,7 +333,8 @@ class OrganizationAccountSyncTest extends UserSetupTest
         );
 
         $response->assertStatus(200);
-        $this->assertNull(Cache::get('account:org:ffffffff-0000-1111-2222-333333333333'));
+        $this->assertNull(Cache::get('account:org:sk:ffffffff-0000-1111-2222-333333333333'));
+        $this->assertNull(Cache::get('account:org:de:ffffffff-0000-1111-2222-333333333333'));
     }
 
     #[Test]

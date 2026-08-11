@@ -209,6 +209,53 @@ return [
         'canal_id'           => 'kanál',
         'municipality_id'    => 'obec',
 
+        // Organizácia – verejný profil
+        'title'              => 'názov',
+        'village_id'         => 'obec',
+        'person'             => 'typ subjektu',
+        'description'        => 'popis',
+        'phone'              => 'telefón',
+
+        /*
+         * Fakturačný blok putuje do Accountu. Kľúče sú s bodkou zámerne
+         * ploché: `'account' => [...]` by Laravel vrátil ako názov poľa
+         * `account` celé pole a hláška by sa nevykreslila.
+         *
+         * Chyby, ktoré vyhodí sám Account, prídu preložené z neho —
+         * tieto názvy platia pre kontrolu tvaru tu v Evente.
+         */
+        'account.name'              => 'názov firmy',
+        'account.legal_name'        => 'obchodné meno',
+        'account.legal_form'        => 'právna forma',
+        'account.ico'               => 'IČO',
+        'account.dic'               => 'DIČ',
+        'account.ic_dph'            => 'IČ DPH',
+        'account.vat_mode'          => 'vzťah k DPH',
+        'account.oss_registered'    => 'registrácia v OSS',
+        'account.register_court'    => 'registrový súd',
+        'account.register_section'  => 'oddiel',
+        'account.register_insert'   => 'vložka',
+        'account.established_at'    => 'dátum vzniku',
+        'account.street'            => 'ulica',
+        'account.street_no'         => 'číslo',
+        'account.city'              => 'mesto',
+        'account.postal_code'       => 'PSČ',
+        'account.region'            => 'kraj',
+        'account.country'           => 'krajina',
+        'account.email'             => 'e-mail',
+        'account.billing_email'     => 'e-mail na faktúry',
+        'account.phone'             => 'telefón',
+        'account.website'           => 'web',
+        'account.bank_name'         => 'banka',
+        'account.iban'              => 'IBAN',
+        'account.swift'             => 'SWIFT / BIC',
+        'account.currency'          => 'mena',
+        'account.payment_terms_days' => 'splatnosť',
+        'account.payment_method'    => 'spôsob platby',
+        'account.invoice_language'  => 'jazyk faktúry',
+        'account.invoice_delivery'  => 'doručovanie faktúr',
+        'account.supplier_number'   => 'naše číslo u zákazníka',
+
         // Používateľ
         'blocked_reason'     => 'dôvod blokovania',
         'blocked_until'      => 'blokovaný do',

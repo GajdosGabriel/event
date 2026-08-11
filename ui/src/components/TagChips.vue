@@ -12,7 +12,7 @@
         <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M3 4h18M6 12h12M10 20h4" stroke-linecap="round" />
         </svg>
-        Štítky
+        {{ t('filters.tags.title') }}
         <span
           v-if="active.length"
           class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[0.65rem] font-medium text-white"
@@ -45,7 +45,7 @@
         v-if="active.length"
         :to="basePath"
         class="text-xs text-slate-500 no-underline hover:text-slate-800 hover:underline"
-      >Zrušiť všetky</RouterLink>
+      >{{ t('filters.tags.clearAll') }}</RouterLink>
     </div>
 
     <div v-if="expanded" class="mt-3 space-y-3 border-t border-slate-100 pt-3">
@@ -77,7 +77,9 @@ import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { indexTags } from '@/api/tags'
 import type { TagGroupItem } from '@/types'
 import { PUBLIC_EVENTS, publicTagPath } from '@/utils/publicUrl'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 
 /**

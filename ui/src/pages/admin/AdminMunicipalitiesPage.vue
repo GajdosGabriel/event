@@ -5,7 +5,7 @@
       <button class="btn btn-primary" @click="openCreate">+ Nová obec</button>
     </div>
 
-    <input v-model="search" type="text" placeholder="Hľadať…" class="form-input w-56" @input="onSearch" />
+    <input v-model="search" type="text" :placeholder="t('filters.search')" class="form-input w-56" @input="onSearch" />
 
     <p v-if="loading" class="text-slate-600">Načítavam…</p>
 
@@ -69,9 +69,11 @@ import type { MunicipalityItem } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
+import { useI18n } from '@/i18n'
 
 const SCOPE = 'admin' as const
 
+const { t } = useI18n()
 const toast = useToast()
 const validation = provideFormValidation()
 const items = ref<MunicipalityItem[]>([])

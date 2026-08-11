@@ -76,7 +76,7 @@ class AccountClient
     public function lookupIco(string $ico, string $country = 'sk'): array
     {
         if (! $this->enabled()) {
-            return ['found' => false, 'error' => 'Napojenie na Account nie je nastavené.'];
+            return ['found' => false, 'error' => __('organizations.account.disabled')];
         }
 
         try {
@@ -87,7 +87,7 @@ class AccountClient
         } catch (ConnectionException $e) {
             Log::warning('Account: vyhladanie ICO neodpovedalo vcas', ['ico' => $ico, 'error' => $e->getMessage()]);
 
-            return ['found' => false, 'error' => 'Register neodpovedal načas. Skús to znova alebo údaje vyplň ručne.'];
+            return ['found' => false, 'error' => __('organizations.account.lookup_timeout')];
         } catch (\Throwable $e) {
             Log::warning('Account: vyhladanie ICO zlyhalo', [
                 'ico' => $ico,
@@ -96,7 +96,7 @@ class AccountClient
                 'error' => $e->getMessage(),
             ]);
 
-            return ['found' => false, 'error' => 'Register je momentálne nedostupný.'];
+            return ['found' => false, 'error' => __('organizations.account.lookup_failed')];
         }
     }
 
@@ -154,17 +154,26 @@ class AccountClient
 
     public function forget(string $uuid): void
     {
-        Cache::forget($this->key($uuid));
+        // Odpoveď je uložená zvlášť pre každý jazyk, takže zmazať jeden kľúč
+        // nestačí — ostatné jazyky by ďalšiu hodinu ukazovali staré údaje.
+        foreach (config('app.supported_locales', []) as $locale) {
+            Cache::forget($this->key($uuid, $locale));
+        }
     }
 
-    protected function key(string $uuid): string
+    /**
+     * Account posiela časť odpovede preloženú (napr. `billing.missing`, čo
+     * firme chýba na faktúru), preto je jazyk súčasťou kľúča. Bez neho by
+     * si prvý návštevník „zamkol“ hlášky pre všetkých ostatných.
+     */
+    protected function key(string $uuid, ?string $locale = null): string
     {
-        return "account:org:{$uuid}";
+        return 'account:org:'.($locale ?? app()->getLocale()).":{$uuid}";
     }
 
     protected function staleKey(string $uuid): string
     {
-        return "account:org:stale:{$uuid}";
+        return 'account:org:stale:'.app()->getLocale().":{$uuid}";
     }
 
     protected function request(?int $timeout = null): PendingRequest

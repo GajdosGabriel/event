@@ -103,7 +103,7 @@ class OrganizationSync
                 ? new HttpException(502, $this->upstreamMessage($e), $e)
                 : new ServiceUnavailableHttpException(
                     null,
-                    'Fakturačné údaje sa nepodarilo uložiť — Account neodpovedá. Skús to o chvíľu znova.',
+                    __('organizations.account.unavailable'),
                     $e,
                 );
         }
@@ -182,7 +182,7 @@ class OrganizationSync
         // Pri APP_DEBUG=false vracia Laravel na 5xx holé „Server Error“.
         // Také niečo používateľovi nepovie nič, tak si necháme vlastnú vetu.
         if (! is_string($message) || trim($message) === '' || $message === 'Server Error') {
-            return "Fakturačné údaje sa nepodarilo uložiť — Account odpovedal chybou (HTTP {$e->response->status()}). Podrobnosti sú v logu Eventu.";
+            return __('organizations.account.upstream_failed', ['status' => $e->response->status()]);
         }
 
         return 'Account: '.$message;

@@ -8,13 +8,13 @@
           ref="searchInput"
           v-model="search"
           type="search"
-          placeholder="Hľadať…"
+          :placeholder="t('filters.search')"
           class="form-input pr-8"
           @input="onSearchInput"
         />
         <kbd
           class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-300 bg-slate-50 px-1.5 text-xs text-slate-400"
-          title="Stlač / pre vyhľadávanie"
+          :title="t('filters.searchHint')"
         >/</kbd>
       </div>
 
@@ -26,7 +26,7 @@
         @click="expanded = !expanded"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 12h12M10 20h4"/></svg>
-        Filtre
+        {{ t('filters.toggle') }}
         <span
           v-if="activeCount > 0"
           class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700"
@@ -41,13 +41,13 @@
     >
     <!-- Status -->
     <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" @change="emitChange">
-      <option value="">Všetky stavy</option>
+      <option value="">{{ t('filters.allStatuses') }}</option>
       <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
     <!-- Sort -->
-    <select v-model="sort" class="form-input w-auto" title="Zoradenie" @change="emitChange">
-      <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+    <select v-model="sort" class="form-input w-auto" :title="t('filters.sortTitle')" @change="emitChange">
+      <option v-for="opt in sortChoices" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
     <!-- Extra filters injected by the host page -->
@@ -56,11 +56,11 @@
     <!-- Date range (events) -->
     <template v-if="showDateRange">
       <label class="flex items-center gap-1.5 text-sm text-slate-500">
-        Od
+        {{ t('filters.dateFrom') }}
         <input v-model="dateFrom" type="date" class="form-input w-auto" :max="dateTo || undefined" @change="emitChange" />
       </label>
       <label class="flex items-center gap-1.5 text-sm text-slate-500">
-        Do
+        {{ t('filters.dateTo') }}
         <input v-model="dateTo" type="date" class="form-input w-auto" :min="dateFrom || undefined" @change="emitChange" />
       </label>
     </template>
@@ -84,7 +84,7 @@
       @click="reset"
     >
       <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      Zrušiť filtre
+      {{ t('filters.reset') }}
       <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700">{{ activeCount }}</span>
     </button>
     </div>
@@ -93,6 +93,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from '@/i18n'
 
 export interface FilterOption {
   value: string
@@ -106,14 +107,21 @@ const props = withDefaults(defineProps<{
   canalFilter?: { id: number; name: string } | null
 }>(), {
   statusOptions: () => [],
-  sortOptions: () => [
-    { value: 'newest', label: 'Najnovšie' },
-    { value: 'oldest', label: 'Najstaršie' },
-    { value: 'name', label: 'Názov A–Z' },
-  ],
+  // Bez default hodnoty: predvolené zoradenie sa skladá až v `sortChoices`,
+  // inak by sa popisky preložili raz pri načítaní a prepnutie jazyka
+  // by ich už nezmenilo.
+  sortOptions: undefined,
   showDateRange: false,
   canalFilter: null,
 })
+
+const { t } = useI18n()
+
+const sortChoices = computed<FilterOption[]>(() => props.sortOptions ?? [
+  { value: 'newest', label: t('filters.sort.newest') },
+  { value: 'oldest', label: t('filters.sort.oldest') },
+  { value: 'name', label: t('filters.sort.name') },
+])
 
 const emit = defineEmits<{
   change: []

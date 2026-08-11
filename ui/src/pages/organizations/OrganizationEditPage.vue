@@ -1,12 +1,12 @@
 <template>
   <div class="edit-shell">
     <div class="edit-card">
-      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
+      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('organizations.form.back') }}</RouterLink>
       <h1 class="mb-1 mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-        {{ isCreate ? 'Nová organizácia' : 'Upraviť organizáciu' }}
+        {{ isCreate ? t('organizations.form.createTitle') : t('organizations.form.editTitle') }}
       </h1>
       <p class="text-sm text-slate-500">
-        Fakturačné údaje putujú do Accountu, profil vidia návštevníci portálu.
+        {{ t('organizations.form.lead') }}
       </p>
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
@@ -14,7 +14,7 @@
            až ten, kto sa doscrolluje k fakturačnému bloku. -->
       <div v-if="missingBilling.length"
         class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-        Na vystavenie faktúry ešte chýba: {{ missingBilling.join(', ') }}.
+        {{ t('organizations.billing.missing', { fields: missingBilling.join(', ') }) }}
       </div>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
@@ -22,11 +22,11 @@
              Binárna voľba nepotrebuje vlastnú sekciu: „Som“ a obe možnosti
              sa zmestia na jeden riadok a čítajú sa ako veta. -->
         <fieldset class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-          <legend class="px-1 text-sm font-semibold text-slate-900">Som</legend>
+          <legend class="px-1 text-sm font-semibold text-slate-900">{{ t('organizations.subject.legend') }}</legend>
           <div class="mt-2 flex flex-wrap gap-2">
             <label
-              v-for="type in SUBJECT_TYPES"
-              :key="type.label"
+              v-for="type in subjectTypes"
+              :key="String(type.person)"
               class="cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition"
               :class="form.person === type.person
                 ? 'border-blue-500 bg-blue-50/60 font-medium text-slate-900 ring-1 ring-blue-500/20'
@@ -41,13 +41,14 @@
 
         <!-- Pri organizácii je IČO prvé: z registra sa ním predvyplní
              zvyšok formulára, takže ručne písať treba čo najmenej. -->
-        <FormSection v-if="!isPerson" title="Načítať údaje z obchodného registra" :note="account.ico || 'IČO'"
+        <FormSection v-if="!isPerson" :title="t('organizations.register.title')"
+          :note="account.ico || t('organizations.register.ico')"
           default-open :force-open="hasRegisterError">
           <div class="grid gap-2 sm:flex sm:items-start sm:gap-3">
             <FormField v-model="account.ico" :error="errors['account.ico']" class="sm:w-56"
-              placeholder="IČO" @keydown.enter.prevent="runLookup" />
+              :placeholder="t('organizations.register.ico')" @keydown.enter.prevent="runLookup" />
             <button type="button" class="btn btn-primary btn-lg" :disabled="lookingUp || !account.ico" @click="runLookup">
-              {{ lookingUp ? 'Hľadám…' : 'Načítať z registra' }}
+              {{ lookingUp ? t('organizations.register.lookingUp') : t('organizations.register.lookup') }}
             </button>
             <span v-if="lookupMessage" class="text-sm sm:mt-2" :class="lookupOk ? 'text-green-600' : 'text-amber-700'">
               {{ lookupMessage }}
@@ -59,77 +60,78 @@
           <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <FormField
               v-model="account.legal_name"
-              label="Obchodné meno"
+              :label="t('organizations.register.legalName')"
               :error="errors['account.legal_name']"
-              :placeholder="form.title || 'Ako je zapísané v registri'"
+              :placeholder="form.title || t('organizations.register.legalNamePlaceholder')"
               class="lg:col-span-2"
             />
-            <FormField v-model="account.legal_form" type="select" label="Právna forma">
-              <option value="">— nevybrané —</option>
-              <option v-for="o in LEGAL_FORMS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            <FormField v-model="account.legal_form" type="select" :label="t('organizations.register.legalForm')">
+              <option value="">{{ t('organizations.form.unselected') }}</option>
+              <option v-for="o in LEGAL_FORMS" :key="o" :value="o">{{ t(`organizations.legalForms.${o}`) }}</option>
             </FormField>
-            <FormField v-model="account.dic" label="DIČ" :error="errors['account.dic']" />
-            <FormField v-model="account.vat_mode" type="select" label="Vzťah k DPH">
-              <option value="">— nevybrané —</option>
-              <option v-for="o in VAT_MODES" :key="o.value" :value="o.value">{{ o.label }}</option>
+            <FormField v-model="account.dic" :label="t('organizations.register.dic')" :error="errors['account.dic']" />
+            <FormField v-model="account.vat_mode" type="select" :label="t('organizations.register.vatMode')">
+              <option value="">{{ t('organizations.form.unselected') }}</option>
+              <option v-for="o in VAT_MODES" :key="o" :value="o">{{ t(`organizations.vatModes.${o}`) }}</option>
             </FormField>
             <FormField
               v-model="account.ic_dph"
-              label="IČ DPH"
+              :label="t('organizations.register.icDph')"
               :error="errors['account.ic_dph']"
-              hint="Overuje sa proti európskemu registru VIES."
+              :hint="t('organizations.register.icDphHint')"
               placeholder="SK2020123456"
             />
           </div>
 
-          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Sídlo</h3>
+          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">{{ t('organizations.register.seat') }}</h3>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="account.street" label="Ulica a číslo" :error="errors['account.street']" class="lg:col-span-2" />
-            <FormField v-model="account.city" label="Mesto" :error="errors['account.city']" />
-            <FormField v-model="account.postal_code" label="PSČ" :error="errors['account.postal_code']" />
-            <FormField v-model="account.country" type="select" label="Krajina" :error="errors['account.country']">
-              <option v-for="c in COUNTRIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+            <FormField v-model="account.street" :label="t('organizations.address.street')" :error="errors['account.street']" class="lg:col-span-2" />
+            <FormField v-model="account.city" :label="t('organizations.address.city')" :error="errors['account.city']" />
+            <FormField v-model="account.postal_code" :label="t('organizations.address.postalCode')" :error="errors['account.postal_code']" />
+            <FormField v-model="account.country" type="select" :label="t('organizations.address.country')" :error="errors['account.country']">
+              <option v-for="c in COUNTRIES" :key="c" :value="c">{{ t(`organizations.countries.${c}`) }}</option>
             </FormField>
           </div>
 
-          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Zápis v registri</h3>
+          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">{{ t('organizations.register.entry') }}</h3>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <FormField v-model="account.register_court" label="Súd" placeholder="napr. OS Trenčín" />
-            <FormField v-model="account.register_section" label="Oddiel" placeholder="Sro" />
-            <FormField v-model="account.register_insert" label="Vložka" placeholder="12345/R" />
+            <FormField v-model="account.register_court" :label="t('organizations.register.court')"
+              :placeholder="t('organizations.register.courtPlaceholder')" />
+            <FormField v-model="account.register_section" :label="t('organizations.register.section')" placeholder="Sro" />
+            <FormField v-model="account.register_insert" :label="t('organizations.register.insert')" placeholder="12345/R" />
           </div>
         </FormSection>
 
-        <FormSection title="Profil organizátora" :note="form.title || 'Názov, obec a popis pre verejný profil'"
+        <FormSection :title="t('organizations.profile.title')" :note="form.title || t('organizations.profile.note')"
           default-open :force-open="!!errors['title'] || !!errors['village_id'] || !!errors['status']">
           <p class="mb-3 text-sm text-slate-500">
-            Toto vidia návštevníci portálu.
+            {{ t('organizations.profile.lead') }}
           </p>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <FormField
               v-model="form.title"
-              :label="isPerson ? 'Meno a priezvisko' : 'Názov'"
+              :label="isPerson ? t('organizations.profile.personName') : t('organizations.profile.name')"
               required
               :error="errors['title']"
               class="lg:col-span-2"
             />
-            <FormField v-model="form.village_id" label="Obec / Mesto" :error="errors['village_id']">
+            <FormField v-model="form.village_id" :label="t('organizations.profile.village')" :error="errors['village_id']">
               <template #default="{ value, invalid, update }">
                 <SearchableSelect
                   :model-value="value ?? null"
                   :options="municipalities"
-                  placeholder="— vyberte obec —"
+                  :placeholder="t('organizations.profile.villagePlaceholder')"
                   :invalid="invalid"
                   @update:model-value="update"
                 />
               </template>
             </FormField>
-            <FormField v-model="form.status" type="select" label="Stav" :error="errors['status']">
-              <option value="draft">Koncept</option>
-              <option value="published">Publikovaná</option>
-              <option value="archived">Archivovaná</option>
+            <FormField v-model="form.status" type="select" :label="t('organizations.profile.status')" :error="errors['status']">
+              <option value="draft">{{ t('organizations.statuses.draft') }}</option>
+              <option value="published">{{ t('organizations.statuses.published') }}</option>
+              <option value="archived">{{ t('organizations.statuses.archived') }}</option>
             </FormField>
-            <FormField label="Popis" class="lg:col-span-2">
+            <FormField :label="t('organizations.profile.description')" class="lg:col-span-2">
               <HtmlEditor v-model="form.description" min-height="130px" />
             </FormField>
           </div>
@@ -137,51 +139,49 @@
 
         <!-- Verejný kontakt na organizátora. S fakturačným e-mailom nemá nič
              spoločné — ten drží Account a chodia naň doklady. -->
-        <FormSection title="Kontaktné údaje" :note="contactNote"
+        <FormSection :title="t('organizations.contact.title')" :note="contactNote"
           :force-open="!!errors['email'] || !!errors['phone'] || !!errors['website']">
           <p class="mb-3 text-sm text-slate-500">
-            Zobrazuje sa na verejnom profile — sem píšu návštevníci.
+            {{ t('organizations.contact.lead') }}
           </p>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.email" type="email" label="E-mail" :error="errors['email']" />
-            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors['phone']" />
-            <FormField v-model="form.website" type="url" label="Web" :error="errors['website']" placeholder="https://" class="lg:col-span-2">
+            <FormField v-model="form.email" type="email" :label="t('organizations.contact.email')" :error="errors['email']" />
+            <FormField v-model="form.phone" type="tel" :label="t('organizations.contact.phone')" :error="errors['phone']" />
+            <FormField v-model="form.website" type="url" :label="t('organizations.contact.website')" :error="errors['website']" placeholder="https://" class="lg:col-span-2">
               <template #footer>
-                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+                <AttributeIssueHint :issue="websiteIssue" :label="t('organizations.contact.websiteIssueLabel')" />
               </template>
             </FormField>
           </div>
         </FormSection>
 
         <!-- ── Fakturačné údaje ──────────────────────────────────────────── -->
-        <FormSection title="Fakturačné údaje" :note="billingNote" :force-open="hasBillingError">
+        <FormSection :title="t('organizations.billing.title')" :note="billingNote" :force-open="hasBillingError">
           <p class="mb-3 text-sm text-slate-500">
-            Ukladajú sa do Accountu — centrálnej evidencie firiem. Ak tú istú
-            firmu už eviduje iný projekt, Event sa na ňu podľa IČO naviaže
-            a údaje sa nebudú zadávať druhýkrát.
+            {{ t('organizations.billing.lead') }}
           </p>
 
           <div v-if="accountLine" class="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            Naviazané na Account: <span class="font-medium text-slate-800">{{ accountLine }}</span>
+            {{ t('organizations.billing.linked') }} <span class="font-medium text-slate-800">{{ accountLine }}</span>
           </div>
 
           <!-- Firemné údaje aj sídlo sú pri IČE, s ktorým sa načítali. Súkromná
                osoba tú sekciu nemá, preto sa jej adresa pýta tu. -->
           <template v-if="isPerson">
-            <h3 class="mt-1 mb-2 text-sm font-semibold text-slate-700">Adresa</h3>
+            <h3 class="mt-1 mb-2 text-sm font-semibold text-slate-700">{{ t('organizations.address.title') }}</h3>
             <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <FormField v-model="account.street" label="Ulica a číslo" :error="errors['account.street']" class="lg:col-span-2" />
-              <FormField v-model="account.city" label="Mesto" :error="errors['account.city']" />
-              <FormField v-model="account.postal_code" label="PSČ" :error="errors['account.postal_code']" />
-              <FormField v-model="account.country" type="select" label="Krajina" :error="errors['account.country']">
-                <option v-for="c in COUNTRIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+              <FormField v-model="account.street" :label="t('organizations.address.street')" :error="errors['account.street']" class="lg:col-span-2" />
+              <FormField v-model="account.city" :label="t('organizations.address.city')" :error="errors['account.city']" />
+              <FormField v-model="account.postal_code" :label="t('organizations.address.postalCode')" :error="errors['account.postal_code']" />
+              <FormField v-model="account.country" type="select" :label="t('organizations.address.country')" :error="errors['account.country']">
+                <option v-for="c in COUNTRIES" :key="c" :value="c">{{ t(`organizations.countries.${c}`) }}</option>
               </FormField>
             </div>
           </template>
 
-          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Fakturácia a banka</h3>
+          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">{{ t('organizations.billing.heading') }}</h3>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="account.billing_email" type="email" label="E-mail na faktúry" :error="errors['account.billing_email']">
+            <FormField v-model="account.billing_email" type="email" :label="t('organizations.billing.email')" :error="errors['account.billing_email']">
               <!-- Neoverená adresa nie je chyba formulára – potvrdenie príde
                    až po uložení, keď zákazník klikne na odkaz v e-maile. -->
               <template #footer>
@@ -193,28 +193,27 @@
                 </span>
               </template>
             </FormField>
-            <FormField v-model="account.bank_name" label="Banka" />
-            <FormField v-model="account.iban" label="IBAN" :error="errors['account.iban']"
+            <FormField v-model="account.bank_name" :label="t('organizations.billing.bank')" />
+            <FormField v-model="account.iban" :label="t('organizations.billing.iban')" :error="errors['account.iban']"
               placeholder="SK00 0000 0000 0000 0000 0000" />
-            <FormField v-model="account.swift" label="SWIFT / BIC" :error="errors['account.swift']" />
+            <FormField v-model="account.swift" :label="t('organizations.billing.swift')" :error="errors['account.swift']" />
           </div>
         </FormSection>
 
         <div class="flex items-center gap-3">
           <button type="submit" class="btn btn-primary btn-lg" :disabled="saving">
-            {{ saving ? 'Ukladám…' : 'Uložiť a odoslať do Accountu' }}
+            {{ saving ? t('organizations.form.saving') : t('organizations.form.save') }}
           </button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
+          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('organizations.form.cancel') }}</RouterLink>
         </div>
       </form>
 
       <!-- Komu firma patrí. Ľudia pod ňou nevisia priamo — členom sa je vždy
            v konkrétnom kanáli a tam platí aj rola. Firma je len fakturačná
            strecha nad kanálmi, preto sa tu pripája a odpája kanál. -->
-      <FormSection v-if="!isCreate" title="Kanály a ľudia" :note="canalsNote" class="mt-6">
+      <FormSection v-if="!isCreate" :title="t('organizations.canals.title')" :note="canalsNote" class="mt-6">
         <p class="mb-3 text-sm text-slate-500">
-          Pod firmou fakturujú tieto kanály. Členstvo drží kanál — rola platí vždy
-          len v ňom, preto sa ľudia pridávajú a odoberajú v tíme kanála.
+          {{ t('organizations.canals.lead') }}
         </p>
 
         <p v-if="canalsError" class="mb-3 text-red-600 text-sm">{{ canalsError }}</p>
@@ -226,10 +225,10 @@
                 class="flex-1 min-w-40 font-medium text-slate-900 no-underline hover:text-blue-700">
                 {{ canal.name }}
               </RouterLink>
-              <span class="text-xs text-slate-500">{{ canal.members.length }} členov</span>
+              <span class="text-xs text-slate-500">{{ plural('organizations.counts.members', canal.members.length) }}</span>
               <button type="button" class="action-btn action-btn-danger" :disabled="detaching === canal.id"
                 @click="detach(canal)">
-                {{ detaching === canal.id ? 'Odpájam…' : 'Odpojiť' }}
+                {{ detaching === canal.id ? t('organizations.canals.detaching') : t('organizations.canals.detach') }}
               </button>
             </div>
 
@@ -240,20 +239,20 @@
                 <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{{ roleLabel(member.role) }}</span>
               </li>
             </ul>
-            <p v-else class="mt-2 text-sm text-slate-400">Kanál zatiaľ nemá členov.</p>
+            <p v-else class="mt-2 text-sm text-slate-400">{{ t('organizations.canals.noMembers') }}</p>
           </li>
         </ul>
         <p v-else class="text-sm text-slate-500">
-          Pod firmou zatiaľ nefakturuje žiadny kanál — nie je za koho vystaviť faktúru.
+          {{ t('organizations.canals.empty') }}
         </p>
 
         <div class="mt-4 grid gap-2 sm:flex sm:items-end sm:gap-3">
-          <FormField v-model="canalToAttach" type="select" label="Priradiť kanál" class="sm:w-72">
-            <option :value="null">— vyber kanál —</option>
+          <FormField v-model="canalToAttach" type="select" :label="t('organizations.canals.attachLabel')" class="sm:w-72">
+            <option :value="null">{{ t('organizations.canals.attachPlaceholder') }}</option>
             <option v-for="canal in attachableCanals" :key="canal.id" :value="canal.id">{{ canal.name }}</option>
           </FormField>
           <button type="button" class="btn btn-secondary" :disabled="!canalToAttach || attaching" @click="attach">
-            {{ attaching ? 'Priraďujem…' : 'Priradiť' }}
+            {{ attaching ? t('organizations.canals.attaching') : t('organizations.canals.attach') }}
           </button>
         </div>
       </FormSection>
@@ -275,6 +274,7 @@ import {
 } from '@/api/organizations'
 import { indexCanals } from '@/api/canals'
 import type { CanalItem, OrganizationAccountData, OrganizationCanal } from '@/types'
+import { t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -302,42 +302,21 @@ async function reloadWebsiteIssue() {
   } catch { /* upozornenie nie je kritické — formulár funguje aj bez neho */ }
 }
 
-// Číselníky sú v Accounte (App\Enums), tu ich stačí zobraziť. Hodnoty musia
-// sedieť na enum — Account inak požiadavku odmietne.
-const LEGAL_FORMS = [
-  { value: 'sro', label: 'Spoločnosť s ručením obmedzeným' },
-  { value: 'zivnost', label: 'Živnosť' },
-  { value: 'as', label: 'Akciová spoločnosť' },
-  { value: 'ks', label: 'Komanditná spoločnosť' },
-  { value: 'vos', label: 'Verejná obchodná spoločnosť' },
-  { value: 'druzstvo', label: 'Družstvo' },
-  { value: 'nezisk', label: 'Nezisková organizácia' },
-  { value: 'fyzicka', label: 'Fyzická osoba' },
-  { value: 'ine', label: 'Iné' },
-]
+// Číselníky sú v Accounte (App\Enums), tu ostávajú len hodnoty — popisky
+// sa hľadajú v slovníku pod tým istým kľúčom. Hodnoty musia sedieť na enum,
+// Account inak požiadavku odmietne.
+const LEGAL_FORMS = ['sro', 'zivnost', 'as', 'ks', 'vos', 'druzstvo', 'nezisk', 'fyzicka', 'ine'] as const
 
-const VAT_MODES = [
-  { value: 'non_payer', label: 'Neplatiteľ DPH' },
-  { value: 'payer', label: 'Platiteľ DPH (§ 4)' },
-  { value: 'reg_7', label: 'Registrovaný podľa § 7' },
-  { value: 'reg_7a', label: 'Registrovaný podľa § 7a' },
-]
+const VAT_MODES = ['non_payer', 'payer', 'reg_7', 'reg_7a'] as const
 
-const COUNTRIES = [
-  { value: 'SK', label: 'Slovensko' },
-  { value: 'CZ', label: 'Česko' },
-  { value: 'AT', label: 'Rakúsko' },
-  { value: 'HU', label: 'Maďarsko' },
-  { value: 'PL', label: 'Poľsko' },
-]
+const COUNTRIES = ['SK', 'CZ', 'AT', 'HU', 'PL'] as const
 
 // Nie každý platiaci je firma. Od občana sa IČO ani zápis v registri
 // pýtať nedá – nikdy ich mať nebude.
-// Malé písmená zámerne: možnosti nadväzujú na „Som“ a čítajú sa ako veta.
-const SUBJECT_TYPES = [
-  { person: false, label: 'organizácia', hint: 'Firma, živnostník alebo nezisková organizácia s IČO.' },
-  { person: true, label: 'súkromná osoba', hint: 'Občan bez IČO. Stačí meno a adresa.' },
-]
+const subjectTypes = computed(() => [
+  { person: false, label: t('organizations.subject.company'), hint: t('organizations.subject.companyHint') },
+  { person: true, label: t('organizations.subject.person'), hint: t('organizations.subject.personHint') },
+])
 
 const { municipalities, loadMunicipalities } = useFormOptions(scope.value)
 
@@ -358,7 +337,7 @@ const isPerson = computed(() => form.value.person)
 
 /** Vysvetlivka k vybranej možnosti — nahrádza popisy pri oboch kartách. */
 const subjectHint = computed(() =>
-  SUBJECT_TYPES.find(t => t.person === form.value.person)?.hint ?? ''
+  subjectTypes.value.find(type => type.person === form.value.person)?.hint ?? ''
 )
 
 const account = ref(accountToForm(null))
@@ -373,14 +352,15 @@ const canalsError = ref<string | null>(null)
 const detaching = ref<number | null>(null)
 const attaching = ref(false)
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Vlastník',
-  editor: 'Dramaturg',
-  checkin: 'Vstup',
-}
+const ROLES = ['owner', 'editor', 'checkin'] as const
 
+/** Neznámu rolu zo servera ukážeme tak, ako prišla — radšej než prázdno. */
 function roleLabel(role: string | null) {
-  return role ? (ROLE_LABELS[role] ?? role) : 'Člen'
+  if (!role) return t('organizations.roles.member')
+
+  return ROLES.includes(role as typeof ROLES[number])
+    ? t(`organizations.roles.${role as typeof ROLES[number]}`)
+    : role
 }
 
 /** Ponúkame len kanály, ktoré pod firmou ešte nefakturujú. */
@@ -414,26 +394,24 @@ const missingBilling = computed(() => accountData.value?.billing?.missing ?? [])
    jediné, čo o nej človek vidí. */
 const contactNote = computed(() =>
   [form.value.email, form.value.phone, form.value.website].filter(Boolean).join(' · ')
-  || 'Zatiaľ nevyplnené'
+  || t('organizations.contact.empty')
 )
 
 const billingNote = computed(() => {
-  if (missingBilling.value.length) return `Chýba: ${missingBilling.value.join(', ')}`
-  return accountLine.value ?? 'E-mail na faktúry a bankové spojenie'
+  if (missingBilling.value.length) {
+    return t('organizations.billing.missingShort', { fields: missingBilling.value.join(', ') })
+  }
+
+  return accountLine.value ?? t('organizations.billing.note')
 })
 
 const canalsNote = computed(() => {
-  if (!canals.value.length) return 'Zatiaľ tu nefakturuje žiadny kanál'
+  if (!canals.value.length) return t('organizations.canals.note')
 
   const members = canals.value.reduce((n, c) => n + c.members.length, 0)
 
-  return `${plural(canals.value.length, 'kanál', 'kanály', 'kanálov')} · ${plural(members, 'člen', 'členovia', 'členov')}`
+  return `${plural('organizations.counts.canals', canals.value.length)} · ${plural('organizations.counts.members', members)}`
 })
-
-/** Slovenské tvary: 1 kanál, 2–4 kanály, 5+ kanálov. */
-function plural(n: number, one: string, few: string, many: string) {
-  return `${n} ${n === 1 ? one : n < 5 ? few : many}`
-}
 
 /* Chyba zo servera v zabalenej sekcii by ostala neviditeľná — sekcia sa preto
    otvorí sama. Adresa patrí firme k IČU a súkromnej osobe k fakturácii,
@@ -461,8 +439,8 @@ const billingEmailState = computed(() => {
   if (!contact?.billing_email_effective) return null
 
   return contact.billing_email_verified
-    ? { verified: true, label: 'E-mail je potvrdený.' }
-    : { verified: false, label: 'Neoverený — na adresu sme poslali žiadosť o potvrdenie.' }
+    ? { verified: true, label: t('organizations.billing.emailVerified') }
+    : { verified: false, label: t('organizations.billing.emailUnverified') }
 })
 
 /** Predvyplnenie z RPO/ARES. Prepisujeme len prázdne polia — ručne zadané
@@ -475,7 +453,9 @@ async function runLookup() {
 
     if (!res.found) {
       lookupOk.value = false
-      lookupMessage.value = res.error ?? 'Firma sa v registri nenašla.'
+      // `error` skladá Account, a už v jazyku požiadavky — vlastnú vetu
+      // použijeme len vtedy, keď žiadnu neposlal.
+      lookupMessage.value = res.error ?? t('organizations.register.notFound')
       return
     }
 
@@ -496,7 +476,7 @@ async function runLookup() {
     if (!form.value.title && res.name) form.value.title = res.name
 
     lookupOk.value = true
-    lookupMessage.value = `Načítané z registra: ${res.name ?? ''}`.trim()
+    lookupMessage.value = t('organizations.register.loaded', { name: res.name ?? '' }).trim()
   } catch (e: unknown) {
     // Nepodmienené „register je nedostupný" tu už raz stálo hodinu hľadania:
     // odmietnuté právo aj prekročený limit vyzerali ako výpadok registra.
@@ -504,8 +484,8 @@ async function runLookup() {
 
     lookupOk.value = false
     lookupMessage.value = response?.status === 429
-      ? 'Priveľa pokusov po sebe. Skús to o chvíľu znova.'
-      : response?.data?.message ?? 'Vyhľadanie zlyhalo. Skús to znova alebo údaje vyplň ručne.'
+      ? t('organizations.register.tooManyAttempts')
+      : response?.data?.message ?? t('organizations.register.failed')
   } finally {
     lookingUp.value = false
   }
@@ -536,7 +516,7 @@ onMounted(async () => {
     canals.value = o.canals
     applyWebsiteIssue(o)
   } catch {
-    serverError.value = 'Organizáciu sa nepodarilo načítať.'
+    serverError.value = t('organizations.form.loadFailed')
   }
 
   // Zoznam pre „Priradiť kanál". Zlyhanie tu nesmie zhodiť celú stránku —
@@ -563,27 +543,27 @@ async function attach() {
     await attachCanalToOrganization(scope.value, Number(route.params['id']), Number(canalToAttach.value))
     canalToAttach.value = null
     await reloadCanals()
-    toast.success('Kanál priradený.')
+    toast.success(t('organizations.canals.attached'))
   } catch (e: unknown) {
-    canalsError.value = apiMessage(e) ?? 'Priradenie zlyhalo.'
+    canalsError.value = apiMessage(e) ?? t('organizations.canals.attachFailed')
   } finally {
     attaching.value = false
   }
 }
 
 async function detach(canal: OrganizationCanal) {
-  if (!confirm(`Odpojiť kanál „${canal.name}“ od firmy? Kanál ani jeho podujatia sa nezmažú, prestane len fakturovať pod ňou.`)) return
+  if (!confirm(t('organizations.canals.detachConfirm', { name: canal.name }))) return
 
   canalsError.value = null
   detaching.value = canal.id
   try {
     await detachCanalFromOrganization(scope.value, Number(route.params['id']), canal.id)
     await reloadCanals()
-    toast.success('Kanál odpojený.')
+    toast.success(t('organizations.canals.detached'))
   } catch (e: unknown) {
     // Server bráni odpojiť poslednú väzbu — bez nej by sa používateľ
     // k firme v dashboarde už nedostal. Hlášku ukazujeme jeho slovami.
-    canalsError.value = apiMessage(e) ?? 'Odpojenie zlyhalo.'
+    canalsError.value = apiMessage(e) ?? t('organizations.canals.detachFailed')
   } finally {
     detaching.value = null
   }
@@ -603,18 +583,18 @@ async function submit() {
   try {
     if (isCreate.value) {
       const o = await createOrganization(scope.value, payload)
-      toast.success(o.accountUuid ? 'Organizácia vytvorená a odoslaná do Accountu.' : 'Organizácia vytvorená.')
+      toast.success(t(o.accountUuid ? 'organizations.form.createdAndSent' : 'organizations.form.created'))
       router.replace(`${prefix.value}/organizations/${o.id}/edit`)
     } else {
       const o = await updateOrganization(scope.value, Number(route.params['id']), payload)
       accountData.value = o.account
-      toast.success('Uložené.')
+      toast.success(t('organizations.form.saved'))
       await reloadWebsiteIssue()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
-    serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    serverError.value = resp?.message ?? t('organizations.form.saveFailed')
     await scrollToError(errorBanner)
   } finally {
     saving.value = false
