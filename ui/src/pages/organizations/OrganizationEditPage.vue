@@ -2,7 +2,12 @@
   <div class="edit-shell">
     <div class="edit-card">
       <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
-      <h1 class="my-2 text-2xl text-slate-900">{{ isCreate ? 'Nová organizácia' : 'Upraviť organizáciu' }}</h1>
+      <h1 class="mb-1 mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+        {{ isCreate ? 'Nová organizácia' : 'Upraviť organizáciu' }}
+      </h1>
+      <p class="text-sm text-slate-500">
+        Fakturačné údaje putujú do Accountu, profil vidia návštevníci portálu.
+      </p>
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <!-- Chýbajúce fakturačné údaje patria nad formulár: inak si ich všimne
@@ -13,43 +18,85 @@
       </div>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
-        <!-- Typ subjektu rozhoduje, čo sa vôbec pýtame – preto je prvý. -->
-        <FormSection title="Kto to je" :note="isPerson ? 'Súkromná osoba' : 'Organizácia'" default-open>
-          <div class="grid gap-3 sm:grid-cols-2">
+        <!-- Typ subjektu rozhoduje, čo sa vôbec pýtame – preto je prvý.
+             Binárna voľba nepotrebuje vlastnú sekciu: „Som“ a obe možnosti
+             sa zmestia na jeden riadok a čítajú sa ako veta. -->
+        <fieldset class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <legend class="px-1 text-sm font-semibold text-slate-900">Som</legend>
+          <div class="mt-2 flex flex-wrap gap-2">
             <label
               v-for="type in SUBJECT_TYPES"
               :key="type.label"
-              class="flex cursor-pointer gap-3 rounded-xl border p-4 transition"
+              class="cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition"
               :class="form.person === type.person
-                ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-500/20'
-                : 'border-slate-200 hover:border-slate-300'"
+                ? 'border-blue-500 bg-blue-50/60 font-medium text-slate-900 ring-1 ring-blue-500/20'
+                : 'border-slate-200 text-slate-600 hover:border-slate-300'"
             >
-              <input v-model="form.person" type="radio" :value="type.person" class="mt-1" />
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-slate-900">{{ type.label }}</span>
-                <span class="mt-0.5 block text-xs text-slate-500">{{ type.hint }}</span>
-              </span>
+              <input v-model="form.person" type="radio" :value="type.person" class="sr-only" />
+              {{ type.label }}
             </label>
           </div>
-        </FormSection>
+          <p class="mt-2 text-xs text-slate-500">{{ subjectHint }}</p>
+        </fieldset>
 
         <!-- Pri organizácii je IČO prvé: z registra sa ním predvyplní
              zvyšok formulára, takže ručne písať treba čo najmenej. -->
-        <FormSection v-if="!isPerson" title="IČO" :note="account.ico || 'Načítať údaje z obchodného registra'"
-          default-open :force-open="!!errors['account.ico']">
-          <p class="mb-3 text-sm text-slate-500">
-            Zadaj IČO a načítaj údaje z obchodného registra — názov, adresu aj zápis
-            v registri doplníme za teba.
-          </p>
-          <div class="grid gap-2 sm:flex sm:items-end sm:gap-3">
-            <FormField v-model="account.ico" label="IČO" :error="errors['account.ico']" class="sm:w-56"
-              placeholder="14287315" @keydown.enter.prevent="runLookup" />
-            <button type="button" class="btn btn-primary" :disabled="lookingUp || !account.ico" @click="runLookup">
+        <FormSection v-if="!isPerson" title="Načítať údaje z obchodného registra" :note="account.ico || 'IČO'"
+          default-open :force-open="hasRegisterError">
+          <div class="grid gap-2 sm:flex sm:items-start sm:gap-3">
+            <FormField v-model="account.ico" :error="errors['account.ico']" class="sm:w-56"
+              placeholder="IČO" @keydown.enter.prevent="runLookup" />
+            <button type="button" class="btn btn-primary btn-lg" :disabled="lookingUp || !account.ico" @click="runLookup">
               {{ lookingUp ? 'Hľadám…' : 'Načítať z registra' }}
             </button>
-            <span v-if="lookupMessage" class="text-sm" :class="lookupOk ? 'text-green-600' : 'text-amber-700'">
+            <span v-if="lookupMessage" class="text-sm sm:mt-2" :class="lookupOk ? 'text-green-600' : 'text-amber-700'">
               {{ lookupMessage }}
             </span>
+          </div>
+
+          <!-- Výsledok načítania patrí sem, k IČU: inak by sa doplnené polia
+               skryli v inej zabalenej sekcii a nebolo by ich vidieť. -->
+          <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <FormField
+              v-model="account.legal_name"
+              label="Obchodné meno"
+              :error="errors['account.legal_name']"
+              :placeholder="form.title || 'Ako je zapísané v registri'"
+              class="lg:col-span-2"
+            />
+            <FormField v-model="account.legal_form" type="select" label="Právna forma">
+              <option value="">— nevybrané —</option>
+              <option v-for="o in LEGAL_FORMS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </FormField>
+            <FormField v-model="account.dic" label="DIČ" :error="errors['account.dic']" />
+            <FormField v-model="account.vat_mode" type="select" label="Vzťah k DPH">
+              <option value="">— nevybrané —</option>
+              <option v-for="o in VAT_MODES" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </FormField>
+            <FormField
+              v-model="account.ic_dph"
+              label="IČ DPH"
+              :error="errors['account.ic_dph']"
+              hint="Overuje sa proti európskemu registru VIES."
+              placeholder="SK2020123456"
+            />
+          </div>
+
+          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Sídlo</h3>
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <FormField v-model="account.street" label="Ulica a číslo" :error="errors['account.street']" class="lg:col-span-2" />
+            <FormField v-model="account.city" label="Mesto" :error="errors['account.city']" />
+            <FormField v-model="account.postal_code" label="PSČ" :error="errors['account.postal_code']" />
+            <FormField v-model="account.country" type="select" label="Krajina" :error="errors['account.country']">
+              <option v-for="c in COUNTRIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+            </FormField>
+          </div>
+
+          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Zápis v registri</h3>
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <FormField v-model="account.register_court" label="Súd" placeholder="napr. OS Trenčín" />
+            <FormField v-model="account.register_section" label="Oddiel" placeholder="Sro" />
+            <FormField v-model="account.register_insert" label="Vložka" placeholder="12345/R" />
           </div>
         </FormSection>
 
@@ -118,52 +165,19 @@
             Naviazané na Account: <span class="font-medium text-slate-800">{{ accountLine }}</span>
           </div>
 
-          <div v-if="!isPerson" class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField
-              v-model="account.legal_name"
-              label="Obchodné meno"
-              :error="errors['account.legal_name']"
-              :placeholder="form.title || 'Ako je zapísané v registri'"
-              class="lg:col-span-2"
-            />
-            <FormField v-model="account.legal_form" type="select" label="Právna forma">
-              <option value="">— nevybrané —</option>
-              <option v-for="o in LEGAL_FORMS" :key="o.value" :value="o.value">{{ o.label }}</option>
-            </FormField>
-            <FormField v-model="account.dic" label="DIČ" :error="errors['account.dic']" />
-            <FormField v-model="account.vat_mode" type="select" label="Vzťah k DPH">
-              <option value="">— nevybrané —</option>
-              <option v-for="o in VAT_MODES" :key="o.value" :value="o.value">{{ o.label }}</option>
-            </FormField>
-            <FormField
-              v-model="account.ic_dph"
-              label="IČ DPH"
-              :error="errors['account.ic_dph']"
-              hint="Overuje sa proti európskemu registru VIES."
-              placeholder="SK2020123456"
-            />
-          </div>
-
-          <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">{{ isPerson ? 'Adresa' : 'Sídlo' }}</h3>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="account.street" label="Ulica a číslo" :error="errors['account.street']" class="lg:col-span-2" />
-            <FormField v-model="account.city" label="Mesto" :error="errors['account.city']" />
-            <FormField v-model="account.postal_code" label="PSČ" :error="errors['account.postal_code']" />
-            <FormField v-model="account.country" type="select" label="Krajina" :error="errors['account.country']">
-              <option value="SK">Slovensko</option>
-              <option value="CZ">Česko</option>
-              <option value="AT">Rakúsko</option>
-              <option value="HU">Maďarsko</option>
-              <option value="PL">Poľsko</option>
-            </FormField>
-          </div>
-
-          <h3 v-if="!isPerson" class="mt-5 mb-2 text-sm font-semibold text-slate-700">Zápis v registri</h3>
-          <div v-if="!isPerson" class="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <FormField v-model="account.register_court" label="Súd" placeholder="napr. OS Trenčín" />
-            <FormField v-model="account.register_section" label="Oddiel" placeholder="Sro" />
-            <FormField v-model="account.register_insert" label="Vložka" placeholder="12345/R" />
-          </div>
+          <!-- Firemné údaje aj sídlo sú pri IČE, s ktorým sa načítali. Súkromná
+               osoba tú sekciu nemá, preto sa jej adresa pýta tu. -->
+          <template v-if="isPerson">
+            <h3 class="mt-1 mb-2 text-sm font-semibold text-slate-700">Adresa</h3>
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <FormField v-model="account.street" label="Ulica a číslo" :error="errors['account.street']" class="lg:col-span-2" />
+              <FormField v-model="account.city" label="Mesto" :error="errors['account.city']" />
+              <FormField v-model="account.postal_code" label="PSČ" :error="errors['account.postal_code']" />
+              <FormField v-model="account.country" type="select" label="Krajina" :error="errors['account.country']">
+                <option v-for="c in COUNTRIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+              </FormField>
+            </div>
+          </template>
 
           <h3 class="mt-5 mb-2 text-sm font-semibold text-slate-700">Fakturácia a banka</h3>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -187,7 +201,7 @@
         </FormSection>
 
         <div class="flex items-center gap-3">
-          <button type="submit" class="btn btn-primary" :disabled="saving">
+          <button type="submit" class="btn btn-primary btn-lg" :disabled="saving">
             {{ saving ? 'Ukladám…' : 'Uložiť a odoslať do Accountu' }}
           </button>
           <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
@@ -309,11 +323,20 @@ const VAT_MODES = [
   { value: 'reg_7a', label: 'Registrovaný podľa § 7a' },
 ]
 
+const COUNTRIES = [
+  { value: 'SK', label: 'Slovensko' },
+  { value: 'CZ', label: 'Česko' },
+  { value: 'AT', label: 'Rakúsko' },
+  { value: 'HU', label: 'Maďarsko' },
+  { value: 'PL', label: 'Poľsko' },
+]
+
 // Nie každý platiaci je firma. Od občana sa IČO ani zápis v registri
 // pýtať nedá – nikdy ich mať nebude.
+// Malé písmená zámerne: možnosti nadväzujú na „Som“ a čítajú sa ako veta.
 const SUBJECT_TYPES = [
-  { person: false, label: 'Organizácia', hint: 'Firma, živnostník alebo nezisková organizácia s IČO.' },
-  { person: true, label: 'Súkromná osoba', hint: 'Občan bez IČO. Stačí meno a adresa.' },
+  { person: false, label: 'organizácia', hint: 'Firma, živnostník alebo nezisková organizácia s IČO.' },
+  { person: true, label: 'súkromná osoba', hint: 'Občan bez IČO. Stačí meno a adresa.' },
 ]
 
 const { municipalities, loadMunicipalities } = useFormOptions(scope.value)
@@ -332,6 +355,11 @@ const form = ref({
 })
 
 const isPerson = computed(() => form.value.person)
+
+/** Vysvetlivka k vybranej možnosti — nahrádza popisy pri oboch kartách. */
+const subjectHint = computed(() =>
+  SUBJECT_TYPES.find(t => t.person === form.value.person)?.hint ?? ''
+)
 
 const account = ref(accountToForm(null))
 const accountData = ref<OrganizationAccountData | null>(null)
@@ -391,7 +419,7 @@ const contactNote = computed(() =>
 
 const billingNote = computed(() => {
   if (missingBilling.value.length) return `Chýba: ${missingBilling.value.join(', ')}`
-  return accountLine.value ?? 'IČO, sídlo, e-mail na faktúry a banka'
+  return accountLine.value ?? 'E-mail na faktúry a bankové spojenie'
 })
 
 const canalsNote = computed(() => {
@@ -407,9 +435,24 @@ function plural(n: number, one: string, few: string, many: string) {
   return `${n} ${n === 1 ? one : n < 5 ? few : many}`
 }
 
-/** Chyba zo servera v zabalenej fakturačnej sekcii by ostala neviditeľná. */
+/* Chyba zo servera v zabalenej sekcii by ostala neviditeľná — sekcia sa preto
+   otvorí sama. Adresa patrí firme k IČU a súkromnej osobe k fakturácii,
+   tak podľa toho otvárame aj tú správnu. */
+const ADDRESS_FIELDS = ['street', 'city', 'postal_code', 'country']
+const REGISTER_FIELDS = [
+  'ico', 'legal_name', 'dic', 'ic_dph', ...ADDRESS_FIELDS,
+  'register_court', 'register_section', 'register_insert',
+]
+const BILLING_FIELDS = ['billing_email', 'bank_name', 'iban', 'swift']
+
+function hasAccountError(fields: string[]) {
+  return fields.some(field => !!errors.value[`account.${field}`])
+}
+
+const hasRegisterError = computed(() => !isPerson.value && hasAccountError(REGISTER_FIELDS))
+
 const hasBillingError = computed(() =>
-  Object.keys(errors.value).some(key => key.startsWith('account.'))
+  hasAccountError(BILLING_FIELDS) || (isPerson.value && hasAccountError(ADDRESS_FIELDS))
 )
 
 /** Stav overenia fakturačného e-mailu. Vypĺňa ho Account, Event ho len ukazuje. */

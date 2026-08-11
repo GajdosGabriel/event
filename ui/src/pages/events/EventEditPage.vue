@@ -210,7 +210,11 @@
   <Teleport to="body">
     <div v-if="venueModal.show" class="fixed inset-0 z-600 flex items-center justify-center bg-black/40 p-4" @mousedown.self="venueModal.show = false">
       <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-        <h2 class="mb-4 text-lg font-semibold text-slate-900">Nové miesto konania</h2>
+        <div class="mb-4 flex items-start gap-3">
+          <h2 class="flex-1 text-lg font-semibold text-slate-900">Nové miesto konania</h2>
+          <button type="button" class="-mr-1 -mt-1 p-1 leading-none text-slate-400 hover:text-slate-700"
+            aria-label="Zavrieť" @click="venueModal.show = false">✕</button>
+        </div>
         <p v-if="venueModal.error" class="mb-3 text-sm text-red-600">{{ venueModal.error }}</p>
         <!-- Modál má vlastný stav validácie — červená sa v ňom rozsvieti až po
              kliknutí na „Vytvoriť miesto", nezávisle od hlavného formulára. -->

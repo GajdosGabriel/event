@@ -1,20 +1,13 @@
 <template>
   <div class="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-8">
-    <!-- Homepage nemala vlastné `h1` — prvým nadpisom bola hero sekcia s `h2`,
-         takže osnova stránky začínala druhou úrovňou a nadpis nesedel s `title`. -->
-    <header class="mb-5">
-      <h1 class="text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-        Čo sa deje na Slovensku
-      </h1>
-      <p class="mt-1 max-w-2xl text-slate-500">{{ description }}</p>
-    </header>
-
     <PosterHero />
 
+    <!-- Jediný `h1` na stránke — vlastnú hlavičku homepage nemá, takže nadpis
+         zoznamu musí zostať na prvej úrovni, inak osnova začne od `h2`. -->
     <PublicEventList
       heading="Nadchádzajúce podujatia"
       subheading="Zoradené podľa najbližšieho termínu."
-      heading-level="h2"
+      heading-level="h1"
     />
   </div>
 </template>

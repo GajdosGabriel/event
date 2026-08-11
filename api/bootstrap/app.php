@@ -7,9 +7,22 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Env;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+
+/*
+ * Premenné z .env len do $_ENV/$_SERVER, nie do procesu cez putenv().
+ *
+ * Apache na Windows (mpm_winnt) beží ako jeden proces s vláknami a putenv()
+ * zapisuje do prostredia celého procesu — teda aj do súbežných požiadaviek
+ * iných aplikácií na tom istom serveri. Event volá Account (napr. vyhľadanie
+ * IČO) vnorenou HTTP požiadavkou, takže Account sa štartoval s DB_DATABASE
+ * Eventu a padal na „Table 'event-api.service_clients' doesn't exist“.
+ * Superglobály sú na rozdiel od prostredia procesu viazané na požiadavku.
+ */
+Env::disablePutenv();
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
