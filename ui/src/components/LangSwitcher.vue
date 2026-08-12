@@ -10,11 +10,7 @@
       :aria-expanded="open"
       @click="open = !open"
     >
-      <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" />
-        <path stroke-linecap="round" d="M2 12h20M12 2c-2.5 2.5-4 5.9-4 10s1.5 7.5 4 10M12 2c2.5 2.5 4 5.9 4 10s-1.5 7.5-4 10" />
-      </svg>
-      <span class="uppercase">{{ locale }}</span>
+      <LocaleFlag :code="locale" />
     </button>
 
     <Transition
@@ -39,7 +35,10 @@
             :class="code === locale ? 'font-semibold text-slate-900' : 'text-slate-700'"
             @click="choose(code)"
           >
-            <span class="truncate">{{ t(`lang.${code}` as MessageKey) }}</span>
+            <span class="flex min-w-0 items-center gap-2">
+              <LocaleFlag :code="code" />
+              <span class="truncate">{{ t(`lang.${code}` as MessageKey) }}</span>
+            </span>
             <svg
               v-if="code === locale"
               class="h-4 w-4 shrink-0 text-slate-400"
@@ -56,6 +55,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import LocaleFlag from '@/components/LocaleFlag.vue'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
 
 // Rovnaké varianty ako UserDropdown — prepínač stojí vedľa neho v hlavičke
