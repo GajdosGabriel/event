@@ -49,6 +49,8 @@ class User extends Authenticatable
         'last_activity',
         'canal_id',
         'status',
+        'terms_accepted_at',
+        'terms_version',
     ];
 
     /**
@@ -87,6 +89,7 @@ class User extends Authenticatable
             'blocked_until' => 'datetime',
             'last_login_at' => 'datetime',
             'last_activity' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'status' => \App\Enums\ModelStatus::class,
         ];
     }

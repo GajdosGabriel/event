@@ -30,6 +30,7 @@ class GoogleAuthTest extends TestCase
 
         $response = $this->postJson('/api/login/google', [
             'id_token' => 'google-id-token',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk();
@@ -42,6 +43,54 @@ class GoogleAuthTest extends TestCase
             'registered_via' => 'google',
             'provider_id' => 'google:google-provider-123',
         ]);
+
+        $this->assertNotNull(User::where('email', 'new-google-user@example.test')->firstOrFail()->terms_accepted_at);
+    }
+
+    public function test_google_login_refuses_to_create_an_account_without_the_terms_consent(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'no-consent@example.test',
+                'sub' => 'google-provider-999',
+                'email_verified' => true,
+                'name' => 'No Consent',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', ['id_token' => 'google-id-token'])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'terms_required');
+
+        $this->assertDatabaseMissing('users', ['email' => 'no-consent@example.test']);
+    }
+
+    public function test_google_login_of_an_existing_account_does_not_ask_for_the_terms_again(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        User::factory()->create([
+            'email' => 'known@example.test',
+            'registered_via' => 'google',
+            'provider_id' => 'google:google-provider-known',
+        ]);
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'known@example.test',
+                'sub' => 'google-provider-known',
+                'email_verified' => true,
+                'name' => 'Known User',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', ['id_token' => 'google-id-token'])
+            ->assertOk()
+            ->assertJsonPath('is_new_user', false);
     }
 
     public function test_google_login_reuses_existing_user_and_updates_provider_data(): void
@@ -107,6 +156,7 @@ class GoogleAuthTest extends TestCase
 
         $response = $this->postJson('/api/login/google', [
             'id_token' => 'google-id-token',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk();

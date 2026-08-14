@@ -103,6 +103,37 @@ describe('FormField', () => {
     expect((select.element as HTMLSelectElement).value).toBe('draft')
   })
 
+  it('nezaškrtnuté povinné políčko zčervenie až po validácii', async () => {
+    const { wrapper, validation } = mountInForm({
+      label: 'Súhlasím s podmienkami',
+      type: 'checkbox',
+      required: true,
+      modelValue: false,
+    })
+
+    expect(wrapper.get('label').classes()).not.toContain('invalid')
+    expect(wrapper.get('input').attributes('required')).toBeDefined()
+
+    validation().markValidated()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('label').classes()).toContain('invalid')
+  })
+
+  it('zaškrtnuté povinné políčko ostáva čisté', async () => {
+    const { wrapper, validation } = mountInForm({
+      label: 'Súhlasím s podmienkami',
+      type: 'checkbox',
+      required: true,
+      modelValue: true,
+    })
+
+    validation().markValidated()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('label').classes()).not.toContain('invalid')
+  })
+
   it('číselné pole vracia číslo, prázdne vracia null', async () => {
     const model = ref<number | null>(null)
 

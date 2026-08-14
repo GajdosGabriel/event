@@ -15,6 +15,10 @@ class GoogleAuthRequest extends FormRequest
     {
         return [
             'id_token' => 'required|string',
+            // Ten istý endpoint slúži na prihlásenie aj na prvú registráciu,
+            // takže súhlas tu nemôže byť povinný pre všetkých. Že ho nový účet
+            // musí mať, si ustráži AuthController::authenticateSocialUser().
+            'terms_accepted' => 'sometimes|boolean',
         ];
     }
 }

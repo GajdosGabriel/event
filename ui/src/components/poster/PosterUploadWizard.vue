@@ -229,6 +229,13 @@
           :validated="accountValidated"
           autocomplete="new-password"
         />
+
+        <!-- Prihlásenie súhlas nepotrebuje — ten už človek dal pri registrácii. -->
+        <TermsConsentField
+          v-if="account.mode === 'register'"
+          v-model="account.termsAccepted"
+          :validated="accountValidated"
+        />
       </div>
 
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
@@ -269,6 +276,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormField from '@/components/FormField.vue'
+import TermsConsentField from '@/components/TermsConsentField.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { listPublicMunicipalities } from '@/api/municipalities'
@@ -354,6 +362,7 @@ const account = reactive({
   displayName: '',
   password: '',
   passwordConfirmation: '',
+  termsAccepted: false,
   mode: 'register' as 'register' | 'login',
 })
 
@@ -575,6 +584,13 @@ async function finish() {
         return
       }
 
+      // Sprievodca nie je <form>, takže natívne `required` na zaškrtávacom
+      // poli nič nezastaví — súhlas treba overiť tu, ešte pred registráciou.
+      if (account.mode === 'register' && !account.termsAccepted) {
+        error.value = t('auth.register.termsRequired')
+        return
+      }
+
       // E-mail ukladáme ešte pred registráciou. Aj keď sa overenie natiahne
       // alebo človek zavrie okno, odkaz späť na rozpracované podujatie mu už
       // dovtedy doletel do schránky.
@@ -586,6 +602,7 @@ async function finish() {
           email: account.email.trim(),
           password: account.password,
           password_confirmation: account.passwordConfirmation,
+          terms_accepted: account.termsAccepted,
         })
         persist()
         step.value = 'verify'

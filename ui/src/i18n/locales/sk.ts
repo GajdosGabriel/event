@@ -421,6 +421,17 @@ const sk = {
       hasAccount: 'Máte účet?',
       loginLink: 'Prihlásiť sa',
       failed: 'Registrácia zlyhala.',
+      // Veta súhlasu je poskladaná z častí, lebo v nej sú dva odkazy. Poradie
+      // aj pády sa v jazykoch líšia, preto má každý kúsok vlastný kľúč.
+      // Súhlas sa dáva s podmienkami; spracúvanie údajov nutných na vedenie
+      // účtu stojí na plnení zmluvy (čl. 6 ods. 1 písm. b GDPR), a preto sa
+      // ním „berie na vedomie", nie „súhlasí".
+      termsPrefix: 'Súhlasím s ',
+      termsLink: 'obchodnými podmienkami',
+      termsMiddle: ' a beriem na vedomie ',
+      privacyLink: 'spracúvanie mojich osobných údajov',
+      termsSuffix: '.',
+      termsRequired: 'Bez súhlasu s obchodnými podmienkami účet nevytvoríme.',
     },
     verify: {
       title: 'Overenie emailu',
@@ -441,6 +452,13 @@ const sk = {
       login: 'Prihlásiť sa',
       back: 'Späť na prihlásenie',
     },
+  },
+  // Popisky okolo právnych dokumentov. Samotné znenie podmienok a zásad je
+  // v ui/src/content/legal — sú to dokumenty, nie reťazce rozhrania.
+  legal: {
+    terms: 'Obchodné podmienky',
+    privacy: 'Ochrana osobných údajov',
+    alsoSee: 'Pozrite si aj:',
   },
   // Správa návštevníka organizátorovi (tlačidlo pod eventom, miestom, kanálom).
   contact: {
@@ -1197,6 +1215,8 @@ const sk = {
       createdAt: 'Vytvorený',
       lastLogin: 'Posledné prihlásenie',
       lastActivity: 'Posledná aktivita',
+      termsAccepted: 'Súhlas s podmienkami',
+      termsVersion: 'verzia',
       canals: 'Kanály',
       canalsEmpty: 'Používateľ nie je členom žiadneho kanálu.',
       roles: 'Role',

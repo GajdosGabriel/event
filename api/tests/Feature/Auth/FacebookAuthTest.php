@@ -35,6 +35,7 @@ class FacebookAuthTest extends TestCase
 
         $response = $this->postJson('/api/login/facebook', [
             'access_token' => 'facebook-access-token',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk();
@@ -47,6 +48,34 @@ class FacebookAuthTest extends TestCase
             'registered_via' => 'facebook',
             'provider_id' => 'facebook:facebook-user-123',
         ]);
+
+        $this->assertNotNull(User::where('email', 'new-facebook-user@example.test')->firstOrFail()->terms_accepted_at);
+    }
+
+    public function test_facebook_login_refuses_to_create_an_account_without_the_terms_consent(): void
+    {
+        Config::set('services.facebook.app_id', 'fb-app-id');
+        Config::set('services.facebook.app_secret', 'fb-app-secret');
+
+        Http::fake([
+            'https://graph.facebook.com/debug_token*' => Http::response([
+                'data' => [
+                    'is_valid' => true,
+                    'app_id' => 'fb-app-id',
+                ],
+            ], 200),
+            'https://graph.facebook.com/me*' => Http::response([
+                'id' => 'facebook-user-999',
+                'email' => 'no-consent-fb@example.test',
+                'name' => 'No Consent',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/facebook', ['access_token' => 'facebook-access-token'])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'terms_required');
+
+        $this->assertDatabaseMissing('users', ['email' => 'no-consent-fb@example.test']);
     }
 
     public function test_facebook_login_reuses_existing_user_and_updates_provider_data(): void
@@ -122,6 +151,7 @@ class FacebookAuthTest extends TestCase
 
         $response = $this->postJson('/api/login/facebook', [
             'access_token' => 'facebook-access-token',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk();

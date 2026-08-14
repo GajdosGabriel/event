@@ -74,6 +74,9 @@ class UserResource extends JsonResource
                 'status'            => $this->status,
                 'registered_via'    => $this->registered_via,
                 'email_verified'    => $this->email_verified_at !== null,
+                // Doklad o súhlase s podmienkami — kedy a s akou verziou.
+                'terms_accepted_at' => $this->terms_accepted_at,
+                'terms_version'     => $this->terms_version,
                 'is_blocked'        => $this->resource->isBlocked(),
                 'blocked_until'     => $this->blocked_until,
                 'blocked_reason'    => $this->blocked_reason,

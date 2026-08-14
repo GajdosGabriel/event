@@ -71,6 +71,18 @@
                 <dt class="text-xs text-slate-400">{{ t('admin.user.lastActivity') }}</dt>
                 <dd class="text-sm text-slate-800" :title="fullDate(user.last_activity)">{{ relTime(user.last_activity ?? user.last_login_at) }}</dd>
               </div>
+              <!-- Doklad o súhlase s podmienkami: účty založené pred jeho
+                   zavedením ho nemajú, preto sa tu môže objaviť pomlčka. -->
+              <div>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.termsAccepted') }}</dt>
+                <dd class="text-sm text-slate-800" :title="fullDate(user.terms_accepted_at)">
+                  <template v-if="user.terms_accepted_at">
+                    {{ fmtDate(user.terms_accepted_at as string) }}
+                    <span class="text-slate-400">({{ t('admin.user.termsVersion') }} {{ user.terms_version || '—' }})</span>
+                  </template>
+                  <template v-else>—</template>
+                </dd>
+              </div>
             </dl>
           </section>
 

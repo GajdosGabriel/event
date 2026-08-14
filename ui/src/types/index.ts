@@ -162,6 +162,8 @@ export interface RegisterPayload {
   email: string
   password: string
   password_confirmation?: string
+  /** Súhlas s obchodnými podmienkami — bez neho API registráciu odmietne. */
+  terms_accepted: boolean
 }
 
 // Event

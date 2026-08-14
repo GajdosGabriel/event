@@ -402,6 +402,12 @@ const de: Messages = {
       hasAccount: 'Schon ein Konto?',
       loginLink: 'Anmelden',
       failed: 'Die Registrierung ist fehlgeschlagen.',
+      termsPrefix: 'Ich stimme den ',
+      termsLink: 'Geschäftsbedingungen',
+      termsMiddle: ' zu und nehme die ',
+      privacyLink: 'Verarbeitung meiner personenbezogenen Daten',
+      termsSuffix: ' zur Kenntnis.',
+      termsRequired: 'Ohne Zustimmung zu den Geschäftsbedingungen können wir kein Konto anlegen.',
     },
     verify: {
       title: 'E-Mail-Bestätigung',
@@ -422,6 +428,11 @@ const de: Messages = {
       login: 'Anmelden',
       back: 'Zurück zur Anmeldung',
     },
+  },
+  legal: {
+    terms: 'Geschäftsbedingungen',
+    privacy: 'Datenschutz',
+    alsoSee: 'Siehe auch:',
   },
   contact: {
     label: 'Nachricht senden',
@@ -1152,6 +1163,8 @@ const de: Messages = {
       createdAt: 'Erstellt',
       lastLogin: 'Letzte Anmeldung',
       lastActivity: 'Letzte Aktivität',
+      termsAccepted: 'Zustimmung zu den AGB',
+      termsVersion: 'Version',
       canals: 'Kanäle',
       canalsEmpty: 'Der Nutzer ist in keinem Kanal Mitglied.',
       roles: 'Rollen',

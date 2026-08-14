@@ -60,6 +60,7 @@ class AuthController extends Controller
     public function register(AuthRegisterRequest $request)
     {
         $registeredVia = $request->input('registered_via', 'local');
+        $consent = $this->termsConsent();
 
         if ($registeredVia === 'local') {
             $rawToken = Str::random(64);
@@ -74,6 +75,7 @@ class AuthController extends Controller
                 'registered_via' => $registeredVia,
                 'verification_token' => $hashedToken,
                 'expires_at' => now()->addHours($ttlHours),
+                ...$consent,
             ]);
 
             Notification::route('mail', $request->input('email'))
@@ -90,6 +92,7 @@ class AuthController extends Controller
             'email' => $request->input('email'),
             'password' => Hash::make($password),
             'registered_via' => $registeredVia,
+            ...$consent,
         ]);
 
         if ($request->filled('display_name')) {
@@ -152,6 +155,7 @@ class AuthController extends Controller
             email: $email,
             providerId: $providerId,
             displayName: trim((string) ($payload['name'] ?? '')),
+            termsAccepted: $request->boolean('terms_accepted'),
         );
     }
 
@@ -234,20 +238,31 @@ class AuthController extends Controller
             email: $email,
             providerId: $providerId,
             displayName: $displayName,
+            termsAccepted: $request->boolean('terms_accepted'),
         );
     }
 
-    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '')
+    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', bool $termsAccepted = false)
     {
         $normalizedProviderId = $provider . ':' . $providerId;
-
-        // Social auth is already identity-verified, so local pending records are ignored.
-        PendingRegistration::where('email', $email)->delete();
 
         $user = User::where('provider_id', $normalizedProviderId)
             ->orWhere('provider_id', $providerId)
             ->orWhere('email', $email)
             ->first();
+
+        // Prihlásenie cez Google/Facebook zakladá účet aj bez formulára, takže
+        // súhlas s podmienkami tu treba vypýtať skôr, než účet vznikne. Pre už
+        // existujúci účet sa nepýta — ten súhlas udelil pri registrácii.
+        if (! $user && ! $termsAccepted) {
+            return response()->json([
+                'message' => 'You must agree to the terms and conditions.',
+                'code' => 'terms_required',
+            ], 422);
+        }
+
+        // Social auth is already identity-verified, so local pending records are ignored.
+        PendingRegistration::where('email', $email)->delete();
 
         $created = false;
         if (! $user) {
@@ -256,6 +271,7 @@ class AuthController extends Controller
                 'password' => Hash::make(Str::random(64)),
                 'registered_via' => $provider,
                 'provider_id' => $normalizedProviderId,
+                ...$this->termsConsent(),
             ]);
             $created = true;
         }
@@ -386,10 +402,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'User already exists'], 409);
         }
 
+        // Súhlas sa neudeľuje znova pri overení e-mailu — prenášame ten, ktorý
+        // človek dal pri odoslaní registračného formulára, aj s jeho dátumom.
         $user = User::create([
             'email' => $pending->email,
             'password' => $pending->password,
             'registered_via' => $pending->registered_via,
+            'terms_accepted_at' => $pending->terms_accepted_at,
+            'terms_version' => $pending->terms_version,
         ]);
 
         PendingProfile::create([
@@ -407,6 +427,23 @@ class AuthController extends Controller
             'message' => 'Email verified successfully.',
             'user' => $user,
         ], 200);
+    }
+
+    /**
+     * Stopa o udelenom súhlase s obchodnými podmienkami a o tom, že sa človek
+     * oboznámil so zásadami ochrany osobných údajov.
+     *
+     * Bez dátumu a verzie dokumentov by sa po prvej zmene textov nedalo
+     * preukázať, s čím konkrétne kto súhlasil (čl. 7 ods. 1 GDPR).
+     *
+     * @return array{terms_accepted_at: \Illuminate\Support\Carbon, terms_version: string}
+     */
+    protected function termsConsent(): array
+    {
+        return [
+            'terms_accepted_at' => now(),
+            'terms_version' => (string) config('legal.version'),
+        ];
     }
 
     /**

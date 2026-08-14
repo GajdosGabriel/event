@@ -81,7 +81,13 @@
         </div>
       </main>
 
-      <footer class="footer text-sm">© {{ new Date().getFullYear() }} Event</footer>
+      <footer class="footer flex flex-wrap items-center justify-between gap-3 text-sm">
+        <span>© {{ new Date().getFullYear() }} Event</span>
+        <nav class="flex flex-wrap gap-4">
+          <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
+          <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
+        </nav>
+      </footer>
     </div>
   </div>
 </template>

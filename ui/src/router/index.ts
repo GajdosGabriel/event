@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 const EventListPage = () => import('@/pages/events/EventListPage.vue')
+const LegalPage = () => import('@/pages/legal/LegalPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -57,6 +58,21 @@ const router = createRouter({
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
+        // Právne dokumenty. Adresy sú súčasťou súhlasu pri registrácii a chodia
+        // v pätičke e-mailov, takže sa nesmú meniť — pri zmene znenia sa mení
+        // len obsah a verzia (ui/src/content/legal), nie URL.
+        {
+          path: 'obchodne-podmienky',
+          name: 'legal-terms',
+          component: LegalPage,
+          props: { kind: 'terms' },
+        },
+        {
+          path: 'ochrana-osobnych-udajov',
+          name: 'legal-privacy',
+          component: LegalPage,
+          props: { kind: 'privacy' },
+        },
       ],
     },
 

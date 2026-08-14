@@ -26,8 +26,18 @@ class AuthRegisterRequest extends FormRequest
             'password' => 'required_if:registered_via,local|string|min:8',
             'registered_via' => 'sometimes|string|in:local,google,facebook',
             'display_name' => 'required_if:registered_via,local|string|max:255',
+            // Súhlas s obchodnými podmienkami je podmienkou vzniku účtu, preto
+            // `accepted` (musí prísť true/1/"on"), nie obyčajný boolean —
+            // hodnota false alebo chýbajúce pole registráciu zastaví.
+            'terms_accepted' => 'accepted',
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'terms_accepted.accepted' => 'You must agree to the terms and conditions.',
+        ];
+    }
 }
 

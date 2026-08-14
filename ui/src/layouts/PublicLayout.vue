@@ -31,8 +31,14 @@
 
     <AnnouncementBar placement="bottom" />
 
-    <footer class="border-t border-slate-200 bg-white px-5 py-4 text-slate-600">
-      © {{ new Date().getFullYear() }} Event
+    <!-- Odkazy na právne dokumenty musia byť dostupné z každej stránky, nielen
+         z registrácie — spotrebiteľ si ich má vedieť nájsť kedykoľvek. -->
+    <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
+      <span>© {{ new Date().getFullYear() }} Event</span>
+      <nav class="flex flex-wrap gap-4">
+        <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
+        <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
+      </nav>
     </footer>
   </div>
 </template>

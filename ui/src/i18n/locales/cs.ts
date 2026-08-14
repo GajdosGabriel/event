@@ -401,6 +401,12 @@ const cs: Messages = {
       hasAccount: 'Máte účet?',
       loginLink: 'Přihlásit se',
       failed: 'Registrace selhala.',
+      termsPrefix: 'Souhlasím s ',
+      termsLink: 'obchodními podmínkami',
+      termsMiddle: ' a beru na vědomí ',
+      privacyLink: 'zpracování mých osobních údajů',
+      termsSuffix: '.',
+      termsRequired: 'Bez souhlasu s obchodními podmínkami účet nevytvoříme.',
     },
     verify: {
       title: 'Ověření e-mailu',
@@ -421,6 +427,11 @@ const cs: Messages = {
       login: 'Přihlásit se',
       back: 'Zpět na přihlášení',
     },
+  },
+  legal: {
+    terms: 'Obchodní podmínky',
+    privacy: 'Ochrana osobních údajů',
+    alsoSee: 'Podívejte se také na:',
   },
   contact: {
     label: 'Poslat zprávu',
@@ -1151,6 +1162,8 @@ const cs: Messages = {
       createdAt: 'Vytvořen',
       lastLogin: 'Poslední přihlášení',
       lastActivity: 'Poslední aktivita',
+      termsAccepted: 'Souhlas s podmínkami',
+      termsVersion: 'verze',
       canals: 'Kanály',
       canalsEmpty: 'Uživatel není členem žádného kanálu.',
       roles: 'Role',

@@ -123,6 +123,10 @@
   .form-textarea.invalid { @apply border-red-500 ring-1 ring-red-200; }
   .form-input:user-invalid,
   .form-textarea:user-invalid { @apply border-red-500 ring-1 ring-red-200; }
+  /* Zaškrtávacie pole nemá rámček, tak sa zvýrazní text popisky a samotný
+     štvorček. Odkazy vnútri (napr. na obchodné podmienky) si farbu držia. */
+  .form-check.invalid { @apply text-red-600; }
+  .form-check.invalid .form-checkbox { @apply outline outline-1 outline-red-500; }
 
   /*
    * Oznamy a bannery. Farebná schéma je tu, nie v databáze: Tailwind generuje

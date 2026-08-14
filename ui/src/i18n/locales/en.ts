@@ -402,6 +402,12 @@ const en: Messages = {
       hasAccount: 'Already have an account?',
       loginLink: 'Sign in',
       failed: 'Signing up failed.',
+      termsPrefix: 'I agree to the ',
+      termsLink: 'terms and conditions',
+      termsMiddle: ' and acknowledge the ',
+      privacyLink: 'processing of my personal data',
+      termsSuffix: '.',
+      termsRequired: 'We cannot create an account without your agreement to the terms and conditions.',
     },
     verify: {
       title: 'Email verification',
@@ -422,6 +428,11 @@ const en: Messages = {
       login: 'Sign in',
       back: 'Back to sign in',
     },
+  },
+  legal: {
+    terms: 'Terms and Conditions',
+    privacy: 'Privacy Notice',
+    alsoSee: 'See also:',
   },
   contact: {
     label: 'Send a message',
@@ -1152,6 +1163,8 @@ const en: Messages = {
       createdAt: 'Created',
       lastLogin: 'Last sign-in',
       lastActivity: 'Last activity',
+      termsAccepted: 'Terms accepted',
+      termsVersion: 'version',
       canals: 'Channels',
       canalsEmpty: 'The user is not a member of any channel.',
       roles: 'Roles',

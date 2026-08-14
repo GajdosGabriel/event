@@ -1,10 +1,18 @@
 <template>
   <!-- Zaškrtávacie pole má opačné poradie (ovládač, potom text) — vlastná vetva. -->
-  <label v-if="type === 'checkbox'" class="form-check" :class="wrapperClass" :style="wrapperStyle">
-    <input v-model="field" type="checkbox" class="form-checkbox" v-bind="controlAttrs" />
+  <label v-if="type === 'checkbox'" class="form-check" :class="[wrapperClass, { invalid }]" :style="wrapperStyle">
+    <input
+      v-model="field"
+      type="checkbox"
+      class="form-checkbox"
+      :required="required"
+      :aria-invalid="invalid || undefined"
+      v-bind="controlAttrs"
+    />
     <span>
       <slot name="label">{{ label }}</slot>
-      <span v-if="hint" class="form-hint block">{{ hint }}</span>
+      <span v-if="error" class="field-error block">{{ error }}</span>
+      <span v-else-if="hint" class="form-hint block">{{ hint }}</span>
     </span>
   </label>
 
@@ -163,6 +171,10 @@ function update(value: T | undefined) {
 }
 
 function isBlank(value: unknown): boolean {
+  // Nezaškrtnuté políčko je `false` — pri povinnom súhlase je to tá istá
+  // „nevyplnenosť" ako prázdny text, inak by sa nikdy nezafarbilo.
+  if (props.type === 'checkbox') return value !== true
+
   return value === null || value === undefined || value === ''
 }
 

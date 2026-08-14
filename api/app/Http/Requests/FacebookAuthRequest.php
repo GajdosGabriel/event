@@ -15,6 +15,9 @@ class FacebookAuthRequest extends FormRequest
     {
         return [
             'access_token' => 'required|string',
+            // Prihlásenie aj prvá registrácia idú cez jeden endpoint —
+            // pozri poznámku v GoogleAuthRequest.
+            'terms_accepted' => 'sometimes|boolean',
         ];
     }
 }

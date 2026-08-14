@@ -20,10 +20,13 @@ class PendingRegistration extends Model
         'registered_via',
         'verification_token',
         'expires_at',
+        'terms_accepted_at',
+        'terms_version',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'terms_accepted_at' => 'datetime',
     ];
 
     protected static function booted()
