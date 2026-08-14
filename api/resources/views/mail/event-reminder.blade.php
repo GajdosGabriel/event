@@ -15,5 +15,7 @@
 {{ __('mail.event_reminder.action') }}
 @endcomponent
 
+@include('mail.partials.calendar')
+
 {{ __('mail.event_reminder.outro') }}
 @endcomponent

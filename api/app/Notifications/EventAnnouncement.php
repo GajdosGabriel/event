@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Services\Calendar\EventCalendarLinks;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,18 +37,23 @@ class EventAnnouncement extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        // Oznam chodí aj po zmene termínu. `.ics` nesie rovnaké UID a vyššie
+        // SEQUENCE, takže kalendár pôvodný záznam prepíše — nevznikne duplikát.
+        $calendar = new EventCalendarLinks($this->event);
+
         $mail = (new MailMessage())
             ->subject($this->subject)
             ->markdown('mail.event-announcement', [
                 'eventName' => $this->event->name,
                 'eventUrl' => PublicUrl::event($this->event),
                 'body' => $this->body,
+                ...$calendar->viewData(),
             ]);
 
         if ($this->replyToEmail !== null) {
             $mail->replyTo($this->replyToEmail, $this->replyToName ?? '');
         }
 
-        return $mail;
+        return $calendar->attachTo($mail);
     }
 }

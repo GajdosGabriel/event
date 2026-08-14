@@ -9,5 +9,7 @@
 {{ __('mail.event_announcement.action') }}
 @endcomponent
 
+@include('mail.partials.calendar')
+
 {{ __('mail.event_announcement.outro') }}
 @endcomponent

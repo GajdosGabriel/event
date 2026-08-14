@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Services\Calendar\EventCalendarLinks;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,7 +36,11 @@ class EventReminder extends Notification implements ShouldQueue
         // (Model::preventLazyLoading je mimo produkcie zapnutý).
         $venue = $this->event->loadMissing('venue')->venue;
 
-        return (new MailMessage())
+        // Pripomienka je posledná šanca dostať termín do kalendára — časť
+        // účastníkov si ho pri objednávke nezapísala.
+        $calendar = new EventCalendarLinks($this->event);
+
+        $mail = (new MailMessage())
             ->subject(__('mail.event_reminder.subject', ['event' => $this->event->name]))
             ->markdown('mail.event-reminder', [
                 'greeting' => $this->attendeeName !== ''
@@ -46,6 +51,9 @@ class EventReminder extends Notification implements ShouldQueue
                 'startsAt' => $this->event->start_at?->format('d. m. Y H:i'),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
+                ...$calendar->viewData(),
             ]);
+
+        return $calendar->attachTo($mail);
     }
 }

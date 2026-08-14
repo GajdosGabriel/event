@@ -41,6 +41,22 @@ final class EventCalendarLinks
         $this->outlookUrl = $ics !== null ? $generator->outlookUrl($event) : null;
     }
 
+    /**
+     * Premenné pre `mail.partials.calendar`. Rozbaľuje sa do dát šablóny
+     * (`...$calendar->viewData()`), aby každý e-mail s termínom vyzeral rovnako
+     * a nemusel si mená premenných pamätať.
+     *
+     * @return array{calendarUrl: ?string, googleUrl: ?string, outlookUrl: ?string}
+     */
+    public function viewData(): array
+    {
+        return [
+            'calendarUrl' => $this->downloadUrl,
+            'googleUrl' => $this->googleUrl,
+            'outlookUrl' => $this->outlookUrl,
+        ];
+    }
+
     public function attachTo(MailMessage $mail): MailMessage
     {
         if ($this->ics === null) {

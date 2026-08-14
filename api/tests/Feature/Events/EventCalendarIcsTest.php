@@ -5,6 +5,8 @@ namespace Tests\Feature\Events;
 use App\Enums\ModelStatus;
 use App\Models\Ticket;
 use App\Notifications\AttendeeTicketIssued;
+use App\Notifications\EventAnnouncement;
+use App\Notifications\EventReminder;
 use App\Notifications\TicketIssued;
 use App\Services\Calendar\IcsGenerator;
 use Carbon\Carbon;
@@ -265,6 +267,56 @@ class EventCalendarIcsTest extends EventSetupTest
             '<a href="'.$mail->viewData['calendarUrl'].'"',
             (string) $mail->render(),
         );
+    }
+
+    #[Test]
+    public function reminder_email_carries_the_calendar_too(): void
+    {
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => Carbon::parse('2026-09-05 16:00:00'),
+            'end_at' => Carbon::parse('2026-09-05 19:30:00'),
+        ]);
+
+        $mail = (new EventReminder($this->futureEvent, 'Janko'))->toMail($this->user);
+        $html = (string) $mail->render();
+
+        $this->assertNotEmpty($mail->rawAttachments, 'Pripomienka musí niesť prílohu .ics');
+        $this->assertStringContainsString('<a href="'.$mail->viewData['calendarUrl'].'"', $html);
+        $this->assertStringContainsString('calendar.google.com', $html);
+        $this->assertStringContainsString('outlook.live.com', $html);
+    }
+
+    #[Test]
+    public function announcement_email_carries_the_calendar_too(): void
+    {
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => Carbon::parse('2026-09-05 16:00:00'),
+            'end_at' => Carbon::parse('2026-09-05 19:30:00'),
+        ]);
+
+        $mail = (new EventAnnouncement($this->futureEvent, 'Zmena miesta', 'Presúvame sa do kina.'))
+            ->toMail($this->user);
+        $html = (string) $mail->render();
+
+        $this->assertNotEmpty($mail->rawAttachments);
+        $this->assertStringContainsString('calendar.google.com', $html);
+        $this->assertStringContainsString('outlook.live.com', $html);
+    }
+
+    #[Test]
+    public function reminder_for_event_without_date_skips_the_calendar(): void
+    {
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => null,
+        ]);
+
+        $mail = (new EventReminder($this->futureEvent))->toMail($this->user);
+
+        $this->assertSame([], $mail->rawAttachments);
+        $this->assertStringNotContainsString('calendar.google.com', (string) $mail->render());
     }
 
     #[Test]

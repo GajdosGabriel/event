@@ -20,8 +20,9 @@ return [
         'qr_alt'            => 'QR kód',
         'qr_open'           => 'Otvoriť QR kód',
         // Sekcia „Pridať do kalendára" (resources/views/mail/partials/calendar).
+        'calendar_title'    => 'Pridať do kalendára',
         'calendar_intro'    => 'Aby ste na termín nezabudli, zapíšte si podujatie do kalendára:',
-        'calendar_ics'      => 'Pridať do kalendára',
+        'calendar_ics'      => 'Apple Kalendár a ostatné',
         'calendar_google'   => 'Google Kalendár',
         'calendar_outlook'  => 'Outlook',
     ],
