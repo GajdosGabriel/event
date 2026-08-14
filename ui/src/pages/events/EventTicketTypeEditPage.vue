@@ -3,20 +3,22 @@
     <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">
-      <h1 class="text-2xl font-semibold text-slate-900">{{ isEdit ? 'Upraviť typ lístka' : 'Nový typ lístka' }}</h1>
+      <h1 class="text-2xl font-semibold text-slate-900">
+        {{ isEdit ? t('tickets.type.editTitle') : t('tickets.type.createTitle') }}
+      </h1>
       <p v-if="eventName" class="text-sm text-slate-500">{{ eventName }}</p>
     </div>
 
-    <p v-if="loading" class="text-slate-500">Načítavam…</p>
+    <p v-if="loading" class="text-slate-500">{{ t('tickets.type.loading') }}</p>
     <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
 
     <template v-else>
       <!-- Šablóny — rýchly štart pri vytváraní. Predvyplnia názov a rozumné
            defaulty, aby používateľ nezačínal z prázdneho formulára. -->
       <section v-if="!isEdit" class="mb-5 rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 class="text-sm font-semibold text-slate-800">Začnite šablónou</h2>
+        <h2 class="text-sm font-semibold text-slate-800">{{ t('tickets.type.templatesTitle') }}</h2>
         <p class="mb-3 text-xs text-slate-500">
-          Vyberte typ lístka — predvyplníme názov aj nastavenia. Všetko sa dá nižšie doladiť.
+          {{ t('tickets.type.templatesLead') }}
         </p>
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <button v-for="tpl in templates" :key="tpl.key" type="button"
@@ -37,10 +39,10 @@
 
         <!-- Základné polia — vždy viditeľné -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <FormField v-model="form.name" label="Názov" required trim placeholder="napr. Štandard" class="sm:col-span-2" />
-          <FormField v-model="priceEuro" type="number" label="Cena (€, 0 = zdarma)" min="0" step="0.01" placeholder="0" />
-          <FormField v-model="form.capacity" type="number" label="Kapacita (prázdne = neobmedzené)" min="1" placeholder="neobmedzené" />
-          <FormField v-model="form.is_active" type="checkbox" label="Aktívny (v predaji)" class="sm:col-span-2" />
+          <FormField v-model="form.name" :label="t('tickets.type.name')" required trim :placeholder="t('tickets.type.namePlaceholder')" class="sm:col-span-2" />
+          <FormField v-model="priceEuro" type="number" :label="t('tickets.type.price')" min="0" step="0.01" placeholder="0" />
+          <FormField v-model="form.capacity" type="number" :label="t('tickets.type.capacity')" min="1" :placeholder="t('tickets.type.capacityPlaceholder')" />
+          <FormField v-model="form.is_active" type="checkbox" :label="t('tickets.type.isActive')" class="sm:col-span-2" />
         </div>
 
         <!-- Rozšírené nastavenia — schované, nech základ pôsobí jednoducho -->
@@ -50,29 +52,29 @@
           <svg class="h-4 w-4 transition-transform" :class="{ 'rotate-90': showAdvanced }" viewBox="0 0 20 20" fill="currentColor">
             <path d="M7 5l6 5-6 5V5z" />
           </svg>
-          Rozšírené nastavenia
+          {{ t('tickets.type.advanced') }}
         </button>
 
         <div v-show="showAdvanced" class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
-          <FormField v-model="kindOption" type="select" label="Druh" :options="kindOptions" class="sm:col-span-2" />
-          <FormField v-model="form.description" label="Popis" trim placeholder="nepovinné" class="sm:col-span-2" />
+          <FormField v-model="kindOption" type="select" :label="t('tickets.type.kind')" :options="kindOptions" class="sm:col-span-2" />
+          <FormField v-model="form.description" :label="t('tickets.type.description')" trim :placeholder="t('tickets.type.descriptionPlaceholder')" class="sm:col-span-2" />
           <template v-if="form.kind === 'workshop'">
-            <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', 'Začiatok workshopu')" />
-            <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', 'Koniec workshopu')" />
+            <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', t('tickets.type.workshopStart'))" />
+            <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', t('tickets.type.workshopEnd'))" />
           </template>
-          <FormField v-model="form.min_per_order" type="number" label="Min. na objednávku" min="1" />
-          <FormField v-model="form.max_per_order" type="number" label="Max. na objednávku" min="1" />
-          <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', 'Predaj od')" />
-          <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', 'Predaj do')" />
-          <FormField v-model="form.requires_attendee_name" type="checkbox" label="Vyžadovať mená účastníkov" class="sm:col-span-2" />
+          <FormField v-model="form.min_per_order" type="number" :label="t('tickets.type.minPerOrder')" min="1" />
+          <FormField v-model="form.max_per_order" type="number" :label="t('tickets.type.maxPerOrder')" min="1" />
+          <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', t('tickets.type.saleFrom'))" />
+          <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', t('tickets.type.saleTo'))" />
+          <FormField v-model="form.requires_attendee_name" type="checkbox" :label="t('tickets.type.requiresAttendeeName')" class="sm:col-span-2" />
         </div>
 
         <div class="mt-6 flex gap-2">
           <button type="button" class="btn btn-primary" :disabled="saving" @click="save">
-            {{ saving ? 'Ukladám…' : 'Uložiť' }}
+            {{ saving ? t('tickets.type.saving') : t('tickets.type.save') }}
           </button>
           <RouterLink :to="{ name: 'dashboard-events-tickets', params: { id: eventId } }" class="btn btn-secondary">
-            Zrušiť
+            {{ t('tickets.type.cancel') }}
           </RouterLink>
         </div>
       </section>
@@ -90,6 +92,7 @@ import {
   updateTicketType,
   type TicketTypePayload,
 } from '@/api/ticketTypes'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
@@ -116,9 +119,9 @@ const validation = provideFormValidation()
 
 // Možnosti „Druhu" a popisky polí drží backend (lang + policy). Fallback pre istotu.
 const kindOptions = ref<SelectOption[]>([
-  { value: 'ticket', label: 'Vstupenka' },
-  { value: 'workshop', label: 'Workshop (len pre registrovaných účastníkov)' },
-  { value: 'workshop_open', label: 'Workshop (aj pre neregistrovaných na evente)' },
+  { value: 'ticket', label: t('tickets.type.kinds.ticket') },
+  { value: 'workshop', label: t('tickets.type.kinds.workshop') },
+  { value: 'workshop_open', label: t('tickets.type.kinds.workshopOpen') },
 ])
 const labels = ref<Record<string, string>>({})
 function tf(key: string, fallback: string): string {
@@ -150,13 +153,15 @@ interface TicketTemplate {
   price: number | null
 }
 
-const templates: TicketTemplate[] = [
-  { key: 'free',     icon: '🎟️', title: 'Vstup zdarma', subtitle: 'Bezplatná registrácia',       patch: { name: 'Vstup zdarma', kind: 'ticket', requires_attendee_name: false }, price: 0 },
-  { key: 'standard', icon: '🎫', title: 'Štandard',     subtitle: 'Bežná platená vstupenka',      patch: { name: 'Štandardný lístok', kind: 'ticket' }, price: null },
-  { key: 'vip',      icon: '⭐', title: 'VIP',          subtitle: 'Prémiová vstupenka',           patch: { name: 'VIP', kind: 'ticket' }, price: null },
-  { key: 'workshop', icon: '🛠️', title: 'Workshop',     subtitle: 'Pre prihlásených účastníkov',  patch: { name: 'Workshop', kind: 'workshop', requires_attendee_name: true }, price: null },
-  { key: 'custom',   icon: '✏️', title: 'Vlastný',      subtitle: 'Začať od nuly',                patch: { name: '' }, price: null },
-]
+// Popisky aj predvyplnený názov sú zo slovníka — `name` je obsah, ktorý sa
+// uloží k lístku, takže má byť v jazyku toho, kto ho zakladá.
+const templates = computed<TicketTemplate[]>(() => [
+  { key: 'free',     icon: '🎟️', title: t('tickets.type.templates.free.title'),     subtitle: t('tickets.type.templates.free.subtitle'),     patch: { name: t('tickets.type.templates.free.name'), kind: 'ticket', requires_attendee_name: false }, price: 0 },
+  { key: 'standard', icon: '🎫', title: t('tickets.type.templates.standard.title'), subtitle: t('tickets.type.templates.standard.subtitle'), patch: { name: t('tickets.type.templates.standard.name'), kind: 'ticket' }, price: null },
+  { key: 'vip',      icon: '⭐', title: t('tickets.type.templates.vip.title'),      subtitle: t('tickets.type.templates.vip.subtitle'),      patch: { name: t('tickets.type.templates.vip.name'), kind: 'ticket' }, price: null },
+  { key: 'workshop', icon: '🛠️', title: t('tickets.type.templates.workshop.title'), subtitle: t('tickets.type.templates.workshop.subtitle'), patch: { name: t('tickets.type.templates.workshop.name'), kind: 'workshop', requires_attendee_name: true }, price: null },
+  { key: 'custom',   icon: '✏️', title: t('tickets.type.templates.custom.title'),   subtitle: t('tickets.type.templates.custom.subtitle'),   patch: { name: '' }, price: null },
+])
 
 const selectedTemplate = ref<string | null>(null)
 
@@ -225,33 +230,33 @@ async function load() {
 
     if (isEdit.value) {
       const list = await indexTicketTypes(eventId)
-      const t = list.find((x) => x.id === typeId)
-      if (!t) {
-        loadError.value = 'Typ lístka sa nenašiel.'
+      const type = list.find((x) => x.id === typeId)
+      if (!type) {
+        loadError.value = t('tickets.type.notFound')
         return
       }
-      priceEuro.value = t.priceAmount ? t.priceAmount / 100 : null
+      priceEuro.value = type.priceAmount ? type.priceAmount / 100 : null
       Object.assign(form, {
-        name: t.name,
-        kind: t.kind ?? 'ticket',
-        open_to_public: t.openToPublic ?? false,
-        description: t.description ?? '',
-        starts_at: t.startsAt?.slice(0, 16) ?? '',
-        ends_at: t.endsAt?.slice(0, 16) ?? '',
-        capacity: t.capacity ?? null,
-        min_per_order: t.minPerOrder,
-        max_per_order: t.maxPerOrder,
-        requires_attendee_name: t.requiresAttendeeName,
-        is_active: t.isActive,
-        sale_starts_at: t.saleStartsAt?.slice(0, 16) ?? '',
-        sale_ends_at: t.saleEndsAt?.slice(0, 16) ?? '',
+        name: type.name,
+        kind: type.kind ?? 'ticket',
+        open_to_public: type.openToPublic ?? false,
+        description: type.description ?? '',
+        starts_at: type.startsAt?.slice(0, 16) ?? '',
+        ends_at: type.endsAt?.slice(0, 16) ?? '',
+        capacity: type.capacity ?? null,
+        min_per_order: type.minPerOrder,
+        max_per_order: type.maxPerOrder,
+        requires_attendee_name: type.requiresAttendeeName,
+        is_active: type.isActive,
+        sale_starts_at: type.saleStartsAt?.slice(0, 16) ?? '',
+        sale_ends_at: type.saleEndsAt?.slice(0, 16) ?? '',
       })
     } else {
       // Predaj spravidla končí koncom akcie — predvyplň ako rozumný default.
       form.sale_ends_at = toInputDate(eventEndAt.value)
     }
   } catch {
-    loadError.value = 'Údaje sa nepodarilo načítať.'
+    loadError.value = t('tickets.type.loadFailed')
   } finally {
     loading.value = false
   }
@@ -283,11 +288,11 @@ async function save() {
     } else {
       await createTicketType(eventId, payload)
     }
-    toast.success('Typ lístka uložený.')
+    toast.success(t('tickets.type.saved'))
     router.push({ name: 'dashboard-events-tickets', params: { id: eventId } })
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    error.value = err.response?.data?.message ?? 'Uloženie zlyhalo.'
+    error.value = err.response?.data?.message ?? t('tickets.type.saveFailed')
   } finally {
     saving.value = false
   }

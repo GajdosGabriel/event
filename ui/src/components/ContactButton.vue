@@ -6,7 +6,7 @@
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l.8-4A7.94 7.94 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
       </svg>
-      {{ label }}
+      {{ buttonLabel }}
     </button>
 
     <!-- Modal -->
@@ -18,7 +18,7 @@
           <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div class="mb-4 flex items-start justify-between gap-2">
               <div>
-                <h2 class="text-lg font-semibold text-slate-900">{{ label }}</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{{ buttonLabel }}</h2>
                 <p v-if="targetName" class="mt-0.5 text-sm text-slate-500">{{ targetName }}</p>
               </div>
               <button type="button" class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" @click="close">
@@ -31,26 +31,26 @@
             <!-- Neprihlásený → výzva na registráciu (správy posielajú len overené účty) -->
             <div v-if="!auth.isAuthenticated" class="space-y-4">
               <div class="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
-                <p class="mb-1 font-semibold">Najprv sa prihláste</p>
-                <p>Správy môžu posielať len registrovaní používatelia s overeným e-mailom — chránime tým organizátorov pred spamom.</p>
+                <p class="mb-1 font-semibold">{{ t('contact.loginTitle') }}</p>
+                <p>{{ t('contact.loginLead') }}</p>
               </div>
               <div class="flex gap-2">
                 <RouterLink :to="{ name: 'login', query: { redirect: route.fullPath } }"
                   class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white no-underline hover:bg-blue-700">
-                  Prihlásiť sa
+                  {{ t('contact.login') }}
                 </RouterLink>
                 <RouterLink :to="{ name: 'register' }"
                   class="flex-1 rounded-lg border border-blue-600 px-4 py-2 text-center text-sm font-semibold text-blue-600 no-underline hover:bg-blue-50">
-                  Registrovať sa
+                  {{ t('contact.register') }}
                 </RouterLink>
               </div>
             </div>
 
             <!-- Odoslané -->
             <div v-else-if="sent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-              <p class="mb-1 font-semibold">Správa bola odoslaná!</p>
-              <p>Odpoveď dorazí na e-mail vášho účtu.</p>
-              <button type="button" class="mt-3 text-sm font-medium text-green-700 hover:underline" @click="close">Zavrieť</button>
+              <p class="mb-1 font-semibold">{{ t('contact.sentTitle') }}</p>
+              <p>{{ t('contact.sentLead') }}</p>
+              <button type="button" class="mt-3 text-sm font-medium text-green-700 hover:underline" @click="close">{{ t('contact.close') }}</button>
             </div>
 
             <!-- Prihlásený → posiela z účtu -->
@@ -58,23 +58,23 @@
               <FormField
                 v-model="body"
                 type="textarea"
-                label="Vaša správa"
+                :label="t('contact.body')"
                 required
                 trim
                 rows="4"
                 maxlength="5000"
-                placeholder="Napíšte správu…"
+                :placeholder="t('contact.bodyPlaceholder')"
               />
 
               <div class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                Píšete ako <strong>{{ auth.displayName || 'prihlásený používateľ' }}</strong>. Odpoveď dorazí na e-mail vášho účtu.
+                {{ t('contact.identityPrefix') }} <strong>{{ auth.displayName || t('contact.identityFallback') }}</strong>. {{ t('contact.identitySuffix') }}
               </div>
 
               <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
               <button type="submit" :disabled="loading"
                 class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-                {{ loading ? 'Odosielam…' : 'Odoslať správu' }}
+                {{ loading ? t('contact.submitting') : t('contact.submit') }}
               </button>
             </form>
           </div>
@@ -85,9 +85,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { sendMessage, type MessageTargetType } from '@/api/messages'
+import { t } from '@/i18n'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useAuthStore } from '@/stores/auth'
@@ -103,8 +104,12 @@ const props = withDefaults(defineProps<{
   label?: string
 }>(), {
   targetName: '',
-  label: 'Poslať správu',
+  label: '',
 })
+
+// Predvolený popis sa berie zo slovníka až tu — default v `withDefaults`
+// vzniká pri načítaní modulu, teda ešte pred voľbou jazyka.
+const buttonLabel = computed(() => props.label || t('contact.label'))
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -148,7 +153,7 @@ async function submit() {
     sent.value = true
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    error.value = err.response?.data?.message ?? 'Správu sa nepodarilo odoslať.'
+    error.value = err.response?.data?.message ?? t('contact.failed')
   } finally {
     loading.value = false
   }

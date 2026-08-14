@@ -1,10 +1,10 @@
 <template>
   <div class="grid gap-4">
     <RouterLink to="/admin/users" class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">
-      ← Používatelia
+      {{ t('admin.user.back') }}
     </RouterLink>
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('admin.user.loading') }}</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
 
     <template v-else-if="user">
@@ -38,37 +38,37 @@
         <div class="grid gap-4">
           <!-- Overview -->
           <section class="panel-card">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Prehľad</h2>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.overview') }}</h2>
             <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               <div>
-                <dt class="text-xs text-slate-400">Email</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.email') }}</dt>
                 <dd class="text-sm text-slate-800">{{ user.email || '—' }}</dd>
               </div>
               <div>
-                <dt class="text-xs text-slate-400">Overený email</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.verified') }}</dt>
                 <dd class="text-sm" :class="user.email_verified ? 'text-emerald-600' : 'text-amber-600'">
-                  {{ user.email_verified ? 'Áno' : 'Nie' }}
+                  {{ user.email_verified ? t('admin.user.yes') : t('admin.user.no') }}
                 </dd>
               </div>
               <div>
-                <dt class="text-xs text-slate-400">Registrácia</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.registeredVia') }}</dt>
                 <dd class="flex items-center gap-1.5 text-sm text-slate-800">
                   <span>{{ providerMeta(user.registered_via as string).icon }}</span>
                   {{ providerMeta(user.registered_via as string).label }}
                 </dd>
               </div>
               <div>
-                <dt class="text-xs text-slate-400">Vytvorený</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.createdAt') }}</dt>
                 <dd class="text-sm text-slate-800" :title="fullDate(user.created_at)">
                   {{ user.created_at ? fmtDate(user.created_at as string) : '—' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-xs text-slate-400">Posledné prihlásenie</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.lastLogin') }}</dt>
                 <dd class="text-sm text-slate-800" :title="fullDate(user.last_login_at)">{{ relTime(user.last_login_at) }}</dd>
               </div>
               <div>
-                <dt class="text-xs text-slate-400">Posledná aktivita</dt>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.lastActivity') }}</dt>
                 <dd class="text-sm text-slate-800" :title="fullDate(user.last_activity)">{{ relTime(user.last_activity ?? user.last_login_at) }}</dd>
               </div>
             </dl>
@@ -77,7 +77,7 @@
           <!-- Canals -->
           <section class="panel-card">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Kanály <span class="text-slate-400">({{ canals.length }})</span>
+              {{ t('admin.user.canals') }} <span class="text-slate-400">({{ canals.length }})</span>
             </h2>
             <ul v-if="canals.length" class="grid gap-2">
               <li v-for="c in canals" :key="c.id">
@@ -89,7 +89,7 @@
                 </RouterLink>
               </li>
             </ul>
-            <p v-else class="text-sm text-slate-400">Používateľ nie je členom žiadneho kanálu.</p>
+            <p v-else class="text-sm text-slate-400">{{ t('admin.user.canalsEmpty') }}</p>
           </section>
         </div>
 
@@ -97,7 +97,7 @@
         <div class="grid content-start gap-4">
           <!-- Roles -->
           <section class="panel-card">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Role</h2>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.roles') }}</h2>
             <div class="grid gap-2">
               <label v-for="role in roles" :key="role.name" class="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" :value="role.name" v-model="selectedRoles" class="accent-blue-600" />
@@ -105,58 +105,60 @@
               </label>
             </div>
             <button class="btn btn-primary mt-4 w-full" :disabled="savingRoles || !rolesChanged" @click="saveRoles">
-              {{ savingRoles ? 'Ukladám…' : 'Uložiť role' }}
+              {{ savingRoles ? t('admin.user.saving') : t('admin.user.saveRoles') }}
             </button>
           </section>
 
           <!-- Block -->
           <section class="panel-card">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Blokovanie</h2>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.blocking') }}</h2>
 
-            <p v-if="isSelf" class="text-sm text-slate-400">Vlastný účet nemôžeš blokovať.</p>
+            <p v-if="isSelf" class="text-sm text-slate-400">{{ t('admin.user.blockSelf') }}</p>
 
             <template v-else-if="user.is_blocked">
               <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-                <p class="font-medium">Používateľ je blokovaný</p>
+                <p class="font-medium">{{ t('admin.user.blocked') }}</p>
                 <p v-if="user.blocked_reason" class="mt-1 text-red-600">{{ user.blocked_reason }}</p>
                 <p class="mt-1 text-xs text-red-500">
-                  {{ user.blocked_until ? `Do ${fullDate(user.blocked_until)}` : 'Bez časového obmedzenia.' }}
+                  {{ user.blocked_until
+                    ? t('admin.user.blockedUntil', { date: fullDate(user.blocked_until) })
+                    : t('admin.user.blockedForever') }}
                 </p>
               </div>
               <button class="btn btn-secondary mt-3 w-full" :disabled="savingBlock" @click="unblock">
-                {{ savingBlock ? 'Ukladám…' : 'Odblokovať' }}
+                {{ savingBlock ? t('admin.user.saving') : t('admin.user.unblock') }}
               </button>
             </template>
 
             <template v-else>
-              <FormField v-model="blockReason" type="textarea" rows="2" placeholder="napr. porušenie pravidiel">
-                <template #label>Dôvod <span class="font-normal text-slate-400">(voliteľné)</span></template>
+              <FormField v-model="blockReason" type="textarea" rows="2" :placeholder="t('admin.user.blockReasonPlaceholder')">
+                <template #label>{{ t('admin.user.blockReason') }} <span class="font-normal text-slate-400">{{ t('admin.user.optional') }}</span></template>
               </FormField>
               <FormField
                 v-model="blockUntil"
                 type="datetime"
                 allow-past
-                hint="Prázdne = blok bez časového obmedzenia."
+                :hint="t('admin.user.blockUntilHint')"
                 class="mt-3"
               >
-                <template #label>Blokovať do <span class="font-normal text-slate-400">(voliteľné)</span></template>
+                <template #label>{{ t('admin.user.blockUntil') }} <span class="font-normal text-slate-400">{{ t('admin.user.optional') }}</span></template>
               </FormField>
               <button class="btn btn-danger mt-3 w-full" :disabled="savingBlock" @click="block">
-                {{ savingBlock ? 'Ukladám…' : 'Blokovať' }}
+                {{ savingBlock ? t('admin.user.saving') : t('admin.user.block') }}
               </button>
             </template>
           </section>
 
           <!-- Danger zone -->
           <section class="panel-card border-red-200">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-red-500">Nebezpečná zóna</h2>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-red-500">{{ t('admin.user.danger') }}</h2>
             <button v-if="user.deleted_at" class="btn btn-secondary w-full" :disabled="savingDelete" @click="restore">
-              {{ savingDelete ? 'Ukladám…' : 'Obnoviť používateľa' }}
+              {{ savingDelete ? t('admin.user.saving') : t('admin.user.restore') }}
             </button>
             <template v-else>
-              <p v-if="isSelf" class="text-sm text-slate-400">Vlastný účet nemôžeš zmazať.</p>
+              <p v-if="isSelf" class="text-sm text-slate-400">{{ t('admin.user.deleteSelf') }}</p>
               <button v-else class="btn btn-danger w-full" :disabled="savingDelete" @click="remove">
-                {{ savingDelete ? 'Mažem…' : 'Zmazať používateľa' }}
+                {{ savingDelete ? t('admin.user.removing') : t('admin.user.remove') }}
               </button>
             </template>
           </section>
@@ -171,6 +173,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showUser, getRoles, updateUserRoles, updateUser, deleteUser, restoreUser } from '@/api/access-control'
 import type { AccessRole } from '@/types'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { fmtDate } from '@/utils/dateFormat'
@@ -219,7 +222,7 @@ async function load() {
     ])
     selectedRoles.value = [...roleNames.value]
   } catch {
-    error.value = 'Nepodarilo sa načítať používateľa.'
+    error.value = t('admin.user.loadFailed')
   } finally {
     loading.value = false
   }
@@ -241,8 +244,8 @@ async function saveRoles() {
   try {
     await updateUserRoles(userId.value, selectedRoles.value, SCOPE)
     if (user.value) user.value.roles = [...selectedRoles.value]
-    toast.success('Role uložené.')
-  } catch { toast.error('Uloženie rolí zlyhalo.') }
+    toast.success(t('admin.user.rolesSaved'))
+  } catch { toast.error(t('admin.user.rolesFailed')) }
   finally { savingRoles.value = false }
 }
 
@@ -257,8 +260,8 @@ async function block() {
     applyUpdated(updated)
     blockReason.value = ''
     blockUntil.value = ''
-    toast.success('Používateľ zablokovaný.')
-  } catch { toast.error('Blokovanie zlyhalo.') }
+    toast.success(t('admin.user.blockedOk'))
+  } catch { toast.error(t('admin.user.blockFailed')) }
   finally { savingBlock.value = false }
 }
 
@@ -267,8 +270,8 @@ async function unblock() {
   try {
     const updated = await updateUser(userId.value, { blocked: false }, SCOPE)
     applyUpdated(updated)
-    toast.success('Používateľ odblokovaný.')
-  } catch { toast.error('Odblokovanie zlyhalo.') }
+    toast.success(t('admin.user.unblocked'))
+  } catch { toast.error(t('admin.user.unblockFailed')) }
   finally { savingBlock.value = false }
 }
 
@@ -281,13 +284,13 @@ function applyUpdated(updated: Record<string, unknown>) {
 
 async function remove() {
   if (!user.value) return
-  if (!confirm(`Naozaj zmazať používateľa ${displayName(user.value)}?`)) return
+  if (!confirm(t('admin.user.removeConfirm', { name: displayName(user.value) }))) return
   savingDelete.value = true
   try {
     await deleteUser(userId.value, SCOPE)
-    toast.success('Používateľ zmazaný.')
+    toast.success(t('admin.user.removed'))
     router.push('/admin/users')
-  } catch { toast.error('Zmazanie zlyhalo.') }
+  } catch { toast.error(t('admin.user.removeFailed')) }
   finally { savingDelete.value = false }
 }
 
@@ -296,8 +299,8 @@ async function restore() {
   try {
     await restoreUser(userId.value, SCOPE)
     if (user.value) user.value.deleted_at = null
-    toast.success('Používateľ obnovený.')
-  } catch { toast.error('Obnova zlyhala.') }
+    toast.success(t('admin.user.restored'))
+  } catch { toast.error(t('admin.user.restoreFailed')) }
   finally { savingDelete.value = false }
 }
 </script>

@@ -1,60 +1,64 @@
 <template>
   <div class="edit-shell">
     <div class="edit-card">
-      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť</RouterLink>
-      <h1 class="my-2 text-2xl text-slate-900">{{ savedId || !isCreate ? 'Upraviť kanál' : 'Nový kanál' }}</h1>
+      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('canals.form.back') }}</RouterLink>
+      <h1 class="my-2 text-2xl text-slate-900">
+        {{ savedId || !isCreate ? t('canals.form.editTitle') : t('canals.form.createTitle') }}
+      </h1>
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
-          <legend class="field-legend">Základné info</legend>
+          <legend class="field-legend">{{ t('canals.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.name" label="Názov" required :error="errors.name" class="lg:col-span-2" />
-            <FormField v-model="form.title_prefix" label="Predpona názvu" :error="errors.title_prefix" placeholder="napr. Spoločnosť" />
-            <FormField v-model="form.title_suffix" label="Prípona názvu" :error="errors.title_suffix" placeholder="napr. o.z." />
-            <FormField v-model="form.identity_mode" type="select" label="Typ identity" :options="canalIdentityModes" :error="errors.identity_mode" />
-            <FormField v-model="form.municipality_id" label="Obec / Mesto" required :error="errors.municipality_id">
+            <FormField v-model="form.name" :label="t('canals.fields.name')" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
+            <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
+            <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
+            <FormField v-model="form.municipality_id" :label="t('canals.fields.municipality')" required :error="errors.municipality_id">
               <template #default="{ value, invalid, update }">
                 <SearchableSelect
                   :model-value="value ?? null"
                   :options="municipalities"
-                  placeholder="— vyberte obec —"
+                  :placeholder="t('canals.fields.municipalityPlaceholder')"
                   :invalid="invalid"
                   @update:model-value="update"
                 />
               </template>
             </FormField>
-            <FormField label="Popis" :error="errors.body" class="lg:col-span-2">
+            <FormField :label="t('canals.fields.description')" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
             </FormField>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
-          <legend class="field-legend">Kontakt</legend>
+          <legend class="field-legend">{{ t('canals.sections.contact') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
-            <FormField v-model="form.website" type="url" label="Web" :error="errors.website">
+            <FormField v-model="form.email" type="email" :label="t('canals.fields.email')" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" :label="t('canals.fields.phone')" :error="errors.phone" />
+            <FormField v-model="form.website" type="url" :label="t('canals.fields.website')" :error="errors.website">
               <template #footer>
-                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+                <AttributeIssueHint :issue="websiteIssue" :label="t('canals.fields.websiteIssueLabel')" />
               </template>
             </FormField>
           </div>
         </fieldset>
 
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
+          <button type="submit" class="btn btn-primary" :disabled="saving">
+            {{ saving ? t('canals.form.saving') : t('canals.form.save') }}
+          </button>
+          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('canals.form.cancel') }}</RouterLink>
         </div>
       </form>
     </div>
 
     <div class="edit-card grid gap-6">
       <div>
-        <h2 class="mb-2 text-lg font-semibold text-slate-800">Poloha</h2>
+        <h2 class="mb-2 text-lg font-semibold text-slate-800">{{ t('canals.sections.location') }}</h2>
         <p class="mb-2 text-xs text-slate-500">
-          Súradnice sa po uložení skúsia doplniť automaticky pomocou AI. Polohu môžeš upraviť kliknutím do mapy.
+          {{ t('canals.locationHint') }}
         </p>
         <VenueMapPicker
           :lat="form.latitude"
@@ -63,13 +67,13 @@
           @update:lng="form.longitude = $event"
         />
         <div class="mt-2 grid grid-cols-2 gap-2">
-          <FormField v-model="form.latitude" type="number" label="Lat" step="any" class="text-xs" />
-          <FormField v-model="form.longitude" type="number" label="Lng" step="any" class="text-xs" />
+          <FormField v-model="form.latitude" type="number" :label="t('canals.fields.lat')" step="any" class="text-xs" />
+          <FormField v-model="form.longitude" type="number" :label="t('canals.fields.lng')" step="any" class="text-xs" />
         </div>
       </div>
 
       <div>
-        <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
+        <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('canals.sections.images') }}</h2>
         <ImageManager v-if="fileableId" fileable-type="canal" :fileable-id="fileableId" />
         <ImagePicker v-else ref="picker" />
       </div>
@@ -82,6 +86,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showCanal, createCanal, updateCanal } from '@/api/canals'
 import { uploadFiles } from '@/api/files'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -164,7 +169,7 @@ onMounted(async () => {
         body: c.body ?? '',
       }
       applyWebsiteIssue(c)
-    } catch { serverError.value = 'Nepodarilo sa načítať.' }
+    } catch { serverError.value = t('canals.form.loadFailed') }
   }
 })
 
@@ -183,18 +188,18 @@ async function submit() {
         pending.forEach(f => fd.append('files[]', f))
         await uploadFiles(fd)
       }
-      toast.success('Kanál vytvorený.')
+      toast.success(t('canals.form.created'))
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
       await updateCanal(Number(route.params.id), form.value)
-      toast.success('Kanál uložený.')
+      toast.success(t('canals.form.saved'))
       await reloadWebsiteIssue()
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
-    serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    serverError.value = resp?.message ?? t('canals.form.saveFailed')
     await scrollToError(errorBanner)
   } finally { saving.value = false }
 }

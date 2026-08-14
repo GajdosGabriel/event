@@ -13,8 +13,8 @@
     <button
       type="button"
       class="toggle absolute inset-y-0 right-0 grid w-10 place-items-center rounded-r-lg text-slate-400 hover:text-slate-700"
-      :aria-label="visible ? 'Skryť heslo' : 'Zobraziť heslo'"
-      :title="visible ? 'Skryť heslo' : 'Zobraziť heslo'"
+      :aria-label="visible ? t('fields.passwordHide') : t('fields.passwordShow')"
+      :title="visible ? t('fields.passwordHide') : t('fields.passwordShow')"
       :aria-pressed="visible"
       tabindex="-1"
       @mousedown.prevent
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { nextTick, ref, useTemplateRef } from 'vue'
+import { t } from '@/i18n'
 
 defineOptions({ inheritAttrs: false })
 

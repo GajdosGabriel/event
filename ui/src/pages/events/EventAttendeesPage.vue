@@ -3,8 +3,8 @@
     <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">
-      <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || 'Prihlásení / objednávky' }}</h1>
-      <p v-if="eventName" class="text-sm text-slate-500">Prihlásení / objednávky</p>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('tickets.attendees.title') }}</h1>
+      <p v-if="eventName" class="text-sm text-slate-500">{{ t('tickets.attendees.title') }}</p>
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -12,48 +12,47 @@
         class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         @input="onSearch" />
       <button type="button" class="btn btn-secondary" :disabled="exporting" @click="onExport">
-        {{ exporting ? 'Pripravujem…' : 'Export CSV' }}
+        {{ exporting ? t('tickets.attendees.exporting') : t('tickets.attendees.export') }}
       </button>
-      <button type="button" class="btn btn-secondary" @click="openBulk">Napísať všetkým</button>
+      <button type="button" class="btn btn-secondary" @click="openBulk">{{ t('tickets.attendees.bulk') }}</button>
     </div>
 
     <!-- Hromadný e-mail účastníkom -->
     <div v-if="bulk.show" class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" @click.self="bulk.show = false">
       <form class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" @submit.prevent="sendBulk">
-        <h2 class="mb-1 text-lg font-semibold text-slate-900">Hromadný e-mail účastníkom</h2>
+        <h2 class="mb-1 text-lg font-semibold text-slate-900">{{ t('tickets.attendees.bulkTitle') }}</h2>
         <p class="mb-4 text-sm text-slate-500">
-          Odíde na {{ bulk.recipients }} {{ bulk.recipients === 1 ? 'adresu' : 'adries' }}.
-          Každý účastník dostane e-mail raz, aj keď má viac lístkov. Odpovede vám prídu na váš e-mail.
+          {{ t('tickets.attendees.bulkLead', { recipients: plural('tickets.attendees.counts.recipients', bulk.recipients) }) }}
         </p>
 
-        <FormField v-model="bulk.subject" label="Predmet" required maxlength="150" />
-        <FormField v-model="bulk.body" type="textarea" label="Text správy" required rows="7" maxlength="5000" class="mt-3" />
+        <FormField v-model="bulk.subject" :label="t('tickets.attendees.subject')" required maxlength="150" />
+        <FormField v-model="bulk.body" type="textarea" :label="t('tickets.attendees.body')" required rows="7" maxlength="5000" class="mt-3" />
 
         <p v-if="bulk.error" class="mt-2 text-sm text-red-600">{{ bulk.error }}</p>
 
         <div class="mt-4 flex justify-end gap-2">
-          <button type="button" class="btn btn-secondary" @click="bulk.show = false">Zrušiť</button>
+          <button type="button" class="btn btn-secondary" @click="bulk.show = false">{{ t('tickets.attendees.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="bulk.sending || !bulk.recipients">
-            {{ bulk.sending ? 'Odosielam…' : 'Odoslať' }}
+            {{ bulk.sending ? t('tickets.attendees.sending') : t('tickets.attendees.send') }}
           </button>
         </div>
       </form>
     </div>
 
-    <p v-if="loading" class="text-slate-500">Načítavam…</p>
+    <p v-if="loading" class="text-slate-500">{{ t('tickets.attendees.loading') }}</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
-    <p v-else-if="!tickets.length" class="text-slate-400">Zatiaľ žiadni prihlásení.</p>
+    <p v-else-if="!tickets.length" class="text-slate-400">{{ t('tickets.attendees.empty') }}</p>
 
     <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
             <th class="px-4 py-3"></th>
-            <th class="px-4 py-3">Meno</th>
-            <th class="px-4 py-3">Lístky</th>
-            <th class="px-4 py-3">Vstup</th>
-            <th class="px-4 py-3">Stav</th>
-            <th class="px-4 py-3">Platba</th>
+            <th class="px-4 py-3">{{ t('tickets.attendees.colName') }}</th>
+            <th class="px-4 py-3">{{ t('tickets.attendees.colTickets') }}</th>
+            <th class="px-4 py-3">{{ t('tickets.attendees.colCheckin') }}</th>
+            <th class="px-4 py-3">{{ t('tickets.attendees.colStatus') }}</th>
+            <th class="px-4 py-3">{{ t('tickets.attendees.colPayment') }}</th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
@@ -80,9 +79,9 @@
               <td class="px-4 py-3 text-right whitespace-nowrap" @click.stop>
                 <div v-if="ticket.permissions?.update" class="flex justify-end">
                   <RowActions>
-                    <button type="button" class="row-menu-item" @click="onResend(ticket)">Poslať znova</button>
+                    <button type="button" class="row-menu-item" @click="onResend(ticket)">{{ t('tickets.attendees.resend') }}</button>
                     <button v-if="ticket.status !== 'cancelled'" type="button"
-                      class="row-menu-item row-menu-item-danger" @click="onCancelOrder(ticket)">Zrušiť</button>
+                      class="row-menu-item row-menu-item-danger" @click="onCancelOrder(ticket)">{{ t('tickets.attendees.cancelOrder') }}</button>
                   </RowActions>
                 </div>
               </td>
@@ -95,26 +94,26 @@
                   <div v-for="(adm, i) in ticket.admissions" :key="adm.uuid"
                     class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
                     <span class="text-sm font-medium text-slate-800">
-                      {{ adm.attendeeName || `Vstupenka ${i + 1}` }}
+                      {{ adm.attendeeName || t('tickets.attendees.seat', { n: i + 1 }) }}
                     </span>
                     <span v-if="adm.ticketType" class="text-xs"
                       :class="adm.ticketType.kind === 'workshop' ? 'rounded-full bg-violet-100 px-2 py-0.5 font-medium text-violet-700' : 'text-slate-500'">
                       {{ adm.ticketType.name }}
                     </span>
-                    <span v-if="adm.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Zrušený</span>
-                    <span v-else-if="adm.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Náhradník</span>
+                    <span v-if="adm.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{{ t('tickets.attendees.cancelled') }}</span>
+                    <span v-else-if="adm.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{{ t('tickets.attendees.waitlisted') }}</span>
                     <span v-else-if="adm.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      Vstup {{ formatDateTime(adm.checkedInAt) }}
+                      {{ t('tickets.attendees.checkedInAt', { time: formatDateTime(adm.checkedInAt) }) }}
                     </span>
-                    <span v-else class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">Čaká na vstup</span>
+                    <span v-else class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ t('tickets.attendees.awaiting') }}</span>
 
                     <div class="ml-auto flex gap-1">
                       <button v-if="ticket.permissions?.checkin && adm.status === 'valid' && !adm.isCheckedIn" type="button"
-                        class="action-btn" @click="onCheckin(adm.id!)">Označiť vstup</button>
+                        class="action-btn" @click="onCheckin(adm.id!)">{{ t('tickets.attendees.checkin') }}</button>
                       <button v-if="ticket.permissions?.checkin && adm.isCheckedIn" type="button"
-                        class="action-btn" @click="onUndo(adm.id!)">Zrušiť vstup</button>
+                        class="action-btn" @click="onUndo(adm.id!)">{{ t('tickets.attendees.undo') }}</button>
                       <button v-if="ticket.permissions?.update && adm.status === 'valid'" type="button"
-                        class="action-btn text-red-600" @click="onCancelAdmission(adm.id!)">Zrušiť lístok</button>
+                        class="action-btn text-red-600" @click="onCancelAdmission(adm.id!)">{{ t('tickets.attendees.cancelSeat') }}</button>
                     </div>
                   </div>
                 </div>
@@ -126,9 +125,9 @@
     </div>
 
     <div v-if="meta && meta.last_page > 1" class="mt-4 flex items-center gap-2">
-      <button type="button" class="action-btn" :disabled="page <= 1" @click="changePage(page - 1)">← Predch.</button>
+      <button type="button" class="action-btn" :disabled="page <= 1" @click="changePage(page - 1)">{{ t('tickets.attendees.prev') }}</button>
       <span class="text-sm text-slate-500">{{ page }} / {{ meta.last_page }}</span>
-      <button type="button" class="action-btn" :disabled="page >= meta.last_page" @click="changePage(page + 1)">Ďalej →</button>
+      <button type="button" class="action-btn" :disabled="page >= meta.last_page" @click="changePage(page + 1)">{{ t('tickets.attendees.next') }}</button>
     </div>
   </div>
 </template>
@@ -154,9 +153,9 @@ import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import FormField from '@/components/FormField.vue'
 import RowActions from '@/components/RowActions.vue'
 import type { PaginatedResponse, TicketItem } from '@/types'
-import { useI18n } from '@/i18n'
+import { currentLocale, useI18n } from '@/i18n'
 
-const { t } = useI18n()
+const { t, plural } = useI18n()
 
 const route = useRoute()
 const toast = useToast()
@@ -175,7 +174,7 @@ let searchTimeout: ReturnType<typeof setTimeout> | undefined
 
 function formatDateTime(d: string | null) {
   if (!d) return ''
-  return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleString(currentLocale(), { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function toggle(id: number) {
@@ -191,7 +190,7 @@ async function load(targetPage = 1) {
     meta.value = result.meta
     page.value = targetPage
   } catch {
-    error.value = 'Zoznam sa nepodarilo načítať.'
+    error.value = t('tickets.attendees.loadFailed')
   } finally {
     loading.value = false
   }
@@ -207,28 +206,28 @@ function changePage(target: number) {
 }
 
 async function onCancelOrder(ticket: TicketItem) {
-  if (!ticket.id || !confirm(`Naozaj zrušiť celú objednávku pre ${ticket.holderName}?`)) return
+  if (!ticket.id || !confirm(t('tickets.attendees.cancelOrderConfirm', { name: ticket.holderName }))) return
   await cancelTicket(ticket.id)
   await load(page.value)
 }
 
 async function onCancelAdmission(admissionId: number) {
-  if (!confirm('Naozaj zrušiť túto vstupenku?')) return
+  if (!confirm(t('tickets.attendees.cancelSeatConfirm'))) return
   await cancelAdmission(admissionId)
   await load(page.value)
 }
 
 async function onCheckin(admissionId: number) {
   const res = await checkinAdmissionManual(admissionId)
-  if (res.status === 'checked_in') toast.success('Vstup označený.')
-  else if (res.status === 'already_checked_in') toast.error('Vstupenka už bola použitá.')
-  else toast.error('Vstupenku sa nepodarilo označiť.')
+  if (res.status === 'checked_in') toast.success(t('tickets.attendees.checkedIn'))
+  else if (res.status === 'already_checked_in') toast.error(t('tickets.attendees.alreadyCheckedIn'))
+  else toast.error(t('tickets.attendees.checkinFailed'))
   await load(page.value)
 }
 
 async function onUndo(admissionId: number) {
   await undoCheckin(admissionId)
-  toast.success('Vstup zrušený.')
+  toast.success(t('tickets.attendees.undone'))
   await load(page.value)
 }
 
@@ -239,7 +238,7 @@ async function onExport() {
   try {
     await exportAttendees(eventId)
   } catch {
-    toast.error('Export sa nepodaril.')
+    toast.error(t('tickets.attendees.exportFailed'))
   } finally {
     exporting.value = false
   }
@@ -260,7 +259,7 @@ async function openBulk() {
   bulk.show = true
   bulk.error = null
   validation.reset()
-  bulk.subject = eventName.value ? `${eventName.value} – informácia pre účastníkov` : ''
+  bulk.subject = eventName.value ? t('tickets.attendees.subjectPrefill', { event: eventName.value }) : ''
   bulk.body = ''
   bulk.recipients = await attendeeRecipientCount(eventId).catch(() => 0)
 }
@@ -272,10 +271,12 @@ async function sendBulk() {
   try {
     const count = await emailAttendees(eventId, { subject: bulk.subject, body: bulk.body })
     bulk.show = false
-    toast.success(`E-mail odoslaný na ${count} adries.`)
+    toast.success(t('tickets.attendees.sent', {
+      recipients: plural('tickets.attendees.counts.recipients', count),
+    }))
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { message?: string } } })?.response?.data
-    bulk.error = resp?.message ?? 'E-mail sa nepodarilo odoslať.'
+    bulk.error = resp?.message ?? t('tickets.attendees.sendFailed')
   } finally {
     bulk.sending = false
   }
@@ -285,9 +286,9 @@ async function onResend(ticket: TicketItem) {
   if (!ticket.id) return
   try {
     await resendTicket(ticket.id)
-    toast.success('Potvrdenie odoslané.')
+    toast.success(t('tickets.attendees.resent'))
   } catch {
-    toast.error('E-mail sa nepodarilo odoslať.')
+    toast.error(t('tickets.attendees.sendFailed'))
   }
 }
 

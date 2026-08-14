@@ -20,6 +20,7 @@
  */
 import { computed } from 'vue'
 import type { AttributeIssue } from '@/types'
+import { currentLocale, t } from '@/i18n'
 
 const props = defineProps<{
   issue?: AttributeIssue | null
@@ -32,30 +33,29 @@ const props = defineProps<{
  * (App\Services\Attributes) — a tie isté, aké používa e-mail s upozornením,
  * nech si človek prečíta dvakrát to isté a nie dve rôzne verzie.
  */
-const REASONS: Record<string, string> = {
-  dns: 'Doména sa nenašla — skontrolujte, či v adrese nie je preklep.',
-  not_found: 'Stránka na tejto adrese už neexistuje.',
-  server_error: 'Server na tejto adrese hlási chybu.',
-  http_error: 'Server na tejto adrese odpovedal chybou.',
-  timeout: 'Server na tejto adrese neodpovedal včas.',
-  ssl: 'Zabezpečené spojenie zlyhalo — pravdepodobne neplatný certifikát.',
-  unreachable: 'Na tejto adrese sa nepodarilo spojiť so serverom.',
-  redirect: 'Adresa presmerúva na miesto, ktoré sa nedá otvoriť.',
-  redirect_loop: 'Adresa sa presmerúva dokola.',
-  blocked: 'Túto adresu nevieme overiť.',
-  invalid: 'Adresa nemá platný tvar.',
-}
+const REASONS = [
+  'dns', 'not_found', 'server_error', 'http_error', 'timeout', 'ssl',
+  'unreachable', 'redirect', 'redirect_loop', 'blocked', 'invalid',
+] as const
 
 const text = computed(() => {
-  const reason = REASONS[props.issue?.reason ?? ''] ?? 'Túto hodnotu sa nepodarilo overiť.'
+  const key = props.issue?.reason ?? ''
+  const reason = REASONS.includes(key as typeof REASONS[number])
+    ? t(`attributeIssue.reasons.${key as typeof REASONS[number]}`)
+    : t('attributeIssue.reasons.unknown')
   const status = props.issue?.httpStatus ? ` (${props.issue.httpStatus})` : ''
 
-  return `${props.label ?? 'Táto hodnota'} nám neodpovedá. ${reason}${status}`
+  return t('attributeIssue.text', {
+    label: props.label ?? t('attributeIssue.defaultLabel'),
+    reason,
+  }) + status
 })
 
 const checkedLabel = computed(() => {
   if (!props.issue?.checkedAt) return ''
 
-  return `naposledy overené ${new Date(props.issue.checkedAt).toLocaleDateString('sk-SK')}`
+  return t('attributeIssue.checkedAt', {
+    date: new Date(props.issue.checkedAt).toLocaleDateString(currentLocale()),
+  })
 })
 </script>

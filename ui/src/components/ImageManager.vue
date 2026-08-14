@@ -12,13 +12,13 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
       </svg>
       <p class="text-sm text-slate-500">
-        Presunte obrazky sem alebo
+        {{ t('media.manager.drop') }}
         <label class="cursor-pointer text-blue-600 hover:underline">
-          vyberte zo zariadenia
+          {{ t('media.manager.browse') }}
           <input ref="fileInputEl" type="file" multiple :accept="UPLOAD_ACCEPT" class="sr-only" @change="onFileInput" />
         </label>
       </p>
-      <p class="text-xs text-slate-400">JPG, PNG, WebP, PDF, DOC — max 10 MB / subor</p>
+      <p class="text-xs text-slate-400">{{ t('media.manager.formats') }}</p>
     </div>
 
     <!-- Image grid -->
@@ -76,12 +76,12 @@
         <!-- Pending spinner overlay -->
         <div v-if="item.type === 'pending'" class="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[10px] bg-black/20">
           <span class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-          <span class="text-[10px] font-semibold text-white drop-shadow">Nahravame...</span>
+          <span class="text-[10px] font-semibold text-white drop-shadow">{{ t('media.manager.uploading') }}</span>
         </div>
 
         <!-- Uploaded: primary badge -->
         <div v-if="item.type === 'uploaded' && item.data.isPrimary" class="absolute left-1.5 top-1.5 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-          Hlavna
+          {{ t('media.manager.primary') }}
         </div>
 
         <!-- Uploaded: document type badge (PDF/DOC — has a real file to open besides the preview) -->
@@ -105,23 +105,23 @@
             rel="noopener"
             class="flex-1 rounded-lg bg-slate-100 py-1 text-center text-xs font-medium text-slate-700 hover:bg-slate-200"
             @click.stop
-          >Original</a>
+          >{{ t('media.manager.original') }}</a>
           <button
             v-if="!item.data.isPrimary"
             class="flex-1 rounded-lg bg-blue-50 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
             :disabled="settingPrimary === item.data.id"
             @click.stop="setPrimary(item.data)"
-          >Hlavna</button>
+          >{{ t('media.manager.setPrimary') }}</button>
           <button
             class="flex-1 rounded-lg bg-red-50 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
             :disabled="deleting === item.data.id"
             @click.stop="remove(item.data)"
-          >{{ deleting === item.data.id ? '...' : 'Zmazat' }}</button>
+          >{{ deleting === item.data.id ? '…' : t('media.manager.remove') }}</button>
         </div>
       </div>
     </div>
 
-    <p v-else class="text-sm text-slate-400">Ziadne obrazky.</p>
+    <p v-else class="text-sm text-slate-400">{{ t('media.manager.empty') }}</p>
     <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
 
     <!-- Lightbox -->
@@ -188,6 +188,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { listFiles, uploadFiles, updateFile, deleteFile, reorderFiles, type FileItem } from '@/api/files'
+import { t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { extensionLabel, isImageFile, openOriginal, useFilePreview } from '@/composables/useFilePreview'
 import { UPLOAD_ACCEPT, isAllowedUpload, isImageLikeUpload } from '@/utils/uploadFileTypes'
@@ -290,7 +291,7 @@ async function onReorderDrop(toIdx: number) {
   try {
     await reorderFiles(reordered.map(img => ({ id: img.id, sort_order: img.sortOrder })))
   } catch {
-    toast.error('Zmena poradia zlyhala.')
+    toast.error(t('media.manager.reorderFailed'))
     await load()
   }
 }
@@ -387,9 +388,9 @@ async function uploadBatch(files: File[]) {
 
     images.value = [...images.value, ...uploaded].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
     await nextTick()
-    toast.success(`Nahrane ${uploaded.length} suborov.`)
+    toast.success(plural('media.counts.uploaded', uploaded.length))
   } catch {
-    uploadError.value = 'Nahravanie zlyhalo.'
+    uploadError.value = t('media.manager.uploadFailed')
     // Revoke objectUrls that won't be transferred
     previews.forEach(p => p.objectUrl && URL.revokeObjectURL(p.objectUrl))
   } finally {
@@ -418,14 +419,14 @@ async function setPrimary(img: FileItem) {
     await updateFile(img.id, { is_primary: true })
     images.value = images.value.map(i => ({ ...i, isPrimary: i.id === img.id }))
   } catch {
-    toast.error('Nepodarilo sa nastavit hlavnu fotku.')
+    toast.error(t('media.manager.primaryFailed'))
   } finally {
     settingPrimary.value = null
   }
 }
 
 async function remove(img: FileItem) {
-  if (!confirm('Zmazat obrazok?')) return
+  if (!confirm(t('media.manager.deleteConfirm'))) return
   deleting.value = img.id
   try {
     await deleteFile(img.id)
@@ -438,7 +439,7 @@ async function remove(img: FileItem) {
       URL.revokeObjectURL(objectUrl)
     }
   } catch {
-    toast.error('Mazanie zlyhalo.')
+    toast.error(t('media.manager.deleteFailed'))
   } finally {
     deleting.value = null
   }

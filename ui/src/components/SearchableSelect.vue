@@ -36,7 +36,7 @@
             v-if="!filtered.length"
             class="px-3 py-2 text-sm text-slate-400"
           >
-            Žiadne výsledky
+            {{ t('filters.noResults') }}
           </li>
           <li
             v-for="opt in filtered"

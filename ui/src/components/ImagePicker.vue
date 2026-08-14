@@ -12,8 +12,8 @@
       <svg class="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
       </svg>
-      <span class="text-sm text-slate-500">Kliknite alebo presuňte súbory sem</span>
-      <span class="text-xs text-slate-400">JPG, PNG, WebP, GIF, PDF, DOC</span>
+      <span class="text-sm text-slate-500">{{ t('media.picker.drop') }}</span>
+      <span class="text-xs text-slate-400">{{ t('media.picker.formats') }}</span>
     </div>
 
     <input
@@ -34,7 +34,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
           </svg>
         </div>
-        <button class="remove-btn" type="button" @click="remove(i)" title="Odstrániť">
+        <button class="remove-btn" type="button" @click="remove(i)" :title="t('media.picker.remove')">
           <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue'
+import { t } from '@/i18n'
 import { UPLOAD_ACCEPT, isAllowedUpload } from '@/utils/uploadFileTypes'
 
 interface PickerItem {

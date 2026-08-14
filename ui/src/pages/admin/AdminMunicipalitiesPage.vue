@@ -1,23 +1,23 @@
 <template>
   <div class="grid gap-4">
     <div class="flex items-center justify-between gap-3">
-      <h1 class="text-2xl font-semibold text-slate-900">Obce</h1>
-      <button class="btn btn-primary" @click="openCreate">+ Nová obec</button>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ t('municipalities.title') }}</h1>
+      <button class="btn btn-primary" @click="openCreate">{{ t('municipalities.new') }}</button>
     </div>
 
     <input v-model="search" type="text" :placeholder="t('filters.search')" class="form-input w-56" @input="onSearch" />
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('municipalities.loading') }}</p>
 
     <div v-else class="panel-card">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-            <th class="pb-2 pr-4">ID</th>
-            <th class="pb-2 pr-4">Názov</th>
-            <th class="pb-2 pr-4">Skratka</th>
-            <th class="pb-2 pr-4">PSČ</th>
-            <th class="pb-2">Akcie</th>
+            <th class="pb-2 pr-4">{{ t('municipalities.colId') }}</th>
+            <th class="pb-2 pr-4">{{ t('municipalities.colName') }}</th>
+            <th class="pb-2 pr-4">{{ t('municipalities.colShort') }}</th>
+            <th class="pb-2 pr-4">{{ t('municipalities.colZip') }}</th>
+            <th class="pb-2">{{ t('municipalities.colActions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -27,12 +27,12 @@
             <td class="py-2 pr-4 text-slate-600">{{ item.shortname ?? '—' }}</td>
             <td class="py-2 pr-4 text-slate-600">{{ item.zip ?? '—' }}</td>
             <td class="py-2 flex gap-2">
-              <button class="action-btn" @click="openEdit(item)">Upraviť</button>
-              <button class="action-btn action-btn-danger" @click="remove(item.id)">Zmazať</button>
+              <button class="action-btn" @click="openEdit(item)">{{ t('municipalities.edit') }}</button>
+              <button class="action-btn action-btn-danger" @click="remove(item.id)">{{ t('municipalities.remove') }}</button>
             </td>
           </tr>
           <tr v-if="items.length === 0">
-            <td colspan="5" class="py-4 text-slate-500">Žiadne obce.</td>
+            <td colspan="5" class="py-4 text-slate-500">{{ t('municipalities.empty') }}</td>
           </tr>
         </tbody>
       </table>
@@ -46,16 +46,16 @@
 
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h2 class="mb-3 text-lg font-semibold">{{ editingItem ? 'Upraviť' : 'Nová' }} obec</h2>
+        <h2 class="mb-3 text-lg font-semibold">{{ editingItem ? t('municipalities.editTitle') : t('municipalities.createTitle') }}</h2>
         <p v-if="formError" class="mb-2 text-sm text-red-600">{{ formError }}</p>
         <div class="grid gap-3">
-          <FormField v-model="form.name" label="Názov" required />
-          <FormField v-model="form.shortname" label="Skratka" />
-          <FormField v-model="form.zip" label="PSČ" />
+          <FormField v-model="form.name" :label="t('municipalities.name')" required />
+          <FormField v-model="form.shortname" :label="t('municipalities.shortname')" />
+          <FormField v-model="form.zip" :label="t('municipalities.zip')" />
         </div>
         <div class="mt-4 flex gap-2">
-          <button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
-          <button class="btn btn-secondary" @click="showForm = false">Zrušiť</button>
+          <button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? t('municipalities.saving') : t('municipalities.save') }}</button>
+          <button class="btn btn-secondary" @click="showForm = false">{{ t('municipalities.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -96,7 +96,7 @@ async function loadPage(page: number) {
     items.value = res.data
     meta.value = res.meta
   } catch {
-    toast.error('Nepodarilo sa načítať obce.')
+    toast.error(t('municipalities.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -137,23 +137,23 @@ async function save() {
       await createMunicipality(SCOPE, payload)
       await loadPage(1)
     }
-    toast.success('Uložené.')
+    toast.success(t('municipalities.saved'))
     showForm.value = false
   } catch (e: unknown) {
-    formError.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Chyba.'
+    formError.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('municipalities.error')
   } finally {
     saving.value = false
   }
 }
 
 async function remove(id: number) {
-  if (!confirm('Naozaj zmazať obec?')) return
+  if (!confirm(t('municipalities.removeConfirm'))) return
   try {
     await deleteMunicipality(SCOPE, id)
     items.value = items.value.filter(i => i.id !== id)
-    toast.success('Obec zmazaná.')
+    toast.success(t('municipalities.removed'))
   } catch {
-    toast.error('Mazanie zlyhalo.')
+    toast.error(t('municipalities.removeFailed'))
   }
 }
 </script>

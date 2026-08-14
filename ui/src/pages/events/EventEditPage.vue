@@ -2,23 +2,25 @@
   <div class="edit-shell">
     <div class="edit-card">
       <div class="mb-4">
-        <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">← Späť na zoznam</RouterLink>
-        <h1 class="my-2 text-2xl text-slate-900">{{ fileableId ? 'Upraviť event' : 'Nový event' }}</h1>
+        <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('events.form.back') }}</RouterLink>
+        <h1 class="my-2 text-2xl text-slate-900">
+          {{ fileableId ? t('events.form.editTitle') : t('events.form.createTitle') }}
+        </h1>
       </div>
 
-      <p v-if="loadingData" class="text-slate-600">Načítavam…</p>
+      <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form v-if="!loadingData" class="grid gap-4 mt-4" @submit.prevent="submit">
         <fieldset class="field-group">
-          <legend class="field-legend">Základné info</legend>
+          <legend class="field-legend">{{ t('events.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.name" label="Názov" required :error="errors.name" class="lg:col-span-2" />
-            <FormField v-model="form.status" type="select" label="Stav" :error="errors.status">
-              <option value="draft">Koncept</option>
-              <option value="scheduled">Naplánovaný</option>
-              <option value="published">Publikovaný</option>
-              <option value="archived">Archivovaný</option>
+            <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.status" type="select" :label="t('events.fields.status')" :error="errors.status">
+              <option value="draft">{{ t('events.statuses.draft') }}</option>
+              <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
+              <option value="published">{{ t('events.statuses.published') }}</option>
+              <option value="archived">{{ t('events.statuses.archived') }}</option>
             </FormField>
             <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
                  stavoch ho backend aj tak zahodí, tak ho ani neukazujeme. -->
@@ -26,30 +28,30 @@
               v-if="form.status === 'scheduled'"
               v-model="form.publish_at"
               type="datetime"
-              label="Zverejniť dňa"
+              :label="t('events.fields.publishAt')"
               required
               :error="errors.publish_at"
-              hint="Do tohto času event nie je verejne viditeľný. Zverejní sa sám, na minútu presne to nie je — kontrola beží každých päť minút."
+              :hint="t('events.fields.publishAtHint')"
               class="lg:col-span-2"
             />
-            <FormField v-model="form.canal_id" type="select" label="Kanál" :error="errors.canal_id">
-              <option v-if="!form.canal_id" :value="null" disabled>— vyberte kanál —</option>
+            <FormField v-model="form.canal_id" type="select" :label="t('events.fields.canal')" :error="errors.canal_id">
+              <option v-if="!form.canal_id" :value="null" disabled>{{ t('events.fields.canalPlaceholder') }}</option>
               <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
             </FormField>
-            <FormField v-model="form.venue_id" label="Miesto konania" :error="errors.venue_id" class="lg:col-span-2">
+            <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id" class="lg:col-span-2">
               <template #default="{ value, invalid, update }">
                 <div class="flex gap-2">
                   <div class="min-w-0 flex-1">
                     <SearchableSelect
                       :model-value="value ?? null"
                       :options="venuesForCanal"
-                      placeholder="— bez miesta —"
+                      :placeholder="t('events.fields.venuePlaceholder')"
                       :invalid="invalid"
                       @update:model-value="update"
                     />
                   </div>
                   <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
-                    + Pridať nové
+                    {{ t('events.fields.venueAdd') }}
                   </button>
                 </div>
               </template>
@@ -58,22 +60,22 @@
         </fieldset>
 
         <fieldset class="field-group">
-          <legend class="field-legend">Termín</legend>
+          <legend class="field-legend">{{ t('events.sections.schedule') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.start_at" type="datetime" label="Začiatok" :error="errors.start_at" />
-            <FormField v-model="form.end_at" type="datetime" label="Koniec" :error="errors.end_at" />
+            <FormField v-model="form.start_at" type="datetime" :label="t('events.fields.startAt')" :error="errors.start_at" />
+            <FormField v-model="form.end_at" type="datetime" :label="t('events.fields.endAt')" :error="errors.end_at" />
           </div>
         </fieldset>
 
         <fieldset class="field-group">
-          <legend class="field-legend">Registrácia a lístky</legend>
+          <legend class="field-legend">{{ t('events.sections.tickets') }}</legend>
           <p v-if="isCreate" class="text-sm text-slate-500">
-            Lístky a registráciu nastavíte po vytvorení eventu v samostatnej sekcii „Lístky".
+            {{ t('events.tickets.createHint') }}
           </p>
           <div v-else class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
-            <p class="text-sm text-slate-600">Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.</p>
+            <p class="text-sm text-slate-600">{{ t('events.tickets.manageHint') }}</p>
             <RouterLink :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary shrink-0">
-              Spravovať lístky →
+              {{ t('events.tickets.manage') }}
             </RouterLink>
           </div>
         </fieldset>
@@ -82,33 +84,33 @@
              a odvodenie z dát, ručný zásah tu nemá čo meniť. -->
 
         <fieldset class="field-group">
-          <legend class="field-legend">Popis akcie</legend>
-          <HtmlEditor v-model="form.body" placeholder="Napíšte popis eventu…" min-height="180px" />
+          <legend class="field-legend">{{ t('events.sections.description') }}</legend>
+          <HtmlEditor v-model="form.body" :placeholder="t('events.fields.bodyPlaceholder')" min-height="180px" />
 
           <!-- AI suggest panel — active when body >= 100 chars -->
           <div v-if="form.body.length >= 100" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
             <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-violet-700"
               @click="improveOpen = !improveOpen">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              {{ improveOpen ? 'Skryť AI návrh' : 'AI návrh vylepšeného textu' }}
+              {{ improveOpen ? t('events.improve.hide') : t('events.improve.show') }}
             </button>
             <div v-if="improveOpen" class="mt-3 grid gap-3">
               <div class="flex flex-wrap gap-3">
                 <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="grammar" class="accent-violet-600" /> Gramatika
+                  <input type="checkbox" v-model="improveModes" value="grammar" class="accent-violet-600" /> {{ t('events.improve.grammar') }}
                 </label>
                 <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="style" class="accent-violet-600" /> Štýl
+                  <input type="checkbox" v-model="improveModes" value="style" class="accent-violet-600" /> {{ t('events.improve.style') }}
                 </label>
                 <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> Rozšíriť obsah
+                  <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> {{ t('events.improve.expand') }}
                 </label>
               </div>
-              <p class="text-xs text-violet-600">HTML formátovanie je vždy zapnuté — výsledok sa uloží do <strong>body_ai</strong>, originál ostane zachovaný.</p>
+              <p class="text-xs text-violet-600">{{ t('events.improve.note', { field: 'body_ai' }) }}</p>
               <div class="flex items-center gap-3">
                 <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent"
                   :disabled="improving || !improveModes.length" @click="runImprove">
-                  {{ improving ? 'Generujem AI návrh…' : 'Vygenerovať AI návrh' }}
+                  {{ improving ? t('events.improve.running') : t('events.improve.run') }}
                 </button>
                 <span v-if="improveError" class="text-sm text-red-600">{{ improveError }}</span>
               </div>
@@ -119,11 +121,11 @@
                     <button type="button"
                       :class="improvePreview === 'html' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
                       class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                      @click="improvePreview = 'html'">Náhľad</button>
+                      @click="improvePreview = 'html'">{{ t('events.improve.preview') }}</button>
                     <button type="button"
                       :class="improvePreview === 'raw' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
                       class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                      @click="improvePreview = 'raw'">Zdrojový kód</button>
+                      @click="improvePreview = 'raw'">{{ t('events.improve.source') }}</button>
                   </div>
                 </div>
                 <div class="max-h-72 overflow-y-auto p-3">
@@ -132,13 +134,13 @@
                 </div>
                 <div class="flex flex-wrap gap-2 border-t border-violet-100 px-3 py-2">
                   <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent" @click="applyImproveAsAi">
-                    Uložiť ako AI verziu
+                    {{ t('events.improve.saveAsAi') }}
                   </button>
                   <button type="button" class="btn btn-sm btn-secondary" @click="applyImproveAsBody">
-                    Nahradiť originál
+                    {{ t('events.improve.replaceOriginal') }}
                   </button>
                   <button type="button" class="btn btn-sm btn-secondary" @click="improveResult = null">
-                    Zahodiť
+                    {{ t('events.improve.discard') }}
                   </button>
                 </div>
               </div>
@@ -151,19 +153,19 @@
               <div class="flex items-center gap-2">
                 <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                   <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                  AI verzia
+                  {{ t('events.ai.badge') }}
                 </span>
-                <span class="text-xs text-emerald-600">Uloží sa spolu s formulárom</span>
+                <span class="text-xs text-emerald-600">{{ t('events.ai.savedWithForm') }}</span>
               </div>
               <div class="flex gap-1">
                 <button type="button"
                   :class="aiPreview === 'html' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
                   class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  @click="aiPreview = 'html'">Náhľad</button>
+                  @click="aiPreview = 'html'">{{ t('events.ai.preview') }}</button>
                 <button type="button"
                   :class="aiPreview === 'edit' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
                   class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  @click="aiPreview = 'edit'">Upraviť</button>
+                  @click="aiPreview = 'edit'">{{ t('events.ai.edit') }}</button>
               </div>
             </div>
             <div v-if="aiPreview === 'html'" class="max-h-60 overflow-y-auto rounded-lg border border-emerald-100 bg-white p-3">
@@ -173,34 +175,36 @@
             <div class="mt-2 flex gap-2">
               <button type="button" class="btn btn-sm btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200"
                 @click="form.body_ai = ''">
-                Zmazať AI verziu
+                {{ t('events.ai.remove') }}
               </button>
             </div>
           </div>
         </fieldset>
 
         <fieldset class="field-group">
-          <legend class="field-legend">Kontakt</legend>
+          <legend class="field-legend">{{ t('events.sections.contact') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.website" type="url" label="Web" :error="errors.website">
+            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website">
               <template #footer>
-                <AttributeIssueHint :issue="websiteIssue" label="Táto adresa" />
+                <AttributeIssueHint :issue="websiteIssue" :label="t('events.fields.websiteIssueLabel')" />
               </template>
             </FormField>
-            <FormField v-model="form.email" type="email" label="Email" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" label="Telefón" :error="errors.phone" />
+            <FormField v-model="form.email" type="email" :label="t('events.fields.email')" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" :label="t('events.fields.phone')" :error="errors.phone" />
           </div>
         </fieldset>
 
         <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">Zrušiť</RouterLink>
+          <button type="submit" class="btn btn-primary" :disabled="saving">
+            {{ saving ? t('events.form.saving') : t('events.form.save') }}
+          </button>
+          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
         </div>
       </form>
     </div>
 
     <div class="edit-card">
-      <h2 class="mb-4 text-lg font-semibold text-slate-800">Obrázky</h2>
+      <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('events.sections.images') }}</h2>
       <ImageManager v-if="fileableId" fileable-type="event" :fileable-id="fileableId" />
       <ImagePicker v-else ref="picker" />
     </div>
@@ -211,9 +215,9 @@
     <div v-if="venueModal.show" class="fixed inset-0 z-600 flex items-center justify-center bg-black/40 p-4" @mousedown.self="venueModal.show = false">
       <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
         <div class="mb-4 flex items-start gap-3">
-          <h2 class="flex-1 text-lg font-semibold text-slate-900">Nové miesto konania</h2>
+          <h2 class="flex-1 text-lg font-semibold text-slate-900">{{ t('events.venueModal.title') }}</h2>
           <button type="button" class="-mr-1 -mt-1 p-1 leading-none text-slate-400 hover:text-slate-700"
-            aria-label="Zavrieť" @click="venueModal.show = false">✕</button>
+            :aria-label="t('events.venueModal.close')" @click="venueModal.show = false">✕</button>
         </div>
         <p v-if="venueModal.error" class="mb-3 text-sm text-red-600">{{ venueModal.error }}</p>
         <!-- Modál má vlastný stav validácie — červená sa v ňom rozsvieti až po
@@ -221,15 +225,15 @@
         <div class="grid gap-3">
           <FormField
             v-model="venueModal.form.name"
-            label="Názov"
+            :label="t('events.venueModal.name')"
             required
             :validated="venueModal.validated"
             :error="venueModal.errors.name"
-            placeholder="napr. Kultúrny dom"
+            :placeholder="t('events.venueModal.namePlaceholder')"
           />
           <FormField
             v-model="venueModal.form.village_id"
-            label="Obec"
+            :label="t('events.venueModal.village')"
             required
             :validated="venueModal.validated"
             :error="venueModal.errors.village_id"
@@ -238,22 +242,22 @@
               <SearchableSelect
                 :model-value="value ?? null"
                 :options="municipalities"
-                placeholder="— vyberte obec —"
+                :placeholder="t('events.venueModal.villagePlaceholder')"
                 :invalid="invalid"
                 @update:model-value="update"
               />
             </template>
           </FormField>
           <div class="grid grid-cols-2 gap-3">
-            <FormField v-model="venueModal.form.street" label="Ulica" placeholder="napr. Hlavná 12" />
-            <FormField v-model="venueModal.form.postcode" label="PSČ" placeholder="01234" />
+            <FormField v-model="venueModal.form.street" :label="t('events.venueModal.street')" :placeholder="t('events.venueModal.streetPlaceholder')" />
+            <FormField v-model="venueModal.form.postcode" :label="t('events.venueModal.postcode')" placeholder="01234" />
           </div>
         </div>
         <div class="mt-5 flex gap-2">
           <button type="button" class="btn btn-primary" :disabled="venueModal.saving" @click="saveNewVenue">
-            {{ venueModal.saving ? 'Ukladám…' : 'Vytvoriť miesto' }}
+            {{ venueModal.saving ? t('events.venueModal.saving') : t('events.venueModal.submit') }}
           </button>
-          <button type="button" class="btn btn-secondary" @click="venueModal.show = false">Zrušiť</button>
+          <button type="button" class="btn btn-secondary" @click="venueModal.show = false">{{ t('events.venueModal.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -266,6 +270,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent, improveEventText, type ImproveMode } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -397,11 +402,11 @@ async function saveNewVenue() {
     venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
     form.value.venue_id = created.id
     venueModal.value.show = false
-    toast.success('Miesto vytvorené.')
+    toast.success(t('events.venueModal.created'))
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) venueModal.value.errors = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
-    venueModal.value.error = resp?.message ?? 'Uloženie zlyhalo.'
+    venueModal.value.error = resp?.message ?? t('events.venueModal.failed')
   } finally {
     venueModal.value.saving = false
   }
@@ -422,11 +427,11 @@ async function runImprove() {
   try {
     const modes: ImproveMode[] = [...improveModes.value, 'html']
     const res = await improveEventText(scope.value, form.value.body, modes)
-    if (!res.success) throw new Error(res.error ?? 'Vylepšenie zlyhalo.')
+    if (!res.success) throw new Error(res.error ?? t('events.improve.failed'))
     improveResult.value = { improved_text: res.improved_text!, changes_summary: res.changes_summary! }
     improvePreview.value = 'html'
   } catch (e: unknown) {
-    improveError.value = (e as Error)?.message ?? 'Vylepšenie zlyhalo.'
+    improveError.value = (e as Error)?.message ?? t('events.improve.failed')
   } finally {
     improving.value = false
   }
@@ -438,7 +443,7 @@ function applyImproveAsAi() {
   improveResult.value = null
   improveOpen.value = false
   aiPreview.value = 'html'
-  toast.success('AI verzia uložená. Nezabudnite uložiť formulár.')
+  toast.success(t('events.improve.savedAsAi'))
 }
 
 function applyImproveAsBody() {
@@ -446,7 +451,7 @@ function applyImproveAsBody() {
   form.value.body = improveResult.value.improved_text
   improveResult.value = null
   improveOpen.value = false
-  toast.success('Originálny text bol nahradený.')
+  toast.success(t('events.improve.replaced'))
 }
 
 onMounted(async () => {
@@ -475,7 +480,7 @@ onMounted(async () => {
         tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),
       }
       applyWebsiteIssue(ev)
-    } catch { serverError.value = 'Event sa nepodarilo načítať.' }
+    } catch { serverError.value = t('events.form.loadFailed') }
     finally { loadingData.value = false }
   }
 })
@@ -512,16 +517,16 @@ async function submit() {
           await uploadFiles(fd)
         }
       }
-      toast.success('Event vytvorený.')
+      toast.success(t('events.form.created'))
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
       await updateEvent(Number(route.params.id), payload, scope.value)
-      toast.success('Event uložený.')
+      toast.success(t('events.form.saved'))
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
-    serverError.value = resp?.message ?? 'Uloženie zlyhalo.'
+    serverError.value = resp?.message ?? t('events.form.saveFailed')
     await scrollToError(errorBanner)
   } finally { saving.value = false }
 }

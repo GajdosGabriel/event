@@ -1,21 +1,21 @@
 <template>
   <div class="grid gap-4">
     <div class="flex items-center justify-between gap-3">
-      <h1 class="text-2xl font-semibold text-slate-900">Oznamy</h1>
-      <button class="btn btn-primary" @click="openCreate">+ Nový oznam</button>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ t('admin.announcements.title') }}</h1>
+      <button class="btn btn-primary" @click="openCreate">{{ t('admin.announcements.new') }}</button>
     </div>
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('admin.announcements.loading') }}</p>
 
     <div v-else class="panel-card">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-            <th class="pb-2 pr-4">Názov</th>
-            <th class="pb-2 pr-4">Umiestnenie</th>
-            <th class="pb-2 pr-4">Stav</th>
-            <th class="pb-2 pr-4">Zobrazovanie</th>
-            <th class="pb-2">Akcie</th>
+            <th class="pb-2 pr-4">{{ t('admin.announcements.colTitle') }}</th>
+            <th class="pb-2 pr-4">{{ t('admin.announcements.colPlacement') }}</th>
+            <th class="pb-2 pr-4">{{ t('admin.announcements.colStatus') }}</th>
+            <th class="pb-2 pr-4">{{ t('admin.announcements.colVisibility') }}</th>
+            <th class="pb-2">{{ t('admin.announcements.colActions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -33,24 +33,24 @@
                 type="button"
                 class="status-toggle"
                 :class="isVisible(item) ? 'status-toggle-on' : 'status-toggle-off'"
-                :title="isVisible(item) ? 'Vypnúť zobrazovanie — text ostane uložený' : 'Zapnúť zobrazovanie'"
+                :title="isVisible(item) ? t('admin.announcements.toggleOff') : t('admin.announcements.toggleOn')"
                 @click="toggle(item)"
               >
                 <span class="status-dot" :class="isVisible(item) ? 'bg-green-500' : 'bg-slate-400'" />
-                {{ isVisible(item) ? 'zobrazuje sa' : 'vypnutý' }}
+                {{ isVisible(item) ? t('admin.announcements.visible') : t('admin.announcements.hidden') }}
               </button>
             </td>
             <td class="py-2 pr-4 text-slate-600">
-              <div>Od: {{ item.publishedFrom ?? '—' }}</div>
-              <div>Do: {{ item.publishedUntil ?? '—' }}</div>
+              <div>{{ t('admin.announcements.from') }} {{ item.publishedFrom ?? '—' }}</div>
+              <div>{{ t('admin.announcements.to') }} {{ item.publishedUntil ?? '—' }}</div>
             </td>
             <td class="py-2 flex gap-2">
-              <button class="action-btn" @click="openEdit(item)">Upraviť</button>
-              <button class="action-btn action-btn-danger" @click="remove(item)">Zmazať</button>
+              <button class="action-btn" @click="openEdit(item)">{{ t('admin.announcements.edit') }}</button>
+              <button class="action-btn action-btn-danger" @click="remove(item)">{{ t('admin.announcements.remove') }}</button>
             </td>
           </tr>
           <tr v-if="items.length === 0">
-            <td colspan="5" class="py-4 text-slate-500">Žiadne oznamy.</td>
+            <td colspan="5" class="py-4 text-slate-500">{{ t('admin.announcements.empty') }}</td>
           </tr>
         </tbody>
       </table>
@@ -64,40 +64,44 @@
 
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
       <div class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h2 class="mb-3 text-lg font-semibold">{{ editingItem ? 'Upraviť oznam' : 'Nový oznam' }}</h2>
+        <h2 class="mb-3 text-lg font-semibold">
+          {{ editingItem ? t('admin.announcements.editTitle') : t('admin.announcements.createTitle') }}
+        </h2>
         <p v-if="formError" class="mb-2 text-sm text-red-600">{{ formError }}</p>
 
         <div class="grid gap-3 md:grid-cols-2">
-          <FormField v-model="form.title" label="Názov" required />
+          <FormField v-model="form.title" :label="t('admin.announcements.fieldTitle')" required />
 
-          <FormField v-model="form.placement" type="select" label="Umiestnenie" :options="options.placements" />
+          <FormField v-model="form.placement" type="select" :label="t('admin.announcements.placement')" :options="options.placements" />
 
-          <FormField label="Text" class="md:col-span-2">
-            <HtmlEditor v-model="form.body" placeholder="Text oznamu…" min-height="6rem" />
+          <FormField :label="t('admin.announcements.body')" class="md:col-span-2">
+            <HtmlEditor v-model="form.body" :placeholder="t('admin.announcements.bodyPlaceholder')" min-height="6rem" />
           </FormField>
 
-          <FormField v-model="form.variant" type="select" label="Farba" :options="options.variants" />
+          <FormField v-model="form.variant" type="select" :label="t('admin.announcements.variant')" :options="options.variants" />
 
-          <FormField v-model="form.status" type="select" label="Stav" :options="options.statuses" />
+          <FormField v-model="form.status" type="select" :label="t('admin.announcements.status')" :options="options.statuses" />
 
-          <FormField v-model="form.published_from" type="datetime" label="Zobrazovať od" allow-past />
+          <FormField v-model="form.published_from" type="datetime" :label="t('admin.announcements.publishedFrom')" allow-past />
 
-          <FormField v-model="form.published_until" type="datetime" label="Zobrazovať do" allow-past />
+          <FormField v-model="form.published_until" type="datetime" :label="t('admin.announcements.publishedUntil')" allow-past />
 
-          <FormField v-model="form.sort_order" type="number" label="Poradie" min="0" />
+          <FormField v-model="form.sort_order" type="number" :label="t('admin.announcements.sortOrder')" min="0" />
         </div>
 
         <div class="mt-4 grid gap-1">
-          <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Náhľad</span>
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.announcements.preview') }}</span>
           <div class="announcement-preview" :class="`announcement-${form.variant}`">
-            <strong>{{ form.title || 'Názov oznamu' }}</strong>
+            <strong>{{ form.title || t('admin.announcements.previewTitle') }}</strong>
             <div v-if="form.body" class="prose prose-sm max-w-none" v-html="form.body" />
           </div>
         </div>
 
         <div class="mt-4 flex gap-2">
-          <button class="btn btn-primary" :disabled="saving" @click="save">{{ saving ? 'Ukladám…' : 'Uložiť' }}</button>
-          <button class="btn btn-secondary" @click="showForm = false">Zrušiť</button>
+          <button class="btn btn-primary" :disabled="saving" @click="save">
+            {{ saving ? t('admin.announcements.saving') : t('admin.announcements.save') }}
+          </button>
+          <button class="btn btn-secondary" @click="showForm = false">{{ t('admin.announcements.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -116,6 +120,7 @@ import {
 import type { AnnouncementItem, AnnouncementFormOptions, AnnouncementPayload } from '@/api/announcements'
 import FormField from '@/components/FormField.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 
@@ -163,7 +168,7 @@ async function loadPage(page: number) {
     meta.value = res.meta
     options.value = res.options
   } catch {
-    toast.error('Nepodarilo sa načítať oznamy.')
+    toast.error(t('admin.announcements.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -205,7 +210,7 @@ function openEdit(item: AnnouncementItem) {
 }
 
 function errorMessage(e: unknown) {
-  return (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Chyba.'
+  return (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('admin.announcements.error')
 }
 
 async function save() {
@@ -229,7 +234,7 @@ async function save() {
       await loadPage(1)
     }
 
-    toast.success('Uložené.')
+    toast.success(t('admin.announcements.saved'))
     showForm.value = false
   } catch (e: unknown) {
     formError.value = errorMessage(e)
@@ -250,13 +255,13 @@ async function toggle(item: AnnouncementItem) {
 }
 
 async function remove(item: AnnouncementItem) {
-  if (!confirm('Naozaj zmazať oznam?')) return
+  if (!confirm(t('admin.announcements.removeConfirm'))) return
   try {
     await deleteAnnouncement(item.id)
     items.value = items.value.filter(i => i.id !== item.id)
-    toast.success('Oznam zmazaný.')
+    toast.success(t('admin.announcements.removed'))
   } catch {
-    toast.error('Mazanie zlyhalo.')
+    toast.error(t('admin.announcements.removeFailed'))
   }
 }
 </script>

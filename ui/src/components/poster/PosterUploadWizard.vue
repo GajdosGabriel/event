@@ -25,10 +25,10 @@
         @dragleave.prevent="dragging = false"
         @drop.prevent="onDrop"
       >
-        <p class="mb-1 text-base font-semibold text-slate-900">Presuňte sem plagát alebo pozvánku</p>
-        <p class="mb-4 text-sm text-slate-500">PDF, Word (.docx), obrázok (JPG, PNG) alebo textový súbor — do 12 MB.</p>
+        <p class="mb-1 text-base font-semibold text-slate-900">{{ t('poster.wizard.drop') }}</p>
+        <p class="mb-4 text-sm text-slate-500">{{ t('poster.wizard.formats') }}</p>
 
-        <button type="button" class="btn btn-primary" @click="fileInput?.click()">Vybrať súbor</button>
+        <button type="button" class="btn btn-primary" @click="fileInput?.click()">{{ t('poster.wizard.pick') }}</button>
         <input
           ref="fileInput"
           type="file"
@@ -40,7 +40,7 @@
 
       <div class="mt-4">
         <button type="button" class="text-sm font-medium text-slate-600 underline hover:text-slate-900" @click="textMode = !textMode">
-          {{ textMode ? 'Radšej nahrám súbor' : 'Nemám súbor — vložím text pozvánky' }}
+          {{ textMode ? t('poster.wizard.textToggleOn') : t('poster.wizard.textToggleOff') }}
         </button>
 
         <div v-if="textMode" class="mt-3 grid gap-2">
@@ -48,11 +48,11 @@
             v-model="pastedText"
             rows="6"
             class="form-input h-auto py-2"
-            placeholder="Vložte text pozvánky alebo popis podujatia…"
+            :placeholder="t('poster.wizard.textPlaceholder')"
           ></textarea>
           <div>
             <button type="button" class="btn btn-primary" :disabled="pastedText.trim().length < 30" @click="analyze(pastedText)">
-              Spracovať text
+              {{ t('poster.wizard.textSubmit') }}
             </button>
           </div>
         </div>
@@ -65,16 +65,15 @@
     <section v-else-if="step === 'analyzing'" class="py-10 text-center">
       <div class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
       <p class="text-base font-semibold text-slate-900">{{ progressMessage }}</p>
-      <p class="mt-1 text-sm text-slate-500">Skenovaný plagát trvá dlhšie — čítame ho z obrázka.</p>
+      <p class="mt-1 text-sm text-slate-500">{{ t('poster.wizard.scanNote') }}</p>
     </section>
 
     <!-- 3. Kontrola -->
     <section v-else-if="step === 'review' && draft">
       <header class="mb-4">
-        <h2 class="text-lg font-semibold text-slate-900">Toto sme z plagátu prečítali</h2>
+        <h2 class="text-lg font-semibold text-slate-900">{{ t('poster.wizard.reviewTitle') }}</h2>
         <p class="text-sm text-slate-500">
-          Identifikovaných {{ draft.analysis.found_count }} z {{ draft.analysis.total_count }} údajov.
-          Čo chýba, doplňte nižšie — meniť sa dá čokoľvek.
+          {{ t('poster.wizard.reviewLead', { found: draft.analysis.found_count, total: draft.analysis.total_count }) }}
         </p>
       </header>
 
@@ -96,60 +95,62 @@
           <span class="min-w-0">
             <span class="block text-xs font-semibold uppercase tracking-wide opacity-70">{{ field.label }}</span>
             <span v-if="field.value" class="block truncate">{{ shorten(field.value) }}</span>
-            <span v-else class="block italic opacity-70">{{ field.required ? 'nenašli sme — treba doplniť' : 'nenašli sme' }}</span>
+            <span v-else class="block italic opacity-70">
+              {{ field.required ? t('poster.wizard.missingRequired') : t('poster.wizard.missing') }}
+            </span>
             <span v-if="field.note" class="mt-0.5 block text-xs opacity-70">{{ field.note }}</span>
           </span>
         </li>
       </ul>
 
       <p v-if="draft.analysis.matches.canal || draft.analysis.matches.venue" class="mb-5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-        Napojíme na existujúci záznam:
-        <template v-if="draft.analysis.matches.canal"> organizátor <strong>{{ draft.analysis.matches.canal.name }}</strong></template>
+        {{ t('poster.wizard.matchIntro') }}
+        <template v-if="draft.analysis.matches.canal"> {{ t('poster.wizard.matchCanal') }} <strong>{{ draft.analysis.matches.canal.name }}</strong></template>
         <template v-if="draft.analysis.matches.canal && draft.analysis.matches.venue">, </template>
-        <template v-if="draft.analysis.matches.venue"> miesto <strong>{{ draft.analysis.matches.venue.name }}</strong></template>.
+        <template v-if="draft.analysis.matches.venue"> {{ t('poster.wizard.matchVenue') }} <strong>{{ draft.analysis.matches.venue.name }}</strong></template>.
       </p>
 
       <!-- Opravy -->
       <div class="grid gap-3 sm:grid-cols-2">
-        <FormField v-model="form.title" label="Názov podujatia" required maxlength="250" class="sm:col-span-2" />
+        <FormField v-model="form.title" :label="t('poster.wizard.title')" required maxlength="250" class="sm:col-span-2" />
 
-        <FormField v-model="form.start_at" type="datetime" label="Začiatok" required allow-past />
+        <FormField v-model="form.start_at" type="datetime" :label="t('poster.wizard.startAt')" required allow-past />
 
-        <FormField v-model="form.end_at" type="datetime" label="Koniec" allow-past />
+        <FormField v-model="form.end_at" type="datetime" :label="t('poster.wizard.endAt')" allow-past />
 
-        <FormField v-model="form.venueName" label="Miesto konania" required maxlength="250" placeholder="napr. Kultúrny dom" />
+        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
 
         <!-- Mesto musí byť záznam z číselníka, nie voľný text: `village_id` je
              na `venues` povinné a z preklepu ako „Nové Zámky-mesto" by vzniklo
              miesto bez obce. AI dodá len reťazec, ktorý sa tu snažíme na
              číselník napasovať — keď sa netrafí, vyberie ho človek. -->
-        <FormField v-model="form.municipalityId" label="Mesto / obec" required>
+        <FormField v-model="form.municipalityId" :label="t('poster.wizard.municipality')" required>
           <template #default="{ value, invalid, update }">
             <SearchableSelect
               :model-value="value ?? null"
               :options="municipalities"
-              placeholder="— vyberte obec —"
+              :placeholder="t('poster.wizard.municipalityPlaceholder')"
               :invalid="invalid"
               @update:model-value="update"
             />
           </template>
           <template #footer>
             <span v-if="form.municipalityId === null && detectedCity" class="form-hint">
-              Z plagátu sme prečítali „{{ detectedCity }}", v číselníku sme to nenašli — vyberte prosím obec.
+              {{ t('poster.wizard.cityHint', { city: detectedCity }) }}
             </span>
           </template>
         </FormField>
 
-        <FormField v-model="form.venueStreet" label="Ulica a číslo" maxlength="250" />
+        <FormField v-model="form.venueStreet" :label="t('poster.wizard.street')" maxlength="250" />
 
-        <FormField v-model="form.organizerName" label="Organizátor" maxlength="250" />
+        <FormField v-model="form.organizerName" :label="t('poster.wizard.organizer')" maxlength="250" />
 
-        <FormField v-model="form.email" type="email" label="Kontaktný e-mail" maxlength="250" />
+        <FormField v-model="form.email" type="email" :label="t('poster.wizard.email')" maxlength="250" />
 
-        <FormField v-model="form.phone" label="Telefón" maxlength="50" />
+        <FormField v-model="form.phone" :label="t('poster.wizard.phone')" maxlength="50" />
 
-        <FormField label="Popis" class="sm:col-span-2">
-          <HtmlEditor v-model="form.description" placeholder="Popis podujatia…" />
+        <FormField :label="t('poster.wizard.description')" class="sm:col-span-2">
+          <HtmlEditor v-model="form.description" :placeholder="t('poster.wizard.descriptionPlaceholder')" />
         </FormField>
       </div>
 
@@ -158,15 +159,15 @@
       <!-- Výzva sa objaví až po prvom kliknutí na „Pokračovať" — vypísať ju nad
            práve načítaným formulárom by vyzeralo, že človek už niečo pokazil. -->
       <p v-if="validation.validated.value && !formComplete" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        Doplňte prosím názov, začiatok, miesto a mesto — bez nich podujatie uložiť nevieme.
+        {{ t('poster.wizard.incomplete') }}
       </p>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
         <button type="button" class="btn btn-primary" @click="goToAccount">
-          Pokračovať
+          {{ t('poster.wizard.continue') }}
         </button>
         <button type="button" class="text-sm font-medium text-slate-500 hover:text-slate-800" @click="reset">
-          Nahrať iný plagát
+          {{ t('poster.wizard.another') }}
         </button>
       </div>
     </section>
@@ -174,18 +175,18 @@
     <!-- 4. Účet -->
     <section v-else-if="step === 'account' && draft">
       <header class="mb-4">
-        <h2 class="text-lg font-semibold text-slate-900">Kam vám podujatie uložíme?</h2>
+        <h2 class="text-lg font-semibold text-slate-900">{{ t('poster.wizard.accountTitle') }}</h2>
         <p class="text-sm text-slate-500">
-          Zadajte e-mail — pošleme naň odkaz, cez ktorý sa k rozpracovanému podujatiu kedykoľvek vrátite.
+          {{ t('poster.wizard.accountLead') }}
         </p>
       </header>
 
       <div v-if="isAuthenticated" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-        Ste prihlásený — podujatie uložíme rovno do vášho účtu.
+        {{ t('poster.wizard.loggedIn') }}
       </div>
 
       <div v-else class="grid gap-3">
-        <FormField v-model="account.email" type="email" label="Váš e-mail" required :validated="accountValidated" />
+        <FormField v-model="account.email" type="email" :label="t('poster.wizard.accountEmail')" required :validated="accountValidated" />
 
         <div class="flex gap-2 text-sm">
           <button
@@ -193,19 +194,19 @@
             class="rounded-lg px-3 py-1.5 font-medium"
             :class="account.mode === 'register' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'"
             @click="account.mode = 'register'"
-          >Nemám účet</button>
+          >{{ t('poster.wizard.modeRegister') }}</button>
           <button
             type="button"
             class="rounded-lg px-3 py-1.5 font-medium"
             :class="account.mode === 'login' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'"
             @click="account.mode = 'login'"
-          >Už tu účet mám</button>
+          >{{ t('poster.wizard.modeLogin') }}</button>
         </div>
 
         <FormField
           v-if="account.mode === 'register'"
           v-model="account.displayName"
-          label="Meno / názov organizátora"
+          :label="t('poster.wizard.accountName')"
           required
           :validated="accountValidated"
         />
@@ -213,7 +214,7 @@
         <FormField
           v-model="account.password"
           type="password"
-          label="Heslo"
+          :label="t('poster.wizard.password')"
           required
           :validated="accountValidated"
           autocomplete="new-password"
@@ -223,7 +224,7 @@
           v-if="account.mode === 'register'"
           v-model="account.passwordConfirmation"
           type="password"
-          label="Heslo znova"
+          :label="t('poster.wizard.passwordConfirm')"
           required
           :validated="accountValidated"
           autocomplete="new-password"
@@ -235,10 +236,10 @@
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
         <button type="button" class="btn btn-primary" :disabled="busy" @click="finish">
-          {{ busy ? 'Ukladám…' : 'Uložiť podujatie' }}
+          {{ busy ? t('poster.wizard.saving') : t('poster.wizard.save') }}
         </button>
         <button type="button" class="text-sm font-medium text-slate-500 hover:text-slate-800" @click="step = 'review'">
-          Späť na kontrolu
+          {{ t('poster.wizard.backToReview') }}
         </button>
       </div>
     </section>
@@ -246,19 +247,19 @@
     <!-- 5. Hotovo -->
     <section v-else-if="step === 'verify'" class="py-6 text-center">
       <p class="mb-2 text-2xl">📧</p>
-      <h2 class="mb-1 text-lg font-semibold text-slate-900">Potvrďte prosím e-mail</h2>
+      <h2 class="mb-1 text-lg font-semibold text-slate-900">{{ t('poster.wizard.verifyTitle') }}</h2>
       <p class="mx-auto max-w-md text-sm text-slate-500">
-        Na <strong>{{ account.email }}</strong> sme poslali overovací odkaz a druhý odkaz späť na toto
-        rozpracované podujatie. Po overení účtu sa cezeň vrátite a uloženie dokončíme jedným klikom.
+        {{ t('poster.wizard.verifyLeadBefore') }} <strong>{{ account.email }}</strong>
+        {{ t('poster.wizard.verifyLeadAfter') }}
       </p>
     </section>
 
     <section v-else-if="step === 'done'" class="py-6 text-center">
       <p class="mb-2 text-2xl">🎉</p>
-      <h2 class="mb-1 text-lg font-semibold text-slate-900">Podujatie je pripravené</h2>
-      <p class="mb-4 text-sm text-slate-500">Uložili sme ho ako koncept — skontrolujte ho a zverejnite.</p>
+      <h2 class="mb-1 text-lg font-semibold text-slate-900">{{ t('poster.wizard.doneTitle') }}</h2>
+      <p class="mb-4 text-sm text-slate-500">{{ t('poster.wizard.doneLead') }}</p>
       <RouterLink v-if="createdEventId" :to="`/dashboard/events/${createdEventId}/edit`" class="btn btn-primary">
-        Otvoriť podujatie →
+        {{ t('poster.wizard.open') }}
       </RouterLink>
     </section>
   </div>
@@ -274,6 +275,7 @@ import { listPublicMunicipalities } from '@/api/municipalities'
 import type { LookupOption } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { register as registerAccount } from '@/api/auth'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import {
@@ -288,7 +290,12 @@ import {
 
 type Step = 'upload' | 'analyzing' | 'review' | 'account' | 'verify' | 'done'
 
-const stepLabels = ['Nahrať', 'Analýza', 'Kontrola', 'Účet']
+const stepLabels = computed(() => [
+  t('poster.wizard.steps.upload'),
+  t('poster.wizard.steps.analyze'),
+  t('poster.wizard.steps.review'),
+  t('poster.wizard.steps.account'),
+])
 
 /**
  * Rozpracovaný plagát prežíva odchod zo stránky: medzi analýzou a uložením je
@@ -313,7 +320,7 @@ const textMode = ref(false)
 const pastedText = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const createdEventId = ref<number | null>(null)
-const progressMessage = ref('Čítame plagát…')
+const progressMessage = ref(t('poster.wizard.progress.readPoster'))
 let progressTimer: ReturnType<typeof setInterval> | undefined
 
 // Sprievodca validuje dvakrát a nezávisle: najprv údaje o podujatí (krok
@@ -399,7 +406,7 @@ async function analyze(input: File | string) {
     persist()
     step.value = 'review'
   } catch (e: unknown) {
-    error.value = extractMessage(e, 'Plagát sa nepodarilo spracovať.')
+    error.value = extractMessage(e, t('poster.wizard.analyzeFailed'))
     step.value = 'upload'
   } finally {
     stopProgress()
@@ -412,8 +419,17 @@ async function analyze(input: File | string) {
  */
 function startProgress(kind: string) {
   const messages = kind.startsWith('image') || kind === 'application/pdf'
-    ? ['Čítame plagát…', 'Hľadáme termín a miesto…', 'Rozpoznávame organizátora…', 'Skladáme podujatie…']
-    : ['Čítame text…', 'Hľadáme termín a miesto…', 'Skladáme podujatie…']
+    ? [
+        t('poster.wizard.progress.readPoster'),
+        t('poster.wizard.progress.when'),
+        t('poster.wizard.progress.who'),
+        t('poster.wizard.progress.compose'),
+      ]
+    : [
+        t('poster.wizard.progress.readText'),
+        t('poster.wizard.progress.when'),
+        t('poster.wizard.progress.compose'),
+      ]
 
   let index = 0
   progressMessage.value = messages[0] as string
@@ -555,7 +571,7 @@ async function finish() {
   try {
     if (!isAuthenticated.value) {
       if (!account.email.trim() || !account.password) {
-        error.value = 'Vyplňte e-mail aj heslo.'
+        error.value = t('poster.wizard.credentialsRequired')
         return
       }
 
@@ -581,7 +597,7 @@ async function finish() {
 
     await claim()
   } catch (e: unknown) {
-    error.value = extractMessage(e, 'Podujatie sa nepodarilo uložiť.')
+    error.value = extractMessage(e, t('poster.wizard.saveFailed'))
   } finally {
     busy.value = false
   }
@@ -592,7 +608,7 @@ async function claim() {
   createdEventId.value = result.eventId
   localStorage.removeItem(STORAGE_KEY)
   step.value = 'done'
-  toast.success('Podujatie sme uložili ako koncept.')
+  toast.success(t('poster.wizard.saved'))
 
   // Identita sa práve zmenila — claim mohol založiť kanál a nastaviť ho ako
   // aktívny. Bez načítania by dashboard po presmerovaní tvrdil, že žiadny nemá.
@@ -655,8 +671,8 @@ async function restore() {
 
     step.value = 'review'
     info.value = isAuthenticated.value
-      ? 'Vitajte späť — podujatie stačí skontrolovať a uložiť.'
-      : 'Vitajte späť. Podujatie máme pripravené, po prihlásení ho uložíme.'
+      ? t('poster.wizard.welcomeBackAuthed')
+      : t('poster.wizard.welcomeBackGuest')
   } catch {
     // Vypršaný alebo cudzí token nie je chyba, na ktorú treba upozorňovať —
     // človek jednoducho začne odznova.

@@ -1,14 +1,14 @@
 <template>
   <div class="show-card">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-base font-semibold text-slate-800">Tím kanála</h2>
+      <h2 class="text-base font-semibold text-slate-800">{{ t('team.title') }}</h2>
       <span v-if="team" class="text-xs text-slate-500">
-        {{ team.members.length }} {{ pluralMembers(team.members.length) }}
+        {{ plural('team.counts.members', team.members.length) }}
       </span>
     </div>
 
-    <p v-if="loading" class="text-sm text-slate-500">Načítavam…</p>
-    <p v-else-if="loadError" class="text-sm text-red-600">Tím sa nepodarilo načítať.</p>
+    <p v-if="loading" class="text-sm text-slate-500">{{ t('team.loading') }}</p>
+    <p v-else-if="loadError" class="text-sm text-red-600">{{ t('team.loadFailed') }}</p>
 
     <template v-else-if="team">
       <!-- Členovia -->
@@ -21,7 +21,7 @@
           <span class="min-w-0 flex-1">
             <span class="block truncate text-sm font-medium text-slate-900">
               {{ m.name }}
-              <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">(vy)</span>
+              <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">{{ t('team.self') }}</span>
             </span>
             <span v-if="m.email" class="block truncate text-xs text-slate-500">{{ m.email }}</span>
           </span>
@@ -38,14 +38,14 @@
           <button v-if="team.canManage && !m.isSelf" type="button" :disabled="busy"
             class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             @click="remove(m)">
-            Odobrať
+            {{ t('team.remove') }}
           </button>
         </li>
       </ul>
 
       <!-- Nevybavené pozvánky -->
       <div v-if="team.invitations.length" class="mt-4">
-        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Čaká na prijatie</h3>
+        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('team.pending') }}</h3>
         <ul class="grid gap-1.5">
           <li v-for="i in team.invitations" :key="i.id"
             class="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-amber-200 bg-amber-50 px-3 py-2">
@@ -53,18 +53,18 @@
               <span class="block truncate text-sm font-medium text-slate-900">{{ i.email }}</span>
               <span class="block text-xs text-slate-500">
                 {{ i.roleLabel }}
-                <template v-if="i.expiresAt"> · platí do {{ formatDate(i.expiresAt) }}</template>
+                <template v-if="i.expiresAt"> · {{ t('team.expires', { date: formatDate(i.expiresAt) }) }}</template>
               </span>
             </span>
             <button type="button" :disabled="busy"
               class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
               @click="resend(i)">
-              Poslať znova
+              {{ t('team.resend') }}
             </button>
             <button type="button" :disabled="busy"
               class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
               @click="cancelInvite(i)">
-              Zrušiť
+              {{ t('team.cancel') }}
             </button>
           </li>
         </ul>
@@ -72,21 +72,21 @@
 
       <!-- Pozvanie -->
       <form v-if="team.canManage" class="mt-4 border-t border-slate-100 pt-4" @submit.prevent="invite">
-        <label class="mb-1 block text-xs font-medium text-slate-600">Pozvať do tímu</label>
+        <label class="mb-1 block text-xs font-medium text-slate-600">{{ t('team.inviteLabel') }}</label>
         <div class="flex flex-wrap gap-2">
-          <FormField v-model="inviteEmail" type="email" required trim placeholder="meno@divadlo.sk"
+          <FormField v-model="inviteEmail" type="email" required trim :placeholder="t('team.invitePlaceholder')"
             class="min-w-[12rem] flex-1" />
           <FormField v-model="inviteRole" type="select" class="w-auto">
             <option v-for="r in team.roles" :key="r.value" :value="r.value">{{ r.label }}</option>
           </FormField>
           <button type="submit" :disabled="busy"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-            {{ busy ? 'Odosielam…' : 'Poslať pozvánku' }}
+            {{ busy ? t('team.inviting') : t('team.invite') }}
           </button>
         </div>
         <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
         <p class="mt-2 text-xs text-slate-500">
-          Pozvánka príde e-mailom. Prijať ju musí účet s tou istou adresou.
+          {{ t('team.inviteHint') }}
         </p>
       </form>
     </template>
@@ -108,6 +108,7 @@ import {
   type CanalTeamMember,
 } from '@/api/canalTeam'
 import { avatarColor, initials } from '@/utils/userDisplay'
+import { currentLocale, t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
@@ -133,14 +134,8 @@ function roleClass(role: CanalRole): string {
   }
 }
 
-function pluralMembers(n: number): string {
-  if (n === 1) return 'člen'
-  if (n >= 2 && n <= 4) return 'členovia'
-  return 'členov'
-}
-
 function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return new Date(value).toLocaleDateString(currentLocale(), { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 /** Validačnú hlášku z API (422) ukážeme presne tak, ako prišla. */
@@ -158,7 +153,7 @@ async function run(action: () => Promise<CanalTeam>, successMessage?: string) {
     if (successMessage) toast.success(successMessage)
     return true
   } catch (e: unknown) {
-    error.value = messageFrom(e, 'Akciu sa nepodarilo dokončiť.')
+    error.value = messageFrom(e, t('team.actionFailed'))
     toast.error(error.value)
     return false
   } finally {
@@ -171,7 +166,7 @@ async function invite() {
 
   const ok = await run(
     () => inviteCanalMember(props.canalId, inviteEmail.value, inviteRole.value),
-    'Pozvánka odoslaná.',
+    t('team.invited'),
   )
 
   // Po odoslaní je pole zámerne zase „nevalidované" — prázdne políčko pre
@@ -183,23 +178,23 @@ async function invite() {
 }
 
 async function changeRole(member: CanalTeamMember, role: CanalRole) {
-  await run(() => updateCanalMemberRole(props.canalId, member.id, role), 'Rola zmenená.')
+  await run(() => updateCanalMemberRole(props.canalId, member.id, role), t('team.roleChanged'))
   // Pri neúspechu vrátime <select> na stav zo servera.
   if (error.value) team.value = await fetchCanalTeam(props.canalId)
 }
 
 async function remove(member: CanalTeamMember) {
-  if (!confirm(`Naozaj odobrať ${member.name} z tímu?`)) return
-  await run(() => removeCanalMember(props.canalId, member.id), 'Člen odobratý.')
+  if (!confirm(t('team.removeConfirm', { name: member.name }))) return
+  await run(() => removeCanalMember(props.canalId, member.id), t('team.removed'))
 }
 
 async function resend(invitation: CanalTeamInvitation) {
-  await run(() => resendCanalInvitation(props.canalId, invitation.id), 'Pozvánka odoslaná znova.')
+  await run(() => resendCanalInvitation(props.canalId, invitation.id), t('team.resent'))
 }
 
 async function cancelInvite(invitation: CanalTeamInvitation) {
-  if (!confirm(`Zrušiť pozvánku pre ${invitation.email}?`)) return
-  await run(() => cancelCanalInvitation(props.canalId, invitation.id), 'Pozvánka zrušená.')
+  if (!confirm(t('team.cancelConfirm', { email: invitation.email }))) return
+  await run(() => cancelCanalInvitation(props.canalId, invitation.id), t('team.cancelled'))
 }
 
 onMounted(async () => {

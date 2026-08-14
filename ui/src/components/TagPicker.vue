@@ -5,8 +5,8 @@
   <div>
     <p class="mb-2 text-xs text-slate-500">{{ hint }}</p>
 
-    <p v-if="loading" class="text-sm text-slate-500">Načítavam štítky…</p>
-    <p v-else-if="!groups.length" class="text-sm text-slate-500">Číselník štítkov je prázdny.</p>
+    <p v-if="loading" class="text-sm text-slate-500">{{ t('fields.tagsLoading') }}</p>
+    <p v-else-if="!groups.length" class="text-sm text-slate-500">{{ t('fields.tagsEmpty') }}</p>
 
     <div v-else class="space-y-3">
       <div v-for="group in groups" :key="group.group">
@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { indexTags } from '@/api/tags'
+import { t } from '@/i18n'
 import type { TagGroupItem } from '@/types'
 
 const props = defineProps<{
@@ -51,11 +52,11 @@ const emit = defineEmits<{ 'update:modelValue': [number[]] }>()
 const groups = ref<TagGroupItem[]>([])
 const loading = ref(true)
 
-const hint = 'Vyberte, čo podujatie vystihuje. Štítky pomáhajú návštevníkom nájsť podujatie vo filtri.'
+const hint = computed(() => t('fields.tagsHint'))
 
 const automatedNote = computed(() => {
   const names = (props.automated ?? []).map((tag) => tag.name)
-  return names.length ? `Automaticky priradené: ${names.join(', ')}.` : ''
+  return names.length ? t('fields.tagsAutomated', { names: names.join(', ') }) : ''
 })
 
 function isSelected(id: number) {
