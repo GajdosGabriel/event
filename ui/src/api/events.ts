@@ -1,4 +1,4 @@
-import http, { BASE_URL } from './index'
+import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
 import type { EventItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
@@ -65,6 +65,8 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     email: (raw['email'] as string) ?? null,
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     contactable: Boolean(raw['contactable']),
+    // Len verejný detail; vo výpisoch odkazy nie sú a tlačidlo sa nekreslí.
+    calendarLinks: (raw['calendar_links'] as EventItem['calendarLinks']) ?? null,
     permissions: (() => {
       const p = (raw['permissions'] as Record<string, boolean>) ?? {}
       return {
@@ -206,14 +208,6 @@ export async function startEventImport(options: Record<string, unknown>): Promis
 export async function getEventImportStatus(runId: string): Promise<ToolRunStatus> {
   const { data } = await http.get(`/admin/tools/import-events/runs/${runId}`)
   return data as ToolRunStatus
-}
-
-/**
- * Podujatie ako `.ics`. Nejde cez axios — prehliadač si súbor stiahne sám
- * a odovzdá ho systémovému kalendáru, takže stačí obyčajný odkaz.
- */
-export function eventCalendarUrl(eventId: number): string {
-  return `${BASE_URL}/events/${eventId}/calendar.ics`
 }
 
 export async function municipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

@@ -67,6 +67,89 @@ class EventCalendarIcsTest extends EventSetupTest
     }
 
     #[Test]
+    public function all_day_event_is_written_as_a_date_range(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        // 00:00–23:59 miestneho času = 15.–16. 8. celý deň. V DB (UTC) to je
+        // posunuté o dve hodiny, celodennosť sa preto musí posudzovať lokálne.
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => Carbon::parse('2026-08-14 22:00:00'),
+            'end_at' => Carbon::parse('2026-08-16 21:59:59'),
+        ]);
+
+        $ics = (string) $this->get("/api/events/{$this->futureEvent->id}/calendar.ics")
+            ->assertOk()
+            ->getContent();
+
+        // Koniec je v RFC 5545 exkluzívny — deň po poslednom dni podujatia.
+        $this->assertStringContainsString('DTSTART;VALUE=DATE:20260815', $ics);
+        $this->assertStringContainsString('DTEND;VALUE=DATE:20260817', $ics);
+        $this->assertStringNotContainsString('DTSTART:', $ics);
+        // Celý deň nemá blokovať kalendár ako „zaneprázdnený".
+        $this->assertStringContainsString('TRANSP:TRANSPARENT', $ics);
+    }
+
+    #[Test]
+    public function public_detail_offers_web_calendars_next_to_the_file(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => Carbon::parse('2026-09-05 16:00:00'),
+            'end_at' => Carbon::parse('2026-09-05 19:30:00'),
+        ]);
+
+        $links = $this->get("/api/events/{$this->futureEvent->id}")
+            ->assertOk()
+            ->json('calendar_links');
+
+        $this->assertSame(
+            app(IcsGenerator::class)->downloadUrl($this->futureEvent),
+            $links['download'],
+        );
+        $this->assertStringContainsString('dates=20260905T160000Z%2F20260905T193000Z', $links['google']);
+        $this->assertStringContainsString('startdt=2026-09-05T16%3A00%3A00Z', $links['outlook']);
+        $this->assertStringNotContainsString('allday', $links['outlook']);
+    }
+
+    #[Test]
+    public function all_day_event_keeps_the_whole_day_in_web_calendars(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => Carbon::parse('2026-08-14 22:00:00'),
+            'end_at' => Carbon::parse('2026-08-16 21:59:59'),
+        ]);
+
+        $links = $this->get("/api/events/{$this->futureEvent->id}")->assertOk()->json('calendar_links');
+
+        $this->assertStringContainsString('dates=20260815%2F20260817', $links['google']);
+        $this->assertStringContainsString('allday=true', $links['outlook']);
+        $this->assertStringContainsString('startdt=2026-08-15', $links['outlook']);
+        $this->assertStringContainsString('enddt=2026-08-17', $links['outlook']);
+    }
+
+    #[Test]
+    public function public_detail_without_date_has_no_calendar_links(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        $this->futureEvent->update([
+            'status' => ModelStatus::Published->value,
+            'start_at' => null,
+        ]);
+
+        $this->get("/api/events/{$this->futureEvent->id}")
+            ->assertOk()
+            ->assertJsonPath('calendar_links', null);
+    }
+
+    #[Test]
     public function location_does_not_repeat_the_same_name_twice(): void
     {
         $this->app['auth']->forgetGuards();
@@ -144,6 +227,7 @@ class EventCalendarIcsTest extends EventSetupTest
             $mail->viewData['calendarUrl'],
         );
         $this->assertStringContainsString('calendar.google.com', (string) $mail->viewData['googleUrl']);
+        $this->assertStringContainsString('outlook.live.com', (string) $mail->viewData['outlookUrl']);
 
         // Odkazy musia byť aj v tele — príloha sama o sebe tlačidlo v každom
         // klientovi nevykreslí.
@@ -153,6 +237,7 @@ class EventCalendarIcsTest extends EventSetupTest
         $this->assertStringContainsString('<a href="'.$mail->viewData['calendarUrl'].'"', $html);
         $this->assertStringContainsString(__('mail.common.calendar_ics').'</a>', $html);
         $this->assertStringContainsString('calendar.google.com', $html);
+        $this->assertStringContainsString('outlook.live.com', $html);
     }
 
     #[Test]

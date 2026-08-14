@@ -29,7 +29,7 @@
 {{ __('mail.ticket_issued.action') }}
 @endcomponent
 
-@include('mail.partials.calendar', ['calendarUrl' => $calendarUrl ?? null, 'googleUrl' => $googleUrl ?? null])
+@include('mail.partials.calendar', ['calendarUrl' => $calendarUrl ?? null, 'googleUrl' => $googleUrl ?? null, 'outlookUrl' => $outlookUrl ?? null])
 
 {{ __('mail.ticket_issued.outro') }}
 @endcomponent

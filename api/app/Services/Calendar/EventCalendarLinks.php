@@ -11,7 +11,8 @@ use Illuminate\Notifications\Messages\MailMessage;
  *
  *  1. príloha `.ics` — Gmail aj Apple Mail nad ňou samy vykreslia tlačidlo,
  *  2. odkaz na stiahnutie toho istého súboru — pre klientov bez tlačidla,
- *  3. odkaz do Google Kalendára — pre webový Gmail, kde príloha nepomôže.
+ *  3. odkaz do webového Google Kalendára a Outlooku — tam, kde príloha ani
+ *     stiahnutý súbor nepomôžu, lebo kalendár beží v prehliadači.
  *
  * Bez termínu (alebo bez podujatia) je všetko null a šablóna sekciu vynechá.
  */
@@ -20,6 +21,8 @@ final class EventCalendarLinks
     public readonly ?string $downloadUrl;
 
     public readonly ?string $googleUrl;
+
+    public readonly ?string $outlookUrl;
 
     private readonly ?string $ics;
 
@@ -35,6 +38,7 @@ final class EventCalendarLinks
         $this->filename = $ics !== null ? $generator->filename($event) : null;
         $this->downloadUrl = $ics !== null ? $generator->downloadUrl($event) : null;
         $this->googleUrl = $ics !== null ? $generator->googleUrl($event) : null;
+        $this->outlookUrl = $ics !== null ? $generator->outlookUrl($event) : null;
     }
 
     public function attachTo(MailMessage $mail): MailMessage

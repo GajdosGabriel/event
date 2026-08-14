@@ -69,6 +69,7 @@ class TicketIssued extends Notification implements ShouldQueue
                 'ticketUrl'    => $ticketUrl,
                 'calendarUrl'  => $calendar->downloadUrl,
                 'googleUrl'    => $calendar->googleUrl,
+                'outlookUrl'   => $calendar->outlookUrl,
             ]);
 
         return $calendar->attachTo($mail);

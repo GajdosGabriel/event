@@ -1,12 +1,21 @@
 {{--
     „Pridať do kalendára". Súbor `.ics` je zároveň prílohou e-mailu — Gmail aj
     Apple Mail nad ňou vykreslia vlastné tlačidlo, tieto odkazy sú pre zvyšok
-    klientov. Bez termínu podujatia príde $calendarUrl null a sekcia vypadne.
+    klientov: webový kalendár so stiahnutým súborom nespraví nič.
+
+    Bez termínu podujatia prídu všetky odkazy null a sekcia vypadne.
 --}}
+@php
+    $calendarTargets = array_filter([
+        'mail.common.calendar_ics' => $calendarUrl ?? null,
+        'mail.common.calendar_google' => $googleUrl ?? null,
+        'mail.common.calendar_outlook' => $outlookUrl ?? null,
+    ]);
+@endphp
 @if (! empty($calendarUrl))
 
 {{ __('mail.common.calendar_intro') }}
 
-[{{ __('mail.common.calendar_ics') }}]({{ $calendarUrl }})@if (! empty($googleUrl)) · [{{ __('mail.common.calendar_google') }}]({{ $googleUrl }})@endif
+{!! implode(' · ', array_map(fn ($key, $url) => '['.__($key).']('.$url.')', array_keys($calendarTargets), $calendarTargets)) !!}
 
 @endif

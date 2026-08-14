@@ -82,6 +82,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
                 'activationUrl'   => $activationUrl,
                 'calendarUrl'     => $calendar->downloadUrl,
                 'googleUrl'       => $calendar->googleUrl,
+                'outlookUrl'      => $calendar->outlookUrl,
             ]);
 
         return $calendar->attachTo($mail);

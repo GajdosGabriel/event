@@ -35,9 +35,13 @@ class EventCalendarController extends Controller
             abort(404);
         }
 
+        // `inline`, nie `attachment`: na mobile tak systém súbor rovno odovzdá
+        // kalendáru namiesto uloženia do Stiahnutých. Desktopové prehliadače
+        // text/calendar aj tak nevykreslia — ponúknu stiahnutie alebo otvorenie
+        // v kalendári, čo je presne to, čo od odkazu čakáme.
         return response($ics, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="'.$generator->filename($event).'"',
+            'Content-Disposition' => 'inline; filename="'.$generator->filename($event).'"',
         ]);
     }
 }

@@ -23,6 +23,7 @@ return [
         'calendar_intro'    => 'So the date does not slip your mind, add the event to your calendar:',
         'calendar_ics'      => 'Add to calendar',
         'calendar_google'   => 'Google Calendar',
+        'calendar_outlook'  => 'Outlook',
     ],
 
     // App\Notifications\PendingRegistrationVerification

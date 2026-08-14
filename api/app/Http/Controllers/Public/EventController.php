@@ -8,6 +8,7 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Models\Municipality;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Calendar\IcsGenerator;
 use App\Services\Views\ViewRecorder;
 use App\Support\EventTimeframe;
 use Illuminate\Http\JsonResponse;
@@ -103,7 +104,7 @@ class EventController extends Controller
         return $slugs !== [] ? array_slice(array_unique($slugs), 0, 10) : null;
     }
 
-    public function show($id, Request $request, ViewRecorder $viewRecorder)
+    public function show($id, Request $request, ViewRecorder $viewRecorder, IcsGenerator $calendar)
     {
         $event = $this->eventRepository->publicShow($id);
 
@@ -114,6 +115,11 @@ class EventController extends Controller
         $viewRecorder->record($event, $request);
 
         $data = $event->toArray();
+
+        // „Pridať do kalendára" — súbor `.ics` aj odkazy do webových kalendárov.
+        // Skladá ich backend, aby termín, miesto aj popis boli všade rovnaké
+        // ako v `.ics` a v e-maile. Bez termínu je to null a front sekciu skryje.
+        $data['calendar_links'] = $calendar->links($event);
 
         // Návštevník môže organizátorovi poslať správu, len ak má podujatie
         // aktívneho vlastníka (a nie je importované, ani jeho vlastné). Samotný

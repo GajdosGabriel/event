@@ -23,6 +23,7 @@ return [
         'calendar_intro'    => 'Damit Sie den Termin nicht vergessen, tragen Sie die Veranstaltung in Ihren Kalender ein:',
         'calendar_ics'      => 'Zum Kalender hinzufügen',
         'calendar_google'   => 'Google Kalender',
+        'calendar_outlook'  => 'Outlook',
     ],
 
     // App\Notifications\PendingRegistrationVerification

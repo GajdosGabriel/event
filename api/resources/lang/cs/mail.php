@@ -23,6 +23,7 @@ return [
         'calendar_intro'    => 'Abyste na termín nezapomněli, zapište si akci do kalendáře:',
         'calendar_ics'      => 'Přidat do kalendáře',
         'calendar_google'   => 'Google Kalendář',
+        'calendar_outlook'  => 'Outlook',
     ],
 
     // App\Notifications\PendingRegistrationVerification

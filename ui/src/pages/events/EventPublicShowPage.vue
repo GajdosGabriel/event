@@ -209,13 +209,7 @@
                 Termín
               </h2>
               <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
-              <a v-if="event.startAt" :href="eventCalendarUrl(event.id)" download
-                class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 no-underline hover:underline">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M12 14v4m0 0l-2-2m2 2l2-2"/>
-                </svg>
-                Pridať do kalendára
-              </a>
+              <AddToCalendarButton :links="event.calendarLinks" class="mt-3" />
               <div v-if="event.registrationDeadlineAt" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 Registrácia do: <strong>{{ fmtDateLong(event.registrationDeadlineAt) }}</strong>
                 <span v-if="deadlineCountdown" class="mt-0.5 block font-semibold">{{ deadlineCountdown }}</span>
@@ -379,12 +373,13 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
-import { showPublicEvent, eventCalendarUrl, indexEvents } from '@/api/events'
+import { showPublicEvent, indexEvents } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
 import type { EventItem, TicketTypeItem } from '@/types'
 import ImageLightbox from '@/components/ImageLightbox.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
+import AddToCalendarButton from '@/components/AddToCalendarButton.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import ExternalLink from '@/components/ExternalLink.vue'

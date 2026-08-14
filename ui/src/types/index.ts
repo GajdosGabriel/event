@@ -166,6 +166,17 @@ export interface RegisterPayload {
   terms_accepted: boolean
 }
 
+/**
+ * Cesty „Pridať do kalendára". Skladá ich API (App\Services\Calendar\IcsGenerator),
+ * aby termín, miesto aj popis boli rovnaké na webe, v `.ics` súbore aj v e-maile.
+ */
+export interface CalendarLinks {
+  /** Súbor `.ics` — Apple Kalendár, desktopový Outlook, Thunderbird. */
+  download: string
+  google: string
+  outlook: string
+}
+
 // Event
 export interface EventItem {
   id: number
@@ -217,6 +228,8 @@ export interface EventItem {
   attributeIssues: AttributeIssues | null
   /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */
   contactable: boolean
+  /** Len na verejnom detaile; null pri podujatí bez termínu. */
+  calendarLinks: CalendarLinks | null
   municipality: { id: number; name: string; fullname?: string } | null
   canal: { id: number; name: string; thumbImage?: string; website?: string | null } | null
   venue: {
