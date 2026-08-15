@@ -9,7 +9,7 @@
         <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
         <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
       </span>
-      <span class="text-sm font-semibold text-slate-900">Práve prebieha</span>
+      <span class="text-sm font-semibold text-slate-900">{{ t('public.ongoing') }}</span>
       <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500">{{ events.length }}</span>
       <svg
         class="ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform"
@@ -27,7 +27,7 @@
           class="flex items-baseline gap-3 px-4 py-1.5 no-underline hover:bg-slate-50"
         >
           <span class="min-w-0 truncate text-sm text-slate-700 hover:underline">{{ event.name }}</span>
-          <span v-if="event.endAt" class="ml-auto shrink-0 text-xs text-slate-400">do {{ fmtDate(event.endAt) }}</span>
+          <span v-if="event.endAt" class="ml-auto shrink-0 text-xs text-slate-400">{{ t('public.ongoingUntil', { date: fmtDate(event.endAt) }) }}</span>
         </RouterLink>
       </li>
     </ul>
@@ -41,8 +41,11 @@ import type { EventItem } from '@/types'
 import { fmtDate } from '@/utils/dateFormat'
 import { publicEventPath } from '@/utils/publicUrl'
 import { useSettings } from '@/composables/useSettings'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ municipality?: number | null }>()
+
+const { t } = useI18n()
 
 const { settings, save } = useSettings()
 const events = ref<EventItem[]>([])

@@ -13,4 +13,10 @@ return [
         'unavailable'     => 'Fakturační údaje se nepodařilo uložit — Account neodpovídá. Zkus to za chvíli znovu.',
         'upstream_failed' => 'Fakturační údaje se nepodařilo uložit — Account odpověděl chybou (HTTP :status). Podrobnosti jsou v logu Eventu.',
     ],
+
+    'webhook' => [
+        'disabled' => 'Webhooky z Accountu nejsou nastavené.',
+        'invalid_signature' => 'Neplatný podpis.',
+        'stale' => 'Zastaralý požadavek.',
+    ],
 ];

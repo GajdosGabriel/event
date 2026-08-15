@@ -22,7 +22,7 @@
         <span
           v-if="viewsCount !== null"
           class="inline-flex items-center gap-1"
-          :title="`${viewsCount} zobrazení verejného detailu`"
+          :title="t('common.views', { n: viewsCount })"
         >
           <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -46,6 +46,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
+
 withDefaults(defineProps<{
   title: string
   imageUrl?: string | null

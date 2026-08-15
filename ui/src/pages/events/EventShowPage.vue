@@ -1,10 +1,10 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
 
     <div v-else-if="error" class="show-not-found">
-      <h1>Event nenájdený</h1>
-      <RouterLink :to="indexRoute">← Späť na zoznam</RouterLink>
+      <h1>{{ t('events.show.notFound') }}</h1>
+      <RouterLink :to="indexRoute">{{ t('common.backToList') }}</RouterLink>
     </div>
 
     <template v-else-if="event">
@@ -20,11 +20,11 @@
 
       <!-- Breadcrumb + akcie -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">← Späť</RouterLink>
-        <RouterLink v-if="event.permissions.update" :to="editRoute" class="action-btn">Upraviť</RouterLink>
-        <button v-else-if="event.permissions.duplicate" type="button" class="action-btn" @click="duplicate">Kopírovať</button>
-        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">Lístky</RouterLink>
-        <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">Check-in</RouterLink>
+        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <RouterLink v-if="event.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
+        <button v-else-if="event.permissions.duplicate" type="button" class="action-btn" @click="duplicate">{{ t('common.copy') }}</button>
+        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">{{ t('events.show.tickets') }}</RouterLink>
+        <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">{{ t('events.show.checkin') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
           :class="statusClass(event.status)">{{ event.status }}</span>
       </div>
@@ -46,35 +46,35 @@
                 <button type="button"
                   :class="bodyView === 'original' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
                   class="rounded-md px-3 py-1 text-xs font-medium transition-all"
-                  @click="bodyView = 'original'">Originál</button>
+                  @click="bodyView = 'original'">{{ t('events.show.original') }}</button>
                 <button type="button"
                   :class="bodyView === 'ai' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
                   class="rounded-md px-3 py-1 text-xs font-medium transition-all"
                   @click="bodyView = 'ai'">
                   <span class="flex items-center gap-1">
                     <svg class="h-3 w-3 text-violet-500" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    AI verzia
+                    {{ t('events.ai.badge') }}
                   </span>
                 </button>
               </div>
               <div class="prose prose-slate max-w-none text-slate-700" v-html="renderedBody" />
             </div>
-            <p v-else class="text-sm text-slate-400">Bez popisu.</p>
+            <p v-else class="text-sm text-slate-400">{{ t('events.show.noBody') }}</p>
           </div>
 
           <!-- Workshopy (sub-akcie eventu) -->
           <div v-if="workshops.length" class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold text-slate-800">Workshopy ({{ workshops.length }})</h2>
+              <h2 class="text-base font-semibold text-slate-800">{{ t('events.show.workshops', { n: workshops.length }) }}</h2>
               <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`"
-                class="text-xs text-blue-600 hover:underline">Spravovať →</RouterLink>
+                class="text-xs text-blue-600 hover:underline">{{ t('events.show.manage') }}</RouterLink>
             </div>
             <EventWorkshops :workshops="workshops" show-inactive />
           </div>
 
           <!-- Galéria -->
           <div v-if="event.uploadedImages.length" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Fotografie</h2>
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('common.photos') }}</h2>
             <ImageGallery fileable-type="event" :fileable-id="Number(route.params.id)" />
           </div>
 
@@ -89,16 +89,16 @@
             <div class="px-4 py-2 text-xs text-slate-500">
               GPS: {{ event.latitude }}, {{ event.longitude }} ·
               <a :href="`https://www.google.com/maps?q=${event.latitude},${event.longitude}`"
-                target="_blank" class="text-blue-600">Google Maps ↗</a>
+                target="_blank" class="text-blue-600">{{ t('common.googleMaps') }}</a>
             </div>
           </div>
 
           <!-- Ďalšie eventy tohto kanálu -->
           <div v-if="event.canal && relatedEvents.length" class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold text-slate-800">Ďalšie eventy — {{ event.canal.name }}</h2>
+              <h2 class="text-base font-semibold text-slate-800">{{ t('events.show.relatedCanal', { name: event.canal.name }) }}</h2>
               <RouterLink :to="`${prefix}/canals/${event.canal.id}`"
-                class="text-xs text-blue-600 hover:underline">Kanál →</RouterLink>
+                class="text-xs text-blue-600 hover:underline">{{ t('events.show.canalLink') }}</RouterLink>
             </div>
             <ul class="grid gap-1.5">
               <li v-for="ev in relatedEvents" :key="ev.id"
@@ -117,11 +117,11 @@
                   <div v-if="openMenuId === ev.id"
                     class="absolute right-0 top-full z-10 mt-1 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                     <RouterLink :to="`${prefix}/events/${ev.id}`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
-                      @click="openMenuId = null">Zobraziť</RouterLink>
+                      @click="openMenuId = null">{{ t('common.view') }}</RouterLink>
                     <RouterLink v-if="ev.status !== 'archived'" :to="`${prefix}/events/${ev.id}/edit`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
-                      @click="openMenuId = null">Upraviť</RouterLink>
+                      @click="openMenuId = null">{{ t('common.edit') }}</RouterLink>
                     <button v-else type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      @click="duplicateRelated(ev.id)">Kopírovať</button>
+                      @click="duplicateRelated(ev.id)">{{ t('common.copy') }}</button>
                   </div>
                 </div>
               </li>
@@ -135,7 +135,7 @@
                návštevník ho v odpovedi vôbec nemá. -->
           <dl v-if="event.viewsCount !== null" class="show-card grid gap-3">
             <div class="detail-card">
-              <dt>Zobrazenia</dt>
+              <dt>{{ t('events.show.views') }}</dt>
               <dd class="flex items-center gap-1.5 font-semibold text-slate-800">
                 <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -143,18 +143,18 @@
                 </svg>
                 {{ event.viewsCount }}
               </dd>
-              <dd class="text-xs text-slate-400">Unikátni návštevníci verejného detailu, jeden za deň.</dd>
+              <dd class="text-xs text-slate-400">{{ t('events.show.viewsHint') }}</dd>
             </div>
           </dl>
 
           <!-- Termín -->
           <dl class="show-card grid gap-3">
             <div v-if="event.startAt" class="detail-card">
-              <dt>Termín</dt>
+              <dt>{{ t('events.sections.schedule') }}</dt>
               <dd><EventDateRange :start-at="event.startAt" :end-at="event.endAt" /></dd>
             </div>
             <div v-if="event.registrationDeadlineAt" class="detail-card border-l-2 border-amber-400 pl-2">
-              <dt class="text-amber-700">Registrácia do</dt>
+              <dt class="text-amber-700">{{ t('events.show.deadline') }}</dt>
               <dd class="font-semibold text-amber-800">{{ fmtDateTime(event.registrationDeadlineAt) }}</dd>
             </div>
           </dl>
@@ -162,14 +162,14 @@
           <!-- Organizátor -->
           <dl v-if="event.canal" class="show-card grid gap-3">
             <div class="detail-card">
-              <dt>Organizátor</dt>
+              <dt>{{ t('events.show.organizer') }}</dt>
               <dd>
                 <RouterLink :to="`${prefix}/canals/${event.canal.id}`"
                   class="font-medium text-blue-700 no-underline hover:underline">
                   {{ event.canal.name }}
                 </RouterLink>
                 <a v-if="event.canal.website" :href="event.canal.website" target="_blank" rel="noopener noreferrer"
-                  class="ml-2 text-sm text-blue-600 hover:underline">web ↗</a>
+                  class="ml-2 text-sm text-blue-600 hover:underline">{{ t('common.web') }}</a>
               </dd>
             </div>
           </dl>
@@ -177,7 +177,7 @@
           <!-- Miesto -->
           <dl class="show-card grid gap-3">
             <div v-if="event.venue" class="detail-card">
-              <dt>Miesto konania</dt>
+              <dt>{{ t('events.fields.venue') }}</dt>
               <dd>
                 <RouterLink :to="`${prefix}/venues/${event.venue.id}`"
                   class="font-semibold text-blue-700 no-underline hover:underline">
@@ -189,16 +189,16 @@
                 </p>
                 <div class="mt-1 flex flex-wrap gap-2 text-sm">
                   <a v-if="event.venue.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
-                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">web ↗</a>
+                  <a v-if="event.venue.website" :href="event.venue.website" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">{{ t('common.web') }}</a>
                 </div>
               </dd>
             </div>
             <div v-if="event.locationName" class="detail-card">
-              <dt>Popis miesta</dt>
+              <dt>{{ t('events.show.locationName') }}</dt>
               <dd>{{ event.locationName }}</dd>
             </div>
             <div v-if="event.street" class="detail-card">
-              <dt>Adresa</dt>
+              <dt>{{ t('common.address') }}</dt>
               <dd>
                 {{ event.street }}<br v-if="event.postcode || event.municipality" />
                 <span v-if="event.postcode">{{ event.postcode }} </span>
@@ -207,23 +207,23 @@
               </dd>
             </div>
             <div v-else-if="event.municipality && !event.venue" class="detail-card">
-              <dt>Obec</dt>
+              <dt>{{ t('common.municipality') }}</dt>
               <dd>{{ event.municipality.name }}</dd>
             </div>
             <div v-if="!event.locationName && !event.street && !event.municipality && !event.venue" class="text-sm text-slate-400">
-              Miesto nie je zadané.
+              {{ t('events.show.noPlace') }}
             </div>
           </dl>
 
           <!-- Kontakt -->
           <dl v-if="event.phone || event.website" class="show-card grid gap-3">
             <div v-if="event.phone" class="detail-card">
-              <dt>Telefón</dt>
+              <dt>{{ t('common.phone') }}</dt>
               <dd><a :href="`tel:${event.phone}`" class="text-blue-700">{{ event.phone }}</a></dd>
             </div>
             <div v-if="event.website" class="detail-card">
-              <dt>Odkaz na akciu</dt>
-              <dd><a :href="event.website" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline">Zobraziť akciu ↗</a></dd>
+              <dt>{{ t('events.show.websiteLabel') }}</dt>
+              <dd><a :href="event.website" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline">{{ t('events.show.websiteOpen') }}</a></dd>
             </div>
           </dl>
 
@@ -235,16 +235,16 @@
           <!-- Meta -->
           <dl class="show-card grid gap-3">
             <div class="detail-card">
-              <dt>Záznam</dt>
+              <dt>{{ t('common.record') }}</dt>
               <dd class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <span v-if="event.publishAt" class="font-medium text-amber-700">Zverejní sa {{ fmt(event.publishAt) }}</span>
-                <span v-if="event.publishedAt">Publikované {{ fmt(event.publishedAt) }}</span>
-                <span v-if="event.createdAt">Vytvorené {{ fmt(event.createdAt) }}</span>
-                <span v-if="event.updatedAt">Upravené {{ fmt(event.updatedAt) }}</span>
+                <span v-if="event.publishAt" class="font-medium text-amber-700">{{ t('events.show.publishAt', { date: fmt(event.publishAt) }) }}</span>
+                <span v-if="event.publishedAt">{{ t('common.publishedAt') }} {{ fmt(event.publishedAt) }}</span>
+                <span v-if="event.createdAt">{{ t('common.createdAt') }} {{ fmt(event.createdAt) }}</span>
+                <span v-if="event.updatedAt">{{ t('common.updatedAt') }} {{ fmt(event.updatedAt) }}</span>
               </dd>
             </div>
             <div v-if="event.deletedAt" class="detail-card bg-red-50">
-              <dt class="text-red-600">Zmazané</dt>
+              <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ fmt(event.deletedAt) }}</dd>
             </div>
           </dl>
@@ -266,11 +266,14 @@ import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import { useToast } from '@/composables/useToast'
+import { fmtDate } from '@/utils/dateFormat'
+import { useI18n, localeTag } from '@/i18n'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { t } = useI18n()
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
@@ -293,18 +296,18 @@ async function duplicate() {
   if (!event.value) return
   try {
     const copy = await duplicateEvent(event.value.id, scope.value)
-    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    toast.success(t('events.copy.created'))
     router.push(`${prefix.value}/events/${copy.id}/edit`)
-  } catch { toast.error('Kopírovanie zlyhalo.') }
+  } catch { toast.error(t('events.copy.failed')) }
 }
 
 async function duplicateRelated(id: number) {
   openMenuId.value = null
   try {
     const copy = await duplicateEvent(id, scope.value)
-    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    toast.success(t('events.copy.created'))
     router.push(`${prefix.value}/events/${copy.id}/edit`)
-  } catch { toast.error('Kopírovanie zlyhalo.') }
+  } catch { toast.error(t('events.copy.failed')) }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocClick))
@@ -324,23 +327,13 @@ const renderedBody = computed(() => {
   return html ? withBlankLinks(html) : ''
 })
 
-const DAY_NAMES: Record<number, string> = {
-  0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',
-  4: 'Štvrtok', 5: 'Piatok', 6: 'Sobota',
-}
-
-function dayName(d: string) {
-  return DAY_NAMES[new Date(d).getDay()] ?? ''
-}
-
 function fmt(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return d ? fmtDate(d) : t('common.none')
 }
 
 function fmtDateTime(d: string) {
   const date = new Date(d)
-  return date.toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleString(localeTag(), { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function statusClass(status: string) {
@@ -353,19 +346,6 @@ function statusClass(status: string) {
     rejected: 'bg-red-100 text-red-800',
   }[status] ?? 'bg-slate-100 text-slate-600'
 }
-
-const OH_DAYS: Record<string, string> = {
-  monday: 'Pondelok', tuesday: 'Utorok', wednesday: 'Streda',
-  thursday: 'Štvrtok', friday: 'Piatok', saturday: 'Sobota', sunday: 'Nedeľa',
-}
-
-const venueOpeningHours = computed(() => {
-  const oh = event.value?.venue?.openingHours
-  if (!oh || typeof oh !== 'object' || Array.isArray(oh)) return []
-  return Object.entries(oh as Record<string, string | null>)
-    .filter(([, hours]) => hours)
-    .map(([day, hours]) => ({ day: OH_DAYS[day] ?? day, hours: hours as string }))
-})
 
 onMounted(async () => {
   const id = Number(route.params.id)

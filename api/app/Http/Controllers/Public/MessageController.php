@@ -27,11 +27,11 @@ class MessageController extends Controller
         $sender = auth('sanctum')->user();
 
         if (! $sender) {
-            abort(401, 'Na poslanie správy sa musíte prihlásiť.');
+            abort(401, __('messages.errors.login_required'));
         }
 
         if (! $sender->canSendMessages()) {
-            abort(403, 'Správy môžu posielať len účty s overeným e-mailom.');
+            abort(403, __('messages.errors.verified_required'));
         }
 
         $data = $request->validated();
@@ -43,11 +43,11 @@ class MessageController extends Controller
         // fronte ani neukáže.
         $recipient = $target->messageRecipient();
         if (! $recipient) {
-            abort(422, 'Tomuto cieľu nie je možné poslať správu.');
+            abort(422, __('messages.errors.not_contactable'));
         }
 
         if ($recipient->is($sender)) {
-            abort(422, 'Nemôžete poslať správu sami sebe.');
+            abort(422, __('messages.errors.self'));
         }
 
         $senderName = $sender->pendingProfile?->display_name
@@ -74,7 +74,7 @@ class MessageController extends Controller
         $class = Message::TARGETS[$type] ?? null;
 
         if (! $class || ! is_subclass_of($class, Messageable::class)) {
-            abort(422, 'Neznámy typ cieľa správy.');
+            abort(422, __('messages.errors.unknown_target'));
         }
 
         return $class::query()->findOrFail($id);

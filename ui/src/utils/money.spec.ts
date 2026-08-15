@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setLocale } from '@/i18n'
 import { formatPrice, formatPriceOrFree } from './money'
+
+// Tvar sumy aj slovo „zdarma" závisia od jazyka; testy popisujú slovenský tvar.
+beforeEach(() => setLocale('sk'))
 
 /** Intl vkladá medzi sumu a symbol nezlomiteľnú medzeru — porovnáva sa normalizovane. */
 const norm = (s: string) => s.replace(/[\u00a0\u202f]/g, ' ')

@@ -3,7 +3,7 @@
     <!-- Same day: Sobota / 4. 7. 2026, 10:00 – 18:00 (or "Celý deň" for 00:00 – 23:59) -->
     <template v-if="endAt && isSameDay(startAt, endAt)">
       <span class="block font-semibold">{{ dayName(startAt) }}</span>
-      <span v-if="isAllDayRange(startAt, endAt)">{{ fmtDate(startAt) }}, Celý deň</span>
+      <span v-if="isAllDayRange(startAt, endAt)">{{ fmtDate(startAt) }}, {{ t('common.allDay') }}</span>
       <span v-else>{{ fmtDate(startAt) }}, {{ fmtTime(startAt) }} – {{ fmtTime(endAt) }}</span>
     </template>
 
@@ -28,6 +28,9 @@
 
 <script setup lang="ts">
 import { dayName, fmtDate, fmtTime, isSameDay } from '@/utils/dateFormat'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   startAt?: string | null

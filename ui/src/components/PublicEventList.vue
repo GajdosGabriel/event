@@ -48,7 +48,7 @@
         <div
           class="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm"
           role="group"
-          aria-label="Zobrazenie zoznamu"
+          :aria-label="t('public.list.viewLabel')"
         >
           <button
             type="button"
@@ -56,14 +56,14 @@
             :class="view === 'agenda' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
             :aria-pressed="view === 'agenda'"
             @click="setView('agenda')"
-          >Agenda</button>
+          >{{ t('public.list.agenda') }}</button>
           <button
             type="button"
             class="px-3 py-1.5 transition-colors"
             :class="view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
             :aria-pressed="view === 'grid'"
             @click="setView('grid')"
-          >Mriežka</button>
+          >{{ t('public.list.grid') }}</button>
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@
               type="button"
               class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
               @click="loadPage(page)"
-            >Skúsiť znova</button>
+            >{{ t('common.retry') }}</button>
           </div>
 
           <!-- Prázdny stav bez východiska bol slepá ulička; teraz vždy ponúka
@@ -135,12 +135,10 @@
               <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M9 15h6" />
             </svg>
             <p class="mb-1 font-medium text-slate-700">
-              {{ search.trim() ? `Pre „${search.trim()}" sme nič nenašli` : 'Zatiaľ tu nič nie je' }}
+              {{ search.trim() ? t('public.list.emptySearch', { query: search.trim() }) : t('public.list.empty') }}
             </p>
             <p class="mb-4 text-sm text-slate-500">
-              {{ hasActiveFilters
-                ? 'Skús širší výber — možno je filter príliš úzky.'
-                : 'Nové podujatia pribúdajú priebežne, skús to o pár dní.' }}
+              {{ hasActiveFilters ? t('public.list.emptyFiltered') : t('public.list.emptyHint') }}
             </p>
             <div class="flex flex-wrap justify-center gap-2">
               <button
@@ -148,12 +146,12 @@
                 type="button"
                 class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 @click="clearSearch"
-              >Zrušiť hľadanie</button>
+              >{{ t('public.list.clearSearch') }}</button>
               <RouterLink
                 v-if="hasRouteFilters"
                 :to="PUBLIC_EVENTS"
                 class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-blue-700"
-              >Všetky podujatia</RouterLink>
+              >{{ t('public.list.allEvents') }}</RouterLink>
             </div>
           </div>
 
@@ -230,7 +228,7 @@ const props = withDefaults(defineProps<{
 
 const route = useRoute()
 const { settings, save } = useSettings()
-const { t } = useI18n()
+const { t, plural } = useI18n()
 
 const view = computed(() => settings.value.publicEventsView)
 
@@ -289,12 +287,7 @@ const hasRouteFilters = computed(() => Boolean(props.range || props.tags || prop
   || route.query.municipality || route.query.tags))
 const hasActiveFilters = computed(() => hasRouteFilters.value || Boolean(search.value.trim()))
 
-const resultLabel = computed(() => {
-  const count = total.value || events.value.length
-  if (count === 1) return '1 podujatie'
-  if (count >= 2 && count <= 4) return `${count} podujatia`
-  return `${count} podujatí`
-})
+const resultLabel = computed(() => plural('public.list.counts.events', total.value || events.value.length))
 
 /**
  * Zoznam ako `ItemList` — vyhľadávaču povie, že stránka nesie usporiadaný
@@ -367,7 +360,7 @@ async function fetchPage(p: number) {
     lastPage.value = res.meta.last_page
     total.value = res.meta.total ?? res.data.length
   } catch {
-    error.value = 'Nepodarilo sa načítať podujatia.'
+    error.value = t('public.list.loadFailed')
   } finally {
     loading.value = false
   }

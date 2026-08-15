@@ -1,16 +1,13 @@
 <template>
   <div class="grid gap-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-semibold text-slate-900">Organizácie</h1>
-      <RouterLink :to="`${prefix}/organizations/create`" class="btn btn-primary">Nová organizácia</RouterLink>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ t('organizations.list.title') }}</h1>
+      <RouterLink :to="`${prefix}/organizations/create`" class="btn btn-primary">{{ t('organizations.list.create') }}</RouterLink>
     </div>
 
-    <p class="text-sm text-slate-500">
-      Profil organizátora je v Evente, fakturačné údaje (IČO, sídlo, banka)
-      v Accounte. Stĺpec „Account“ ukazuje, či je firma naviazaná.
-    </p>
+    <p class="text-sm text-slate-500">{{ t('organizations.list.lead') }}</p>
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
     <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
 
     <div v-else class="panel-card">
@@ -30,16 +27,16 @@
 
           <span v-if="org.accountUuid"
             class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-            v Accounte
+            {{ t('organizations.list.inAccount') }}
           </span>
           <span v-else class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-            len lokálne
+            {{ t('organizations.list.localOnly') }}
           </span>
 
-          <RouterLink :to="`${prefix}/organizations/${org.id}/edit`" class="action-btn">Upraviť</RouterLink>
-          <button class="action-btn action-btn-danger" @click="remove(org.id)">Zmazať</button>
+          <RouterLink :to="`${prefix}/organizations/${org.id}/edit`" class="action-btn">{{ t('common.edit') }}</RouterLink>
+          <button class="action-btn action-btn-danger" @click="remove(org.id)">{{ t('common.remove') }}</button>
         </li>
-        <li v-if="orgs.length === 0" class="text-slate-500">Zatiaľ žiadne organizácie.</li>
+        <li v-if="orgs.length === 0" class="text-slate-500">{{ t('organizations.list.empty') }}</li>
       </ul>
     </div>
   </div>
@@ -51,9 +48,11 @@ import { useRoute } from 'vue-router'
 import { listOrganizations, deleteOrganization } from '@/api/organizations'
 import type { ModelStatus, OrganizationItem } from '@/types'
 import { useToast } from '@/composables/useToast'
+import { useI18n, type MessageKey } from '@/i18n'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const toast = useToast()
+const { t, plural } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 
@@ -61,22 +60,20 @@ const orgs = ref<OrganizationItem[]>([])
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Koncept',
-  published: 'Publikovaná',
-  archived: 'Archivovaná',
+const STATUS_KEYS: Record<string, MessageKey> = {
+  draft: 'organizations.statuses.draft',
+  published: 'organizations.statuses.published',
+  archived: 'organizations.statuses.archived',
 }
 
 function statusLabel(status: ModelStatus) {
-  return STATUS_LABELS[status] ?? status
+  const key = STATUS_KEYS[status]
+  return key ? t(key) : status
 }
 
 /** Firma bez kanála nemá za koho fakturovať — preto to nie je len číslo. */
 function canalsLabel(count: number) {
-  if (count === 0) return 'bez kanála'
-  if (count === 1) return '1 kanál'
-  if (count < 5) return `${count} kanály`
-  return `${count} kanálov`
+  return count === 0 ? t('organizations.list.noCanal') : plural('organizations.counts.canals', count)
 }
 
 onMounted(async () => {
@@ -85,20 +82,20 @@ onMounted(async () => {
   } catch {
     // Bez hlášky by zlyhané načítanie vyzeralo ako prázdny zoznam, čo je
     // nerozoznateľné od skutočne prázdneho stavu.
-    loadError.value = 'Načítanie organizácií zlyhalo.'
+    loadError.value = t('organizations.list.loadFailed')
   } finally {
     loading.value = false
   }
 })
 
 async function remove(id: number) {
-  if (!confirm('Naozaj zmazať organizáciu? Firma v Accounte zostane zachovaná.')) return
+  if (!confirm(t('organizations.list.removeConfirm'))) return
   try {
     await deleteOrganization(scope.value, id)
     orgs.value = orgs.value.filter(o => o.id !== id)
-    toast.success('Zmazané.')
+    toast.success(t('common.removed'))
   } catch {
-    toast.error('Mazanie zlyhalo.')
+    toast.error(t('common.removeFailed'))
   }
 }
 </script>

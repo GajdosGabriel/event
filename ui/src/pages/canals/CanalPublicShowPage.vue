@@ -14,19 +14,19 @@
     <div class="mx-auto w-full max-w-[1200px] px-4 py-8">
       <div v-if="loading" class="flex items-center gap-2 text-slate-500">
         <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
-        Načítavam…
+        {{ t('common.loading') }}
       </div>
       <div v-else-if="error" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-        <p class="mb-2 text-lg font-semibold text-red-700">Kanál sa nepodarilo načítať</p>
-        <RouterLink to="/" class="text-sm text-blue-600 hover:underline">← Späť</RouterLink>
+        <p class="mb-2 text-lg font-semibold text-red-700">{{ t('public.canal.loadFailed') }}</p>
+        <RouterLink to="/" class="text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
       </div>
 
       <template v-else-if="canal">
         <div v-if="!canal.imageUrl" class="mb-6">
-          <RouterLink to="/" class="mb-3 inline-block text-sm text-blue-600 hover:underline">← Späť</RouterLink>
+          <RouterLink to="/" class="mb-3 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
           <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">{{ canal.name }}</h1>
         </div>
-        <RouterLink v-else to="/" class="mb-6 inline-block text-sm text-blue-600 hover:underline">← Späť</RouterLink>
+        <RouterLink v-else to="/" class="mb-6 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
           <!-- Main -->
@@ -35,25 +35,25 @@
               <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="canal.body" />
             </div>
             <div v-if="!canal.body" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
-              Žiadny opis nie je k dispozícii.
+              {{ t('public.canal.noDescription') }}
             </div>
 
             <!-- Mapa -->
             <div v-if="canal.latitude && canal.longitude" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <iframe
                 :src="`https://www.openstreetmap.org/export/embed.html?bbox=${canal.longitude - 0.005},${canal.latitude - 0.003},${canal.longitude + 0.005},${canal.latitude + 0.003}&layer=mapnik&marker=${canal.latitude},${canal.longitude}`"
-                width="100%" height="320" frameborder="0" scrolling="no" class="block" title="Mapa" loading="lazy"
+                width="100%" height="320" frameborder="0" scrolling="no" class="block" :title="t('public.event.map')" loading="lazy"
               />
               <div class="px-6 py-2 text-xs text-slate-500">
-                <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600 hover:underline">Otvoriť v Google Maps ↗</a>
+                <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600 hover:underline">{{ t('public.event.openInMaps') }}</a>
               </div>
             </div>
 
             <!-- Eventy -->
             <div class="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 class="mb-4 text-base font-semibold text-slate-800">Eventy organizátora</h2>
-              <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
-              <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne publikované eventy.</p>
+              <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('public.canal.events') }}</h2>
+              <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
+              <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('public.canal.eventsEmpty') }}</p>
               <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <EventCard
                   v-for="ev in events"
@@ -71,7 +71,7 @@
 
             <!-- Miesta -->
             <div v-if="canal.venuesList.length" class="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 class="mb-4 text-base font-semibold text-slate-800">Miesta</h2>
+              <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('public.canal.venues') }}</h2>
               <ul class="grid gap-2">
                 <li v-for="v in canal.venuesList" :key="v.id"
                   class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -89,7 +89,7 @@
             <div v-if="canal.phone || canal.website || canal.contactable" class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                Kontakt
+                {{ t('public.event.contact') }}
               </div>
               <div class="space-y-2 text-sm">
                 <a v-if="canal.phone" :href="`tel:${canal.phone}`" class="flex items-center gap-2 text-slate-700 hover:text-blue-600">
@@ -107,12 +107,12 @@
             </div>
 
             <div v-if="canal.municipality" class="rounded-2xl border border-slate-200 bg-white p-5">
-              <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Pôsobí v</div>
+              <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.canal.activeIn') }}</div>
               <p class="text-sm text-slate-700">{{ canal.municipality.name }}</p>
             </div>
 
             <div class="rounded-2xl border border-slate-200 bg-white p-5">
-              <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Organizátor od</div>
+              <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.canal.organizerSince') }}</div>
               <p class="text-sm text-slate-700">{{ formatDate(canal.createdAt) }}</p>
             </div>
           </aside>
@@ -132,7 +132,9 @@ import ContactButton from '@/components/ContactButton.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
+import { useI18n, localeTag } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const canal = ref<CanalItem | null>(null)
@@ -141,17 +143,17 @@ const error = ref(false)
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
 
-function formatDate(d: string) { return new Date(d).toLocaleDateString('sk-SK') }
+function formatDate(d: string) { return new Date(d).toLocaleDateString(localeTag()) }
 
 // Organizátor doteraz nemal žiadne meta tagy — pri zdieľaní jeho profilu
 // nevidel Facebook ani názov kanála.
 useHead(computed(() => {
   const c = canal.value
-  if (!c) return { title: 'Načítavam…' }
+  if (!c) return { title: t('common.loading') }
 
   const description = c.body
     ? c.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
-    : `Podujatia organizátora ${c.name}.`
+    : t('public.canal.seoDescription', { name: c.name })
   const url = absoluteUrl(publicCanalPath(c))
 
   return {

@@ -16,4 +16,12 @@ return [
         'unavailable'     => 'Fakturačné údaje sa nepodarilo uložiť — Account neodpovedá. Skús to o chvíľu znova.',
         'upstream_failed' => 'Fakturačné údaje sa nepodarilo uložiť — Account odpovedal chybou (HTTP :status). Podrobnosti sú v logu Eventu.',
     ],
+
+    // Odpovede na webhooky z Accountu (App\Http\Controllers\Webhooks).
+    // Číta ich druhý server, nie človek — preklad je tu kvôli jednotnosti.
+    'webhook' => [
+        'disabled' => 'Webhooky z Accountu nie sú nastavené.',
+        'invalid_signature' => 'Neplatný podpis.',
+        'stale' => 'Zastaraná požiadavka.',
+    ],
 ];

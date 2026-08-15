@@ -36,6 +36,75 @@ const sk = {
     collapse: 'Zbaliť',
     expand: 'Rozbaliť',
   },
+  // Reťazce, ktoré nepatria jednej obrazovke — akcie v riadkoch výpisov,
+  // stavy načítavania, spoločné komponenty (lightbox, omrvinky, agenda).
+  //
+  // Dashboard a admin sú tie isté komponenty pod dvoma adresami, takže tu ani
+  // nižšie nie sú kľúče „dashboard.*“ a „admin.*“ pre to isté — spoločné
+  // popisky stoja raz tu, špecifické pri svojom zdroji (events, canals, …).
+  common: {
+    loading: 'Načítavam…',
+    back: '← Späť',
+    backToList: '← Späť na zoznam',
+    view: 'Zobraziť',
+    detail: 'Detail',
+    edit: 'Upraviť',
+    copy: 'Kopírovať',
+    remove: 'Zmazať',
+    restore: 'Obnoviť',
+    publish: 'Publikovať',
+    unpublish: 'Zrušiť publikovanie',
+    cancel: 'Zrušiť',
+    close: 'Zavrieť',
+    closeEsc: 'Zavrieť (Esc)',
+    free: 'Zdarma',
+    retry: 'Skúsiť znova',
+    allDay: 'Celý deň',
+    noDate: 'Bez termínu',
+    other: 'Ostatné',
+    breadcrumb: 'Omrvinková navigácia',
+    views: '{n} zobrazení verejného detailu',
+    tooManyRequests: 'Priveľa požiadaviek. Skúste to o chvíľu znova.',
+    // Potvrdenia a hlášky po akciách v riadku výpisu
+    removeConfirm: 'Naozaj zmazať?',
+    removed: 'Zmazané.',
+    removeFailed: 'Mazanie zlyhalo.',
+    restored: 'Obnovené.',
+    restoreFailed: 'Obnova zlyhala.',
+    published: 'Publikované.',
+    unpublished: 'Zrušené publikovanie.',
+    actionFailed: 'Akcia zlyhala.',
+    // Polia, ktoré má detail eventu, kanála aj miesta rovnaké
+    contact: 'Kontakt',
+    phone: 'Telefón',
+    website: 'Web',
+    web: 'web ↗',
+    address: 'Adresa',
+    municipality: 'Obec',
+    capacity: 'Kapacita',
+    capacityPeople: '{n} osôb',
+    openingHours: 'Otváracie hodiny',
+    gallery: 'Galéria',
+    photos: 'Fotografie',
+    owner: '[vlastník]',
+    googleMaps: 'Google Maps ↗',
+    record: 'Záznam',
+    createdAt: 'Vytvorené',
+    updatedAt: 'Upravené',
+    publishedAt: 'Publikované',
+    deletedAt: 'Zmazané',
+    none: '—',
+    // Relatívny čas („pred 3 d“) — používa ho zoznam používateľov aj súborov.
+    rel: {
+      never: 'nikdy',
+      justNow: 'práve teraz',
+      minutes: 'pred {n} min',
+      hours: 'pred {n} h',
+      days: 'pred {n} d',
+      today: 'dnes',
+      yesterday: 'včera',
+    },
+  },
   dashboard: {
     title: 'Dashboard',
     greeting: 'Vitajte, {name}.',
@@ -242,6 +311,17 @@ const sk = {
   // Formulár organizácie. Zoznam chýbajúcich údajov ({fields}) skladá Account
   // a posiela ho už preložený — tu je len veta okolo neho.
   organizations: {
+    list: {
+      title: 'Organizácie',
+      create: 'Nová organizácia',
+      lead: 'Profil organizátora je v Evente, fakturačné údaje (IČO, sídlo, banka) v Accounte. Stĺpec „Account“ ukazuje, či je firma naviazaná.',
+      empty: 'Zatiaľ žiadne organizácie.',
+      loadFailed: 'Načítanie organizácií zlyhalo.',
+      inAccount: 'v Accounte',
+      localOnly: 'len lokálne',
+      noCanal: 'bez kanála',
+      removeConfirm: 'Naozaj zmazať organizáciu? Firma v Accounte zostane zachovaná.',
+    },
     form: {
       back: '← Späť',
       createTitle: 'Nová organizácia',
@@ -453,6 +533,177 @@ const sk = {
       back: 'Späť na prihlásenie',
     },
   },
+  // Verejná časť — katalóg podujatí a detaily, ktoré vidí návštevník bez
+  // prihlásenia. Sekcia `seo` sú nadpisy a meta popisy landing stránok; tie
+  // isté vety pre crawlerov skladá backend (PrerenderController), takže pri
+  // zmene znenia patria obe miesta k sebe.
+  public: {
+    ongoing: 'Práve prebieha',
+    ongoingUntil: 'do {date}',
+    share: {
+      title: 'Zdieľať',
+      facebook: 'Zdieľať na Facebooku',
+      whatsapp: 'Poslať cez WhatsApp',
+      email: 'Poslať e-mailom',
+      copy: 'Kopírovať odkaz',
+      copied: 'Skopírované',
+      copyPrompt: 'Skopíruj odkaz:',
+    },
+    calendar: {
+      add: 'Pridať do kalendára',
+      google: 'Google Kalendár',
+      outlook: 'Outlook',
+      apple: 'Apple Kalendár a ostatné',
+      inBrowser: 'Otvorí sa v prehliadači',
+      icsFile: 'Súbor .ics',
+    },
+    list: {
+      viewLabel: 'Zobrazenie zoznamu',
+      agenda: 'Agenda',
+      grid: 'Mriežka',
+      loadFailed: 'Nepodarilo sa načítať podujatia.',
+      emptySearch: 'Pre „{query}“ sme nič nenašli',
+      empty: 'Zatiaľ tu nič nie je',
+      emptyFiltered: 'Skús širší výber — možno je filter príliš úzky.',
+      emptyHint: 'Nové podujatia pribúdajú priebežne, skús to o pár dní.',
+      clearSearch: 'Zrušiť hľadanie',
+      allEvents: 'Všetky podujatia',
+      counts: {
+        events: { one: '{n} podujatie', few: '{n} podujatia', many: '{n} podujatí' },
+      },
+    },
+    home: {
+      heading: 'Nadchádzajúce podujatia',
+      subheading: 'Zoradené podľa najbližšieho termínu.',
+    },
+    breadcrumb: {
+      home: 'Domov',
+      events: 'Podujatia',
+    },
+    web: 'web ↗',
+    event: {
+      loading: 'Načítavam podujatie…',
+      notFoundTitle: 'Podujatie sa nenašlo',
+      notFoundLead: 'Odkaz je zrejme neplatný alebo bolo podujatie stiahnuté.',
+      errorTitle: 'Podujatie sa nepodarilo načítať',
+      errorLead: 'Skús to o chvíľu znova — spojenie so serverom zlyhalo.',
+      workshops: 'Workshopy',
+      workshopsLead: 'Sprievodné workshopy v rámci podujatia. Prihlásiť sa na ne môžu účastníci registrovaní na podujatie.',
+      workshopFailed: 'Akciu sa nepodarilo dokončiť.',
+      photos: 'Fotografie',
+      photoOpen: 'Zobraziť fotografiu {n} z {total}',
+      photoAlt: '{name} — fotografia {n}',
+      map: 'Mapa',
+      mapTitle: 'Mapa miesta konania',
+      openInMaps: 'Otvoriť v Google Maps ↗',
+      navigate: 'Navigovať ↗',
+      date: 'Termín',
+      deadline: 'Registrácia do:',
+      registration: 'Registrácia',
+      place: 'Miesto',
+      openingHours: 'Otváracie hodiny',
+      organizer: 'Organizátor',
+      contact: 'Kontakt',
+      related: 'Ďalšie podujatia',
+      relatedNear: 'Ďalšie podujatia v okolí ({name})',
+      relatedAll: 'Všetky →',
+      dateFallback: 'Termín podľa programu',
+      register: 'Registrovať sa',
+      // Odpočet do uzávierky registrácie. Nula a jednotka majú vlastnú vetu,
+      // od dvoch vyššie sa skloňuje počet dní.
+      countdownToday: 'Dnes je posledný deň',
+      countdownLastDay: 'Zostáva posledný deň',
+      countdownDays: { one: 'Zostáva {n} deň', few: 'Zostávajú {n} dni', many: 'Zostáva {n} dní' },
+    },
+    canal: {
+      loadFailed: 'Kanál sa nepodarilo načítať',
+      noDescription: 'Žiadny opis nie je k dispozícii.',
+      events: 'Eventy organizátora',
+      eventsEmpty: 'Žiadne publikované eventy.',
+      venues: 'Miesta',
+      activeIn: 'Pôsobí v',
+      organizerSince: 'Organizátor od',
+      seoDescription: 'Podujatia organizátora {name}.',
+    },
+    venue: {
+      loadFailed: 'Miesto sa nepodarilo načítať',
+      photos: 'Fotografie',
+      mapTitle: 'Mapa miesta',
+      openInMaps: 'Otvoriť v Google Maps',
+      events: 'Eventy na tomto mieste',
+      eventsEmpty: 'Žiadne nadchádzajúce eventy.',
+      info: 'Informácie',
+      address: 'Adresa',
+      capacity: 'Kapacita',
+      capacityValue: '{n} osôb',
+      category: 'Typ',
+      seoDescription: 'Podujatia na mieste {name}.',
+    },
+    // Verejná stránka lístka — otvorí sa z e-mailu, často priamo pri vchode.
+    ticket: {
+      notFound: 'Lístok sa nenašiel',
+      backHome: '← Späť na úvod',
+      one: 'Lístok',
+      many: 'Lístky',
+      holder: 'Objednávateľ',
+      price: 'Cena:',
+      qrLead: 'Každá vstupenka má vlastný QR kód. Jednotlivé kódy môžete preposlať priateľom — pri vstupe sa skenujú samostatne.',
+      admission: 'Vstupenka {n}',
+      workshopPrefix: 'Workshop: {name}',
+      waitlisted: 'Náhradník',
+      pending: 'Čaká na potvrdenie',
+      usedAt: 'Použitý {time}',
+      cancelled: 'Zrušený',
+      waitlistLead: 'Čakáte na uvoľnenie miesta. Keď ho dostanete, pošleme vám e-mail a objaví sa tu QR kód.',
+      pendingLead: 'Čaká na potvrdenie účastníkom{name}. QR kód sa vytvorí, keď potvrdí účasť.',
+      pendingName: ' ({name})',
+      qrAlt: 'QR kód vstupenky {n}',
+      qrHint: 'QR kód predložte pri vstupe na akciu.',
+    },
+    workshops: {
+      joined: 'Prihlásený',
+      waitlisted: 'Náhradník',
+      waitlistPosition: '{n}. v poradí',
+      inactive: 'Neaktívny',
+      leave: 'Odhlásiť sa',
+      leaveWaitlist: 'Opustiť čakačku',
+      waitlistHint: 'Keď sa miesto uvoľní, pridelíme ti ho a pošleme e-mail.',
+      sending: 'Odosielam…',
+      joinWaitlist: 'Zaradiť medzi náhradníkov',
+      join: 'Prihlásiť sa',
+      loginFirst: 'Najprv sa prihlás do účtu.',
+      registerFirst: 'Najprv sa registruj na podujatie.',
+      fullHint: 'Workshop je plný — pôjdeš do poradia.',
+      capacity: 'Kapacita {n}',
+      joinedCount: 'prihlásených {n}',
+      remaining: 'voľných {n}',
+      full: 'obsadené',
+      unlimited: 'Bez obmedzenia kapacity',
+      counts: {
+        waiting: { one: 'náhradník', few: 'náhradníci', many: 'náhradníkov' },
+      },
+      confirmLeaveWaitlist: 'Naozaj opustiť čakačku na „{name}“?',
+      confirmLeave: 'Naozaj sa odhlásiť z „{name}“? Miesto dostane prvý náhradník.',
+      leaving: 'Odhlasujem…',
+      confirmYesWaitlist: 'Áno, opustiť',
+      confirmYes: 'Áno, odhlásiť',
+      lockedJoined: 'Podujatie už začalo — odhlásiť sa už nedá.',
+      lockedWaitlisted: 'Podujatie už začalo — čakačka sa už neposúva.',
+      lockedJoin: 'Podujatie už začalo — prihlásiť sa už nedá.',
+    },
+    seo: {
+      homeTitle: 'Podujatia na Slovensku',
+      homeDescription: 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.',
+      listHeading: 'Podujatia',
+      listHeadingWeekend: 'Podujatia tento víkend',
+      listHeadingLabel: 'Podujatia — {label}',
+      listTitleMunicipality: 'Podujatia v obci {label}',
+      listTitleTag: '{label} — podujatia',
+      listDescriptionWeekend: 'Čo sa deje tento víkend — koncerty, divadlo, workshopy a podujatia pre rodiny.',
+      listDescriptionMunicipality: 'Nadchádzajúce podujatia v obci {label} a okolí — koncerty, divadlo, workshopy.',
+      listDescriptionTag: 'Nadchádzajúce podujatia so štítkom {label}.',
+    },
+  },
   // Popisky okolo právnych dokumentov. Samotné znenie podmienok a zásad je
   // v ui/src/content/legal — sú to dokumenty, nie reťazce rozhrania.
   legal: {
@@ -482,6 +733,46 @@ const sk = {
   // Formulár eventu. Ten istý komponent slúži na vytvorenie aj úpravu,
   // v dashboarde aj v admine.
   events: {
+    // Výpis a detail sú spoločné pre dashboard aj admin — líši sa len adresa.
+    index: {
+      title: 'Eventy',
+      create: 'Nový event',
+      empty: 'Žiadne eventy.',
+      loadFailed: 'Nepodarilo sa načítať eventy.',
+      all: 'Všetky eventy →',
+    },
+    // Riadok vo výpise — stav voči „teraz" a metadáta pod názvom.
+    row: {
+      ongoing: 'Prebieha',
+      past: 'Skončil',
+      deleted: 'Zmazaný',
+      filterByCanal: 'Filtrovať podľa kanála: {name}',
+      createdAt: 'vytvorené {date}',
+    },
+    show: {
+      notFound: 'Event nenájdený',
+      tickets: 'Lístky',
+      checkin: 'Check-in',
+      noBody: 'Bez popisu.',
+      original: 'Originál',
+      workshops: 'Workshopy ({n})',
+      manage: 'Spravovať →',
+      relatedCanal: 'Ďalšie eventy — {name}',
+      canalLink: 'Kanál →',
+      views: 'Zobrazenia',
+      viewsHint: 'Unikátni návštevníci verejného detailu, jeden za deň.',
+      deadline: 'Registrácia do',
+      organizer: 'Organizátor',
+      locationName: 'Popis miesta',
+      noPlace: 'Miesto nie je zadané.',
+      websiteLabel: 'Odkaz na akciu',
+      websiteOpen: 'Zobraziť akciu ↗',
+      publishAt: 'Zverejní sa {date}',
+    },
+    copy: {
+      created: 'Vytvorená kópia. Doplňte nový termín.',
+      failed: 'Kopírovanie zlyhalo.',
+    },
     form: {
       back: '← Späť na zoznam',
       createTitle: 'Nový event',
@@ -578,6 +869,16 @@ const sk = {
     },
   },
   venues: {
+    index: {
+      title: 'Miesta',
+      create: 'Nové miesto',
+      empty: 'Žiadne miesta.',
+      loadFailed: 'Nepodarilo sa načítať miesta.',
+    },
+    show: {
+      notFound: 'Miesto nenájdené',
+      events: 'Eventy na tomto mieste',
+    },
     form: {
       back: '← Späť',
       createTitle: 'Nové miesto',
@@ -646,6 +947,19 @@ const sk = {
     },
   },
   canals: {
+    index: {
+      title: 'Kanály',
+      create: 'Nový kanál',
+      empty: 'Žiadne kanály.',
+      loadFailed: 'Nepodarilo sa načítať kanály.',
+      // Vo filtri podľa kanála chodí id z adresy aj bez názvu.
+      fallbackName: 'Kanál #{id}',
+    },
+    show: {
+      notFound: 'Kanál nenájdený',
+      members: 'Členovia',
+      events: 'Eventy kanálu',
+    },
     form: {
       back: '← Späť',
       createTitle: 'Nový kanál',
@@ -796,6 +1110,13 @@ const sk = {
   // Lístky: `request` je verejná objednávka, `settings` a `type` sú
   // nastavenia na strane organizátora.
   tickets: {
+    // Prepínač medzi nastavením lístkov, prihlásenými a check-inom.
+    tabs: {
+      back: '← Späť na event',
+      settings: 'Nastavenia',
+      attendees: 'Prihlásení',
+      checkin: 'Check-in',
+    },
     request: {
       successPaid: 'Lístky boli vytvorené!',
       successFree: 'Miesta sú rezervované!',
@@ -1109,7 +1430,37 @@ const sk = {
   },
   // Administrácia projektu. Stavy a role posiela server už preložené,
   // tu je len to, čo skladá front.
+  // Spoločné popisky používateľa — meno, rola, stav účtu, čas poslednej
+  // aktivity. Sedia v @/utils/userDisplay, takže ich vidno v admine aj
+  // všade, kde sa zobrazuje niekto iný než prihlásený účet.
+  users: {
+    unknown: 'Neznámy',
+    providerDirect: 'Priama',
+    roles: {
+      superAdmin: 'Super admin',
+      admin: 'Administrátor',
+      canalOwner: 'Vlastník kanálu',
+      editor: 'Editor',
+      moderator: 'Moderátor',
+      user: 'Používateľ',
+    },
+    statuses: {
+      active: 'Aktívny',
+      blocked: 'Blokovaný',
+      unverified: 'Neoverený',
+      deleted: 'Zmazaný',
+    },
+    // Počet sa vypisuje zvlášť, tu je len tvar slova.
+    counts: {
+      users: { one: 'používateľ', few: 'používatelia', many: 'používateľov' },
+    },
+  },
+  // Len obrazovky, ktoré má admin sám pre seba. Výpisy a detaily zdieľa
+  // s dashboardom, takže ich popisky sú pri svojom zdroji vyššie.
   admin: {
+    index: {
+      lead: 'Prehľad celého systému.',
+    },
     settings: {
       title: 'Nastavenia projektu',
       paging: 'Stránkovanie',
@@ -1202,6 +1553,53 @@ const sk = {
       removed: 'Oznam zmazaný.',
       removeFailed: 'Mazanie zlyhalo.',
     },
+    files: {
+      title: 'Správa súborov',
+      empty: 'Žiadne súbory nezodpovedajú filtru.',
+      loadFailed: 'Nepodarilo sa načítať súbory.',
+      primary: 'Primárny',
+      deleted: 'Zmazaný',
+      open: 'Otvoriť',
+      download: 'Stiahnuť',
+      copyLink: 'Kopírovať odkaz',
+      linkCopied: 'Odkaz skopírovaný.',
+      copyFailed: 'Kopírovanie zlyhalo.',
+      primaryBlocked: 'Primárny súbor nie je možné zmazať — najprv nastavte ako primárny iný súbor.',
+      trash: 'Presunúť do koša',
+      trashed: 'Súbor presunutý do koša.',
+      purge: 'Zmazať natrvalo',
+      purgeConfirm: 'Natrvalo zmazať „{name}“?\nTúto akciu nie je možné vrátiť späť.',
+      purged: 'Súbor natrvalo zmazaný.',
+      purgeFailed: 'Trvalé mazanie zlyhalo.',
+      restored: 'Súbor obnovený.',
+      counts: {
+        files: { one: 'súbor', few: 'súbory', many: 'súborov' },
+      },
+      // Druh súboru podľa MIME typu a prípony.
+      kinds: {
+        image: 'Obrázok',
+        video: 'Video',
+        audio: 'Audio',
+        pdf: 'PDF',
+        document: 'Dokument',
+        spreadsheet: 'Tabuľka',
+        archive: 'Archív',
+        file: 'Súbor',
+      },
+    },
+    // Výpis používateľov; hlášky po akciách zdieľa s detailom nižšie.
+    users: {
+      ofTotal: 'z {total}',
+      loadFailed: 'Nepodarilo sa načítať.',
+      empty: 'Žiadni používatelia nezodpovedajú hľadaniu.',
+      colUser: 'Používateľ',
+      colRoles: 'Role',
+      colStatus: 'Stav',
+      colCanals: 'Kanály',
+      colRegistration: 'Registrácia',
+      colActivity: 'Aktivita',
+      colActions: 'Akcie',
+    },
     user: {
       back: '← Používatelia',
       loading: 'Načítavam…',
@@ -1278,12 +1676,6 @@ const sk = {
     users: {
       allRoles: 'Všetky role',
       roleTitle: 'Rola',
-      statuses: {
-        active: 'Aktívny',
-        blocked: 'Blokovaný',
-        unverified: 'Neoverený',
-        deleted: 'Zmazaný',
-      },
       sort: {
         newest: 'Najnovší',
         oldest: 'Najstarší',

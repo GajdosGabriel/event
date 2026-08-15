@@ -2,7 +2,7 @@
   <!-- Posledná položka je aktuálna stránka, preto bez odkazu a s aria-current.
        Štruktúrované dáta pre vyhľadávač vydáva stránka cez JSON-LD, tu ide
        len o navigáciu pre človeka. -->
-  <nav aria-label="Omrvinková navigácia" class="min-w-0">
+  <nav :aria-label="t('common.breadcrumb')" class="min-w-0">
     <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-500">
       <li v-for="(item, idx) in items" :key="idx" class="flex min-w-0 items-center gap-1.5">
         <svg
@@ -24,6 +24,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
+
 export interface BreadcrumbItem {
   label: string
   /** Bez cieľa sa položka vykreslí ako text — tak sa označí aktuálna stránka. */

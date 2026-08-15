@@ -1,15 +1,15 @@
 <template>
   <div class="mx-auto w-full max-w-md px-4 py-8">
-    <div v-if="loading" class="text-center text-slate-500">Načítavam…</div>
+    <div v-if="loading" class="text-center text-slate-500">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-      <p class="mb-2 text-lg font-semibold text-red-700">Lístok sa nenašiel</p>
-      <RouterLink to="/" class="text-sm text-blue-600 hover:underline">← Späť na úvod</RouterLink>
+      <p class="mb-2 text-lg font-semibold text-red-700">{{ t('public.ticket.notFound') }}</p>
+      <RouterLink to="/" class="text-sm text-blue-600 hover:underline">{{ t('public.ticket.backHome') }}</RouterLink>
     </div>
 
     <div v-else-if="ticket" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div class="bg-linear-to-br from-blue-600 to-blue-800 p-6 text-white">
         <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">
-          {{ ticket.admissions.length > 1 ? 'Lístky' : 'Lístok' }}
+          {{ ticket.admissions.length > 1 ? t('public.ticket.many') : t('public.ticket.one') }}
         </p>
         <h1 class="mt-1 text-2xl font-bold">{{ ticket.event?.name }}</h1>
         <p v-if="ticket.event?.dateRangeLabel" class="mt-1 text-sm text-blue-100">{{ ticket.event.dateRangeLabel }}</p>
@@ -18,20 +18,17 @@
       <div class="space-y-4 p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Objednávateľ</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.ticket.holder') }}</p>
             <p class="text-lg font-semibold text-slate-900">{{ ticket.holderName }}</p>
           </div>
           <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusClass">{{ ticket.statusLabel }}</span>
         </div>
 
         <div v-if="ticket.priceAmount" class="text-sm text-slate-600">
-          Cena: <strong>{{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }}</strong> ({{ ticket.paymentStatusLabel }})
+          {{ t('public.ticket.price') }} <strong>{{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }}</strong> ({{ ticket.paymentStatusLabel }})
         </div>
 
-        <p class="text-xs text-slate-500">
-          Každá vstupenka má vlastný QR kód. Jednotlivé kódy môžete preposlať priateľom — pri vstupe sa
-          skenujú samostatne.
-        </p>
+        <p class="text-xs text-slate-500">{{ t('public.ticket.qrLead') }}</p>
 
         <!-- Jednotlivé vstupenky s vlastným QR -->
         <div
@@ -41,41 +38,43 @@
         >
           <div class="mb-2 flex items-center justify-between">
             <p class="text-sm font-semibold text-slate-800">
-              {{ admission.attendeeName || `Vstupenka ${i + 1}` }}
+              {{ admission.attendeeName || t('public.ticket.admission', { n: i + 1 }) }}
               <span v-if="admission.ticketType?.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-                Workshop: {{ admission.ticketType.name }}
+                {{ t('public.ticket.workshopPrefix', { name: admission.ticketType.name }) }}
               </span>
               <span v-else-if="admission.ticketType" class="ml-1 text-xs font-normal text-slate-500">· {{ admission.ticketType.name }}</span>
             </p>
             <span v-if="admission.status === 'waitlisted'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-              Náhradník
+              {{ t('public.ticket.waitlisted') }}
             </span>
             <span v-else-if="admission.confirmationStatus === 'pending'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-              Čaká na potvrdenie
+              {{ t('public.ticket.pending') }}
             </span>
             <span v-else-if="admission.isCheckedIn" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-              Použitý {{ formatDateTime(admission.checkedInAt) }}
+              {{ t('public.ticket.usedAt', { time: formatDateTime(admission.checkedInAt) }) }}
             </span>
             <span v-else-if="admission.status === 'cancelled'" class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-              Zrušený
+              {{ t('public.ticket.cancelled') }}
             </span>
           </div>
 
           <!-- Náhradník ešte nemá miesto — QR kód by pri vchode neprešiel. -->
           <p v-if="admission.status === 'waitlisted'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
-            Čakáte na uvoľnenie miesta. Keď ho dostanete, pošleme vám e-mail a objaví sa tu QR kód.
+            {{ t('public.ticket.waitlistLead') }}
           </p>
           <!-- Vstupenka pre iného účastníka čaká, kým potvrdí účasť. -->
           <p v-else-if="admission.confirmationStatus === 'pending'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
-            Čaká na potvrdenie účastníkom{{ admission.attendeeName ? ` (${admission.attendeeName})` : '' }}. QR kód sa vytvorí, keď potvrdí účasť.
+            {{ t('public.ticket.pendingLead', {
+              name: admission.attendeeName ? t('public.ticket.pendingName', { name: admission.attendeeName }) : '',
+            }) }}
           </p>
           <div v-else class="flex flex-col items-center gap-2">
-            <img :src="admission.qrUrl" :alt="`QR kód vstupenky ${i + 1}`" class="h-48 w-48"
+            <img :src="admission.qrUrl" :alt="t('public.ticket.qrAlt', { n: i + 1 })" class="h-48 w-48"
               :class="{ 'opacity-30 grayscale': admission.isCheckedIn || admission.status === 'cancelled' }" />
           </div>
         </div>
 
-        <p class="text-center text-xs text-slate-400">QR kód predložte pri vstupe na akciu.</p>
+        <p class="text-center text-xs text-slate-400">{{ t('public.ticket.qrHint') }}</p>
       </div>
     </div>
   </div>
@@ -87,7 +86,9 @@ import { useRoute } from 'vue-router'
 import { showTicket } from '@/api/tickets'
 import type { TicketItem } from '@/types'
 import { formatPrice } from '@/utils/money'
+import { useI18n, localeTag } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const ticket = ref<TicketItem | null>(null)
 const loading = ref(false)
@@ -103,7 +104,7 @@ const statusClass = computed(() => {
 
 function formatDateTime(d: string | null) {
   if (!d) return ''
-  return new Date(d).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleString(localeTag(), { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(async () => {

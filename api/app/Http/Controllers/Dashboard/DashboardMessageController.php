@@ -130,7 +130,7 @@ class DashboardMessageController extends Controller
         $recipient = $message->sender;
 
         if (! $recipient) {
-            abort(422, 'Odosielateľ správy už neexistuje, odpovedať sa nedá.');
+            abort(422, __('messages.errors.sender_gone'));
         }
 
         $reply = Message::query()->create([

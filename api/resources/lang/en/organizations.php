@@ -13,4 +13,10 @@ return [
         'unavailable'     => 'The billing data could not be saved — Account is not responding. Try again in a moment.',
         'upstream_failed' => 'The billing data could not be saved — Account replied with an error (HTTP :status). Details are in the Event log.',
     ],
+
+    'webhook' => [
+        'disabled' => 'Webhooks from Account are not configured.',
+        'invalid_signature' => 'Invalid signature.',
+        'stale' => 'Stale request.',
+    ],
 ];

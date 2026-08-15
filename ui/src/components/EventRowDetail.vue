@@ -18,12 +18,12 @@
         v-if="canalName && canalId"
         type="button"
         class="row-chip row-chip-canal"
-        :title="`Filtrovať podľa kanála: ${canalName}`"
+        :title="t('events.row.filterByCanal', { name: canalName })"
         @click.stop.prevent="emit('filter-canal')"
       >{{ canalName }}</button>
       <span v-else-if="canalName" class="row-chip row-chip-canal">{{ canalName }}</span>
 
-      <span v-if="deleted" class="row-chip row-chip-danger">Zmazaný</span>
+      <span v-if="deleted" class="row-chip row-chip-danger">{{ t('events.row.deleted') }}</span>
 
       <span v-if="facts.length" class="row-facts">
         <span v-for="fact in facts" :key="fact">{{ fact }}</span>
@@ -35,6 +35,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { eventTimeState, fmtRowDateRange } from '@/utils/dateFormat'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   startAt?: string | null
@@ -53,21 +56,21 @@ const emit = defineEmits<{ (e: 'filter-canal'): void }>()
 
 const dateLabel = computed(() => fmtRowDateRange(props.startAt ?? null, props.endAt ?? null))
 
-const TIME_STATES = {
-  ongoing: { label: 'Prebieha', class: 'row-chip-live' },
-  past: { label: 'Skončil', class: 'row-chip-past' },
+const TIME_STATE_CLASSES = {
+  ongoing: 'row-chip-live',
+  past: 'row-chip-past',
 } as const
 
 const timeState = computed(() => {
   const state = eventTimeState(props.startAt ?? null, props.endAt ?? null)
-  return state ? TIME_STATES[state] : null
+  return state ? { label: t(`events.row.${state}`), class: TIME_STATE_CLASSES[state] } : null
 })
 
 const facts = computed(() =>
   [
     props.organizationTitle,
     props.venueName,
-    props.createdAt ? `vytvorené ${props.createdAt}` : null,
+    props.createdAt ? t('events.row.createdAt', { date: props.createdAt }) : null,
   ].filter((value): value is string => Boolean(value)),
 )
 </script>

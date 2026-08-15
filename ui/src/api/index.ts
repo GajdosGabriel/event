@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useToast } from '@/composables/useToast'
-import { currentLocale } from '@/i18n'
+import { currentLocale, t } from '@/i18n'
 
 export const BASE_URL = '/api'
 
@@ -74,9 +74,7 @@ http.interceptors.response.use(
     // Rate limit z API. Bez tohto by prekročený limit vyzeral ako tichá chyba —
     // volajúci väčšinou zobrazuje len validačné chyby (422).
     if (error.response?.status === 429) {
-      useToast().error(
-        error.response.data?.message ?? 'Priveľa požiadaviek. Skúste to o chvíľu znova.',
-      )
+      useToast().error(error.response.data?.message ?? t('common.tooManyRequests'))
     }
 
     return Promise.reject(error)

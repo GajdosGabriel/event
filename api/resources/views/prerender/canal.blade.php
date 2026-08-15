@@ -15,6 +15,6 @@
         <p><a href="{{ $canal->website }}" rel="nofollow">{{ $canal->website }}</a></p>
     @endif
 
-    <h2>Nadchádzajúce podujatia</h2>
+    <h2>{{ __('seo.page.upcoming') }}</h2>
     @include('prerender._events', ['events' => $events])
 @endsection

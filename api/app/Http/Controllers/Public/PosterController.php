@@ -72,7 +72,7 @@ class PosterController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Plagát sa nepodarilo spracovať. Skúste to prosím o chvíľu znova.',
+                'message' => __('poster.draft.analyze_failed'),
             ], 422);
         }
 
@@ -115,7 +115,7 @@ class PosterController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Plagát sme prečítali, ale nepodarilo sa ho uložiť. Skúste to prosím znova.',
+                'message' => __('poster.draft.save_failed'),
             ], 500);
         }
 
@@ -175,7 +175,7 @@ class PosterController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Odkaz na rozpracované podujatie sme poslali na ' . $validated['email'] . '.',
+            'message' => __('poster.draft.link_sent', ['email' => $validated['email']]),
         ]);
     }
 
@@ -187,7 +187,7 @@ class PosterController extends Controller
         $user = auth('sanctum')->user();
 
         if (! $user instanceof User) {
-            abort(401, 'Na uloženie podujatia sa musíte prihlásiť.');
+            abort(401, __('poster.draft.login_required'));
         }
 
         $model = $this->resolveDraft($draft, (string) $request->input('token'));
@@ -231,7 +231,7 @@ class PosterController extends Controller
     private function resolveDraft(string $id, string $token): PosterDraft
     {
         if (trim($token) === '') {
-            abort(403, 'Chýba prístupový token.');
+            abort(403, __('poster.draft.token_missing'));
         }
 
         $draft = PosterDraft::query()
@@ -240,11 +240,11 @@ class PosterController extends Controller
             ->first();
 
         if (! $draft instanceof PosterDraft) {
-            abort(404, 'Rozpracovaný plagát sa nenašiel.');
+            abort(404, __('poster.draft.not_found'));
         }
 
         if ($draft->isExpired()) {
-            abort(410, 'Platnosť rozpracovaného plagátu vypršala. Nahrajte ho prosím znova.');
+            abort(410, __('poster.draft.expired'));
         }
 
         return $draft;

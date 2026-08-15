@@ -50,8 +50,8 @@
 
 <footer>
     <nav>
-        <a href="{{ \App\Support\PublicUrl::events() }}">Všetky podujatia</a>
-        <a href="{{ \App\Support\PublicUrl::thisWeekend() }}">Podujatia tento víkend</a>
+        <a href="{{ \App\Support\PublicUrl::events() }}">{{ __('seo.page.all_events') }}</a>
+        <a href="{{ \App\Support\PublicUrl::thisWeekend() }}">{{ __('seo.page.weekend') }}</a>
     </nav>
 </footer>
 </body>

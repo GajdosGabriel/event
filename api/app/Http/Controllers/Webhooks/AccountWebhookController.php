@@ -29,7 +29,7 @@ class AccountWebhookController extends Controller
         if ($secret === '') {
             // Nenastavené tajomstvo znamená, že podpis nevieme overiť. Prijať
             // takú požiadavku by znamenalo pustiť dnu hocikoho, kto adresu uhádne.
-            return response()->json(['message' => 'Webhooky z Accountu nie sú nastavené.'], 503);
+            return response()->json(['message' => __('organizations.webhook.disabled')], 503);
         }
 
         $timestamp = (int) $request->header('X-Accounts-Timestamp');
@@ -37,12 +37,12 @@ class AccountWebhookController extends Controller
         $expected = hash_hmac('sha256', $timestamp.'.'.$request->getContent(), $secret);
 
         if ($signature === '' || ! hash_equals($expected, $signature)) {
-            return response()->json(['message' => 'Neplatný podpis.'], 400);
+            return response()->json(['message' => __('organizations.webhook.invalid_signature')], 400);
         }
 
         // Ochrana proti replay útoku — odchytený request nesmie ísť použiť neskôr.
         if (abs(time() - $timestamp) > 300) {
-            return response()->json(['message' => 'Zastaraná požiadavka.'], 400);
+            return response()->json(['message' => __('organizations.webhook.stale')], 400);
         }
 
         $uuid = $request->input('data.organization_id')

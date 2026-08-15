@@ -49,6 +49,9 @@ import { computed } from 'vue'
 import type { EventItem } from '@/types'
 import { dayName, fmtDate } from '@/utils/dateFormat'
 import { publicEventPath } from '@/utils/publicUrl'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ events: EventItem[] }>()
 
@@ -75,7 +78,7 @@ const groups = computed<DayGroup[]>(() => {
     if (!group) {
       group = {
         key,
-        dayLabel: event.startAt ? dayName(event.startAt) : 'Bez termínu',
+        dayLabel: event.startAt ? dayName(event.startAt) : t('common.noDate'),
         dateLabel: event.startAt ? fmtDate(event.startAt) : '',
         events: [],
       }

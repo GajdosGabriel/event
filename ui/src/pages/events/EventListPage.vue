@@ -17,6 +17,9 @@ import PublicEventList from '@/components/PublicEventList.vue'
 import { showPublicMunicipality } from '@/api/municipalities'
 import { indexTags } from '@/api/tags'
 import { absoluteUrl, publicMunicipalityPath, publicTagPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 /**
  * Verejný katalóg podujatí a jeho landing varianty.
@@ -47,32 +50,28 @@ const label = computed(() => resolvedName.value ?? props.slug)
 
 const heading = computed(() => {
   switch (props.variant) {
-    case 'weekend': return 'Podujatia tento víkend'
-    case 'municipality': return `Podujatia — ${label.value}`
-    case 'tag': return `Podujatia — ${label.value}`
-    default: return 'Podujatia'
+    case 'weekend': return t('public.seo.listHeadingWeekend')
+    case 'municipality':
+    case 'tag': return t('public.seo.listHeadingLabel', { label: label.value })
+    default: return t('public.seo.listHeading')
   }
 })
 
 const title = computed(() => {
   switch (props.variant) {
-    case 'weekend': return 'Podujatia tento víkend'
-    case 'municipality': return `Podujatia v obci ${label.value}`
-    case 'tag': return `${label.value} — podujatia`
-    default: return 'Podujatia na Slovensku'
+    case 'weekend': return t('public.seo.listHeadingWeekend')
+    case 'municipality': return t('public.seo.listTitleMunicipality', { label: label.value })
+    case 'tag': return t('public.seo.listTitleTag', { label: label.value })
+    default: return t('public.seo.homeTitle')
   }
 })
 
 const description = computed(() => {
   switch (props.variant) {
-    case 'weekend':
-      return 'Čo sa deje tento víkend — koncerty, divadlo, workshopy a podujatia pre rodiny.'
-    case 'municipality':
-      return `Nadchádzajúce podujatia v obci ${label.value} a okolí — koncerty, divadlo, workshopy.`
-    case 'tag':
-      return `Nadchádzajúce podujatia so štítkom ${label.value}.`
-    default:
-      return 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.'
+    case 'weekend': return t('public.seo.listDescriptionWeekend')
+    case 'municipality': return t('public.seo.listDescriptionMunicipality', { label: label.value })
+    case 'tag': return t('public.seo.listDescriptionTag', { label: label.value })
+    default: return t('public.seo.homeDescription')
   }
 })
 

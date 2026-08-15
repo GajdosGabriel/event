@@ -49,6 +49,13 @@ class PrerenderController extends Controller
 
     public function __invoke(Request $request, JsonLd $jsonLd): Response
     {
+        // Zámerne bez ohľadu na Accept-Language klienta. Jedna adresa má
+        // v indexe jeden jazyk — inak by o jazyku indexovanej stránky rozhodla
+        // hlavička crawlera a cache nižšie by ho ešte zafixovala pre všetkých
+        // ostatných (kľúčom je len cesta). Jazyk portálu určuje APP_LOCALE;
+        // `app.locale` už môže byť prepísaná middlewarom, preto `default_locale`.
+        app()->setLocale(config('app.default_locale'));
+
         $path = $this->normalizePath((string) $request->query('path', '/'));
 
         $render = fn () => $this->render($path, $jsonLd);
@@ -154,7 +161,7 @@ class PrerenderController extends Controller
             'structuredData' => [
                 $jsonLd->event($event),
                 $jsonLd->breadcrumbs([
-                    ['name' => 'Podujatia', 'url' => PublicUrl::events()],
+                    ['name' => __('seo.list.heading'), 'url' => PublicUrl::events()],
                     ['name' => $event->name, 'url' => PublicUrl::event($event)],
                 ]),
             ],
@@ -187,7 +194,7 @@ class PrerenderController extends Controller
                 description: $this->description(
                     $venue->body,
                     trim(implode(', ', array_filter([$venue->street, $venue->municipality?->shortname])))
-                        ?: "Podujatia na mieste {$venue->name}.",
+                        ?: __('seo.venue_description', ['name' => $venue->name]),
                 ),
                 canonical: PublicUrl::venue($venue),
                 image: $venue->has_primary_image ? $venue->primary_image['large'] : null,
@@ -197,7 +204,7 @@ class PrerenderController extends Controller
             'events' => $events,
             'structuredData' => [
                 $jsonLd->venue($venue),
-                $jsonLd->eventList($events, PublicUrl::venue($venue), "Podujatia — {$venue->name}"),
+                $jsonLd->eventList($events, PublicUrl::venue($venue), __('seo.list.of_name', ['name' => $venue->name])),
             ],
         ]);
     }
@@ -225,7 +232,7 @@ class PrerenderController extends Controller
         return view('prerender.canal', [
             'meta' => $this->meta(
                 title: $canal->name,
-                description: $this->description($canal->body, "Podujatia organizátora {$canal->name}."),
+                description: $this->description($canal->body, __('seo.canal_description', ['name' => $canal->name])),
                 canonical: PublicUrl::canal($canal),
                 image: $canal->has_primary_image ? $canal->primary_image['large'] : null,
             ),
@@ -234,7 +241,7 @@ class PrerenderController extends Controller
             'events' => $events,
             'structuredData' => [
                 $jsonLd->canal($canal),
-                $jsonLd->eventList($events, PublicUrl::canal($canal), "Podujatia — {$canal->name}"),
+                $jsonLd->eventList($events, PublicUrl::canal($canal), __('seo.list.of_name', ['name' => $canal->name])),
             ],
         ]);
     }
@@ -242,9 +249,9 @@ class PrerenderController extends Controller
     private function eventList(JsonLd $jsonLd): View
     {
         return $this->list(
-            heading: 'Podujatia',
-            title: 'Podujatia na Slovensku',
-            description: 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.',
+            heading: __('seo.list.heading'),
+            title: __('seo.list.title'),
+            description: __('seo.list.description'),
             canonical: PublicUrl::events(),
             events: $this->upcomingEvents(),
             jsonLd: $jsonLd,
@@ -260,13 +267,12 @@ class PrerenderController extends Controller
         );
 
         return $this->list(
-            heading: 'Podujatia tento víkend',
-            title: 'Podujatia tento víkend',
-            description: sprintf(
-                'Čo sa deje %s – %s: koncerty, divadlo, workshopy a podujatia pre rodiny.',
-                $from->format('j. n.'),
-                $to->format('j. n. Y'),
-            ),
+            heading: __('seo.list.weekend_heading'),
+            title: __('seo.list.weekend_heading'),
+            description: __('seo.list.weekend_description', [
+                'from' => $from->format('j. n.'),
+                'to' => $to->format('j. n. Y'),
+            ]),
             canonical: PublicUrl::thisWeekend(),
             events: $events,
             jsonLd: $jsonLd,
@@ -286,9 +292,9 @@ class PrerenderController extends Controller
         );
 
         return $this->list(
-            heading: "Podujatia — {$municipality->shortname}",
-            title: "Podujatia v obci {$municipality->shortname}",
-            description: "Nadchádzajúce podujatia v obci {$municipality->shortname} a okolí — koncerty, divadlo, workshopy.",
+            heading: __('seo.list.municipality_heading', ['name' => $municipality->shortname]),
+            title: __('seo.list.municipality_title', ['name' => $municipality->shortname]),
+            description: __('seo.list.municipality_description', ['name' => $municipality->shortname]),
             canonical: PublicUrl::municipality($municipality),
             events: $events,
             jsonLd: $jsonLd,
@@ -308,9 +314,9 @@ class PrerenderController extends Controller
         );
 
         return $this->list(
-            heading: "Podujatia — {$tag->name}",
-            title: "{$tag->name} — podujatia",
-            description: "Nadchádzajúce podujatia so štítkom {$tag->name}.",
+            heading: __('seo.list.tag_heading', ['name' => $tag->name]),
+            title: __('seo.list.tag_title', ['name' => $tag->name]),
+            description: __('seo.list.tag_description', ['name' => $tag->name]),
             canonical: PublicUrl::tag($tag),
             events: $events,
             jsonLd: $jsonLd,
@@ -398,11 +404,11 @@ class PrerenderController extends Controller
     {
         return view('prerender.list', [
             'meta' => $this->meta(
-                title: 'Stránka sa nenašla',
-                description: 'Podujatie už nie je zverejnené alebo bola adresa zadaná nesprávne.',
+                title: __('seo.not_found_title'),
+                description: __('seo.not_found_description'),
                 canonical: PublicUrl::events(),
             ),
-            'heading' => 'Stránka sa nenašla',
+            'heading' => __('seo.not_found_title'),
             'events' => collect(),
             'structuredData' => [],
         ]);

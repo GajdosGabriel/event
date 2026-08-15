@@ -33,7 +33,7 @@
 
         <button
           class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-          title="Zavrieť (Esc)"
+          :title="t('common.closeEsc')"
           @click="close"
         >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@
           v-if="(images.length > 1 && !zoomed) || zoomLoading"
           class="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white"
         >
-          {{ zoomLoading ? 'Načítavam…' : `${idx + 1} / ${images.length}` }}
+          {{ zoomLoading ? t('common.loading') : `${idx + 1} / ${images.length}` }}
         </div>
       </div>
     </Transition>
@@ -76,6 +76,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 export interface LightboxImage {
   /** Zmenšenina zobrazená na celý obrázok (typicky `large` derivát). */

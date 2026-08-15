@@ -16,18 +16,16 @@
           </div>
         </div>
       </div>
-      <span class="sr-only">Načítavam podujatie…</span>
+      <span class="sr-only">{{ t('public.event.loading') }}</span>
     </div>
 
     <div v-else-if="error" class="mx-auto w-full max-w-300 px-4 py-16">
       <div class="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <p class="mb-1 text-lg font-semibold text-slate-900">
-          {{ notFound ? 'Podujatie sa nenašlo' : 'Podujatie sa nepodarilo načítať' }}
+          {{ notFound ? t('public.event.notFoundTitle') : t('public.event.errorTitle') }}
         </p>
         <p class="mb-5 text-sm text-slate-500">
-          {{ notFound
-            ? 'Odkaz je zrejme neplatný alebo bolo podujatie stiahnuté.'
-            : 'Skús to o chvíľu znova — spojenie so serverom zlyhalo.' }}
+          {{ notFound ? t('public.event.notFoundLead') : t('public.event.errorLead') }}
         </p>
         <div class="flex flex-wrap justify-center gap-2">
           <button
@@ -35,11 +33,11 @@
             type="button"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             @click="load"
-          >Skúsiť znova</button>
+          >{{ t('common.retry') }}</button>
           <RouterLink
             :to="PUBLIC_EVENTS"
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 no-underline hover:bg-slate-50"
-          >Všetky podujatia</RouterLink>
+          >{{ t('public.list.allEvents') }}</RouterLink>
         </div>
       </div>
     </div>
@@ -128,11 +126,9 @@
                 <svg class="h-4 w-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                 </svg>
-                <h2 class="text-base font-semibold text-slate-800">Workshopy</h2>
+                <h2 class="text-base font-semibold text-slate-800">{{ t('public.event.workshops') }}</h2>
               </div>
-              <p class="mb-3 text-sm text-slate-500">
-                Sprievodné workshopy v rámci podujatia. Prihlásiť sa na ne môžu účastníci registrovaní na podujatie.
-              </p>
+              <p class="mb-3 text-sm text-slate-500">{{ t('public.event.workshopsLead') }}</p>
               <p v-if="workshopError" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ workshopError }}</p>
               <EventWorkshops
                 :workshops="workshops"
@@ -149,20 +145,20 @@
 
             <!-- Galéria -->
             <section v-if="event.uploadedImages.length" class="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 class="mb-4 text-base font-semibold text-slate-800">Fotografie</h2>
+              <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('public.event.photos') }}</h2>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                 <!-- Button, nie div: lightbox sa musí dať otvoriť aj klávesnicou. -->
                 <button
                   v-for="(img, idx) in event.uploadedImages"
                   :key="idx"
                   type="button"
-                  :aria-label="`Zobraziť fotografiu ${idx + 1} z ${event.uploadedImages.length}`"
+                  :aria-label="t('public.event.photoOpen', { n: idx + 1, total: event.uploadedImages.length })"
                   class="group relative aspect-square cursor-zoom-in overflow-hidden rounded-xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   @click="lightboxIdx = idx"
                 >
                   <img
                     :src="img.thumb || img.large"
-                    :alt="`${event.name} — fotografia ${idx + 1}`"
+                    :alt="t('public.event.photoAlt', { name: event.name, n: idx + 1 })"
                     loading="lazy" decoding="async"
                     class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                   />
@@ -176,23 +172,23 @@
                 <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
                 </svg>
-                <h2 class="text-base font-semibold text-slate-800">Mapa</h2>
+                <h2 class="text-base font-semibold text-slate-800">{{ t('public.event.map') }}</h2>
               </div>
               <!-- `lazy`: mapa je pod zlomom a iframe z cudzej domény inak
                    predlžuje načítanie stránky aj tým, kto na ňu nikdy nedoscrolluje. -->
               <iframe
                 :src="mapUrl" width="100%" height="320" loading="lazy"
-                frameborder="0" scrolling="no" class="block" title="Mapa miesta konania"
+                frameborder="0" scrolling="no" class="block" :title="t('public.event.mapTitle')"
               />
               <div class="flex flex-wrap gap-3 px-6 py-2 text-xs">
                 <a
                   :href="`https://www.google.com/maps?q=${mapCoords.lat},${mapCoords.lng}`"
                   target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"
-                >Otvoriť v Google Maps ↗</a>
+                >{{ t('public.event.openInMaps') }}</a>
                 <a
                   :href="`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`"
                   target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"
-                >Navigovať ↗</a>
+                >{{ t('public.event.navigate') }}</a>
               </div>
             </section>
           </div>
@@ -206,12 +202,12 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/>
                 </svg>
-                Termín
+                {{ t('public.event.date') }}
               </h2>
               <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
               <AddToCalendarButton :links="event.calendarLinks" class="mt-3" />
               <div v-if="event.registrationDeadlineAt" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Registrácia do: <strong>{{ fmtDateLong(event.registrationDeadlineAt) }}</strong>
+                {{ t('public.event.deadline') }} <strong>{{ fmtDateLong(event.registrationDeadlineAt) }}</strong>
                 <span v-if="deadlineCountdown" class="mt-0.5 block font-semibold">{{ deadlineCountdown }}</span>
               </div>
             </section>
@@ -222,7 +218,7 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
                 </svg>
-                Registrácia
+                {{ t('public.event.registration') }}
               </h2>
               <TicketRequestForm
                 :event-id="event.id"
@@ -241,7 +237,7 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
                 </svg>
-                Miesto
+                {{ t('public.event.place') }}
               </h2>
               <RouterLink v-if="event.venue?.id" :to="publicVenuePath({ id: event.venue.id })"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.venue.name }}</RouterLink>
@@ -259,11 +255,11 @@
               <div class="mt-1 flex flex-wrap gap-2 text-sm">
                 <a v-if="event.venue?.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
                 <ExternalLink v-if="event.venue?.website" :href="event.venue.website" target="venue"
-                  :target-id="event.venue.id" class="text-blue-600 hover:underline">web ↗</ExternalLink>
+                  :target-id="event.venue.id" class="text-blue-600 hover:underline">{{ t('public.web') }}</ExternalLink>
               </div>
               <template v-if="venueOpeningHours.length">
                 <div class="mt-3 border-t border-slate-100 pt-3">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Otváracie hodiny</p>
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('public.event.openingHours') }}</p>
                   <dl class="grid grid-cols-2 gap-x-6 gap-y-0.5 text-sm">
                     <template v-for="row in venueOpeningHours" :key="row.day">
                       <dt class="font-medium text-slate-600">{{ row.day }}</dt>
@@ -280,12 +276,12 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
                 </svg>
-                Organizátor
+                {{ t('public.event.organizer') }}
               </h2>
               <RouterLink :to="publicCanalPath({ id: event.canal.id })"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
               <ExternalLink v-if="event.canal.website" :href="event.canal.website" target="canal"
-                :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">web ↗</ExternalLink>
+                :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">{{ t('public.web') }}</ExternalLink>
             </section>
 
             <!-- Kontakt -->
@@ -294,7 +290,7 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                 </svg>
-                Kontakt
+                {{ t('public.event.contact') }}
               </h2>
               <div class="space-y-2 text-sm">
                 <a v-if="event.phone" :href="`tel:${event.phone}`" class="flex items-center gap-2 text-slate-700 hover:text-blue-600">
@@ -309,7 +305,7 @@
 
             <!-- Zdieľanie -->
             <section class="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Zdieľať</h2>
+              <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.share.title') }}</h2>
               <ShareButtons :url="canonicalUrl" :title="event.name" :text="shareText" />
             </section>
           </aside>
@@ -320,10 +316,12 @@
         <section v-if="relatedEvents.length" class="mt-10">
           <div class="mb-3 flex items-end justify-between gap-3">
             <h2 class="text-base font-semibold text-slate-800">
-              Ďalšie podujatia{{ event.municipality ? ` v okolí (${event.municipality.name})` : '' }}
+              {{ event.municipality
+                ? t('public.event.relatedNear', { name: event.municipality.name })
+                : t('public.event.related') }}
             </h2>
             <RouterLink :to="PUBLIC_EVENTS" class="shrink-0 text-sm text-blue-600 no-underline hover:underline">
-              Všetky →
+              {{ t('public.event.relatedAll') }}
             </RouterLink>
           </div>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -352,14 +350,14 @@
       >
         <div class="mx-auto flex max-w-300 items-center gap-3">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-xs text-slate-500">{{ event.dateRangeLabel || 'Termín podľa programu' }}</p>
+            <p class="truncate text-xs text-slate-500">{{ event.dateRangeLabel || t('public.event.dateFallback') }}</p>
             <p class="truncate text-sm font-semibold text-slate-900">{{ priceLabel }}</p>
           </div>
           <button
             type="button"
             class="shrink-0 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             @click="scrollToRegistration"
-          >Registrovať sa</button>
+          >{{ t('public.event.register') }}</button>
         </div>
       </div>
     </template>
@@ -387,7 +385,7 @@ import TicketRequestForm from '@/components/TicketRequestForm.vue'
 import ShareButtons from '@/components/ShareButtons.vue'
 import EventCard from '@/components/EventCard.vue'
 import BreadcrumbNav, { type BreadcrumbItem } from '@/components/BreadcrumbNav.vue'
-import { fmtDateLong, daysUntil } from '@/utils/dateFormat'
+import { fmtDateLong, daysUntil, weekdayLabel } from '@/utils/dateFormat'
 import { formatPriceOrFree } from '@/utils/money'
 import {
   absoluteUrl,
@@ -398,7 +396,9 @@ import {
   publicTagPath,
   PUBLIC_EVENTS,
 } from '@/utils/publicUrl'
+import { useI18n, localeTag } from '@/i18n'
 
+const { t, plural } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -463,8 +463,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
   const e = event.value
   if (!e) return []
   return [
-    { label: 'Domov', to: '/' },
-    { label: 'Podujatia', to: PUBLIC_EVENTS },
+    { label: t('public.breadcrumb.home'), to: '/' },
+    { label: t('public.breadcrumb.events'), to: PUBLIC_EVENTS },
     { label: e.name },
   ]
 })
@@ -475,10 +475,9 @@ const deadlineCountdown = computed(() => {
   if (!deadline) return null
   const days = daysUntil(deadline)
   if (days > 14) return null
-  if (days === 0) return 'Dnes je posledný deň'
-  if (days === 1) return 'Zostáva posledný deň'
-  if (days < 5) return `Zostávajú ${days} dni`
-  return `Zostáva ${days} dní`
+  if (days === 0) return t('public.event.countdownToday')
+  if (days === 1) return t('public.event.countdownLastDay')
+  return plural('public.event.countdownDays', days)
 })
 
 // Lišta má zmysel len tam, kde sa dá niečo urobiť: registrácia je zapnutá
@@ -527,7 +526,7 @@ async function runWorkshopAction(workshop: TicketTypeItem, action: (eventId: num
     event.value = refreshed
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    workshopError.value = err.response?.data?.message ?? 'Akciu sa nepodarilo dokončiť.'
+    workshopError.value = err.response?.data?.message ?? t('public.event.workshopFailed')
   } finally {
     workshopBusyId.value = null
   }
@@ -547,17 +546,12 @@ async function onRegistrationChanged() {
   event.value = refreshed
 }
 
-const OH_DAYS: Record<string, string> = {
-  monday: 'Pondelok', tuesday: 'Utorok', wednesday: 'Streda',
-  thursday: 'Štvrtok', friday: 'Piatok', saturday: 'Sobota', sunday: 'Nedeľa',
-}
-
 const venueOpeningHours = computed(() => {
   const oh = event.value?.venue?.openingHours
   if (!oh || typeof oh !== 'object' || Array.isArray(oh)) return []
   return Object.entries(oh as Record<string, string | null>)
     .filter(([, hours]) => hours)
-    .map(([day, hours]) => ({ day: OH_DAYS[day] ?? day, hours: hours as string }))
+    .map(([day, hours]) => ({ day: weekdayLabel(day), hours: hours as string }))
 })
 
 // Use event's own coords first, fall back to venue coords
@@ -670,7 +664,7 @@ const breadcrumbJsonLd = computed(() => {
 
 useHead(computed(() => {
   const e = event.value
-  if (!e) return { title: 'Načítavam…' }
+  if (!e) return { title: t('common.loading') }
   const title = e.name
   const description = plainDescription.value.slice(0, 160) || title
   const image = e.imageUrlLarge ?? e.imageUrl ?? undefined
@@ -687,7 +681,7 @@ useHead(computed(() => {
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'event' },
       { property: 'og:url', content: url },
-      { property: 'og:locale', content: 'sk_SK' },
+      { property: 'og:locale', content: localeTag().replace('-', '_') },
       ...(image ? [{ property: 'og:image', content: image }] : []),
       { name: 'twitter:card', content: image ? 'summary_large_image' : 'summary' },
       { name: 'twitter:title', content: title },

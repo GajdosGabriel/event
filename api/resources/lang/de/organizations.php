@@ -13,4 +13,10 @@ return [
         'unavailable'     => 'Die Rechnungsdaten konnten nicht gespeichert werden — Account antwortet nicht. Versuchen Sie es gleich noch einmal.',
         'upstream_failed' => 'Die Rechnungsdaten konnten nicht gespeichert werden — Account hat mit einem Fehler geantwortet (HTTP :status). Details stehen im Log von Event.',
     ],
+
+    'webhook' => [
+        'disabled' => 'Webhooks von Account sind nicht eingerichtet.',
+        'invalid_signature' => 'Ungültige Signatur.',
+        'stale' => 'Veraltete Anfrage.',
+    ],
 ];

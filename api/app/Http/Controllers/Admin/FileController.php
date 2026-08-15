@@ -73,11 +73,11 @@ class FileController extends Controller
         $this->authorize('delete', $file);
 
         if ($file->trashed()) {
-            abort(409, 'Súbor je už v koši. Na trvalé zmazanie použite „Zmazať natrvalo".');
+            abort(409, __('files.errors.already_trashed'));
         }
 
         if ($file->is_primary) {
-            abort(422, 'Primárny súbor nie je možné zmazať. Najprv nastavte ako primárny iný súbor.');
+            abort(422, __('files.errors.primary_locked'));
         }
 
         $this->fileManager->delete($file, false);
@@ -96,7 +96,7 @@ class FileController extends Controller
         $this->authorize('forceDelete', $file);
 
         if (! $file->trashed()) {
-            abort(422, 'Najprv presuňte súbor do koša („Zmazať"), potom ho možno zmazať natrvalo.');
+            abort(422, __('files.errors.trash_first'));
         }
 
         $this->fileManager->delete($file, true);

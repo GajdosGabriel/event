@@ -11,14 +11,14 @@
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.7 10.7a3 3 0 100 2.6m0-2.6l6.6-3.4m-6.6 6l6.6 3.4M18 8a3 3 0 100-6 3 3 0 000 6zm0 14a3 3 0 100-6 3 3 0 000 6z" />
       </svg>
-      Zdieľať
+      {{ t('public.share.title') }}
     </button>
 
     <a
       :href="facebookUrl"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Zdieľať na Facebooku"
+      :aria-label="t('public.share.facebook')"
       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 no-underline transition-colors hover:bg-slate-50 hover:text-slate-900"
     >
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -30,7 +30,7 @@
       :href="whatsappUrl"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Poslať cez WhatsApp"
+      :aria-label="t('public.share.whatsapp')"
       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 no-underline transition-colors hover:bg-slate-50 hover:text-slate-900"
     >
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -40,7 +40,7 @@
 
     <a
       :href="emailUrl"
-      aria-label="Poslať e-mailom"
+      :aria-label="t('public.share.email')"
       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 no-underline transition-colors hover:bg-slate-50 hover:text-slate-900"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -61,13 +61,16 @@
       <svg v-else class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
       </svg>
-      {{ copied ? 'Skopírované' : 'Kopírovať odkaz' }}
+      {{ copied ? t('public.share.copied') : t('public.share.copy') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   /** Absolútna adresa — relatívna by sa v cudzej aplikácii nedala otvoriť. */
@@ -104,7 +107,7 @@ async function copyLink() {
     if (copiedTimer) clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => { copied.value = false }, 2000)
   } catch {
-    window.prompt('Skopíruj odkaz:', props.url)
+    window.prompt(t('public.share.copyPrompt'), props.url)
   }
 }
 

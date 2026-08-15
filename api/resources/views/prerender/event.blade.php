@@ -6,7 +6,7 @@
 
         <dl>
             @if ($event->start_at)
-                <dt>Kedy</dt>
+                <dt>{{ __('seo.page.when') }}</dt>
                 <dd>
                     <time datetime="{{ $event->start_at->format('Y-m-d\TH:i:s') }}">
                         {{ $event->start_at->translatedFormat('j. F Y, H:i') }}
@@ -21,7 +21,7 @@
             @endif
 
             @if ($event->venue)
-                <dt>Kde</dt>
+                <dt>{{ __('seo.page.where') }}</dt>
                 <dd>
                     <a href="{{ \App\Support\PublicUrl::venue($event->venue) }}">{{ $event->venue->name }}</a>
                     @if ($event->venue->street), {{ $event->venue->street }}@endif
@@ -30,7 +30,7 @@
             @endif
 
             @if ($event->canal)
-                <dt>Organizátor</dt>
+                <dt>{{ __('seo.page.organizer') }}</dt>
                 <dd><a href="{{ \App\Support\PublicUrl::canal($event->canal) }}">{{ $event->canal->name }}</a></dd>
             @endif
         </dl>
@@ -57,7 +57,7 @@
         @if ($event->municipality)
             <p>
                 <a href="{{ \App\Support\PublicUrl::municipality($event->municipality) }}">
-                    Ďalšie podujatia — {{ $event->municipality->shortname }}
+                    {{ __('seo.page.related', ['name' => $event->municipality->shortname]) }}
                 </a>
             </p>
         @endif

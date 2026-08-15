@@ -43,11 +43,11 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
 
             // Registračné okno – podujatie už prebehlo alebo uplynul termín registrácie.
             if ($lockedEvent->end_at !== null && $lockedEvent->end_at->isPast()) {
-                abort(422, 'Podujatie už prebehlo, registrácia nie je možná.');
+                abort(422, __('tickets.errors.event_finished'));
             }
 
             if ($lockedEvent->registration_deadline_at !== null && $lockedEvent->registration_deadline_at->isPast()) {
-                abort(422, 'Termín registrácie už uplynul.');
+                abort(422, __('tickets.errors.deadline_passed'));
             }
 
             $items = $this->normalizeItems($lockedEvent, $properties);
@@ -72,23 +72,23 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                     ->find($item['ticket_type_id'] ?? null);
 
                 if (! $type || ! $type->is_active) {
-                    abort(422, 'Vybraný typ lístka nie je k dispozícii.');
+                    abort(422, __('tickets.errors.type_unavailable'));
                 }
 
                 if ($type->sale_starts_at !== null && $type->sale_starts_at->isFuture()) {
-                    abort(422, 'Predaj lístka „' . $type->name . '" ešte nezačal.');
+                    abort(422, __('tickets.errors.sale_not_started', ['name' => $type->name]));
                 }
 
                 if ($type->sale_ends_at !== null && $type->sale_ends_at->isPast()) {
-                    abort(422, 'Predaj lístka „' . $type->name . '" už skončil.');
+                    abort(422, __('tickets.errors.sale_ended', ['name' => $type->name]));
                 }
 
                 if ($quantity < $type->min_per_order) {
-                    abort(422, 'Minimálny počet lístkov „' . $type->name . '" na objednávku je ' . $type->min_per_order . '.');
+                    abort(422, __('tickets.errors.min_per_order', ['name' => $type->name, 'count' => $type->min_per_order]));
                 }
 
                 if ($quantity > $type->max_per_order) {
-                    abort(422, 'Maximálny počet lístkov „' . $type->name . '" na objednávku je ' . $type->max_per_order . '.');
+                    abort(422, __('tickets.errors.max_per_order', ['name' => $type->name, 'count' => $type->max_per_order]));
                 }
 
                 if ($type->capacity !== null) {
@@ -101,7 +101,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                     $remaining = max(0, $type->capacity - $sold);
 
                     if ($quantity > $remaining) {
-                        abort(422, 'Pre „' . $type->name . '" ' . ($remaining === 1 ? 'ostáva' : 'ostávajú') . ' už len ' . $remaining . '.');
+                        abort(422, trans_choice('tickets.counts.remaining', $remaining, ['name' => $type->name]));
                     }
                 }
 
@@ -119,7 +119,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             }
 
             if ($totalSeats === 0) {
-                abort(422, 'Nevybrali ste žiadny lístok.');
+                abort(422, __('tickets.errors.nothing_selected'));
             }
 
             // Workshopy sú viazané na hlavnú vstupenku — nárok je počet platných
@@ -140,12 +140,12 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 );
 
                 if ($entitlement === 0) {
-                    abort(422, 'Na workshopy sa môžu prihlásiť len účastníci registrovaní na podujatie.');
+                    abort(422, __('tickets.errors.workshop_requires_ticket'));
                 }
 
                 foreach ($workshopLines as $line) {
                     if ($line['quantity'] > $entitlement) {
-                        abort(422, 'Na workshop „' . $line['type']->name . '" môžete objednať najviac ' . $entitlement . ' ' . ($entitlement === 1 ? 'miesto' : ($entitlement <= 4 ? 'miesta' : 'miest')) . ' — podľa počtu vstupeniek na podujatie.');
+                        abort(422, trans_choice('tickets.counts.workshop_entitlement', $entitlement, ['name' => $line['type']->name]));
                     }
                 }
             }
@@ -194,7 +194,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         $this->assertWorkshopChangeable($event, $type);
 
         if ($this->userWorkshopAdmissions($type, $user)->exists()) {
-            abort(422, 'Na tento workshop ste už prihlásený.');
+            abort(422, __('tickets.errors.workshop_already_joined'));
         }
 
         // Plný workshop → čakačka. Kapacitu čítame pod zámkom, aby dvaja
@@ -240,7 +240,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             $admissions = $this->userWorkshopAdmissions($type, $user)->lockForUpdate()->get();
 
             if ($admissions->isEmpty()) {
-                abort(422, 'Na tento workshop nie ste prihlásený.');
+                abort(422, __('tickets.errors.workshop_not_joined'));
             }
 
             // Miesto sa uvoľní len zrušením platného miesta, nie odchodom z čakačky.
@@ -284,7 +284,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                     && ! ($a->ticketType?->isWorkshop() ?? false));
 
             if (! $hasMainSeat) {
-                abort(422, 'Na toto podujatie nie ste prihlásený.');
+                abort(422, __('tickets.errors.event_not_joined'));
             }
 
             $freed = collect();
@@ -449,7 +449,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         if (! $type->isOpenWorkshop()
             && $this->eventHasActiveMainType($event)
             && $this->existingMainSeats($event, $user->id, $user->email) === 0) {
-            abort(422, 'Na workshopy sa môžu prihlásiť len účastníci registrovaní na podujatie.');
+            abort(422, __('tickets.errors.workshop_requires_ticket'));
         }
 
         $order = Ticket::create([
@@ -496,9 +496,9 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         }
 
         if ($event->workshopChangesLocked()) {
-            abort(422, $joining
-                ? 'Podujatie už začalo — prihlásenie na workshopy sa už nedá meniť.'
-                : 'Podujatie už začalo — odhlásenie z workshopu už nie je možné.');
+            abort(422, __($joining
+                ? 'tickets.errors.workshop_locked_join'
+                : 'tickets.errors.workshop_locked_leave'));
         }
     }
 

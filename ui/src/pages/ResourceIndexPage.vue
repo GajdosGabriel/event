@@ -20,7 +20,7 @@
       />
     </div>
 
-    <p v-if="loading" class="index-status">Načítavam…</p>
+    <p v-if="loading" class="index-status">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="index-status-error">{{ error }}</p>
 
     <ul v-else class="index-list">
@@ -50,28 +50,28 @@
           </template>
           <template #actions>
             <RowActions>
-              <RouterLink :to="`${prefix}/${item.id}`" class="row-menu-item">Zobraziť</RouterLink>
-              <RouterLink v-if="item.permissions?.update" :to="`${prefix}/${item.id}/edit`" class="row-menu-item">Upraviť</RouterLink>
+              <RouterLink :to="`${prefix}/${item.id}`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+              <RouterLink v-if="item.permissions?.update" :to="`${prefix}/${item.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
               <button
                 v-else-if="resource === 'event' && item.permissions?.duplicate"
                 class="row-menu-item"
                 @click="duplicate(item)"
-              >Kopírovať</button>
+              >{{ t('common.copy') }}</button>
               <button
                 v-if="item.permissions?.publish || item.permissions?.unpublish"
                 class="row-menu-item"
                 @click="togglePublish(item)"
-              >{{ item.permissions?.unpublish ? 'Zrušiť publikovanie' : 'Publikovať' }}</button>
+              >{{ item.permissions?.unpublish ? t('common.unpublish') : t('common.publish') }}</button>
               <button
                 v-if="item.permissions?.delete && !item.deletedAt"
                 class="row-menu-item row-menu-item-danger"
                 @click="remove(item.id)"
-              >Zmazať</button>
+              >{{ t('common.remove') }}</button>
               <button
                 v-if="item.permissions?.restore && item.deletedAt"
                 class="row-menu-item"
                 @click="restore(item.id)"
-              >Obnoviť</button>
+              >{{ t('common.restore') }}</button>
             </RowActions>
           </template>
         </IndexRow>
@@ -124,31 +124,24 @@ interface ResourceConfig {
   title: string
   createLabel: string
   emptyLabel: string
+  loadFailed: string
   apiSlug: string
 }
 
-const CONFIGS: Record<string, ResourceConfig> = {
-  canal: {
-    title: 'Kanály',
-    createLabel: 'Nový kanál',
-    emptyLabel: 'Žiadne kanály.',
-    apiSlug: 'canals',
-  },
-  venue: {
-    title: 'Miesta',
-    createLabel: 'Nové miesto',
-    emptyLabel: 'Žiadne miesta.',
-    apiSlug: 'venues',
-  },
-  event: {
-    title: 'Eventy',
-    createLabel: 'Nový event',
-    emptyLabel: 'Žiadne eventy.',
-    apiSlug: 'events',
-  },
-}
+// Popisky nesie slovník pod svojím zdrojom (`canals.index`, …), nie tento
+// súbor — tie isté slová používa aj detail a formulár.
+const API_SLUGS: Record<string, string> = { canal: 'canals', venue: 'venues', event: 'events' }
 
-const cfg = computed(() => CONFIGS[props.resource])
+const cfg = computed<ResourceConfig>(() => {
+  const section = API_SLUGS[props.resource] as 'canals' | 'venues' | 'events'
+  return {
+    title: t(`${section}.index.title`),
+    createLabel: t(`${section}.index.create`),
+    emptyLabel: t(`${section}.index.empty`),
+    loadFailed: t(`${section}.index.loadFailed`),
+    apiSlug: section,
+  }
+})
 
 // ── Generic item shape (maps what backend returns) ──────────────────────────
 
@@ -287,7 +280,10 @@ function filtersFromQuery() {
   // Staré odkazy s ?deleted=1 nech ďalej fungujú.
   if (q.deleted === '1') statusFilter.value = DELETED_STATUS
   canalFilter.value = typeof q.canal_id === 'string' && Number(q.canal_id) > 0
-    ? { id: Number(q.canal_id), name: typeof q.canal_name === 'string' ? q.canal_name : `Kanál #${q.canal_id}` }
+    ? {
+        id: Number(q.canal_id),
+        name: typeof q.canal_name === 'string' ? q.canal_name : t('canals.index.fallbackName', { id: String(q.canal_id) }),
+      }
     : null
 }
 
@@ -334,7 +330,7 @@ async function fetchPage(p: number) {
       apiStatusOptions.value = allowed
     }
   } catch {
-    error.value = `Nepodarilo sa načítať ${cfg.value.title.toLowerCase()}.`
+    error.value = cfg.value.loadFailed
   } finally {
     loading.value = false
   }
@@ -352,35 +348,35 @@ async function togglePublish(item: ResourceItem) {
   const publishing = !item.permissions?.unpublish
   try {
     await http.post(`${apiBase.value}/${item.id}/publish`, { published: publishing })
-    toast.success(publishing ? 'Publikované.' : 'Zrušené publikovanie.')
+    toast.success(publishing ? t('common.published') : t('common.unpublished'))
     load(page.value)
-  } catch { toast.error('Akcia zlyhala.') }
+  } catch { toast.error(t('common.actionFailed')) }
 }
 
 async function remove(id: number) {
-  if (!confirm('Naozaj zmazať?')) return
+  if (!confirm(t('common.removeConfirm'))) return
   try {
     await http.delete(`${apiBase.value}/${id}`)
-    toast.success('Zmazané.')
+    toast.success(t('common.removed'))
     load(page.value)
-  } catch { toast.error('Mazanie zlyhalo.') }
+  } catch { toast.error(t('common.removeFailed')) }
 }
 
 async function restore(id: number) {
   try {
     await http.post(`${apiBase.value}/${id}/restore`)
-    toast.success('Obnovené.')
+    toast.success(t('common.restored'))
     load(page.value)
-  } catch { toast.error('Obnova zlyhala.') }
+  } catch { toast.error(t('common.restoreFailed')) }
 }
 
 async function duplicate(item: ResourceItem) {
   try {
     const { data } = await http.post(`${apiBase.value}/${item.id}/duplicate`)
     const newId = (data.data ?? data).id
-    toast.success('Vytvorená kópia. Doplňte nový termín.')
+    toast.success(t('events.copy.created'))
     router.push(`${prefix.value}/${newId}/edit`)
-  } catch { toast.error('Kopírovanie zlyhalo.') }
+  } catch { toast.error(t('events.copy.failed')) }
 }
 
 // Reload when resource prop changes (router reuse)

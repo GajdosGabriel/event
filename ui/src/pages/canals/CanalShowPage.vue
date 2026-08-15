@@ -1,16 +1,16 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
     <div v-else-if="error" class="show-not-found">
-      <h1>Kanál nenájdený</h1>
-      <RouterLink :to="indexRoute">← Späť</RouterLink>
+      <h1>{{ t('canals.show.notFound') }}</h1>
+      <RouterLink :to="indexRoute">{{ t('common.back') }}</RouterLink>
     </div>
 
     <template v-else-if="canal">
       <!-- Breadcrumb + akcie -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">← Späť</RouterLink>
-        <RouterLink v-if="canal.permissions.update" :to="editRoute" class="action-btn">Upraviť</RouterLink>
+        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <RouterLink v-if="canal.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
           :class="statusClass(canal.status)">{{ canal.status }}</span>
       </div>
@@ -49,13 +49,13 @@
             />
             <div class="px-4 py-2 text-xs text-slate-500">
               GPS: {{ canal.latitude }}, {{ canal.longitude }} ·
-              <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600">Google Maps ↗</a>
+              <a :href="`https://www.google.com/maps?q=${canal.latitude},${canal.longitude}`" target="_blank" class="text-blue-600">{{ t('common.googleMaps') }}</a>
             </div>
           </div>
 
           <!-- Galéria -->
           <div v-if="files.length" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Galéria</h2>
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('common.gallery') }}</h2>
             <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
               <a v-for="f in files" :key="f.id" :href="f.url" target="_blank"
                 class="block aspect-square overflow-hidden rounded-lg border border-slate-200">
@@ -67,16 +67,16 @@
 
           <!-- Miesta (venues) -->
           <div v-if="canal.venuesList.length" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Miesta</h2>
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('venues.index.title') }}</h2>
             <ul class="grid gap-1.5">
               <li v-for="v in canal.venuesList" :key="v.id"
                 class="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-                <span v-if="v.isOwner" class="shrink-0 text-xs font-semibold text-teal-600">[vlastník]</span>
+                <span v-if="v.isOwner" class="shrink-0 text-xs font-semibold text-teal-600">{{ t('common.owner') }}</span>
                 <RouterLink :to="`${prefix}/venues/${v.id}`"
                   class="flex-1 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
                   {{ v.name }}
                 </RouterLink>
-                <RouterLink :to="`${prefix}/venues/${v.id}`" class="action-btn shrink-0">Detail</RouterLink>
+                <RouterLink :to="`${prefix}/venues/${v.id}`" class="action-btn shrink-0">{{ t('common.detail') }}</RouterLink>
               </li>
             </ul>
           </div>
@@ -87,11 +87,11 @@
           <!-- Eventy kanálu -->
           <div class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold text-slate-800">Eventy kanálu</h2>
-              <RouterLink :to="`${prefix}/events`" class="text-xs text-blue-600 hover:underline">Všetky eventy →</RouterLink>
+              <h2 class="text-base font-semibold text-slate-800">{{ t('canals.show.events') }}</h2>
+              <RouterLink :to="`${prefix}/events`" class="text-xs text-blue-600 hover:underline">{{ t('events.index.all') }}</RouterLink>
             </div>
-            <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
-            <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne eventy.</p>
+            <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
+            <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('events.index.empty') }}</p>
             <ul v-else class="grid gap-1.5">
               <li v-for="ev in events" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
@@ -102,7 +102,7 @@
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
-                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">Upraviť</RouterLink>
+                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">{{ t('common.edit') }}</RouterLink>
               </li>
             </ul>
           </div>
@@ -113,27 +113,27 @@
           <dl class="show-card grid gap-3">
             <!-- Obec -->
             <div v-if="canal.municipality" class="detail-card">
-              <dt>Obec</dt>
+              <dt>{{ t('common.municipality') }}</dt>
               <dd>{{ canal.municipality.name }}</dd>
             </div>
 
             <!-- Kontakt -->
             <div v-if="canal.phone" class="detail-card">
-              <dt>Telefón</dt>
+              <dt>{{ t('common.phone') }}</dt>
               <dd><a :href="`tel:${canal.phone}`" class="text-blue-700">{{ canal.phone }}</a></dd>
             </div>
             <div v-if="canal.website" class="detail-card">
-              <dt>Web</dt>
+              <dt>{{ t('common.website') }}</dt>
               <dd><a :href="canal.website" target="_blank" class="break-all text-blue-700">{{ canal.website }}</a></dd>
             </div>
 
             <!-- Členovia sú v dashboarde v paneli „Tím kanála"; tu už len pre admina. -->
             <div v-if="scope === 'admin' && canal.membersList.length" class="detail-card">
-              <dt>Členovia</dt>
+              <dt>{{ t('canals.show.members') }}</dt>
               <dd class="mt-1 grid gap-1">
                 <span v-for="m in canal.membersList" :key="m.id"
                   class="flex items-center gap-1.5 text-sm text-slate-700">
-                  <span v-if="m.isOwner" class="text-xs font-semibold text-teal-600">[vlastník]</span>
+                  <span v-if="m.isOwner" class="text-xs font-semibold text-teal-600">{{ t('common.owner') }}</span>
                   {{ m.name }}
                 </span>
               </dd>
@@ -141,19 +141,19 @@
 
             <!-- Meta -->
             <div class="detail-card">
-              <dt>Publikované</dt>
-              <dd>{{ canal.publishedAt ? formatDate(canal.publishedAt) : '—' }}</dd>
+              <dt>{{ t('common.publishedAt') }}</dt>
+              <dd>{{ canal.publishedAt ? formatDate(canal.publishedAt) : t('common.none') }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Vytvorené</dt>
+              <dt>{{ t('common.createdAt') }}</dt>
               <dd>{{ formatDate(canal.createdAt) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Upravené</dt>
+              <dt>{{ t('common.updatedAt') }}</dt>
               <dd>{{ formatDate(canal.updatedAt) }}</dd>
             </div>
             <div v-if="canal.deletedAt" class="detail-card bg-red-50">
-              <dt class="text-red-600">Zmazané</dt>
+              <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ formatDate(canal.deletedAt) }}</dd>
             </div>
           </dl>
@@ -174,10 +174,13 @@ import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import { fmtDate } from '@/utils/dateFormat'
+import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const { t } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)
@@ -199,8 +202,7 @@ function statusClass(status: string) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return d ? fmtDate(d) : t('common.none')
 }
 
 onMounted(async () => {

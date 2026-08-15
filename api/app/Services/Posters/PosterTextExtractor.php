@@ -41,7 +41,7 @@ class PosterTextExtractor
         $text = $this->normalizeText($text);
 
         if (trim($text) === '') {
-            throw new PosterExtractionException('Text je prázdny.');
+            throw new PosterExtractionException(__('poster.extract.empty_text'));
         }
 
         return new PosterExtraction(text: $text, kind: 'text');
@@ -69,14 +69,10 @@ class PosterTextExtractor
         }
 
         if ($extension === 'doc') {
-            throw new PosterExtractionException(
-                'Starý formát .doc čítať nevieme. Uložte dokument ako .docx alebo PDF a skúste to znova.'
-            );
+            throw new PosterExtractionException(__('poster.extract.doc_legacy'));
         }
 
-        throw new PosterExtractionException(
-            'Tento formát súboru nepodporujeme. Nahrajte PDF, Word (.docx), obrázok plagátu alebo textový súbor.'
-        );
+        throw new PosterExtractionException(__('poster.extract.unsupported'));
     }
 
     private function fromImage(UploadedFile $file, string $mime): PosterExtraction
@@ -84,11 +80,11 @@ class PosterTextExtractor
         $binary = (string) file_get_contents($file->getRealPath());
 
         if ($binary === '') {
-            throw new PosterExtractionException('Obrázok sa nepodarilo prečítať.');
+            throw new PosterExtractionException(__('poster.extract.image_unreadable'));
         }
 
         if (strlen($binary) > self::MAX_IMAGE_BYTES) {
-            throw new PosterExtractionException('Obrázok je príliš veľký. Skúste ho zmenšiť pod 12 MB.');
+            throw new PosterExtractionException(__('poster.extract.image_too_large'));
         }
 
         $mime = str_starts_with($mime, 'image/') ? $mime : 'image/jpeg';
@@ -106,10 +102,9 @@ class PosterTextExtractor
 
         $converterLimit = (int) config('services.pdf_converter.max_upload_bytes', 0);
         if ($converterLimit > 0 && strlen($binary) > $converterLimit) {
-            throw new PosterExtractionException(sprintf(
-                'PDF je pre spracovanie príliš veľké (limit %d MB). Zmenšite ho alebo nahrajte plagát ako obrázok.',
-                (int) round($converterLimit / 1048576),
-            ));
+            throw new PosterExtractionException(__('poster.extract.pdf_too_large_limit', [
+                'limit' => (int) round($converterLimit / 1048576),
+            ]));
         }
 
         $failureStatus = null;
@@ -132,9 +127,9 @@ class PosterTextExtractor
             // 413 vracia nginx pred konvertorom, keď je upload nad jeho
             // `client_max_body_size`. Je to trvalý stav pre tento súbor —
             // radiť „skúste to znova" by človeka posielalo do kruhu.
-            throw new PosterExtractionException($failureStatus === 413
-                ? 'PDF je pre spracovanie príliš veľké. Zmenšite ho (napr. exportom v nižšej kvalite) alebo nahrajte plagát ako obrázok.'
-                : 'PDF sa nepodarilo spracovať. Skúste to o chvíľu znova, alebo nahrajte plagát ako obrázok.');
+            throw new PosterExtractionException(__($failureStatus === 413
+                ? 'poster.extract.pdf_too_large'
+                : 'poster.extract.pdf_failed'));
         }
 
         $text = $this->normalizeText($result->fullText);
@@ -190,9 +185,7 @@ class PosterTextExtractor
         }
 
         if ($imageDataUrls === [] && trim($text) === '') {
-            throw new PosterExtractionException(
-                'Z tohto PDF sa nepodarilo prečítať nič. Skúste nahrať plagát ako obrázok (JPG/PNG).'
-            );
+            throw new PosterExtractionException(__('poster.extract.pdf_empty'));
         }
 
         return new PosterExtraction(
@@ -235,13 +228,13 @@ class PosterTextExtractor
     private function fromDocx(UploadedFile $file): PosterExtraction
     {
         if (! class_exists(\ZipArchive::class)) {
-            throw new PosterExtractionException('Na serveri chýba rozšírenie ZIP, .docx čítať nevieme.');
+            throw new PosterExtractionException(__('poster.extract.zip_missing'));
         }
 
         $zip = new \ZipArchive();
 
         if ($zip->open($file->getRealPath()) !== true) {
-            throw new PosterExtractionException('Súbor .docx sa nepodarilo otvoriť — je pravdepodobne poškodený.');
+            throw new PosterExtractionException(__('poster.extract.docx_unreadable'));
         }
 
         try {
@@ -251,15 +244,13 @@ class PosterTextExtractor
         }
 
         if (! is_string($xml) || $xml === '') {
-            throw new PosterExtractionException('V dokumente .docx sa nenašiel žiadny text.');
+            throw new PosterExtractionException(__('poster.extract.docx_no_text'));
         }
 
         $text = $this->normalizeText($this->docxXmlToText($xml));
 
         if (trim($text) === '') {
-            throw new PosterExtractionException(
-                'Dokument neobsahuje text — údaje sú zrejme v obrázku. Nahrajte plagát ako obrázok alebo PDF.'
-            );
+            throw new PosterExtractionException(__('poster.extract.no_text'));
         }
 
         return new PosterExtraction(text: $text, kind: 'docx');

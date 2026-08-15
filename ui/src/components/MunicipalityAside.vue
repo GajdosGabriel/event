@@ -184,7 +184,7 @@ async function load() {
       municipalitySlug: (r['municipality_slug'] as string) ?? null,
       eventsCount: r['events_count'] as number,
       regionId: Number(r['region_id'] ?? 0),
-      regionName: (r['region_name'] as string) ?? 'Ostatné',
+      regionName: (r['region_name'] as string) ?? t('common.other'),
     }))
     openActiveRegion()
   } catch {

@@ -62,7 +62,7 @@ class WorkshopRegistrationController extends Controller
         $event = Event::query()->findOrFail($eventId);
 
         if (! $event->tickets_enabled) {
-            abort(422, 'Registrácia na tento event nie je povolená.');
+            abort(422, __('tickets.errors.registration_disabled'));
         }
 
         $type = TicketType::query()

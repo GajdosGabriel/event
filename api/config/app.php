@@ -95,6 +95,14 @@ return [
 
     'locale' => env('APP_LOCALE', 'sk'),
 
+    /*
+    | Ten istý jazyk, ale nedotknuteľný. `app()->setLocale()` prepisuje aj
+    | `app.locale`, takže po zásahu SetLocale middleware sa z nej pôvodná
+    | hodnota už nedá prečítať. Kto potrebuje jazyk portálu (nie klienta) —
+    | napríklad prerender pre crawlerov — číta toto.
+    */
+    'default_locale' => env('APP_LOCALE', 'sk'),
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'sk'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'sk_SK'),

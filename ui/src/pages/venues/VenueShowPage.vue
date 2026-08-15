@@ -1,16 +1,16 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
     <div v-else-if="error" class="show-not-found">
-      <h1>Miesto nenájdené</h1>
-      <RouterLink :to="indexRoute">← Späť</RouterLink>
+      <h1>{{ t('venues.show.notFound') }}</h1>
+      <RouterLink :to="indexRoute">{{ t('common.back') }}</RouterLink>
     </div>
 
     <template v-else-if="venue">
       <!-- Breadcrumb + akcie -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">← Späť</RouterLink>
-        <RouterLink v-if="venue.permissions.update" :to="editRoute" class="action-btn">Upraviť</RouterLink>
+        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <RouterLink v-if="venue.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
           :class="statusClass(venue.status)">{{ venue.status }}</span>
       </div>
@@ -43,13 +43,13 @@
             />
             <div class="px-4 py-2 text-xs text-slate-500">
               GPS: {{ venue.latitude }}, {{ venue.longitude }} ·
-              <a :href="`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`" target="_blank" class="text-blue-600">Google Maps ↗</a>
+              <a :href="`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`" target="_blank" class="text-blue-600">{{ t('common.googleMaps') }}</a>
             </div>
           </div>
 
           <!-- Galéria -->
           <div v-if="files.length" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Galéria</h2>
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('common.gallery') }}</h2>
             <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
               <a v-for="f in files" :key="f.id" :href="f.url" target="_blank"
                 class="block aspect-square overflow-hidden rounded-lg border border-slate-200">
@@ -60,7 +60,7 @@
 
           <!-- Otváracie hodiny -->
           <div v-if="openingHoursRows.length" class="show-card">
-            <h2 class="mb-3 text-base font-semibold text-slate-800">Otváracie hodiny</h2>
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('common.openingHours') }}</h2>
             <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
               <template v-for="row in openingHoursRows" :key="row.day">
                 <dt class="font-medium text-slate-600">{{ row.day }}</dt>
@@ -72,11 +72,11 @@
           <!-- Eventy na tomto mieste -->
           <div class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold text-slate-800">Eventy na tomto mieste</h2>
-              <RouterLink :to="`${prefix}/events`" class="text-xs text-blue-600 hover:underline">Všetky eventy →</RouterLink>
+              <h2 class="text-base font-semibold text-slate-800">{{ t('venues.show.events') }}</h2>
+              <RouterLink :to="`${prefix}/events`" class="text-xs text-blue-600 hover:underline">{{ t('events.index.all') }}</RouterLink>
             </div>
-            <p v-if="eventsLoading" class="text-sm text-slate-500">Načítavam…</p>
-            <p v-else-if="!events.length" class="text-sm text-slate-400">Žiadne eventy.</p>
+            <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
+            <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('events.index.empty') }}</p>
             <ul v-else class="grid gap-1.5">
               <li v-for="ev in events" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
@@ -90,7 +90,7 @@
                   <span v-if="ev.canalName" class="mt-0.5 inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">{{ ev.canalName }}</span>
                 </div>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
-                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">Upraviť</RouterLink>
+                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">{{ t('common.edit') }}</RouterLink>
               </li>
             </ul>
           </div>
@@ -101,7 +101,7 @@
           <dl class="show-card grid gap-3">
             <!-- Adresa -->
             <div v-if="venue.street || venue.municipality" class="detail-card">
-              <dt>Adresa</dt>
+              <dt>{{ t('common.address') }}</dt>
               <dd>
                 <span v-if="venue.street">{{ venue.street }}<br/></span>
                 <span v-if="venue.postcode">{{ venue.postcode }} </span>
@@ -112,29 +112,29 @@
 
             <!-- Kontakt -->
             <div v-if="venue.phone" class="detail-card">
-              <dt>Telefón</dt>
+              <dt>{{ t('common.phone') }}</dt>
               <dd><a :href="`tel:${venue.phone}`" class="text-blue-700">{{ venue.phone }}</a></dd>
             </div>
             <div v-if="venue.website" class="detail-card">
-              <dt>Web</dt>
+              <dt>{{ t('common.website') }}</dt>
               <dd><a :href="venue.website" target="_blank" class="break-all text-blue-700">{{ venue.website }}</a></dd>
             </div>
 
             <!-- Kapacita -->
             <div v-if="venue.capacity" class="detail-card">
-              <dt>Kapacita</dt>
-              <dd>{{ venue.capacity }} osôb</dd>
+              <dt>{{ t('common.capacity') }}</dt>
+              <dd>{{ t('common.capacityPeople', { n: venue.capacity }) }}</dd>
             </div>
 
             <!-- Kanály -->
             <div v-if="venue.canalsList.length" class="detail-card">
-              <dt>Kanály</dt>
+              <dt>{{ t('canals.index.title') }}</dt>
               <dd class="grid gap-1 mt-1">
                 <RouterLink
                   v-for="c in venue.canalsList" :key="c.id"
                   :to="`${prefix}/canals/${c.id}`"
                   class="flex items-center gap-1.5 text-sm text-blue-700 no-underline hover:underline">
-                  <span v-if="c.isOwner" class="text-xs text-teal-600 font-semibold">[vlastník]</span>
+                  <span v-if="c.isOwner" class="text-xs text-teal-600 font-semibold">{{ t('common.owner') }}</span>
                   {{ c.name }}
                 </RouterLink>
               </dd>
@@ -142,15 +142,15 @@
 
             <!-- Meta -->
             <div class="detail-card">
-              <dt>Vytvorené</dt>
+              <dt>{{ t('common.createdAt') }}</dt>
               <dd>{{ formatDate(venue.createdAt) }}</dd>
             </div>
             <div class="detail-card">
-              <dt>Upravené</dt>
+              <dt>{{ t('common.updatedAt') }}</dt>
               <dd>{{ formatDate(venue.updatedAt) }}</dd>
             </div>
             <div v-if="venue.deletedAt" class="detail-card bg-red-50">
-              <dt class="text-red-600">Zmazané</dt>
+              <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ formatDate(venue.deletedAt) }}</dd>
             </div>
           </dl>
@@ -170,10 +170,13 @@ import { useRoute } from 'vue-router'
 import { showVenue, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import { listFiles, type FileItem } from '@/api/files'
 import ContactButton from '@/components/ContactButton.vue'
+import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
+import { useI18n } from '@/i18n'
 import type { VenueItem } from '@/types'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const { t } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/venues`)
@@ -189,12 +192,8 @@ const eventsLoading = ref(false)
 const openingHoursRows = computed(() => {
   const oh = venue.value?.openingHours
   if (!oh || typeof oh !== 'object') return []
-  const dayNames: Record<string, string> = {
-    monday: 'Pondelok', tuesday: 'Utorok', wednesday: 'Streda',
-    thursday: 'Štvrtok', friday: 'Piatok', saturday: 'Sobota', sunday: 'Nedeľa',
-  }
   return Object.entries(oh as Record<string, string>)
-    .map(([day, hours]) => ({ day: dayNames[day] ?? day, hours }))
+    .map(([day, hours]) => ({ day: weekdayLabel(day), hours }))
     .filter(r => r.hours)
 })
 
@@ -207,8 +206,7 @@ function statusClass(status: string) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return d ? fmtDate(d) : t('common.none')
 }
 
 onMounted(async () => {

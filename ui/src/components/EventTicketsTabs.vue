@@ -1,6 +1,6 @@
 <template>
   <div class="mb-4 flex flex-wrap items-center gap-2">
-    <RouterLink :to="`/dashboard/events/${eventId}`" class="action-btn">← Späť na event</RouterLink>
+    <RouterLink :to="`/dashboard/events/${eventId}`" class="action-btn">{{ t('tickets.tabs.back') }}</RouterLink>
     <nav class="ml-auto flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
       <RouterLink
         v-for="tab in tabs"
@@ -20,14 +20,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/i18n'
 
 const props = defineProps<{ eventId: number }>()
 const route = useRoute()
+const { t } = useI18n()
 
 const tabs = computed(() => [
-  { name: 'settings', label: 'Nastavenia', to: `/dashboard/events/${props.eventId}/tickets` },
-  { name: 'attendees', label: 'Prihlásení', to: `/dashboard/events/${props.eventId}/attendees` },
-  { name: 'checkin', label: 'Check-in', to: `/dashboard/events/${props.eventId}/checkin` },
+  { name: 'settings', label: t('tickets.tabs.settings'), to: `/dashboard/events/${props.eventId}/tickets` },
+  { name: 'attendees', label: t('tickets.tabs.attendees'), to: `/dashboard/events/${props.eventId}/attendees` },
+  { name: 'checkin', label: t('tickets.tabs.checkin'), to: `/dashboard/events/${props.eventId}/checkin` },
 ])
 
 function isActive(name: string): boolean {

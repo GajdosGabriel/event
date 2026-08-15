@@ -10,7 +10,7 @@
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
         <rect x="3" y="4" width="18" height="18" rx="2" /><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M12 13v5m0 0l-2-2m2 2l2-2" />
       </svg>
-      Pridať do kalendára
+      {{ t('public.calendar.add') }}
       <svg
         class="h-3.5 w-3.5 transition-transform duration-150"
         :class="{ 'rotate-180': open }"
@@ -59,7 +59,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, defineComponent, h } from 'vue'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
+import { useI18n } from '@/i18n'
 import type { CalendarLinks } from '@/types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   /** Odkazy skladá API (IcsGenerator). Bez termínu prídu null a tlačidlo vypadne. */
@@ -77,9 +80,9 @@ const items = computed(() => {
   if (!links) return []
 
   return [
-    { label: 'Google Kalendár', hint: 'Otvorí sa v prehliadači', href: links.google, external: true, icon: IconGoogle },
-    { label: 'Outlook', hint: 'Otvorí sa v prehliadači', href: links.outlook, external: true, icon: IconOutlook },
-    { label: 'Apple Kalendár a ostatné', hint: 'Súbor .ics', href: links.download, external: false, icon: IconFile },
+    { label: t('public.calendar.google'), hint: t('public.calendar.inBrowser'), href: links.google, external: true, icon: IconGoogle },
+    { label: t('public.calendar.outlook'), hint: t('public.calendar.inBrowser'), href: links.outlook, external: true, icon: IconOutlook },
+    { label: t('public.calendar.apple'), hint: t('public.calendar.icsFile'), href: links.download, external: false, icon: IconFile },
   ]
 })
 

@@ -1,7 +1,7 @@
 {{-- Zoznam podujatí ako odkazy na kanonické URL — toto je cesta, ktorou sa
      crawler dostane z landing stránky na detaily. --}}
 @if ($events->isEmpty())
-    <p>Momentálne tu nie sú žiadne nadchádzajúce podujatia.</p>
+    <p>{{ __('seo.page.empty') }}</p>
 @else
     <ul>
         @foreach ($events as $event)

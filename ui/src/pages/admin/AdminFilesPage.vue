@@ -2,9 +2,9 @@
   <div class="grid gap-4">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Správa súborov</h1>
+        <h1 class="text-2xl font-semibold text-slate-900">{{ t('admin.files.title') }}</h1>
         <p class="mt-0.5 text-sm text-slate-500">
-          <template v-if="searched && !loading">{{ total }} {{ pluralFiles(total) }}</template>
+          <template v-if="searched && !loading">{{ total }} {{ plural('admin.files.counts.files', total) }}</template>
           <template v-else>&nbsp;</template>
         </p>
       </div>
@@ -49,7 +49,7 @@
       </button>
     </div>
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
 
     <div v-else-if="files.length" class="panel-card !p-0">
@@ -78,7 +78,7 @@
               <span v-if="file.isPrimary"
                 class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
                 <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.36 4.18a1 1 0 00.95.69h4.4c.97 0 1.37 1.24.59 1.81l-3.56 2.59a1 1 0 00-.36 1.12l1.36 4.18c.3.92-.76 1.69-1.54 1.12l-3.56-2.59a1 1 0 00-1.18 0l-3.56 2.59c-.78.57-1.84-.2-1.54-1.12l1.36-4.18a1 1 0 00-.36-1.12L1.4 9.61c-.78-.57-.38-1.81.59-1.81h4.4a1 1 0 00.95-.69L9.05 2.93z"/></svg>
-                Primary
+                {{ t('admin.files.primary') }}
               </span>
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
@@ -94,16 +94,16 @@
               <span v-if="file.createdAt" class="text-slate-400" :title="fullDate(file.createdAt)">· {{ relTime(file.createdAt) }}</span>
               <span v-if="file.deletedAt"
                 class="rounded-full bg-red-50 px-2 py-0.5 font-medium text-red-600 ring-1 ring-inset ring-red-200">
-                Zmazaný
+                {{ t('admin.files.deleted') }}
               </span>
             </div>
           </div>
 
           <!-- Actions -->
           <RowActions>
-            <a :href="file.url" target="_blank" rel="noopener" class="row-menu-item">Otvoriť</a>
-            <a :href="file.url" :download="file.name" class="row-menu-item">Stiahnuť</a>
-            <button class="row-menu-item" @click="copyLink(file)">Kopírovať odkaz</button>
+            <a :href="file.url" target="_blank" rel="noopener" class="row-menu-item">{{ t('admin.files.open') }}</a>
+            <a :href="file.url" :download="file.name" class="row-menu-item">{{ t('admin.files.download') }}</a>
+            <button class="row-menu-item" @click="copyLink(file)">{{ t('admin.files.copyLink') }}</button>
 
             <div class="my-1 h-px bg-slate-100"></div>
 
@@ -111,19 +111,19 @@
             <template v-if="!file.deletedAt">
               <button v-if="file.isPrimary" type="button" disabled
                 class="row-menu-item cursor-not-allowed opacity-50"
-                title="Primárny súbor nie je možné zmazať — najprv nastavte ako primárny iný súbor.">
-                Zmazať
+                :title="t('admin.files.primaryBlocked')">
+                {{ t('common.remove') }}
               </button>
               <button v-else type="button" class="row-menu-item row-menu-item-danger" @click="softDelete(file)">
-                Presunúť do koša
+                {{ t('admin.files.trash') }}
               </button>
             </template>
 
             <!-- Trashed file: restore or purge permanently -->
             <template v-else>
-              <button type="button" class="row-menu-item" @click="restoreOne(file.id)">Obnoviť</button>
+              <button type="button" class="row-menu-item" @click="restoreOne(file.id)">{{ t('common.restore') }}</button>
               <button type="button" class="row-menu-item row-menu-item-danger" @click="hardDelete(file)">
-                Zmazať natrvalo
+                {{ t('admin.files.purge') }}
               </button>
             </template>
           </RowActions>
@@ -139,7 +139,7 @@
     </div>
 
     <p v-else-if="searched" class="rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-400">
-      Žiadne súbory nezodpovedajú filtru.
+      {{ t('admin.files.empty') }}
     </p>
 
     <!-- Lightbox -->
@@ -158,9 +158,10 @@ import type { RouteLocationRaw } from 'vue-router'
 import { listAdminFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import RowActions from '@/components/RowActions.vue'
-import { useI18n } from '@/i18n'
+import { fmtDate } from '@/utils/dateFormat'
+import { useI18n, localeTag, type MessageKey } from '@/i18n'
 
-const { t } = useI18n()
+const { t, plural } = useI18n()
 const toast = useToast()
 
 const filters = ref({ fileable_type: '', fileable_id: undefined as number | undefined, search: '', with_trashed: false })
@@ -223,7 +224,7 @@ async function load(page = 1) {
     currentPage.value = res.currentPage
     lastPage.value = res.lastPage
   } catch {
-    error.value = 'Nepodarilo sa načítať súbory.'
+    error.value = t('admin.files.loadFailed')
   } finally {
     loading.value = false
   }
@@ -236,27 +237,27 @@ function errMsg(e: unknown): string | null {
 // First stage — recoverable. Soft-deleted files stay visible under the
 // "Vrátane zmazaných" filter, where they can be restored or purged.
 async function softDelete(file: FileItem) {
-  try { await deleteFile(file.id, 'admin'); await load(currentPage.value); toast.success('Súbor presunutý do koša.') }
-  catch (e) { toast.error(errMsg(e) ?? 'Mazanie zlyhalo.') }
+  try { await deleteFile(file.id, 'admin'); await load(currentPage.value); toast.success(t('admin.files.trashed')) }
+  catch (e) { toast.error(errMsg(e) ?? t('common.removeFailed')) }
 }
 
 // Second stage — irreversible: purges the DB row and the physical files.
 async function hardDelete(file: FileItem) {
-  if (!confirm(`Natrvalo zmazať „${file.name}"?\nTúto akciu nie je možné vrátiť späť.`)) return
-  try { await forceDeleteFile(file.id); await load(currentPage.value); toast.success('Súbor natrvalo zmazaný.') }
-  catch (e) { toast.error(errMsg(e) ?? 'Trvalé mazanie zlyhalo.') }
+  if (!confirm(t('admin.files.purgeConfirm', { name: file.name }))) return
+  try { await forceDeleteFile(file.id); await load(currentPage.value); toast.success(t('admin.files.purged')) }
+  catch (e) { toast.error(errMsg(e) ?? t('admin.files.purgeFailed')) }
 }
 
 async function restoreOne(id: number) {
-  try { await restoreFile(id, 'admin'); await load(currentPage.value); toast.success('Súbor obnovený.') }
-  catch (e) { toast.error(errMsg(e) ?? 'Obnova zlyhala.') }
+  try { await restoreFile(id, 'admin'); await load(currentPage.value); toast.success(t('admin.files.restored')) }
+  catch (e) { toast.error(errMsg(e) ?? t('common.restoreFailed')) }
 }
 
 async function copyLink(file: FileItem) {
   try {
     await navigator.clipboard.writeText(new URL(file.url, window.location.origin).href)
-    toast.success('Odkaz skopírovaný.')
-  } catch { toast.error('Kopírovanie zlyhalo.') }
+    toast.success(t('admin.files.linkCopied'))
+  } catch { toast.error(t('admin.files.copyFailed')) }
 }
 
 function openPreview(file: FileItem) {
@@ -270,23 +271,29 @@ function kindMeta(file: FileItem): KindMeta {
   const mime = file.mimeType || ''
   const ext = (file.extension || '').toLowerCase()
 
-  if (mime.startsWith('image/')) return { label: 'Obrázok', short: 'IMG', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200', tile: 'bg-emerald-500' }
-  if (mime.startsWith('video/')) return { label: 'Video', short: 'VID', badge: 'bg-purple-50 text-purple-700 ring-purple-200', tile: 'bg-purple-500' }
-  if (mime.startsWith('audio/')) return { label: 'Audio', short: 'AUD', badge: 'bg-pink-50 text-pink-700 ring-pink-200', tile: 'bg-pink-500' }
-  if (mime === 'application/pdf' || ext === 'pdf') return { label: 'PDF', short: 'PDF', badge: 'bg-red-50 text-red-700 ring-red-200', tile: 'bg-red-500' }
-  if (['doc', 'docx', 'rtf', 'odt'].includes(ext)) return { label: 'Dokument', short: 'DOC', badge: 'bg-blue-50 text-blue-700 ring-blue-200', tile: 'bg-blue-500' }
-  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return { label: 'Tabuľka', short: 'XLS', badge: 'bg-green-50 text-green-700 ring-green-200', tile: 'bg-green-600' }
-  if (['zip', 'rar', '7z', 'gz', 'tar'].includes(ext)) return { label: 'Archív', short: 'ZIP', badge: 'bg-amber-50 text-amber-700 ring-amber-200', tile: 'bg-amber-500' }
-  return { label: 'Súbor', short: ext.toUpperCase() || 'FILE', badge: 'bg-slate-100 text-slate-600 ring-slate-200', tile: 'bg-slate-400' }
+  if (mime.startsWith('image/')) return { label: t('admin.files.kinds.image'), short: 'IMG', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200', tile: 'bg-emerald-500' }
+  if (mime.startsWith('video/')) return { label: t('admin.files.kinds.video'), short: 'VID', badge: 'bg-purple-50 text-purple-700 ring-purple-200', tile: 'bg-purple-500' }
+  if (mime.startsWith('audio/')) return { label: t('admin.files.kinds.audio'), short: 'AUD', badge: 'bg-pink-50 text-pink-700 ring-pink-200', tile: 'bg-pink-500' }
+  if (mime === 'application/pdf' || ext === 'pdf') return { label: t('admin.files.kinds.pdf'), short: 'PDF', badge: 'bg-red-50 text-red-700 ring-red-200', tile: 'bg-red-500' }
+  if (['doc', 'docx', 'rtf', 'odt'].includes(ext)) return { label: t('admin.files.kinds.document'), short: 'DOC', badge: 'bg-blue-50 text-blue-700 ring-blue-200', tile: 'bg-blue-500' }
+  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return { label: t('admin.files.kinds.spreadsheet'), short: 'XLS', badge: 'bg-green-50 text-green-700 ring-green-200', tile: 'bg-green-600' }
+  if (['zip', 'rar', '7z', 'gz', 'tar'].includes(ext)) return { label: t('admin.files.kinds.archive'), short: 'ZIP', badge: 'bg-amber-50 text-amber-700 ring-amber-200', tile: 'bg-amber-500' }
+  return { label: t('admin.files.kinds.file'), short: ext.toUpperCase() || 'FILE', badge: 'bg-slate-100 text-slate-600 ring-slate-200', tile: 'bg-slate-400' }
 }
 
 // ── Owner (fileable) linking ────────────────────────────────
 const OWNER_ROUTES: Record<string, string> = { Event: 'admin-events-show', Canal: 'admin-canals-show', Venue: 'admin-venues-show' }
-const OWNER_LABELS: Record<string, string> = { Event: 'Event', Canal: 'Kanál', Venue: 'Miesto' }
+// Tie isté názvy typov ponúka aj filter nad zoznamom.
+const OWNER_LABEL_KEYS: Record<string, MessageKey> = {
+  Event: 'filters.files.types.event',
+  Canal: 'filters.files.types.canal',
+  Venue: 'filters.files.types.venue',
+}
 
 function ownerLabel(file: FileItem): string {
   if (!file.fileableType) return ''
-  return `${OWNER_LABELS[file.fileableType] ?? file.fileableType} #${file.fileableId}`
+  const key = OWNER_LABEL_KEYS[file.fileableType]
+  return `${key ? t(key) : file.fileableType} #${file.fileableId}`
 }
 
 function ownerLink(file: FileItem): RouteLocationRaw | null {
@@ -307,20 +314,14 @@ function relTime(value: string | null): string {
   const then = new Date(value).getTime()
   if (Number.isNaN(then)) return ''
   const days = Math.floor((Date.now() - then) / 86400000)
-  if (days < 1) return 'dnes'
-  if (days === 1) return 'včera'
-  if (days < 30) return `pred ${days} d`
-  return new Date(value).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  if (days < 1) return t('common.rel.today')
+  if (days === 1) return t('common.rel.yesterday')
+  if (days < 30) return t('common.rel.days', { n: days })
+  return fmtDate(value)
 }
 
 function fullDate(value: string | null): string {
-  return value ? new Date(value).toLocaleString('sk-SK') : ''
-}
-
-function pluralFiles(n: number): string {
-  if (n === 1) return 'súbor'
-  if (n >= 2 && n <= 4) return 'súbory'
-  return 'súborov'
+  return value ? new Date(value).toLocaleString(localeTag()) : ''
 }
 
 function onEsc(e: KeyboardEvent) {

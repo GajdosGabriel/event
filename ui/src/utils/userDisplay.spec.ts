@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setLocale } from '@/i18n'
 import { displayName, initials, avatarColor, pluralUsers } from './userDisplay'
+
+// Popisky idú cez slovník, testy overujú slovenské tvary.
+beforeEach(() => setLocale('sk'))
 
 describe('displayName', () => {
   it('uprednostní display_name pred e-mailom', () => {

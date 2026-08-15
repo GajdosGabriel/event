@@ -1,15 +1,36 @@
-import { describe, it, expect } from 'vitest'
-import { dayName, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil, fmtRowDateRange, eventTimeState } from './dateFormat'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setLocale } from '@/i18n'
+import { dayName, weekdayLabel, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil, fmtRowDateRange, eventTimeState } from './dateFormat'
+
+// Formát závisí od zvoleného jazyka; testy popisujú slovenský tvar, tak si ho
+// pred každým prípadom vypýtajú (v jsdom by inak vyhral jazyk prehliadača).
+beforeEach(() => setLocale('sk'))
 
 describe('dayName', () => {
-  it('vráti slovenský názov dňa', () => {
+  it('vráti slovenský názov dňa s veľkým začiatočným písmenom', () => {
     // 2026-07-22 je streda
     expect(dayName('2026-07-22T10:00:00')).toBe('Streda')
     expect(dayName('2026-07-26T10:00:00')).toBe('Nedeľa')
   })
 
+  it('sleduje zvolený jazyk', () => {
+    setLocale('de')
+    expect(dayName('2026-07-22T10:00:00')).toBe('Mittwoch')
+  })
+
   it('vráti prázdny reťazec pre neplatný dátum', () => {
     expect(dayName('nezmysel')).toBe('')
+  })
+})
+
+describe('weekdayLabel', () => {
+  it('preloží kľúč otváracích hodín', () => {
+    expect(weekdayLabel('monday')).toBe('Pondelok')
+    expect(weekdayLabel('sunday')).toBe('Nedeľa')
+  })
+
+  it('neznámy kľúč vráti nezmenený', () => {
+    expect(weekdayLabel('someday')).toBe('someday')
   })
 })
 

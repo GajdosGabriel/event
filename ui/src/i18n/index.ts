@@ -14,6 +14,16 @@ export type Locale = keyof typeof dictionaries
 
 export const SUPPORTED_LOCALES = Object.keys(dictionaries) as Locale[]
 
+// Formátovanie dátumov a čísel nechávame na Intl — potrebuje plný BCP 47 tag,
+// nie holý kód jazyka. 'en-GB' zámerne: deň pred mesiacom, ako v ostatných
+// troch jazykoch; 'en-US' by v tom istom rozhraní obrátil poradie.
+const LOCALE_TAGS: Record<Locale, string> = {
+  sk: 'sk-SK',
+  cs: 'cs-CZ',
+  de: 'de-DE',
+  en: 'en-GB',
+}
+
 export const DEFAULT_LOCALE: Locale = 'sk'
 
 const STORAGE_KEY = 'locale'
@@ -63,6 +73,11 @@ export function currentLocale(): Locale {
   return locale.value
 }
 
+/** Tag pre Intl (`toLocaleDateString` a spol.) podľa práve zvoleného jazyka. */
+export function localeTag(): string {
+  return LOCALE_TAGS[locale.value]
+}
+
 export function setLocale(next: Locale) {
   if (!isSupported(next) || next === locale.value) return
 
@@ -88,13 +103,15 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
  * Tvar podľa počtu: „1 kanál“, „2 kanály“, „5 kanálov“. Počet sa do vety
  * dosadí ako {n}.
  *
- * Hranica 2–4 platí pre slovenčinu a češtinu; jazyky s dvoma tvarmi majú
- * v slovníku `few` rovnaké ako `many`, takže volajúci nemusí vedieť, v akom
- * jazyku práve je. Na plnú CLDR pluralizáciu (arabčina, poľština, ruština)
- * to nestačí — tie by si vyžiadali Intl.PluralRules a iný tvar slovníka.
+ * Tvar `few` patrí len číslam 2–4; nula ide do `many` („0 kanálov“, nie
+ * „0 kanály“). Hranica platí pre slovenčinu a češtinu; jazyky s dvoma tvarmi
+ * majú v slovníku `few` rovnaké ako `many`, takže volajúci nemusí vedieť,
+ * v akom jazyku práve je. Na plnú CLDR pluralizáciu (arabčina, poľština,
+ * ruština) to nestačí — tie by si vyžiadali Intl.PluralRules a iný tvar
+ * slovníka.
  */
 export function plural(key: PluralKey, n: number): string {
-  const form = n === 1 ? 'one' : n < 5 ? 'few' : 'many'
+  const form = n === 1 ? 'one' : n >= 2 && n <= 4 ? 'few' : 'many'
 
   return t(`${key}.${form}`, { n })
 }

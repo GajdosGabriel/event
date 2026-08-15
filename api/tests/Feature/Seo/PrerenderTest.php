@@ -131,6 +131,19 @@ class PrerenderTest extends TestCase
         $response->assertSee('Podujatia tento víkend', false);
     }
 
+    #[Test]
+    public function rendered_language_ignores_the_crawler_accept_language(): void
+    {
+        // Jedna adresa = jeden jazyk v indexe. Navyše je odpoveď cachovaná len
+        // podľa cesty, takže by prvý crawler určil jazyk aj pre všetkých ďalších.
+        $response = $this->withHeader('Accept-Language', 'de-DE,de;q=0.9')
+            ->prerender('/'.PublicUrl::thisWeekendPath());
+
+        $response->assertOk();
+        $response->assertSee('Podujatia tento víkend', false);
+        $response->assertDontSee('Veranstaltungen an diesem Wochenende', false);
+    }
+
     /**
      * @return array<string, mixed>
      */

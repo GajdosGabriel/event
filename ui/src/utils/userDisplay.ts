@@ -1,10 +1,11 @@
 import { fmtDate } from '@/utils/dateFormat'
+import { t, plural, localeTag, type MessageKey } from '@/i18n'
 import type { AccessRole } from '@/types'
 
 export type UserLike = Record<string, unknown>
 
 export function displayName(user: UserLike): string {
-  return (user.display_name as string) || (user.email as string) || 'Neznámy'
+  return (user.display_name as string) || (user.email as string) || t('users.unknown')
 }
 
 export function initials(name: string): string {
@@ -24,16 +25,23 @@ export function avatarColor(seed: string): string {
   return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-export const ROLE_LABELS: Record<string, string> = {
-  'super-admin': 'Super admin',
-  'admin': 'Administrátor',
-  'canal-owner': 'Vlastník kanálu',
-  'editor': 'Editor',
-  'moderator': 'Moderátor',
-  'user': 'Používateľ',
+// Názvy rolí posiela aj API (v `rolesMeta`); slovník je záloha pre miesta,
+// kde zoznam rolí nemáme po ruke, a pre role, ktoré API nepozná.
+const ROLE_KEYS: Record<string, MessageKey> = {
+  'super-admin': 'users.roles.superAdmin',
+  'admin': 'users.roles.admin',
+  'canal-owner': 'users.roles.canalOwner',
+  'editor': 'users.roles.editor',
+  'moderator': 'users.roles.moderator',
+  'user': 'users.roles.user',
 }
+
 export function roleLabel(role: string, rolesMeta: AccessRole[] = []): string {
-  return rolesMeta.find(r => r.name === role)?.label ?? ROLE_LABELS[role] ?? role
+  const fromApi = rolesMeta.find(r => r.name === role)?.label
+  if (fromApi) return fromApi
+
+  const key = ROLE_KEYS[role]
+  return key ? t(key) : role
 }
 
 export function roleClass(role: string): string {
@@ -56,15 +64,16 @@ export function statusKey(user: UserLike): StatusKey {
   return 'active'
 }
 
-export const STATUS_META: Record<StatusKey, { label: string; cls: string; dot: string }> = {
-  deleted:    { label: 'Zmazaný',   cls: 'bg-slate-100 text-slate-500 ring-slate-200',      dot: 'bg-slate-400' },
-  blocked:    { label: 'Blokovaný', cls: 'bg-red-50 text-red-700 ring-red-200',             dot: 'bg-red-500' },
-  unverified: { label: 'Neoverený', cls: 'bg-amber-50 text-amber-700 ring-amber-200',       dot: 'bg-amber-500' },
-  active:     { label: 'Aktívny',   cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
+const STATUS_STYLES: Record<StatusKey, { cls: string; dot: string }> = {
+  deleted:    { cls: 'bg-slate-100 text-slate-500 ring-slate-200',      dot: 'bg-slate-400' },
+  blocked:    { cls: 'bg-red-50 text-red-700 ring-red-200',             dot: 'bg-red-500' },
+  unverified: { cls: 'bg-amber-50 text-amber-700 ring-amber-200',       dot: 'bg-amber-500' },
+  active:     { cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
 }
 
 export function statusOf(user: UserLike): { label: string; cls: string; dot: string } {
-  return STATUS_META[statusKey(user)]
+  const key = statusKey(user)
+  return { label: t(`users.statuses.${key}` as MessageKey), ...STATUS_STYLES[key] }
 }
 
 export function providerMeta(via?: string): { icon: string; label: string } {
@@ -72,32 +81,30 @@ export function providerMeta(via?: string): { icon: string; label: string } {
     case 'google':   return { icon: '🟢', label: 'Google' }
     case 'facebook': return { icon: '🔵', label: 'Facebook' }
     case 'email':    return { icon: '✉️', label: 'Email' }
-    default:         return { icon: '👤', label: via || 'Priama' }
+    default:         return { icon: '👤', label: via || t('users.providerDirect') }
   }
 }
 
 export function relTime(value: unknown): string {
-  if (!value) return 'nikdy'
+  if (!value) return t('common.rel.never')
   const then = new Date(value as string).getTime()
   if (Number.isNaN(then)) return '—'
   const diff = Date.now() - then
   const min = Math.round(diff / 60000)
-  if (min < 1) return 'práve teraz'
-  if (min < 60) return `pred ${min} min`
+  if (min < 1) return t('common.rel.justNow')
+  if (min < 60) return t('common.rel.minutes', { n: min })
   const hrs = Math.round(min / 60)
-  if (hrs < 24) return `pred ${hrs} h`
+  if (hrs < 24) return t('common.rel.hours', { n: hrs })
   const days = Math.round(hrs / 24)
-  if (days < 30) return `pred ${days} d`
+  if (days < 30) return t('common.rel.days', { n: days })
   return fmtDate(value as string)
 }
 
 export function fullDate(value: unknown): string {
   if (!value) return ''
-  return new Date(value as string).toLocaleString('sk-SK')
+  return new Date(value as string).toLocaleString(localeTag())
 }
 
 export function pluralUsers(n: number): string {
-  if (n === 1) return 'používateľ'
-  if (n >= 2 && n <= 4) return 'používatelia'
-  return 'používateľov'
+  return plural('users.counts.users', n)
 }

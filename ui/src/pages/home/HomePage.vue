@@ -5,8 +5,8 @@
     <!-- Jediný `h1` na stránke — vlastnú hlavičku homepage nemá, takže nadpis
          zoznamu musí zostať na prvej úrovni, inak osnova začne od `h2`. -->
     <PublicEventList
-      heading="Nadchádzajúce podujatia"
-      subheading="Zoradené podľa najbližšieho termínu."
+      :heading="t('public.home.heading')"
+      :subheading="t('public.home.subheading')"
       heading-level="h1"
     />
   </div>
@@ -18,6 +18,9 @@ import { useHead } from '@vueuse/head'
 import PublicEventList from '@/components/PublicEventList.vue'
 import PosterHero from '@/components/poster/PosterHero.vue'
 import { absoluteUrl, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { useI18n, currentLocale, localeTag } from '@/i18n'
+
+const { t } = useI18n()
 
 /**
  * Homepage ukazuje ten istý katalóg ako `/podujatia`, len s hero sekciou.
@@ -27,7 +30,7 @@ import { absoluteUrl, PUBLIC_EVENTS } from '@/utils/publicUrl'
  * je tá, ktorá má vlastný nadpis a na ktorú vedú landing stránky.
  */
 const canonical = computed(() => absoluteUrl(PUBLIC_EVENTS))
-const description = 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.'
+const description = computed(() => t('public.seo.homeDescription'))
 
 /**
  * `WebSite` s `SearchAction` — vyhľadávaču povie, že portál má vlastné hľadanie
@@ -38,7 +41,7 @@ const websiteJsonLd = computed(() => ({
   '@type': 'WebSite',
   name: 'Event',
   url: absoluteUrl('/'),
-  inLanguage: 'sk',
+  inLanguage: currentLocale(),
   potentialAction: {
     '@type': 'SearchAction',
     target: {
@@ -50,15 +53,16 @@ const websiteJsonLd = computed(() => ({
 }))
 
 useHead(computed(() => ({
-  title: 'Podujatia na Slovensku | Event',
+  title: `${t('public.seo.homeTitle')} | Event`,
   link: [{ rel: 'canonical', href: canonical.value }],
   meta: [
-    { name: 'description', content: description },
+    { name: 'description', content: description.value },
     { property: 'og:type', content: 'website' },
-    { property: 'og:title', content: 'Podujatia na Slovensku' },
-    { property: 'og:description', content: description },
+    { property: 'og:title', content: t('public.seo.homeTitle') },
+    { property: 'og:description', content: description.value },
     { property: 'og:url', content: canonical.value },
-    { property: 'og:locale', content: 'sk_SK' },
+    // og:locale chce podtržník, nie pomlčku („sk_SK“).
+    { property: 'og:locale', content: localeTag().replace('-', '_') },
   ],
   script: [
     { key: 'website-jsonld', type: 'application/ld+json', innerHTML: JSON.stringify(websiteJsonLd.value) },

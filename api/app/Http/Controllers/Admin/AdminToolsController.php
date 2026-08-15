@@ -56,7 +56,7 @@ class AdminToolsController extends Controller
         $run = ToolRunTracker::get($runId);
 
         if ($run === null) {
-            return response()->json(['message' => 'Beh sa nenašiel alebo vypršal.'], 404);
+            return response()->json(['message' => __('tools.errors.run_not_found')], 404);
         }
 
         return response()->json($run);

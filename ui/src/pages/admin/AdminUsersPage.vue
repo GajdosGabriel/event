@@ -1,10 +1,11 @@
 <template>
   <div class="grid gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-slate-900">Používatelia</h1>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ t('nav.users') }}</h1>
       <p class="mt-0.5 text-sm text-slate-500">
         <template v-if="!loading && !error">
-          {{ filteredUsers.length }}{{ filteredUsers.length !== users.length ? ` z ${users.length}` : '' }}
+          {{ filteredUsers.length }}
+          <template v-if="filteredUsers.length !== users.length">{{ t('admin.users.ofTotal', { total: users.length }) }}</template>
           {{ pluralUsers(filteredUsers.length) }}
         </template>
         <template v-else>&nbsp;</template>
@@ -29,7 +30,7 @@
       </template>
     </ResourceFilterBar>
 
-    <p v-if="loading" class="text-slate-600">Načítavam…</p>
+    <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
 
     <div v-else class="panel-card overflow-hidden !p-0">
@@ -37,13 +38,13 @@
         <table class="w-full border-collapse text-sm">
           <thead>
             <tr class="border-b border-slate-200 bg-slate-50 text-left text-[0.7rem] uppercase tracking-wide text-slate-500">
-              <th class="px-4 py-3 font-semibold">Používateľ</th>
-              <th class="px-4 py-3 font-semibold">Role</th>
-              <th class="px-4 py-3 font-semibold">Stav</th>
-              <th class="px-4 py-3 text-center font-semibold">Kanály</th>
-              <th class="px-4 py-3 font-semibold">Registrácia</th>
-              <th class="px-4 py-3 font-semibold">Aktivita</th>
-              <th class="px-4 py-3 text-right font-semibold">Akcie</th>
+              <th class="px-4 py-3 font-semibold">{{ t('admin.users.colUser') }}</th>
+              <th class="px-4 py-3 font-semibold">{{ t('admin.users.colRoles') }}</th>
+              <th class="px-4 py-3 font-semibold">{{ t('admin.users.colStatus') }}</th>
+              <th class="px-4 py-3 text-center font-semibold">{{ t('admin.users.colCanals') }}</th>
+              <th class="px-4 py-3 font-semibold">{{ t('admin.users.colRegistration') }}</th>
+              <th class="px-4 py-3 font-semibold">{{ t('admin.users.colActivity') }}</th>
+              <th class="px-4 py-3 text-right font-semibold">{{ t('admin.users.colActions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -116,12 +117,12 @@
               <td class="px-4 py-3">
                 <div class="flex justify-end">
                   <RowActions>
-                    <RouterLink :to="`/admin/users/${user.id}`" class="row-menu-item block">Upraviť</RouterLink>
+                    <RouterLink :to="`/admin/users/${user.id}`" class="row-menu-item block">{{ t('common.edit') }}</RouterLink>
                     <template v-if="user.deleted_at">
-                      <button class="row-menu-item" @click="restore(user.id as number)">Obnoviť</button>
+                      <button class="row-menu-item" @click="restore(user.id as number)">{{ t('common.restore') }}</button>
                     </template>
                     <template v-else-if="!isSelf(user)">
-                      <button class="row-menu-item row-menu-item-danger" @click="remove(user)">Zmazať</button>
+                      <button class="row-menu-item row-menu-item-danger" @click="remove(user)">{{ t('common.remove') }}</button>
                     </template>
                   </RowActions>
                 </div>
@@ -130,7 +131,7 @@
 
             <tr v-if="!filteredUsers.length">
               <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-400">
-                Žiadni používatelia nezodpovedajú hľadaniu.
+                {{ t('admin.users.empty') }}
               </td>
             </tr>
           </tbody>
@@ -175,10 +176,10 @@ function isSelf(user: Record<string, unknown>): boolean {
 }
 
 const statusOptions = computed<FilterOption[]>(() => [
-  { value: 'active', label: t('filters.users.statuses.active') },
-  { value: 'blocked', label: t('filters.users.statuses.blocked') },
-  { value: 'unverified', label: t('filters.users.statuses.unverified') },
-  { value: 'deleted', label: t('filters.users.statuses.deleted') },
+  { value: 'active', label: t('users.statuses.active') },
+  { value: 'blocked', label: t('users.statuses.blocked') },
+  { value: 'unverified', label: t('users.statuses.unverified') },
+  { value: 'deleted', label: t('users.statuses.deleted') },
 ])
 
 const sortOptions = computed<FilterOption[]>(() => [
@@ -220,7 +221,7 @@ onMounted(async () => {
   loading.value = true
   try {
     ;[users.value, roles.value] = await Promise.all([listUsers(SCOPE), getRoles(SCOPE)])
-  } catch { error.value = 'Nepodarilo sa načítať.' }
+  } catch { error.value = t('admin.users.loadFailed') }
   finally { loading.value = false }
 })
 
@@ -229,16 +230,16 @@ async function restore(userId: number) {
     await restoreUser(userId, SCOPE)
     const user = users.value.find(u => u.id === userId)
     if (user) user.deleted_at = null
-    toast.success('Používateľ obnovený.')
-  } catch { toast.error('Obnova zlyhala.') }
+    toast.success(t('admin.user.restored'))
+  } catch { toast.error(t('admin.user.restoreFailed')) }
 }
 
 async function remove(user: Record<string, unknown>) {
-  if (!confirm(`Naozaj zmazať používateľa ${displayName(user)}?`)) return
+  if (!confirm(t('admin.user.removeConfirm', { name: displayName(user) }))) return
   try {
     await deleteUser(user.id as number, SCOPE)
     user.deleted_at = new Date().toISOString()
-    toast.success('Používateľ zmazaný.')
-  } catch { toast.error('Zmazanie zlyhalo.') }
+    toast.success(t('admin.user.removed'))
+  } catch { toast.error(t('admin.user.removeFailed')) }
 }
 </script>

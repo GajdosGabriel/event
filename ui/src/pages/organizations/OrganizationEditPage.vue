@@ -385,7 +385,8 @@ const lookupOk = ref(false)
 const accountLine = computed(() => {
   const a = accountData.value
   if (!a) return null
-  return [a.name, a.identifiers?.ico ? `IČO ${a.identifiers.ico}` : null].filter(Boolean).join(' · ')
+  return [a.name, a.identifiers?.ico ? `${t('organizations.register.ico')} ${a.identifiers.ico}` : null]
+    .filter(Boolean).join(' · ')
 })
 
 const missingBilling = computed(() => accountData.value?.billing?.missing ?? [])

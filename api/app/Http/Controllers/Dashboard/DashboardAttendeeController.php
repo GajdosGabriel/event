@@ -53,7 +53,7 @@ class DashboardAttendeeController extends Controller
         $recipients = $this->directory->recipients($event);
 
         if ($recipients->isEmpty()) {
-            abort(422, 'Na toto podujatie zatiaľ nie je nikto prihlásený.');
+            abort(422, __('tickets.errors.no_attendees'));
         }
 
         $sender = $request->user();

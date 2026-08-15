@@ -1,23 +1,53 @@
-const DAY_NAMES: Record<number, string> = {
-  0: 'Nedeľa', 1: 'Pondelok', 2: 'Utorok', 3: 'Streda',
-  4: 'Štvrtok', 5: 'Piatok', 6: 'Sobota',
+import { localeTag } from '@/i18n'
+
+/**
+ * Názvy dní a mesiacov berieme z Intl, nie zo slovníka — sú to jediné reťazce,
+ * ktoré vie prehliadač preložiť sám a v každom zo štyroch jazykov správne
+ * skloniť. Do slovníka patrí to, čo sme napísali my.
+ *
+ * Intl vracia deň malým písmenom (sk, cs), preto prvé písmeno zväčšujeme —
+ * v UI stoja názvy dní na začiatku riadku.
+ */
+function capitalize(s: string): string {
+  return s ? s[0].toUpperCase() + s.slice(1) : s
 }
 
 export function dayName(d: string): string {
-  return DAY_NAMES[new Date(d).getDay()] ?? ''
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return ''
+  return capitalize(date.toLocaleDateString(localeTag(), { weekday: 'long' }))
+}
+
+/** Poradie zodpovedá kľúčom otváracích hodín; pondelok je prvý deň týždňa. */
+export const WEEKDAY_KEYS = [
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+] as const
+
+export type WeekdayKey = (typeof WEEKDAY_KEYS)[number]
+
+/**
+ * Názov dňa pre kľúč otváracích hodín („monday" → „Pondelok"). Referenčný
+ * týždeň je ľubovoľný — 1. 6. 2026 je pondelok — a formátuje sa v UTC, aby
+ * posun zóny neposunul aj deň.
+ */
+export function weekdayLabel(key: string): string {
+  const idx = WEEKDAY_KEYS.indexOf(key as WeekdayKey)
+  if (idx < 0) return key
+  const ref = new Date(Date.UTC(2026, 5, 1 + idx))
+  return capitalize(ref.toLocaleDateString(localeTag(), { weekday: 'long', timeZone: 'UTC' }))
 }
 
 export function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 export function fmtTime(d: string): string {
-  return new Date(d).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })
 }
 
 /** „22. júla 2026" — dlhý tvar do textových viet (uzávierka registrácie). */
 export function fmtDateLong(d: string): string {
-  return new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /** Padnú oba časy do toho istého kalendárneho dňa? */

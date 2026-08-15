@@ -51,7 +51,7 @@ class UserController extends Controller
     {
         $user = $this->userRepository->adminShow($id);
         $this->authorize('update', $user);
-        abort_if((int) $user->id === (int) $request->user()->id, 403, 'Nemôžete upraviť vlastný účet.');
+        abort_if((int) $user->id === (int) $request->user()->id, 403, __('users.errors.self_update'));
 
         $blocked = $request->boolean('blocked');
 
@@ -68,7 +68,7 @@ class UserController extends Controller
     {
         $user = $this->userRepository->adminShow($id);
         $this->authorize('delete', $user);
-        abort_if((int) $user->id === (int) request()->user()->id, 403, 'Nemôžete zmazať vlastný účet.');
+        abort_if((int) $user->id === (int) request()->user()->id, 403, __('users.errors.self_delete'));
 
         $this->userRepository->delete($id);
 
