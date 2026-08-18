@@ -27,8 +27,7 @@ class SlideRenderer
         private SlideCanvas $canvas,
         private FontLibrary $fonts,
         private QrCodeGenerator $qr,
-    ) {
-    }
+    ) {}
 
     public function isAvailable(): bool
     {
@@ -62,7 +61,7 @@ class SlideRenderer
     }
 
     /**
-     * @param array<string, mixed> $palette
+     * @param  array<string, mixed>  $palette
      */
     private function paintBackground(GdImage $image, SlideSpec $spec, array $palette, ?GdImage $photo): void
     {
@@ -135,7 +134,7 @@ class SlideRenderer
      * Vnútorné odsadenie karty JE tichá zóna QR kódu — viď SlideSpec. Zmenšiť
      * ho znamená rozbiť skenovanie, hoci na obrázku to nevidno.
      *
-     * @param array<string, mixed> $palette
+     * @param  array<string, mixed>  $palette
      */
     private function paintCard(GdImage $image, SlideSpec $spec, array $palette, SlideContent $content): void
     {
@@ -187,7 +186,7 @@ class SlideRenderer
      * v dostupnom pruhu — inak by krátky názov visel pri hornom okraji a dlhý
      * by pretiekol dole.
      *
-     * @param array<string, mixed> $palette
+     * @param  array<string, mixed>  $palette
      */
     private function paintTextColumn(GdImage $image, SlideSpec $spec, array $palette, SlideContent $content, ?GdImage $photo): void
     {
@@ -289,33 +288,18 @@ class SlideRenderer
         }
 
         if (filled($content->subtitle) && $dropped < 2) {
-            $rows[] = $this->textRow(
-                $this->truncate($this->canvas->sanitizeText($content->subtitle), $this->fonts->regular(), $spec->subtitleSize, $spec->textW),
-                $this->fonts->regular(),
-                $spec->subtitleSize,
-                $mutedColor,
-                1.5,
-            );
+            $fit = $this->fitMetaLine($this->canvas->sanitizeText($content->subtitle), $this->fonts->regular(), $spec->subtitleSize, $spec->textW);
+            $rows[] = $this->textRow($fit['text'], $this->fonts->regular(), $fit['size'], $mutedColor, 1.5);
         }
 
         if (filled($content->when)) {
-            $rows[] = $this->textRow(
-                $this->truncate($this->canvas->sanitizeText($content->when), $this->fonts->semibold(), $spec->metaSize, $spec->textW),
-                $this->fonts->semibold(),
-                $spec->metaSize,
-                $textColor,
-                1.28,
-            );
+            $fit = $this->fitMetaLine($this->canvas->sanitizeText($content->when), $this->fonts->semibold(), $spec->metaSize, $spec->textW);
+            $rows[] = $this->textRow($fit['text'], $this->fonts->semibold(), $fit['size'], $textColor, 1.28);
         }
 
         if (filled($content->where) && $dropped < 1) {
-            $rows[] = $this->textRow(
-                $this->truncate($this->canvas->sanitizeText($content->where), $this->fonts->regular(), $spec->metaSize, $spec->textW),
-                $this->fonts->regular(),
-                $spec->metaSize,
-                $mutedColor,
-                1.28,
-            );
+            $fit = $this->fitMetaLine($this->canvas->sanitizeText($content->where), $this->fonts->regular(), $spec->metaSize, $spec->textW);
+            $rows[] = $this->textRow($fit['text'], $this->fonts->regular(), $fit['size'], $mutedColor, 1.28);
         }
 
         return $rows;
@@ -348,7 +332,29 @@ class SlideRenderer
         return (int) round(($metrics['ascent'] + $metrics['descent']) * $lineFactor);
     }
 
-    /** Jednoriadkový text sa neláme — keď je dlhý, skráti sa tromi bodkami. */
+    /**
+     * Jednoriadkový sprievodný text (termín, miesto, názov podujatia).
+     *
+     * Najprv sa skúsi zmenšiť písmo — odseknutý dátum („22. 11. 2026, 00:…")
+     * je horší než o dva body menší, ale celý. Skracovanie tromi bodkami je až
+     * posledná záchrana, keď ani najmenšia veľkosť nestačí.
+     *
+     * @return array{size: int, text: string}
+     */
+    private function fitMetaLine(string $text, string $font, int $maxSize, int $maxWidth): array
+    {
+        $minSize = max(10, (int) round($maxSize * 0.72));
+
+        for ($size = $maxSize; $size >= $minSize; $size -= 2) {
+            if ($this->canvas->textWidth($font, $size, $text) <= $maxWidth) {
+                return ['size' => $size, 'text' => $text];
+            }
+        }
+
+        return ['size' => $minSize, 'text' => $this->truncate($text, $font, $minSize, $maxWidth)];
+    }
+
+    /** Skrátenie tromi bodkami — posledná záchrana pre fitMetaLine(). */
     private function truncate(string $text, string $font, int $size, int $maxWidth): string
     {
         if ($text === '' || $this->canvas->textWidth($font, $size, $text) <= $maxWidth) {
@@ -357,11 +363,11 @@ class SlideRenderer
 
         $chars = mb_str_split($text);
 
-        while ($chars !== [] && $this->canvas->textWidth($font, $size, implode('', $chars) . '…') > $maxWidth) {
+        while ($chars !== [] && $this->canvas->textWidth($font, $size, implode('', $chars).'…') > $maxWidth) {
             array_pop($chars);
         }
 
-        return rtrim(implode('', $chars)) . '…';
+        return rtrim(implode('', $chars)).'…';
     }
 
     /** Prvé písmená prvých dvoch slov — náhrada za chýbajúcu fotku kanála. */

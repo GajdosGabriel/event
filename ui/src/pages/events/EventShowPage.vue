@@ -25,6 +25,9 @@
         <button v-else-if="event.permissions.duplicate" type="button" class="action-btn" @click="duplicate">{{ t('common.copy') }}</button>
         <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">{{ t('events.show.tickets') }}</RouterLink>
         <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">{{ t('events.show.checkin') }}</RouterLink>
+        <!-- Otázky z publika. Cesta je dashboardová aj v admin režime, rovnako
+             ako lístky a check-in vyššie — nástenku spravuje organizátor. -->
+        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn">{{ t('questions.dashboard.tab') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
           :class="statusClass(event.status)">{{ event.status }}</span>
       </div>
