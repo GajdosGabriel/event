@@ -180,6 +180,9 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && auth.isAuthenticated && !auth.identity) {
     await auth.fetchIdentity()
+    if (!auth.isAuthenticated) {
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
   }
 
   if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
