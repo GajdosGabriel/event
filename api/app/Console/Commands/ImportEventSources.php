@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Services\Imports\EventImportService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class ImportEventSources extends Command
 {
@@ -40,11 +39,6 @@ class ImportEventSources extends Command
             'processed' => 0,
         ];
 
-        // Párový záznam k súhrnu nižšie: keď je v logu štart bez súhrnu, beh sa
-        // nedokončil (timeout, fatal). Keď chýba aj štart, scheduler príkaz
-        // vôbec nespustil. Bez toho sa tieto dva prípady nedali rozlíšiť.
-        Log::info('Event import started.', ['source_urls' => array_values($urls), 'force' => $force]);
-
         foreach ($urls as $url) {
             $summary = $importService->importFromListing(
                 (string) $url,
@@ -61,12 +55,6 @@ class ImportEventSources extends Command
                 $summary['skipped'],
                 $summary['errors'],
             ));
-
-            // Výstup príkazu ide pri behu cez scheduler do prázdna, takže súhrn
-            // patrí aj do logu. Bez neho sa nedalo odlíšiť „zdroj nedodal nič"
-            // od „na zdroj sa vôbec nedostalo" — presne to zakrylo, že
-            // vyveska.sk sa v jednom spoločnom behu nikdy nespracovala.
-            Log::info('Event import source finished.', ['source_url' => $url] + $summary);
 
             foreach ($total as $key => $value) {
                 $total[$key] += $summary[$key];
