@@ -12,7 +12,7 @@
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
         <RouterLink v-if="venue.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(venue.status)">{{ venue.status }}</span>
+          :class="statusClass(venue.status)">{{ statusLabel('venues', venue.status) }}</span>
       </div>
 
       <!-- Hero obrázok -->
@@ -173,6 +173,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 import type { VenueItem } from '@/types'
+import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -202,6 +203,7 @@ function statusClass(status: string) {
     published: 'bg-green-100 text-green-800',
     draft: 'bg-amber-100 text-amber-800',
     archived: 'bg-slate-100 text-slate-600',
+    blocked: 'bg-red-100 text-red-800',
   }[status] ?? 'bg-slate-100 text-slate-600'
 }
 

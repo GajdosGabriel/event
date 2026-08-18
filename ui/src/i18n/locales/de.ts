@@ -420,6 +420,7 @@ const de: Messages = {
       draft: 'Entwurf',
       published: 'Veröffentlicht',
       archived: 'Archiviert',
+      blocked: 'Gesperrt',
     },
     legalForms: {
       sro: 'Gesellschaft mit beschränkter Haftung',
@@ -770,6 +771,7 @@ const de: Messages = {
       scheduled: 'Geplant',
       published: 'Veröffentlicht',
       archived: 'Archiviert',
+      blocked: 'Gesperrt',
     },
     tickets: {
       createHint: 'Tickets und Anmeldung richten Sie nach dem Anlegen der Veranstaltung im eigenen Bereich „Tickets“ ein.',
@@ -876,6 +878,7 @@ const de: Messages = {
       draft: 'Entwurf',
       published: 'Veröffentlicht',
       archived: 'Archiviert',
+      blocked: 'Gesperrt',
     },
     detect: {
       show: 'Mit KI ausfüllen',
@@ -906,6 +909,12 @@ const de: Messages = {
       notFound: 'Kanal nicht gefunden',
       members: 'Mitglieder',
       events: 'Veranstaltungen des Kanals',
+    },
+    statuses: {
+      draft: 'Entwurf',
+      published: 'Veröffentlicht',
+      archived: 'Archiviert',
+      blocked: 'Gesperrt',
     },
     form: {
       back: '← Zurück',

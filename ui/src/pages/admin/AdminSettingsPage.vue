@@ -30,7 +30,7 @@
           <li v-for="org in orgs" :key="org.id" class="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
             <span class="flex-1 font-medium text-slate-900">{{ org.title }}</span>
             <span v-if="org.accountUuid" class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{{ t('admin.settings.inAccount') }}</span>
-            <span class="text-xs text-slate-500">{{ org.status }}</span>
+            <span class="text-xs text-slate-500">{{ statusLabel('organizations', org.status) }}</span>
             <!-- Úprava vrátane fakturačných údajov je na vlastnej stránke;
                  modál by musel duplikovať celý formulár aj napojenie na Account. -->
             <RouterLink :to="`/admin/organizations/${org.id}/edit`" class="action-btn">{{ t('admin.settings.edit') }}</RouterLink>
@@ -51,6 +51,7 @@ import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useSettings, PER_PAGE_OPTIONS } from '@/composables/useSettings'
 import FormField from '@/components/FormField.vue'
+import { statusLabel } from '@/utils/statusLabel'
 
 const perPageOptions = PER_PAGE_OPTIONS.map(n => ({ value: n, label: t('admin.settings.perPage', { n }) }))
 

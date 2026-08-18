@@ -12,7 +12,7 @@
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
         <RouterLink v-if="canal.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(canal.status)">{{ canal.status }}</span>
+          :class="statusClass(canal.status)">{{ statusLabel('canals', canal.status) }}</span>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -177,6 +177,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
+import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -198,6 +199,7 @@ function statusClass(status: string) {
     published: 'bg-green-100 text-green-800',
     draft: 'bg-amber-100 text-amber-800',
     archived: 'bg-slate-100 text-slate-600',
+    blocked: 'bg-red-100 text-red-800',
   }[status] ?? 'bg-slate-100 text-slate-600'
 }
 

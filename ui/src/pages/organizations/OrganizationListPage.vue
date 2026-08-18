@@ -16,7 +16,7 @@
           class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 p-3">
           <span class="flex-1 min-w-40 font-medium text-slate-900">{{ org.title }}</span>
 
-          <span class="text-xs text-slate-500">{{ statusLabel(org.status) }}</span>
+          <span class="text-xs text-slate-500">{{ statusLabel('organizations', org.status) }}</span>
 
           <!-- Komu firma patrí, sa pozná podľa kanálov — ľudia visia na nich,
                nie na firme. Detail ukáže aj mená a role. -->
@@ -46,9 +46,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listOrganizations, deleteOrganization } from '@/api/organizations'
-import type { ModelStatus, OrganizationItem } from '@/types'
+import type { OrganizationItem } from '@/types'
 import { useToast } from '@/composables/useToast'
-import { useI18n, type MessageKey } from '@/i18n'
+import { useI18n } from '@/i18n'
+import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const toast = useToast()
@@ -59,17 +60,6 @@ const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const orgs = ref<OrganizationItem[]>([])
 const loading = ref(true)
 const loadError = ref<string | null>(null)
-
-const STATUS_KEYS: Record<string, MessageKey> = {
-  draft: 'organizations.statuses.draft',
-  published: 'organizations.statuses.published',
-  archived: 'organizations.statuses.archived',
-}
-
-function statusLabel(status: ModelStatus) {
-  const key = STATUS_KEYS[status]
-  return key ? t(key) : status
-}
 
 /** Firma bez kanála nemá za koho fakturovať — preto to nie je len číslo. */
 function canalsLabel(count: number) {

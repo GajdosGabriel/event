@@ -52,61 +52,53 @@ class File extends Model
         return $this->morphTo();
     }
 
+    /**
+     * URL adresy sa skladajú výhradne z toho, čo je v databáze — žiadne
+     * overovanie cez `exists()`.
+     *
+     * Na S3 je `exists()` sieťová požiadavka (HEAD). Tri accessory v $appends,
+     * každý s tromi vetvami, znamenali až deväť volaní na riadok — výpis
+     * podujatí trval desiatky sekúnd, hoci samotný SQL dotaz desiatky
+     * milisekúnd. Stĺpce `thumb`/`large` zapisuje GenerateFileVariantsJob až po
+     * úspešnom uložení variantu, takže vyplnený stĺpec = existujúci objekt.
+     */
     public function getOriginalFileUrlAttribute(): ?string
     {
-        $filesystem = $this->filesystem();
-
-        if ($this->path && $filesystem->exists($this->path)) {
-            return $filesystem->url($this->path);
-        }
-
-        if ($this->large && $filesystem->exists($this->large)) {
-            return $filesystem->url($this->large);
-        }
-
-        if ($this->thumb && $filesystem->exists($this->thumb)) {
-            return $filesystem->url($this->thumb);
-        }
-
-        return null;
+        return $this->urlFor($this->originalPath())
+            ?? $this->urlFor($this->large)
+            ?? $this->urlFor($this->thumb);
     }
 
     public function getThumbImageUrlAttribute(): ?string
     {
-        $filesystem = $this->filesystem();
-
-        if ($this->thumb && $filesystem->exists($this->thumb)) {
-            return $filesystem->url($this->thumb);
-        }
-
-        if ($this->isImage() && $this->path && $filesystem->exists($this->path)) {
-            return $filesystem->url($this->path);
-        }
-
-        if ($this->large && $filesystem->exists($this->large)) {
-            return $filesystem->url($this->large);
-        }
-
-        return null;
+        return $this->urlFor($this->thumb)
+            ?? ($this->isImage() ? $this->urlFor($this->originalPath()) : null)
+            ?? $this->urlFor($this->large);
     }
 
     public function getLargeImageUrlAttribute(): ?string
     {
-        $filesystem = $this->filesystem();
+        return $this->urlFor($this->large)
+            ?? ($this->isImage() ? $this->urlFor($this->originalPath()) : null)
+            ?? $this->urlFor($this->thumb);
+    }
 
-        if ($this->large && $filesystem->exists($this->large)) {
-            return $filesystem->url($this->large);
-        }
+    /**
+     * Originál, ktorý ešte leží na disku. GenerateFileVariantsJob po vytvorení
+     * variantov pôvodný súbor maže, ale stĺpec `path` necháva — zmazanie si
+     * značí do `meta`. Bez tejto kontroly by accessory vracali mŕtvu URL
+     * namiesto toho, aby prepadli na `large`/`thumb`.
+     */
+    private function originalPath(): ?string
+    {
+        $deleted = data_get($this->meta, 'variant_generation.original_deleted') === true;
 
-        if ($this->isImage() && $this->path && $filesystem->exists($this->path)) {
-            return $filesystem->url($this->path);
-        }
+        return $deleted ? null : $this->path;
+    }
 
-        if ($this->thumb && $filesystem->exists($this->thumb)) {
-            return $filesystem->url($this->thumb);
-        }
-
-        return null;
+    private function urlFor(?string $path): ?string
+    {
+        return $path ? $this->filesystem()->url($path) : null;
     }
 
     private function isImage(): bool

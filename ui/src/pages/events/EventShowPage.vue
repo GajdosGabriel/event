@@ -29,7 +29,7 @@
              ako lístky a check-in vyššie — nástenku spravuje organizátor. -->
         <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn">{{ t('questions.dashboard.tab') }}</RouterLink>
         <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(event.status)">{{ event.status }}</span>
+          :class="statusClass(event.status)">{{ statusLabel('events', event.status) }}</span>
       </div>
 
       <!-- Title (without hero) -->
@@ -271,6 +271,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import { useToast } from '@/composables/useToast'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n, localeTag } from '@/i18n'
+import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -347,6 +348,7 @@ function statusClass(status: string) {
     scheduled: 'bg-blue-100 text-blue-800',
     pending_review: 'bg-purple-100 text-purple-800',
     rejected: 'bg-red-100 text-red-800',
+    blocked: 'bg-red-100 text-red-800',
   }[status] ?? 'bg-slate-100 text-slate-600'
 }
 

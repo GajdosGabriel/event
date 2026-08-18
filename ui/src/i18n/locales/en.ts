@@ -420,6 +420,7 @@ const en: Messages = {
       draft: 'Draft',
       published: 'Published',
       archived: 'Archived',
+      blocked: 'Blocked',
     },
     legalForms: {
       sro: 'Limited liability company',
@@ -770,6 +771,7 @@ const en: Messages = {
       scheduled: 'Scheduled',
       published: 'Published',
       archived: 'Archived',
+      blocked: 'Blocked',
     },
     tickets: {
       createHint: 'You can set up tickets and registration once the event exists, in the separate “Tickets” section.',
@@ -876,6 +878,7 @@ const en: Messages = {
       draft: 'Draft',
       published: 'Published',
       archived: 'Archived',
+      blocked: 'Blocked',
     },
     detect: {
       show: 'Fill in with AI',
@@ -906,6 +909,12 @@ const en: Messages = {
       notFound: 'Channel not found',
       members: 'Members',
       events: 'Events of the channel',
+    },
+    statuses: {
+      draft: 'Draft',
+      published: 'Published',
+      archived: 'Archived',
+      blocked: 'Blocked',
     },
     form: {
       back: '← Back',

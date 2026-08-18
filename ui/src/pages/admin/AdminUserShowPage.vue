@@ -97,7 +97,7 @@
                   class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors hover:bg-slate-50">
                   <span class="min-w-0 truncate font-medium text-slate-800">{{ c.name }}</span>
                   <span class="shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-wide"
-                    :class="canalStatusClass(c.status)">{{ c.status }}</span>
+                    :class="canalStatusClass(c.status)">{{ statusLabel('canals', c.status) }}</span>
                 </RouterLink>
               </li>
             </ul>
@@ -194,6 +194,7 @@ import {
   displayName, initials, avatarColor, roleLabel, roleClass,
   statusOf, providerMeta, relTime, fullDate,
 } from '@/utils/userDisplay'
+import { statusLabel } from '@/utils/statusLabel'
 
 const SCOPE = 'admin' as const
 

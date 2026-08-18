@@ -419,6 +419,7 @@ const cs: Messages = {
       draft: 'Koncept',
       published: 'Publikovaná',
       archived: 'Archivovaná',
+      blocked: 'Blokovaná',
     },
     legalForms: {
       sro: 'Společnost s ručením omezeným',
@@ -769,6 +770,7 @@ const cs: Messages = {
       scheduled: 'Naplánovaná',
       published: 'Publikovaná',
       archived: 'Archivovaná',
+      blocked: 'Blokovaná',
     },
     tickets: {
       createHint: 'Vstupenky a registraci nastavíte po vytvoření akce v samostatné sekci „Vstupenky“.',
@@ -875,6 +877,7 @@ const cs: Messages = {
       draft: 'Koncept',
       published: 'Publikované',
       archived: 'Archivované',
+      blocked: 'Blokované',
     },
     detect: {
       show: 'Vyplnit pomocí AI',
@@ -905,6 +908,12 @@ const cs: Messages = {
       notFound: 'Kanál nenalezen',
       members: 'Členové',
       events: 'Akce kanálu',
+    },
+    statuses: {
+      draft: 'Koncept',
+      published: 'Publikovaný',
+      archived: 'Archivovaný',
+      blocked: 'Blokovaný',
     },
     form: {
       back: '← Zpět',

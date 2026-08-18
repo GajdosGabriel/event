@@ -445,6 +445,7 @@ const sk = {
       draft: 'Koncept',
       published: 'Publikovaná',
       archived: 'Archivovaná',
+      blocked: 'Blokovaná',
     },
     // Číselníky drží Account (App\Enums); hodnoty sa neprekladajú, len popisky.
     legalForms: {
@@ -817,6 +818,7 @@ const sk = {
       scheduled: 'Naplánovaný',
       published: 'Publikovaný',
       archived: 'Archivovaný',
+      blocked: 'Blokovaný',
     },
     tickets: {
       createHint: 'Lístky a registráciu nastavíte po vytvorení eventu v samostatnej sekcii „Lístky“.',
@@ -926,6 +928,7 @@ const sk = {
       draft: 'Koncept',
       published: 'Publikovaný',
       archived: 'Archivovaný',
+      blocked: 'Blokovaný',
     },
     // Predvyplnenie miesta z AI. Formulár sa prepíše až po potvrdení, aby
     // ručne zadané údaje nezmizli jedným kliknutím.
@@ -959,6 +962,12 @@ const sk = {
       notFound: 'Kanál nenájdený',
       members: 'Členovia',
       events: 'Eventy kanálu',
+    },
+    statuses: {
+      draft: 'Koncept',
+      published: 'Publikovaný',
+      archived: 'Archivovaný',
+      blocked: 'Blokovaný',
     },
     form: {
       back: '← Späť',
