@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\StringLength250;
 use App\Casts\Website;
+use App\Contracts\HasQuestionBoard;
 use App\Contracts\Messageable;
 use App\Enums\ModelStatus;
 use App\Models\Traits\HasCheckedAttributes;
@@ -11,6 +12,7 @@ use App\Models\Traits\HasCommonFilters;
 use App\Models\Traits\HasFile;
 use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
+use App\Models\Traits\InteractsAsQuestionBoard;
 use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,9 +20,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
-class Event extends Model implements Messageable
+class Event extends Model implements HasQuestionBoard, Messageable
 {
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, InteractsAsQuestionBoard, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool
@@ -85,6 +87,17 @@ class Event extends Model implements Messageable
         $owner = $this->user;
 
         return $owner && $owner->canReceiveMessages() ? $owner : null;
+    }
+
+    /** Nástenka otázok na podujatí patrí samotnému podujatiu. */
+    public function questionBoardEvent(): ?Event
+    {
+        return $this;
+    }
+
+    public function questionBoardTitle(): string
+    {
+        return (string) $this->name;
     }
 
     public function venue()

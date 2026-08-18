@@ -13,6 +13,12 @@ export const PUBLIC_EVENTS = '/podujatia'
 export const PUBLIC_VENUES = '/miesta'
 export const PUBLIC_CANALS = '/organizatori'
 
+/**
+ * Nástenka otázok z publika. Zámerne nie slovenské slovo ako ostatné cesty —
+ * táto adresa sa premieta na plátno a ľudia si ju prepisujú rukou.
+ */
+export const PUBLIC_QUESTIONS = '/q'
+
 interface Sluggable {
   id: number
   name?: string
@@ -47,6 +53,14 @@ export function publicTagPath(slug: string): string {
 
 export function publicWeekendPath(): string {
   return `${PUBLIC_EVENTS}/tento-vikend`
+}
+
+export function publicQuestionBoardPath(token: string): string {
+  return `${PUBLIC_QUESTIONS}/${token}`
+}
+
+export function publicQuestionWallPath(token: string): string {
+  return `${PUBLIC_QUESTIONS}/${token}/stena`
 }
 
 /**

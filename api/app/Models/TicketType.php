@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Contracts\HasQuestionBoard;
 use App\Enums\AdmissionStatus;
 use App\Enums\TicketTypeKind;
+use App\Models\Traits\InteractsAsQuestionBoard;
 use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class TicketType extends Model
+class TicketType extends Model implements HasQuestionBoard
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, InteractsAsQuestionBoard, SoftDeletes;
 
     protected $guarded = [];
 
@@ -40,6 +42,24 @@ class TicketType extends Model
     public function isWorkshop(): bool
     {
         return $this->kind === TicketTypeKind::Workshop;
+    }
+
+    /**
+     * Nástenka otázok na workshope dedí viditeľnosť aj práva od podujatia.
+     * Bežný typ lístka („Štandard", „VIP") nástenku nedostane — pýtať sa dá na
+     * program, nie na cenovú hladinu. Rozhoduje o tom volajúci; model tu len
+     * povie, kam workshop patrí.
+     */
+    public function questionBoardEvent(): ?Event
+    {
+        return $this->relationLoaded('event')
+            ? $this->getRelation('event')
+            : $this->event()->first();
+    }
+
+    public function questionBoardTitle(): string
+    {
+        return (string) $this->name;
     }
 
     /** Workshop otvorený aj pre neregistrovaných — nevyžaduje hlavnú vstupenku. */

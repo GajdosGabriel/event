@@ -43,6 +43,16 @@ final class PublicUrl
     /** Landing „tento víkend". */
     public const THIS_WEEKEND = 'tento-vikend';
 
+    /**
+     * Nástenka otázok z publika. Jediná verejná cesta, ktorá nie je slovenské
+     * slovo — a je to zámer: adresa sa premieta na plátno a ľudia v zadnom rade
+     * si ju prepisujú rukou do telefónu, takže každý znak navyše je cena.
+     */
+    public const QUESTIONS = 'q';
+
+    /** Premietacia stena tej istej nástenky (projektor, nie telefón). */
+    public const QUESTIONS_WALL = 'stena';
+
     public static function base(): string
     {
         return rtrim((string) config('app.frontend_url'), '/');
@@ -121,6 +131,21 @@ final class PublicUrl
     public static function thisWeekend(): string
     {
         return self::absolute(self::thisWeekendPath());
+    }
+
+    public static function questionBoardPath(string $token): string
+    {
+        return self::QUESTIONS.'/'.$token;
+    }
+
+    public static function questionBoard(string $token): string
+    {
+        return self::absolute(self::questionBoardPath($token));
+    }
+
+    public static function questionWall(string $token): string
+    {
+        return self::absolute(self::questionBoardPath($token).'/'.self::QUESTIONS_WALL);
     }
 
     /**

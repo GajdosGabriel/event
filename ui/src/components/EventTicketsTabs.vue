@@ -30,12 +30,14 @@ const tabs = computed(() => [
   { name: 'settings', label: t('tickets.tabs.settings'), to: `/dashboard/events/${props.eventId}/tickets` },
   { name: 'attendees', label: t('tickets.tabs.attendees'), to: `/dashboard/events/${props.eventId}/attendees` },
   { name: 'checkin', label: t('tickets.tabs.checkin'), to: `/dashboard/events/${props.eventId}/checkin` },
+  { name: 'questions', label: t('questions.dashboard.tab'), to: `/dashboard/events/${props.eventId}/otazky` },
 ])
 
 function isActive(name: string): boolean {
   if (name === 'settings') return String(route.name ?? '').startsWith('dashboard-events-tickets')
   if (name === 'attendees') return route.name === 'dashboard-events-attendees'
   if (name === 'checkin') return route.name === 'dashboard-events-checkin'
+  if (name === 'questions') return route.name === 'dashboard-events-questions'
   return false
 }
 </script>

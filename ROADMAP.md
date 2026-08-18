@@ -161,6 +161,7 @@ platobná brána čo spracovať.
 | 3.5 | ~~Export účastníkov (CSV), hromadný e-mail účastníkom, pripomienka pred akciou~~ **HOTOVÉ** | Kto je účastník, rieši jedno miesto — [AttendeeDirectory](api/app/Services/Events/AttendeeDirectory.php). CSV s BOM a bodkočiarkou pre slovenský Excel ([AttendeeCsv](api/app/Services/Events/AttendeeCsv.php)), hromadný e-mail cez frontu ([EventAnnouncement](api/app/Notifications/EventAnnouncement.php)), pripomienka X hodín pred začiatkom podľa `events.reminder_hours_before` (príkaz `app:events-send-reminders`, poistka `reminder_sent_at`) |
 | 3.6 | ~~Naplánované publikovanie~~ **HOTOVÉ** | `events.publish_at` + stav `scheduled`; preklápa ho `app:events-publish-scheduled` každých päť minút. `published_at` ostáva časom **prvého** zverejnenia. Verejný detail odvtedy filtruje stav ([`publicShow`](api/app/Repositories/Eloquent/EloquentEventRepository.php)) — predtým sa dal koncept prečítať uhádnutím id |
 | 3.7 | Check-in na viacerých zariadeniach + offline režim | |
+| 3.8 | ~~**Otázky z publika**~~ **HOTOVÉ** | QR snímka na plátno → `/q/{token}` → otázka bez registrácie. Nástenka je polymorfná (podujatie aj workshop), moderovanie, hlasovanie a premietacia stena s pollingom. Snímka sa vykresľuje v GD a **nikde sa neukladá** — vzniká pri každom stiahnutí, aj ako `.pptx` s jednou snímkou. Popis: [api/docs/questions-qa.md](api/docs/questions-qa.md) |
 
 ### Fáza 4 — Diferenciácia
 

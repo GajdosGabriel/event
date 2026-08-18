@@ -2,6 +2,7 @@
 
 namespace App\Services\Views;
 
+use App\Support\VisitorPseudonym;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -10,10 +11,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * Započíta zobrazenie verejného detailu.
  *
- * Návštevníka rozpoznáva pseudonymom, nie cookie: sha256 z IP, user-agenta,
- * aplikačného kľúča a dnešného dátumu. IP sa nikam neukladá a keďže je v hashi
- * dátum, pseudonym sa každý deň mení — z tabuľky sa teda nedá poskladať, čo
- * konkrétny človek prezeral naprieč dňami.
+ * Návštevníka rozpoznáva pseudonymom, nie cookie — viď VisitorPseudonym.
  *
  * Nikdy nevyhadzuje výnimku: zlyhanie štatistiky nesmie zhodiť zobrazenie
  * stránky.
@@ -42,7 +40,7 @@ class ViewRecorder
             $inserted = DB::table('views')->insertOrIgnore([
                 'viewable_type' => $model->getMorphClass(),
                 'viewable_id' => $model->getKey(),
-                'visitor_hash' => $this->visitorHash($request),
+                'visitor_hash' => VisitorPseudonym::forRequest($request),
                 'viewed_on' => now()->toDateString(),
                 'created_at' => now(),
             ]);
@@ -82,15 +80,5 @@ class ViewRecorder
         }
 
         return true;
-    }
-
-    private function visitorHash(Request $request): string
-    {
-        return hash('sha256', implode('|', [
-            (string) $request->ip(),
-            (string) $request->userAgent(),
-            (string) config('app.key'),
-            now()->toDateString(),
-        ]));
     }
 }

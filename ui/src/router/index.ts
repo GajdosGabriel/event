@@ -55,6 +55,13 @@ const router = createRouter({
         { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
+        // Otázky z publika. Jediná verejná cesta bez slovenského slova — adresa
+        // sa premieta na plátno a ľudia v zadnom rade si ju prepisujú rukou,
+        // takže každý znak navyše je cena. Segment drží PublicUrl.QUESTIONS
+        // na backende a jeho dvojička v utils/publicUrl.ts.
+        { path: 'q/:token', name: 'question-board', component: () => import('@/pages/questions/QuestionBoardPage.vue') },
+        // Premietacia stena tej istej nástenky — pre projektor, nie pre telefón.
+        { path: 'q/:token/stena', name: 'question-wall', component: () => import('@/pages/questions/QuestionWallPage.vue') },
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
@@ -92,6 +99,7 @@ const router = createRouter({
         { path: 'events/:id/tickets/:typeId/edit', name: 'dashboard-events-tickets-edit', component: () => import('@/pages/events/EventTicketTypeEditPage.vue') },
         { path: 'events/:id/attendees', name: 'dashboard-events-attendees', component: () => import('@/pages/events/EventAttendeesPage.vue') },
         { path: 'events/:id/checkin', name: 'dashboard-events-checkin', component: () => import('@/pages/events/EventCheckinScannerPage.vue') },
+        { path: 'events/:id/otazky', name: 'dashboard-events-questions', component: () => import('@/pages/events/EventQuestionsPage.vue') },
         { path: 'canals', name: 'dashboard-canals', component: ResourceIndex, props: { resource: 'canal' } },
         { path: 'canals/create', name: 'dashboard-canals-create', component: () => import('@/pages/canals/CanalEditPage.vue') },
         { path: 'canals/:id', name: 'dashboard-canals-show', component: () => import('@/pages/canals/CanalShowPage.vue') },

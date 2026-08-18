@@ -22,6 +22,7 @@ use App\Http\Controllers\Dashboard\DashboardHomeController;
 use App\Http\Controllers\Dashboard\DashboardMessageController;
 use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
 use App\Http\Controllers\Dashboard\DashboardOrganizationController;
+use App\Http\Controllers\Dashboard\DashboardQuestionController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
 use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
@@ -40,6 +41,9 @@ use App\Http\Controllers\Public\MessageController as PublicMessageController;
 use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
 use App\Http\Controllers\Public\PosterController as PublicPosterController;
 use App\Http\Controllers\Public\PrerenderController;
+use App\Http\Controllers\Public\QuestionBoardController as PublicQuestionBoardController;
+use App\Http\Controllers\Public\QuestionController as PublicQuestionController;
+use App\Http\Controllers\Public\QuestionSlideController as PublicQuestionSlideController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\TagController as PublicTagController;
 use App\Http\Controllers\Public\TicketController as PublicTicketController;
@@ -166,6 +170,41 @@ Route::post('rsvp/{token}/confirm', [PublicAttendeeRsvpController::class, 'confi
 Route::post('rsvp/{token}/decline', [PublicAttendeeRsvpController::class, 'decline'])
     ->name('public.rsvp.decline')
     ->middleware('throttle:public-write');
+
+// Otázky z publika. Adresa `/q/{token}` sa premieta na plátno a ľudia si ju
+// prepisujú rukou, preto je taká krátka; token v nej je autorizáciou (rovnaká
+// konvencia ako RSVP vyššie). Vkladá anonym bez účtu — ochrana je vrstvená,
+// popis je v App\Services\Questions\QuestionSubmitter.
+Route::get('q/{token}', [PublicQuestionBoardController::class, 'show'])
+    ->name('public.questions.show');
+// Polling namiesto websocketu: hosting nemá shell ani démona (fronta beží cez
+// webcron), takže trvalé spojenie nemá kto obsluhovať. Limit je vyšší než
+// `public-write`, lebo v sále sa každých pár sekúnd pýta celá miestnosť.
+Route::get('q/{token}/stream', [PublicQuestionBoardController::class, 'stream'])
+    ->name('public.questions.stream')
+    ->middleware('throttle:120,1');
+Route::post('q/{token}/questions', [PublicQuestionController::class, 'store'])
+    ->name('public.questions.store')
+    ->middleware('throttle:questions');
+Route::post('q/{token}/questions/{question}/vote', [PublicQuestionController::class, 'vote'])
+    ->name('public.questions.vote')
+    ->middleware('throttle:public-write');
+Route::delete('q/{token}/questions/{question}/vote', [PublicQuestionController::class, 'unvote'])
+    ->name('public.questions.unvote')
+    ->middleware('throttle:public-write');
+// Snímka na plátno. Prípona je súčasťou cesty, aby prehliadač aj PowerPoint
+// poznali typ už podľa adresy — rovnako ako pri `calendar.ics`.
+Route::get('q/{token}/slide.png', [PublicQuestionSlideController::class, 'png'])
+    ->name('public.questions.slide.png')
+    ->middleware('throttle:render');
+// Samotný QR kód do rohu premietacej steny. Vlastný endpoint, lebo zmenšená
+// snímka by v tej veľkosti bola nenaskenovateľná miniatúra.
+Route::get('q/{token}/qr.png', [PublicQuestionSlideController::class, 'qr'])
+    ->name('public.questions.qr')
+    ->middleware('throttle:render');
+Route::get('q/{token}/slide.pptx', [PublicQuestionSlideController::class, 'pptx'])
+    ->name('public.questions.slide.pptx')
+    ->middleware('throttle:render');
 
 // Pozvánka do tímu kanála z e-mailu. Detail je verejný (autorizuje token
 // v odkaze), prijatie vyžaduje prihlásený účet s rovnakou adresou.
@@ -298,6 +337,31 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('permission:event.update');
     Route::put('events/{event}/ticketing', [DashboardTicketController::class, 'settings'])
         ->name('events.ticketing.settings')
+        ->middleware('permission:event.update');
+
+    // Nástenky otázok. `event.view` stačí na prezeranie, všetko ostatné (vrátane
+    // moderovania) je `event.update` — schválená otázka sa objaví na plátne
+    // pred sálou, takže je to publikovanie v mene organizátora.
+    Route::get('events/{event}/question-boards', [DashboardQuestionController::class, 'index'])
+        ->name('events.question-boards.index')
+        ->middleware('permission:event.view');
+    Route::post('events/{event}/question-boards', [DashboardQuestionController::class, 'store'])
+        ->name('events.question-boards.store')
+        ->middleware('permission:event.update');
+    Route::put('question-boards/{board}', [DashboardQuestionController::class, 'update'])
+        ->name('question-boards.update')
+        ->middleware('permission:event.update');
+    Route::post('question-boards/{board}/rotate-token', [DashboardQuestionController::class, 'rotateToken'])
+        ->name('question-boards.rotate-token')
+        ->middleware('permission:event.update');
+    Route::get('question-boards/{board}/questions', [DashboardQuestionController::class, 'questions'])
+        ->name('question-boards.questions')
+        ->middleware('permission:event.view');
+    Route::patch('questions/{question}', [DashboardQuestionController::class, 'updateQuestion'])
+        ->name('questions.update')
+        ->middleware('permission:event.update');
+    Route::delete('questions/{question}', [DashboardQuestionController::class, 'destroyQuestion'])
+        ->name('questions.destroy')
         ->middleware('permission:event.update');
 
     Route::get('events/{event}/tickets', [DashboardTicketController::class, 'index'])

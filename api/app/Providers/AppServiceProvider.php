@@ -97,6 +97,25 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->tooManyRequests('Priveľa odoslaných správ. Skúste to neskôr.')),
         ]);
 
+        // Otázky z publika: píše ich anonym bez účtu, takže limiter je jediné
+        // sito nad rámec tokenu v adrese. Kľúč je IP — v sále je celá miestnosť
+        // za jednou NATovanou adresou, preto je minútový strop voľnejší
+        // a skutočnú brzdu robí až hodinové okno.
+        RateLimiter::for('questions', fn (Request $request) => [
+            Limit::perMinute(8)->by($request->ip())
+                ->response($this->tooManyRequests('Priveľa otázok za sebou. Skúste to o chvíľu znova.')),
+            Limit::perHour(40)->by($request->ip())
+                ->response($this->tooManyRequests('Priveľa otázok. Skúste to neskôr.')),
+        ]);
+
+        // Vykreslenie snímky s QR kódom stojí okolo pol sekundy CPU a beží bez
+        // prihlásenia. Voľnejší limiter by z toho spravil lacný spôsob, ako
+        // hosting vyťažiť.
+        RateLimiter::for('render', fn (Request $request) => [
+            Limit::perMinute(20)->by($request->ip())
+                ->response($this->tooManyRequests('Priveľa požiadaviek na generovanie. Skúste to o chvíľu znova.')),
+        ]);
+
         // Každé volanie ide do OpenAI a stojí peniaze.
         RateLimiter::for('ai', fn (Request $request) => [
             Limit::perMinute(10)->by($this->identify($request))
