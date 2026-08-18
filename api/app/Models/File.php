@@ -123,12 +123,18 @@ class File extends Model
         return $filesystem;
     }
 
-    // Pridá prefix 'storage/' k ceste, pokud není již přítomen, aby bylo zajištěno správné URL pro přístup k souboru
+    // Prefix 'storage/' dáva zmysel len pre lokálny disk (mapuje sa na verejnú
+    // URL cez storage:link); na S3 by z neho vznikol nezmyselný "storage/<s3-key>".
     public function toArray(): array
     {
         $data = parent::toArray();
 
-        if (!empty($data['path']) && is_string($data['path']) && !str_starts_with($data['path'], 'storage/')) {
+        if (
+            in_array($this->disk, ['local', 'public'], true)
+            && !empty($data['path'])
+            && is_string($data['path'])
+            && !str_starts_with($data['path'], 'storage/')
+        ) {
             $data['path'] = 'storage/' . ltrim($data['path'], '/');
         }
 

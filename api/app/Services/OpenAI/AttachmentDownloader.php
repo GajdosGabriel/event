@@ -41,7 +41,7 @@ class AttachmentDownloader
                 $fileName = 'event_' . $eventId . '_' . time() . '_' . $safeName;
                 $path = 'attachments/' . $fileName;
 
-                Storage::disk('public')->put($path, $content);
+                Storage::disk(config('filesystems.default', 'public'))->put($path, $content);
 
                 $downloaded[] = [
                     'name' => $originalName,

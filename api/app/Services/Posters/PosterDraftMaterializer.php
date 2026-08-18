@@ -269,7 +269,7 @@ class PosterDraftMaterializer
                 $event,
                 $uploaded,
                 $isImage ? FileType::IMAGE : FileType::FILE,
-                'public',
+                config('filesystems.default', 'public'),
                 null,
                 $isImage,
                 ['source' => 'poster_upload', 'draft_id' => $draft->id],
@@ -334,7 +334,7 @@ class PosterDraftMaterializer
                     $event,
                     $uploadedFile,
                     FileType::IMAGE,
-                    'public',
+                    config('filesystems.default', 'public'),
                     null,
                     false,
                     [
