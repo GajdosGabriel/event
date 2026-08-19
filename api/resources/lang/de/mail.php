@@ -25,6 +25,9 @@ return [
         'calendar_ics'      => 'Apple Kalender und andere',
         'calendar_google'   => 'Google Kalender',
         'calendar_outlook'  => 'Outlook',
+        // Pätička e-mailov z odberu (resources/views/mail/partials/unsubscribe).
+        'unsubscribe_intro'  => 'Sie erhalten diese E-Mail, weil Sie für diese Veranstaltung eine Benachrichtigung angefordert haben.',
+        'unsubscribe_action' => 'Benachrichtigungen abbestellen',
     ],
 
     // App\Notifications\PendingRegistrationVerification
@@ -184,6 +187,31 @@ return [
         'venue'     => 'Ort: **:venue**.',
         'action'    => 'Veranstaltung anzeigen',
         'outro'     => 'Ihr Ticket mit dem QR-Code finden Sie in der E-Mail, die Sie bei der Bestellung erhalten haben.',
+        // Ten istý e-mail pre toho, kto si vypýtal upozornenie a lístok nemá.
+        'outro_subscriber' => 'Der Eintritt ist ohne Anmeldung — kommen Sie einfach vorbei.',
+    ],
+
+    // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
+    'subscription_confirmed' => [
+        'subject'   => 'Wir halten Sie auf dem Laufenden: :event',
+        'intro'     => 'Erledigt. Wenn sich bei **„:event"** etwas ändert oder der Veranstalter absagt, sagen wir Ihnen Bescheid — und vor dem Beginn schicken wir eine Erinnerung.',
+        'starts_at' => 'Beginn: **:date**.',
+        'venue'     => 'Ort: **:venue**.',
+        'action'    => 'Veranstaltung anzeigen',
+        'outro'     => 'Falls Sie diese Benachrichtigung nicht angefordert haben, beenden Sie sie über den Link unten — Ihre Adresse wird sofort gelöscht.',
+    ],
+
+    // App\Notifications\EventChanged — sľub z tlačidla „Pripomeň mi".
+    'event_changed' => [
+        'subject'           => 'Änderung: :event',
+        'subject_cancelled' => 'Abgesagt: :event',
+        'intro'             => 'Bei **„:event"** hat sich Folgendes geändert:',
+        'intro_cancelled'   => 'Die Veranstaltung **„:event"** findet nicht statt — der Veranstalter hat sie zurückgezogen. Falls Sie den Termin im Kalender haben, können Sie ihn löschen.',
+        'starts_at'         => 'Neuer Termin: **:date**.',
+        'venue'             => 'Ort: **:venue**.',
+        'action'            => 'Veranstaltung anzeigen',
+        'change_start'      => 'Termin: :from → :to',
+        'change_venue'      => 'Ort: :from → :to',
     ],
 
     // App\Notifications\WorkshopSeatGranted — náhradníkovi sa uvoľnilo miesto.

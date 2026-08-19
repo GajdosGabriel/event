@@ -18,9 +18,19 @@ class EventReminder extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * `$unsubscribeUrl` odlišuje dve publiká tej istej pripomienky. Účastník
+     * s lístkom sa odhlásiť nemá čo — pripomienka na akciu, na ktorú je
+     * prihlásený, patrí k objednávke — a v jeho e-maile odkaz nie je. Kto si
+     * odber vypýtal tlačidlom „Pripomeň mi", ho v pätičke mať musí.
+     *
+     * Vyplýva z toho aj iný záver e-mailu: účastníkovi pripomíname vstupenku
+     * s QR kódom, odberateľ žiadnu nemá.
+     */
     public function __construct(
         protected Event $event,
         protected string $attendeeName = '',
+        protected ?string $unsubscribeUrl = null,
     ) {
     }
 
@@ -51,6 +61,10 @@ class EventReminder extends Notification implements ShouldQueue
                 'startsAt' => $this->event->start_at?->format('d. m. Y H:i'),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
+                'unsubscribeUrl' => $this->unsubscribeUrl,
+                'outro' => $this->unsubscribeUrl !== null
+                    ? __('mail.event_reminder.outro_subscriber')
+                    : __('mail.event_reminder.outro'),
                 ...$calendar->viewData(),
             ]);
 

@@ -26,6 +26,20 @@ final class IcsGenerator
     /** Podujatie bez konca — do kalendára ho dáme ako dvojhodinové. */
     private const DEFAULT_DURATION_HOURS = 2;
 
+    /**
+     * Predvolený predstih pripomienky v kalendári. Dve hodiny sú kompromis:
+     * dosť na to, aby sa dalo vyraziť, a ešte nie tak skoro, aby sa na ňu
+     * do začiatku stihlo zabudnúť.
+     */
+    private const ALARM_DEFAULT_HOURS = 2;
+
+    /**
+     * Celodenné podujatie má DTSTART o polnoci, takže dvojhodinový predstih by
+     * zazvonil o desiatej večer predtým. Šesť hodín z toho spraví 18:00
+     * predošlého dňa — čas, keď sa plánuje ďalší deň.
+     */
+    private const ALARM_ALL_DAY_HOURS = 6;
+
     /** RFC 5545: riadok má najviac 75 oktetov, zvyšok pokračuje po medzere. */
     private const LINE_OCTETS = 74;
 
@@ -82,11 +96,65 @@ final class IcsGenerator
             $lines[] = 'GEO:'.$geo;
         }
 
+        array_push($lines, ...$this->alarmLines($event, $window));
+
         $lines[] = 'END:VEVENT';
         $lines[] = 'END:VCALENDAR';
 
         // CRLF je v RFC 5545 povinné — Outlook so samotným \n súbor odmietne.
         return implode("\r\n", array_map($this->fold(...), $lines))."\r\n";
+    }
+
+    /**
+     * Pripomienka priamo v súbore. Bez nej je „Pridať do kalendára" iba zápis
+     * termínu — človek ho v kalendári má, ale nikto mu nič nepovie.
+     *
+     * VALARM pripomenie jeho vlastný kalendár, takže od návštevníka
+     * nepotrebujeme e-mail ani žiadny iný údaj a funguje to aj offline. Je to
+     * jediná pripomienka, ktorú nemusíme doručiť my.
+     *
+     * @param  array{start: CarbonInterface, end: CarbonInterface, all_day: bool}  $window
+     * @return array<int, string>
+     */
+    private function alarmLines(Event $event, array $window): array
+    {
+        $hours = $this->alarmLeadHours($event, $window);
+
+        if ($hours <= 0) {
+            return [];
+        }
+
+        return [
+            'BEGIN:VALARM',
+            'ACTION:DISPLAY',
+            // RELATED=START je síce default, ale píšeme ho naplno: časť klientov
+            // pri jeho absencii vyhodnotí trigger voči DTEND a pri viacdňovom
+            // podujatí by pripomienka prišla až po jeho konci.
+            'TRIGGER;RELATED=START:-PT'.$hours.'H',
+            // DESCRIPTION je pri ACTION:DISPLAY povinné a je to text, ktorý
+            // človek uvidí v notifikácii — teda názov podujatia, nie popis.
+            'DESCRIPTION:'.$this->escape((string) $event->name),
+            'END:VALARM',
+        ];
+    }
+
+    /**
+     * Koľko hodín pred začiatkom pripomenúť. Organizátorov
+     * `reminder_hours_before` má prednosť — je to ten istý úmysel („kedy má
+     * zmysel ozvať sa") a dve nezávislé čísla pre e-mail a pre kalendár by sa
+     * časom rozišli.
+     *
+     * @param  array{start: CarbonInterface, end: CarbonInterface, all_day: bool}  $window
+     */
+    private function alarmLeadHours(Event $event, array $window): int
+    {
+        $configured = $event->reminder_hours_before;
+
+        if (is_numeric($configured) && (int) $configured > 0) {
+            return (int) $configured;
+        }
+
+        return $window['all_day'] ? self::ALARM_ALL_DAY_HOURS : self::ALARM_DEFAULT_HOURS;
     }
 
     /** Názov prílohy aj sťahovaného súboru. */

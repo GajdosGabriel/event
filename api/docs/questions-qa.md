@@ -280,10 +280,65 @@ program, nie na cenovú hladinu.
 
 ---
 
+## Druhá cesta k tej istej nástenke: verejný detail podujatia
+
+Nástenka bola pôvodne dostupná **len cez QR premietnutý v sále**. Kto sedel doma
+nad stránkou podujatia, o jej existencii nevedel — hoci práve tam sa pýtajú tie
+najužitočnejšie otázky („je vstup naozaj zadarmo?", „môžem prísť s deťmi?", „je
+tam parkovanie?").
+
+[`EventQuestionController`](../app/Http/Controllers/Public/EventQuestionController.php)
+preto obsluhuje `GET|POST /api/events/{event}/questions`.
+
+### Token sa touto cestou neposiela — nikdy
+
+Token je autorizácia a dá sa rotovať (núdzová brzda). Keby ho verejný detail
+dostal do payloadu, rotácia by stránku rozbila a token by sa šíril mimo QR — teda
+presne to, čomu má rotácia zabrániť. Nástenka sa preto **hľadá cez podujatie**
+a viditeľnosť si controller rieši sám cez `publicShow()`, rovnako ako verejný
+detail.
+
+Nástenka sa touto cestou ani **nezakladá**. Vzniká lenivo na žiadosť organizátora
+a bolo by chybou, aby ju vyrobila návšteva verejnej stránky.
+
+Každá cesta má vlastný rozsah `SubmissionTicket` (`question:{token}` vs.
+`question:event:{id}`), takže známka vydaná pre jednu na druhej neprejde.
+
+### Fáza namiesto druhej nástenky
+
+Nástenka je jedna, ale plní dve úlohy — [`QuestionBoardPhase`](../app/Enums/QuestionBoardPhase.php)
+ich rozlišuje podľa termínu, takže sa fáza nemôže rozísť s realitou a nikto ju
+neprepína:
+
+| fáza | komu | forma |
+|---|---|---|
+| `before` | organizátorovi | FAQ, zodpovedané hore (`inFaqOrder`) |
+| `live` | prednášajúcemu | ako na plátne (`inWallOrder`) |
+| `after` | — | archív |
+
+Poradie je zámerne iné než na stene: tam je hore to, na čo sa **práve odpovedá**,
+na detaile to, na čo sa **už odpovedalo** — návštevník prišiel pre odpoveď.
+
+### Prečo to má zmysel: zodpovedané otázky sú SEO obsah
+
+Bez tejto časti by bolo Q&A na detaile len pekná sekcia.
+
+- [`JsonLd::faqPage()`](../app/Services/Seo/JsonLd.php) vydá `FAQPage`, ktorý
+  Google zobrazuje **rozbaliteľne priamo vo výsledku vyhľadávania**.
+- [`PrerenderController`](../app/Http/Controllers/Public/PrerenderController.php)
+  vykreslí otázky do HTML — SPA obsah crawler nevidí.
+
+Nezodpovedané otázky do `FAQPage` nejdú: schéma vyžaduje `acceptedAnswer`
+a otvorená otázka by bola neplatný záznam. Prázdny `FAQPage` sa nevydá vôbec.
+
+Odpovede píše organizátor sám, takže obsah rastie bez našej práce.
+
+---
+
 ## Overenie
 
 ```bash
-cd api && php artisan test tests/Feature/Questions tests/Unit/Questions
+cd api && php artisan test tests/Feature/Questions tests/Unit/Questions tests/Feature/Seo/FaqPrerenderTest.php
 ```
 
 Ručne stojí za pozretie:

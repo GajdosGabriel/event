@@ -59,7 +59,7 @@ class QuestionStoreRequest extends FormRequest
 
             $valid = SubmissionTicket::isValid(
                 $this->input('ticket'),
-                'question:' . $this->route('token'),
+                $this->submissionScope(),
                 self::MIN_FILL_SECONDS,
                 self::MAX_TICKET_AGE_SECONDS,
             );
@@ -68,6 +68,23 @@ class QuestionStoreRequest extends FormRequest
                 $validator->errors()->add('body', __('questions.errors.too_fast'));
             }
         });
+    }
+
+    /**
+     * Účel známky. Na tú istú nástenku vedú dve cesty a každá má vlastný
+     * rozsah, aby sa známka vydaná pre jednu nedala použiť na druhej:
+     *
+     * - `/q/{token}` — QR premietnutý v sále,
+     * - `/events/{event}/questions` — verejný detail podujatia, kde token
+     *   zámerne nie je (dá sa rotovať a nemá sa šíriť mimo QR).
+     */
+    private function submissionScope(): string
+    {
+        $token = $this->route('token');
+
+        return $token !== null
+            ? 'question:' . $token
+            : 'question:event:' . $this->route('event');
     }
 
     /** Otázka je čistý text — riadkovanie sa zachová, biele okraje nie. */

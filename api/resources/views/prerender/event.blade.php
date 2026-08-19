@@ -46,6 +46,21 @@
             {!! $bodyHtml !!}
         @endif
 
+        {{-- Zodpovedané otázky publika. Pre crawlera je to jediná cesta, ako sa
+             k nim dostane — v SPA ich dopĺňa JS až v prehliadači. Sú aj obsahom
+             `FAQPage` v JSON-LD (viď JsonLd::faqPage). --}}
+        @if ($faq->isNotEmpty())
+            <section>
+                <h2>{{ __('seo.page.faq') }}</h2>
+                <dl>
+                    @foreach ($faq as $question)
+                        <dt>{{ $question->body }}</dt>
+                        <dd>{{ $question->answer_body }}</dd>
+                    @endforeach
+                </dl>
+            </section>
+        @endif
+
         @if ($event->tags->isNotEmpty())
             <nav>
                 @foreach ($event->tags as $tag)

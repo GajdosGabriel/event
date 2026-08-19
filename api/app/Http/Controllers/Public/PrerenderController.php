@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
+use App\Models\Question;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Services\Imports\HtmlBodyCleaner;
@@ -39,6 +40,13 @@ class PrerenderController extends Controller
 {
     /** Koľko podujatí ukáže výpis. Crawler potrebuje odkazy, nie stránkovanie. */
     private const LIST_LIMIT = 60;
+
+    /**
+     * Koľko zodpovedaných otázok ide do `FAQPage`. Google z nich aj tak
+     * zobrazí len hŕstku a stovka otázok by z tela stránky spravila archív,
+     * v ktorom sa stratí samotné podujatie.
+     */
+    private const MAX_FAQ_ENTRIES = 20;
 
     /**
      * Facebook si pri zdieľaní ťahá stránku opakovane a v nárazoch. Minútová
@@ -148,6 +156,11 @@ class PrerenderController extends Controller
             ]))),
         );
 
+        // Zodpovedané otázky publika. Crawler SPA obsah nevidí, takže bez tohto
+        // by z Q&A na verejnom detaile nebol žiadny SEO úžitok — a práve ten je
+        // dôvod, prečo sa nástenka vystavuje aj mimo QR kódu v sále.
+        $faq = $this->answeredQuestions($event);
+
         return view('prerender.event', [
             'meta' => $this->meta(
                 title: $event->name,
@@ -158,14 +171,42 @@ class PrerenderController extends Controller
             ),
             'event' => $event,
             'bodyHtml' => $this->safeBody($event->body ?? $event->body_ai),
-            'structuredData' => [
+            'faq' => $faq,
+            'structuredData' => array_values(array_filter([
                 $jsonLd->event($event),
+                $jsonLd->faqPage($faq, PublicUrl::event($event)),
                 $jsonLd->breadcrumbs([
                     ['name' => __('seo.list.heading'), 'url' => PublicUrl::events()],
                     ['name' => $event->name, 'url' => PublicUrl::event($event)],
                 ]),
-            ],
+            ])),
         ]);
+    }
+
+    /**
+     * Zodpovedané otázky k podujatiu, zoradené ako na verejnom detaile.
+     *
+     * Nezodpovedané sa vynechávajú zámerne: pre návštevníka z vyhľadávača sú
+     * bez hodnoty a do `FAQPage` sa nedajú zapísať vôbec (schéma vyžaduje
+     * `acceptedAnswer`). Nástenka sa zakladá lenivo, takže väčšina podujatí
+     * vráti prázdnu kolekciu a šablóna sekciu vynechá.
+     *
+     * @return Collection<int, Question>
+     */
+    private function answeredQuestions(Event $event): Collection
+    {
+        $board = $event->questionBoard()->first();
+
+        if ($board === null || ! $board->show_questions) {
+            return new Collection();
+        }
+
+        return $board->questions()
+            ->publiclyVisible()
+            ->answered()
+            ->inFaqOrder()
+            ->limit(self::MAX_FAQ_ENTRIES)
+            ->get();
     }
 
     private function venue(string $segment, JsonLd $jsonLd): ?View

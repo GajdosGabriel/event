@@ -25,6 +25,9 @@ return [
         'calendar_ics'      => 'Apple Kalendář a ostatní',
         'calendar_google'   => 'Google Kalendář',
         'calendar_outlook'  => 'Outlook',
+        // Pätička e-mailov z odberu (resources/views/mail/partials/unsubscribe).
+        'unsubscribe_intro'  => 'Tento e-mail vám přišel, protože jste si k akci vyžádali upozornění.',
+        'unsubscribe_action' => 'Zrušit upozornění',
     ],
 
     // App\Notifications\PendingRegistrationVerification
@@ -184,6 +187,31 @@ return [
         'venue'     => 'Místo: **:venue**.',
         'action'    => 'Zobrazit akci',
         'outro'     => 'Vstupenku s QR kódem najdete v e-mailu, který vám přišel při objednávce.',
+        // Ten istý e-mail pre toho, kto si vypýtal upozornenie a lístok nemá.
+        'outro_subscriber' => 'Vstup je bez registrace — stačí přijít.',
+    ],
+
+    // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
+    'subscription_confirmed' => [
+        'subject'   => 'Budeme vás informovat: :event',
+        'intro'     => 'Máte to. Pokud se u akce **„:event"** něco změní nebo ji pořadatel zruší, dáme vám vědět — a před začátkem pošleme připomínku.',
+        'starts_at' => 'Začátek: **:date**.',
+        'venue'     => 'Místo: **:venue**.',
+        'action'    => 'Zobrazit akci',
+        'outro'     => 'Pokud jste o upozornění nežádali, zrušte ho odkazem níže — vaše adresa se hned smaže.',
+    ],
+
+    // App\Notifications\EventChanged — sľub z tlačidla „Pripomeň mi".
+    'event_changed' => [
+        'subject'           => 'Změna: :event',
+        'subject_cancelled' => 'Zrušeno: :event',
+        'intro'             => 'U akce **„:event"** se změnilo toto:',
+        'intro_cancelled'   => 'Akce **„:event"** se neuskuteční — pořadatel ji stáhl. Pokud jste si ji zapsali do kalendáře, záznam můžete smazat.',
+        'starts_at'         => 'Nový termín: **:date**.',
+        'venue'             => 'Místo: **:venue**.',
+        'action'            => 'Zobrazit akci',
+        'change_start'      => 'Termín: :from → :to',
+        'change_venue'      => 'Místo: :from → :to',
     ],
 
     // App\Notifications\WorkshopSeatGranted — náhradníkovi sa uvoľnilo miesto.

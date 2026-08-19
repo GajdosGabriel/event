@@ -53,6 +53,12 @@ final class PublicUrl
     /** Premietacia stena tej istej nástenky (projektor, nie telefón). */
     public const QUESTIONS_WALL = 'stena';
 
+    /**
+     * Odhlásenie odberu. Chodí v pätičke každého e-mailu, ktorý z odberu
+     * vznikne — token v odkaze je autorizácia, rovnako ako pri RSVP.
+     */
+    public const UNSUBSCRIBE = 'odhlasenie';
+
     public static function base(): string
     {
         return rtrim((string) config('app.frontend_url'), '/');
@@ -146,6 +152,11 @@ final class PublicUrl
     public static function questionWall(string $token): string
     {
         return self::absolute(self::questionBoardPath($token).'/'.self::QUESTIONS_WALL);
+    }
+
+    public static function unsubscribe(string $token): string
+    {
+        return self::absolute(self::UNSUBSCRIBE.'/'.$token);
     }
 
     /**

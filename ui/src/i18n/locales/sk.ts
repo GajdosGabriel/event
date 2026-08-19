@@ -541,6 +541,48 @@ const sk = {
   public: {
     ongoing: 'Práve prebieha',
     ongoingUntil: 'do {date}',
+    // Otázky a odpovede na verejnom detaile. Zodpovedané otázky sú tu to
+    // hlavné — na „je tam parkovanie?" sa ľudia pýtajú Googlu.
+    questions: {
+      title: 'Otázky a odpovede',
+      leadBefore: 'Niečo vám nie je jasné? Opýtajte sa organizátora — odpoveď uvidia aj ostatní.',
+      leadLive: 'Podujatie práve prebieha. Otázky idú prednášajúcemu.',
+      answer: 'Odpoveď organizátora',
+      awaitingAnswer: 'Zatiaľ bez odpovede',
+      ask: 'Opýtať sa',
+      askAnother: 'Opýtať sa na niečo ďalšie',
+      yourQuestion: 'Vaša otázka',
+      placeholder: 'Napríklad: Je pri budove parkovanie?',
+      yourName: 'Meno',
+      nameHint: 'Nepovinné — zobrazí sa pri otázke.',
+      moderationNote: 'Otázku najprv uvidí organizátor a zverejní ju až po schválení.',
+      submit: 'Odoslať otázku',
+      submitting: 'Odosielam…',
+      cancel: 'Zrušiť',
+      sentTitle: 'Otázka je zverejnená',
+      sentLead: 'Ďakujeme. Odpoveď sa objaví priamo tu.',
+      pendingTitle: 'Otázka odoslaná',
+      pendingLead: 'Zverejní sa po tom, čo ju organizátor schváli.',
+      closed: 'Otázky sa k tomuto podujatiu už nedajú pridávať.',
+      failed: 'Otázku sa nepodarilo odoslať.',
+    },
+    // „Pripomeň mi" — jediná akcia na bezplatnom podujatí bez lístkov.
+    // Hlavný sľub je zmena a zrušenie, nie „novinky": to je dôvod, ktorý ľudia
+    // prijmú bez váhania, a pripomienka je až bonus.
+    remind: {
+      button: 'Pripomeň mi',
+      title: 'Dáme vám vedieť',
+      lead: 'Ozveme sa, ak sa termín alebo miesto zmení, prípadne ak sa podujatie neuskutoční. Deň vopred pošleme pripomienku.',
+      email: 'E-mailová adresa',
+      emailPlaceholder: 'vas@email.sk',
+      privacy: 'Adresu použijeme len na tieto upozornenia. Odhlásiť sa dá jedným klikom z každého e-mailu.',
+      submit: 'Chcem vedieť',
+      submitting: 'Odosielam…',
+      doneTitle: 'Hotovo',
+      doneLead: 'Poslali sme vám potvrdenie. Ak sa niečo zmení, ozveme sa.',
+      failed: 'Prihlásenie sa nepodarilo.',
+      close: 'Zavrieť',
+    },
     share: {
       title: 'Zdieľať',
       facebook: 'Zdieľať na Facebooku',
@@ -1071,6 +1113,24 @@ const sk = {
     acceptFailed: 'Pozvánku sa nepodarilo prijať.',
   },
   // Potvrdenie účasti z e-mailu — vrátane ponuky uvoľneného miesta z čakačky.
+  // Odhlásenie z „Pripomeň mi" — stránka za odkazom v pätičke e-mailu.
+  unsubscribe: {
+    loading: 'Načítavam…',
+    invalidTitle: 'Odkaz je neplatný',
+    invalidLead: 'Tento odkaz na odhlásenie už neplatí alebo neexistuje.',
+    home: '← Späť na úvod',
+    kicker: 'Odhlásenie upozornení',
+    eventFallback: 'Podujatie',
+    lead: 'Prestaneme vám posielať upozornenia k tomuto podujatiu a vašu adresu zmažeme.',
+    confirm: 'Odhlásiť upozornenia',
+    working: 'Odhlasujem…',
+    keep: 'Nechať upozornenia zapnuté',
+    doneTitle: 'Odhlásené',
+    doneLead: 'Vaša adresa je zmazaná a k tomuto podujatiu vám už nič nepošleme.',
+    browse: 'Prezrieť podujatia',
+    failed: 'Odhlásenie sa nepodarilo.',
+  },
+
   rsvp: {
     loading: 'Načítavam…',
     invalidTitle: 'Odkaz je neplatný',

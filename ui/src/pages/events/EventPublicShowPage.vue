@@ -143,6 +143,11 @@
               />
             </section>
 
+            <!-- Otázky a odpovede. Nástenka bola doteraz dostupná len cez QR
+                 premietnutý v sále; zodpovedané otázky sú pritom presne to,
+                 na čo sa ľudia pýtajú ešte doma — a čo googlia. -->
+            <EventQuestions :event-id="event.id" />
+
             <!-- Galéria -->
             <section v-if="event.uploadedImages.length" class="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('public.event.photos') }}</h2>
@@ -206,6 +211,16 @@
               </h2>
               <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
               <AddToCalendarButton :links="event.calendarLinks" class="mt-3" />
+              <!-- Hneď pod „Pridať do kalendára": tam človek hľadá, čo si
+                   s termínom počať. Kalendár si pripomenie sám (VALARM v .ics),
+                   toto navyše sľubuje ozvať sa pri zmene či zrušení. -->
+              <RemindMeButton
+                v-if="showRemindMe"
+                :event-id="event.id"
+                :event-name="event.name"
+                variant="ghost"
+                class="mt-2"
+              />
               <div v-if="event.registrationDeadlineAt" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 {{ t('public.event.deadline') }} <strong>{{ fmtDateLong(event.registrationDeadlineAt) }}</strong>
                 <span v-if="deadlineCountdown" class="mt-0.5 block font-semibold">{{ deadlineCountdown }}</span>
@@ -360,6 +375,21 @@
           >{{ t('public.event.register') }}</button>
         </div>
       </div>
+
+      <!-- Tá istá lišta pre podujatia bez lístkov. Doteraz sa im skryla celá,
+           takže na telefóne nemal návštevník k dispozícii vôbec nič. -->
+      <div
+        v-else-if="showMobileRemind"
+        class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden"
+      >
+        <div class="mx-auto flex max-w-300 items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs text-slate-500">{{ event.dateRangeLabel || t('public.event.dateFallback') }}</p>
+            <p class="truncate text-sm font-semibold text-slate-900">{{ priceLabel }}</p>
+          </div>
+          <RemindMeButton :event-id="event.id" :event-name="event.name" class="w-auto shrink-0" />
+        </div>
+      </div>
     </template>
 
     <!-- Lightbox -->
@@ -380,6 +410,8 @@ import EventDateRange from '@/components/EventDateRange.vue'
 import AddToCalendarButton from '@/components/AddToCalendarButton.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import RemindMeButton from '@/components/RemindMeButton.vue'
+import EventQuestions from '@/components/EventQuestions.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
 import ShareButtons from '@/components/ShareButtons.vue'
@@ -483,6 +515,27 @@ const deadlineCountdown = computed(() => {
 // Lišta má zmysel len tam, kde sa dá niečo urobiť: registrácia je zapnutá
 // a návštevník ešte prihlásený nie je.
 const showMobileCta = computed(() => Boolean(event.value?.ticketsEnabled) && !viewerRegistered.value)
+
+/**
+ * Podujatie, ktoré sa ešte len chystá. Bez termínu to nevieme posúdiť, takže
+ * ho berieme ako budúce — chýbajúci dátum je bežný pri importe a skryť kvôli
+ * nemu jedinú akciu na stránke by bolo horšie než ju ponúknuť zbytočne.
+ */
+const isUpcoming = computed(() => {
+  const start = event.value?.startAt
+  return start ? new Date(start).getTime() > Date.now() : true
+})
+
+/**
+ * Bezplatné podujatie bez lístkov nemá na stránke **žiadnu** akciu: registračná
+ * sekcia aj mobilná lišta sú skryté a návštevníkovi zostane „Kopírovať odkaz".
+ * Takto vyzerá väčšina importovaného katalógu, preto tam patrí aspoň
+ * „Pripomeň mi".
+ */
+const showRemindMe = computed(() => Boolean(event.value) && isUpcoming.value)
+
+// Na mobile buď registrácia, alebo pripomienka — nikdy prázdna lišta.
+const showMobileRemind = computed(() => !showMobileCta.value && showRemindMe.value)
 
 function scrollToRegistration() {
   document.getElementById('registracia')?.scrollIntoView({ behavior: 'smooth', block: 'center' })

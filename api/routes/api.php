@@ -37,6 +37,7 @@ use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
+use App\Http\Controllers\Public\EventQuestionController as PublicEventQuestionController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
 use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
 use App\Http\Controllers\Public\PosterController as PublicPosterController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\Public\QuestionBoardController as PublicQuestionBoardCo
 use App\Http\Controllers\Public\QuestionController as PublicQuestionController;
 use App\Http\Controllers\Public\QuestionSlideController as PublicQuestionSlideController;
 use App\Http\Controllers\Public\SitemapController;
+use App\Http\Controllers\Public\SubscriptionController as PublicSubscriptionController;
 use App\Http\Controllers\Public\TagController as PublicTagController;
 use App\Http\Controllers\Public\TicketController as PublicTicketController;
 use App\Http\Controllers\Public\TicketQrController as PublicTicketQrController;
@@ -139,6 +141,33 @@ Route::post('poster/drafts/{draft}/remember', [PublicPosterController::class, 'r
 Route::post('poster/drafts/{draft}/claim', [PublicPosterController::class, 'claim'])
     ->name('public.poster.drafts.claim')
     ->middleware(['auth:sanctum', 'throttle:public-write']);
+
+// Otázky a odpovede na verejnom detaile podujatia. Tá istá nástenka ako
+// `/q/{token}` nižšie, ale hľadá sa cez podujatie — token je autorizácia, dá sa
+// rotovať a nemá sa šíriť mimo QR, takže ho verejný detail nikdy nedostane.
+Route::get('events/{event}/questions', [PublicEventQuestionController::class, 'index'])
+    ->name('public.events.questions.index');
+Route::post('events/{event}/questions', [PublicEventQuestionController::class, 'store'])
+    ->name('public.events.questions.store')
+    ->middleware('throttle:questions');
+
+// „Pripomeň mi" — odber podujatia bez účtu. Vzniklo preto, že na bezplatnom
+// podujatí bez lístkov sa na verejnom detaile nedá spraviť vôbec nič.
+// `ticket` vydá podpísanú známku, že sa formulár naozaj otvoril (SubmissionTicket);
+// bez nej POST neprejde, takže bot, ktorý našiel adresu, ju nemá odkiaľ vziať.
+Route::get('events/{event}/subscription', [PublicSubscriptionController::class, 'ticket'])
+    ->name('public.events.subscription.ticket')
+    ->middleware('throttle:public-write');
+Route::post('events/{event}/subscription', [PublicSubscriptionController::class, 'store'])
+    ->name('public.events.subscription.store')
+    ->middleware('throttle:public-write');
+
+// Odhlásenie z pätičky e-mailu — token v odkaze JE autorizácia (ako RSVP nižšie).
+Route::get('subscriptions/{token}', [PublicSubscriptionController::class, 'show'])
+    ->name('public.subscriptions.show');
+Route::delete('subscriptions/{token}', [PublicSubscriptionController::class, 'destroy'])
+    ->name('public.subscriptions.destroy')
+    ->middleware('throttle:public-write');
 
 // Generické „Poslať správu" pre ľubovoľný cieľ (podujatie / miesto / kanál…).
 Route::post('messages', [PublicMessageController::class, 'store'])

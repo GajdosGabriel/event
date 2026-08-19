@@ -55,6 +55,9 @@ const router = createRouter({
         { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
+        // Odhlásenie z „Pripomeň mi". Chodí v pätičke každého e-mailu z odberu,
+        // takže sa adresa nesmie meniť; segment drží PublicUrl::UNSUBSCRIBE.
+        { path: 'odhlasenie/:token', name: 'unsubscribe', component: () => import('@/pages/subscriptions/UnsubscribePage.vue') },
         // Otázky z publika. Jediná verejná cesta bez slovenského slova — adresa
         // sa premieta na plátno a ľudia v zadnom rade si ju prepisujú rukou,
         // takže každý znak navyše je cena. Segment drží PublicUrl.QUESTIONS

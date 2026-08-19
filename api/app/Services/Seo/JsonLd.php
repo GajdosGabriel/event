@@ -5,6 +5,7 @@ namespace App\Services\Seo;
 use App\Enums\TicketTypeKind;
 use App\Models\Canal;
 use App\Models\Event;
+use App\Models\Question as QuestionModel;
 use App\Models\TicketType;
 use App\Models\Venue;
 use App\Support\PublicUrl;
@@ -44,6 +45,50 @@ class JsonLd
         ], fn ($value) => $value !== null && $value !== []);
 
         return $data;
+    }
+
+    /**
+     * Zodpovedané otázky publika ako `FAQPage`.
+     *
+     * Toto je dôvod, prečo sa Q&A oplatí vystaviť na verejnom detaile a nenechať
+     * ju len za QR kódom v sále. „Je vstup naozaj zadarmo?", „Môžem prísť
+     * s deťmi?", „Je tam parkovanie?" — presne toto ľudia píšu do vyhľadávača
+     * a Google `FAQPage` zobrazuje rozbaliteľne priamo vo výsledku. Odpovede
+     * píše organizátor sám, takže obsah rastie bez našej práce.
+     *
+     * Nezodpovedané otázky sem nepatria: `Question` v schéme vyžaduje
+     * `acceptedAnswer` a otvorená otázka bez odpovede by bola neplatný záznam.
+     * Vracia null, keď zodpovedaná nie je ani jedna — prázdny `FAQPage` je
+     * horší než žiadny.
+     *
+     * @param  Collection<int, QuestionModel>  $questions
+     * @return array<string, mixed>|null
+     */
+    public function faqPage(Collection $questions, string $url): ?array
+    {
+        $entries = $questions
+            ->filter(fn (QuestionModel $question) => filled($question->answer_body))
+            ->values()
+            ->map(fn (QuestionModel $question) => [
+                '@type' => 'Question',
+                'name' => $this->plainText($question->body, 300),
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => $this->plainText($question->answer_body, 1000),
+                ],
+            ])
+            ->all();
+
+        if ($entries === []) {
+            return null;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'FAQPage',
+            'url' => $url,
+            'mainEntity' => $entries,
+        ];
     }
 
     /**

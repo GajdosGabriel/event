@@ -303,3 +303,62 @@ export function slidePptxUrl(token: string, params: Record<string, string>): str
 export function boardQrUrl(token: string, size = 480): string {
   return `${BASE_URL}/q/${token}/qr.png?size=${size}`
 }
+
+/**
+ * Otázky a odpovede na verejnom detaile podujatia.
+ *
+ * Tá istá nástenka ako `/q/{token}`, ale hľadá sa cez podujatie: token je
+ * autorizácia, dá sa rotovať a nemá sa šíriť mimo QR kódu, takže ho verejný
+ * detail nikdy nedostane.
+ */
+
+/** V akej fáze je nástenka voči termínu podujatia (odvodzuje ju backend). */
+export type QuestionPhase = 'before' | 'live' | 'after'
+
+export interface EventQuestionsView {
+  /** false = podujatie nástenku nemá; sekcia sa vôbec nevykreslí. */
+  available: boolean
+  phase: QuestionPhase
+  open: boolean
+  moderation: boolean
+  showQuestions: boolean
+  allowUpvotes: boolean
+  askForName: boolean
+  intro: string | null
+  questionsCount: number
+  /** Koľko z nich má odpoveď — podľa toho sa rozhoduje, či sekcia stojí za zobrazenie. */
+  answeredCount: number
+  ticket: string
+  questions: QuestionItem[]
+}
+
+export async function showEventQuestions(eventId: number): Promise<EventQuestionsView> {
+  const { data } = await http.get(`/events/${eventId}/questions`)
+  const raw = data as Record<string, unknown>
+  const questions = (raw['questions'] as Record<string, unknown>[] | undefined) ?? []
+
+  return {
+    available: Boolean(raw['available']),
+    phase: (raw['phase'] as QuestionPhase) ?? 'before',
+    open: Boolean(raw['open']),
+    moderation: Boolean(raw['moderation']),
+    showQuestions: Boolean(raw['show_questions']),
+    allowUpvotes: Boolean(raw['allow_upvotes']),
+    askForName: Boolean(raw['ask_for_name']),
+    intro: (raw['intro'] as string) ?? null,
+    questionsCount: Number(raw['questions_count'] ?? 0),
+    answeredCount: Number(raw['answered_count'] ?? 0),
+    ticket: (raw['ticket'] as string) ?? '',
+    questions: questions.map(mapQuestion),
+  }
+}
+
+export async function askEventQuestion(eventId: number, payload: AskPayload): Promise<AskResult> {
+  const { data } = await http.post(`/events/${eventId}/questions`, payload)
+
+  return {
+    id: data.id as number,
+    pending: Boolean(data.pending),
+    question: data.question ? mapQuestion(data.question as Record<string, unknown>) : null,
+  }
+}

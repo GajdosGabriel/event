@@ -115,6 +115,15 @@ class Event extends Model implements HasQuestionBoard, Messageable
         return $this->hasMany(TicketType::class);
     }
 
+    /**
+     * Odbery „Pripomeň mi" na tomto podujatí. Polymorfné, lebo tá istá tabuľka
+     * nesie aj sledovanie organizátora — pozri App\Models\Subscription.
+     */
+    public function subscriptions()
+    {
+        return $this->morphMany(Subscription::class, 'subscribable');
+    }
+
     public function admissions()
     {
         return $this->hasMany(Admission::class);

@@ -63,6 +63,30 @@ class Question extends Model
             ->orderByDesc('id');
     }
 
+    /**
+     * Poradie na verejnom detaile podujatia, kde je z nástenky FAQ.
+     *
+     * Zodpovedané idú hore — návštevník sem prišiel pre odpoveď, nie pre
+     * zoznam otvorených otázok, a zodpovedané sú aj to jediné, čo má zmysel
+     * indexovať. Medzi nimi rozhoduje záujem (hlasy) a potom vek.
+     *
+     * Toto je zámerne iné poradie než `inWallOrder()`: na plátne je hore to,
+     * na čo sa práve odpovedá, tu to, na čo sa už odpovedalo.
+     */
+    public function scopeInFaqOrder(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('answered_at IS NULL')
+            ->orderByDesc('upvotes_count')
+            ->orderByDesc('id');
+    }
+
+    /** Otázka, ktorá už má odpoveď organizátora — jediná časť Q&A do JSON-LD. */
+    public function scopeAnswered(Builder $query): Builder
+    {
+        return $query->whereNotNull('answered_at')->whereNotNull('answer_body');
+    }
+
     public function isPublished(): bool
     {
         return $this->status === QuestionStatus::Published;

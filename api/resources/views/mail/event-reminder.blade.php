@@ -17,5 +17,9 @@
 
 @include('mail.partials.calendar')
 
-{{ __('mail.event_reminder.outro') }}
+{{-- Účastníkovi pripomíname vstupenku, odberateľovi nie — nijakú nemá.
+     Text vyberá notifikácia, šablóna o publikách nemusí vedieť. --}}
+{{ $outro ?? __('mail.event_reminder.outro') }}
+
+@include('mail.partials.unsubscribe')
 @endcomponent

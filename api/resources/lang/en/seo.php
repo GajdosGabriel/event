@@ -26,6 +26,8 @@ return [
         'when' => 'When',
         'where' => 'Where',
         'organizer' => 'Organiser',
+        // Nadpis sekcie zodpovedaných otázok publika (JsonLd::faqPage).
+        'faq' => 'Questions and answers',
         'related' => 'More events — :name',
         'all_events' => 'All events',
         'weekend' => 'Events this weekend',
