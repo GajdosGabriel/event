@@ -19,6 +19,7 @@ class MigrateFilesToS3 extends Command
     protected $signature = 'files:migrate-to-s3
         {--dry-run : Len vypíše, čo by sa presunulo, bez zápisu}
         {--delete : Po overenom uploade zmaže lokálnu kópiu}
+        {--prune-local : Nemigruje; len zmaže lokálne zvyšky po už presunutých súboroch (disk=s3)}
         {--chunk=100 : Počet záznamov spracovaných naraz}';
 
     protected $description = 'Presunie File záznamy z lokálneho/public disku na S3 a aktualizuje ich disk stĺpec';
@@ -30,6 +31,14 @@ class MigrateFilesToS3 extends Command
         $dryRun = (bool) $this->option('dry-run');
         $delete = (bool) $this->option('delete');
         $chunkSize = max(1, (int) $this->option('chunk'));
+
+        if (! $this->preflight()) {
+            return self::FAILURE;
+        }
+
+        if ($this->option('prune-local')) {
+            return $this->pruneLocal($dryRun, $chunkSize);
+        }
 
         $migrated = 0;
         $failed = 0;
@@ -60,6 +69,125 @@ class MigrateFilesToS3 extends Command
         ));
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * Overí cieľový disk ešte pred prvým zápisom.
+     *
+     * Samotný --dry-run číta iba lokálny disk, takže by prešiel aj s úplne
+     * nenastaveným S3. Bez tejto kontroly sa dá ľahko spustiť migrácia do
+     * cudzieho prefixu (napr. prod dáta do dev/) alebo do prázdneho bucketu.
+     */
+    private function preflight(): bool
+    {
+        $bucket = (string) config('filesystems.disks.s3.bucket');
+        $region = (string) config('filesystems.disks.s3.region');
+        $root = (string) config('filesystems.disks.s3.root');
+
+        if ($bucket === '') {
+            $this->error('AWS_BUCKET nie je nastavený — S3 disk nie je nakonfigurovaný.');
+
+            return false;
+        }
+
+        $this->line(sprintf(
+            'Cieľ: bucket=%s region=%s prefix=%s',
+            $bucket,
+            $region,
+            $root !== '' ? $root . '/' : '(koreň bucketu)',
+        ));
+
+        if ($root === '') {
+            $this->warn('AWS_ROOT je prázdny — súbory pôjdu do koreňa bucketu a môžu sa miešať s iným prostredím.');
+        }
+
+        // Skutočný zápis: overí kľúče, región aj práva naraz. Bez neho by sa
+        // chyba prejavila až v polovici migrácie. Disk má throw=false, takže
+        // samotné put() pri chybe nevyhodí výnimku — kontrolujeme exists().
+        $probe = '_preflight-' . uniqid() . '.txt';
+
+        try {
+            $disk = Storage::disk('s3');
+            $disk->put($probe, 'ok');
+
+            if (! $disk->exists($probe)) {
+                $this->error('Zápis na S3 neprešiel (súbor po zápise neexistuje). Skontroluj kľúče a práva.');
+
+                return false;
+            }
+
+            $disk->delete($probe);
+        } catch (\Throwable $e) {
+            $this->error('S3 nedostupné: ' . $e->getMessage());
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Zmaže lokálne zvyšky po súboroch, ktoré už sú na S3 (disk=s3).
+     *
+     * Migrácia zámerne kopíruje a nemaže, takže po jej dobehnutí ostávajú
+     * originály na lokálnom disku ako záloha. Tento režim ich upratá — ale
+     * každý súbor zmaže až po overení, že jeho kópia na S3 naozaj existuje.
+     */
+    private function pruneLocal(bool $dryRun, int $chunkSize): int
+    {
+        $s3 = Storage::disk('s3');
+        $deleted = 0;
+        $skipped = 0;
+        $bytes = 0;
+
+        // `local` a `public` mieria na ten istý adresár, takže bez deduplikácie
+        // podľa reálneho rootu by sme každý súbor započítali dvakrát.
+        $localDisks = [];
+        foreach (self::SOURCE_DISKS as $diskName) {
+            $root = Storage::disk($diskName)->path('');
+            $localDisks[$root] = Storage::disk($diskName);
+        }
+
+        File::query()
+            ->where('disk', 's3')
+            ->orderBy('id')
+            ->chunkById($chunkSize, function ($files) use ($s3, $localDisks, $dryRun, &$deleted, &$skipped, &$bytes) {
+                foreach ($files as $file) {
+                    $paths = array_values(array_unique(array_filter([$file->path, $file->thumb, $file->large])));
+
+                    foreach ($paths as $path) {
+                        foreach ($localDisks as $local) {
+                            if (! $local->exists($path)) {
+                                continue;
+                            }
+
+                            if (! $s3->exists($path)) {
+                                $skipped++;
+                                $this->warn("Preskočené (na S3 chýba): {$path}");
+                                continue;
+                            }
+
+                            $bytes += (int) $local->size($path);
+
+                            if (! $dryRun) {
+                                $local->delete($path);
+                            }
+
+                            $deleted++;
+                        }
+                    }
+                }
+            });
+
+        $this->info(sprintf(
+            '%sZmazané lokálne kópie: %d, preskočené: %d, uvoľnené: %s',
+            $dryRun ? '[DRY RUN] ' : '',
+            $deleted,
+            $skipped,
+            $this->formatBytes($bytes),
+        ));
+
+        return self::SUCCESS;
     }
 
     private function migrateFile(File $file, bool $dryRun, bool $delete): int
