@@ -24,11 +24,6 @@ class QuestionBoardSettingsRequest extends FormRequest
             'allow_upvotes' => ['sometimes', 'boolean'],
             'ask_for_name' => ['sometimes', 'boolean'],
             'intro' => ['sometimes', 'nullable', 'string', 'max:255'],
-            // Okno sa dá aj zrušiť (null) — nástenka potom visí na `is_open`.
-            // Poradie sa nekontroluje krížovo: organizátor si ho môže prepnúť
-            // v ľubovoľnom poradí a medzistav by mu len hádzal chybu.
-            'opens_at' => ['sometimes', 'nullable', 'date'],
-            'closes_at' => ['sometimes', 'nullable', 'date'],
         ];
     }
 }

@@ -1401,7 +1401,7 @@ const de: Messages = {
       settings: {
         title: 'Einstellungen',
         isOpen: 'Fragen annehmen',
-        isOpenHint: 'Schneller Schalter. Eine geschlossene Pinnwand bleibt lesbar, nur fragen kann man nicht mehr.',
+        isOpenHint: 'Der einzige Schalter der Pinnwand. Eine geschlossene bleibt lesbar, nur schreiben kann man nicht mehr.',
         moderation: 'Fragen vor der Veröffentlichung freigeben',
         moderationHint: 'Die Frage erscheint erst nach Ihrer Freigabe. Sonst geht sie sofort an die Wand.',
         showQuestions: 'Bisherige Fragen den Fragenden zeigen',
@@ -1412,9 +1412,6 @@ const de: Messages = {
         askForNameHint: 'Der Name bleibt optional — eine Frage geht immer auch anonym.',
         intro: 'Eigener Aufruf über dem Formular',
         introPlaceholder: 'Was möchten Sie den Vortragenden fragen?',
-        opensAt: 'Geöffnet ab',
-        closesAt: 'Geschlossen um',
-        windowHint: 'Aus dem Veranstaltungstermin vorbelegt. Leere Felder bedeuten keine Begrenzung.',
       },
       materials: {
         title: 'Folie für die Leinwand',

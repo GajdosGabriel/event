@@ -90,16 +90,6 @@
             :placeholder="t('questions.dashboard.settings.introPlaceholder')"
           />
 
-          <div class="mt-3 grid gap-3 lg:grid-cols-2">
-            <FormField v-model="settings.opens_at" type="datetime" :label="t('questions.dashboard.settings.opensAt')" />
-            <FormField
-              v-model="settings.closes_at"
-              type="datetime"
-              :label="t('questions.dashboard.settings.closesAt')"
-              :hint="t('questions.dashboard.settings.windowHint')"
-            />
-          </div>
-
           <button type="button" class="btn btn-primary mt-4" :disabled="saving" @click="save">
             {{ saving ? t('tickets.settings.saving') : t('tickets.settings.save') }}
           </button>
@@ -242,8 +232,6 @@ const settings = reactive({
   allow_upvotes: true,
   ask_for_name: true,
   intro: '' as string | null,
-  opens_at: '' as string | null,
-  closes_at: '' as string | null,
 })
 
 const key = (slot: QuestionBoardSlot) => `${slot.targetType}-${slot.targetId}`
@@ -283,8 +271,6 @@ watch(active, (slot) => {
   settings.allow_upvotes = board.allowUpvotes
   settings.ask_for_name = board.askForName
   settings.intro = board.intro ?? ''
-  settings.opens_at = board.opensAt
-  settings.closes_at = board.closesAt
 
   void loadQuestions()
 }, { immediate: true })
@@ -314,8 +300,6 @@ async function save() {
     active.value!.board = await updateQuestionBoard(board.id, {
       ...settings,
       intro: settings.intro || null,
-      opens_at: settings.opens_at || null,
-      closes_at: settings.closes_at || null,
     })
     toast.success(t('questions.dashboard.saved'))
   } catch {

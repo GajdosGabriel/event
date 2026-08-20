@@ -1400,7 +1400,7 @@ const cs: Messages = {
       settings: {
         title: 'Nastavení',
         isOpen: 'Přijímat otázky',
-        isOpenHint: 'Rychlý vypínač. Zavřenou nástěnku lze stále číst, jen se nedá ptát.',
+        isOpenHint: 'Jediný vypínač nástěnky. Zavřenou lze stále číst, jen se do ní nedá psát.',
         moderation: 'Schvalovat otázky před zveřejněním',
         moderationHint: 'Otázka se objeví až po vašem schválení. Bez toho jde na stěnu hned.',
         showQuestions: 'Ukázat tazateli dosavadní otázky',
@@ -1411,9 +1411,6 @@ const cs: Messages = {
         askForNameHint: 'Jméno zůstává nepovinné — otázku lze poslat i anonymně.',
         intro: 'Vlastní výzva nad formulářem',
         introPlaceholder: 'Na co se chcete zeptat přednášejícího?',
-        opensAt: 'Otevřít od',
-        closesAt: 'Zavřít v',
-        windowHint: 'Předvyplněno podle termínu akce. Prázdná pole znamenají „bez omezení".',
       },
       materials: {
         title: 'Snímek na plátno',

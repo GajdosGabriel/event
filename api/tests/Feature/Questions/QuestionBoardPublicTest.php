@@ -21,25 +21,8 @@ class QuestionBoardPublicTest extends EventSetupTest
             ->assertOk()
             ->assertJsonPath('title', $this->futureEvent->name)
             ->assertJsonPath('event_name', null)
-            // Predvolené okno je „dve hodiny pred začiatkom" — podujatie o mesiac
-            // teda nástenku otvorenú ešte nemá, hoci `is_open` je zapnuté.
-            ->assertJsonPath('open', false);
-    }
-
-    #[Test]
-    public function board_is_open_during_the_event(): void
-    {
-        $this->app['auth']->forgetGuards();
-
-        $this->futureEvent->update([
-            'status' => ModelStatus::Published,
-            'start_at' => now()->subHour(),
-            'end_at' => now()->addHour(),
-        ]);
-        $board = $this->futureEvent->ensureQuestionBoard();
-
-        $this->getJson("/api/q/{$board->token}")
-            ->assertOk()
+            // Zapnutá nástenka je otvorená bez ohľadu na termín — otvára ju
+            // organizátor, nie hodiny.
             ->assertJsonPath('open', true);
     }
 
@@ -193,20 +176,18 @@ class QuestionBoardPublicTest extends EventSetupTest
     }
 
     #[Test]
-    public function qr_board_still_waits_for_the_start_of_its_window(): void
+    public function the_switch_closes_the_qr_board_too(): void
     {
-        // Verejný detail podujatia začiatok okna ignoruje (QuestionChannel),
-        // adresa z plátna nie — kým sa v sále skúša technika, formulár za QR
-        // kódom musí ostať mŕtvy.
+        // Nástenku zatvára jedine `is_open` — a musí zabrať aj na tejto ceste,
+        // inak by sa spam presunul z verejnej stránky na plátno.
         $this->app['auth']->forgetGuards();
 
         $this->futureEvent->update(['status' => ModelStatus::Published]);
         $board = $this->futureEvent->ensureQuestionBoard();
 
-        $ticket = $this->getJson("/api/q/{$board->token}")
-            ->assertJsonPath('open', false)
-            ->json('ticket');
+        $ticket = $this->getJson("/api/q/{$board->token}")->json('ticket');
 
+        $board->update(['is_open' => false]);
         $this->travel(4)->seconds();
 
         $this->postJson("/api/q/{$board->token}/questions", [

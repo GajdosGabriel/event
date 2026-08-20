@@ -1401,7 +1401,7 @@ const en: Messages = {
       settings: {
         title: 'Settings',
         isOpen: 'Accept questions',
-        isOpenHint: 'A quick switch. A closed board can still be read, it just cannot be asked.',
+        isOpenHint: 'The only switch the board has. A closed board can still be read, it just cannot be written to.',
         moderation: 'Approve questions before they appear',
         moderationHint: 'A question shows only after you approve it. Otherwise it goes to the wall right away.',
         showQuestions: 'Show existing questions to the asker',
@@ -1412,9 +1412,6 @@ const en: Messages = {
         askForNameHint: 'The name stays optional — a question can always be sent anonymously.',
         intro: 'Custom prompt above the form',
         introPlaceholder: 'What would you like to ask the speaker?',
-        opensAt: 'Open from',
-        closesAt: 'Close at',
-        windowHint: 'Prefilled from the event dates. Empty fields mean no limit.',
       },
       materials: {
         title: 'Slide for the screen',

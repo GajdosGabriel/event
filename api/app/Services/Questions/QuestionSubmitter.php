@@ -2,7 +2,6 @@
 
 namespace App\Services\Questions;
 
-use App\Enums\QuestionChannel;
 use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Support\VisitorPseudonym;
@@ -16,8 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Vrstvy ochrany sú rozložené zámerne — každá sama o sebe sa dá obísť:
  *
  * 1. neuhádnuteľný token v adrese (BoardLocator),
- * 2. otvorená nástenka a časové okno (QuestionBoard::acceptsQuestions) — pozor,
- *    okno neplatí pre oba vchody rovnako, viď QuestionChannel,
+ * 2. otvorená nástenka (QuestionBoard::acceptsQuestions),
  * 3. limiter `questions` na IP (routes/api.php),
  * 4. honeypot a minimálny čas vyplnenia (QuestionStoreRequest),
  * 5. dedup podľa pseudonymu pisateľa (tu),
@@ -35,13 +33,9 @@ class QuestionSubmitter
      * `$request` je tu aj napriek `$draft` — pseudonym pisateľa sa počíta z IP
      * a user-agenta, teda z vecí, ktoré vo formulári nie sú a byť nemajú.
      */
-    public function submit(
-        QuestionBoard $board,
-        Request $request,
-        QuestionDraft $draft,
-        QuestionChannel $channel = QuestionChannel::Wall,
-    ): Question {
-        if (! $board->acceptsQuestions($channel)) {
+    public function submit(QuestionBoard $board, Request $request, QuestionDraft $draft): Question
+    {
+        if (! $board->acceptsQuestions()) {
             abort(422, __('questions.errors.closed'));
         }
 

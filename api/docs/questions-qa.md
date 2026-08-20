@@ -44,7 +44,7 @@ Model dopĺňa dve metódy z `App\Contracts\HasQuestionBoard`
 
 | Tabuľka | Čo drží |
 |---|---|
-| `question_boards` | polymorfný cieľ, token, nastavenia, časové okno, `questions_count` |
+| `question_boards` | polymorfný cieľ, token, nastavenia, `questions_count` |
 | `questions` | text, nepovinné meno, stav, počet hlasov, odpoveď organizátora, pseudonym pisateľa |
 | `question_votes` | `question_id` + `voter_hash`, unikátny index = „jeden hlas na prehliadač" |
 
@@ -85,7 +85,7 @@ vrstvená; každá vrstva sa dá obísť sama o sebe:
 | # | Vrstva | Kde |
 |---|---|---|
 | 1 | neuhádnuteľný token v adrese (2^49 možností) | `BoardLocator` |
-| 2 | `is_open` **a** okno `opens_at`–`closes_at` | `QuestionBoard::acceptsQuestions()` |
+| 2 | vypínač `is_open` | `QuestionBoard::acceptsQuestions()` |
 | 3 | limiter `questions` — 8/min a 40/hod na IP | `AppServiceProvider` |
 | 4 | honeypot + podpísaná známka s minimálnym časom vyplnenia | `QuestionStoreRequest`, `SubmissionTicket` |
 | 5 | dedup rovnakého textu od toho istého pisateľa do 5 minút | `QuestionSubmitter` |
@@ -97,7 +97,7 @@ prepísať a poistka by bola dekorácia. Známku vydáva `GET /q/{token}` a odos
 ju pýta späť, takže bot, ktorý našiel len POST endpoint, ju nemá odkiaľ vziať.
 
 Minútový limit je zámerne voľnejší než pri ostatných verejných zápisoch: v sále
-je celá miestnosť za jednou NATovanou adresou. Skutočnú brzdu robí hodinové okno.
+je celá miestnosť za jednou NATovanou adresou. Skutočnú brzdu robí hodinový limit.
 
 **Notifikácia organizátorovi sa neposiela** — počas prednášky by mu prišlo
 štyridsať e-mailov.
@@ -322,23 +322,18 @@ neprepína:
 Poradie je zámerne iné než na stene: tam je hore to, na čo sa **práve odpovedá**,
 na detaile to, na čo sa **už odpovedalo** — návštevník prišiel pre odpoveď.
 
-### Kanál rozhoduje aj o časovom okne
+### Čo kanál rozlišuje — a čo nie
 
-Nástenka má okno `opens_at`–`closes_at` a jeho **začiatok patrí plátnu**: kým sa
-v sále skúša technika, adresa z QR nemá byť živá. Na verejnom detaile by to isté
-pravidlo zavrelo formulár presne v období, na ktoré je určený — predvolené okno
-je „dve hodiny pred začiatkom", takže FAQ by bolo dostupné len tie isté hodiny
-ako QR, teda nikdy vtedy, keď sa človek pýta z gauča.
+[`QuestionChannel`](../app/Enums/QuestionChannel.php) rozlišuje **jedinú** vec:
+či otázka nesie kontakt na pisateľa.
 
-Preto [`QuestionChannel`](../app/Enums/QuestionChannel.php):
+| | e-mail a väzba na účet | kedy je otvorená |
+|---|---|---|
+| `Wall` — QR v sále | nikdy | `is_open` |
+| `EventPage` — verejný detail | na výslovné želanie | `is_open` |
 
-| | `is_open` | `opens_at` | `closes_at` |
-|---|---|---|---|
-| `Wall` — QR v sále | platí | **platí** | platí |
-| `EventPage` — verejný detail | platí | ignoruje sa | platí |
-
-Default parametra je `Wall`, teda prísnejší variant — kto o rozdiel nevie,
-nechtiac neotvorí nástenku skôr, než mal.
+Kedy je nástenka otvorená, sa podľa vchodu nelíši — o tom rozhoduje jeden
+vypínač pre obe cesty.
 
 ### Odpoveď e-mailom
 

@@ -180,15 +180,16 @@ class QuestionModerationTest extends EventSetupTest
         $board = $this->moderatedBoard();
 
         $this->putJson("/api/dashboard/question-boards/{$board->id}", [
+            'is_open' => false,
             'show_questions' => false,
             'allow_upvotes' => false,
             'intro' => 'Na čo sa chcete opýtať prednášajúceho?',
-            'closes_at' => null,
         ])
             ->assertOk()
+            ->assertJsonPath('is_open', false)
+            ->assertJsonPath('accepts_questions', false)
             ->assertJsonPath('show_questions', false)
             ->assertJsonPath('allow_upvotes', false)
-            ->assertJsonPath('intro', 'Na čo sa chcete opýtať prednášajúceho?')
-            ->assertJsonPath('closes_at', null);
+            ->assertJsonPath('intro', 'Na čo sa chcete opýtať prednášajúceho?');
     }
 }

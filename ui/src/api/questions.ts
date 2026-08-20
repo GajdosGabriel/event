@@ -59,8 +59,6 @@ export interface QuestionBoardAdmin {
   allowUpvotes: boolean
   askForName: boolean
   intro: string | null
-  opensAt: string | null
-  closesAt: string | null
   questionsCount: number
   pendingCount: number
 }
@@ -137,8 +135,6 @@ function mapBoardAdmin(raw: Record<string, unknown>): QuestionBoardAdmin {
     allowUpvotes: Boolean(raw['allow_upvotes']),
     askForName: Boolean(raw['ask_for_name']),
     intro: (raw['intro'] as string) ?? null,
-    opensAt: (raw['opens_at'] as string) ?? null,
-    closesAt: (raw['closes_at'] as string) ?? null,
     questionsCount: Number(raw['questions_count'] ?? 0),
     pendingCount: Number(raw['pending_count'] ?? 0),
   }
@@ -241,8 +237,6 @@ export interface BoardSettingsPayload {
   allow_upvotes?: boolean
   ask_for_name?: boolean
   intro?: string | null
-  opens_at?: string | null
-  closes_at?: string | null
 }
 
 export async function updateQuestionBoard(boardId: number, payload: BoardSettingsPayload): Promise<QuestionBoardAdmin> {

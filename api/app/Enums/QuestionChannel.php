@@ -5,20 +5,18 @@ namespace App\Enums;
 /**
  * Ktorou cestou otázka prichádza k nástenke.
  *
- * Nástenka je jedna, ale vedú k nej dva vchody a nemajú rovnaké pravidlá:
+ * Nástenka je jedna, ale vedú k nej dva vchody a líšia sa v jedinej veci —
+ * či otázka nesie kontakt na pisateľa:
  *
- * - **Wall** je adresa z QR premietnutého v sále. Tá má byť živá len okolo
- *   podujatia — kým sa skúša technika, na plátne ešte nemá visieť fungujúci
- *   formulár, a týždeň dopredu už vôbec nie. Preto pre ňu platí `opens_at`.
+ * - **Wall** je adresa z QR premietnutého v sále. Odpoveď tam zaznie nahlas
+ *   a pisateľ sedí v miestnosti, takže e-mail by bol len trenie navyše pri
+ *   formulári, ktorý má byť vyplnený do troch sekúnd od naskenovania.
  * - **EventPage** je verejný detail podujatia. Tam sa človek pýta z gauča
- *   („je tam parkovanie?", „môžem prísť s deťmi?") a otázka má zmysel presne
- *   vtedy, keď sa o podujatí dozvie — teda kedykoľvek pred ním. Čakať na
- *   `opens_at` by znamenalo, že tento vchod je otvorený len tie isté hodiny
- *   ako QR, čiže nikdy vtedy, keď je potrebný.
+ *   týždeň dopredu a odpoveď by musel chodiť hľadať späť na stránku — preto
+ *   si ju môže vypýtať e-mailom.
  *
- * `is_open` a `closes_at` platia pre oba vchody rovnako — ručný vypínač
- * organizátora je ručný vypínač a mesiac po akcii sa už nikto nepýta nič,
- * na čo by niekto odpovedal.
+ * Kedy je nástenka otvorená, sa podľa vchodu **nelíši** — to rieši jediný
+ * vypínač `is_open` (QuestionBoard::acceptsQuestions).
  */
 enum QuestionChannel
 {
@@ -28,9 +26,9 @@ enum QuestionChannel
     /** Verejný detail podujatia (/podujatia/{slug}). */
     case EventPage;
 
-    /** Platí pre tento vchod začiatok okna, alebo stačí zapnutá nástenka? */
-    public function respectsOpensAt(): bool
+    /** Smie otázka z tohto vchodu niesť e-mail a väzbu na účet? */
+    public function carriesContact(): bool
     {
-        return $this === self::Wall;
+        return $this === self::EventPage;
     }
 }

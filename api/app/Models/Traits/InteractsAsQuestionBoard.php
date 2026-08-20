@@ -23,10 +23,8 @@ trait InteractsAsQuestionBoard
      * s tokenom, ktorý nikto nikdy nepoužije (a importovaných podujatí sú
      * tisíce).
      *
-     * Predvolené okno je „dve hodiny pred začiatkom až dve hodiny po konci".
-     * Dve hodiny pred preto, aby sa dalo skúšobne naskenovať ešte pri príprave
-     * techniky; dve hodiny po preto, že otázka po prednáške na chodbe je stále
-     * legitímna otázka. Organizátor si to v nastaveniach prepíše alebo zmaže.
+     * Zakladá sa rovno otvorená (`is_open` má default true): kto ju práve
+     * zapol, ju chce mať zapnutú. Zavrie ju jedným klikom v nastaveniach.
      */
     public function ensureQuestionBoard(): QuestionBoard
     {
@@ -36,12 +34,8 @@ trait InteractsAsQuestionBoard
             return $board;
         }
 
-        $event = $this->questionBoardEvent();
-
         return $this->questionBoard()->create([
             'token' => QuestionBoard::freshToken(),
-            'opens_at' => $event?->start_at?->copy()->subHours(2),
-            'closes_at' => ($event?->end_at ?? $event?->start_at)?->copy()->addHours(2),
         ]);
     }
 }

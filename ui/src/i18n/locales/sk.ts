@@ -1469,7 +1469,7 @@ const sk = {
       settings: {
         title: 'Nastavenia',
         isOpen: 'Prijímať otázky',
-        isOpenHint: 'Rýchly vypínač. Zavretá nástenka sa dá stále čítať, len sa nedá pýtať.',
+        isOpenHint: 'Jediný vypínač nástenky. Zavretá sa dá stále čítať, len sa do nej nedá písať.',
         moderation: 'Schvaľovať otázky pred zverejnením',
         moderationHint: 'Otázka sa objaví až po vašom schválení. Bez toho ide na stenu hneď.',
         showQuestions: 'Ukázať pýtajúcemu doterajšie otázky',
@@ -1480,9 +1480,6 @@ const sk = {
         askForNameHint: 'Meno zostáva nepovinné — otázku sa dá poslať aj anonymne.',
         intro: 'Vlastná výzva nad formulárom',
         introPlaceholder: 'Na čo sa chcete opýtať prednášajúcemu?',
-        opensAt: 'Otvoriť od',
-        closesAt: 'Zavrieť o',
-        windowHint: 'Predvyplnené podľa termínu podujatia. Prázdne polia znamenajú „bez obmedzenia".',
       },
       materials: {
         title: 'Snímka na plátno',

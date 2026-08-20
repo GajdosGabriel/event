@@ -43,7 +43,7 @@ class QuestionDraft
         QuestionChannel $channel,
     ): self {
         $user = $request->user();
-        $carriesContact = $channel === QuestionChannel::EventPage;
+        $carriesContact = $channel->carriesContact();
 
         // Podpis prihláseného berieme z účtu (osobný kanál, inak časť adresy
         // pred zavináčom — nikdy celá adresa, viď User::displayName).

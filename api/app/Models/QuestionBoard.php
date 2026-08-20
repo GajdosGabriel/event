@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Contracts\HasQuestionBoard;
-use App\Enums\QuestionChannel;
 use App\Enums\QuestionStatus;
 use App\Support\BoardToken;
 use Illuminate\Database\Eloquent\Model;
@@ -39,8 +38,6 @@ class QuestionBoard extends Model
         'show_questions' => 'boolean',
         'allow_upvotes' => 'boolean',
         'ask_for_name' => 'boolean',
-        'opens_at' => 'datetime',
-        'closes_at' => 'datetime',
         'questions_count' => 'integer',
     ];
 
@@ -76,32 +73,17 @@ class QuestionBoard extends Model
     }
 
     /**
-     * Prijíma nástenka práve teraz otázky z daného vchodu?
+     * Prijíma nástenka práve teraz otázky?
      *
-     * `is_open` je ručný vypínač organizátora, okno je automatika. Konce sa
-     * kombinujú — organizátor vie nástenku zavrieť aj uprostred okna (napr. keď
-     * sa niekto rozbehne spamovať) a naopak, otvorené `is_open` samo o sebe
-     * nestačí, aby otázky chodili tri mesiace po akcii.
-     *
-     * Začiatok okna je ale vec plátna, nie stránky: `opens_at` drží QR adresu
-     * mŕtvu, kým sa v sále skúša technika, no na verejnom detaile by tým istým
-     * pravidlom zabil predakčné otázky organizátorovi — a to je práve to,
-     * načo tam sekcia je. Preto rozhoduje kanál (QuestionChannel).
-     *
-     * Default je `Wall`, teda prísnejší variant: kto o rozdiel nevie,
-     * nechtiac neotvorí nástenku skôr, než mal.
+     * Jediná otázka, jediná odpoveď: `is_open`. Nástenka mala kedysi aj časové
+     * okno, ktoré sa ju snažilo otvárať a zatvárať samo podľa termínu — z toho
+     * bola len ďalšia vec, ktorá sa vie pokaziť, a organizátor si aj tak
+     * odpovedal na to isté „berieme otázky, alebo nie?". Zavretá nástenka sa
+     * dá stále čítať, len sa do nej nedá písať.
      */
-    public function acceptsQuestions(QuestionChannel $channel = QuestionChannel::Wall): bool
+    public function acceptsQuestions(): bool
     {
-        if (! $this->is_open) {
-            return false;
-        }
-
-        if ($channel->respectsOpensAt() && $this->opens_at !== null && $this->opens_at->isFuture()) {
-            return false;
-        }
-
-        return $this->closes_at === null || $this->closes_at->isFuture();
+        return (bool) $this->is_open;
     }
 
     /** Stav, v ktorom má vzniknúť nová otázka. */

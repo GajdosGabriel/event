@@ -34,9 +34,8 @@ use Illuminate\Http\JsonResponse;
  * (InteractsAsQuestionBoard) a bolo by chybou, aby ju vyrobila návšteva
  * verejnej stránky — importovaných podujatí sú tisíce.
  *
- * Otázky sem chodia ako QuestionChannel::EventPage, teda bez čakania na
- * `opens_at`. To okno stráži QR v sále; tu by len zavrelo formulár presne
- * v čase, keď sú predakčné otázky na mieste.
+ * Otázky sem chodia ako QuestionChannel::EventPage, teda smú niesť e-mail
+ * a väzbu na účet — pisateľ z gauča chce odpoveď dostať, nie ju chodiť hľadať.
  */
 class EventQuestionController extends Controller
 {
@@ -66,7 +65,7 @@ class EventQuestionController extends Controller
         return response()->json([
             'available' => true,
             'phase' => $phase->value,
-            'open' => $board->acceptsQuestions(QuestionChannel::EventPage),
+            'open' => $board->acceptsQuestions(),
             'moderation' => (bool) $board->moderation,
             'show_questions' => (bool) $board->show_questions,
             'allow_upvotes' => (bool) $board->allow_upvotes,
@@ -89,13 +88,11 @@ class EventQuestionController extends Controller
         }
 
         // Ochranné vrstvy sú tie isté ako pri nástenke z QR — líši sa len vchod,
-        // a s ním to, či platí začiatok okna a či otázka nesie kontakt
-        // (QuestionChannel, QuestionDraft).
+        // a s ním to, či otázka nesie kontakt na pisateľa (QuestionDraft).
         $question = $this->submitter->submit(
             $board,
             $request,
             QuestionDraft::from($request, $board, QuestionChannel::EventPage),
-            QuestionChannel::EventPage,
         );
 
         return response()->json([

@@ -38,7 +38,6 @@ class QuestionController extends Controller
             $board,
             $request,
             QuestionDraft::from($request, $board, QuestionChannel::Wall),
-            QuestionChannel::Wall,
         );
 
         // Odpoveď obsahuje aj stav nástenky, aby front vedel povedať „čaká na

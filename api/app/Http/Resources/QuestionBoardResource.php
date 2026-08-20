@@ -44,8 +44,6 @@ class QuestionBoardResource extends JsonResource
             'allow_upvotes' => (bool) $this->allow_upvotes,
             'ask_for_name' => (bool) $this->ask_for_name,
             'intro' => $this->intro,
-            'opens_at' => $this->opens_at,
-            'closes_at' => $this->closes_at,
 
             'questions_count' => (int) $this->questions_count,
             // Odznak „čaká na teba" pri zapnutom moderovaní. Jeden COUNT na

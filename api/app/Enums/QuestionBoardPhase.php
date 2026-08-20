@@ -26,10 +26,11 @@ enum QuestionBoardPhase: string
     case After = 'after';
 
     /**
-     * Rovnaké okno ako predvolené `opens_at`/`closes_at` novej nástenky
-     * (InteractsAsQuestionBoard::ensureQuestionBoard): dve hodiny pred
-     * začiatkom sa už skúša technika, dve hodiny po konci je otázka na chodbe
-     * stále legitímna otázka.
+     * Dve hodiny pred začiatkom sa už skúša technika, dve hodiny po konci je
+     * otázka na chodbe stále legitímna otázka.
+     *
+     * Fáza nič neotvára ani nezatvára — to je vec vypínača `is_open`. Hovorí
+     * len, **komu** otázka smeruje a v akom poradí sa zoznam ukáže.
      */
     private const LIVE_MARGIN_HOURS = 2;
 

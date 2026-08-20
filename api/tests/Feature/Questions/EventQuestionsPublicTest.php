@@ -177,15 +177,12 @@ class EventQuestionsPublicTest extends EventSetupTest
     }
 
     #[Test]
-    public function detail_takes_questions_before_the_qr_window_opens(): void
+    public function a_freshly_enabled_board_takes_questions_right_away(): void
     {
-        // Predvolené okno novej nástenky je „dve hodiny pred začiatkom" — to
-        // stráži adresu z QR, aby pri skúšaní techniky ešte nežila. Na detaile
-        // by tým istým pravidlom zmizol formulár presne vtedy, keď má
-        // predakčná otázka organizátorovi zmysel.
-        $board = $this->futureEvent->ensureQuestionBoard();
-
-        $this->assertTrue($board->opens_at->isFuture());
+        // Podujatie je o mesiac a nástenka práve vznikla. Kto ju zapol, ju chce
+        // mať zapnutú — čakať na nejaký termín by zabilo predakčné otázky
+        // organizátorovi, teda presne to, načo je sekcia na detaile.
+        $this->futureEvent->ensureQuestionBoard();
 
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
             ->assertOk()
@@ -204,35 +201,11 @@ class EventQuestionsPublicTest extends EventSetupTest
     }
 
     #[Test]
-    public function the_end_of_the_window_closes_the_detail_too(): void
-    {
-        // Koniec okna platí pre oba vchody rovnako: mesiac po akcii sa už nikto
-        // nepýta nič, na čo by niekto odpovedal.
-        $board = $this->futureEvent->ensureQuestionBoard();
-        $board->update(['opens_at' => null, 'closes_at' => now()->subDay()]);
-
-        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()
-            ->assertJsonPath('open', false);
-
-        $ticket = $this->travelTo(
-            now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
-        );
-
-        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
-            'body' => 'Je pri budove parkovanie?',
-            'ticket' => $ticket,
-        ])->assertStatus(422)->assertJsonPath('message', __('questions.errors.closed'));
-    }
-
-    #[Test]
     public function organizers_switch_closes_the_detail_too(): void
     {
-        // `is_open` je núdzová brzda — musí zabrať aj tu, inak by sa spam
-        // presunul z plátna na verejnú stránku.
+        // `is_open` je jediný vypínač a musí zabrať aj tu, nielen na plátne.
         $board = $this->futureEvent->ensureQuestionBoard();
-        $board->update(['is_open' => false, 'opens_at' => null, 'closes_at' => null]);
+        $board->update(['is_open' => false]);
 
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
             ->assertOk()
