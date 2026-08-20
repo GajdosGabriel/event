@@ -213,4 +213,25 @@ class QuestionSubmissionTest extends EventSetupTest
             'body' => '<script>alert(1)</script> Naozaj?',
         ]);
     }
+
+    #[Test]
+    public function the_qr_board_collects_no_address(): void
+    {
+        // Nástenka v sále je zámerne bez kontaktu — odpoveď tam zaznie nahlas.
+        // Podstrčené pole musí zahodiť server, nie sa spoliehať na formulár.
+        $board = $this->openBoard();
+
+        $this->postJson("/api/q/{$board->token}/questions", [
+            'body' => 'Ako ste riešili nasadenie na produkcii?',
+            'notify' => true,
+            'author_email' => 'zuzana@example.com',
+            'ticket' => $this->ticketFor($board),
+        ])->assertStatus(201);
+
+        $this->assertDatabaseHas('questions', [
+            'body' => 'Ako ste riešili nasadenie na produkcii?',
+            'author_email' => null,
+            'user_id' => null,
+        ]);
+    }
 }

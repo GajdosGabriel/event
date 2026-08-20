@@ -4,6 +4,7 @@ return [
     'attributes' => [
         'body' => 'question',
         'author_name' => 'name',
+        'author_email' => 'e-mail address',
         'answer_body' => 'answer',
     ],
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\HasQuestionBoard;
+use App\Enums\QuestionChannel;
 use App\Enums\QuestionStatus;
 use App\Support\BoardToken;
 use Illuminate\Database\Eloquent\Model;
@@ -75,20 +76,28 @@ class QuestionBoard extends Model
     }
 
     /**
-     * Prijíma nástenka práve teraz otázky?
+     * Prijíma nástenka práve teraz otázky z daného vchodu?
      *
-     * `is_open` je ručný vypínač organizátora, okno je automatika. Musia platiť
-     * obe — organizátor vie nástenku zavrieť aj uprostred okna (napr. keď sa
-     * niekto rozbehne spamovať) a naopak, otvorené `is_open` samo o sebe
+     * `is_open` je ručný vypínač organizátora, okno je automatika. Konce sa
+     * kombinujú — organizátor vie nástenku zavrieť aj uprostred okna (napr. keď
+     * sa niekto rozbehne spamovať) a naopak, otvorené `is_open` samo o sebe
      * nestačí, aby otázky chodili tri mesiace po akcii.
+     *
+     * Začiatok okna je ale vec plátna, nie stránky: `opens_at` drží QR adresu
+     * mŕtvu, kým sa v sále skúša technika, no na verejnom detaile by tým istým
+     * pravidlom zabil predakčné otázky organizátorovi — a to je práve to,
+     * načo tam sekcia je. Preto rozhoduje kanál (QuestionChannel).
+     *
+     * Default je `Wall`, teda prísnejší variant: kto o rozdiel nevie,
+     * nechtiac neotvorí nástenku skôr, než mal.
      */
-    public function acceptsQuestions(): bool
+    public function acceptsQuestions(QuestionChannel $channel = QuestionChannel::Wall): bool
     {
         if (! $this->is_open) {
             return false;
         }
 
-        if ($this->opens_at !== null && $this->opens_at->isFuture()) {
+        if ($channel->respectsOpensAt() && $this->opens_at !== null && $this->opens_at->isFuture()) {
             return false;
         }
 

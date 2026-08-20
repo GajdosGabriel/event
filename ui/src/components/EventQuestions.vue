@@ -34,6 +34,7 @@
     <div v-if="sent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
       <p class="font-semibold">{{ pending ? t('public.questions.pendingTitle') : t('public.questions.sentTitle') }}</p>
       <p>{{ pending ? t('public.questions.pendingLead') : t('public.questions.sentLead') }}</p>
+      <p v-if="notified">{{ t('public.questions.sentLeadNotify') }}</p>
       <button type="button" class="mt-2 text-sm font-medium text-green-700 hover:underline" @click="askAgain">
         {{ t('public.questions.askAnother') }}
       </button>
@@ -61,14 +62,42 @@
           :placeholder="t('public.questions.placeholder')"
         />
 
+        <!-- Prihláseného sa na meno nepýtame — vieme ho z účtu a doplní ho
+             server (rovnako ako pri objednávke lístka). -->
         <FormField
-          v-if="view.askForName"
+          v-if="view.askForName && !signedIn"
           v-model="authorName"
           :label="t('public.questions.yourName')"
           trim
           maxlength="80"
           :hint="t('public.questions.nameHint')"
         />
+        <p v-else-if="view.askForName" class="text-xs text-slate-500">
+          {{ t('public.questions.signedAsAccount', { name: auth.displayName }) }}
+        </p>
+
+        <!-- Odpoveď e-mailom. Zámerne nezaškrtnuté: adresu pýtame len od toho,
+             kto o odpoveď naozaj stojí. -->
+        <FormField
+          v-model="notify"
+          type="checkbox"
+          :label="t('public.questions.notifyMe')"
+        />
+
+        <FormField
+          v-if="notify && !signedIn"
+          v-model="authorEmail"
+          type="email"
+          :label="t('public.questions.yourEmail')"
+          required
+          trim
+          maxlength="190"
+          :placeholder="t('public.questions.emailPlaceholder')"
+          :hint="t('public.questions.emailPrivacy')"
+        />
+        <p v-else-if="notify" class="text-xs text-slate-500">
+          {{ t('public.questions.notifyAccount') }}
+        </p>
 
         <!-- Pasca na roboty: mimo obrazovky, bez tabulátora, skrytá pre čítačky. -->
         <div class="absolute left-[-9999px]" aria-hidden="true">
@@ -109,13 +138,21 @@ import {
   type EventQuestionsView,
   type QuestionItem,
 } from '@/api/questions'
-import { t } from '@/i18n'
+import { t, currentLocale } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { useAuthStore } from '@/stores/auth'
 import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ eventId: number }>()
 
 const validation = provideFormValidation()
+const auth = useAuthStore()
+
+/**
+ * Prihlásený nevypĺňa meno ani adresu — obe vieme z účtu a doplní ich server.
+ * Klient by to ani nezvládol: e-mail účtu sa do SPA vôbec neposiela.
+ */
+const signedIn = computed(() => auth.isAuthenticated)
 
 const view = ref<EventQuestionsView | null>(null)
 const questions = ref<QuestionItem[]>([])
@@ -123,9 +160,12 @@ const formOpen = ref(false)
 const submitting = ref(false)
 const sent = ref(false)
 const pending = ref(false)
+const notified = ref(false)
 const error = ref<string | null>(null)
 const body = ref('')
 const authorName = ref('')
+const authorEmail = ref('')
+const notify = ref(false)
 const website = ref('')
 
 /**
@@ -160,6 +200,7 @@ async function load() {
 function askAgain() {
   sent.value = false
   pending.value = false
+  notified.value = false
   formOpen.value = true
 }
 
@@ -172,6 +213,10 @@ async function submit() {
     const result = await askEventQuestion(props.eventId, {
       body: body.value,
       author_name: authorName.value || null,
+      // Adresu posiela len hosť — prihlásenému ju server vezme z účtu.
+      notify: notify.value,
+      author_email: authorEmail.value || null,
+      locale: currentLocale(),
       ticket: view.value?.ticket ?? '',
       website: website.value,
     })
@@ -183,10 +228,13 @@ async function submit() {
     }
 
     pending.value = result.pending
+    notified.value = result.notify
     sent.value = true
     formOpen.value = false
     body.value = ''
     authorName.value = ''
+    authorEmail.value = ''
+    notify.value = false
     validation.reset()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }

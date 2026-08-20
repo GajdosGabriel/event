@@ -175,4 +175,180 @@ class EventQuestionsPublicTest extends EventSetupTest
             ->assertOk()
             ->assertJsonCount(0, 'questions');
     }
+
+    #[Test]
+    public function detail_takes_questions_before_the_qr_window_opens(): void
+    {
+        // Predvolené okno novej nástenky je „dve hodiny pred začiatkom" — to
+        // stráži adresu z QR, aby pri skúšaní techniky ešte nežila. Na detaile
+        // by tým istým pravidlom zmizol formulár presne vtedy, keď má
+        // predakčná otázka organizátorovi zmysel.
+        $board = $this->futureEvent->ensureQuestionBoard();
+
+        $this->assertTrue($board->opens_at->isFuture());
+
+        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
+            ->assertOk()
+            ->assertJsonPath('phase', 'before')
+            ->assertJsonPath('open', true);
+
+        $ticket = $this->travelTo(
+            now()->subSeconds(10),
+            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+        );
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'ticket' => $ticket,
+        ])->assertCreated();
+    }
+
+    #[Test]
+    public function the_end_of_the_window_closes_the_detail_too(): void
+    {
+        // Koniec okna platí pre oba vchody rovnako: mesiac po akcii sa už nikto
+        // nepýta nič, na čo by niekto odpovedal.
+        $board = $this->futureEvent->ensureQuestionBoard();
+        $board->update(['opens_at' => null, 'closes_at' => now()->subDay()]);
+
+        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
+            ->assertOk()
+            ->assertJsonPath('open', false);
+
+        $ticket = $this->travelTo(
+            now()->subSeconds(10),
+            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+        );
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'ticket' => $ticket,
+        ])->assertStatus(422)->assertJsonPath('message', __('questions.errors.closed'));
+    }
+
+    #[Test]
+    public function organizers_switch_closes_the_detail_too(): void
+    {
+        // `is_open` je núdzová brzda — musí zabrať aj tu, inak by sa spam
+        // presunul z plátna na verejnú stránku.
+        $board = $this->futureEvent->ensureQuestionBoard();
+        $board->update(['is_open' => false, 'opens_at' => null, 'closes_at' => null]);
+
+        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
+            ->assertOk()
+            ->assertJsonPath('open', false);
+
+        $ticket = $this->travelTo(
+            now()->subSeconds(10),
+            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+        );
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'ticket' => $ticket,
+        ])->assertStatus(422)->assertJsonPath('message', __('questions.errors.closed'));
+    }
+
+    #[Test]
+    public function a_visitor_can_ask_for_the_answer_by_e_mail(): void
+    {
+        $this->futureEvent->ensureQuestionBoard();
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'notify' => true,
+            'author_email' => 'Zuzana@Example.COM',
+            'ticket' => $this->ticket(),
+        ])->assertCreated()->assertJsonPath('notify', true);
+
+        // Adresa sa ukladá malými písmenami — rovnako ako pri odberoch.
+        $this->assertDatabaseHas('questions', [
+            'body' => 'Je pri budove parkovanie?',
+            'author_email' => 'zuzana@example.com',
+            'user_id' => null,
+        ]);
+    }
+
+    #[Test]
+    public function asking_for_a_reply_without_an_address_is_refused(): void
+    {
+        $this->futureEvent->ensureQuestionBoard();
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'notify' => true,
+            'ticket' => $this->ticket(),
+        ])->assertStatus(422)->assertJsonValidationErrors('author_email');
+    }
+
+    #[Test]
+    public function without_asking_for_it_no_address_is_stored(): void
+    {
+        $this->futureEvent->ensureQuestionBoard();
+
+        // Adresa v tele požiadavky bez zaškrtnutého `notify` je nesúhlas —
+        // ukladať ju by bolo presne to, čo sľubujeme, že nerobíme.
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'author_email' => 'zuzana@example.com',
+            'ticket' => $this->ticket(),
+        ])->assertCreated()->assertJsonPath('notify', false);
+
+        $this->assertDatabaseHas('questions', [
+            'body' => 'Je pri budove parkovanie?',
+            'author_email' => null,
+        ]);
+    }
+
+    #[Test]
+    public function a_signed_in_visitor_fills_nothing_in(): void
+    {
+        $board = $this->futureEvent->ensureQuestionBoard();
+        $ticket = $this->ticket();
+
+        $this->actingAs($this->user, 'sanctum');
+
+        // Ani meno, ani adresa — obe vie server z účtu. Klient by adresu ani
+        // nemal odkiaľ vziať, UserResource ju do SPA neposiela.
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'notify' => true,
+            'ticket' => $ticket,
+        ])->assertCreated()->assertJsonPath('notify', true);
+
+        $question = $board->questions()->firstOrFail();
+
+        $this->assertSame($this->user->email, $question->author_email);
+        $this->assertSame((int) $this->user->id, (int) $question->user_id);
+        $this->assertSame($this->user->displayName(), $question->author_name);
+    }
+
+    #[Test]
+    public function the_address_never_leaves_the_server(): void
+    {
+        $board = $this->futureEvent->ensureQuestionBoard();
+
+        $board->questions()->create([
+            'body' => 'Je pri budove parkovanie?',
+            'author_name' => 'Zuzana',
+            'author_email' => 'zuzana@example.com',
+            'author_hash' => str_repeat('e', 64),
+            'status' => QuestionStatus::Published,
+        ]);
+
+        // Rovnaká poistka ako pri tokene nástenky: adresa nemá čo opustiť server
+        // ani v jednom poli odpovede.
+        $response = $this->getJson("/api/events/{$this->futureEvent->id}/questions")->assertOk();
+
+        $this->assertStringNotContainsString('zuzana@example.com', $response->getContent());
+    }
+
+    /** Známka si žiada aspoň tri sekundy „vypĺňania", preto posun času. */
+    private function ticket(): string
+    {
+        return $this->travelTo(
+            now()->subSeconds(10),
+            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+        );
+    }
 }

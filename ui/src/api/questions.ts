@@ -353,12 +353,34 @@ export async function showEventQuestions(eventId: number): Promise<EventQuestion
   }
 }
 
-export async function askEventQuestion(eventId: number, payload: AskPayload): Promise<AskResult> {
+/**
+ * Detail podujatia vie navyše sľúbiť odpoveď e-mailom — nástenka z QR nie,
+ * tam odpoveď zaznie v sále nahlas.
+ */
+export interface EventAskPayload extends AskPayload {
+  /** „Dajte mi vedieť, keď organizátor odpovie." */
+  notify?: boolean
+  /** Prihlásenému ju doplní server z účtu, takže sa posiela len od hosťa. */
+  author_email?: string | null
+  /** Jazyk, v ktorom si stránku čítal — odpoveď má prísť v ňom. */
+  locale?: string
+}
+
+export interface EventAskResult extends AskResult {
+  /** Beží notifikácia? Nie je to ozvena vstupu — adresu mohol doplniť server. */
+  notify: boolean
+}
+
+export async function askEventQuestion(
+  eventId: number,
+  payload: EventAskPayload,
+): Promise<EventAskResult> {
   const { data } = await http.post(`/events/${eventId}/questions`, payload)
 
   return {
     id: data.id as number,
     pending: Boolean(data.pending),
+    notify: Boolean(data.notify),
     question: data.question ? mapQuestion(data.question as Record<string, unknown>) : null,
   }
 }

@@ -13,9 +13,11 @@ use App\Models\Event;
 use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Models\TicketType;
+use App\Notifications\QuestionAnswered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Nástenky otázok v dashboarde: zapnutie, nastavenia, moderovanie.
@@ -154,7 +156,49 @@ class DashboardQuestionController extends Controller
             $this->syncCount($board, $wasPublished, $question->refresh()->isPublished());
         });
 
+        // Až po commite: v transakcii by e-mail odišiel aj pri rollbacku
+        // a odvolať sa nedá.
+        if (filled($data['answer_body'] ?? null)) {
+            $this->notifyAuthor($question->refresh());
+        }
+
         return response()->json((new QuestionResource($question->refresh()))->withModeration());
+    }
+
+    /**
+     * Odpoveď e-mailom tomu, kto si ju pri otázke vypýtal.
+     *
+     * Adresa sa hneď maže — svoj jediný účel práve splnila a `questions` má byť
+     * tabuľka bez priamych kontaktov (viď migráciu `add_answer_notification`).
+     * Fronte to nevadí: `Notification::route()` si adresu serializuje do payloadu
+     * jobu, takže prípadné opakovanie ju z databázy nečíta.
+     *
+     * `answer_notified_at` je poistka proti druhej vlne — keď organizátor
+     * odpoveď neskôr preformuluje, druhý e-mail už nechodí. Je to zámer: ide
+     * o jednorazovú správu, nie o odber.
+     */
+    private function notifyAuthor(Question $question): void
+    {
+        if (! $question->wantsAnswerNotification()) {
+            return;
+        }
+
+        $email = $question->author_email;
+
+        // Jazyk sedí na notifikácii, nie na adresátovi — `AnonymousNotifiable`
+        // ho nepozná, adresa je len reťazec bez preferencií.
+        $notification = new QuestionAnswered($question);
+
+        if ($question->locale !== null) {
+            $notification->locale($question->locale);
+        }
+
+        Notification::route('mail', $email)->notify($notification);
+
+        $question->forceFill([
+            'answer_notified_at' => now(),
+            'author_email' => null,
+        ])->save();
     }
 
     /**

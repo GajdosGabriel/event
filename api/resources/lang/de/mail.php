@@ -191,6 +191,16 @@ return [
         'outro_subscriber' => 'Der Eintritt ist ohne Anmeldung — kommen Sie einfach vorbei.',
     ],
 
+    // App\Notifications\QuestionAnswered — jediný e-mail, ktorý pisateľ otázky
+    // dostane. Adresa sa hneď po odoslaní maže, preto tu nie je odhlásenie.
+    'question_answered' => [
+        'subject'      => 'Antwort auf Ihre Frage: :event',
+        'intro'        => 'Der Veranstalter hat Ihre Frage zur Veranstaltung **„:event"** beantwortet.',
+        'answer_label' => 'Antwort des Veranstalters',
+        'action'       => 'Veranstaltung ansehen',
+        'outro'        => 'Wir haben Ihre Adresse nur für diese eine Antwort verwendet und nicht mehr gespeichert — weitere E-Mails erhalten Sie von uns nicht.',
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject'   => 'Wir halten Sie auf dem Laufenden: :event',

@@ -22,13 +22,18 @@ class Question extends Model
      * `author_hash` je pseudonym pisateľa a nemá čo opustiť server — ani
      * organizátorovi v dashboarde nie je na nič a v odpovedi by sa dal použiť
      * na spárovanie otázok od tej istej osoby naprieč nástenkami.
+     *
+     * `author_email` je adresa, na ktorú si človek vypýtal odpoveď. Neukazuje sa
+     * nikomu vrátane organizátora — ten na otázku odpovedá na stránke, nie do
+     * schránky, a cudzie adresy sa v tomto projekte nezobrazujú nikde.
      */
-    protected $hidden = ['author_hash'];
+    protected $hidden = ['author_hash', 'author_email'];
 
     protected $casts = [
         'status' => QuestionStatus::class,
         'upvotes_count' => 'integer',
         'answered_at' => 'datetime',
+        'answer_notified_at' => 'datetime',
         'highlighted_at' => 'datetime',
     ];
 
@@ -40,6 +45,24 @@ class Question extends Model
     public function votes(): HasMany
     {
         return $this->hasMany(QuestionVote::class);
+    }
+
+    /** Prihlásený pisateľ, ak ním otázka vznikla. Anonymné otázky majú null. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Má sa po dopísaní odpovede ozvať e-mail?
+     *
+     * Adresa je vyplnená len na výslovné želanie, takže samotná jej prítomnosť
+     * je súhlas. `answer_notified_at` je poistka proti druhej vlne: keď
+     * organizátor odpoveď neskôr preformuluje, druhý e-mail už nechodí.
+     */
+    public function wantsAnswerNotification(): bool
+    {
+        return $this->author_email !== null && $this->answer_notified_at === null;
     }
 
     /** Otázky, ktoré smie vidieť verejnosť. */

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\QuestionChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\QuestionStoreRequest;
 use App\Http\Resources\QuestionResource;
 use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Services\Questions\BoardLocator;
+use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
 use App\Services\Questions\QuestionVoteToggler;
 use Illuminate\Http\JsonResponse;
@@ -30,11 +32,13 @@ class QuestionController extends Controller
     {
         $board = $this->locator->publicOrFail($token);
 
+        // Nástenka z QR je zámerne bez kontaktu — `QuestionDraft` e-mail aj účet
+        // pre tento kanál zahodí, aj keby ich niekto do požiadavky podstrčil.
         $question = $this->submitter->submit(
             $board,
             $request,
-            $request->questionBody(),
-            $board->ask_for_name ? $request->questionAuthorName() : null,
+            QuestionDraft::from($request, $board, QuestionChannel::Wall),
+            QuestionChannel::Wall,
         );
 
         // Odpoveď obsahuje aj stav nástenky, aby front vedel povedať „čaká na

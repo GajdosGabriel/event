@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use App\Support\SubmissionTicket;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class QuestionStoreRequest extends FormRequest
@@ -29,6 +31,18 @@ class QuestionStoreRequest extends FormRequest
             // pre prednášajúceho, ale príspevok do diskusie — na to sú správy.
             'body' => ['required', 'string', 'min:3', 'max:500'],
             'author_name' => ['nullable', 'string', 'max:80'],
+            // „Dajte mi vedieť, keď organizátor odpovie." Zaškrtávacie pole,
+            // nie predvolený stav — adresu pýtame len od toho, kto o odpoveď
+            // naozaj stojí.
+            'notify' => ['sometimes', 'boolean'],
+            // Povinná až so zaškrtnutím, a to len keď adresu nevieme odinakiaľ.
+            // Prihlásenému ju doplní server z účtu, presne ako pri lístkoch
+            // (TicketStoreRequest).
+            'author_email' => ['nullable', 'string', 'email:filter', 'max:190', Rule::requiredIf(
+                fn () => $this->boolean('notify') && ! auth('sanctum')->check(),
+            )],
+            // Jazyk, v ktorom si stránku čítal. Odpoveď má prísť v ňom.
+            'locale' => ['nullable', 'string', 'max:5'],
             'ticket' => ['nullable', 'string', 'max:2000'],
             // Honeypot. Pole má v UI `aria-hidden`, `tabindex="-1"` a je mimo
             // obrazovky — človek doň nemá ako napísať, automat ho vyplní.
@@ -41,6 +55,7 @@ class QuestionStoreRequest extends FormRequest
         return [
             'body' => __('questions.attributes.body'),
             'author_name' => __('questions.attributes.author_name'),
+            'author_email' => __('questions.attributes.author_email'),
         ];
     }
 
@@ -98,5 +113,33 @@ class QuestionStoreRequest extends FormRequest
         $name = trim((string) $this->input('author_name'));
 
         return $name !== '' ? $name : null;
+    }
+
+    /** Chce sa pisateľ dozvedieť odpoveď e-mailom? */
+    public function wantsAnswerNotification(): bool
+    {
+        return $this->boolean('notify');
+    }
+
+    /** Adresa sa ukladá malými písmenami — rovnako ako pri odberoch. */
+    public function questionAuthorEmail(): ?string
+    {
+        $email = Str::lower(trim((string) $this->input('author_email')));
+
+        return $email !== '' ? $email : null;
+    }
+
+    /**
+     * Jazyk beriem len ako dvojpísmenový kód a len zo zoznamu, ktorý naozaj
+     * prekladáme — čokoľvek iné by v e-maile skončilo fallbackom aj tak.
+     * Rovnaké pravidlo ako v SubscriptionStoreRequest.
+     */
+    public function questionLocale(): ?string
+    {
+        $locale = Str::lower(substr(trim((string) $this->input('locale')), 0, 2));
+
+        return in_array($locale, config('app.supported_locales', ['sk', 'cs', 'de', 'en']), true)
+            ? $locale
+            : null;
     }
 }

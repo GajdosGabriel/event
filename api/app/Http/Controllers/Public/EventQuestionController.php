@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Public;
 
 use App\Enums\QuestionBoardPhase;
+use App\Enums\QuestionChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\QuestionStoreRequest;
 use App\Http\Resources\QuestionResource;
 use App\Models\Event;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
 use App\Support\SubmissionTicket;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,6 +33,10 @@ use Illuminate\Http\JsonResponse;
  * Nástenka sa tu **nezakladá**. Vzniká lenivo až na žiadosť organizátora
  * (InteractsAsQuestionBoard) a bolo by chybou, aby ju vyrobila návšteva
  * verejnej stránky — importovaných podujatí sú tisíce.
+ *
+ * Otázky sem chodia ako QuestionChannel::EventPage, teda bez čakania na
+ * `opens_at`. To okno stráži QR v sále; tu by len zavrelo formulár presne
+ * v čase, keď sú predakčné otázky na mieste.
  */
 class EventQuestionController extends Controller
 {
@@ -60,7 +66,7 @@ class EventQuestionController extends Controller
         return response()->json([
             'available' => true,
             'phase' => $phase->value,
-            'open' => $board->acceptsQuestions(),
+            'open' => $board->acceptsQuestions(QuestionChannel::EventPage),
             'moderation' => (bool) $board->moderation,
             'show_questions' => (bool) $board->show_questions,
             'allow_upvotes' => (bool) $board->allow_upvotes,
@@ -82,18 +88,22 @@ class EventQuestionController extends Controller
             abort(422, __('questions.errors.closed'));
         }
 
-        // Ochranné vrstvy sú tie isté ako pri nástenke z QR — jediné, čo sa
-        // líši, je cesta, ktorou sme sa k nástenke dostali.
+        // Ochranné vrstvy sú tie isté ako pri nástenke z QR — líši sa len vchod,
+        // a s ním to, či platí začiatok okna a či otázka nesie kontakt
+        // (QuestionChannel, QuestionDraft).
         $question = $this->submitter->submit(
             $board,
             $request,
-            $request->questionBody(),
-            $board->ask_for_name ? $request->questionAuthorName() : null,
+            QuestionDraft::from($request, $board, QuestionChannel::EventPage),
+            QuestionChannel::EventPage,
         );
 
         return response()->json([
             'id' => $question->id,
             'pending' => ! $question->isPublished(),
+            // Nie ozvena vstupu: adresu mohol doplniť server z účtu, takže front
+            // sa inak nedozvie, či sľúbiť „ozveme sa".
+            'notify' => $question->author_email !== null,
             'question' => $question->isPublished() ? new QuestionResource($question) : null,
         ], 201);
     }

@@ -77,8 +77,10 @@ odkaz okamžite prestane fungovať, otázky ostávajú, snímku treba stiahnuť 
 ## Ochrana anonymného zápisu
 
 Formulár je bez účtu — to je celý zmysel veci, takže „prihláste sa" (ako pri
-správach) tu nepripadá do úvahy. Namiesto toho je ochrana vrstvená; každá
-vrstva sa dá obísť sama o sebe:
+správach) tu nepripadá do úvahy. Platí to aj po tom, čo detail podujatia začal
+ponúkať odpoveď e-mailom: adresa je **ponuka, nie podmienka**, a otázku sa dá
+položiť bez nej (viď „Odpoveď e-mailom" nižšie). Namiesto účtu je ochrana
+vrstvená; každá vrstva sa dá obísť sama o sebe:
 
 | # | Vrstva | Kde |
 |---|---|---|
@@ -100,12 +102,13 @@ je celá miestnosť za jednou NATovanou adresou. Skutočnú brzdu robí hodinov�
 **Notifikácia organizátorovi sa neposiela** — počas prednášky by mu prišlo
 štyridsať e-mailov.
 
-### Dve rôzne identity toho istého človeka
+### Tri rôzne identity toho istého človeka
 
 | Kde | Čo | Prečo práve tak |
 |---|---|---|
 | `questions.author_hash` | `sha256(IP \| user-agent \| app key \| dnešný dátum)` — `App\Support\VisitorPseudonym` | IP sa nikde neukladá a pseudonym sa každý deň mení, takže sa z tabuľky nedá poskladať, čo kto písal naprieč akciami. Rovnaký prístup ako počítadlo zobrazení. |
 | `question_votes.voter_hash` | `sha256(náhodný token z localStorage)` | Hlas musí prežiť prepnutie wifi na LTE a po reloade musí byť rozpoznaný ako „môj", aby sa dal odobrať. Hash z IP by pokazil oboje. |
+| `questions.author_email` | adresa, ktorú človek sám zadal | Jediný priamy kontakt v celom Q&A. Vzniká len na verejnom detaile a len so zaškrtnutým „dajte mi vedieť"; **po odoslaní odpovede sa maže**, takže v tabuľke žije len od otázky po odpoveď. Nikdy neopúšťa server (`Question::$hidden`) — ani smerom k organizátorovi. |
 
 `VisitorPseudonym` vzniklo vytiahnutím z `ViewRecorder`. Poradie polí v hashi
 zostalo nedotknuté zámerne — inak by sa v deň nasadenia každému zmenil pseudonym
@@ -319,6 +322,46 @@ neprepína:
 Poradie je zámerne iné než na stene: tam je hore to, na čo sa **práve odpovedá**,
 na detaile to, na čo sa **už odpovedalo** — návštevník prišiel pre odpoveď.
 
+### Kanál rozhoduje aj o časovom okne
+
+Nástenka má okno `opens_at`–`closes_at` a jeho **začiatok patrí plátnu**: kým sa
+v sále skúša technika, adresa z QR nemá byť živá. Na verejnom detaile by to isté
+pravidlo zavrelo formulár presne v období, na ktoré je určený — predvolené okno
+je „dve hodiny pred začiatkom", takže FAQ by bolo dostupné len tie isté hodiny
+ako QR, teda nikdy vtedy, keď sa človek pýta z gauča.
+
+Preto [`QuestionChannel`](../app/Enums/QuestionChannel.php):
+
+| | `is_open` | `opens_at` | `closes_at` |
+|---|---|---|---|
+| `Wall` — QR v sále | platí | **platí** | platí |
+| `EventPage` — verejný detail | platí | ignoruje sa | platí |
+
+Default parametra je `Wall`, teda prísnejší variant — kto o rozdiel nevie,
+nechtiac neotvorí nástenku skôr, než mal.
+
+### Odpoveď e-mailom
+
+Otázka v sále odpoveď e-mailom nepotrebuje: prednášajúci ju povie nahlas
+a pisateľ sedí v miestnosti. Otázka z detailu je iný prípad — položí sa týždeň
+dopredu a odpoveď by človek musel chodiť hľadať späť na stránku. Preto si ju
+môže vypýtať, zaškrtávacím poľom pri formulári.
+
+- **Nepovinné a nezaškrtnuté.** Adresu pýtame len od toho, kto o odpoveď stojí;
+  otázka bez nej je stále platná otázka aj SEO obsah.
+- **Prihlásený nevypĺňa nič** — meno aj adresu doplní server z účtu, presne ako
+  `TicketController` dopĺňa `holder_name`/`holder_email`. Klient by to ani
+  nezvládol: `UserResource` posiela e-mail len na admin routách.
+- **Adresa sa po odoslaní odpovede maže** a `answer_notified_at` zaručí, že
+  prepísaná odpoveď už druhý e-mail nepošle. Je to jednorazová správa, nie odber
+  — preto v nej nie je ani odhlasovací odkaz, nebolo by sa z čoho odhlásiť.
+- **Organizátor adresu nevidí.** Odpovedá na stránke, nie do schránky, a cudzie
+  adresy sa v tomto projekte nezobrazujú nikde.
+
+Obe pravidlá o zahadzovaní vstupu (meno pri vypnutom `ask_for_name`, kontakt mimo
+`EventPage`) sedia na jednom mieste — [`QuestionDraft`](../app/Services/Questions/QuestionDraft.php).
+Formulár sa dá podstrčiť, server nie.
+
 ### Prečo to má zmysel: zodpovedané otázky sú SEO obsah
 
 Bez tejto časti by bolo Q&A na detaile len pekná sekcia.
@@ -353,6 +396,9 @@ Ručne stojí za pozretie:
    `/q/{TOKEN}/stena`.
 5. Zapnúť moderovanie a overiť, že nezverejnená otázka na verejnej stránke nie je,
    ale odosielateľ ju vidí ako čakajúcu.
+6. Na verejnom detaile položiť otázku so zaškrtnutým „dajte mi vedieť", dopísať
+   odpoveď v dashboarde a overiť, že e-mail odišiel **raz** a `author_email` je
+   v databáze prázdny. Druhá úprava odpovede už nesmie poslať nič.
 
 Na produkcii navyše skontrolovať, že GD má FreeType — bez neho renderer nemá
 čím kresliť text a endpoint vráti 503 s hláškou, nie rozbitý obrázok:

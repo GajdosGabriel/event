@@ -191,6 +191,16 @@ return [
         'outro_subscriber' => 'No registration needed — just turn up.',
     ],
 
+    // App\Notifications\QuestionAnswered — jediný e-mail, ktorý pisateľ otázky
+    // dostane. Adresa sa hneď po odoslaní maže, preto tu nie je odhlásenie.
+    'question_answered' => [
+        'subject'      => 'An answer to your question: :event',
+        'intro'        => 'The organiser has answered the question you asked about **":event"**.',
+        'answer_label' => "Organiser's answer",
+        'action'       => 'View the event',
+        'outro'        => 'We used your address for this single answer and no longer have it — you will not hear from us again.',
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject'   => 'We will keep you posted: :event',

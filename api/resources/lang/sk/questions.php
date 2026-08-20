@@ -6,6 +6,7 @@ return [
     'attributes' => [
         'body' => 'otázka',
         'author_name' => 'meno',
+        'author_email' => 'e-mailová adresa',
         'answer_body' => 'odpoveď',
     ],
 

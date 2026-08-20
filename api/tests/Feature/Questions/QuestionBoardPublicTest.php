@@ -191,4 +191,27 @@ class QuestionBoardPublicTest extends EventSetupTest
             ->assertJsonPath('title', 'Ako na AI v malej firme')
             ->assertJsonPath('event_name', $this->futureEvent->name);
     }
+
+    #[Test]
+    public function qr_board_still_waits_for_the_start_of_its_window(): void
+    {
+        // Verejný detail podujatia začiatok okna ignoruje (QuestionChannel),
+        // adresa z plátna nie — kým sa v sále skúša technika, formulár za QR
+        // kódom musí ostať mŕtvy.
+        $this->app['auth']->forgetGuards();
+
+        $this->futureEvent->update(['status' => ModelStatus::Published]);
+        $board = $this->futureEvent->ensureQuestionBoard();
+
+        $ticket = $this->getJson("/api/q/{$board->token}")
+            ->assertJsonPath('open', false)
+            ->json('ticket');
+
+        $this->travel(4)->seconds();
+
+        $this->postJson("/api/q/{$board->token}/questions", [
+            'body' => 'Je pri budove parkovanie?',
+            'ticket' => $ticket,
+        ])->assertStatus(422)->assertJsonPath('message', __('questions.errors.closed'));
+    }
 }
