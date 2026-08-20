@@ -286,4 +286,95 @@ class NominatimGeocoderTest extends TestCase
         $this->assertSame(48.9477, $result['latitude']);
         $this->assertSame(21.3065, $result['longitude']);
     }
+    #[Test]
+    public function a_generic_type_word_is_never_queried_without_a_town(): void
+    {
+        // Regresia z produkcie: buildNameVariants pridáva medzi varianty holé
+        // druhové slová („amfiteater“, „kostol“). S dotazom bez obce
+        // („amfiteater, Slovensko“) trafili hociktorú takú stavbu na
+        // Slovensku — „Amfiteáter Košice“ tak dostal obec Námestovo a päť
+        // rôznych kostolov rovnaké súradnice v Pečeniciach.
+        Config::set('services.nominatim.base_url', 'https://nominatim.example');
+        Config::set('services.nominatim.cache_ttl', 0);
+
+        $queries = [];
+
+        Http::fake([
+            'https://nominatim.example/search*' => function ($request) use (&$queries) {
+                $queries[] = $request['q'];
+
+                return Http::response([], 200);
+            },
+        ]);
+
+        (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+
+        $this->assertNotEmpty($queries);
+        $this->assertNotContains('amfiteater', $queries);
+        $this->assertNotContains('amfiteater, Slovensko', $queries);
+
+        foreach ($queries as $query) {
+            $this->assertStringContainsStringIgnoringCase(
+                'kosice',
+                $query,
+                'Druhový dotaz bez obce trafí ľubovoľnú stavbu toho typu: ' . $query,
+            );
+        }
+    }
+
+    #[Test]
+    public function a_building_of_the_right_type_in_the_wrong_town_is_rejected(): void
+    {
+        // Aj keď obec v dotaze je, Nominatim je fulltext a vráti aj zásah
+        // z iného okresu. Zhoda mena je pritom len druhové slovo, takže sama
+        // o sebe nesmie stačiť na prijatie.
+        Config::set('services.nominatim.base_url', 'https://nominatim.example');
+        Config::set('services.nominatim.cache_ttl', 0);
+
+        Http::fake([
+            'https://nominatim.example/search*' => Http::response([
+                [
+                    'name' => 'Amfiteater',
+                    'lat' => '49.4079',
+                    'lon' => '19.4801',
+                    'address' => [
+                        'city' => 'Namestovo',
+                        'country' => 'Slovensko',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+
+        $this->assertNull($result['city']);
+        $this->assertNull($result['latitude']);
+    }
+
+    #[Test]
+    public function a_real_venue_in_the_requested_town_still_matches(): void
+    {
+        Config::set('services.nominatim.base_url', 'https://nominatim.example');
+        Config::set('services.nominatim.cache_ttl', 0);
+
+        Http::fake([
+            'https://nominatim.example/search*' => Http::response([
+                [
+                    'name' => 'Amfiteater Kosice',
+                    'lat' => '48.7268',
+                    'lon' => '21.2646',
+                    'address' => [
+                        'road' => 'Festivalove namestie',
+                        'city' => 'Kosice',
+                        'country' => 'Slovensko',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+
+        $this->assertSame('Kosice', $result['city']);
+        $this->assertSame(48.7268, $result['latitude']);
+    }
 }

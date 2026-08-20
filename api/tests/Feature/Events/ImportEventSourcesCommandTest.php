@@ -12,6 +12,8 @@ use App\Models\Venue;
 use App\Services\Imports\VyveskaRssService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
@@ -372,6 +374,88 @@ class ImportEventSourcesCommandTest extends TestCase
     }
 
     #[Test]
+    public function it_geocodes_a_venue_that_is_not_a_municipality_instead_of_falling_back(): void
+    {
+        // Článok pozná len názov miesta („Kde: Bazilika…"), nie obec. Predtým
+        // taký event skončil v zbernom „Celé Slovensko"; teraz obec dohľadá
+        // geokóder — a to aj cez rozdiel v písaní pomlčky, lebo číselník má
+        // „Šaštín - Stráže", zatiaľ čo OSM vracia „Šaštín-Stráže".
+        Storage::fake('public');
+        Cache::flush();
+        Config::set('services.nominatim.base_url', 'https://nominatim.example');
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('super-admin');
+
+        $listingUrl = 'https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl';
+        $detailUrl = 'https://www.tkkbs.sk/view.php?cisloclanku=20260408123';
+        $imageUrl = 'https://www.tkkbs.sk/galeria/images/1766911178/1775635123.jpg';
+        $title = 'Púť k Sedembolestnej Panne Márii';
+        $paragraphs = [
+            'Šaštín 8. apríla 2026 09:30 (TK KBS) Púť k Sedembolestnej Panne Márii sa uskutoční 15. mája 2026 o 10:00.',
+            'Kde: Bazilika Sedembolestnej Panny Márie',
+        ];
+
+        Http::fake(function ($request) use ($listingUrl, $detailUrl, $imageUrl, $title, $paragraphs) {
+            if ($request->url() === $listingUrl) {
+                return Http::response(
+                    $this->tkkbsListingHtmlWithTitle($detailUrl, $title),
+                    200,
+                    ['Content-Type' => 'text/html; charset=UTF-8']
+                );
+            }
+
+            if ($request->url() === $detailUrl) {
+                return Http::response(
+                    $this->tkkbsDetailHtmlWithParagraphs($imageUrl, $title, $paragraphs),
+                    200,
+                    ['Content-Type' => 'text/html; charset=UTF-8']
+                );
+            }
+
+            if ($request->url() === $imageUrl) {
+                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+            }
+
+            if (str_starts_with($request->url(), 'https://nominatim.example/search')) {
+                return Http::response([
+                    [
+                        'name' => 'Bazilika Sedembolestnej Panny Márie',
+                        'lat' => '48.6389247',
+                        'lon' => '17.1429925',
+                        'address' => [
+                            'road' => 'Kláštorné námestie',
+                            'house_number' => '1294/9',
+                            'town' => 'Šaštín-Stráže',
+                            'postcode' => '908 41',
+                            'country' => 'Slovensko',
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return Http::response('', 404);
+        });
+
+        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1])
+            ->assertSuccessful();
+
+        $event = Event::query()->where('orginal_source', $detailUrl)->first();
+        $this->assertNotNull($event);
+
+        $venue = $event->venue;
+        $this->assertNotNull($venue);
+        $this->assertNotSame('fallback', $venue->category);
+        $this->assertSame('Bazilika Sedembolestnej Panny Márie', $venue->name);
+        $this->assertSame('Šaštín - Stráže', $venue->municipality?->fullname);
+        $this->assertSame('908 41', $venue->postcode);
+        // Bez mapového pinu v článku sa súradnice preberú z geokódera.
+        $this->assertSame(48.6389247, (float) $venue->latitude);
+        $this->assertSame(17.1429925, (float) $venue->longitude);
+    }
+
+    #[Test]
     public function it_imports_vyveska_event_from_latest_listing(): void
     {
         Storage::fake('public');
@@ -706,6 +790,27 @@ HTML;
 <body>
     <div class="imageilu"><span class="clatext"><img src="{$imageUrl}" width="620"></span></div>
     <span class="clatext"><p>{$body}</p></span>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * @param list<string> $paragraphs
+     */
+    private function tkkbsDetailHtmlWithParagraphs(string $imageUrl, string $title, array $paragraphs): string
+    {
+        $body = implode('', array_map(static fn (string $p): string => "<p>{$p}</p>", $paragraphs));
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <title>{$title}</title>
+</head>
+<body>
+    <div class="imageilu"><span class="clatext"><img src="{$imageUrl}" width="620"></span></div>
+    <span class="clatext">{$body}</span>
 </body>
 </html>
 HTML;

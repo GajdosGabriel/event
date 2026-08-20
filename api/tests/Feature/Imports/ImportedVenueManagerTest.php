@@ -127,16 +127,90 @@ class ImportedVenueManagerTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_reuse_the_shared_fallback_venue_as_a_named_match(): void
+    public function a_country_wide_name_lands_on_the_shared_fallback(): void
     {
+        // „Celé Slovensko“ nie je obec, je to priznanie, že miesto nie je
+        // známe. Kým sa taký názov púšťal do dohľadania obce, sadol na
+        // číselníkový záznam 4209 a vzniklo druhé miesto s rovnakým menom
+        // vedľa zberného — presne tá duplicita, ktorú má import vylúčiť.
         config()->set('services.imports.detect_canal_with_ai', false);
         config()->set('services.imports.describe_with_ai', false);
 
         $canal = Canal::factory()->create();
         $fallback = app(ImportedVenueManager::class)->resolveFallbackVenue();
+        $before = Venue::query()->count();
 
         $resolved = app(ImportedVenueManager::class)->resolveOrDetect($canal, $fallback->name, null);
 
+        $this->assertSame($fallback->id, $resolved->id);
+        $this->assertSame($before, Venue::query()->count(), 'Nesmie vzniknúť druhé „Celé Slovensko“.');
+    }
+
+    #[Test]
+    public function it_does_not_reuse_the_shared_fallback_venue_as_a_named_match(): void
+    {
+        // Poistka nad voľným LIKE v findByName: zberné miesto sa nesmie
+        // priradiť ako zhoda názvu skutočného miesta, nech sa volá akokoľvek.
+        config()->set('services.imports.detect_canal_with_ai', false);
+        config()->set('services.imports.describe_with_ai', false);
+
+        $canal = Canal::factory()->create();
+        $fallback = app(ImportedVenueManager::class)->resolveFallbackVenue();
+        $fallback->update(['name' => 'Mestské divadlo', 'slug' => 'mestske-divadlo']);
+
+        $resolved = app(ImportedVenueManager::class)->resolveOrDetect($canal, 'Mestské divadlo', 'Nitra');
+
         $this->assertNotSame($fallback->id, $resolved->id, 'Zberné miesto sa nesmie priradiť podľa názvu.');
+    }
+
+    #[Test]
+    public function a_trailing_town_name_does_not_create_a_second_venue(): void
+    {
+        // Regresia z produkcie: import raz uloží „Sanktuárium Božieho
+        // Milosrdenstva“ a inokedy to isté miesto s pripísanou obcou. Zátvorku
+        // baseSlug() orezávala, čiarku s obcou nie, tak vznikli dva záznamy
+        // v tej istej obci (venue 43 a 99, obe v Ladcoch).
+        $ladce = Municipality::query()->where('fullname', 'Ladce')->firstOrFail();
+
+        $canal = Canal::factory()->create();
+        $existing = Venue::factory()->create([
+            'village_id' => $ladce->id,
+            'name'       => 'Sanktuárium Božieho Milosrdenstva',
+            'slug'       => 'sanktuarium-bozieho-milosrdenstva',
+        ]);
+
+        $before = Venue::query()->count();
+
+        $resolved = app(ImportedVenueManager::class)->resolveOrDetect(
+            $canal,
+            'Sanktuárium Božieho Milosrdenstva, Ladce',
+            'Ladce',
+        );
+
+        $this->assertSame($existing->id, $resolved->id);
+        $this->assertSame($before, Venue::query()->count());
+    }
+
+    #[Test]
+    public function two_similarly_named_villages_are_not_merged(): void
+    {
+        // Protipól predošlého testu: orezáva sa výlučne meno obce, nie
+        // hocijaký spoločný prefix. „Klokoč“ a „Klokočov“ sú dve rôzne obce.
+        $klokocov = Municipality::query()->where('fullname', 'Klokočov')->firstOrFail();
+
+        $canal = Canal::factory()->create();
+        Venue::factory()->create([
+            'village_id' => $klokocov->id,
+            'name'       => 'Klokoč',
+            'slug'       => 'klokoc',
+        ]);
+
+        $resolved = app(ImportedVenueManager::class)->resolveOrDetect(
+            $canal,
+            'Klokočov',
+            'Klokočov',
+        );
+
+        $this->assertSame('Klokočov', $resolved->name);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services\Geocoding;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class NominatimGeocoder
 {
@@ -237,15 +238,60 @@ class NominatimGeocoder
     private function buildQueries(string $name, string $city, ?string $country = null): array
     {
         $queries = [];
+        $hasCity = trim($city) !== '';
 
         foreach ($this->buildNameVariants($name) as $nameVariant) {
-            $queries[] = $this->implodeQueryParts([$nameVariant, $city, $country]);
-            $queries[] = $this->implodeQueryParts([$nameVariant, $city]);
-            $queries[] = $this->implodeQueryParts([$nameVariant, $country]);
-            $queries[] = $this->implodeQueryParts([$nameVariant]);
+            // Druhový variant („kostol“, „amfiteáter“, „katedrála“) je len
+            // typ budovy — sám o sebe neoznačuje nič konkrétne. Bez obce
+            // v dotaze trafí ľubovoľnú stavbu toho druhu na Slovensku, a
+            // keďže názov aj typ „sedia“, prejde aj cez skóre.
+            //
+            // Presne takto vznikli v produkcii chybné miesta: „Amfiteáter
+            // Košice“ dostal obec Námestovo (dotaz „amfiteater, Slovensko“
+            // → Amfiteáter Námestovo) a päť rôznych kostolov skončilo
+            // s rovnakými súradnicami v Pečeniciach.
+            //
+            // Druhový variant preto smie ísť na Nominatim len s obcou.
+            $isGeneric = $this->isGenericNameVariant($nameVariant);
+
+            if ($hasCity) {
+                $queries[] = $this->implodeQueryParts([$nameVariant, $city, $country]);
+                $queries[] = $this->implodeQueryParts([$nameVariant, $city]);
+            }
+
+            if (! $isGeneric) {
+                $queries[] = $this->implodeQueryParts([$nameVariant, $country]);
+                $queries[] = $this->implodeQueryParts([$nameVariant]);
+            }
         }
 
         return array_values(array_unique(array_filter($queries)));
+    }
+
+    /**
+     * Je variant iba holým druhovým označením stavby?
+     *
+     * Porovnáva sa proti synonymám z VENUE_TYPE_SYNONYMS — variant, ktorý sa
+     * rovná niektorému z nich, nenesie žiadny rozlišujúci údaj. Variant, kde
+     * je synonymum len časťou dlhšieho reťazca („kostol sv. Michala“,
+     * „amfiteater namestovo“), generický nie je.
+     */
+    private function isGenericNameVariant(string $variant): bool
+    {
+        $normalized = $this->normalizeText($variant);
+        if ($normalized === null) {
+            return false;
+        }
+
+        foreach (self::VENUE_TYPE_SYNONYMS as $synonyms) {
+            foreach ($synonyms as $synonym) {
+                if ($this->normalizeText($synonym) === $normalized) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function baseUrl(): string
@@ -346,7 +392,17 @@ class NominatimGeocoder
                 str_contains($normalizedRequestedName, $normalizedResultName)
                 || str_contains($normalizedResultName, $normalizedRequestedName)
             ) {
-                $score += 8;
+                // Prekryv, ktorý je len druhovým slovom, nie je zhoda mena:
+                // „Amfiteáter“ je podreťazcom „Amfiteáter Košice“ rovnako ako
+                // podreťazcom každého iného amfiteátra na Slovensku. Typ
+                // stavby odmeňuje samostatný bonus nižšie — počítať ho aj tu
+                // znamenalo, že hociktorý kostol dostal 8 bodov za to, že je
+                // kostol, a chybný výsledok prešiel cez prah.
+                $shorter = mb_strlen($normalizedRequestedName) <= mb_strlen($normalizedResultName)
+                    ? $normalizedRequestedName
+                    : $normalizedResultName;
+
+                $score += $this->isGenericNameVariant($shorter) ? 0 : 8;
             } else {
                 $ignoredTokens = array_unique(array_filter([
                     ...$this->tokenize($city),
@@ -378,8 +434,18 @@ class NominatimGeocoder
         }
 
         $resultCity = $this->resolveCity(is_array($result['address'] ?? null) ? $result['address'] : []);
-        if ($this->normalizeText($city) !== null && $this->normalizeText($city) === $this->normalizeText($resultCity)) {
+        $normalizedCity = $this->normalizeText($city);
+        $normalizedResultCity = $this->normalizeText($resultCity);
+
+        if ($normalizedCity !== null && $normalizedCity === $normalizedResultCity) {
             $score += 3;
+        } elseif ($normalizedCity !== null && $normalizedResultCity !== null) {
+            // Pýtali sme sa na miesto v Košiciach a dostali sme Námestovo —
+            // to je dôkaz proti kandidátovi, nie neutrálny stav. Kým tu bola
+            // len absencia bonusu, stačil druhový zásah v inom okrese na to,
+            // aby prešiel. Pokuta je nižšia než bonus za presné meno, takže
+            // mestskú časť („Bratislava“ vs „Ružinov“) stále prijmeme.
+            $score -= 6;
         }
 
         $resultCountry = $this->stringOrNull($result['address']['country'] ?? null);
@@ -402,8 +468,9 @@ class NominatimGeocoder
     {
         $variants = [trim($name)];
         $normalized = $this->normalizeText($name) ?? '';
-        $asciiName = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
-        $asciiName = is_string($asciiName) ? trim($asciiName) : '';
+        // Tento variant ide priamo do dotazu na Nominatim, takže apostrofy
+        // z iconv //TRANSLIT by sme posielali na OSM („Katedr'ala“).
+        $asciiName = trim(Str::ascii($name));
 
         foreach (self::VENUE_TYPE_SYNONYMS as $group => $synonyms) {
             $group = $this->findMatchingVenueTypeGroup($normalized, $synonyms, $group);
@@ -455,8 +522,12 @@ class NominatimGeocoder
             return null;
         }
 
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
-        if (is_string($ascii) && $ascii !== '') {
+        // Str::ascii, nie iconv //TRANSLIT: ten na tomto builde prepisuje
+        // dĺžne na apostrof s písmenom („Trenčín“ → „Trenc'in“) a po
+        // nahradení nealfanumerických znakov z toho vzniknú fiktívne tokeny
+        // („trenc in“), ktoré skresľujú skóre aj počet spoločných slov.
+        $ascii = Str::ascii($value);
+        if ($ascii !== '') {
             $value = $ascii;
         }
 

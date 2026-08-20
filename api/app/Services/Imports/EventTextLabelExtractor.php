@@ -2,6 +2,7 @@
 
 namespace App\Services\Imports;
 
+use App\Support\VenueKeywords;
 use Illuminate\Support\Str;
 
 /**
@@ -45,11 +46,8 @@ class EventTextLabelExtractor
     private const LOCATION_PREPOSITIONS = ['na', 'vo', 've', 'v', 'pri'];
 
     // Words that mark a segment as the venue (building) rather than the city.
-    private const VENUE_KEYWORD_PATTERN =
-        '/\b(?:centr\w+|dom\b|kult\w+\s+dom|kostol\w*|chr[aá]m\w*|katedr\w+|bazilik\w+|kaplnk\w+|synag\w+|'
-        . 'farsk\w*|farnos\w*|pastora\w+|divadl\w*|kino\w*|hal[ae]\b|aren[ay]\b|[sš]tadi[oó]n\w*|amfite\w+|'
-        . 'm[uú]ze\w+|gal[eé]ri\w+|kni[zž]nic\w+|[sš]kol\w*|gymn[aá]zi\w+|aula\w*|univerz\w+|hotel\w*|penzi[oó]n\w*|'
-        . 'reštaur\w*|restaur\w*|klub\w*|s[aá]l[ae]\b|centre\b|amfiteat\w+)/iu';
+    /** Zoznam žije v App\Support\VenueKeywords — používa ho aj geokóder obcí. */
+    private const VENUE_KEYWORD_PATTERN = VenueKeywords::PATTERN;
 
     /**
      * Returns the organizer name extracted from the text, or null.

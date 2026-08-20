@@ -98,10 +98,14 @@ class MunicipalityResolver
             return null;
         }
 
+        // Interpunkcia sa zbaluje na medzeru, nie odstranuje: cislenik ma
+        // "Sastin - Straze", Nominatim vracia "Sastin-Straze" a AI obcas
+        // "Sastin – Straze" (en dash). Bez tohto kroku ziadna z tych podob
+        // nesadne na tu druhu a obec skonci nerozpoznana.
         $ascii = Str::of($trimmed)
             ->ascii()
             ->lower()
-            ->replaceMatches('/\s+/', ' ')
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
             ->trim()
             ->value();
 

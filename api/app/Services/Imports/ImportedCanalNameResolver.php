@@ -54,8 +54,13 @@ class ImportedCanalNameResolver
         $aiEmail   = null;
         $aiPhone   = null;
 
-        // AI activates only when regex left something missing
-        $somethingMissing = $detectedName === null || $detectedVenueName === null || ! $startAtFound;
+        // AI activates only when regex left something missing. Neznáme mesto
+        // sa počíta medzi chýbajúce: bez neho sa miesto nedá zaradiť k obci a
+        // podujatie skončí v zbernom "Celé Slovensko".
+        $somethingMissing = $detectedName === null
+            || $detectedVenueName === null
+            || $detectedVenueCity === null
+            || ! $startAtFound;
 
         if ((bool) config('services.imports.detect_canal_with_ai', false) && $somethingMissing) {
             try {
@@ -71,11 +76,26 @@ class ImportedCanalNameResolver
                     $vn = is_string($venueRaw['name'] ?? null) ? trim((string) $venueRaw['name']) : null;
                     $vc = is_string($venueRaw['city'] ?? null) ? trim((string) $venueRaw['city']) : null;
                     $vs = is_string($venueRaw['street_and_number'] ?? null) ? trim((string) $venueRaw['street_and_number']) : null;
+
+                    // Vedel regex lokalitu, alebo trafil len holý priestor?
+                    $regexKnewCity = $detectedVenueCity !== null;
+
                     if ($detectedVenueName === null && $vn !== null && $vn !== '') {
                         $detectedVenueName = $vn;
                     }
                     if ($detectedVenueCity === null && $vc !== null && $vc !== '') {
                         $detectedVenueCity = $vc;
+                    }
+                    // Prose pattern ("… o 19.00 h sa v hlavnom stane pod
+                    // kláštorom uskutoční diskusia") vytiahne vnútorný priestor
+                    // bez lokality — taký názov je slabší než to, čo AI prečíta
+                    // z celého článku ("lúka pod kláštorom" v Skalke pri
+                    // Trenčíne). Keď teda regex mesto nevedel a AI vrátila
+                    // dvojicu názov+mesto, má prednosť celá dvojica. Zhoda z
+                    // labelu "Kde: Mesto, Miesto" mesto vie, tá ostáva
+                    // nedotknutá — pravidlo "AI neprepíše regex" tam platí ďalej.
+                    if (! $regexKnewCity && $vn !== null && $vn !== '' && $vc !== null && $vc !== '') {
+                        $detectedVenueName = $vn;
                     }
                     if ($vs !== null && $vs !== '') {
                         $detectedVenueStreet = $vs;
@@ -203,6 +223,19 @@ class ImportedCanalNameResolver
         'pripravuje', 'pripravujú', 'oznamuje', 'ponúka',
     ];
 
+    /**
+     * Zástupné hodnoty, ktoré model vracia namiesto vynechaného organizátora.
+     *
+     * JSON `null` sa zachytí už kontrolou `is_string()`, ale model občas
+     * pošle reťazec "null" — a ten prejde ako plnohodnotný názov. V produkcii
+     * takto vznikol kanál s menom aj slugom „null“ a popisom „null —
+     * organizátor podujatí“.
+     */
+    private const PLACEHOLDER_NAMES = [
+        'null', 'nil', 'none', 'n/a', 'na', 'undefined', 'unknown', 'false',
+        'neznamy', 'neznama', 'nezname', 'neuvedene', 'neuvedeny', 'bez organizatora',
+    ];
+
     private function sanitizeName(string $value): ?string
     {
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
@@ -210,6 +243,10 @@ class ImportedCanalNameResolver
         $value = trim($value, " \t\n\r\0\x0B,.;:-/");
 
         if ($value === '') {
+            return null;
+        }
+
+        if ($this->isPlaceholderName($value)) {
             return null;
         }
 
@@ -238,6 +275,17 @@ class ImportedCanalNameResolver
         }
 
         return $value;
+    }
+
+    /**
+     * Porovnáva sa bezdiakritická, malými písmenami písaná podoba bez
+     * interpunkcie, takže sadne aj „N/A“, „neznámy“ či „NULL.“.
+     */
+    private function isPlaceholderName(string $value): bool
+    {
+        $ascii = Str::of($value)->ascii()->lower()->replaceMatches('/[^a-z0-9\/]+/', ' ')->trim()->value();
+
+        return $ascii === '' || in_array($ascii, self::PLACEHOLDER_NAMES, true);
     }
 
     private function hostLabel(string $url): string

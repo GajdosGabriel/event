@@ -74,25 +74,36 @@ AI sa zavolá **jedine** keď po regex analýze platí aspoň jedna z podmienok:
 ```php
 $somethingMissing = $detectedName === null
                  || $detectedVenueName === null
+                 || $detectedVenueCity === null
                  || ! $startAtFound;   // $startAtFound príde z EventImportService
 ```
 
-Ak regex našiel všetko (organizátor + venue + dátum) → **AI sa nezavolá vôbec**.
+Ak regex našiel všetko (organizátor + venue + mesto + dátum) → **AI sa nezavolá vôbec**.
+Neznáme mesto sa počíta medzi chýbajúce: bez neho sa miesto nedá zaradiť k obci
+a podujatie by skončilo v zbernom „Celé Slovensko".
 
 ### Čo AI môže doplniť
 
-AI **nikdy neprepíše** to čo regex úspešne našiel. Dopĺňa len prázdne polia:
+AI **nikdy neprepíše** to čo regex úspešne našiel. Dopĺňa len prázdne polia —
+jediná výnimka je názov venue, keď regex nevedel mesto (viď nižšie):
 
 | Pole               | Podmienka doplnenia                    |
 |--------------------|----------------------------------------|
 | `organizer`        | `$detectedName === null`               |
-| `venue.name`       | `$detectedVenueName === null`          |
+| `venue.name`       | `$detectedVenueName === null`, alebo regex nevedel mesto a AI vrátila názov aj mesto |
 | `venue.city`       | `$detectedVenueCity === null`          |
 | `venue.street`     | vždy (street regex neextrahuje)        |
 | `start_at`         | `! $startAtFound`                      |
 | `end_at`           | `! $startAtFound`                      |
 | `email`            | vždy (ak AI bola aktivovaná)           |
 | `phone`            | vždy (ak AI bola aktivovaná)           |
+
+**Prečo výnimka pri `venue.name`:** prose pattern („… o 19.00 h sa v hlavnom
+stane pod kláštorom uskutoční diskusia") vytiahne vnútorný priestor bez
+lokality. Taký názov je slabší než to, čo AI prečíta z celého článku („lúka pod
+kláštorom" v Skalke pri Trenčíne). Keď teda regex mesto nevedel a AI vrátila
+dvojicu názov + mesto, prednosť má celá dvojica. Zhoda z labelu
+„Kde: Mesto, Miesto" mesto vie, tá ostáva nedotknutá.
 
 ### ENV prepínač
 
@@ -107,14 +118,57 @@ Ak je `false` → AI blok sa preskočí úplne, regex výsledky sú finálne.
 ## 3. ImportedVenueManager — vytvorenie venue záznamu
 
 ```
-1. Hľadá existujúce Venue podľa name/slug v DB
-2. Ak nenašlo a AI je zapnutá → Detector::detectVenueDetails() (geocoding)
-3. Ak nenašlo → auto-vytvorí Draft Venue keď mesto matchuje Municipality
-   (fuzzy prefix matching pre slovenský lokál: "Bratislave" → "Bratislava")
-   Keď mesto chýba, ako mesto sa skúsi samotný názov venue — pútnické miesta
-   sú často pomenované len obcou ("do Klokočova" → venue.name = "Klokočov").
+0. Obec z číselníka bez siete (MunicipalityGeocodeResolver::catalogOnly) —
+   ohraničí kontrolu duplicity, inak by rovnomenné miesta z rôznych miest
+   splynuli
+1. Hľadá existujúce Venue podľa name/slug v DB, v rámci obce aj podľa "holého"
+   názvu — bez koncovej zátvorky a bez koncovky, ktorá zopakuje obec, takže
+   "Sanktuárium Božieho Milosrdenstva" a "… , Ladce" sú jedno miesto.
+   Orezáva sa výlučne meno tej obce, nie hocijaký prefix: "Klokoč" a
+   "Klokočov" sú dve rôzne obce a zlúčiť sa nesmú.
+2. Ak nenašlo a AI je zapnutá → Detector::detectVenueDetails() (geocoding).
+   O village_id rozhoduje mesto z článku, keď sadne na číselník; obec
+   z geokódera sa použije, až keď mesto z článku obcou nie je (mestská časť,
+   pútnické miesto). Geokóder je autorita nad ulicou a súradnicami budovy,
+   nie nad tým, v ktorej obci sa podujatie koná.
+3. Ak nenašlo → MunicipalityGeocodeResolver::resolve(city, venueName):
+   a) presná zhoda v číselníku (necitlivá na diakritiku a interpunkciu, takže
+      "Šaštín-Stráže" sadne na "Šaštín - Stráže") — najprv mesto, potom názov
+      venue, lebo pútnické miesta sú často pomenované len obcou
+      ("do Klokočova" → venue.name = "Klokočov")
+   b) orezanie slovenskej koncovky mesta ("v Bratislave" → Bratislava,
+      "v Košiciach" → Košice) — kmeň musí mať ≥4 znaky, obec smie byť najviac
+      o 2 znaky dlhšia a z viacerých vyhráva najkratšia, takže výsledok je
+      deterministický. Na názvoch budov (App\Support\VenueKeywords) sa
+      nespúšťa, inak by "Kaplnka" skončila v obci Kaplna.
+   c) Nominatim nad samotným mestom — osady, mestské časti a pútnické miesta
+      obcou nie sú ("Skalka pri Trenčíne" → Trenčín, "Živčáková" → Korňa)
+   d) Nominatim nad názvom venue v okolí mesta
+   Keď obec vyjde, vznikne Draft Venue; beží to aj bez názvu venue, takže
+   článok, z ktorého je známe len mesto ("Poprad"), už nekončí vo fallbacku.
+
+Kroky a) a b) sú zámerne offline. Verejný Nominatim má limit ~1 dotaz/s a pri
+dávkovom importe vracia 429; keby na ňom viselo aj bežné mesto, podujatia by
+pri throttlingu ticho končili v zbernom "Celé Slovensko".
+
+Celoštátne zástupné názvy ("Slovensko", "Celé Slovensko", "online") sa
+zahadzujú hneď na vstupe — nie sú to obce, ale priznanie, že miesto nie je
+známe, a patria rovno na fallback. Geokóder ich inak vždy niekam trafí.
 4. Fallback → "Celé Slovensko" (venue.category = 'fallback')
 ```
+
+**Dotazy na Nominatim.** `buildNameVariants()` pridáva medzi varianty aj holé
+druhové slová ("kostol", "amfiteáter"). Tie smú ísť na geokóder **len s obcou**:
+samy o sebe označujú ľubovoľnú stavbu toho druhu a keďže názov aj typ "sedia",
+prejde aj chybný zásah cez skóre. Z rovnakého dôvodu sa prekryv názvov, ktorý
+je len druhovým slovom, neráta ako zhoda mena, a nesúhlas obce je pokuta, nie
+neutrálny stav.
+
+**Normalizácia na ASCII** patrí `Str::ascii()`, nie `iconv //TRANSLIT`. Ten na
+niektorých buildoch prepisuje dĺžne na apostrof s písmenom ("Trenčín" →
+"Trenc'in"), takže po nahradení nealfanumerických znakov vzniknú fiktívne
+tokeny ("trenc in") — a v `buildNameVariants()` by apostrofy išli rovno do
+dotazu na OSM.
 
 ---
 

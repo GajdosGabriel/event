@@ -33,18 +33,21 @@ class ImportedCanalManager
                 ->where('slug', Str::slug($canalName))
                 ->first();
         } else {
-            // No organizer could be detected at all: fall back to one shared
-            // "unknown organizer" canal per scraper source, matched by source
-            // origin instead of a real organizer name.
+            // Žiadny organizátor sa nenašiel: podujatie patrí do jedného
+            // zberného kanála na zdroj, pomenovaného po hostovi (vyveska.sk).
+            // Hľadá sa výlučne podľa slugu toho mena — $canalName je v tejto
+            // vetve vždy hostLabel(), takže zhoda je deterministická.
+            //
+            // Pôvodné `->where('website', $sourceOrigin)` bola tichá zámena:
+            // website == origin zdroja nesie KAŽDÝ importovaný kanál z toho
+            // scrapera, teda aj každý reálny organizátor. ->first() preto
+            // vrátil kanál s najnižším id a všetky nepriradené podujatia sa
+            // nalepili naň — na tkkbs.sk skončilo 21 podujatí (Godzone tour,
+            // HONTfest, Lurdy…) pod kanálom „Františkáni“, na ecav.sk pod
+            // „Rada pre ekumenizmus Bratislavskej arcidiecézy“.
             $existing = Canal::query()
-                ->where('website', $sourceOrigin)
+                ->where('slug', Str::slug($canalName))
                 ->first();
-
-            if (! $existing) {
-                $existing = Canal::query()
-                    ->where('slug', Str::slug($canalName))
-                    ->first();
-            }
         }
 
         if ($existing) {

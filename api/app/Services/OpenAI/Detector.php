@@ -475,10 +475,17 @@ class Detector
                 $venuePayload['enrichment_source'] ?? null,
             );
 
+            // Obec z článku je autorita nad tým, KDE sa podujatie koná.
+            // Geokóder je autorita nad ulicou a súradnicami budovy — nad
+            // obcou nie. Kým sa `village_id` počítalo z $venuePayload['city'],
+            // teda z firstString(geokóder, AI, článok), mesto z článku vždy
+            // prehralo: na „Amfiteáter Košice" vrátil OSM amfiteáter
+            // v Námestove a podujatie skončilo na Orave.
             $venuePayload = array_merge(
                 $venuePayload,
-                $this->municipalityResolver->resolve(
-                    $venuePayload['city'] ?? $city,
+                $this->resolveMunicipalityPreferringArticleCity(
+                    $city,
+                    $venuePayload['city'] ?? null,
                     $venuePayload['postcode'] ?? null,
                 )
             );
@@ -675,8 +682,11 @@ class Detector
             return null;
         }
 
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
-        if (is_string($ascii) && $ascii !== '') {
+        // Str::ascii, nie iconv //TRANSLIT: ten na tomto builde prepisuje
+        // dĺžne na apostrof s písmenom („Trenčín“ → „Trenc'in“), čo by tu
+        // rozbilo porovnávanie názvov miest na spoločné slová.
+        $ascii = Str::ascii($value);
+        if ($ascii !== '') {
             $value = $ascii;
         }
 
@@ -698,6 +708,35 @@ class Detector
             explode(' ', $normalized),
             static fn (string $token): bool => $token !== '' && strlen($token) >= 3
         ));
+    }
+
+    /**
+     * Obec pre `village_id`: najprv mesto z článku, až potom to z geokódera.
+     *
+     * Číselník je presný a bez siete — keď naň mesto z článku sadne, je to
+     * najlepší údaj, aký máme, a geokóder ho nemá čím prebiť. Až keď naň
+     * nesadne (mestská časť, osada, pútnické miesto ako „Skalka pri
+     * Trenčíne"), má zmysel siahnuť po obci, ktorú našiel geokóder.
+     *
+     * Nesúhlasné PSČ nevadí: MunicipalityResolver po neúspešnej dvojici
+     * mesto+PSČ skúša ešte samotné mesto.
+     *
+     * @return array<string, mixed>
+     */
+    private function resolveMunicipalityPreferringArticleCity(
+        ?string $articleCity,
+        ?string $geocodedCity,
+        ?string $postcode,
+    ): array {
+        if ($this->firstString($articleCity) !== null) {
+            $fromArticle = $this->municipalityResolver->resolve($articleCity, $postcode);
+
+            if (($fromArticle['village_id'] ?? null) !== null) {
+                return $fromArticle;
+            }
+        }
+
+        return $this->municipalityResolver->resolve($geocodedCity ?? $articleCity, $postcode);
     }
 
     private function buildVenueStorePayload(array $venuePayload): array

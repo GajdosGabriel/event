@@ -264,8 +264,8 @@
               <p v-else-if="event.street" class="mt-0.5 text-sm text-slate-500">
                 {{ event.street }}<span v-if="event.postcode">, {{ event.postcode }}</span>
               </p>
-              <p v-if="event.municipality" class="mt-0.5 text-sm text-slate-500">
-                {{ event.municipality.fullname ?? event.municipality.name }}
+              <p v-if="municipalityLabel" class="mt-0.5 text-sm text-slate-500">
+                {{ municipalityLabel }}
               </p>
               <div class="mt-1 flex flex-wrap gap-2 text-sm">
                 <a v-if="event.venue?.phone" :href="`tel:${event.venue.phone}`" class="text-blue-600">{{ event.venue.phone }}</a>
@@ -475,12 +475,30 @@ const heroSrcset = computed(() => {
 
 const priceLabel = computed(() => formatPriceOrFree(event.value?.priceAmount, event.value?.priceCurrency))
 
+/** Porovnanie názvov bez ohľadu na diakritiku a veľkosť písmen. */
+const isSameLabel = (a: string, b: string) =>
+  a.trim().localeCompare(b.trim(), undefined, { sensitivity: 'base' }) === 0
+
 const placeLabel = computed(() => {
   const e = event.value
   if (!e) return ''
   const place = e.venue?.name ?? e.locationName ?? null
   const town = e.municipality?.name ?? null
-  return [place, town].filter(Boolean).join(' · ')
+  const extraTown = town && (!place || !isSameLabel(place, town)) ? town : null
+  return [place, extraTown].filter(Boolean).join(' · ')
+})
+
+/**
+ * Import bez rozpoznanej obce priradí zberné miesto „Celé Slovensko" — venue
+ * aj obec potom nesú ten istý text a karta Miesto by ho vypísala dvakrát pod
+ * sebou. Obec ukážeme len vtedy, keď hovorí niečo navyše.
+ */
+const municipalityLabel = computed(() => {
+  const e = event.value
+  const town = e?.municipality?.fullname ?? e?.municipality?.name ?? null
+  if (!town) return null
+  const place = e?.venue?.name ?? e?.locationName ?? null
+  return place && isSameLabel(place, town) ? null : town
 })
 
 const shareText = computed(() => {

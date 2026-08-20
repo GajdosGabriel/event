@@ -6,7 +6,9 @@ use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Municipality;
 use App\Models\Venue;
+use App\Services\Geocoding\MunicipalityGeocodeResolver;
 use App\Services\OpenAI\Detector;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class ImportedVenueManager
@@ -14,6 +16,7 @@ class ImportedVenueManager
     public function __construct(
         private readonly Detector $detector = new Detector(),
         private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber(),
+        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver(),
     ) {}
 
     public function resolveOrDetect(
@@ -25,17 +28,27 @@ class ImportedVenueManager
         ?float $longitude = null,
     ): Venue {
         $hasCoordinates = $latitude !== null && $longitude !== null;
+        $venueName = $this->trimmedOrNull($venueName);
+        $venueCity = $this->trimmedOrNull($venueCity);
 
-        if (is_string($venueName) && $venueName !== '') {
-            $existing = $this->findByName($venueName);
+        if ($venueName !== null) {
+            // Obec z číselníka (bez siete) ešte pred kontrolou duplicity:
+            // hľadanie podľa holého názvu musí byť ohraničené obcou, inak by
+            // splynuli rovnomenné miesta z rôznych miest. S ňou sa naopak
+            // podchytí „Sanktuárium Božieho Milosrdenstva“ vs to isté miesto
+            // s pripísanou obcou („…, Ladce“), čo predtým založilo duplikát.
+            $villageHint = $this->municipalityGeocoder->catalogOnly($venueCity);
+
+            $existing = $this->findByName($venueName, $villageHint);
             if ($existing instanceof Venue) {
                 return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
             }
 
-            if ((bool) config('services.imports.detect_canal_with_ai', false)
-                && is_string($venueCity) && $venueCity !== '') {
+            if ((bool) config('services.imports.detect_canal_with_ai', false) && $venueCity !== null) {
                 try {
-                    $detected = $this->detector->detectVenueDetails($venueName, $venueCity);
+                    // Krajina zuzuje Nominatim dotazy na SR; bez nej sa "Skalka"
+                    // alebo "Kalvaria" trafi kdekolvek na svete.
+                    $detected = $this->detector->detectVenueDetails($venueName, $venueCity, 'Slovensko');
                     if ($detected['can_store_immediately'] ?? false) {
                         $payload = array_merge($detected['venue_store_payload'], [
                             'status' => ModelStatus::Draft->value,
@@ -81,30 +94,44 @@ class ImportedVenueManager
                     // venue detection failed, fall through to simple draft
                 }
             }
+        }
 
-            // Auto-create a draft venue when city can be resolved to a municipality.
-            // A pilgrimage site is often named only by its village ("do Klokočova") with no
-            // separate city, so fall back to reading the venue name itself as the municipality.
-            $cityCandidate = is_string($venueCity) && $venueCity !== '' ? $venueCity : $venueName;
+        // Dohľadanie obce beží aj bez názvu miesta: veľa článkov uvedie len
+        // mesto ("Poprad", "Gaboltov") a taký event predtým spadol rovno do
+        // zberného "Celé Slovensko", hoci obec bola známa. Resolver skúša
+        // najprv číselník a až potom geokóder — pútnické miesto ako "Skalka
+        // pri Trenčíne" nie je obec, ale OSM ho vie zaradiť pod Trenčín.
+        $municipality = $this->municipalityGeocoder->resolve($venueCity, $venueName);
 
-            if ($cityCandidate !== '') {
-                $villageId = $this->resolveMunicipalityId($cityCandidate);
-                if ($villageId !== null) {
-                    $venue = Venue::create([
-                        'village_id' => $villageId,
-                        'name'       => Str::limit($venueName, 250, ''),
-                        'street'     => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
-                        'body'       => $this->describer->forVenue($venueName, $venueCity),
-                        'category'   => null,
-                        'status'     => ModelStatus::Draft->value,
-                        'country'    => 'Slovensko',
-                        'latitude'   => $hasCoordinates ? $latitude : null,
-                        'longitude'  => $hasCoordinates ? $longitude : null,
-                    ]);
-                    $venue->assignCanal($canal, isOwner: false);
-                    return $venue;
+        if ($municipality !== null) {
+            $name = $venueName ?? $municipality['city'];
+
+            // Keď názov miesta z článku nevyšiel, venue sa volá po obci —
+            // findByName() vyššie taký názov nikdy nehľadalo, takže duplicitu
+            // treba overiť tu. Striktne na slugu: voľné "LIKE %Nitra%" by
+            // mestský záznam zlúčilo s konkrétnou "Kalvária (Nitra)".
+            if ($venueName === null) {
+                $existing = $this->findByCityName($name, $municipality['village_id']);
+                if ($existing instanceof Venue) {
+                    return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
                 }
             }
+
+            $venue = Venue::create([
+                'village_id' => $municipality['village_id'],
+                'name'       => Str::limit($name, 250, ''),
+                'street'     => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
+                'postcode'   => $municipality['postcode'],
+                'body'       => $this->describer->forVenue($name, $municipality['city']),
+                'category'   => null,
+                'status'     => ModelStatus::Draft->value,
+                'country'    => 'Slovensko',
+                // Pin z článku má prednosť pred súradnicami z geokódera.
+                'latitude'   => $hasCoordinates ? $latitude : $municipality['latitude'],
+                'longitude'  => $hasCoordinates ? $longitude : $municipality['longitude'],
+            ]);
+            $venue->assignCanal($canal, isOwner: false);
+            return $venue;
         }
 
         return $this->resolveFallbackVenueForCanal($canal);
@@ -148,40 +175,42 @@ class ImportedVenueManager
     }
 
     /**
-     * Resolves a city name (potentially in Slovak locative/genitive case) to a municipality id.
-     * Tries exact match first, then prefix-based fuzzy match to handle inflected forms
-     * (e.g. "Bratislave" → "Bratislava", "Košiciach" → "Košice").
+     * Striktné hľadanie miesta pomenovaného po obci: len presný slug v rámci
+     * tej istej obce. findByName() sem nesedí — jeho voľné "LIKE %názov%"
+     * by mestský záznam ("Nitra") zlúčilo s konkrétnym miestom v tom meste.
      */
-    private function resolveMunicipalityId(string $city): ?int
+    private function findByCityName(string $name, int $villageId): ?Venue
     {
-        $municipality = Municipality::query()
-            ->where('fullname', $city)
-            ->orWhere('shortname', $city)
+        return Venue::query()
+            ->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback'))
+            ->where('village_id', $villageId)
+            ->where('slug', Str::slug($name))
             ->first();
+    }
 
-        if ($municipality !== null) {
-            return $municipality->id;
-        }
+    /**
+     * Názov obce pre orezanie koncovky v ImportedNameMatcher. Import prejde
+     * v jednom behu desiatky článkov z tej istej obce, tak nech to nie je
+     * dotaz na každý z nich.
+     */
+    private function municipalityName(int $villageId): ?string
+    {
+        return Cache::remember(
+            'imports:municipality_name:' . $villageId,
+            now()->addDay(),
+            fn (): ?string => Municipality::query()->find($villageId)?->fullname,
+        );
+    }
 
-        // Fuzzy prefix: try cutting 1–4 trailing characters to de-inflect Slovak locative endings
-        $len = mb_strlen($city);
-        if ($len < 4) {
+    private function trimmedOrNull(?string $value): ?string
+    {
+        if (! is_string($value)) {
             return null;
         }
 
-        for ($cut = 1; $cut <= min(4, $len - 3); $cut++) {
-            $prefix = mb_substr($city, 0, $len - $cut);
-            $municipality = Municipality::query()
-                ->where('fullname', 'like', $prefix . '%')
-                ->orWhere('shortname', 'like', $prefix . '%')
-                ->first();
+        $trimmed = trim($value);
 
-            if ($municipality !== null) {
-                return $municipality->id;
-            }
-        }
-
-        return null;
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**
@@ -239,10 +268,13 @@ class ImportedVenueManager
         }
 
         // Zhoda na holom slugu v rámci tej istej obce podchytí prípad, keď sa
-        // upresňujúca zátvorka medzi behmi importu zmenila alebo pribudla.
+        // upresňujúca zátvorka alebo koncovka s obcou medzi behmi importu
+        // zmenila či pribudla („Sanktuárium Božieho Milosrdenstva“ vs
+        // „Sanktuárium Božieho Milosrdenstva, Ladce“).
         return ImportedNameMatcher::firstByBaseName(
             Venue::query()->where($notFallback)->where('village_id', $villageId),
             $name,
+            $this->municipalityName($villageId),
         );
     }
 }
