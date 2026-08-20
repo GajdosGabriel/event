@@ -359,7 +359,7 @@ class EventImportService
                         $event,
                         $uploadedFile,
                         FileType::IMAGE,
-                        'public',
+                        config('filesystems.default', 'public'),
                         null,
                         false,
                         [
@@ -437,7 +437,7 @@ class EventImportService
             $event,
             $attachments,
             FileType::IMAGE,
-            'public',
+            config('filesystems.default', 'public'),
             null,
             false,
             [
@@ -491,7 +491,7 @@ class EventImportService
                 $event,
                 $imageAttachments,
                 FileType::IMAGE,
-                'public',
+                config('filesystems.default', 'public'),
                 null,
                 false,
                 [
@@ -506,7 +506,7 @@ class EventImportService
                 $event,
                 $fileAttachments,
                 FileType::FILE,
-                'public',
+                config('filesystems.default', 'public'),
                 null,
                 false,
                 [

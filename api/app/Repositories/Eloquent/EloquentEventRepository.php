@@ -610,7 +610,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
     {
         $files = $properties['files'] ?? [];
         $fileType = $properties['file_type'] ?? FileType::FILE->value;
-        $fileDisk = $properties['file_disk'] ?? 'public';
+        $fileDisk = $properties['file_disk'] ?? config('filesystems.default', 'public');
         $makePrimary = (bool) ($properties['make_primary_file'] ?? false);
 
         unset(
