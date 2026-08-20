@@ -875,6 +875,7 @@ const cs: Messages = {
     show: {
       notFound: 'Místo nenalezeno',
       events: 'Akce na tomto místě',
+      coordinatesMissing: 'Místo zatím nemá GPS souřadnice — doplňte je úpravou místa.',
     },
     form: {
       back: '← Zpět',
@@ -914,6 +915,7 @@ const cs: Messages = {
       longitude: 'Zeměpisná délka (lng)',
       lat: 'Lat',
       lng: 'Lng',
+      coordinatesSource: 'Přesnost polohy',
       website: 'Web',
       websiteIssueLabel: 'Tato adresa',
       email: 'E-mail',
@@ -924,6 +926,16 @@ const cs: Messages = {
       published: 'Publikované',
       archived: 'Archivované',
       blocked: 'Blokované',
+    },
+    coordinates: {
+      venue: 'Poloha budovy z OpenStreetMap',
+      address: 'Poloha podle adresy',
+      ai: 'Přibližná poloha z AI',
+      municipality: 'Přibližná poloha — střed obce',
+      manual: 'Poloha určená ručně',
+      missing: 'Poloha není určena',
+      approximateHint: 'Přesuňte značku na mapě na skutečnou polohu.',
+      missingHint: 'Klikněte do mapy a určete polohu.',
     },
     detect: {
       show: 'Vyplnit pomocí AI',

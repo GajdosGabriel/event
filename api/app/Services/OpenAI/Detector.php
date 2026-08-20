@@ -5,6 +5,7 @@ namespace App\Services\OpenAI;
 use App\Models\Canal;
 use App\Models\Venue;
 use App\Services\Geocoding\NominatimGeocoder;
+use App\Services\Geocoding\VenueCoordinateResolver;
 use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Geocoding\MunicipalityNameFinder;
 use App\Services\Geocoding\MunicipalityResolver;
@@ -24,7 +25,18 @@ class Detector
         private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader(),
         private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor(),
         private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder(),
+        private readonly ?VenueCoordinateResolver $venueCoordinateResolver = null,
     ) {}
+
+    /**
+     * Rebrik suradnic stoji na tom istom geokoderi a modeli ako zvysok
+     * detekcie -- ked ich test podstrci, musi ich dostat aj rebrik.
+     */
+    private function coordinateResolver(): VenueCoordinateResolver
+    {
+        return $this->venueCoordinateResolver
+            ?? new VenueCoordinateResolver($this->nominatimGeocoder, $this->chatGPT);
+    }
 
 
     public function stiahniTextCurl(string $url): string
@@ -357,6 +369,36 @@ class Detector
         return true;
     }
 
+    /**
+     * Prepíše surový zoškrabaný text do HTML popisu cez copywritera.
+     *
+     * Extraktor vracia jeden zlepený riadok bez formátovania — v „AI verzii"
+     * potom nie sú odstavce ani zvýraznenia. Zlyhanie copywritera (krátky
+     * text, príliš dlhý vstup, výpadok OpenAI) nie je fatálne: volajúci má
+     * fallback na surový text.
+     */
+    private function rewriteAsHtml(string $text): ?string
+    {
+        if (mb_strlen(trim($text)) < 50) {
+            return null;
+        }
+
+        try {
+            $copywriter = $this->chatGPT->extractCopywriter($text);
+        } catch (\Throwable $e) {
+            Log::warning('Copywriter neprepisal importovany text na HTML.', [
+                'text_length' => mb_strlen(trim($text)),
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $body = $copywriter['event_body'] ?? null;
+
+        return is_string($body) && trim($body) !== '' ? trim($body) : null;
+    }
+
     public function detectFromUrl(string $url): array
     {
         try {
@@ -364,7 +406,6 @@ class Detector
             $extracted = $this->extrahujContentBody($html, $url);
             $extractedText = $extracted['text'] ?? '';
             $eventPayload = $this->chatGPT->extractData($extractedText);
-            // $eventCopywriterPayload = $this->chatGPT->extractCopywriter($extractedText);
             if (empty($eventPayload)) {
                 throw new \RuntimeException('AI vratilo prazdny payload');
             }
@@ -373,7 +414,9 @@ class Detector
                 'success' => true,
                 'message' => 'Udalost analyzovana',
                 'event_payload' => $eventPayload,
-                // 'event_copywriter_payload' => $eventCopywriterPayload,
+                // AI popis je HTML (odstavce, nadpisy, <strong>), nie zlepenec
+                // z extraktora — v UI sa vykresľuje cez v-html ako „AI verzia".
+                'corrected_text' => $this->rewriteAsHtml($extractedText),
                 'extracted_text' => $extractedText,
                 'attachments' => $extracted['attachments'] ?? [],
                 'links' => $this->extrahujLinkyZTextu($extractedText),
@@ -490,6 +533,31 @@ class Detector
                 )
             );
 
+            // Suradnice az tu: rebrik potrebuje autoritativnu obec, ktoru
+            // prave dorieslo zlucenie vyssie. Bez neho ostavalo miesto bez GPS
+            // vzdy, ked geokoder netrafil presne tu budovu -- co je vacsina
+            // beznych kulturnych domov a klubov.
+            $coordinates = $this->coordinateResolver()->resolve(
+                venueLat: $this->firstFloat($venuePayload['latitude'] ?? null),
+                venueLng: $this->firstFloat($venuePayload['longitude'] ?? null),
+                name: $venuePayload['name'] ?? $name,
+                street: $venuePayload['street'] ?? null,
+                postcode: $venuePayload['postcode'] ?? null,
+                city: $this->firstString(
+                    $venuePayload['matched_municipality']['shortname'] ?? null,
+                    $venuePayload['matched_municipality']['fullname'] ?? null,
+                    $venuePayload['city'] ?? null,
+                    $city,
+                ),
+                country: $venuePayload['country'] ?? $country,
+                aiLat: $this->firstFloat($aiVenuePayload['latitude'] ?? null),
+                aiLng: $this->firstFloat($aiVenuePayload['longitude'] ?? null),
+            );
+
+            $venuePayload['latitude'] = $coordinates['latitude'];
+            $venuePayload['longitude'] = $coordinates['longitude'];
+            $venuePayload['coordinates_source'] = $coordinates['source'];
+
             $venueStorePayload = $this->buildVenueStorePayload($venuePayload);
 
             return [
@@ -505,6 +573,7 @@ class Detector
                     'final_venue_payload' => $venuePayload,
                     'geocoder' => $geocodedLookup['debug'] ?? null,
                     'geocoder_result' => $geocodedPayload,
+                    'coordinates_source' => $coordinates['source'],
                     'geocoder_name_compatible' => $this->areVenueNamesCompatible(
                         $geocodedPayload['name'] ?? null,
                         $name,
@@ -561,13 +630,14 @@ class Detector
                 $aiPayload['country'] ?? null,
                 $input['country'] ?? null,
             ),
+            // Len suradnice budovy, ktoru geokoder naozaj nasiel. Odhad modelu
+            // sa sem uz nemiesa: prejde az rebrikom v detectVenueDetails(),
+            // kde sa da overit voci obci a oznacit ako priblizny.
             'latitude' => $this->firstFloat(
                 $geocodedNameMatchesInput ? ($geocodedPayload['latitude'] ?? null) : null,
-                $aiPayload['latitude'] ?? null,
             ),
             'longitude' => $this->firstFloat(
                 $geocodedNameMatchesInput ? ($geocodedPayload['longitude'] ?? null) : null,
-                $aiPayload['longitude'] ?? null,
             ),
         ];
     }
@@ -753,6 +823,7 @@ class Detector
             'country' => $venuePayload['country'] ?? 'Slovakia',
             'latitude' => $venuePayload['latitude'] ?? null,
             'longitude' => $venuePayload['longitude'] ?? null,
+            'coordinates_source' => $venuePayload['coordinates_source'] ?? null,
             'capacity' => null,
             'opening_hours' => null,
             'category' => null,

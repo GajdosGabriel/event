@@ -2,12 +2,26 @@
 
 namespace App\Services\Geocoding;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class NominatimGeocoder
 {
+    /** Cas posledneho dotazu na Nominatim -- drzi povinny odstup medzi volaniami. */
+    private static ?float $lastRequestAt = null;
+
+    /**
+     * Od akeho skore sa kandidat berie ako zhoda.
+     *
+     * Je to zaroven bod, kde sa prehladavanie zastavi: varianty su zoradene od
+     * najkonkretnejsieho, takze prvy prijatelny je aj najlepsi, aky rozumne
+     * dostaneme. Kym sa prechadzali vsetky (az 30 dotazov), trvala detekcia pri
+     * povinnom sekundovom odstupe pol minuty a vacsina dotazov skoncila na 429.
+     */
+    private const MIN_ACCEPTED_SCORE = 5;
+
     private const VENUE_TYPE_SYNONYMS = [
         'cultural_house' => ['kulturny dom', 'dom kultury', 'cultural house'],
         'center' => ['kulturne centrum', 'komunitne centrum', 'konferencne centrum', 'kongresove centrum', 'community center', 'conference center'],
@@ -45,6 +59,13 @@ class NominatimGeocoder
         return $this->lookupDetailed($name, $city, $country)['result'];
     }
 
+    /**
+     * Vysledok sa cachuje len vtedy, ked ho geokoder naozaj dal.
+     *
+     * Verejny Nominatim pri prekroceni limitu vracia 429. Kym sa cachoval aj
+     * taky "vysledok", jedno docasne odmietnutie znamenalo, ze miesto ostalo
+     * bez suradnic na cely den -- a vyzeralo to, akoby geokoder nic nenasiel.
+     */
     public function lookupDetailed(string $name, string $city, ?string $country = null): array
     {
         $queries = $this->buildQueries($name, $city, $country);
@@ -63,130 +84,317 @@ class NominatimGeocoder
             ];
         }
 
-        return Cache::remember(
-            $this->cacheKey($queries),
-            now()->addSeconds($this->cacheTtl()),
-            function () use ($queries, $name, $city, $country) {
-                try {
-                    $bestResult = null;
-                    $bestScore = PHP_INT_MIN;
-                    $selectedQuery = null;
-                    $candidateDebug = [];
+        $cacheKey = $this->cacheKey($queries);
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
 
-                    foreach ($queries as $query) {
-                        $response = Http::timeout(10)
-                            ->acceptJson()
-                            ->withHeaders([
-                                'User-Agent' => $this->userAgent(),
-                            ])
-                            ->get($this->baseUrl() . '/search', [
-                                'q' => $query,
-                                'format' => 'jsonv2',
-                                'limit' => 5,
-                                'addressdetails' => 1,
-                                'namedetails' => 1,
-                            ]);
+        $outcome = $this->runQueries($queries, $name, $city, $country);
 
-                        if (! $response->ok()) {
-                            $candidateDebug[] = [
-                                'query' => $query,
-                                'http_ok' => false,
-                                'candidates' => [],
-                            ];
-                            continue;
-                        }
+        if ($outcome['cacheable']) {
+            Cache::put($cacheKey, $outcome['payload'], now()->addSeconds($this->cacheTtl()));
+        }
 
-                        $payload = $response->json();
-                        if (! is_array($payload)) {
-                            $candidateDebug[] = [
-                                'query' => $query,
-                                'http_ok' => true,
-                                'candidates' => [],
-                            ];
-                            continue;
-                        }
+        return $outcome['payload'];
+    }
 
-                        $queryCandidates = [];
-                        foreach ($payload as $candidate) {
-                            if (! is_array($candidate)) {
-                                continue;
-                            }
+    /**
+     * @return array{payload: array{result: array, debug: array}, cacheable: bool}
+     */
+    private function runQueries(array $queries, string $name, string $city, ?string $country): array
+    {
+        try {
+            $bestResult = null;
+            $bestScore = PHP_INT_MIN;
+            $selectedQuery = null;
+            $candidateDebug = [];
+            $transportFailed = false;
+            $budgetExhausted = false;
+            $startedAt = microtime(true);
+            $budget = (float) config('services.nominatim.max_seconds', 15);
 
-                            $score = $this->scoreResult($candidate, $name, $city, $country);
-                            $queryCandidates[] = [
-                                'name' => $this->resolveName($candidate),
-                                'city' => $this->resolveCity(is_array($candidate['address'] ?? null) ? $candidate['address'] : []),
-                                'street' => $this->buildStreet(is_array($candidate['address'] ?? null) ? $candidate['address'] : []),
-                                'score' => $score,
-                                'display_name' => $this->stringOrNull($candidate['display_name'] ?? null),
-                            ];
-                            if ($score > $bestScore) {
-                                $bestScore = $score;
-                                $bestResult = $candidate;
-                                $selectedQuery = $query;
-                            }
-                        }
+            foreach ($queries as $query) {
+                // Nazvove varianty su radene od najkonkretnejsieho a kazdy stoji
+                // sekundu odstupu. Pri mieste, ktore v OSM nie je, by sa vsetkych
+                // 30 prehladalo takmer minutu -- a vysledok by aj tak bol prazdny.
+                // Po vycerpani rozpoctu prevezme miesto rebrik (adresa, obec).
+                if ($budget > 0 && microtime(true) - $startedAt >= $budget) {
+                    $budgetExhausted = true;
+                    break;
+                }
 
-                        $candidateDebug[] = [
-                            'query' => $query,
-                            'http_ok' => true,
-                            'candidates' => $queryCandidates,
-                        ];
+                $response = $this->politeGet([
+                    'q' => $query,
+                    'format' => 'jsonv2',
+                    'limit' => 5,
+                    'addressdetails' => 1,
+                    'namedetails' => 1,
+                ]);
 
-                        if ($bestScore >= 13) {
-                            break;
-                        }
-                    }
-
-                    if (! is_array($bestResult) || $bestScore < 5) {
-                        return [
-                            'result' => $this->emptyResult(),
-                            'debug' => [
-                                'queries' => $queries,
-                                'best_score' => $bestScore === PHP_INT_MIN ? null : $bestScore,
-                                'matched' => false,
-                                'selected_query' => $selectedQuery,
-                                'selected_candidate' => null,
-                                'candidates' => $candidateDebug,
-                                'reason' => 'score_below_threshold',
-                            ],
-                        ];
-                    }
-
-                    return [
-                        'result' => $this->mapResult($bestResult),
-                        'debug' => [
-                            'queries' => $queries,
-                            'best_score' => $bestScore,
-                            'matched' => true,
-                            'selected_query' => $selectedQuery,
-                            'selected_candidate' => [
-                                'name' => $this->resolveName($bestResult),
-                                'city' => $this->resolveCity(is_array($bestResult['address'] ?? null) ? $bestResult['address'] : []),
-                                'street' => $this->buildStreet(is_array($bestResult['address'] ?? null) ? $bestResult['address'] : []),
-                                'display_name' => $this->stringOrNull($bestResult['display_name'] ?? null),
-                                'score' => $bestScore,
-                            ],
-                            'candidates' => $candidateDebug,
-                            'reason' => 'matched',
-                        ],
+                if ($response === null || ! $response->ok()) {
+                    $transportFailed = true;
+                    $candidateDebug[] = [
+                        'query' => $query,
+                        'http_ok' => false,
+                        'status' => $response?->status(),
+                        'candidates' => [],
                     ];
-                } catch (\Throwable) {
-                    return [
+                    continue;
+                }
+
+                $payload = $response->json();
+                if (! is_array($payload)) {
+                    $candidateDebug[] = [
+                        'query' => $query,
+                        'http_ok' => true,
+                        'candidates' => [],
+                    ];
+                    continue;
+                }
+
+                $queryCandidates = [];
+                foreach ($payload as $candidate) {
+                    if (! is_array($candidate)) {
+                        continue;
+                    }
+
+                    $score = $this->scoreResult($candidate, $name, $city, $country);
+                    $queryCandidates[] = [
+                        'name' => $this->resolveName($candidate),
+                        'city' => $this->resolveCity(is_array($candidate['address'] ?? null) ? $candidate['address'] : []),
+                        'street' => $this->buildStreet(is_array($candidate['address'] ?? null) ? $candidate['address'] : []),
+                        'score' => $score,
+                        'display_name' => $this->stringOrNull($candidate['display_name'] ?? null),
+                    ];
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestResult = $candidate;
+                        $selectedQuery = $query;
+                    }
+                }
+
+                $candidateDebug[] = [
+                    'query' => $query,
+                    'http_ok' => true,
+                    'candidates' => $queryCandidates,
+                ];
+
+                if ($bestScore >= self::MIN_ACCEPTED_SCORE) {
+                    break;
+                }
+            }
+
+            if (! is_array($bestResult) || $bestScore < self::MIN_ACCEPTED_SCORE) {
+                return [
+                    'payload' => [
                         'result' => $this->emptyResult(),
                         'debug' => [
                             'queries' => $queries,
-                            'best_score' => null,
+                            'best_score' => $bestScore === PHP_INT_MIN ? null : $bestScore,
                             'matched' => false,
-                            'selected_query' => null,
+                            'selected_query' => $selectedQuery,
                             'selected_candidate' => null,
-                            'candidates' => [],
-                            'reason' => 'exception',
+                            'candidates' => $candidateDebug,
+                            'reason' => match (true) {
+                                $transportFailed => 'geocoder_unavailable',
+                                $budgetExhausted => 'budget_exhausted',
+                                default => 'score_below_threshold',
+                            },
                         ],
-                    ];
+                    ],
+                    // Prazdny vysledok z odmietnuteho dotazu nie je odpoved
+                    // geokodera, len jeho ticho -- cachovat ho na den by
+                    // zablokovalo aj pokus o pol minuty neskor.
+                    'cacheable' => ! $transportFailed,
+                ];
+            }
+
+            return [
+                'payload' => [
+                    'result' => $this->mapResult($bestResult),
+                    'debug' => [
+                        'queries' => $queries,
+                        'best_score' => $bestScore,
+                        'matched' => true,
+                        'selected_query' => $selectedQuery,
+                        'selected_candidate' => [
+                            'name' => $this->resolveName($bestResult),
+                            'city' => $this->resolveCity(is_array($bestResult['address'] ?? null) ? $bestResult['address'] : []),
+                            'street' => $this->buildStreet(is_array($bestResult['address'] ?? null) ? $bestResult['address'] : []),
+                            'display_name' => $this->stringOrNull($bestResult['display_name'] ?? null),
+                            'score' => $bestScore,
+                        ],
+                        'candidates' => $candidateDebug,
+                        'reason' => 'matched',
+                    ],
+                ],
+                'cacheable' => true,
+            ];
+        } catch (\Throwable) {
+            return [
+                'payload' => [
+                    'result' => $this->emptyResult(),
+                    'debug' => [
+                        'queries' => $queries,
+                        'best_score' => null,
+                        'matched' => false,
+                        'selected_query' => null,
+                        'selected_candidate' => null,
+                        'candidates' => [],
+                        'reason' => 'exception',
+                    ],
+                ],
+                'cacheable' => false,
+            ];
+        }
+    }
+
+    /**
+     * Jeden dotaz na Nominatim s dodrzanym odstupom medzi volaniami.
+     *
+     * Verejna instancia povoluje ~1 dotaz za sekundu. Detekcia ich pritom
+     * posiela davku (nazvove varianty, adresa, obec), takze bez odstupu
+     * skoncila vacsina z nich na 429 -- a namiesto vysledku prislo prazdno.
+     * Odstup drzi staticky cas posledneho volania, co pokryva prave tu davku
+     * v ramci jednej poziadavky.
+     */
+    private function politeGet(array $params): ?Response
+    {
+        $minInterval = (float) config('services.nominatim.min_interval', 1.0);
+
+        if ($minInterval > 0 && self::$lastRequestAt !== null) {
+            $wait = $minInterval - (microtime(true) - self::$lastRequestAt);
+            if ($wait > 0) {
+                usleep((int) round($wait * 1000000));
+            }
+        }
+
+        self::$lastRequestAt = microtime(true);
+
+        try {
+            return Http::timeout(10)
+                ->acceptJson()
+                ->withHeaders(['User-Agent' => $this->userAgent()])
+                ->get($this->baseUrl() . '/search', $params);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Suradnice adresy, nie budovy.
+     *
+     * Ked sa nepodari najst samotny objekt ("Kulturny dom" je v OSM stovky ráz),
+     * adresa z AI stale staci na presnost domu alebo ulice. Ide to cez
+     * strukturovany dotaz Nominatimu (street/city/postalcode/country), takze sa
+     * obchadza cely aparat nazvovych variantov a skorovania -- ten riesi budovy.
+     *
+     * Jedina akceptacna podmienka je obec: vysledok v inej obci je bezcenny
+     * rovnako ako zly objekt, lebo rovnaka ulica existuje v desiatkach miest.
+     *
+     * @return array{name:?string, street:?string, postcode:?string, city:?string, country:?string, latitude:?float, longitude:?float}
+     */
+    public function lookupAddress(?string $street, ?string $postcode, ?string $city, ?string $country = null): array
+    {
+        $street = $this->stringOrNull($street);
+        $city = $this->stringOrNull($city);
+
+        if ($street === null || $city === null) {
+            return $this->emptyResult();
+        }
+
+        $params = array_filter([
+            'street' => $street,
+            'city' => $city,
+            'postalcode' => $this->stringOrNull($postcode),
+            'country' => $this->stringOrNull($country),
+        ], fn (?string $value): bool => $value !== null);
+
+        return $this->structuredLookup('address', $params, function (array $candidate) use ($city): bool {
+            $address = is_array($candidate['address'] ?? null) ? $candidate['address'] : [];
+
+            return $this->normalizeText($this->resolveCity($address)) === $this->normalizeText($city);
+        });
+    }
+
+    /**
+     * Stred obce -- posledna zachranna siet, ked o objekte nevieme nic presne.
+     *
+     * Znacka v strede mesta je pre operatora pouzitelnejsia nez prazdna mapa:
+     * vidi spravne mesto a znacku dotiahne mysou. Vysledok sa cachuje podla
+     * mena obce, takze je zdielany vsetkymi miestami v tej obci.
+     *
+     * @return array{name:?string, street:?string, postcode:?string, city:?string, country:?string, latitude:?float, longitude:?float}
+     */
+    public function lookupMunicipality(?string $city, ?string $country = null): array
+    {
+        $city = $this->stringOrNull($city);
+
+        if ($city === null) {
+            return $this->emptyResult();
+        }
+
+        $params = array_filter([
+            'city' => $city,
+            'country' => $this->stringOrNull($country),
+        ], fn (?string $value): bool => $value !== null);
+
+        return $this->structuredLookup('municipality', $params, function (array $candidate) use ($city): bool {
+            $normalizedCity = $this->normalizeText($city);
+            $address = is_array($candidate['address'] ?? null) ? $candidate['address'] : [];
+
+            return $this->normalizeText($this->resolveName($candidate)) === $normalizedCity
+                || $this->normalizeText($this->resolveCity($address)) === $normalizedCity;
+        });
+    }
+
+    /**
+     * Strukturovany dotaz na Nominatim s vlastnou akceptacnou podmienkou.
+     *
+     * Nikdy nevyhadzuje vynimku: pri chybe siete vrati prazdny vysledok, aby
+     * detekcia ani ulozenie miesta nepadli kvoli geokoderu.
+     *
+     * @param  callable(array):bool  $accepts
+     * @return array{name:?string, street:?string, postcode:?string, city:?string, country:?string, latitude:?float, longitude:?float}
+     */
+    private function structuredLookup(string $kind, array $params, callable $accepts): array
+    {
+        $cacheKey = 'venue_detection:nominatim_' . $kind . ':' . sha1(json_encode($params) ?: implode('|', $params));
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $response = $this->politeGet($params + [
+            'format' => 'jsonv2',
+            'limit' => 3,
+            'addressdetails' => 1,
+            'namedetails' => 1,
+        ]);
+
+        // Odmietnuty dotaz nie je odpoved geokodera -- necachovat, inak by
+        // jedno 429 drzalo miesto bez suradnic cely den.
+        if ($response === null || ! $response->ok()) {
+            return $this->emptyResult();
+        }
+
+        $result = $this->emptyResult();
+        $payload = $response->json();
+
+        if (is_array($payload)) {
+            foreach ($payload as $candidate) {
+                if (is_array($candidate) && $accepts($candidate)) {
+                    $result = $this->mapResult($candidate);
+                    break;
                 }
             }
-        );
+        }
+
+        Cache::put($cacheKey, $result, now()->addSeconds($this->cacheTtl()));
+
+        return $result;
     }
 
     private function mapResult(array $result): array
@@ -387,7 +595,13 @@ class NominatimGeocoder
 
         if ($normalizedRequestedName !== null && $normalizedResultName !== null) {
             if ($normalizedRequestedName === $normalizedResultName) {
-                $score += 10;
+                // Rovnaky nazov nie je identita, ked je to holy druh stavby:
+                // "Kulturny dom" sa presne rovna "Kulturnemu domu" v kazdej
+                // druhej obci. Kym sa aj tu davalo 10 bodov, taky zasah prebil
+                // aj pokutu za nespravnu obec a Sabinov dostal suradnice
+                // kulturneho domu v Cervenici. Odlisujuci udaj nesie len typ a
+                // obec -- tie sa bodujú nizsie.
+                $score += $this->isGenericNameVariant($normalizedRequestedName) ? 0 : 10;
             } elseif (
                 str_contains($normalizedRequestedName, $normalizedResultName)
                 || str_contains($normalizedResultName, $normalizedRequestedName)
@@ -466,11 +680,16 @@ class NominatimGeocoder
 
     private function buildNameVariants(string $name): array
     {
-        $variants = [trim($name)];
         $normalized = $this->normalizeText($name) ?? '';
         // Tento variant ide priamo do dotazu na Nominatim, takže apostrofy
         // z iconv //TRANSLIT by sme posielali na OSM („Katedr'ala“).
         $asciiName = trim(Str::ascii($name));
+
+        // Bezdiakritikovy tvar hned za povodnym: OSM ma slovenske objekty casto
+        // zapisane bez diakritiky a prave on byva jedina zhoda ("Kulturny dom,
+        // Sabinov"). Kym bol az na konci zoznamu, hladanie sa k nemu dostalo az
+        // po dvadsiatich zbytocnych dotazoch.
+        $variants = [trim($name), $asciiName];
 
         foreach (self::VENUE_TYPE_SYNONYMS as $group => $synonyms) {
             $group = $this->findMatchingVenueTypeGroup($normalized, $synonyms, $group);
@@ -493,10 +712,6 @@ class NominatimGeocoder
         }
 
         $variants = array_merge($variants, $this->buildSplitLocationVariants($name));
-
-        if ($asciiName !== '') {
-            $variants[] = $asciiName;
-        }
 
         return array_values(array_unique(array_filter(array_map('trim', $variants))));
     }

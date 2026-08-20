@@ -199,6 +199,34 @@ class OrganizationAccountSyncTest extends UserSetupTest
         $this->assertGreaterThanOrEqual(10, config('account.lookup_timeout'));
     }
 
+    /**
+     * Prvé volanie po dlhšej nečinnosti Account iba prebúdza a stihne vypršať,
+     * hoci register odpovedal a výsledok už leží v cache Accountu. Formulár
+     * preto nesmie nechať používateľa zadávať IČO druhý raz ručne.
+     */
+    #[Test]
+    public function lookup_survives_a_single_timeout_and_asks_again(): void
+    {
+        $calls = 0;
+
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            if ($calls === 1) {
+                throw new ConnectionException('cURL error 28: Operation timed out');
+            }
+
+            return Http::response(['data' => ['found' => true, 'name' => 'ESET, spol. s r.o.']]);
+        });
+
+        $response = $this->postJson('/api/dashboard/organizations/lookup-ico', ['ico' => '31333532']);
+
+        $response->assertOk();
+        $response->assertJsonPath('found', true);
+        $response->assertJsonPath('name', 'ESET, spol. s r.o.');
+        $this->assertSame(2, $calls, 'Po vypršaní času sa má Account spýtať ešte raz.');
+    }
+
     /** Vypršaný čas nie je to isté ako nedostupný register – hláška to má povedať. */
     #[Test]
     public function lookup_timeout_is_reported_as_such(): void

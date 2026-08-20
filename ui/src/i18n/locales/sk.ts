@@ -929,6 +929,7 @@ const sk = {
     show: {
       notFound: 'Miesto nenájdené',
       events: 'Eventy na tomto mieste',
+      coordinatesMissing: 'Miesto zatiaľ nemá GPS súradnice — doplňte ich úpravou miesta.',
     },
     form: {
       back: '← Späť',
@@ -968,6 +969,7 @@ const sk = {
       longitude: 'Zemepisná dĺžka (lng)',
       lat: 'Lat',
       lng: 'Lng',
+      coordinatesSource: 'Presnosť polohy',
       website: 'Web',
       websiteIssueLabel: 'Táto adresa',
       email: 'Email',
@@ -978,6 +980,19 @@ const sk = {
       published: 'Publikovaný',
       archived: 'Archivovaný',
       blocked: 'Blokovaný',
+    },
+    // Presnosť GPS súradníc. Detekcia ich dopĺňa rebríkom zdrojov (budova →
+    // adresa → odhad AI → stred obce), takže značka nemusí stáť na budove —
+    // operátor to musí vidieť a vedieť ju dotiahnuť.
+    coordinates: {
+      venue: 'Poloha budovy z OpenStreetMap',
+      address: 'Poloha podľa adresy',
+      ai: 'Približná poloha z AI',
+      municipality: 'Približná poloha — stred obce',
+      manual: 'Poloha určená ručne',
+      missing: 'Poloha nie je určená',
+      approximateHint: 'Presuňte značku na mape na skutočnú polohu.',
+      missingHint: 'Kliknite do mapy a určte polohu.',
     },
     // Predvyplnenie miesta z AI. Formulár sa prepíše až po potvrdení, aby
     // ručne zadané údaje nezmizli jedným kliknutím.

@@ -57,6 +57,7 @@ class AiDetectorCommandTest extends TestCase
             ->with('https://example.test/event')
             ->andReturn([
                 'success' => true,
+                'corrected_text' => '<h3>Program</h3><p>Púť sa začína <strong>o 9:00</strong>.</p>',
                 'extracted_text' => 'AI extracted body text',
                 'links' => ['https://example.test/info'],
                 'attachments' => [
@@ -74,12 +75,46 @@ class AiDetectorCommandTest extends TestCase
 
         $event->refresh();
 
-        // Detektor vracia čistý text, ale `body_ai` sa vykresľuje cez v-html —
-        // mutator ho preto pri zápise prevedie na HTML (viď SanitizesHtmlBody).
-        $this->assertSame('<p>AI extracted body text</p>', $event->body_ai);
+        // „AI verzia" sa vykresľuje cez v-html, takže do body_ai patrí HTML od
+        // copywritera — nie zlepený surový extrakt.
+        $this->assertSame('<h3>Program</h3>' . "\n" . '<p>Púť sa začína <strong>o 9:00</strong>.</p>', $event->body_ai);
         $this->assertSame('https://example.test/event', $event->meta['ai_detector']['source_url'] ?? null);
         $this->assertSame(['https://example.test/info'], $event->meta['ai_detector']['links'] ?? null);
         $this->assertSame('Detected name', $event->meta['ai_detector']['event_payload']['name'] ?? null);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_raw_extract_when_the_copywriter_returns_nothing(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now(),
+            'orginal_source' => 'https://example.test/event',
+            'body_ai' => null,
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => null,
+                'extracted_text' => 'AI extracted body text',
+                'event_payload' => ['name' => 'Detected name'],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        // Mutator surový text obalí do odstavca (viď SanitizesHtmlBody).
+        $this->assertSame('<p>AI extracted body text</p>', $event->refresh()->body_ai);
     }
 
     #[Test]

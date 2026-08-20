@@ -5,6 +5,7 @@ namespace Tests\Feature\Venues;
 use App\Enums\ModelStatus;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Models\Canal;
 use PHPUnit\Framework\Attributes\Test;
@@ -140,5 +141,75 @@ class DashboardVenueStoreTest extends EventSetupTest
             'name' => $payload['name'],
         ]);
     }
-}
 
+    /**
+     * Presnosť polohy sa ukladá spolu so súradnicami — bez nej by sa značka
+     * v strede obce navonok nelíšila od značky na budove.
+     */
+    #[Test]
+    public function store_keeps_the_source_of_manually_placed_coordinates(): void
+    {
+        Http::fake();
+
+        $payload = $this->validPayload() + [
+            'latitude' => 48.1485965,
+            'longitude' => 17.1077477,
+            'coordinates_source' => 'manual',
+        ];
+
+        $response = $this->postJson('/api/dashboard/venues', $payload);
+
+        $response->assertStatus(201);
+        $response->assertJsonFragment(['coordinates_source' => 'manual']);
+
+        $this->assertDatabaseHas('venues', [
+            'name' => $payload['name'],
+            'coordinates_source' => 'manual',
+        ]);
+    }
+
+    #[Test]
+    public function store_records_where_automatically_resolved_coordinates_came_from(): void
+    {
+        $payload = $this->validPayload();
+        $municipality = DB::table('municipalities')->where('id', $payload['village_id'])->first();
+
+        Http::fake([
+            '*nominatim*' => Http::response([
+                [
+                    'name' => $payload['name'],
+                    'lat' => '48.1485965',
+                    'lon' => '17.1077477',
+                    'address' => [
+                        'road' => 'Main Street',
+                        'house_number' => '1',
+                        'city' => $municipality->shortname,
+                        'country' => 'Slovensko',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $this->postJson('/api/dashboard/venues', $payload)->assertStatus(201);
+
+        $this->assertDatabaseHas('venues', [
+            'name' => $payload['name'],
+            'coordinates_source' => 'venue',
+        ]);
+    }
+
+    #[Test]
+    public function store_rejects_an_unknown_coordinates_source(): void
+    {
+        Http::fake();
+
+        $response = $this->postJson('/api/dashboard/venues', $this->validPayload() + [
+            'latitude' => 48.1485965,
+            'longitude' => 17.1077477,
+            'coordinates_source' => 'guess',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('coordinates_source');
+    }
+}

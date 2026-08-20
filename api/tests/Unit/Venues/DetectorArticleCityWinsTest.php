@@ -9,6 +9,7 @@ use App\Services\OpenAI\Detector;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -24,6 +25,15 @@ use Tests\TestCase;
 class DetectorArticleCityWinsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Rebrik suradnic sa po neuspesnej zhode budovy pyta geokodera na adresu
+        // a na stred obce -- bez fake-u by test siel na verejny Nominatim.
+        Http::fake();
+    }
 
     #[Test]
     public function the_city_from_the_article_decides_the_municipality(): void

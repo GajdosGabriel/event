@@ -33,6 +33,9 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="IMPORTS_DETECT_CANAL_WITH_AI" value="false"/>
+        <!-- Odstup medzi dotazmi na Nominatim je zdvorilost voci verejnej sluzbe;
+             v testoch chodi geokoder cez Http::fake, takze by len spomaloval. -->
+        <env name="NOMINATIM_MIN_INTERVAL" value="0"/>
         <env name="IMPORTS_DESCRIBE_WITH_AI" value="false"/>
          <env name="DB_CONNECTION" value="mysql"/>
     <env name="DB_DATABASE" value="event-api-test"/>

@@ -40,6 +40,8 @@ class VenueStoreRequest extends FormRequest
             'country' => 'nullable|string|max:100',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            // Presnost suradnic: budova / adresa / odhad AI / stred obce / rucne.
+            'coordinates_source' => ['nullable', 'string', Rule::in(['venue', 'address', 'ai', 'municipality', 'manual'])],
             'capacity' => 'nullable|integer',
             'opening_hours' => 'nullable|array',
             'category' => 'nullable|string|max:100',

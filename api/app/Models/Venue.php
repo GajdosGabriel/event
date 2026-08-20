@@ -38,6 +38,9 @@ class Venue extends Model implements Messageable
     protected $casts = [
         'status' => ModelStatus::class,
         'website' => Website::class,
+        // MySQL vracia decimal ako retazec; mapa v UI aj VenueItem cakaju cisla.
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function setNameAttribute($value): void

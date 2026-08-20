@@ -1,12 +1,23 @@
 <template>
-  <div class="venue-map-wrapper">
-    <div ref="mapEl" class="venue-map" />
-    <p v-if="!hasCoords" class="map-hint">Klikni na mapu pre nastavenie polohy</p>
+  <div>
+    <!-- Presnosť polohy: značka môže sedieť na budove aj len na strede obce.
+         Bez štítku to na mape nerozoznať, a približná poloha by sa ticho
+         vydávala za overenú. -->
+    <p v-if="sourceLabel" class="source-badge" :class="{ 'source-badge--warn': isApproximate }">
+      <span>{{ sourceLabel }}</span>
+      <span v-if="sourceHint" class="source-badge__hint">{{ sourceHint }}</span>
+    </p>
+    <div class="venue-map-wrapper">
+      <div ref="mapEl" class="venue-map" />
+      <p v-if="!hasCoords" class="map-hint">{{ t('venues.coordinates.missingHint') }}</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { t } from '@/i18n'
+import type { CoordinatesSource } from '@/types'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -25,11 +36,13 @@ L.Icon.Default.mergeOptions({
 const props = defineProps<{
   lat: number | null
   lng: number | null
+  source?: CoordinatesSource | null
 }>()
 
 const emit = defineEmits<{
   (e: 'update:lat', val: number): void
   (e: 'update:lng', val: number): void
+  (e: 'update:source', val: CoordinatesSource): void
 }>()
 
 const mapEl = ref<HTMLElement | null>(null)
@@ -41,6 +54,34 @@ const DEFAULT_ZOOM = 7
 
 const hasCoords = computed(() => props.lat != null && props.lng != null)
 
+const sourceLabel = computed(() => {
+  if (!hasCoords.value) return t('venues.coordinates.missing')
+  switch (props.source) {
+    case 'venue': return t('venues.coordinates.venue')
+    case 'address': return t('venues.coordinates.address')
+    case 'ai': return t('venues.coordinates.ai')
+    case 'municipality': return t('venues.coordinates.municipality')
+    case 'manual': return t('venues.coordinates.manual')
+    // Miesta uložené pred zavedením presnosti zdroj nemajú — tvrdiť o nich
+    // čokoľvek by bola domnienka, preto ostane štítok bez presnosti.
+    default: return ''
+  }
+})
+
+const isApproximate = computed(() => props.source === 'municipality' || props.source === 'ai')
+
+const sourceHint = computed(() => {
+  if (!hasCoords.value) return ''
+  return isApproximate.value ? t('venues.coordinates.approximateHint') : ''
+})
+
+/** Ručný zásah prebíja akýkoľvek automatický zdroj. */
+function emitCoords(lat: number, lng: number) {
+  emit('update:lat', lat)
+  emit('update:lng', lng)
+  emit('update:source', 'manual')
+}
+
 function setMarker(lat: number, lng: number) {
   if (!map) return
   if (marker) {
@@ -49,8 +90,7 @@ function setMarker(lat: number, lng: number) {
     marker = L.marker([lat, lng], { draggable: true }).addTo(map)
     marker.on('dragend', () => {
       const pos = marker!.getLatLng()
-      emit('update:lat', Math.round(pos.lat * 1e6) / 1e6)
-      emit('update:lng', Math.round(pos.lng * 1e6) / 1e6)
+      emitCoords(Math.round(pos.lat * 1e6) / 1e6, Math.round(pos.lng * 1e6) / 1e6)
     })
   }
 }
@@ -78,8 +118,7 @@ onMounted(() => {
     const roundedLat = Math.round(lat * 1e6) / 1e6
     const roundedLng = Math.round(lng * 1e6) / 1e6
     setMarker(roundedLat, roundedLng)
-    emit('update:lat', roundedLat)
-    emit('update:lng', roundedLng)
+    emitCoords(roundedLat, roundedLng)
   })
 })
 
@@ -107,6 +146,23 @@ onBeforeUnmount(() => {
 .venue-map {
   height: 320px;
   width: 100%;
+}
+.source-badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: baseline;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+.source-badge--warn {
+  color: #b45309;
+  font-weight: 600;
+}
+.source-badge__hint {
+  font-weight: 400;
+  color: #92400e;
 }
 .map-hint {
   position: absolute;

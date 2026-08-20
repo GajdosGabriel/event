@@ -79,13 +79,26 @@ class AccountClient
             return ['found' => false, 'error' => __('organizations.account.disabled')];
         }
 
+        // Prvé volanie po dlhšej nečinnosti Account iba „prebúdza“ a stihne
+        // prekročiť strop — hoci register medzitým odpovedal a Account si
+        // výsledok uložil. Práve preto druhý pokus vráti údaje obratom; presne
+        // to používateľ pozná ako „prvýkrát nenájde, druhýkrát hneď nájde“.
+        // Zopakujeme si to teda sami a predlžujeme tým iba čakanie, ktoré by
+        // aj tak skončilo naprázdno.
+        $attempts = max(1, (int) config('account.lookup_attempts'));
+
         try {
             return $this->request(config('account.lookup_timeout'))
+                ->retry($attempts, 250, fn ($e) => $e instanceof ConnectionException, throw: true)
                 ->post('/api/v1/organizations/lookup', ['ico' => $ico, 'country' => $country])
                 ->throw()
                 ->json('data');
         } catch (ConnectionException $e) {
-            Log::warning('Account: vyhladanie ICO neodpovedalo vcas', ['ico' => $ico, 'error' => $e->getMessage()]);
+            Log::warning('Account: vyhladanie ICO neodpovedalo vcas', [
+                'ico' => $ico,
+                'attempts' => $attempts,
+                'error' => $e->getMessage(),
+            ]);
 
             return ['found' => false, 'error' => __('organizations.account.lookup_timeout')];
         } catch (\Throwable $e) {

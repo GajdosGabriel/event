@@ -309,6 +309,7 @@ class AiDetectFromText extends Command
             'country' => $this->pickString($venueStorePayload['country'] ?? null, 'Slovakia'),
             'latitude' => $venueStorePayload['latitude'] ?? null,
             'longitude' => $venueStorePayload['longitude'] ?? null,
+            'coordinates_source' => $venueStorePayload['coordinates_source'] ?? null,
             'status' => ModelStatus::Draft->value,
             'category' => $city,
         ]);

@@ -876,6 +876,7 @@ const de: Messages = {
     show: {
       notFound: 'Ort nicht gefunden',
       events: 'Veranstaltungen an diesem Ort',
+      coordinatesMissing: 'Der Ort hat noch keine GPS-Koordinaten — ergänzen Sie sie beim Bearbeiten.',
     },
     form: {
       back: '← Zurück',
@@ -915,6 +916,7 @@ const de: Messages = {
       longitude: 'Längengrad (lng)',
       lat: 'Lat',
       lng: 'Lng',
+      coordinatesSource: 'Genauigkeit des Standorts',
       website: 'Website',
       websiteIssueLabel: 'Diese Adresse',
       email: 'E-Mail',
@@ -925,6 +927,16 @@ const de: Messages = {
       published: 'Veröffentlicht',
       archived: 'Archiviert',
       blocked: 'Gesperrt',
+    },
+    coordinates: {
+      venue: 'Gebäudestandort aus OpenStreetMap',
+      address: 'Standort nach Adresse',
+      ai: 'Ungefährer Standort von der KI',
+      municipality: 'Ungefährer Standort — Ortsmitte',
+      manual: 'Manuell gesetzter Standort',
+      missing: 'Standort nicht gesetzt',
+      approximateHint: 'Ziehen Sie die Markierung auf den tatsächlichen Standort.',
+      missingHint: 'Klicken Sie auf die Karte, um den Standort zu setzen.',
     },
     detect: {
       show: 'Mit KI ausfüllen',

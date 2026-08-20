@@ -33,6 +33,13 @@ return [
     // „register je nedostupný“, hoci údaje sa práve našli.
     'lookup_timeout' => (int) env('ACCOUNT_LOOKUP_TIMEOUT', 15),
 
+    // Koľko pokusov dostane jedno vyhľadanie. Prvé volanie po dlhšej
+    // nečinnosti Account iba prebúdza a vie sa doň nezmestiť; register
+    // však medzitým odpovie a Account si výsledok uloží, takže druhý
+    // pokus príde obratom. Bez neho používateľ vidí „register neodpovedal“
+    // a IČO zadáva druhý raz ručne.
+    'lookup_attempts' => (int) env('ACCOUNT_LOOKUP_ATTEMPTS', 2),
+
     'cache' => [
         // Firemné údaje sa menia zriedka; cache invaliduje webhook.
         'organization_ttl' => (int) env('ACCOUNT_ORGANIZATION_TTL', 3600),

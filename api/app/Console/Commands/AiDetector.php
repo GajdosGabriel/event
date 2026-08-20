@@ -65,14 +65,21 @@ class AiDetector extends Command
         ];
 
         $event->update([
-            'body_ai' => is_string($result['extracted_text'] ?? null) && trim((string) $result['extracted_text']) !== ''
-                ? trim((string) $result['extracted_text'])
-                : null,
+            // Prednosť má HTML od copywritera — „AI verzia" sa v UI vykresľuje
+            // cez v-html a surový extrakt je jeden zlepený odstavec bez
+            // formátovania. Keď copywriter zlyhá, ostáva surový text.
+            'body_ai' => $this->pickString($result['corrected_text'] ?? null)
+                ?? $this->pickString($result['extracted_text'] ?? null),
             'meta' => $meta,
         ]);
 
         $this->info('AiDetector processed event id ' . $event->id . '.');
 
         return self::SUCCESS;
+    }
+
+    private function pickString(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 }

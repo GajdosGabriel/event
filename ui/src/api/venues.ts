@@ -25,6 +25,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     country: (raw['country'] as string) ?? null,
     latitude: (raw['latitude'] as number) ?? null,
     longitude: (raw['longitude'] as number) ?? null,
+    coordinatesSource: (raw['coordinates_source'] as VenueItem['coordinatesSource']) ?? null,
     capacity: (raw['capacity'] as number) ?? null,
     openingHours: (raw['opening_hours'] as string) ?? null,
     category: (raw['category'] as string) ?? null,

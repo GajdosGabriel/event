@@ -48,6 +48,12 @@ return [
         'base_url' => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org'),
         'user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Event API').' geocoder'),
         'cache_ttl' => env('NOMINATIM_CACHE_TTL', 86400),
+        // Verejna instancia povoluje ~1 dotaz za sekundu; bez odstupu vracia 429
+        // a detekcia ostane bez suradnic. V testoch sa nastavuje na 0.
+        'min_interval' => env('NOMINATIM_MIN_INTERVAL', 1),
+        // Strop pre jedno hladanie budovy. Pri sekundovom odstupe by 30 nazvovych
+        // variantov drzalo detekciu takmer minutu; po vyprsani preberie rebrik.
+        'max_seconds' => env('NOMINATIM_MAX_SECONDS', 15),
     ],
 
     // Externý watchdog, ktorý zaalarmuje, keď mu ping neprišiel — teda keď

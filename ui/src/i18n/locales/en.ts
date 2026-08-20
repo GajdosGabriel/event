@@ -876,6 +876,7 @@ const en: Messages = {
     show: {
       notFound: 'Venue not found',
       events: 'Events at this venue',
+      coordinatesMissing: 'This venue has no GPS coordinates yet — add them by editing the venue.',
     },
     form: {
       back: '← Back',
@@ -915,6 +916,7 @@ const en: Messages = {
       longitude: 'Longitude (lng)',
       lat: 'Lat',
       lng: 'Lng',
+      coordinatesSource: 'Location accuracy',
       website: 'Website',
       websiteIssueLabel: 'This address',
       email: 'Email',
@@ -925,6 +927,16 @@ const en: Messages = {
       published: 'Published',
       archived: 'Archived',
       blocked: 'Blocked',
+    },
+    coordinates: {
+      venue: 'Building location from OpenStreetMap',
+      address: 'Location from the address',
+      ai: 'Approximate location from AI',
+      municipality: 'Approximate location — town centre',
+      manual: 'Location set manually',
+      missing: 'Location not set',
+      approximateHint: 'Drag the marker to the real location.',
+      missingHint: 'Click the map to set the location.',
     },
     detect: {
       show: 'Fill in with AI',

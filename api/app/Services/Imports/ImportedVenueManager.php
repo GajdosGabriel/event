@@ -61,9 +61,13 @@ class ImportedVenueManager
                             );
                         }
                         // A map-pin from the source article beats the geocoder guess.
+                        // Znacku do clanku dal clovek, takze je to rovnaka
+                        // uroven istoty ako rucne urcena poloha -- a hlavne
+                        // nesmie ostat oznacena zdrojom, z ktoreho uz nie je.
                         if ($hasCoordinates) {
                             $payload['latitude'] = $latitude;
                             $payload['longitude'] = $longitude;
+                            $payload['coordinates_source'] = 'manual';
                         }
                         // Druhá kontrola duplicity — už na normalizovanom názve.
                         // Detektor prepíše "Evanjelickom kostole v Liptovskom
@@ -229,7 +233,11 @@ class ImportedVenueManager
         }
         // Backfill coordinates from an event's map pin only when the venue has none.
         if ($hasCoordinates && $existing->latitude === null && $existing->longitude === null) {
-            $existing->update(['latitude' => $latitude, 'longitude' => $longitude]);
+            $existing->update([
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'coordinates_source' => 'manual',
+            ]);
         }
 
         return $existing;

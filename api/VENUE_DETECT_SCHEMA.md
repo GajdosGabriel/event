@@ -32,6 +32,7 @@ POST /api/dashboard/venues/detect
     "country": "string|null",
     "latitude": "number|null",
     "longitude": "number|null",
+    "coordinates_source": "venue|address|ai|municipality|null",
     
     "object_description": "string|null (dlhší text, max 12 viet)",
     "long_description": "string|null (ešte dlhší text pre detail)",
@@ -64,6 +65,7 @@ POST /api/dashboard/venues/detect
     "country": "string|null",
     "latitude": "number|null",
     "longitude": "number|null",
+    "coordinates_source": "venue|address|ai|municipality|null",
     "capacity": null,
     "opening_hours": null,
     "category": null,
@@ -166,3 +168,19 @@ if (data.success) {
 - ✅ Bez platených API keyov (všetky zdroje bezplatné)
 - ✅ Rýchlo (cache + optimálne requesty)
 - ✅ Robustný (fallbacky a error handling)
+
+## Presnosť súradníc (`coordinates_source`)
+
+Súradnice sa hľadajú rebríkom zdrojov, prvý úspešný vyhráva:
+
+| Hodnota | Zdroj | Presnosť |
+|---|---|---|
+| `venue` | zhoda budovy v OpenStreetMap | budova |
+| `address` | štruktúrovaný dotaz na adresu (ulica + PSČ + obec) | dom / ulica |
+| `ai` | odhad modelu pre všeobecne známy objekt, overený voči obci (max 25 km) | približná |
+| `municipality` | stred obce z geokódera | stred obce |
+| `null` | nepodarilo sa určiť nič | — |
+
+Miesto uložené cez formulár môže mať navyše `manual` — operátor značku posunul sám.
+Hodnota sa ukladá do stĺpca `venues.coordinates_source`, aby sa presnosť nestratila
+po uložení; UI podľa nej označí približné polohy.

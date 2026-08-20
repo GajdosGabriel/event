@@ -308,6 +308,13 @@ export interface CanalItem {
 }
 
 // Venue
+/**
+ * Presnosť GPS súradníc miesta. Detekcia ich dopĺňa rebríkom zdrojov, takže
+ * značka na mape môže sedieť na budove aj len na strede obce — operátor musí
+ * vedieť, ktorý prípad vidí.
+ */
+export type CoordinatesSource = 'venue' | 'address' | 'ai' | 'municipality' | 'manual'
+
 export interface VenueItem {
   id: number
   canalId: number | null
@@ -325,6 +332,8 @@ export interface VenueItem {
   country: string | null
   latitude: number | null
   longitude: number | null
+  /** Odkiaľ sú súradnice: budova / adresa / odhad AI / stred obce / ručne. */
+  coordinatesSource: CoordinatesSource | null
   capacity: number | null
   openingHours: unknown | null
   category: string | null

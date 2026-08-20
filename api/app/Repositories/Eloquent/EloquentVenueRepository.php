@@ -253,8 +253,9 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     }
 
     /**
-     * Ak mistu chybaju GPS suradnice, skus ich automaticky doplnit cez AI/Nominatim,
-     * aby sa na detaile a v evente zobrazila mapa. Chyba geokodovania nie je fatalna.
+     * Ak mistu chybaju GPS suradnice, skus ich automaticky doplnit rebrikom
+     * zdrojov (budova -> adresa -> AI -> stred obce), aby sa na detaile a v
+     * evente zobrazila mapa. Chyba geokodovania nie je fatalna.
      */
     private function backfillCoordinates(Venue $venue): void
     {
@@ -266,6 +267,8 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             $venue->name,
             $this->resolveMunicipalityName($venue->village_id),
             $venue->country,
+            $venue->street,
+            $venue->postcode,
         );
 
         if ($coords['latitude'] === null || $coords['longitude'] === null) {
@@ -275,6 +278,9 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         $venue->forceFill([
             'latitude' => $coords['latitude'],
             'longitude' => $coords['longitude'],
+            // Bez zdroja by sa priblizna poloha (stred obce) navonok nelisila
+            // od presnej a nikto by uz nevedel, ktore miesta treba upresnit.
+            'coordinates_source' => $coords['source'],
         ])->save();
     }
 

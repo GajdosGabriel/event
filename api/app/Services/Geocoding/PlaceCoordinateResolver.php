@@ -3,95 +3,77 @@
 namespace App\Services\Geocoding;
 
 use App\Services\OpenAI\ChatGPT;
-use Illuminate\Support\Facades\Log;
 
 /**
- * Lightweight, fail-safe resolver for GPS coordinates of a place (venue/canal).
+ * Fail-safe doplnenie GPS suradnic miesta alebo kanalu pri ukladani.
  *
- * Zdroje suradnic (v poradi):
- *   1) Nominatim (OpenStreetMap) - spolahlivy geokoder
- *   2) AI (ChatGPT) - fallback, ak Nominatim nic nenajde
+ * Samotny rebrik zdrojov (budova -> adresa -> AI -> stred obce) drzi
+ * VenueCoordinateResolver; tato trieda je len tenka vrstva pre volajucich,
+ * ktori maju po ruke model, nie vysledok detekcie.
  *
- * Nikdy nevyhadzuje vynimku - pri chybe vrati null suradnice, aby ulozenie
+ * Nikdy nevyhadzuje vynimku -- pri chybe vrati null suradnice, aby ulozenie
  * miesta/kanalu nikdy nezlyhalo kvoli geokodovaniu.
  */
 class PlaceCoordinateResolver
 {
+    private readonly VenueCoordinateResolver $venueCoordinateResolver;
+
     public function __construct(
-        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
-    ) {}
+        NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
+        ChatGPT $chatGPT = new ChatGPT(),
+        ?VenueCoordinateResolver $venueCoordinateResolver = null,
+    ) {
+        $this->venueCoordinateResolver = $venueCoordinateResolver
+            ?? new VenueCoordinateResolver($nominatimGeocoder, $chatGPT);
+    }
 
     /**
-     * @return array{latitude: float|null, longitude: float|null}
+     * @return array{latitude: float|null, longitude: float|null, source: string|null}
      */
-    public function resolve(?string $name, ?string $city, ?string $country = null): array
-    {
+    public function resolve(
+        ?string $name,
+        ?string $city,
+        ?string $country = null,
+        ?string $street = null,
+        ?string $postcode = null,
+    ): array {
         $name = $this->clean($name);
         $city = $this->clean($city);
         $country = $this->clean($country);
 
         if ($name === null && $city === null) {
-            return ['latitude' => null, 'longitude' => null];
+            return ['latitude' => null, 'longitude' => null, 'source' => null];
         }
 
-        // Nominatim potrebuje aspon nazov (pouzije aj mesto ako nazov, ak nazov chyba).
-        $lookupName = $name ?? $city;
-        $lookupCity = $city ?? '';
+        // Zhoda budovy je prvy stupen rebrika. Kontrolu nazvu, ktoru robi
+        // detekcia, tu neaplikujeme -- nazov v DB uz je ten spravny a
+        // porovnavat ho nie je s cim.
+        $venue = $this->lookupVenue($name ?? $city, $city ?? '', $country);
 
-        $coords = $this->fromNominatim($lookupName, $lookupCity, $country);
-        if ($coords['latitude'] !== null && $coords['longitude'] !== null) {
-            return $coords;
-        }
-
-        $coords = $this->fromAi($lookupName, $lookupCity, $country);
-        if ($coords['latitude'] !== null && $coords['longitude'] !== null) {
-            return $coords;
-        }
-
-        return ['latitude' => null, 'longitude' => null];
+        return $this->venueCoordinateResolver->resolve(
+            venueLat: $venue['latitude'],
+            venueLng: $venue['longitude'],
+            name: $name ?? $city,
+            street: $this->clean($street),
+            postcode: $this->clean($postcode),
+            city: $city,
+            country: $country,
+            askAi: true,
+        );
     }
 
     /**
      * @return array{latitude: float|null, longitude: float|null}
      */
-    private function fromNominatim(string $name, string $city, ?string $country): array
+    private function lookupVenue(string $name, string $city, ?string $country): array
     {
         try {
-            $result = $this->nominatimGeocoder->lookup($name, $city, $country);
-
-            return [
-                'latitude' => $this->floatOrNull($result['latitude'] ?? null),
-                'longitude' => $this->floatOrNull($result['longitude'] ?? null),
-            ];
-        } catch (\Throwable $e) {
-            Log::warning('PlaceCoordinateResolver: Nominatim lookup failed', ['error' => $e->getMessage()]);
-
+            $result = $this->venueCoordinateResolver->lookupVenue($name, $city, $country);
+        } catch (\Throwable) {
             return ['latitude' => null, 'longitude' => null];
         }
-    }
 
-    /**
-     * @return array{latitude: float|null, longitude: float|null}
-     */
-    private function fromAi(string $name, string $city, ?string $country): array
-    {
-        try {
-            $payload = $this->chatGPT->extractVenueDetails([
-                'name' => $name,
-                'city' => $city,
-                'country' => $country,
-            ]);
-
-            return [
-                'latitude' => $this->floatOrNull($payload['latitude'] ?? null),
-                'longitude' => $this->floatOrNull($payload['longitude'] ?? null),
-            ];
-        } catch (\Throwable $e) {
-            Log::warning('PlaceCoordinateResolver: AI lookup failed', ['error' => $e->getMessage()]);
-
-            return ['latitude' => null, 'longitude' => null];
-        }
+        return $result;
     }
 
     private function clean(?string $value): ?string
@@ -103,10 +85,5 @@ class PlaceCoordinateResolver
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
-    }
-
-    private function floatOrNull(mixed $value): ?float
-    {
-        return is_numeric($value) ? (float) $value : null;
     }
 }

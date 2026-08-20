@@ -4,6 +4,7 @@ namespace Tests\Unit\Venues;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\OpenAI\ChatGPT;
@@ -15,6 +16,16 @@ use Tests\TestCase;
 class DetectorVenueDetailsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Rebrik suradnic sa po neuspesnej zhode budovy pyta geokodera na
+        // adresu a na stred obce. Bez fake-u by test siel na verejny Nominatim;
+        // jednotlive testy si prazdnu odpoved podla potreby prepisu.
+        Http::fake();
+    }
 
     #[Test]
     public function detect_venue_details_prefers_geocoded_address_and_coordinates(): void
@@ -96,6 +107,7 @@ class DetectorVenueDetailsTest extends TestCase
         $this->assertSame('811 01', $result['venue_payload']['postcode']);
         $this->assertSame(48.1485965, $result['venue_payload']['latitude']);
         $this->assertSame(17.1077477, $result['venue_payload']['longitude']);
+        $this->assertSame('venue', $result['venue_payload']['coordinates_source']);
         $this->assertSame('wikipedia', $result['venue_payload']['enrichment_source']);
         $this->assertSame('https://upload.wikimedia.org/example.jpg', $result['venue_payload']['image_url']);
         $this->assertSame([
@@ -127,6 +139,7 @@ class DetectorVenueDetailsTest extends TestCase
             'country' => 'Slovakia',
             'latitude' => 48.1485965,
             'longitude' => 17.1077477,
+            'coordinates_source' => 'venue',
             'capacity' => null,
             'opening_hours' => null,
             'category' => null,
@@ -205,13 +218,96 @@ class DetectorVenueDetailsTest extends TestCase
         $this->assertSame('Kultúrny dom Raslavice', $result['venue_payload']['name']);
         $this->assertSame('Toplianska 560', $result['venue_payload']['street']);
         $this->assertSame('086 41', $result['venue_payload']['postcode']);
+        // Geokoder vratil iny objekt, adresu ani obec sa dohladat nepodarilo
+        // (Http::fake nevracia nic) -- suradnice preto ostavaju prazdne.
         $this->assertNull($result['venue_payload']['latitude']);
         $this->assertNull($result['venue_payload']['longitude']);
+        $this->assertNull($result['venue_payload']['coordinates_source']);
         $this->assertNull($result['venue_payload']['enrichment_source']);
         $this->assertNull($result['venue_payload']['image_url']);
         $this->assertNotNull($result['venue_payload']['village_id']);
         $this->assertSame('Raslavice', $result['venue_payload']['matched_municipality']['shortname']);
         $this->assertSame('Kultúrny dom Raslavice', $result['venue_store_payload']['name']);
         $this->assertSame('Toplianska 560', $result['venue_store_payload']['street']);
+    }
+
+    #[Test]
+    public function detect_venue_details_falls_back_to_the_village_centre_when_the_building_is_unknown(): void
+    {
+        DB::table('municipalities')->insert([
+            'fullname' => 'Raslavice',
+            'shortname' => 'Raslavice',
+            'zip' => '08641',
+            'district_id' => 1,
+            'region_id' => 1,
+            'use' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $chatGpt = new class extends ChatGPT {
+            public function extractVenueDetails(array|string $input): array
+            {
+                return [
+                    'name' => 'Kultúrny dom Raslavice',
+                    'street' => null,
+                    'postcode' => null,
+                    'city' => 'Raslavice',
+                    'country' => 'Slovensko',
+                    'latitude' => null,
+                    'longitude' => null,
+                ];
+            }
+        };
+
+        // Bezny kulturny dom v OSM nie je a adresu z neho nedostaneme. Doteraz
+        // take miesto skoncilo bez suradnic a na detaile bez mapy.
+        $geocoder = new class extends NominatimGeocoder {
+            public function lookup(string $name, string $city, ?string $country = null): array
+            {
+                return [
+                    'name' => null,
+                    'street' => null,
+                    'postcode' => null,
+                    'city' => null,
+                    'country' => null,
+                    'latitude' => null,
+                    'longitude' => null,
+                ];
+            }
+
+            public function lookupAddress(?string $street, ?string $postcode, ?string $city, ?string $country = null): array
+            {
+                return ['latitude' => null, 'longitude' => null];
+            }
+
+            public function lookupMunicipality(?string $city, ?string $country = null): array
+            {
+                return ['latitude' => 49.0999, 'longitude' => 21.4111];
+            }
+        };
+
+        $enricher = new class extends WikipediaPlaceEnricher {
+            public function enrich(string $name, string $city, ?string $country = null): array
+            {
+                return [];
+            }
+        };
+
+        $detector = new Detector(
+            chatGPT: $chatGpt,
+            nominatimGeocoder: $geocoder,
+            municipalityResolver: new MunicipalityResolver(),
+            wikipediaPlaceEnricher: $enricher,
+        );
+
+        $result = $detector->detectVenueDetails('Kultúrny dom Raslavice', 'Raslavice', 'Slovensko');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(49.0999, $result['venue_payload']['latitude']);
+        $this->assertSame(21.4111, $result['venue_payload']['longitude']);
+        $this->assertSame('municipality', $result['venue_payload']['coordinates_source']);
+        $this->assertSame(49.0999, $result['venue_store_payload']['latitude']);
+        $this->assertSame('municipality', $result['venue_store_payload']['coordinates_source']);
     }
 }

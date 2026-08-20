@@ -7,6 +7,7 @@ use App\Services\OpenAI\ChatGPT;
 use App\Services\OpenAI\Detector;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,6 +19,15 @@ use Tests\TestCase;
 class DetectorVenueCityTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Rebrik suradnic sa po neuspesnej zhode budovy pyta geokodera na adresu
+        // a na stred obce -- bez fake-u by test siel na verejny Nominatim.
+        Http::fake();
+    }
 
     /** @param array<string, mixed> $venue */
     private function detector(array $venue, ?string $title = null): Detector

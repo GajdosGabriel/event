@@ -34,17 +34,30 @@
             <div v-if="venue.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="venue.body" />
           </div>
 
-          <!-- Mapa -->
-          <div v-if="venue.latitude && venue.longitude" class="show-card overflow-hidden p-0">
-            <iframe
-              :src="`https://www.openstreetmap.org/export/embed.html?bbox=${venue.longitude - 0.005},${venue.latitude - 0.003},${venue.longitude + 0.005},${venue.latitude + 0.003}&layer=mapnik&marker=${venue.latitude},${venue.longitude}`"
-              class="h-72 w-full border-0"
-              loading="lazy"
-            />
-            <div class="px-4 py-2 text-xs text-slate-500">
-              GPS: {{ venue.latitude }}, {{ venue.longitude }} ·
-              <a :href="`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`" target="_blank" class="text-blue-600">{{ t('common.googleMaps') }}</a>
+          <!-- Poloha -->
+          <div class="show-card overflow-hidden p-0">
+            <div class="flex flex-wrap items-baseline gap-2 px-4 pt-4">
+              <h2 class="text-base font-semibold text-slate-800">{{ t('venues.sections.location') }}</h2>
+              <!-- Značka môže sedieť na budove aj len na strede obce — bez
+                   štítku sa to na mape nedá rozoznať. -->
+              <span v-if="coordinatesLabel" class="text-xs" :class="coordinatesApproximate ? 'font-semibold text-amber-700' : 'text-slate-500'">
+                {{ coordinatesLabel }}
+              </span>
             </div>
+            <p v-if="!hasCoordinates" class="px-4 pb-4 pt-2 text-sm text-slate-400">
+              {{ t('venues.show.coordinatesMissing') }}
+            </p>
+            <template v-else-if="venue.latitude != null && venue.longitude != null">
+              <iframe
+                :src="`https://www.openstreetmap.org/export/embed.html?bbox=${venue.longitude - 0.005},${venue.latitude - 0.003},${venue.longitude + 0.005},${venue.latitude + 0.003}&layer=mapnik&marker=${venue.latitude},${venue.longitude}`"
+                class="mt-3 h-72 w-full border-0"
+                loading="lazy"
+              />
+              <div class="px-4 py-2 text-xs text-slate-500">
+                GPS: {{ venue.latitude }}, {{ venue.longitude }} ·
+                <a :href="`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`" target="_blank" class="text-blue-600">{{ t('common.googleMaps') }}</a>
+              </div>
+            </template>
           </div>
 
           <!-- Galéria -->
@@ -189,6 +202,25 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<VenueEventItem[]>([])
 const eventsLoading = ref(false)
+
+const hasCoordinates = computed(() => venue.value?.latitude != null && venue.value?.longitude != null)
+
+const coordinatesApproximate = computed(
+  () => venue.value?.coordinatesSource === 'municipality' || venue.value?.coordinatesSource === 'ai',
+)
+
+const coordinatesLabel = computed(() => {
+  if (!hasCoordinates.value) return t('venues.coordinates.missing')
+  switch (venue.value?.coordinatesSource) {
+    case 'venue': return t('venues.coordinates.venue')
+    case 'address': return t('venues.coordinates.address')
+    case 'ai': return t('venues.coordinates.ai')
+    case 'municipality': return t('venues.coordinates.municipality')
+    case 'manual': return t('venues.coordinates.manual')
+    // Miesta uložené pred zavedením presnosti zdroj nemajú.
+    default: return ''
+  }
+})
 
 const openingHoursRows = computed(() => {
   const oh = venue.value?.openingHours

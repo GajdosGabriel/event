@@ -52,7 +52,9 @@ class PromptVenue
                 - Ak vstup uz obsahuje presny nazov objektu, nazov neprepisuj na iny objekt v tej istej obci ani na iny historicky/alternativny objekt.
                 - Nazov mozes rozsirif iba vtedy, ak ide zjavne o ten isty objekt (napr. doplnenie oficialnej formy, nie zamena budovy).
                 - Venue moze byt akykolvek objekt pre eventy a stretnutia: kulturny dom, centrum, divadlo, kino, klub, kostol, chram, synagoga, muzeum, galeria, kniznica, skola, aula, hotel, restauracia, hala, stadion, arena, amfiteater a podobne.
-                - Nikdy nevymyslaj adresu, GPS suradnice ani PSC.
+                - Nikdy nevymyslaj adresu ani PSC.
+                - GPS suradnice vrat len pre vseobecne znamy objekt (katedrala, stadion, amfiteater, znamy kulturny dom) a len vtedy, ked lezi v zadanej obci; staci priblizna poloha objektu.
+                - Pri objekte, ktory nepoznas (bezny kulturny dom, klub, restauracia), vrat pri suradniciach null - nehadaj podla mena obce.
                 - Ak si nie si isty alebo existuje viac moznych miest, nastav hodnotu na null.
                 - Mesto extrahuj aj z formatov "..., Sabinov, ..." alebo "v Sabinove"; v takom pripade vrat zakladny tvar mesta "Sabinov".
                 - Krajinu vrat iba ak je jasna, inak null.
@@ -72,10 +74,15 @@ class PromptVenue
                     . "- country\n"
                     . "- latitude\n"
                     . "- longitude\n\n"
-                    . "Priklad:\n"
+                    . "Priklad 1 (neznamy objekt - suradnice nehadaj):\n"
                     . "Vstup: Miesto konania: Greckokatolicky chram v Sabinove, Sabinov, Matice Slovenskej\n"
                     . "Vystup:\n"
                     . "{\"name\":\"Greckokatolicky chram v Sabinove\",\"street\":\"Matice Slovenskej\",\"postcode\":null,\"city\":\"Sabinov\",\"country\":\"Slovensko\",\"latitude\":null,\"longitude\":null}\n\n"
+                    . "Priklad 2 (vseobecne znamy objekt - priblizne suradnice su v poriadku):\n"
+                    . "Vstup: Miesto konania: Bojnicky zamok, Bojnice\n"
+                    . "Vystup:\n"
+                    . "{\"name\":\"Bojnicky zamok\",\"street\":null,\"postcode\":null,\"city\":\"Bojnice\",\"country\":\"Slovensko\",\"latitude\":48.7794,\"longitude\":18.5786}\n\n"
+                    . "Suradnice z prikladu nikdy nepouzi pre ine miesto - platia len pre objekt, ktory naozaj poznas.\n\n"
                     . "Ak udaj nevies spolahlivo urcit, vrat null. Vrat iba validny JSON bez dalsieho textu.",
             ],
         ];

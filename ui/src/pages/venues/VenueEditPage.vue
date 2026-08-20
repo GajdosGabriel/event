@@ -112,8 +112,10 @@
         <VenueMapPicker
           :lat="form.latitude"
           :lng="form.longitude"
+          :source="form.coordinates_source"
           @update:lat="form.latitude = $event"
           @update:lng="form.longitude = $event"
+          @update:source="form.coordinates_source = $event"
         />
         <div class="mt-2 grid grid-cols-2 gap-2">
           <FormField v-model="form.latitude" type="number" :label="t('venues.fields.lat')" step="any" class="text-xs" />
@@ -134,6 +136,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
+import type { CoordinatesSource } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
@@ -173,6 +176,7 @@ const form = ref({
   country: '',
   latitude: null as number | null,
   longitude: null as number | null,
+  coordinates_source: null as CoordinatesSource | null,
   capacity: null as number | null,
   category: '',
   website: '',
@@ -232,6 +236,7 @@ function applyDetect() {
   if (p['country']) form.value.country = p['country'] as string
   if (p['latitude'] != null) form.value.latitude = p['latitude'] as number
   if (p['longitude'] != null) form.value.longitude = p['longitude'] as number
+  form.value.coordinates_source = (p['coordinates_source'] as CoordinatesSource) ?? null
   if (p['website']) form.value.website = p['website'] as string
   if (p['email']) form.value.email = p['email'] as string
   if (p['phone']) form.value.phone = p['phone'] as string
@@ -256,6 +261,7 @@ onMounted(async () => {
         country: v.country ?? '',
         latitude: v.latitude ?? null,
         longitude: v.longitude ?? null,
+        coordinates_source: v.coordinatesSource ?? null,
         capacity: v.capacity ?? null,
         category: v.category ?? '',
         website: v.website ?? '',

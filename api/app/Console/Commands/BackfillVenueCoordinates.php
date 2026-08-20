@@ -22,7 +22,9 @@ class BackfillVenueCoordinates extends Command
                 ' - #%d %s -> %s',
                 $venue->id,
                 $venue->name,
-                $updated ? sprintf('%s, %s', $venue->latitude, $venue->longitude) : 'nenájdené',
+                $updated
+                    ? sprintf('%s, %s (%s)', $venue->latitude, $venue->longitude, $venue->coordinates_source ?? '?')
+                    : 'nenájdené',
             ));
 
             if ($sleepMs > 0) {

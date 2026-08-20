@@ -2,8 +2,14 @@
 
 namespace App\Services\OpenAI;
 
+use App\Services\Imports\HtmlCharsetNormalizer;
+
 class WebPageFetcher
 {
+    public function __construct(
+        private readonly HtmlCharsetNormalizer $charsetNormalizer = new HtmlCharsetNormalizer(),
+    ) {}
+
     public function fetch(string $url): string
     {
         $ch = curl_init();
@@ -26,12 +32,19 @@ class WebPageFetcher
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
 
         if ($httpCode !== 200 || $response === false) {
             throw new \RuntimeException("HTTP chyba: {$httpCode}");
         }
 
-        return $response;
+        // Zdroj nemusí byť v UTF-8 (tkkbs.sk servíruje Windows-1250). Bez
+        // prekódovania tu skončí rozbitá diakritika v `body_ai` každého
+        // importovaného podujatia.
+        return $this->charsetNormalizer->normalize(
+            (string) $response,
+            is_string($contentType) ? $contentType : null,
+        );
     }
 }
