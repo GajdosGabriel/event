@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\CanalIdentityMode;
 use App\Enums\FileType;
+use App\Enums\ModelStatus;
 use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,12 @@ class CanalStoreRequest extends FormRequest
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'municipality_id' => 'required|integer|exists:municipalities,id',
+            // Kanál doteraz nemal cestu, ako si stav zmeniť — ostával na DB
+            // defaulte `published`. Rovnaký zápis ako VenueStoreRequest.
+            'status' => ['nullable', 'string', Rule::in(array_column(
+                ModelStatus::allowedForUser($this->user()),
+                'value'
+            ))],
             'identity_mode' => ['sometimes', 'string', Rule::enum(CanalIdentityMode::class)],
             'files' => ['sometimes', 'array'],
             'files.*' => ['file', 'max:10240'],

@@ -27,17 +27,28 @@ class VenuePolicy
         return $user->hasAnyCanalAbility('venue.create');
     }
 
+    /**
+     * Archivované miesto sa editovať smie. Archív je zámok proti mazaniu, nie
+     * proti oprave — bez toho by sa archivovaný záznam nedal ani vrátiť späť do
+     * konceptu (status sa mení práve cez update) a podujatie na ňom by sa už
+     * nikdy nedalo publikovať.
+     */
     public function update(User $user, Venue $venue): bool
     {
-        return $this->isNotArchived($venue) && $this->ownsVenueThrough($user, $venue, 'venue.update');
+        return $this->ownsVenueThrough($user, $venue, 'venue.update');
     }
 
     public function publish(User $user, Venue $venue): bool
     {
         return $this->update($user, $venue)
-            && $venue->status === ModelStatus::Draft;
+            && $venue->status !== ModelStatus::Published;
     }
 
+    public function unpublish(User $user, Venue $venue): bool
+    {
+        return $this->update($user, $venue)
+            && $venue->status === ModelStatus::Published;
+    }
 
     public function archive(User $user, Venue $venue): bool
     {
@@ -45,6 +56,13 @@ class VenuePolicy
             && $this->ownsVenueThrough($user, $venue, 'venue.delete');
     }
 
+    /**
+     * Stavový zámok: mazať sa dá len to, čo nie je vonku (`published`) ani
+     * archivované. Referenčný zámok („už to používa podujatie") sem zámerne
+     * nepatrí — to nie je otázka práva, ale stavu dát, a musí odísť ako 422 s
+     * vysvetlením, nie ako holé 403. Rieši ho ProtectsReferencedRecords
+     * v repozitári; Resource ho pridáva k tomuto právu pre tlačidlo.
+     */
     public function delete(User $user, Venue $venue): bool
     {
         return $this->isNotArchived($venue)
@@ -53,7 +71,11 @@ class VenuePolicy
                     $venue->status !== ModelStatus::Published
                     && $this->ownsVenueThrough($user, $venue, 'venue.delete')
                 )
-                || $this->isLinkedToVenueCanal($user, $venue)
+                // Odpojenie cudzieho miesta nie je mazanie — väzba ostáva na
+                // vlastníckom kanáli, takže referenčný ani stavový zámok sa naň
+                // nevzťahuje. Podmienka „cudzie" tu predtým chýbala a vlastník
+                // si cez túto vetvu vedel zmazať aj publikované miesto.
+                || ($this->isForeignVenue($user, $venue) && $this->isLinkedToVenueCanal($user, $venue))
             );
     }
 
@@ -75,6 +97,18 @@ class VenuePolicy
     {
         return $venue->ownerCanals()
             ->whereIn('canals.id', $user->canalIdsWithAbility($ability))
+            ->exists();
+    }
+
+    /**
+     * Miesto nepatrí žiadnemu z používateľových kanálov — rovnaká otázka, akú
+     * si kladie EloquentVenueRepository::delete(), keď sa rozhoduje medzi
+     * zmazaním a odpojením.
+     */
+    private function isForeignVenue(User $user, Venue $venue): bool
+    {
+        return ! $venue->ownerCanals()
+            ->whereIn('canals.id', $user->ownedCanals()->pluck('canals.id'))
             ->exists();
     }
 

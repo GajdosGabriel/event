@@ -277,6 +277,7 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
+import { errorBody, isCancelled, withDependencyConsent } from '@/utils/publishFlow'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
 import ImageManager from '@/components/ImageManager.vue'
@@ -495,7 +496,7 @@ async function submit() {
     // dátum — backend chce buď termín, alebo null.
     const payload = { ...form.value, publish_at: form.value.publish_at || null }
     if (isCreate.value) {
-      const ev = await createEvent(payload, scope.value)
+      const ev = await withDependencyConsent(p => createEvent(p, scope.value), payload)
       savedId.value = ev.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
@@ -520,11 +521,14 @@ async function submit() {
       toast.success(t('events.form.created'))
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
-      await updateEvent(Number(route.params.id), payload, scope.value)
+      await withDependencyConsent(p => updateEvent(Number(route.params.id), p, scope.value), payload)
       toast.success(t('events.form.saved'))
     }
   } catch (e: unknown) {
-    const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
+    // Odmietnuté dopublikovanie závislostí nie je chyba — používateľ sa len
+    // rozhodol nechať podujatie tak, ako bolo.
+    if (isCancelled(e)) { saving.value = false; return }
+    const resp = errorBody(e)
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? t('events.form.saveFailed')
     await scrollToError(errorBanner)

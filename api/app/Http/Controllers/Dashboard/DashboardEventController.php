@@ -15,6 +15,7 @@ use App\Repositories\Contracts\EventRepository;
 use App\Services\Imports\HtmlBodyCleaner;
 use App\Services\OpenAI\Chatgpt;
 use App\Services\OpenAI\Detector;
+use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -105,12 +106,20 @@ class DashboardEventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
-    public function publish(string $id, EventPublishRequest $request): JsonResponse
+    public function publish(string $id, EventPublishRequest $request, EventDependencyPublisher $dependencies): JsonResponse
     {
         $event = $this->eventRepository->dashboardShow($id);
         $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $event);
 
         $request->validated();
+
+        // Stiahnutie z webu závislosti nerieši — dole musí ísť podujatie aj
+        // vtedy, keď mu medzitým vypadlo miesto.
+        if ($request->shouldPublish()) {
+            $request->shouldPublishDependencies()
+                ? $dependencies->publishAll($event, $request->user())
+                : $dependencies->assertPublishable($event);
+        }
 
         $event = $this->eventRepository->publish($id, $request->shouldPublish());
 

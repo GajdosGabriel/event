@@ -17,6 +17,7 @@ use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Imports\HtmlBodyCleaner;
 use App\Services\Imports\ImportedVenueManager;
 use App\Services\Imports\PdfConverterService;
+use App\Services\Publishing\EventDependencyPublisher;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,7 @@ class PosterDraftMaterializer
         private readonly HtmlBodyCleaner $cleaner = new HtmlBodyCleaner(),
         private readonly PdfConverterService $pdfConverter = new PdfConverterService(),
         private readonly ?FileManager $fileManager = null,
+        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher(),
     ) {}
 
     public function materialize(PosterDraft $draft, User $user): Event
@@ -113,14 +115,12 @@ class PosterDraftMaterializer
             ]);
 
             // Verejný zoznam podujatí filtruje podľa stavu podujatia, ale meno
-            // kanála pri ňom zobrazuje vždy. Publikované podujatie visiace na
-            // koncepte kanála by teda odkazovalo na profil, ktorý sa nedá
-            // otvoriť — kanál preto ide von spolu s ním.
-            if ($isComplete && $canal->status === ModelStatus::Draft) {
-                $canal->forceFill([
-                    'status' => ModelStatus::Published->value,
-                    'published_at' => $canal->published_at ?? now(),
-                ])->save();
+            // kanála a miesta pri ňom zobrazuje vždy. Publikované podujatie
+            // visiace na koncepte by teda odkazovalo na profil, ktorý sa tvári
+            // ako rozrobený — obe závislosti preto idú von spolu s ním. Miesto
+            // je tu vždy koncept, zakladá ho ImportedVenueManager.
+            if ($isComplete) {
+                $this->dependencyPublisher->publishAll($event);
             }
 
             $draft->forceFill([

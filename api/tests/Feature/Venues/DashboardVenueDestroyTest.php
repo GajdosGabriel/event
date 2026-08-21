@@ -55,6 +55,72 @@ class DashboardVenueDestroyTest extends EventSetupTest
         ]);
     }
 
+    /**
+     * Referenčný zámok musí byť vidieť aj v odpovedi výpisu, inak by UI ponúklo
+     * tlačidlo, ktoré vždy skončí na 422.
+     */
+    #[Test]
+    public function index_explains_why_a_used_venue_cannot_be_deleted(): void
+    {
+        $this->user->givePermissionTo(['venue.delete', 'venue.update']);
+
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'status' => ModelStatus::Draft->value,
+        ]);
+
+        Event::factory()->create([
+            'canal_id' => $this->canalPrimary->id,
+            'venue_id' => $venue->id,
+            'user_id' => $this->user->id,
+        ]);
+
+        $row = collect($this->getJson('/api/dashboard/venues')->assertOk()->json('data'))
+            ->firstWhere('id', $venue->id);
+
+        $this->assertNotNull($row);
+        $this->assertFalse($row['permissions']['delete']);
+        $this->assertNotNull($row['delete_blocked_reason']);
+    }
+
+    #[Test]
+    public function owner_cannot_delete_published_or_archived_venue(): void
+    {
+        $this->user->givePermissionTo('venue.delete');
+
+        foreach ([ModelStatus::Published, ModelStatus::Archived] as $status) {
+            $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+                'status' => $status->value,
+            ]);
+
+            $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertForbidden();
+
+            $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
+        }
+    }
+
+    /**
+     * Archív je zámok proti mazaniu, nie proti oprave — inak by sa archivované
+     * miesto nedalo ani vrátiť späť medzi publikované.
+     */
+    #[Test]
+    public function archived_venue_can_still_be_edited(): void
+    {
+        $this->user->givePermissionTo('venue.update');
+
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'status' => ModelStatus::Archived->value,
+        ]);
+
+        $this->putJson('/api/dashboard/venues/' . $venue->id, [
+            'name' => $venue->name,
+            'village_id' => $venue->village_id,
+            'canal_id' => $this->canalPrimary->id,
+            'status' => ModelStatus::Published->value,
+        ])->assertOk();
+
+        $this->assertSame(ModelStatus::Published, $venue->fresh()->status);
+    }
+
     #[Test]
     public function non_owner_can_unlink_venue_from_dashboard_scope(): void
     {

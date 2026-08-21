@@ -62,9 +62,13 @@
                 class="row-menu-item"
                 @click="togglePublish(item)"
               >{{ item.permissions?.unpublish ? t('common.unpublish') : t('common.publish') }}</button>
+              <!-- Zablokované mazanie sa neskrýva, ale zošedne a povie prečo —
+                   tichý zmiznutý button je horší než vysvetlenie. -->
               <button
-                v-if="item.permissions?.delete && !item.deletedAt"
+                v-if="(item.permissions?.delete || item.deleteBlockedReason) && !item.deletedAt"
                 class="row-menu-item row-menu-item-danger"
+                :disabled="Boolean(item.deleteBlockedReason)"
+                :title="item.deleteBlockedReason ?? undefined"
                 @click="remove(item.id)"
               >{{ t('common.remove') }}</button>
               <button
@@ -95,6 +99,7 @@ import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilte
 import { useToast } from '@/composables/useToast'
 import { useSettings } from '@/composables/useSettings'
 import { fmtDate } from '@/utils/dateFormat'
+import { isCancelled, publishRequest, serverMessage } from '@/utils/publishFlow'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { useI18n } from '@/i18n'
 
@@ -156,6 +161,8 @@ interface ResourceItem {
   deletedAt?: string | null
   createdAt?: string | null
   permissions?: Record<string, boolean>
+  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
+  deleteBlockedReason?: string | null
   canalId?: number | null
   canalName?: string | null
   /** Firma nad kanálom — v odpovedi je len v admin výpise. */
@@ -205,6 +212,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt,
     permissions: (raw['permissions'] as Record<string, boolean>) ?? {},
+    deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     canalId,
     canalName,
     organizationTitle: canalRaw?.organization?.title ?? null,
@@ -347,10 +355,12 @@ async function togglePublish(item: ResourceItem) {
   // koncept `publish`. Endpoint je ten istý, líši sa len príznakom.
   const publishing = !item.permissions?.unpublish
   try {
-    await http.post(`${apiBase.value}/${item.id}/publish`, { published: publishing })
+    await publishRequest(`${apiBase.value}/${item.id}/publish`, publishing)
     toast.success(publishing ? t('common.published') : t('common.unpublished'))
     load(page.value)
-  } catch { toast.error(t('common.actionFailed')) }
+  } catch (e) {
+    if (!isCancelled(e)) toast.error(serverMessage(e) ?? t('common.actionFailed'))
+  }
 }
 
 async function remove(id: number) {
@@ -359,7 +369,11 @@ async function remove(id: number) {
     await http.delete(`${apiBase.value}/${id}`)
     toast.success(t('common.removed'))
     load(page.value)
-  } catch { toast.error(t('common.removeFailed')) }
+  } catch (e) {
+    // Backend vysvetľuje, prečo mazanie neprešlo (miesto používa podujatie,
+    // kanál má členov…). Generický fallback ostáva len pre výpadok siete.
+    toast.error(serverMessage(e) ?? t('common.removeFailed'))
+  }
 }
 
 async function restore(id: number) {

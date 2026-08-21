@@ -76,7 +76,10 @@
   .action-btn-publish { @apply border-green-300 bg-green-50 text-green-800; }
   .action-btn-danger { @apply border-red-300 bg-red-50 text-red-800; }
   .row-menu-item { @apply flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 no-underline hover:bg-slate-50; }
+  /* Zablokovaná položka ostáva vidieť kvôli tooltipu s dôvodom. */
+  .row-menu-item:disabled { @apply cursor-not-allowed text-slate-400 hover:bg-transparent; }
   .row-menu-item-danger { @apply text-red-600 hover:bg-red-50; }
+  .row-menu-item-danger:disabled { @apply text-slate-400 hover:bg-transparent; }
 
   /* Auth */
   .auth-page { @apply grid min-h-[calc(100vh-180px)] place-items-center p-4; }

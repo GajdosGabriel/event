@@ -8,13 +8,13 @@ use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Repositories\Contracts\CanalRepository;
 use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
+use App\Http\Requests\PublishRequest;
 use App\Http\Resources\CanalResource;
 use App\Models\Event;
+use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Models\Canal;
-use App\Models\User;
-use App\Models\Venue;
 
 class DashboardCanalController extends Controller
 {
@@ -102,22 +102,30 @@ class DashboardCanalController extends Controller
         $canal = $this->canalRepository->dashboardShow($id);
         $this->authorize('delete', $canal);
 
-        $authenticatedUserCanalId = (int) optional(request()->user()?->canal)->id;
-        $isActiveForAuthenticatedUser = $authenticatedUserCanalId === (int) $canal->id;
-        $isAssignedInUsersCanalId = User::query()
-            ->where('canal_id', $canal->id)
-            ->exists();
-        $hasVenues = Venue::query()
-            ->whereHas('canals', fn ($query) => $query->where('canals.id', $canal->id))
-            ->exists();
-
-        if ($isActiveForAuthenticatedUser || $isAssignedInUsersCanalId || $hasVenues) {
-            abort(422, 'Cannot delete canal assigned as active canal for a user.');
+        // Trojica ad-hoc kontrol tu bola nahradená referenčným zámkom na modeli
+        // (App\Models\Traits\ProtectsReferencedRecords) — okrem používateľov a
+        // miest pozerá aj na podujatia, ktoré tu doteraz chýbali, a vracia
+        // hlášku, ktorú Resource posiela do tlačidla.
+        if ($blocker = $canal->deletionBlocker()) {
+            abort(422, $blocker);
         }
 
         $this->canalRepository->delete($id);
 
         return response()->json(null, 204);
+    }
+
+    public function publish(string $id, PublishRequest $request, RecordPublisher $publisher): JsonResponse
+    {
+        $canal = $this->canalRepository->dashboardShow($id);
+        $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $canal);
+
+        $publisher->apply($canal, $request->shouldPublish());
+
+        return response()->json(
+            new CanalResource($this->canalRepository->dashboardShow($id)),
+            200
+        );
     }
 
     public function restore(string $id): JsonResponse

@@ -11,6 +11,7 @@ use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Files\FileManager;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
+use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\Tags\EventAttributeDeriver;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -83,6 +84,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         abort_unless($user->canInCanal((int) $canal->id, 'event.create'), 403);
 
         $this->normalizeLocationPayload($properties, (int) $canal->id);
+        $this->assertDependenciesPublishable($properties);
         $properties['user_id'] = $properties['user_id'] ?? $user->id;
 
         /** @var Event $event */
@@ -186,6 +188,8 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         // syncCanalFromVenue only when canal itself wasn't changed — i.e. venue drives the canal.
         $this->normalizeLocationPayload($properties, $targetCanalId, ! $canalChanged);
+
+        $this->assertDependenciesPublishable($properties, $event);
 
         if (isset($properties['status']) && $properties['status'] === ModelStatus::Published->value && $event->published_at === null) {
             $properties['published_at'] = now();
@@ -460,6 +464,41 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         return $this->municipalityOverviewQuery
             ->apply($query, 'venues.village_id', 'events.id');
+    }
+
+    /**
+     * Publikované podujatie musí mať publikované miesto aj kanál — inak by
+     * karta odkazovala na profil, ktorý sa tvári ako rozrobený.
+     *
+     * Volá sa až za normalizeLocationPayload(), aby sa pýtalo na tú väzbu,
+     * ktorá sa naozaj uloží. Cesta cez `create()` (import, admin store) tu
+     * zámerne nie je — tam si závislosti dopublikuje volajúci sám.
+     *
+     * `publish_dependencies` je súhlas z dialógu „publikovať aj ich?"; nie je
+     * to stĺpec, preto sa z payloadu vyberie preč.
+     */
+    private function assertDependenciesPublishable(array &$properties, ?Event $event = null): void
+    {
+        $cascade = (bool) ($properties['publish_dependencies'] ?? false);
+        unset($properties['publish_dependencies']);
+
+        $status = $properties['status'] ?? $event?->status?->value;
+
+        if (! in_array($status, [ModelStatus::Published->value, ModelStatus::Scheduled->value], true)) {
+            return;
+        }
+
+        $venueId = array_key_exists('venue_id', $properties) ? $properties['venue_id'] : $event?->venue_id;
+        $canalId = array_key_exists('canal_id', $properties) ? $properties['canal_id'] : $event?->canal_id;
+
+        $venueId = $venueId === null ? null : (int) $venueId;
+        $canalId = $canalId === null ? null : (int) $canalId;
+
+        $publisher = app(EventDependencyPublisher::class);
+
+        $cascade
+            ? $publisher->publishAllFor($venueId, $canalId, auth('sanctum')->user())
+            : $publisher->assertPublishableFor($venueId, $canalId);
     }
 
     private function normalizeLocationPayload(array &$properties, ?int $forcedCanalId = null, bool $syncCanalFromVenue = false): void

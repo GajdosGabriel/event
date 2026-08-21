@@ -148,8 +148,10 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             return $this->detachVenueFromUserCanals($venue, $user->dashboardCanalIds()->all());
         }
 
-        if ($venue->events()->withTrashed()->exists()) {
-            abort(422, 'Venue cannot be deleted because it has already been used by an event.');
+        // Tá istá hláška, akú Resource posiela do tlačidla — nech sa 422 a UI
+        // nerozchádzajú. Viď App\Models\Traits\ProtectsReferencedRecords.
+        if ($blocker = $venue->deletionBlocker()) {
+            abort(422, $blocker);
         }
 
         return $venue->delete();

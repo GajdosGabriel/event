@@ -37,15 +37,25 @@ class CanalPolicy
     /**
      * Determine whether the user can update the model.
      */
+    /**
+     * Archivovaný kanál sa editovať smie — archív je zámok proti mazaniu, nie
+     * proti oprave. Viď rovnaký komentár vo VenuePolicy::update().
+     */
     public function update(User $user, Canal $canal): bool
     {
-        return $this->isNotArchived($canal) && $user->canInCanal((int) $canal->id, 'canal.update');
+        return $user->canInCanal((int) $canal->id, 'canal.update');
     }
 
     public function publish(User $user, Canal $canal): bool
     {
         return $this->update($user, $canal)
-            && $canal->status === ModelStatus::Draft;
+            && $canal->status !== ModelStatus::Published;
+    }
+
+    public function unpublish(User $user, Canal $canal): bool
+    {
+        return $this->update($user, $canal)
+            && $canal->status === ModelStatus::Published;
     }
 
     /**
@@ -62,6 +72,7 @@ class CanalPolicy
      */
     public function delete(User $user, Canal $canal): bool
     {
+        // Referenčný zámok tu nie je zámerne — viď VenuePolicy::delete().
         return $this->isNotArchived($canal)
             && $canal->status !== ModelStatus::Published
             && $user->canInCanal((int) $canal->id, 'canal.delete');

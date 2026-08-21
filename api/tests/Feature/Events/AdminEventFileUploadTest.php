@@ -3,6 +3,7 @@
 namespace Tests\Feature\Events;
 
 use App\Enums\FileType;
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\File;
@@ -24,12 +25,15 @@ class AdminEventFileUploadTest extends EventSetupTest
         Storage::fake('public');
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
-        $canal = Canal::factory()->create([
+        $canal = Canal::factory()->active()->create([
             'municipality_id' => (int) DB::table('municipalities')->value('id'),
         ]);
         $venue = Venue::factory()->create([
             'canal_id' => $canal->id,
             'village_id' => (int) $canal->municipality_id,
+            // Publikované podujatie musí mať publikované miesto aj kanál
+            // (EventDependencyPublisher); VenueFactory status losuje.
+            'status' => ModelStatus::Published->value,
         ]);
 
         $upload = UploadedFile::fake()->create('event-admin-store.pdf', 120, 'application/pdf');
@@ -111,12 +115,15 @@ class AdminEventFileUploadTest extends EventSetupTest
         Storage::fake('public');
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
-        $canal = Canal::factory()->create([
+        $canal = Canal::factory()->active()->create([
             'municipality_id' => (int) DB::table('municipalities')->value('id'),
         ]);
         $venue = Venue::factory()->create([
             'canal_id' => $canal->id,
             'village_id' => (int) $canal->municipality_id,
+            // Publikované podujatie musí mať publikované miesto aj kanál
+            // (EventDependencyPublisher); VenueFactory status losuje.
+            'status' => ModelStatus::Published->value,
         ]);
 
         $upload = UploadedFile::fake()->image('event-admin-store.jpg');
@@ -155,12 +162,15 @@ class AdminEventFileUploadTest extends EventSetupTest
         Storage::fake('public');
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
-        $canal = Canal::factory()->create([
+        $canal = Canal::factory()->active()->create([
             'municipality_id' => (int) DB::table('municipalities')->value('id'),
         ]);
         $venue = Venue::factory()->create([
             'canal_id' => $canal->id,
             'village_id' => (int) $canal->municipality_id,
+            // Publikované podujatie musí mať publikované miesto aj kanál
+            // (EventDependencyPublisher); VenueFactory status losuje.
+            'status' => ModelStatus::Published->value,
         ]);
 
         $upload = UploadedFile::fake()->image('event-admin-store-no-type.jpg');

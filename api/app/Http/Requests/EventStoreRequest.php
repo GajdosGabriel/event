@@ -39,6 +39,9 @@ class EventStoreRequest extends FormRequest
             'end_at' => ['nullable', new EventDatetimeRule],
             'registration_deadline_at' => ['nullable', 'date', 'before_or_equal:start_at'],
             'status' => ['sometimes', 'string', Rule::in($allowedStatuses)],
+            // Súhlas z dialógu „miesto a kanál nie sú publikované — publikovať
+            // aj ich?". Nie je to stĺpec, repozitár ho z payloadu vyberie.
+            'publish_dependencies' => ['sometimes', 'boolean'],
             'canal_id' => ['nullable', 'integer', 'exists:canals,id'],
             'venue_id' => ['nullable', 'integer', 'exists:venues,id'],
             'published_at' => ['nullable', 'date'],

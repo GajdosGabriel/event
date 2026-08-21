@@ -13,6 +13,7 @@ use App\Models\Traits\HasCommonFilters;
 use App\Models\Traits\HasFile;
 use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
+use App\Models\Traits\ProtectsReferencedRecords;
 use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,7 +23,7 @@ use Illuminate\Support\Str;
 class Canal extends Model implements Messageable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, ProtectsReferencedRecords, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool
@@ -153,6 +154,21 @@ class Canal extends Model implements Messageable
     public function ownedVenues()
     {
         return $this->venues()->wherePivot('is_owner', true);
+    }
+
+    /**
+     * Podujatia sú v zozname prvé zámerne — je to najčastejšia prekážka a
+     * doteraz jediná, ktorú DashboardCanalController::destroy() nekontroloval.
+     * Pripojené cudzie miesta (`is_owner = false`) prekážkou nie sú, tie sa
+     * pri mazaní len odpoja.
+     */
+    protected function deletionBlockerCounts(): array
+    {
+        return [
+            'canals.errors.blocked_by_events' => $this->events()->withTrashed()->count(),
+            'canals.errors.blocked_by_venues' => $this->ownedVenues()->count(),
+            'canals.errors.blocked_by_users' => User::query()->where('canal_id', $this->id)->count(),
+        ];
     }
 
     protected function defaultThumbImageUrl(): string

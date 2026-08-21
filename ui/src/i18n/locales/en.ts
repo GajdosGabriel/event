@@ -773,6 +773,9 @@ const en: Messages = {
       created: 'Copy created. Add a new date.',
       failed: 'Duplicating failed.',
     },
+    publish: {
+      dependenciesConfirm: '{names} Publish them along with the event?',
+    },
     form: {
       back: '← Back to the list',
       createTitle: 'New event',
@@ -999,6 +1002,7 @@ const en: Messages = {
       titleSuffix: 'Name suffix',
       titleSuffixPlaceholder: 'e.g. Ltd.',
       identityMode: 'Identity type',
+      status: 'Status',
       municipality: 'Municipality / City',
       municipalityPlaceholder: '— select a municipality —',
       description: 'Description',

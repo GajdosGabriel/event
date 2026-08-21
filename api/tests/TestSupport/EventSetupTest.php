@@ -2,6 +2,7 @@
 
 namespace Tests\TestSupport;
 
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Venue;
@@ -35,6 +36,10 @@ abstract class EventSetupTest extends CanalSetupTest
         $canals = $this->user->canals->pluck('id')->all();
 
         $primaryCanalId = (int) $canals[0];
+        // VenueFactory losuje status naprieč všetkými prípadmi ModelStatus.
+        // Podujatia v tomto setupe sa ale publikujú, a publikované podujatie
+        // musí mať publikované miesto (EventDependencyPublisher) — inak by
+        // testy padali podľa toho, čo faker práve vylosoval.
         $primaryVenue = Venue::query()
             ->whereHas('canals', fn ($query) => $query->where('canals.id', $primaryCanalId))
             ->first()
@@ -42,6 +47,7 @@ abstract class EventSetupTest extends CanalSetupTest
                 'canal_id' => $primaryCanalId,
                 'village_id' => (int) $this->canalPrimary->municipality_id,
             ]);
+        $primaryVenue->forceFill(['status' => ModelStatus::Published->value])->save();
 
         // 1. Vytvorte testovacie eventy
         $this->futureEvent = Event::factory()->future()->create([
@@ -56,10 +62,11 @@ abstract class EventSetupTest extends CanalSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $foreignCanal = Canal::factory()->create();
+        $foreignCanal = Canal::factory()->active()->create();
         $foreignVenue = Venue::factory()->create([
             'canal_id' => $foreignCanal->id,
             'village_id' => (int) $foreignCanal->municipality_id,
+            'status' => ModelStatus::Published->value,
         ]);
 
         $this->cudziEvent = Event::factory()->create([

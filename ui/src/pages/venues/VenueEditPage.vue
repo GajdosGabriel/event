@@ -280,7 +280,7 @@ async function submit() {
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {
-      const v = await createVenue(form.value as Record<string, unknown>)
+      const v = await createVenue(form.value as Record<string, unknown>, scope.value)
       savedId.value = v.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
@@ -293,7 +293,7 @@ async function submit() {
       toast.success(t('venues.form.created'))
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
-      await updateVenue(Number(route.params.id), form.value as Record<string, unknown>)
+      await updateVenue(Number(route.params.id), form.value as Record<string, unknown>, scope.value)
       toast.success(t('venues.form.saved'))
     }
   } catch (e: unknown) {

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\ModelStatus;
 use App\Models\Event;
+use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Console\Command;
 
 /**
@@ -21,6 +22,11 @@ class PublishScheduledEvents extends Command
 
     protected $description = 'Publish scheduled events whose publish_at is due';
 
+    public function __construct(private readonly EventDependencyPublisher $dependencyPublisher)
+    {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $due = Event::query()
@@ -30,6 +36,11 @@ class PublishScheduledEvents extends Command
             ->get();
 
         foreach ($due as $event) {
+            // Miesto ani kanál sa medzi naplánovaním a termínom nemuseli
+            // pohnúť. Cron nemá koho spýtať, či ich publikovať, a stiahnuť
+            // podujatie z plánu tiež nemôže — otvorí ich s ním.
+            $this->dependencyPublisher->publishAll($event);
+
             $event->update([
                 'status' => ModelStatus::Published->value,
                 'published_at' => $event->published_at ?? $event->publish_at,

@@ -772,6 +772,9 @@ const cs: Messages = {
       created: 'Vytvořena kopie. Doplňte nový termín.',
       failed: 'Kopírování selhalo.',
     },
+    publish: {
+      dependenciesConfirm: '{names} Publikovat je spolu s událostí?',
+    },
     form: {
       back: '← Zpět na seznam',
       createTitle: 'Nová akce',
@@ -998,6 +1001,7 @@ const cs: Messages = {
       titleSuffix: 'Přípona názvu',
       titleSuffixPlaceholder: 'např. z.s.',
       identityMode: 'Typ identity',
+      status: 'Stav',
       municipality: 'Obec / Město',
       municipalityPlaceholder: '— vyberte obec —',
       description: 'Popis',

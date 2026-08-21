@@ -87,30 +87,31 @@ export async function showCanalPublic(id: number): Promise<CanalItem> {
   return mapCanal((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function createCanal(payload: FormData | Record<string, unknown>): Promise<CanalItem> {
-  const { data } = await http.post(baseUrl('dashboard'), payload)
+// Zápis rešpektuje scope rovnako ako čítanie — viď rovnaký komentár vo venues.ts.
+export async function createCanal(payload: FormData | Record<string, unknown>, scope: Scope = 'dashboard'): Promise<CanalItem> {
+  const { data } = await http.post(baseUrl(scope), payload)
   return mapCanal((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function updateCanal(id: number, payload: FormData | Record<string, unknown>): Promise<CanalItem> {
+export async function updateCanal(id: number, payload: FormData | Record<string, unknown>, scope: Scope = 'dashboard'): Promise<CanalItem> {
   const isForm = payload instanceof FormData
   if (isForm) payload.append('_method', 'PUT')
   const { data } = isForm
-    ? await http.post(`${baseUrl('dashboard')}/${id}`, payload)
-    : await http.put(`${baseUrl('dashboard')}/${id}`, payload)
+    ? await http.post(`${baseUrl(scope)}/${id}`, payload)
+    : await http.put(`${baseUrl(scope)}/${id}`, payload)
   return mapCanal((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function deleteCanal(id: number): Promise<void> {
-  await http.delete(`${baseUrl('dashboard')}/${id}`)
+export async function deleteCanal(id: number, scope: Scope = 'dashboard'): Promise<void> {
+  await http.delete(`${baseUrl(scope)}/${id}`)
 }
 
-export async function restoreCanal(id: number): Promise<void> {
-  await http.post(`${baseUrl('dashboard')}/${id}/restore`)
+export async function restoreCanal(id: number, scope: Scope = 'dashboard'): Promise<void> {
+  await http.post(`${baseUrl(scope)}/${id}/restore`)
 }
 
-export async function publishCanal(id: number, published: boolean): Promise<void> {
-  await http.post(`${baseUrl('dashboard')}/${id}/publish`, { published })
+export async function publishCanal(id: number, published: boolean, scope: Scope = 'dashboard'): Promise<void> {
+  await http.post(`${baseUrl(scope)}/${id}/publish`, { published })
 }
 
 export async function canalsMunicipalitiesOverview(scope: Scope): Promise<MunicipalityOverviewItem[]> {

@@ -6,7 +6,9 @@ use App\Enums\FileType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Http\Requests\PublishRequest;
 use App\Http\Requests\VenueDetectRequest;
+use App\Http\Requests\VenueStoreRequest;
 use App\Http\Resources\FileResource;
 use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
 use App\Http\Resources\VenueResource;
@@ -16,6 +18,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Services\Files\FileManager;
 use App\Services\OpenAI\Detector;
+use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -115,6 +118,44 @@ class VenueController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    public function store(VenueStoreRequest $request): JsonResponse
+    {
+        $this->authorize('create', Venue::class);
+
+        $venue = $this->venueRepository->create($request->validated());
+
+        return response()->json(new VenueResource($venue), 201);
+    }
+
+    public function update(string $id, VenueStoreRequest $request): JsonResponse
+    {
+        $venue = $this->venueRepository->adminShow($id);
+        $this->authorize('update', $venue);
+
+        $venue = $this->venueRepository->update($id, $request->validated());
+
+        return response()->json(new VenueResource($venue), 200);
+    }
+
+    public function destroy(string $id): JsonResponse
+    {
+        $venue = $this->venueRepository->adminShow($id);
+        $this->authorize('delete', $venue);
+        $this->venueRepository->delete($id);
+
+        return response()->json(null, 204);
+    }
+
+    public function publish(string $id, PublishRequest $request, RecordPublisher $publisher): JsonResponse
+    {
+        $venue = $this->venueRepository->adminShow($id);
+        $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $venue);
+
+        $publisher->apply($venue, $request->shouldPublish());
+
+        return response()->json(new VenueResource($venue->fresh(['files', 'canals'])), 200);
     }
 
     public function restore(string $id): JsonResponse

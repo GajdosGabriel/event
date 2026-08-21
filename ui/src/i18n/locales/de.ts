@@ -773,6 +773,9 @@ const de: Messages = {
       created: 'Kopie erstellt. Ergänzen Sie einen neuen Termin.',
       failed: 'Kopieren fehlgeschlagen.',
     },
+    publish: {
+      dependenciesConfirm: '{names} Sollen sie zusammen mit der Veranstaltung veröffentlicht werden?',
+    },
     form: {
       back: '← Zurück zur Liste',
       createTitle: 'Neue Veranstaltung',
@@ -999,6 +1002,7 @@ const de: Messages = {
       titleSuffix: 'Namenszusatz',
       titleSuffixPlaceholder: 'z. B. e. V.',
       identityMode: 'Art der Identität',
+      status: 'Status',
       municipality: 'Gemeinde / Stadt',
       municipalityPlaceholder: '— Gemeinde wählen —',
       description: 'Beschreibung',

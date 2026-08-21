@@ -15,6 +15,11 @@
             <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
             <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
             <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
+            <FormField v-model="form.status" type="select" :label="t('canals.fields.status')" :error="errors.status">
+              <option value="draft">{{ t('canals.statuses.draft') }}</option>
+              <option value="published">{{ t('canals.statuses.published') }}</option>
+              <option value="archived">{{ t('canals.statuses.archived') }}</option>
+            </FormField>
             <FormField v-model="form.municipality_id" :label="t('canals.fields.municipality')" required :error="errors.municipality_id">
               <template #default="{ value, invalid, update }">
                 <SearchableSelect
@@ -122,6 +127,10 @@ const form = ref({
   title_prefix: '',
   title_suffix: '',
   identity_mode: 'organization',
+  // Kanál doteraz pole stavu nemal a ostával na DB defaulte `published`.
+  // Nový kanál je koncept — publikuje sa až vtedy, keď ho niekto naozaj chce
+  // mať vonku (alebo automaticky s prvým publikovaným podujatím).
+  status: 'draft',
   municipality_id: null as number | null,
   email: '',
   phone: '',
@@ -160,6 +169,7 @@ onMounted(async () => {
         title_prefix: c.titlePrefix ?? '',
         title_suffix: c.titleSuffix ?? '',
         identity_mode: c.identityMode ?? 'organization',
+        status: c.status ?? 'draft',
         municipality_id: c.municipalityId ?? null,
         email: c.email ?? '',
         phone: c.phone ?? '',
@@ -178,7 +188,7 @@ async function submit() {
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {
-      const c = await createCanal(form.value)
+      const c = await createCanal(form.value, scope.value)
       savedId.value = c.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
@@ -192,7 +202,7 @@ async function submit() {
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
-      await updateCanal(Number(route.params.id), form.value)
+      await updateCanal(Number(route.params.id), form.value, scope.value)
       toast.success(t('canals.form.saved'))
       await reloadWebsiteIssue()
     }

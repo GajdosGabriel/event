@@ -62,26 +62,29 @@ export async function showVenuePublic(id: number): Promise<VenueItem> {
   return mapVenue((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function createVenue(payload: FormData | Record<string, unknown>): Promise<VenueItem> {
-  const { data } = await http.post(baseUrl('dashboard'), payload)
+// Zápis rešpektuje scope rovnako ako čítanie. Kým tu bol natvrdo dashboard,
+// admin ukladal cudzie miesto cez endpoint, ktorý vyžaduje vlastníctvo cez
+// kanál — a narazil na 403.
+export async function createVenue(payload: FormData | Record<string, unknown>, scope: Scope = 'dashboard'): Promise<VenueItem> {
+  const { data } = await http.post(baseUrl(scope), payload)
   return mapVenue((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function updateVenue(id: number, payload: FormData | Record<string, unknown>): Promise<VenueItem> {
+export async function updateVenue(id: number, payload: FormData | Record<string, unknown>, scope: Scope = 'dashboard'): Promise<VenueItem> {
   const isForm = payload instanceof FormData
   if (isForm) payload.append('_method', 'PUT')
   const { data } = isForm
-    ? await http.post(`${baseUrl('dashboard')}/${id}`, payload)
-    : await http.put(`${baseUrl('dashboard')}/${id}`, payload)
+    ? await http.post(`${baseUrl(scope)}/${id}`, payload)
+    : await http.put(`${baseUrl(scope)}/${id}`, payload)
   return mapVenue((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function deleteVenue(id: number): Promise<void> {
-  await http.delete(`${baseUrl('dashboard')}/${id}`)
+export async function deleteVenue(id: number, scope: Scope = 'dashboard'): Promise<void> {
+  await http.delete(`${baseUrl(scope)}/${id}`)
 }
 
-export async function restoreVenue(id: number): Promise<void> {
-  await http.post(`${baseUrl('dashboard')}/${id}/restore`)
+export async function restoreVenue(id: number, scope: Scope = 'dashboard'): Promise<void> {
+  await http.post(`${baseUrl(scope)}/${id}/restore`)
 }
 
 export async function detectVenue(

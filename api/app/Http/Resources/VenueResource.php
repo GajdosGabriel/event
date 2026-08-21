@@ -32,12 +32,23 @@ class VenueResource extends JsonResource
         }
 
         $isPublished = $this->status === ModelStatus::Published;
+        $canUpdate = $user?->can('update', $this->resource) ?? false;
+
+        // Prečo sa miesto nedá zmazať, hoci právo na to je — používa ho
+        // podujatie. Počíta sa len tomu, kto s miestom vôbec smie robiť, nech
+        // to na výpisoch nie je dotaz navyše na každý cudzí riadok.
+        $blocker = $canUpdate ? $this->resource->deletionBlocker() : null;
+
+        $data['delete_blocked_reason'] = $blocker;
 
         $data['permissions'] = [
             'view' => $user?->can('view', $this->resource) ?? false,
-            'update' => $user?->can('update', $this->resource) ?? false,
+            'update' => $canUpdate,
             'publish' => $user?->can('publish', $this->resource) ?? false,
-            'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
+            'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
+            // Stavový zámok rieši policy, referenčný model — tlačidlo potrebuje
+            // oba naraz, inak by kliknutie skončilo na 422.
+            'delete' => $blocker === null && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
             'restore' => $user?->can('restore', $this->resource) ?? false,
         ];

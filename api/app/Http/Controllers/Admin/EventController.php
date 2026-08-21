@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Services\Imports\HtmlBodyCleaner;
 use App\Services\OpenAI\Chatgpt;
+use App\Services\Publishing\EventDependencyPublisher;
 use App\Http\Requests\EventPublishRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
@@ -60,12 +61,27 @@ class EventController extends Controller
         return response()->json(new EventResource($event));
     }
 
-    public function store(EventStoreRequest $request): JsonResponse
+    public function store(EventStoreRequest $request, EventDependencyPublisher $dependencies): JsonResponse
     {
         $this->authorize('create', Event::class);
 
         $payload = $request->validated();
         $payload['user_id'] = $payload['user_id'] ?? $request->user()->id;
+
+        // create() gate na závislosti nemá — beží cez ňu aj import, ktorý si
+        // miesto dopublikuje sám. Ručné založenie rovno v stave „publikované"
+        // musí prejsť tou istou kontrolou ako úprava.
+        $cascade = (bool) ($payload['publish_dependencies'] ?? false);
+        unset($payload['publish_dependencies']);
+
+        if (in_array($payload['status'] ?? null, [ModelStatus::Published->value, ModelStatus::Scheduled->value], true)) {
+            $venueId = isset($payload['venue_id']) ? (int) $payload['venue_id'] : null;
+            $canalId = isset($payload['canal_id']) ? (int) $payload['canal_id'] : null;
+
+            $cascade
+                ? $dependencies->publishAllFor($venueId, $canalId, $request->user())
+                : $dependencies->assertPublishableFor($venueId, $canalId);
+        }
 
         $event = $this->eventRepository->create($payload);
 
@@ -92,12 +108,19 @@ class EventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
-    public function publish(string $id, EventPublishRequest $request): JsonResponse
+    public function publish(string $id, EventPublishRequest $request, EventDependencyPublisher $dependencies): JsonResponse
     {
         $event = $this->eventRepository->adminShow($id);
         $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $event);
 
         $request->validated();
+
+        // Viď DashboardEventController::publish() — rovnaké pravidlo.
+        if ($request->shouldPublish()) {
+            $request->shouldPublishDependencies()
+                ? $dependencies->publishAll($event, $request->user())
+                : $dependencies->assertPublishable($event);
+        }
 
         $event = $this->eventRepository->publish($id, $request->shouldPublish());
 

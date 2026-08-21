@@ -35,6 +35,20 @@ class EventImportStatusPreservationTest extends TestCase
 
     private bool $sourceFaked = false;
 
+    /**
+     * ImportedVenueManager zakladá miesta ako koncept — pri ich vzniku ešte
+     * nevie, či bude článok kompletný. Keď z neho vyjde publikované podujatie,
+     * musí ísť von aj profil miesta a kanála.
+     */
+    #[Test]
+    public function it_publishes_the_venue_and_canal_of_a_published_imported_event(): void
+    {
+        $event = $this->importOnce();
+
+        $this->assertSame(ModelStatus::Published, $event->venue?->status);
+        $this->assertSame(ModelStatus::Published, $event->canal?->status);
+    }
+
     #[Test]
     public function it_skips_an_archived_event_instead_of_republishing_it(): void
     {

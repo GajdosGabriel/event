@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
+use App\Http\Requests\PublishRequest;
 use App\Http\Resources\CanalResource;
 use App\Repositories\Contracts\CanalRepository;
 use App\Models\Event;
+use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -101,6 +103,16 @@ class CanalController extends Controller
         $canal = $this->canalRepository->update($id, $request->validated());
 
         return response()->json(new CanalResource($canal), 200);
+    }
+
+    public function publish(string $id, PublishRequest $request, RecordPublisher $publisher): JsonResponse
+    {
+        $canal = $this->canalRepository->adminShow($id);
+        $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $canal);
+
+        $publisher->apply($canal, $request->shouldPublish());
+
+        return response()->json(new CanalResource($this->canalRepository->adminShow($id)), 200);
     }
 
     public function restore(string $id): JsonResponse

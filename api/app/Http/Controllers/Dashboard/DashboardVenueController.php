@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\VenueDetectRequest;
 use App\Http\Requests\IndexFilterRequest;
+use App\Http\Requests\PublishRequest;
 use App\Http\Resources\FileResource;
 use App\Http\Requests\VenueStoreRequest;
 use App\Http\Resources\VenueResource;
@@ -16,6 +17,7 @@ use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
 use App\Services\OpenAI\Detector;
+use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -144,6 +146,16 @@ class DashboardVenueController extends Controller
         $this->venueRepository->delete($id);
 
         return response()->json(null, 204);
+    }
+
+    public function publish(string $id, PublishRequest $request, RecordPublisher $publisher): JsonResponse
+    {
+        $venue = $this->venueRepository->dashboardShow($id);
+        $this->authorize($request->shouldPublish() ? 'publish' : 'unpublish', $venue);
+
+        $publisher->apply($venue, $request->shouldPublish());
+
+        return response()->json(new VenueResource($venue->fresh(['files', 'canals'])), 200);
     }
 
     public function restore(string $id): JsonResponse

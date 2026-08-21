@@ -10,6 +10,7 @@ use App\Models\Traits\HasCommonFilters;
 use App\Models\Traits\HasFile;
 use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
+use App\Models\Traits\ProtectsReferencedRecords;
 use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +22,7 @@ class Venue extends Model implements Messageable
     /**
      * Venue je fyzicke miesto, kde sa event kona alebo kde ma canal sidlo.
      */
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, SanitizesHtmlBody, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, ProtectsReferencedRecords, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool
@@ -94,6 +95,17 @@ class Venue extends Model implements Messageable
     public function events()
     {
         return $this->hasMany(Event::class);
+    }
+
+    /**
+     * Aj zmazané podujatia držia miesto pri živote — soft delete sa dá vrátiť
+     * a obnovené podujatie by inak ukazovalo do prázdna.
+     */
+    protected function deletionBlockerCounts(): array
+    {
+        return [
+            'venues.errors.blocked_by_events' => $this->events()->withTrashed()->count(),
+        ];
     }
 
     public function assignCanal(Canal|int $canal, bool $isOwner = false, ModelStatus|string|bool|null $status = null): void

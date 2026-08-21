@@ -276,6 +276,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::apiResource('canals', DashboardCanalController::class)
         ->only(['destroy'])
         ->middleware('permission:canal.delete');
+    Route::post('canals/{canal}/publish', [DashboardCanalController::class, 'publish'])
+        ->name('canals.publish')
+        ->middleware('permission:canal.update');
     Route::post('canals/{canal}/restore', [DashboardCanalController::class, 'restore'])
         ->name('canals.restore')
         ->middleware('permission:canal.delete');
@@ -466,6 +469,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::apiResource('venues', DashboardVenueController::class)
         ->only(['destroy'])
         ->middleware('permission:venue.delete');
+    Route::post('venues/{venue}/publish', [DashboardVenueController::class, 'publish'])
+        ->name('venues.publish')
+        ->middleware('permission:venue.update');
     Route::post('venues/{venue}/restore', [DashboardVenueController::class, 'restore'])
         ->name('venues.restore')
         ->middleware('permission:venue.delete');
@@ -538,6 +544,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->middleware('permission:canal.view');
     Route::apiResource('canals', AdminCanalController::class)
         ->only(['store', 'update'])
+        ->middleware('permission:canal.update');
+    Route::post('canals/{canal}/publish', [AdminCanalController::class, 'publish'])
+        ->name('canals.publish')
         ->middleware('permission:canal.update');
     Route::post('canals/{canal}/restore', [AdminCanalController::class, 'restore'])
         ->name('canals.restore')
@@ -638,6 +647,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::apiResource('venues', AdminVenueController::class)
         ->only(['index', 'show'])
         ->middleware('permission:venue.view');
+    // Admin UI má /admin/venues/:id/edit už dávno, zapisovacie routy mu ale
+    // chýbali — front preto tajne posielal na /dashboard/venues, kde admin na
+    // cudzom mieste narazil na vlastníctvo cez kanál.
+    Route::apiResource('venues', AdminVenueController::class)
+        ->only(['store'])
+        ->middleware('permission:venue.create');
+    Route::apiResource('venues', AdminVenueController::class)
+        ->only(['update'])
+        ->middleware('permission:venue.update');
+    Route::apiResource('venues', AdminVenueController::class)
+        ->only(['destroy'])
+        ->middleware('permission:venue.delete');
+    Route::post('venues/{venue}/publish', [AdminVenueController::class, 'publish'])
+        ->name('venues.publish')
+        ->middleware('permission:venue.update');
     Route::post('venues/{venue}/restore', [AdminVenueController::class, 'restore'])
         ->name('venues.restore');
     Route::get('venues/{venue}/events', [AdminVenueController::class, 'events'])

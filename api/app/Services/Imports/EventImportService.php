@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
+use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -23,6 +24,7 @@ class EventImportService
         private readonly FileManager $fileManager,
         private readonly PdfConverterService $pdfConverter,
         private readonly GoogleMapsLinkResolver $mapsLinkResolver = new GoogleMapsLinkResolver(),
+        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher(),
     ) {
     }
 
@@ -228,6 +230,14 @@ class EventImportService
         } else {
             $event = $this->eventRepository->create($payload);
             $status = 'imported';
+        }
+
+        // Import zakladá miesta ako koncept (ImportedVenueManager), lebo pri
+        // ich vzniku ešte nevie, či bude článok kompletný. Keď z neho vyjde
+        // publikované podujatie, musí byť otvorený aj profil miesta a kanála —
+        // inak karta odkazuje na niečo, čo sa tvári ako rozrobené.
+        if ($event->status === ModelStatus::Published) {
+            $this->dependencyPublisher->publishAll($event);
         }
 
         $this->syncImages($event, (array) $detail['image_urls'], (string) $detail['source_url']);

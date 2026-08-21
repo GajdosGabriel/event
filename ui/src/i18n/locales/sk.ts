@@ -823,6 +823,9 @@ const sk = {
       created: 'Vytvorená kópia. Doplňte nový termín.',
       failed: 'Kopírovanie zlyhalo.',
     },
+    publish: {
+      dependenciesConfirm: '{names} Publikovať ich spolu s podujatím?',
+    },
     form: {
       back: '← Späť na zoznam',
       createTitle: 'Nový event',
@@ -1058,6 +1061,7 @@ const sk = {
       titleSuffix: 'Prípona názvu',
       titleSuffixPlaceholder: 'napr. o.z.',
       identityMode: 'Typ identity',
+      status: 'Stav',
       municipality: 'Obec / Mesto',
       municipalityPlaceholder: '— vyberte obec —',
       description: 'Popis',

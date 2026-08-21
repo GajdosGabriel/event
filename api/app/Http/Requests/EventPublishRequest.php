@@ -23,6 +23,15 @@ class EventPublishRequest extends FormRequest
         return $this->boolean('published', true);
     }
 
+    /**
+     * Súhlas z dialógu „miesto a kanál nie sú publikované — publikovať aj ich?".
+     * Bez neho publikovanie na nepublikovanej závislosti spadne na 422.
+     */
+    public function shouldPublishDependencies(): bool
+    {
+        return $this->boolean('publish_dependencies', false);
+    }
+
     protected function prepareForValidation(): void
     {
         // Pri zrušení publikovania nie je čo kontrolovať — obsah sa nemení
@@ -64,6 +73,7 @@ class EventPublishRequest extends FormRequest
 
         return [
             'published' => ['sometimes', 'boolean'],
+            'publish_dependencies' => ['sometimes', 'boolean'],
             'name' => ['required', 'string', 'max:250'],
             'body' => ['nullable', 'string'],
             'start_at' => ['required', new EventDatetimeRule],

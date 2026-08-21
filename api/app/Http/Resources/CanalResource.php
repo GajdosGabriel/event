@@ -34,12 +34,19 @@ class CanalResource extends JsonResource
         }
 
         $isPublished = $this->status === ModelStatus::Published;
+        $canUpdate = $user?->can('update', $this->resource) ?? false;
+
+        // Viď VenueResource — dôvod, prečo mazanie neprejde, ide do tlačidla.
+        $blocker = $canUpdate ? $this->resource->deletionBlocker() : null;
+
+        $data['delete_blocked_reason'] = $blocker;
 
         $data['permissions'] = [
             'view' => $user?->can('view', $this->resource) ?? false,
-            'update' => $user?->can('update', $this->resource) ?? false,
-             'publish' => $user?->can('publish', $this->resource) ?? false,
-            'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
+            'update' => $canUpdate,
+            'publish' => $user?->can('publish', $this->resource) ?? false,
+            'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
+            'delete' => $blocker === null && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
             'restore' => $user?->can('restore', $this->resource) ?? false,
         ];
