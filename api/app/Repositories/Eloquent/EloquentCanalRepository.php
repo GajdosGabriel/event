@@ -46,7 +46,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
     public function adminShow($id)
     {
-        $canal = $this->model()->withTrashed()->with(['municipality', 'venues', 'users'])->findOrFail($id);
+        $canal = $this->model()->withTrashed()->with(['municipality', 'organization', 'venues', 'users'])->findOrFail($id);
         Gate::authorize('view', $canal);
 
         return $canal;
@@ -54,7 +54,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
     public function dashboardShow($id)
     {
-        $canal = $this->dashboardIndexQuery()->with(['municipality', 'venues', 'users'])->where('canals.id', $id)->firstOrFail();
+        $canal = $this->dashboardIndexQuery()->with(['municipality', 'organization', 'venues', 'users'])->where('canals.id', $id)->firstOrFail();
         Gate::authorize('view', $canal);
 
         return $canal;

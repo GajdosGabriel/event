@@ -7,12 +7,19 @@
     </div>
 
     <template v-else-if="venue">
-      <!-- Breadcrumb + akcie -->
+      <!-- Breadcrumb + akcie. Úpravy, publikovanie aj mazanie sedia v tom istom
+           menu ako vo výpise — jedno ovládanie, jedny práva. -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
-        <RouterLink v-if="venue.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
-        <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(venue.status)">{{ statusLabel('venues', venue.status) }}</span>
+        <ResourceActionsMenu
+          class="ml-auto"
+          resource="venue"
+          :scope="scope"
+          :item="venue"
+          :show-view="false"
+          @changed="reload"
+          @removed="router.push(indexRoute)"
+        />
       </div>
 
       <!-- Hero obrázok -->
@@ -103,7 +110,12 @@
                   <span v-if="ev.canalName" class="mt-0.5 inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200">{{ ev.canalName }}</span>
                 </div>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
-                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">{{ t('common.edit') }}</RouterLink>
+                <div class="shrink-0">
+                  <RowActions>
+                    <RouterLink :to="`/events/`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+                    <RouterLink v-if="ev.status !== 'archived'" :to="`/events//edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+                  </RowActions>
+                </div>
               </li>
             </ul>
           </div>
@@ -155,6 +167,13 @@
 
             <!-- Meta -->
             <div class="detail-card">
+              <dt>{{ t('venues.fields.status') }}</dt>
+              <dd>
+                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                  :class="statusClass(venue.status)">{{ statusLabel('venues', venue.status) }}</span>
+              </dd>
+            </div>
+            <div class="detail-card">
               <dt>{{ t('common.createdAt') }}</dt>
               <dd>{{ formatDate(venue.createdAt) }}</dd>
             </div>
@@ -179,9 +198,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showVenue, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import { listFiles, type FileItem } from '@/api/files'
+import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
+import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
@@ -190,11 +211,11 @@ import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/venues`)
-const editRoute = computed(() => `${prefix.value}/venues/${route.params.id}/edit`)
 
 const venue = ref<VenueItem | null>(null)
 const loading = ref(false)
@@ -241,6 +262,15 @@ function statusClass(status: string) {
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')
+}
+
+/** Po akcii z menu (publikovanie, obnova) — stav aj práva prídu nanovo. */
+async function reload() {
+  try {
+    venue.value = await showVenue(scope.value, Number(route.params.id))
+  } catch {
+    error.value = true
+  }
 }
 
 onMounted(async () => {

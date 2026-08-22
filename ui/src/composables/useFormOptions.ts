@@ -2,12 +2,14 @@ import { ref, onMounted } from 'vue'
 import http from '@/api/index'
 
 export interface SelectOption { id: number; name: string }
+/** Obec z číselníka. PSČ nesie preto, aby ho editor adresy vedel predvyplniť. */
+export interface MunicipalityOption extends SelectOption { zip: string | null }
 export interface VenueOption extends SelectOption { canalIds: number[] }
 /** { value, label } z enumu na API — popisky sa prekladajú tam, nie tu. */
 export interface EnumOption { value: string; label: string }
 
 export function useFormOptions(scope: 'dashboard' | 'admin') {
-  const municipalities = ref<SelectOption[]>([])
+  const municipalities = ref<MunicipalityOption[]>([])
   const canals = ref<SelectOption[]>([])
   const venues = ref<VenueOption[]>([])
   const canalIdentityModes = ref<EnumOption[]>([])
@@ -18,6 +20,7 @@ export function useFormOptions(scope: 'dashboard' | 'admin') {
       municipalities.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
         id: r['id'] as number,
         name: (r['fullname'] ?? r['name']) as string,
+        zip: (r['zip'] as string) ?? null,
       }))
     } catch { /* ignore */ }
   }

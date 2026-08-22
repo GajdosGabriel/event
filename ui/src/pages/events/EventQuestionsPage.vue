@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto my-5 w-full max-w-[1000px] px-4">
+  <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
     <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">

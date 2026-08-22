@@ -1,6 +1,6 @@
 <template>
-  <div class="mx-auto my-5 w-full max-w-[1000px] px-4">
-    <EventTicketsTabs :event-id="eventId" />
+  <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
+    <EventTicketsTabs :event-id="eventId" show-back />
 
     <div class="mb-4">
       <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('tickets.settings.title') }}</h1>
@@ -11,48 +11,17 @@
     <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
 
     <template v-else>
-      <!-- Nastavenia predaja -->
+      <!-- Typy lístkov sú to hlavné, čo tu človek rieši — preto sú prvé.
+           Doplnkové nastavenia (a ich uloženie) čakajú až pod nimi. -->
       <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 class="mb-3 text-lg font-semibold text-slate-800">{{ t('tickets.settings.heading') }}</h2>
-        <p class="mb-3 text-xs text-slate-500">
-          {{ t('tickets.settings.lead') }}
-        </p>
-        <FormField
-          v-model="settings.workshop_lock_on_start"
-          type="checkbox"
-          :label="t('tickets.settings.workshopLock')"
-          :hint="t('tickets.settings.workshopLockHint')"
-          class="mb-3"
-        />
-        <FormField v-model="settings.reminder_hours_before" type="select" :label="t('tickets.settings.reminder')" class="max-w-sm">
-          <option :value="null">{{ t('tickets.settings.reminderNone') }}</option>
-          <option :value="2">{{ t('tickets.settings.reminder2h') }}</option>
-          <option :value="24">{{ t('tickets.settings.reminder24h') }}</option>
-          <option :value="48">{{ t('tickets.settings.reminder48h') }}</option>
-          <option :value="168">{{ t('tickets.settings.reminder168h') }}</option>
-          <template #footer>
-            <span class="form-hint">
-              {{ t('tickets.settings.reminderHint') }}
-              <template v-if="reminderSentAt"> {{ t('tickets.settings.reminderSent', { date: reminderSentAt }) }}</template>
-            </span>
-          </template>
-        </FormField>
-
-        <div class="mt-4">
-          <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">
-            {{ savingSettings ? t('tickets.settings.saving') : t('tickets.settings.save') }}
-          </button>
-        </div>
-      </section>
-
-      <!-- Typy lístkov -->
-      <section class="rounded-2xl border border-slate-200 bg-white p-5">
-        <div class="mb-3 flex items-center justify-between">
+        <div class="mb-1 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-slate-800">{{ t('tickets.settings.typesTitle') }}</h2>
           <RouterLink :to="{ name: 'dashboard-events-tickets-create', params: { id: eventId } }" class="btn btn-secondary">
             {{ t('tickets.settings.typeNew') }}
           </RouterLink>
         </div>
+
+        <p class="mb-3 text-xs text-slate-500">{{ t('tickets.settings.lead') }}</p>
 
         <p v-if="!types.length" class="text-sm text-slate-400">{{ t('tickets.settings.typesEmpty') }}</p>
 
@@ -91,15 +60,52 @@
                     {{ type.isActive ? t('tickets.settings.active') : t('tickets.settings.inactive') }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <RouterLink :to="{ name: 'dashboard-events-tickets-edit', params: { id: eventId, typeId: type.id } }" class="action-btn">
-                    {{ t('tickets.settings.edit') }}
-                  </RouterLink>
-                  <button type="button" class="action-btn ml-1 text-red-600" @click="remove(type)">{{ t('tickets.settings.remove') }}</button>
+                <td class="px-4 py-3">
+                  <div class="flex justify-end">
+                    <RowActions>
+                      <RouterLink :to="{ name: 'dashboard-events-tickets-edit', params: { id: eventId, typeId: type.id } }" class="row-menu-item">
+                        {{ t('tickets.settings.edit') }}
+                      </RouterLink>
+                      <button type="button" class="row-menu-item row-menu-item-danger" @click="remove(type)">{{ t('tickets.settings.remove') }}</button>
+                    </RowActions>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- Doplnkové nastavenia podujatia. Nie sú súčasťou typov lístkov, preto
+           majú vlastné tlačidlo Uložiť — inak by sa uložili „samé od seba“. -->
+      <section class="max-w-[1000px] rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 class="mb-1 text-lg font-semibold text-slate-800">{{ t('tickets.settings.heading') }}</h2>
+        <p class="mb-3 text-xs text-slate-500">{{ t('tickets.settings.headingLead') }}</p>
+        <FormField
+          v-model="settings.workshop_lock_on_start"
+          type="checkbox"
+          :label="t('tickets.settings.workshopLock')"
+          :hint="t('tickets.settings.workshopLockHint')"
+          class="mb-3"
+        />
+        <FormField v-model="settings.reminder_hours_before" type="select" :label="t('tickets.settings.reminder')" class="max-w-sm">
+          <option :value="null">{{ t('tickets.settings.reminderNone') }}</option>
+          <option :value="2">{{ t('tickets.settings.reminder2h') }}</option>
+          <option :value="24">{{ t('tickets.settings.reminder24h') }}</option>
+          <option :value="48">{{ t('tickets.settings.reminder48h') }}</option>
+          <option :value="168">{{ t('tickets.settings.reminder168h') }}</option>
+          <template #footer>
+            <span class="form-hint">
+              {{ t('tickets.settings.reminderHint') }}
+              <template v-if="reminderSentAt"> {{ t('tickets.settings.reminderSent', { date: reminderSentAt }) }}</template>
+            </span>
+          </template>
+        </FormField>
+
+        <div class="mt-4">
+          <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">
+            {{ savingSettings ? t('tickets.settings.saving') : t('tickets.settings.save') }}
+          </button>
         </div>
       </section>
     </template>
@@ -114,6 +120,8 @@ import { indexTicketTypes, deleteTicketType, updateTicketingSettings } from '@/a
 import { currentLocale, t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
+import FormField from '@/components/FormField.vue'
+import RowActions from '@/components/RowActions.vue'
 import type { TicketTypeItem } from '@/types'
 import { formatPrice } from '@/utils/money'
 

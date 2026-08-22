@@ -83,24 +83,62 @@ class DashboardVenueDestroyTest extends EventSetupTest
     }
 
     #[Test]
-    public function owner_cannot_delete_published_or_archived_venue(): void
+    public function owner_cannot_delete_published_venue(): void
     {
         $this->user->givePermissionTo('venue.delete');
 
-        foreach ([ModelStatus::Published, ModelStatus::Archived] as $status) {
-            $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
-                'status' => $status->value,
-            ]);
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'status' => ModelStatus::Published->value,
+        ]);
 
-            $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertForbidden();
+        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertForbidden();
 
-            $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
-        }
+        $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
     }
 
     /**
-     * Archív je zámok proti mazaniu, nie proti oprave — inak by sa archivované
-     * miesto nedalo ani vrátiť späť medzi publikované.
+     * Archív mazanie neblokuje. Blokovala ho história, a tú archivované miesto
+     * bez podujatí nemá — predtým stačilo prepnúť stav na koncept a zmazať ho
+     * aj tak, len o krok navyše.
+     */
+    #[Test]
+    public function owner_can_delete_archived_venue_that_no_event_used(): void
+    {
+        $this->user->givePermissionTo('venue.delete');
+
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'status' => ModelStatus::Archived->value,
+        ]);
+
+        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(204);
+
+        $this->assertSoftDeleted('venues', ['id' => $venue->id]);
+    }
+
+    /** Zámkom ostáva história — na archivovanom mieste platí rovnako. */
+    #[Test]
+    public function archived_venue_used_by_an_event_still_cannot_be_deleted(): void
+    {
+        $this->user->givePermissionTo('venue.delete');
+
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'status' => ModelStatus::Archived->value,
+        ]);
+
+        Event::factory()->create([
+            'canal_id' => $this->canalPrimary->id,
+            'venue_id' => $venue->id,
+            'user_id' => $this->user->id,
+        ]);
+
+        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(422);
+
+        $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
+    }
+
+    /**
+     * Archív pri mieste znamená „mimo prevádzky", nie zmrazený záznam — inak by
+     * sa archivované miesto nedalo ani vrátiť späť medzi publikované.
      */
     #[Test]
     public function archived_venue_can_still_be_edited(): void

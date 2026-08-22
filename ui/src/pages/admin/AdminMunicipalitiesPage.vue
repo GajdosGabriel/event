@@ -26,9 +26,11 @@
             <td class="py-2 pr-4 font-medium text-slate-900">{{ item.name }}</td>
             <td class="py-2 pr-4 text-slate-600">{{ item.shortname ?? '—' }}</td>
             <td class="py-2 pr-4 text-slate-600">{{ item.zip ?? '—' }}</td>
-            <td class="py-2 flex gap-2">
-              <button class="action-btn" @click="openEdit(item)">{{ t('municipalities.edit') }}</button>
-              <button class="action-btn action-btn-danger" @click="remove(item.id)">{{ t('municipalities.remove') }}</button>
+            <td class="py-2">
+              <RowActions>
+                <button class="row-menu-item" @click="openEdit(item)">{{ t('municipalities.edit') }}</button>
+                <button class="row-menu-item row-menu-item-danger" @click="remove(item.id)">{{ t('municipalities.remove') }}</button>
+              </RowActions>
             </td>
           </tr>
           <tr v-if="items.length === 0">
@@ -69,6 +71,7 @@ import type { MunicipalityItem } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
+import RowActions from '@/components/RowActions.vue'
 import { useI18n } from '@/i18n'
 
 const SCOPE = 'admin' as const

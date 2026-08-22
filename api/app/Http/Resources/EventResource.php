@@ -124,6 +124,10 @@ class EventResource extends JsonResource
             'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
             'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
+            // Stav sa pýta vopred, nech sa policy (a jej dotaz na lístky) nespúšťa
+            // na každom riadku výpisu — odomykať je čo len archivovanému.
+            'unarchive' => $this->status === ModelStatus::Archived
+                && ($user?->can('unarchive', $this->resource) ?? false),
             'duplicate' => $user?->can('duplicate', $this->resource) ?? false,
             'restore' => $user?->can('restore', $this->resource) ?? false,
             'view_tickets' => $user?->can('view', $this->resource) ?? false,

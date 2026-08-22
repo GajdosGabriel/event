@@ -58,6 +58,7 @@ export interface ModelPermissions {
   unpublish?: boolean
   delete: boolean
   archive?: boolean
+  unarchive?: boolean
   duplicate?: boolean
   restore: boolean
   viewTickets?: boolean
@@ -299,8 +300,12 @@ export interface CanalItem {
   updatedAt: string
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
+  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
+  deleteBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
   municipality: { id: number; name: string } | null
+  /** Fakturačná identita kanála; `null` pri osobnom kanáli bez firmy. */
+  organization: { id: number; name: string } | null
   venuesList: { id: number; name: string; isOwner: boolean }[]
   membersList: { id: number; name: string; isOwner: boolean }[]
   /** Má cieľ vlastníka s e-mailom? (riadi tlačidlo „Poslať správu") */
@@ -344,6 +349,8 @@ export interface VenueItem {
   updatedAt: string
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
+  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
+  deleteBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
   municipality: { id: number; name: string } | null
   canalsList: { id: number; name: string; isOwner: boolean }[]

@@ -16,8 +16,15 @@ class ChatGPT
      */
     private const MAX_VISION_IMAGES = 3;
 
-    /** Strop vstupu pre copywritera — viď extractCopywriter(). */
+    /** Strop vstupu na JEDNO volanie copywritera — viď extractCopywriter(). */
     private const MAX_COPYWRITER_INPUT_CHARS = 5000;
+
+    /**
+     * Koľko častí dlhého textu si necháme prepísať. Štyri časti sú 20 000
+     * znakov, čo pokryje aj celý program púte; zvyšok už nie je popis podujatia,
+     * ale zoškrabaná pätička webu a nemá zmysel za jeho rozšírenie platiť.
+     */
+    private const MAX_COPYWRITER_CHUNKS = 4;
 
     /**
      * Odkiaľ považujeme textovú vrstvu dokumentu za použiteľnú. Rovnaká hranica
@@ -203,27 +210,37 @@ class ChatGPT
         return $messages;
     }
 
+    /**
+     * Rozšírenie textu podujatia do HTML.
+     *
+     * Copywriter má text ROZŠÍRIŤ, takže výstup je dlhší než vstup. Pri celom
+     * programe púte (harmonogram, ceny, strava — cez 7 000 znakov) by odpoveď
+     * na jedno volanie narazila na strop tokenov a vrátil by sa useknutý JSON.
+     *
+     * Vstup sa preto NEorezáva ani nezahadzuje — výsledok nahrádza celé telo
+     * podujatia a z orezaného vstupu by ticho zmizol koniec programu. Dlhý text
+     * ide po častiach a HTML sa poskladá späť; nezachytiteľný zvyšok (viac než
+     * MAX_COPYWRITER_CHUNKS častí) sa pripojí aspoň ako odstavce.
+     */
     public function extractCopywriter(array|string $input): array
     {
         $text = $this->normalizeInput($input);
 
-        // Copywriter má text ROZŠÍRIŤ, takže výstup je dlhší než vstup. Pri
-        // celom programe púte (harmonogram, ceny, strava — cez 7 000 znakov)
-        // odpoveď narazí na strop tokenov a vráti sa useknutý JSON.
-        //
-        // Vstup sa tu zámerne NEoreZáva: výsledok nahrádza celé telo podujatia,
-        // takže z orezaného vstupu by ticho zmizol koniec programu a nikto by
-        // si toho nevšimol. Radšej sa o rozšírenie vôbec nepokúsime — volajúci
-        // má fallback na surový text, ktorý je celý.
         if (mb_strlen($text) > self::MAX_COPYWRITER_INPUT_CHARS) {
-            throw new \RuntimeException(sprintf(
-                'Text je na rozsirenie prilis dlhy (%d znakov, limit %d).',
-                mb_strlen($text),
-                self::MAX_COPYWRITER_INPUT_CHARS,
-            ));
+            return ['event_body' => $this->copywriteLongText($text)];
         }
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text), $this->promptCopywriter->jsonSchema());
+        return $this->copywriteChunk($text);
+    }
+
+    /**
+     * Jedno volanie copywritera nad textom, ktorý sa zmestí do limitu.
+     *
+     * @return array{event_body?: string|null}
+     */
+    private function copywriteChunk(string $text, bool $partial = false): array
+    {
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text, $partial), $this->promptCopywriter->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
 
@@ -239,6 +256,157 @@ class ChatGPT
         // }
 
         return $data;
+    }
+
+    /**
+     * Dlhý text po častiach: každá časť zvlášť cez copywritera, HTML sa zlepí.
+     *
+     * Zlyhanie jednej časti (útržkovitý JSON, výpadok OpenAI) nezhodí celý
+     * prepis — tá časť sa pripojí ako obyčajné odstavce, takže obsah ostane
+     * kompletný. Ak zlyhajú všetky, hodí sa prvá chyba a volajúci si spadne na
+     * surový text tak ako doteraz.
+     */
+    private function copywriteLongText(string $text): ?string
+    {
+        $chunks = $this->splitForCopywriter($text, self::MAX_COPYWRITER_INPUT_CHARS);
+
+        // Zvyšok nad strop počtu častí sa neprepisuje (cena a čas volaní), ale
+        // ani nezahodí — pripojí sa ako odstavce.
+        $tail = array_splice($chunks, self::MAX_COPYWRITER_CHUNKS);
+
+        $parts = [];
+        $firstFailure = null;
+        $rewritten = 0;
+
+        foreach ($chunks as $chunk) {
+            try {
+                $body = $this->copywriteChunk($chunk, partial: true)['event_body'] ?? null;
+            } catch (\Throwable $e) {
+                $firstFailure ??= $e;
+                $body = null;
+            }
+
+            if (is_string($body) && trim($body) !== '') {
+                $parts[] = trim($body);
+                $rewritten++;
+            } else {
+                $parts[] = $this->textToParagraphs($chunk);
+            }
+        }
+
+        if ($rewritten === 0 && $firstFailure !== null) {
+            throw $firstFailure;
+        }
+
+        foreach ($tail as $chunk) {
+            $parts[] = $this->textToParagraphs($chunk);
+        }
+
+        $html = trim(implode("\n", array_filter($parts, static fn ($part) => $part !== '')));
+
+        return $html !== '' ? $html : null;
+    }
+
+    /**
+     * Rozdelí text na časti do `$limit` znakov, prednostne na hranici odstavca,
+     * inak vety. Hranica vety je dôležitá — z časti useknutej uprostred vety by
+     * copywriter domýšľal, ako sa veta končí, a to sú vymyslené fakty.
+     *
+     * @return array<int, string>
+     */
+    private function splitForCopywriter(string $text, int $limit): array
+    {
+        $chunks = [];
+        $current = '';
+
+        foreach ($this->splitToBlocks($text, $limit) as $block) {
+            if ($current === '') {
+                $current = $block;
+
+                continue;
+            }
+
+            if (mb_strlen($current) + mb_strlen($block) + 2 <= $limit) {
+                $current .= "\n\n" . $block;
+
+                continue;
+            }
+
+            $chunks[] = $current;
+            $current = $block;
+        }
+
+        if (trim($current) !== '') {
+            $chunks[] = $current;
+        }
+
+        return $chunks;
+    }
+
+    /**
+     * Text na bloky kratšie než `$limit`: odstavce, pri predlhom odstavci vety,
+     * pri predlhej vete (zlepenec z extraktora bez interpunkcie) tvrdý rez.
+     *
+     * @return array<int, string>
+     */
+    private function splitToBlocks(string $text, int $limit): array
+    {
+        $blocks = [];
+
+        foreach (preg_split('/\n{2,}/u', $text) ?: [] as $paragraph) {
+            $paragraph = trim($paragraph);
+
+            if ($paragraph === '') {
+                continue;
+            }
+
+            if (mb_strlen($paragraph) <= $limit) {
+                $blocks[] = $paragraph;
+
+                continue;
+            }
+
+            $sentence = '';
+
+            foreach (preg_split('/(?<=[.!?…:])\s+/u', $paragraph) ?: [] as $part) {
+                if ($sentence !== '' && mb_strlen($sentence) + mb_strlen($part) + 1 > $limit) {
+                    $blocks[] = $sentence;
+                    $sentence = '';
+                }
+
+                $sentence = $sentence === '' ? $part : $sentence . ' ' . $part;
+
+                while (mb_strlen($sentence) > $limit) {
+                    $blocks[] = mb_substr($sentence, 0, $limit);
+                    $sentence = mb_substr($sentence, $limit);
+                }
+            }
+
+            if (trim($sentence) !== '') {
+                $blocks[] = $sentence;
+            }
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * Núdzové HTML bez copywritera: riadky sa zabalia do `<p>`. Nie je to pekné,
+     * ale je to celý obsah a v `v-html` sa to vykreslí ako text s odstavcami.
+     */
+    private function textToParagraphs(string $text): string
+    {
+        $paragraphs = [];
+
+        foreach (preg_split('/\n+/u', trim($text)) ?: [] as $line) {
+            $line = trim($line);
+
+            if ($line !== '') {
+                $paragraphs[] = '<p>' . e($line) . '</p>';
+            }
+        }
+
+        return implode("\n", $paragraphs);
     }
 
     public function extractTextEdit(string $text, array $modes): array

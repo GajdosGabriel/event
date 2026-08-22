@@ -22,7 +22,7 @@ composer install && cp .env.example .env && php artisan key:generate && php arti
 php artisan test tests/Feature/Auth
 ```
 
-Testy bežia proti MySQL databáze `event-api-test` (pozri [phpunit.xml](phpunit.xml)),
+Testy bežia proti MySQL databáze `event-test` (pozri [phpunit.xml](phpunit.xml)),
 nie proti sqlite. **Celá suite trvá ~10 minút**, preto pri vývoji púšťaj konkrétne
 cesty. Rate limity sú v testoch globálne vypnuté v [tests/TestCase.php](tests/TestCase.php);
 test, ktorý ich overuje, si ich zapne cez `$this->withMiddleware(ThrottleRequests::class)`.
@@ -103,7 +103,7 @@ Ak aplikácia beží na Windows serveri, vytvor plánovanú úlohu spúšťanú 
 
 - Program/script: `php`
 - Add arguments: `artisan schedule:run`
-- Start in: `C:\www\event-api`
+- Start in: `C:\www\event`
 
 ### Overenie
 

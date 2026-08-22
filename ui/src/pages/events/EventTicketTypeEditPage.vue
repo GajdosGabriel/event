@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto my-5 w-full max-w-[1000px] px-4">
+  <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
     <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">
@@ -15,7 +15,7 @@
     <template v-else>
       <!-- Šablóny — rýchly štart pri vytváraní. Predvyplnia názov a rozumné
            defaulty, aby používateľ nezačínal z prázdneho formulára. -->
-      <section v-if="!isEdit" class="mb-5 rounded-2xl border border-slate-200 bg-white p-5">
+      <section v-if="!isEdit" class="mb-5 max-w-[1000px] rounded-2xl border border-slate-200 bg-white p-5">
         <h2 class="text-sm font-semibold text-slate-800">{{ t('tickets.type.templatesTitle') }}</h2>
         <p class="mb-3 text-xs text-slate-500">
           {{ t('tickets.type.templatesLead') }}

@@ -33,8 +33,10 @@
             <span class="text-xs text-slate-500">{{ statusLabel('organizations', org.status) }}</span>
             <!-- Úprava vrátane fakturačných údajov je na vlastnej stránke;
                  modál by musel duplikovať celý formulár aj napojenie na Account. -->
-            <RouterLink :to="`/admin/organizations/${org.id}/edit`" class="action-btn">{{ t('admin.settings.edit') }}</RouterLink>
-            <button class="action-btn action-btn-danger" @click="remove(org.id)">{{ t('admin.settings.remove') }}</button>
+            <RowActions>
+              <RouterLink :to="`/admin/organizations/${org.id}/edit`" class="row-menu-item">{{ t('admin.settings.edit') }}</RouterLink>
+              <button class="row-menu-item row-menu-item-danger" @click="remove(org.id)">{{ t('admin.settings.remove') }}</button>
+            </RowActions>
           </li>
           <li v-if="orgs.length === 0" class="text-slate-500">{{ t('admin.settings.orgsEmpty') }}</li>
         </ul>
@@ -51,6 +53,7 @@ import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { useSettings, PER_PAGE_OPTIONS } from '@/composables/useSettings'
 import FormField from '@/components/FormField.vue'
+import RowActions from '@/components/RowActions.vue'
 import { statusLabel } from '@/utils/statusLabel'
 
 const perPageOptions = PER_PAGE_OPTIONS.map(n => ({ value: n, label: t('admin.settings.perPage', { n }) }))

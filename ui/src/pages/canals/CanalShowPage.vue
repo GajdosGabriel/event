@@ -7,12 +7,8 @@
     </div>
 
     <template v-else-if="canal">
-      <!-- Breadcrumb + akcie -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
-        <RouterLink v-if="canal.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
-        <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(canal.status)">{{ statusLabel('canals', canal.status) }}</span>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -24,11 +20,22 @@
               <img v-if="canal.imageUrl" :src="canal.imageUrl" :alt="canal.name"
                 class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
               <div class="min-w-0 flex-1">
+                <!-- Akcie sedia na riadku s názvom: úpravy, publikovanie aj
+                     mazanie sú tie isté ako vo výpise — jedno ovládanie, jedny práva. -->
                 <div class="flex flex-wrap items-center gap-2">
                   <h1 class="text-3xl font-bold text-slate-900">{{ canal.name }}</h1>
                   <span v-if="canal.identityModeLabel" class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
                     {{ canal.identityModeLabel }}
                   </span>
+                  <ResourceActionsMenu
+                    class="ml-auto shrink-0"
+                    resource="canal"
+                    :scope="scope"
+                    :item="canal"
+                    :show-view="false"
+                    @changed="reload"
+                    @removed="router.push(indexRoute)"
+                  />
                 </div>
                 <p v-if="canal.titlePrefix || canal.titleSuffix" class="mt-1 text-sm text-slate-500">
                   <span v-if="canal.titlePrefix">{{ canal.titlePrefix }} </span>
@@ -102,7 +109,12 @@
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
-                <RouterLink :to="`${prefix}/events/${ev.id}/edit`" class="action-btn shrink-0">{{ t('common.edit') }}</RouterLink>
+                <div class="shrink-0">
+                  <RowActions>
+                    <RouterLink :to="`/events/`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+                    <RouterLink v-if="ev.status !== 'archived'" :to="`/events//edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+                  </RowActions>
+                </div>
               </li>
             </ul>
           </div>
@@ -111,6 +123,16 @@
         <!-- Pravý stĺpec -->
         <aside class="grid gap-4 self-start">
           <dl class="show-card grid gap-3">
+            <!-- Organizácia (fakturačná identita kanála) -->
+            <div v-if="canal.organization" class="detail-card">
+              <dt>{{ t('common.organization') }}</dt>
+              <dd>
+                <RouterLink :to="`${prefix}/organizations/${canal.organization.id}/edit`" class="text-blue-700 no-underline hover:underline">
+                  {{ canal.organization.name }}
+                </RouterLink>
+              </dd>
+            </div>
+
             <!-- Obec -->
             <div v-if="canal.municipality" class="detail-card">
               <dt>{{ t('common.municipality') }}</dt>
@@ -141,6 +163,13 @@
 
             <!-- Meta -->
             <div class="detail-card">
+              <dt>{{ t('canals.fields.status') }}</dt>
+              <dd>
+                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                  :class="statusClass(canal.status)">{{ statusLabel('canals', canal.status) }}</span>
+              </dd>
+            </div>
+            <div class="detail-card">
               <dt>{{ t('common.publishedAt') }}</dt>
               <dd>{{ canal.publishedAt ? formatDate(canal.publishedAt) : t('common.none') }}</dd>
             </div>
@@ -169,10 +198,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
+import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
+import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
@@ -181,11 +212,11 @@ import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)
-const editRoute = computed(() => `${prefix.value}/canals/${route.params.id}/edit`)
 
 const canal = ref<CanalItem | null>(null)
 const loading = ref(false)
@@ -205,6 +236,15 @@ function statusClass(status: string) {
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')
+}
+
+/** Po akcii z menu (publikovanie, obnova) — stav aj práva prídu nanovo. */
+async function reload() {
+  try {
+    canal.value = await showCanal(scope.value, Number(route.params.id))
+  } catch {
+    error.value = true
+  }
 }
 
 onMounted(async () => {

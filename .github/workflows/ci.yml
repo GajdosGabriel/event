@@ -21,7 +21,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-          MYSQL_DATABASE: event-api-test
+          MYSQL_DATABASE: event-test
         ports:
           - 3306:3306
         options: >-
@@ -89,7 +89,7 @@ jobs:
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_DATABASE: event-api-test
+          DB_DATABASE: event-test
           DB_USERNAME: root
           DB_PASSWORD: ''
         run: php artisan migrate --force --env=testing
@@ -98,7 +98,7 @@ jobs:
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_DATABASE: event-api-test
+          DB_DATABASE: event-test
           DB_USERNAME: root
           DB_PASSWORD: ''
         run: php artisan test

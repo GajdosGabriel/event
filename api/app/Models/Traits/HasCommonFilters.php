@@ -223,6 +223,58 @@ trait HasCommonFilters
         return $query;
     }
 
+    /**
+     * Časové okno podujatia.
+     *
+     * Definície sú zámerne rovnaké ako dlaždice v prehľade
+     * ({@see \App\Services\Stats\OverviewStats}) — po kliknutí na číslo má
+     * výpis ukázať presne tie záznamy, ktoré sa doň rátali. Filter je čisto
+     * časový; stav („zverejnené“) si pridáva volajúci cez `status`, inak by sa
+     * nedal nájsť napríklad koncept s dnešným termínom.
+     */
+    public function scopeByPhase(Builder $query, ?string $phase): Builder
+    {
+        if ($phase === null || $phase === '' || ! $this->hasCommonFilterColumn('start_at')) {
+            return $query;
+        }
+
+        $start = $this->qualifyColumn('start_at');
+        $end = $this->hasCommonFilterColumn('end_at') ? $this->qualifyColumn('end_at') : null;
+        $now = now();
+        $today = $now->copy()->startOfDay();
+
+        return match ($phase) {
+            // „Ešte neskončilo“: koniec je v budúcnosti, alebo koniec vyplnený
+            // nie je a začiatok padá najskôr na dnešok.
+            'active' => $end === null
+                ? $query->where($start, '>=', $today)
+                : $query->where(fn (Builder $window) => $window
+                    ->where($end, '>=', $now)
+                    ->orWhere(fn (Builder $openEnded) => $openEnded
+                        ->whereNull($end)
+                        ->where($start, '>=', $today))),
+            'running' => $end === null
+                ? $query->where($start, '<=', $now)
+                : $query
+                    ->where($start, '<=', $now)
+                    ->where(fn (Builder $window) => $window->whereNull($end)->orWhere($end, '>=', $now)),
+            'today' => $query
+                ->where($start, '>=', $today)
+                ->where($start, '<', $today->copy()->addDay()),
+            'next7d' => $query
+                ->where($start, '>=', $now)
+                ->where($start, '<', $now->copy()->addDays(7)),
+            'past' => $end === null
+                ? $query->where($start, '<', $now)
+                : $query->where(fn (Builder $window) => $window
+                    ->where($end, '<', $now)
+                    ->orWhere(fn (Builder $openEnded) => $openEnded
+                        ->whereNull($end)
+                        ->where($start, '<', $today))),
+            default => $query,
+        };
+    }
+
     public function scopeBySort(Builder $query, ?string $sort): Builder
     {
         if ($sort === null || $sort === '' || $sort === 'newest') {
@@ -266,6 +318,7 @@ trait HasCommonFilters
         return $query
             ->byStatus($filters['status'] ?? null)
             ->byDateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
+            ->byPhase($filters['phase'] ?? null)
             ->bySort($filters['sort'] ?? null)
             ->bySearch($filters['search'] ?? null)
             ->byPublished($filters['published'] ?? null)

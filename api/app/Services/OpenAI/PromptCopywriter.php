@@ -25,8 +25,19 @@ class PromptCopywriter
         ];
     }
 
-    public function prompt(string $text): array
+    /**
+     * @param  bool  $partial  vstup je len ČASŤ dlhšieho textu (viď ChatGPT::extractCopywriter())
+     */
+    public function prompt(string $text, bool $partial = false): array
     {
+        // Pri delenom texte sa prompt musí správať ako pokračovanie, nie ako
+        // celý popis: inak by každá časť dostala vlastné 3 sekcie, vlastný
+        // úvod aj záver a z troch častí by vznikol popis s deviatimi nadpismi.
+        $sections = $partial
+            ? '- Rozdel do 1 az 2 sekcii s <h3> nadpismi.
+                    - Toto je len CAST dlhsieho popisu: nepis uvod k celemu podujatiu ani zaverecne zhrnutie.'
+            : '- Rozdel do 3 sekcii s <h3> nadpismi.';
+
         return [
             [
                 'role' => 'system',
@@ -54,7 +65,7 @@ class PromptCopywriter
                     - Nic nevynechaj.
                     - Nic nemen.
                     - Text rozsir o motivacne a obsahove vysvetlenie.
-                    - Rozdel do 3 sekcii s <h3> nadpismi.
+                    {$sections}
                     - Nadpisy pis ako <h3 class=\"event-section-title\">...</h3>
                     - Zoznamy pis ako <ul class=\"event-list\">...</ul>
                     - Polozky zoznamu pis ako <li class=\"event-list-item\">...</li>

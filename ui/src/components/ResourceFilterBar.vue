@@ -45,6 +45,12 @@
       <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
+    <!-- Časové okno (podujatia) -->
+    <select v-if="phaseOptions.length" v-model="phase" class="form-input w-auto" :title="t('filters.phaseTitle')" @change="emitChange">
+      <option value="">{{ t('filters.allPhases') }}</option>
+      <option v-for="opt in phaseOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+    </select>
+
     <!-- Sort -->
     <select v-model="sort" class="form-input w-auto" :title="t('filters.sortTitle')" @change="emitChange">
       <option v-for="opt in sortChoices" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -103,10 +109,12 @@ export interface FilterOption {
 const props = withDefaults(defineProps<{
   statusOptions?: FilterOption[]
   sortOptions?: FilterOption[]
+  phaseOptions?: FilterOption[]
   showDateRange?: boolean
   canalFilter?: { id: number; name: string } | null
 }>(), {
   statusOptions: () => [],
+  phaseOptions: () => [],
   // Bez default hodnoty: predvolené zoradenie sa skladá až v `sortChoices`,
   // inak by sa popisky preložili raz pri načítaní a prepnutie jazyka
   // by ich už nezmenilo.
@@ -130,6 +138,7 @@ const emit = defineEmits<{
 
 const search = defineModel<string>('search', { default: '' })
 const status = defineModel<string>('status', { default: '' })
+const phase = defineModel<string>('phase', { default: '' })
 const sort = defineModel<string>('sort', { default: 'newest' })
 const dateFrom = defineModel<string>('dateFrom', { default: '' })
 const dateTo = defineModel<string>('dateTo', { default: '' })
@@ -142,6 +151,7 @@ const activeCount = computed(() => {
   let n = 0
   if (search.value) n++
   if (status.value) n++
+  if (phase.value) n++
   if (sort.value && sort.value !== 'newest') n++
   if (dateFrom.value) n++
   if (dateTo.value) n++
@@ -167,6 +177,7 @@ function reset() {
   clearTimeout(searchTimer)
   search.value = ''
   status.value = ''
+  phase.value = ''
   sort.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''

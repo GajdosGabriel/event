@@ -1,26 +1,5 @@
 <template>
   <div class="space-y-4">
-    <!-- Upload zone -->
-    <div
-      class="relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition"
-      :class="isDraggingOver ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
-      @dragover.prevent="isDraggingOver = true"
-      @dragleave="isDraggingOver = false"
-      @drop.prevent="onDrop"
-    >
-      <svg class="h-8 w-8 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-      </svg>
-      <p class="text-sm text-slate-500">
-        {{ t('media.manager.drop') }}
-        <label class="cursor-pointer text-blue-600 hover:underline">
-          {{ t('media.manager.browse') }}
-          <input ref="fileInputEl" type="file" multiple :accept="UPLOAD_ACCEPT" class="sr-only" @change="onFileInput" />
-        </label>
-      </p>
-      <p class="text-xs text-slate-400">{{ t('media.manager.formats') }}</p>
-    </div>
-
     <!-- Image grid -->
     <div v-if="allItems.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
       <div
@@ -122,6 +101,27 @@
     </div>
 
     <p v-else class="text-sm text-slate-400">{{ t('media.manager.empty') }}</p>
+    <!-- Upload zone -->
+    <div
+      class="relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-4 text-center transition"
+      :class="isDraggingOver ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
+      @dragover.prevent="isDraggingOver = true"
+      @dragleave="isDraggingOver = false"
+      @drop.prevent="onDrop"
+    >
+      <svg class="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+      </svg>
+      <p class="text-sm text-slate-500">
+        {{ t('media.manager.drop') }}
+        <label class="cursor-pointer text-blue-600 hover:underline">
+          {{ t('media.manager.browse') }}
+          <input ref="fileInputEl" type="file" multiple :accept="UPLOAD_ACCEPT" class="sr-only" @change="onFileInput" />
+        </label>
+      </p>
+      <p class="text-xs text-slate-400">{{ t('media.manager.formats') }}</p>
+    </div>
+
     <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
 
     <!-- Lightbox -->

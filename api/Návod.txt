@@ -11,7 +11,7 @@ Linux cron:
 Windows Task Scheduler:
 - Program/script: php
 - Arguments: artisan schedule:run
-- Start in: C:\www\event-api
+- Start in: C:\www\event
 
 tests/
 └── Feature/

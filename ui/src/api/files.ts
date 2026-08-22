@@ -14,8 +14,17 @@ export interface FileItem {
   sortOrder: number
   fileableType: string | null
   fileableId: number | null
+  fileableName: string | null
   createdAt: string | null
   deletedAt: string | null
+  permissions: FilePermissions
+}
+
+export interface FilePermissions {
+  view: boolean
+  update: boolean
+  delete: boolean
+  restore: boolean
 }
 
 const PLACEHOLDER_MARKER = 'document-placeholder'
@@ -38,6 +47,7 @@ function mapFile(raw: Record<string, unknown>): FileItem {
   const largeRaw    = (raw['large_image_url'] as string) ?? null
 
   const fileableTypeRaw = (raw['fileable_type'] as string) ?? null
+  const perms = (raw['permissions'] as Partial<FilePermissions>) ?? {}
 
   return {
     id: raw['id'] as number,
@@ -53,8 +63,15 @@ function mapFile(raw: Record<string, unknown>): FileItem {
     sortOrder: (raw['sort_order'] as number) ?? 0,
     fileableType: fileableTypeRaw ? fileableTypeRaw.split('\\').pop() ?? null : null,
     fileableId: (raw['fileable_id'] as number) ?? null,
+    fileableName: (raw['fileable_name'] as string) ?? null,
     createdAt: (raw['created_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
+    permissions: {
+      view: perms.view ?? false,
+      update: perms.update ?? false,
+      delete: perms.delete ?? false,
+      restore: perms.restore ?? false,
+    },
   }
 }
 
@@ -78,13 +95,33 @@ export interface PaginatedFiles {
   lastPage: number
 }
 
+// Zoznam všetkých súborov používateľa. Ten istý endpoint ako listFiles(), len
+// bez `fileable_id` — vtedy vracia celý rozsah dashboardu, nie prílohy jedného
+// záznamu.
+export async function listDashboardFiles(params: Omit<AdminFileParams, 'fileable_id'> = {}): Promise<PaginatedFiles> {
+  const { data } = await http.get('/dashboard/files', { params })
+  return mapPaginated(data)
+}
+
 export async function listAdminFiles(params: AdminFileParams = {}): Promise<PaginatedFiles> {
   const { data } = await http.get('/admin/files', { params })
+  return mapPaginated(data)
+}
+
+interface RawPaginated {
+  data?: Record<string, unknown>[]
+  meta?: { total?: number; current_page?: number; last_page?: number }
+  total?: number
+  current_page?: number
+  last_page?: number
+}
+
+function mapPaginated(data: RawPaginated): PaginatedFiles {
   return {
-    data: ((data.data ?? []) as Record<string, unknown>[]).map(mapFile),
-    total: (data.meta?.total ?? data.total ?? 0) as number,
-    currentPage: (data.meta?.current_page ?? data.current_page ?? 1) as number,
-    lastPage: (data.meta?.last_page ?? data.last_page ?? 1) as number,
+    data: (data.data ?? []).map(mapFile),
+    total: data.meta?.total ?? data.total ?? 0,
+    currentPage: data.meta?.current_page ?? data.current_page ?? 1,
+    lastPage: data.meta?.last_page ?? data.last_page ?? 1,
   }
 }
 

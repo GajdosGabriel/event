@@ -16,7 +16,16 @@
           <legend class="field-legend">{{ t('events.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" class="lg:col-span-2" />
-            <FormField v-model="form.status" type="select" :label="t('events.fields.status')" :error="errors.status">
+            <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
+                 nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
+                 a to iba dovtedy, kým naň nevisia vydané lístky. -->
+            <FormField
+              v-model="form.status"
+              type="select"
+              :label="t('events.fields.status')"
+              :error="errors.status"
+              :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
+            >
               <option value="draft">{{ t('events.statuses.draft') }}</option>
               <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
               <option value="published">{{ t('events.statuses.published') }}</option>

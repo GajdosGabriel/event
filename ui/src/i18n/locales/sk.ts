@@ -54,6 +54,7 @@ const sk = {
     restore: 'Obnoviť',
     publish: 'Publikovať',
     unpublish: 'Zrušiť publikovanie',
+    unarchive: 'Vrátiť z archívu',
     cancel: 'Zrušiť',
     close: 'Zavrieť',
     closeEsc: 'Zavrieť (Esc)',
@@ -73,6 +74,9 @@ const sk = {
     restoreFailed: 'Obnova zlyhala.',
     published: 'Publikované.',
     unpublished: 'Zrušené publikovanie.',
+    unarchiveConfirm: 'Podujatie sa vráti medzi koncepty a zmizne z verejného výpisu. Pokračovať?',
+    unarchived: 'Vrátené medzi koncepty.',
+    unarchiveFailed: 'Vrátenie z archívu zlyhalo.',
     actionFailed: 'Akcia zlyhala.',
     // Polia, ktoré má detail eventu, kanála aj miesta rovnaké
     contact: 'Kontakt',
@@ -81,6 +85,7 @@ const sk = {
     web: 'web ↗',
     address: 'Adresa',
     municipality: 'Obec',
+    organization: 'Organizácia',
     capacity: 'Kapacita',
     capacityPeople: '{n} osôb',
     openingHours: 'Otváracie hodiny',
@@ -803,6 +808,7 @@ const sk = {
       notFound: 'Event nenájdený',
       tickets: 'Lístky',
       checkin: 'Check-in',
+      checkinNoTypes: 'Event zatiaľ nemá žiadny typ lístka — bez neho niet čo skenovať. Pridajte ho v sekcii Lístky.',
       noBody: 'Bez popisu.',
       original: 'Originál',
       workshops: 'Workshopy ({n})',
@@ -838,6 +844,7 @@ const sk = {
       saveFailed: 'Uloženie zlyhalo.',
       created: 'Event vytvorený.',
       saved: 'Event uložený.',
+      archivedHint: 'Archivované podujatie sa už nedá upraviť. Späť medzi koncepty ho vrátite akciou „Vrátiť z archívu“ — pri podujatí s vydanými lístkami to však už nejde.',
     },
     sections: {
       basic: 'Základné info',
@@ -912,7 +919,7 @@ const sk = {
       namePlaceholder: 'napr. Kultúrny dom',
       village: 'Obec',
       villagePlaceholder: '— vyberte obec —',
-      street: 'Ulica',
+      street: 'Ulica a číslo',
       streetPlaceholder: 'napr. Hlavná 12',
       postcode: 'PSČ',
       submit: 'Vytvoriť miesto',
@@ -948,7 +955,7 @@ const sk = {
     },
     sections: {
       basic: 'Základné info',
-      address: 'Adresa',
+      address: 'Adresa podujatia',
       contact: 'Kontakt',
       location: 'Poloha',
       images: 'Obrázky',
@@ -964,7 +971,8 @@ const sk = {
       description: 'Popis',
       village: 'Obec / Mesto',
       villagePlaceholder: '— vyberte obec —',
-      street: 'Ulica',
+      street: 'Ulica a číslo',
+      streetPlaceholder: 'napr. Hlavná 12',
       postcode: 'PSČ',
       country: 'Krajina',
       countryPlaceholder: 'Slovensko',
@@ -1189,6 +1197,9 @@ const sk = {
   },
   // Skener QR pri vstupe.
   checkin: {
+    noTypesTitle: 'Zatiaľ nie sú žiadne typy lístkov',
+    noTypesLead: 'Check-in overuje QR kódy z lístkov. Najprv pridajte typ lístka — až potom vzniknú lístky, ktoré sa dajú skenovať.',
+    noTypesCta: 'Pridať typ lístka',
     title: 'Check-in — skenovanie QR',
     arrived: 'Prišlo:',
     remaining: '· zostáva {n}',
@@ -1207,7 +1218,6 @@ const sk = {
   tickets: {
     // Prepínač medzi nastavením lístkov, prihlásenými a check-inom.
     tabs: {
-      back: '← Späť na event',
       settings: 'Nastavenia',
       attendees: 'Prihlásení',
       checkin: 'Check-in',
@@ -1306,7 +1316,8 @@ const sk = {
       title: 'Lístky a registrácia',
       loading: 'Načítavam…',
       loadFailed: 'Údaje sa nepodarilo načítať.',
-      heading: 'Nastavenia',
+      heading: 'Doplnkové nastavenia',
+      headingLead: 'Platia pre celé podujatie. Zmena sa prejaví až po stlačení Uložiť.',
       lead: 'Registrácia je pre návštevníkov dostupná automaticky, keď má podujatie aspoň jeden aktívny typ lístka (nižšie). Bez typov sa formulár na verejnej stránke nezobrazí.',
       workshopLock: 'Po začiatku podujatia zamknúť zmeny na workshopoch',
       workshopLockHint: 'Účastníci sa po začiatku podujatia už nebudú môcť na workshopy prihlásiť ani odhlásiť. Po skončení podujatia sú zmeny zamknuté vždy.',
@@ -1775,6 +1786,8 @@ const sk = {
     },
     files: {
       title: 'Správa súborov',
+      // Dashboardový variant tej istej obrazovky — len súbory z kanálov používateľa.
+      myTitle: 'Moje súbory',
       empty: 'Žiadne súbory nezodpovedajú filtru.',
       loadFailed: 'Nepodarilo sa načítať súbory.',
       primary: 'Primárny',
@@ -1879,12 +1892,23 @@ const sk = {
     toggle: 'Filtre',
     reset: 'Zrušiť filtre',
     allStatuses: 'Všetky stavy',
+    allPhases: 'Kedykoľvek',
+    phaseTitle: 'Termín',
     sortTitle: 'Zoradenie',
     dateFrom: 'Od',
     dateTo: 'Do',
     // „Zmazaný“ nie je stav z backendu (je to soft delete), vo filtri však stojí
     // vedľa ostatných stavov — pre používateľa je to tá istá otázka.
     deleted: 'Zmazaný',
+    // Rovnaké pohľady, aké na dashboarde ponúkajú dlaždice prehľadu — popisky
+    // sa preto zhodujú s `stats.now.*`.
+    phase: {
+      running: 'Práve prebieha',
+      today: 'Dnes v programe',
+      next7d: 'Najbližších 7 dní',
+      active: 'Ešte neskončilo',
+      past: 'Už prebehlo',
+    },
     sort: {
       newest: 'Najnovšie',
       oldest: 'Najstaršie',

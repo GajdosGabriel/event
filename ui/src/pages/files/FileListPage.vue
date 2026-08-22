@@ -2,7 +2,7 @@
   <div class="grid gap-4">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold text-slate-900">{{ t('admin.files.title') }}</h1>
+        <h1 class="text-2xl font-semibold text-slate-900">{{ isAdmin ? t('admin.files.title') : t('admin.files.myTitle') }}</h1>
         <p class="mt-0.5 text-sm text-slate-500">
           <template v-if="searched && !loading">{{ total }} {{ plural('admin.files.counts.files', total) }}</template>
           <template v-else>&nbsp;</template>
@@ -31,7 +31,9 @@
         </button>
       </div>
 
-      <input v-model.number="filters.fileable_id" type="number" :placeholder="t('filters.files.entityId')"
+      <!-- Hľadanie podľa kľúča záznamu má zmysel len v admine, kde sa chodí za
+           konkrétnym ID z databázy; v dashboarde stačí filter typu. -->
+      <input v-if="isAdmin" v-model.number="filters.fileable_id" type="number" :placeholder="t('filters.files.entityId')"
         class="form-input h-10 w-28" @keydown.enter="load(1)" @change="load(1)" />
 
       <label class="flex h-10 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
@@ -105,24 +107,24 @@
             <a :href="file.url" :download="file.name" class="row-menu-item">{{ t('admin.files.download') }}</a>
             <button class="row-menu-item" @click="copyLink(file)">{{ t('admin.files.copyLink') }}</button>
 
-            <div class="my-1 h-px bg-slate-100"></div>
+            <div v-if="canTrash(file) || canRestore(file)" class="my-1 h-px bg-slate-100"></div>
 
             <!-- Live file: soft delete (recoverable), blocked while primary -->
             <template v-if="!file.deletedAt">
-              <button v-if="file.isPrimary" type="button" disabled
+              <button v-if="file.isPrimary && canTrash(file)" type="button" disabled
                 class="row-menu-item cursor-not-allowed opacity-50"
                 :title="t('admin.files.primaryBlocked')">
                 {{ t('common.remove') }}
               </button>
-              <button v-else type="button" class="row-menu-item row-menu-item-danger" @click="softDelete(file)">
+              <button v-else-if="canTrash(file)" type="button" class="row-menu-item row-menu-item-danger" @click="softDelete(file)">
                 {{ t('admin.files.trash') }}
               </button>
             </template>
 
-            <!-- Trashed file: restore or purge permanently -->
+            <!-- Trashed file: restore or (admin only) purge permanently -->
             <template v-else>
-              <button type="button" class="row-menu-item" @click="restoreOne(file.id)">{{ t('common.restore') }}</button>
-              <button type="button" class="row-menu-item row-menu-item-danger" @click="hardDelete(file)">
+              <button v-if="canRestore(file)" type="button" class="row-menu-item" @click="restoreOne(file.id)">{{ t('common.restore') }}</button>
+              <button v-if="isAdmin" type="button" class="row-menu-item row-menu-item-danger" @click="hardDelete(file)">
                 {{ t('admin.files.purge') }}
               </button>
             </template>
@@ -155,11 +157,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { listAdminFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
+import { listAdminFiles, listDashboardFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import RowActions from '@/components/RowActions.vue'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n, localeTag, type MessageKey } from '@/i18n'
+
+// Rovnaká obrazovka pod dvoma adresami: admin vidí všetky súbory a smie ich
+// mazať natrvalo, dashboard len tie zo svojich kanálov a len do koša.
+const props = withDefaults(defineProps<{ scope?: 'admin' | 'dashboard' }>(), { scope: 'admin' })
+const isAdmin = computed(() => props.scope === 'admin')
 
 const { t, plural } = useI18n()
 const toast = useToast()
@@ -190,6 +197,16 @@ const activeFilterCount = computed(() => {
   return n
 })
 
+// Dashboard nemaže natrvalo — FilePolicy::forceDelete() to zakazuje každému,
+// takže v tomto rozsahu ani nemá zmysel akciu ponúkať.
+function canTrash(file: FileItem): boolean {
+  return isAdmin.value || file.permissions.delete
+}
+
+function canRestore(file: FileItem): boolean {
+  return isAdmin.value || file.permissions.restore
+}
+
 let searchTimer: ReturnType<typeof setTimeout>
 function onSearchInput() {
   clearTimeout(searchTimer)
@@ -213,12 +230,13 @@ async function load(page = 1) {
   try {
     const params = {
       ...(filters.value.fileable_type ? { fileable_type: filters.value.fileable_type } : {}),
-      ...(filters.value.fileable_id ? { fileable_id: filters.value.fileable_id } : {}),
       ...(filters.value.search ? { search: filters.value.search } : {}),
       ...(filters.value.with_trashed ? { with_trashed: true } : {}),
       page,
     }
-    const res = await listAdminFiles(params)
+    const res = isAdmin.value
+      ? await listAdminFiles({ ...params, ...(filters.value.fileable_id ? { fileable_id: filters.value.fileable_id } : {}) })
+      : await listDashboardFiles(params)
     files.value = res.data
     total.value = res.total
     currentPage.value = res.currentPage
@@ -237,7 +255,7 @@ function errMsg(e: unknown): string | null {
 // First stage — recoverable. Soft-deleted files stay visible under the
 // "Vrátane zmazaných" filter, where they can be restored or purged.
 async function softDelete(file: FileItem) {
-  try { await deleteFile(file.id, 'admin'); await load(currentPage.value); toast.success(t('admin.files.trashed')) }
+  try { await deleteFile(file.id, props.scope); await load(currentPage.value); toast.success(t('admin.files.trashed')) }
   catch (e) { toast.error(errMsg(e) ?? t('common.removeFailed')) }
 }
 
@@ -249,7 +267,7 @@ async function hardDelete(file: FileItem) {
 }
 
 async function restoreOne(id: number) {
-  try { await restoreFile(id, 'admin'); await load(currentPage.value); toast.success(t('admin.files.restored')) }
+  try { await restoreFile(id, props.scope); await load(currentPage.value); toast.success(t('admin.files.restored')) }
   catch (e) { toast.error(errMsg(e) ?? t('common.restoreFailed')) }
 }
 
@@ -282,7 +300,10 @@ function kindMeta(file: FileItem): KindMeta {
 }
 
 // ── Owner (fileable) linking ────────────────────────────────
-const OWNER_ROUTES: Record<string, string> = { Event: 'admin-events-show', Canal: 'admin-canals-show', Venue: 'admin-venues-show' }
+const OWNER_ROUTES: Record<'admin' | 'dashboard', Record<string, string>> = {
+  admin: { Event: 'admin-events-show', Canal: 'admin-canals-show', Venue: 'admin-venues-show' },
+  dashboard: { Event: 'dashboard-events-show', Canal: 'dashboard-canals-show', Venue: 'dashboard-venues-show' },
+}
 // Tie isté názvy typov ponúka aj filter nad zoznamom.
 const OWNER_LABEL_KEYS: Record<string, MessageKey> = {
   Event: 'filters.files.types.event',
@@ -290,14 +311,17 @@ const OWNER_LABEL_KEYS: Record<string, MessageKey> = {
   Venue: 'filters.files.types.venue',
 }
 
+// Názov záznamu posiela dashboardový výpis (`fileable_name`); admin ho nemá,
+// tam ostáva kľúč z databázy, podľa ktorého sa aj filtruje.
 function ownerLabel(file: FileItem): string {
   if (!file.fileableType) return ''
   const key = OWNER_LABEL_KEYS[file.fileableType]
-  return `${key ? t(key) : file.fileableType} #${file.fileableId}`
+  const type = key ? t(key) : file.fileableType
+  return file.fileableName ? `${type}: ${file.fileableName}` : `${type} #${file.fileableId}`
 }
 
 function ownerLink(file: FileItem): RouteLocationRaw | null {
-  const name = file.fileableType ? OWNER_ROUTES[file.fileableType] : null
+  const name = file.fileableType ? OWNER_ROUTES[props.scope][file.fileableType] : null
   if (!name || !file.fileableId) return null
   return { name, params: { id: file.fileableId } }
 }

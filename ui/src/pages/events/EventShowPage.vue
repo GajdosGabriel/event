@@ -18,18 +18,32 @@
         </div>
       </div>
 
-      <!-- Breadcrumb + akcie -->
+      <!-- Breadcrumb + akcie. Úprava a mazanie sedia v tom istom menu ako vo
+           výpise; lístky, check-in a otázky ostávajú tlačidlami — sú to vlastné
+           obrazovky, nie akcie nad záznamom. -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
-        <RouterLink v-if="event.permissions.update" :to="editRoute" class="action-btn">{{ t('common.edit') }}</RouterLink>
-        <button v-else-if="event.permissions.duplicate" type="button" class="action-btn" @click="duplicate">{{ t('common.copy') }}</button>
         <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">{{ t('events.show.tickets') }}</RouterLink>
-        <RouterLink v-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">{{ t('events.show.checkin') }}</RouterLink>
+        <!-- Check-in má zmysel až keď existuje typ lístka — dovtedy tlačidlo
+             nikam nevedie a len povie, čo treba doplniť. -->
+        <button v-if="event.permissions.checkin && ticketTypesLoaded && !ticketTypes.length"
+          type="button" class="action-btn opacity-60" @click="warnNoTicketTypes">
+          {{ t('events.show.checkin') }}
+        </button>
+        <RouterLink v-else-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">{{ t('events.show.checkin') }}</RouterLink>
         <!-- Otázky z publika. Cesta je dashboardová aj v admin režime, rovnako
              ako lístky a check-in vyššie — nástenku spravuje organizátor. -->
         <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn">{{ t('questions.dashboard.tab') }}</RouterLink>
-        <span class="ml-auto rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-          :class="statusClass(event.status)">{{ statusLabel('events', event.status) }}</span>
+        <ResourceActionsMenu
+          class="ml-auto"
+          resource="event"
+          :scope="scope"
+          :item="event"
+          :show-view="false"
+          :show-publish="false"
+          @changed="reload"
+          @removed="router.push(indexRoute)"
+        />
       </div>
 
       <!-- Title (without hero) -->
@@ -113,19 +127,13 @@
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ fmt(ev.startAt) }}</span>
-                <div class="relative shrink-0 related-event-menu">
-                  <button type="button" class="action-btn" @click.stop="openMenuId = openMenuId === ev.id ? null : ev.id">
-                    ⋮
-                  </button>
-                  <div v-if="openMenuId === ev.id"
-                    class="absolute right-0 top-full z-10 mt-1 w-32 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
-                    <RouterLink :to="`${prefix}/events/${ev.id}`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
-                      @click="openMenuId = null">{{ t('common.view') }}</RouterLink>
-                    <RouterLink v-if="ev.status !== 'archived'" :to="`${prefix}/events/${ev.id}/edit`" class="block px-3 py-2 text-sm text-slate-700 no-underline hover:bg-slate-50"
-                      @click="openMenuId = null">{{ t('common.edit') }}</RouterLink>
-                    <button v-else type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      @click="duplicateRelated(ev.id)">{{ t('common.copy') }}</button>
-                  </div>
+                <div class="shrink-0">
+                  <RowActions>
+                    <RouterLink :to="`${prefix}/events/${ev.id}`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+                    <RouterLink v-if="ev.status !== 'archived'" :to="`${prefix}/events/${ev.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+                    <!-- Archivovaný event sa neupravuje — jediná zmysluplná akcia je spraviť z neho kópiu na nový termín. -->
+                    <button v-else type="button" class="row-menu-item" @click="duplicateRelated(ev.id)">{{ t('common.copy') }}</button>
+                  </RowActions>
                 </div>
               </li>
             </ul>
@@ -238,6 +246,13 @@
           <!-- Meta -->
           <dl class="show-card grid gap-3">
             <div class="detail-card">
+              <dt>{{ t('events.fields.status') }}</dt>
+              <dd>
+                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                  :class="statusClass(event.status)">{{ statusLabel('events', event.status) }}</span>
+              </dd>
+            </div>
+            <div class="detail-card">
               <dt>{{ t('common.record') }}</dt>
               <dd class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <span v-if="event.publishAt" class="font-medium text-amber-700">{{ t('events.show.publishAt', { date: fmt(event.publishAt) }) }}</span>
@@ -258,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, duplicateEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
@@ -268,6 +283,8 @@ import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
+import RowActions from '@/components/RowActions.vue'
 import { useToast } from '@/composables/useToast'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n, localeTag } from '@/i18n'
@@ -282,40 +299,37 @@ const { t } = useI18n()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/events`)
-const editRoute = computed(() => `${prefix.value}/events/${route.params.id}/edit`)
 
 const event = ref<EventItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
 const relatedEvents = ref<CanalEventItem[]>([])
 const workshops = ref<TicketTypeItem[]>([])
+const ticketTypes = ref<TicketTypeItem[]>([])
+const ticketTypesLoaded = ref(false)
 const bodyView = ref<'original' | 'ai'>('ai')
-const openMenuId = ref<number | null>(null)
 
-function onDocClick(e: MouseEvent) {
-  if (!(e.target as HTMLElement).closest('.related-event-menu')) openMenuId.value = null
+/** Klik na Check-in, kým event nemá typ lístka: povieme prečo sa nikam nejde. */
+function warnNoTicketTypes() {
+  toast.info(t('events.show.checkinNoTypes'))
 }
 
-async function duplicate() {
-  if (!event.value) return
+/** Po akcii z menu (napr. obnova) — stav aj práva prídu nanovo. */
+async function reload() {
   try {
-    const copy = await duplicateEvent(event.value.id, scope.value)
-    toast.success(t('events.copy.created'))
-    router.push(`${prefix.value}/events/${copy.id}/edit`)
-  } catch { toast.error(t('events.copy.failed')) }
+    event.value = await showEvent(scope.value, Number(route.params.id))
+  } catch {
+    error.value = true
+  }
 }
 
 async function duplicateRelated(id: number) {
-  openMenuId.value = null
   try {
     const copy = await duplicateEvent(id, scope.value)
     toast.success(t('events.copy.created'))
     router.push(`${prefix.value}/events/${copy.id}/edit`)
   } catch { toast.error(t('events.copy.failed')) }
 }
-
-onMounted(() => document.addEventListener('mousedown', onDocClick))
-onUnmounted(() => document.removeEventListener('mousedown', onDocClick))
 
 function withBlankLinks(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -362,7 +376,9 @@ onMounted(async () => {
     if (event.value.permissions.viewTickets) {
       try {
         const types = await indexTicketTypes(id)
+        ticketTypes.value = types
         workshops.value = types.filter(t => t.kind === 'workshop')
+        ticketTypesLoaded.value = true
       } catch { /* non-fatal */ }
     }
 

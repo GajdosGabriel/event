@@ -308,6 +308,31 @@ class CanalTeamTest extends TestCase
             ->assertJsonValidationErrors('email');
     }
 
+    /**
+     * Archív pri kanáli znamená „mimo prevádzky", nie zmrazený záznam —
+     * rovnako ako pri úprave a mazaní. Zámok tu aj tak nedržal: vlastník si
+     * kanál prepol späť na koncept a tím upratal o krok neskôr.
+     */
+    #[Test]
+    public function owner_can_still_manage_the_team_of_an_archived_canal(): void
+    {
+        Notification::fake();
+
+        $this->canal->forceFill(['status' => ModelStatus::Archived->value])->save();
+
+        $this->actingAs($this->owner, 'sanctum')
+            ->postJson($this->teamUrl() . '/invitations', [
+                'email' => 'brigadnik@divadlo.test',
+                'role' => CanalRole::Editor->value,
+            ])
+            ->assertStatus(201);
+
+        $this->assertDatabaseHas('canal_invitations', [
+            'canal_id' => $this->canal->id,
+            'email' => 'brigadnik@divadlo.test',
+        ]);
+    }
+
     private function teamUrl(): string
     {
         return '/api/dashboard/canals/' . $this->canal->id . '/team';

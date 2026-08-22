@@ -33,8 +33,10 @@
             {{ t('organizations.list.localOnly') }}
           </span>
 
-          <RouterLink :to="`${prefix}/organizations/${org.id}/edit`" class="action-btn">{{ t('common.edit') }}</RouterLink>
-          <button class="action-btn action-btn-danger" @click="remove(org.id)">{{ t('common.remove') }}</button>
+          <RowActions>
+            <RouterLink :to="`${prefix}/organizations/${org.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+            <button class="row-menu-item row-menu-item-danger" @click="remove(org.id)">{{ t('common.remove') }}</button>
+          </RowActions>
         </li>
         <li v-if="orgs.length === 0" class="text-slate-500">{{ t('organizations.list.empty') }}</li>
       </ul>
@@ -46,6 +48,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listOrganizations, deleteOrganization } from '@/api/organizations'
+import RowActions from '@/components/RowActions.vue'
 import type { OrganizationItem } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'

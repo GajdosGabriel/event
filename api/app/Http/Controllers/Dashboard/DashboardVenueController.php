@@ -6,6 +6,7 @@ use App\Enums\FileType;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\VenueDetectRequest;
+use App\Http\Requests\VenueGeocodeRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Requests\PublishRequest;
 use App\Http\Resources\FileResource;
@@ -16,6 +17,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
+use App\Services\Geocoding\AddressGeocoder;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
@@ -137,6 +139,24 @@ class DashboardVenueController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Poloha z rozpísanej adresy — mapa v editore miesta sa posunie hneď po
+     * výbere obce, nečaká sa na uloženie ani na detekciu.
+     */
+    public function geocode(VenueGeocodeRequest $request, AddressGeocoder $geocoder): JsonResponse
+    {
+        $this->authorize('viewAny', Venue::class);
+
+        $payload = $request->validated();
+
+        return response()->json($geocoder->resolve(
+            (int) $payload['village_id'],
+            $payload['street'] ?? null,
+            $payload['postcode'] ?? null,
+            $payload['country'] ?? null,
+        ));
     }
 
     public function destroy(string $id): JsonResponse

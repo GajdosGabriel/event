@@ -716,7 +716,7 @@ final class OverviewStats
                 ->whereNotNull('events.start_at')
                 ->where('events.start_at', '<', $now)
                 ->count(),
-            'link' => 'events?status=draft',
+            'link' => 'events?status=draft&phase=past',
         ];
 
         $items[] = [
@@ -734,7 +734,7 @@ final class OverviewStats
                     ->where('files.type', FileType::IMAGE->value)
                     ->where('files.is_primary', true))
                 ->count(),
-            'link' => 'events?status=published',
+            'link' => 'events?status=published&phase=active',
         ];
 
         // Termín sa blíži a nikto nie je prihlásený — ešte je čas propagovať.
@@ -749,7 +749,7 @@ final class OverviewStats
                 ->whereHas('ticketTypes', fn ($type) => $type->where('ticket_types.is_active', true))
                 ->whereDoesntHave('admissions', fn ($seat) => $seat->where('ticket_admissions.status', AdmissionStatus::Valid->value))
                 ->count(),
-            'link' => 'events',
+            'link' => 'events?status=published&phase=next7d',
         ];
 
         $items[] = [

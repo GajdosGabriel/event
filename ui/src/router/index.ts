@@ -4,6 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 const EventListPage = () => import('@/pages/events/EventListPage.vue')
 const LegalPage = () => import('@/pages/legal/LegalPage.vue')
+// Rovnaká obrazovka v dashboarde aj v admine — rozsah rozlišuje prop `scope`.
+const FileListPage = () => import('@/pages/files/FileListPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -115,6 +117,7 @@ const router = createRouter({
         { path: 'organizations/create', name: 'dashboard-organizations-create', component: () => import('@/pages/organizations/OrganizationEditPage.vue') },
         { path: 'organizations/:id/edit', name: 'dashboard-organizations-edit', component: () => import('@/pages/organizations/OrganizationEditPage.vue') },
         { path: 'municipalities', name: 'dashboard-municipalities', component: () => import('@/pages/dashboard/DashboardMunicipalitiesPage.vue') },
+        { path: 'files', name: 'dashboard-files', component: FileListPage, props: { scope: 'dashboard' } },
         // Inbox prijatých správ. Slovenská cesta zámerne — odkazuje naň e-mail
         // s odpoveďou aj dlaždica „Neprečítané správy" v štatistikách.
         { path: 'spravy', name: 'dashboard-messages', component: () => import('@/pages/dashboard/DashboardMessagesPage.vue') },
@@ -150,7 +153,7 @@ const router = createRouter({
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
         { path: 'users/:id', name: 'admin-users-show', component: () => import('@/pages/admin/AdminUserShowPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },
-        { path: 'files', name: 'admin-files', component: () => import('@/pages/admin/AdminFilesPage.vue') },
+        { path: 'files', name: 'admin-files', component: FileListPage, props: { scope: 'admin' } },
         { path: 'tools', name: 'admin-tools', component: () => import('@/pages/admin/AdminToolsPage.vue') },
       ],
     },

@@ -44,9 +44,11 @@
               <div>{{ t('admin.announcements.from') }} {{ item.publishedFrom ?? '—' }}</div>
               <div>{{ t('admin.announcements.to') }} {{ item.publishedUntil ?? '—' }}</div>
             </td>
-            <td class="py-2 flex gap-2">
-              <button class="action-btn" @click="openEdit(item)">{{ t('admin.announcements.edit') }}</button>
-              <button class="action-btn action-btn-danger" @click="remove(item)">{{ t('admin.announcements.remove') }}</button>
+            <td class="py-2">
+              <RowActions>
+                <button class="row-menu-item" @click="openEdit(item)">{{ t('admin.announcements.edit') }}</button>
+                <button class="row-menu-item row-menu-item-danger" @click="remove(item)">{{ t('admin.announcements.remove') }}</button>
+              </RowActions>
             </td>
           </tr>
           <tr v-if="items.length === 0">
@@ -120,6 +122,7 @@ import {
 import type { AnnouncementItem, AnnouncementFormOptions, AnnouncementPayload } from '@/api/announcements'
 import FormField from '@/components/FormField.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
+import RowActions from '@/components/RowActions.vue'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'

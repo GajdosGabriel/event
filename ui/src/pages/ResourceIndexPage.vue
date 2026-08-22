@@ -8,10 +8,12 @@
       <ResourceFilterBar
         v-model:search="search"
         v-model:status="statusFilter"
+        v-model:phase="phaseFilter"
         v-model:sort="sortFilter"
         v-model:date-from="dateFrom"
         v-model:date-to="dateTo"
         :status-options="statusOptions"
+        :phase-options="phaseOptions"
         :sort-options="sortOptions"
         :show-date-range="resource === 'event'"
         :canal-filter="canalFilter"
@@ -49,34 +51,13 @@
             />
           </template>
           <template #actions>
-            <RowActions>
-              <RouterLink :to="`${prefix}/${item.id}`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
-              <RouterLink v-if="item.permissions?.update" :to="`${prefix}/${item.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
-              <button
-                v-else-if="resource === 'event' && item.permissions?.duplicate"
-                class="row-menu-item"
-                @click="duplicate(item)"
-              >{{ t('common.copy') }}</button>
-              <button
-                v-if="item.permissions?.publish || item.permissions?.unpublish"
-                class="row-menu-item"
-                @click="togglePublish(item)"
-              >{{ item.permissions?.unpublish ? t('common.unpublish') : t('common.publish') }}</button>
-              <!-- Zablokované mazanie sa neskrýva, ale zošedne a povie prečo —
-                   tichý zmiznutý button je horší než vysvetlenie. -->
-              <button
-                v-if="(item.permissions?.delete || item.deleteBlockedReason) && !item.deletedAt"
-                class="row-menu-item row-menu-item-danger"
-                :disabled="Boolean(item.deleteBlockedReason)"
-                :title="item.deleteBlockedReason ?? undefined"
-                @click="remove(item.id)"
-              >{{ t('common.remove') }}</button>
-              <button
-                v-if="item.permissions?.restore && item.deletedAt"
-                class="row-menu-item"
-                @click="restore(item.id)"
-              >{{ t('common.restore') }}</button>
-            </RowActions>
+            <ResourceActionsMenu
+              :resource="resource"
+              :scope="scope"
+              :item="item"
+              @changed="load(page)"
+              @removed="load(page)"
+            />
           </template>
         </IndexRow>
       </li>
@@ -89,19 +70,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import http from '@/api/index'
 import IndexRow from '@/components/IndexRow.vue'
 import EventRowDetail from '@/components/EventRowDetail.vue'
-import RowActions from '@/components/RowActions.vue'
+import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
-import { useToast } from '@/composables/useToast'
 import { useSettings } from '@/composables/useSettings'
 import { fmtDate } from '@/utils/dateFormat'
-import { isCancelled, publishRequest, serverMessage } from '@/utils/publishFlow'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { useI18n } from '@/i18n'
+import type { ModelPermissions } from '@/types'
 
 const props = defineProps<{
   resource: 'canal' | 'venue' | 'event'
@@ -109,8 +89,6 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
-const router = useRouter()
-const toast = useToast()
 const { settings } = useSettings()
 const { t } = useI18n()
 
@@ -160,7 +138,7 @@ interface ResourceItem {
   publishedAt?: string | null
   deletedAt?: string | null
   createdAt?: string | null
-  permissions?: Record<string, boolean>
+  permissions?: ModelPermissions
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
   deleteBlockedReason?: string | null
   canalId?: number | null
@@ -211,7 +189,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     publishedAt: (raw['published_at'] as string) ?? null,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt,
-    permissions: (raw['permissions'] as Record<string, boolean>) ?? {},
+    permissions: raw['permissions'] as ModelPermissions | undefined,
     deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     canalId,
     canalName,
@@ -232,6 +210,7 @@ const page = ref(1)
 const lastPage = ref(1)
 const search = ref('')
 const statusFilter = ref('')
+const phaseFilter = ref('')
 const sortFilter = ref('newest')
 const dateFrom = ref('')
 const dateTo = ref('')
@@ -248,6 +227,21 @@ const statusOptions = computed<FilterOption[]>(() => [
   ...apiStatusOptions.value,
   { value: DELETED_STATUS, label: t('filters.deleted') },
 ])
+/**
+ * Časové okno termínu — tie isté štyri pohľady, ktoré na dashboarde ukazujú
+ * dlaždice prehľadu. Podujatia sú jediný zdroj s termínom, inde by filter
+ * nemal čo triediť.
+ */
+const phaseOptions = computed<FilterOption[]>(() => props.resource === 'event'
+  ? [
+      { value: 'running', label: t('filters.phase.running') },
+      { value: 'today', label: t('filters.phase.today') },
+      { value: 'next7d', label: t('filters.phase.next7d') },
+      { value: 'active', label: t('filters.phase.active') },
+      { value: 'past', label: t('filters.phase.past') },
+    ]
+  : [])
+
 const sortOptions = computed<FilterOption[]>(() => {
   const opts: FilterOption[] = [
     { value: 'newest', label: t('filters.sort.newest') },
@@ -268,6 +262,7 @@ function filtersToQuery(): Record<string, string> {
   if (route.query.municipality) q['municipality'] = String(route.query.municipality)
   if (search.value) q['q'] = search.value
   if (statusFilter.value) q['status'] = statusFilter.value
+  if (phaseFilter.value) q['phase'] = phaseFilter.value
   if (sortFilter.value && sortFilter.value !== 'newest') q['sort'] = sortFilter.value
   if (dateFrom.value) q['from'] = dateFrom.value
   if (dateTo.value) q['to'] = dateTo.value
@@ -282,6 +277,7 @@ function filtersFromQuery() {
   const q = route.query
   search.value = typeof q.q === 'string' ? q.q : ''
   statusFilter.value = typeof q.status === 'string' ? q.status : ''
+  phaseFilter.value = typeof q.phase === 'string' ? q.phase : ''
   sortFilter.value = typeof q.sort === 'string' ? q.sort : 'newest'
   dateFrom.value = typeof q.from === 'string' ? q.from : ''
   dateTo.value = typeof q.to === 'string' ? q.to : ''
@@ -320,6 +316,7 @@ async function fetchPage(p: number) {
     } else if (statusFilter.value) {
       params['status'] = statusFilter.value
     }
+    if (phaseFilter.value) params['phase'] = phaseFilter.value
     if (sortFilter.value && sortFilter.value !== 'newest') params['sort'] = sortFilter.value
     if (dateFrom.value) params['date_from'] = dateFrom.value
     if (dateTo.value) params['date_to'] = dateTo.value
@@ -350,53 +347,11 @@ function setCanalFilter(item: ResourceItem) {
   load(1)
 }
 
-async function togglePublish(item: ResourceItem) {
-  // Smer určuje právo, nie published_at — publikované podujatie má `unpublish`,
-  // koncept `publish`. Endpoint je ten istý, líši sa len príznakom.
-  const publishing = !item.permissions?.unpublish
-  try {
-    await publishRequest(`${apiBase.value}/${item.id}/publish`, publishing)
-    toast.success(publishing ? t('common.published') : t('common.unpublished'))
-    load(page.value)
-  } catch (e) {
-    if (!isCancelled(e)) toast.error(serverMessage(e) ?? t('common.actionFailed'))
-  }
-}
-
-async function remove(id: number) {
-  if (!confirm(t('common.removeConfirm'))) return
-  try {
-    await http.delete(`${apiBase.value}/${id}`)
-    toast.success(t('common.removed'))
-    load(page.value)
-  } catch (e) {
-    // Backend vysvetľuje, prečo mazanie neprešlo (miesto používa podujatie,
-    // kanál má členov…). Generický fallback ostáva len pre výpadok siete.
-    toast.error(serverMessage(e) ?? t('common.removeFailed'))
-  }
-}
-
-async function restore(id: number) {
-  try {
-    await http.post(`${apiBase.value}/${id}/restore`)
-    toast.success(t('common.restored'))
-    load(page.value)
-  } catch { toast.error(t('common.restoreFailed')) }
-}
-
-async function duplicate(item: ResourceItem) {
-  try {
-    const { data } = await http.post(`${apiBase.value}/${item.id}/duplicate`)
-    const newId = (data.data ?? data).id
-    toast.success(t('events.copy.created'))
-    router.push(`${prefix.value}/${newId}/edit`)
-  } catch { toast.error(t('events.copy.failed')) }
-}
-
 // Reload when resource prop changes (router reuse)
 watch(() => props.resource, () => {
   search.value = ''
   statusFilter.value = ''
+  phaseFilter.value = ''
   sortFilter.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''

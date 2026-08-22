@@ -60,4 +60,54 @@ class DashboardCanalDestroyTest extends CanalSetupTest
 
         $this->assertNotSoftDeleted('canals', ['id' => $canal->id]);
     }
+
+    /**
+     * Archív mazanie neblokuje — blokuje ho história (podujatia, miesta, členovia).
+     * Prázdny archivovaný kanál si vlastník aj tak odomkol prepnutím stavu na
+     * koncept, takže zámok len pridával krok navyše. Viď CanalPolicy::delete().
+     */
+    #[Test]
+    public function archived_canal_without_dependencies_can_be_deleted(): void
+    {
+        $this->user->givePermissionTo('canal.delete');
+
+        $canal = Canal::factory()->inactive()->create(['status' => ModelStatus::Archived->value]);
+        $this->user->canals()->attach($canal->id, [
+            'is_owner' => true,
+            'role' => 'owner',
+            'status' => ModelStatus::Published->value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->deleteJson('/api/dashboard/canals/' . $canal->id)->assertStatus(204);
+
+        $this->assertSoftDeleted('canals', ['id' => $canal->id]);
+    }
+
+    /** Zámkom ostáva história — na archivovanom kanáli platí rovnako. */
+    #[Test]
+    public function archived_canal_with_an_event_still_cannot_be_deleted(): void
+    {
+        $this->user->givePermissionTo('canal.delete');
+
+        $canal = Canal::factory()->inactive()->create(['status' => ModelStatus::Archived->value]);
+        $this->user->canals()->attach($canal->id, [
+            'is_owner' => true,
+            'role' => 'owner',
+            'status' => ModelStatus::Published->value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'venue_id' => null,
+            'user_id' => User::factory()->create()->id,
+        ]);
+
+        $this->deleteJson('/api/dashboard/canals/' . $canal->id)->assertStatus(422);
+
+        $this->assertNotSoftDeleted('canals', ['id' => $canal->id]);
+    }
 }

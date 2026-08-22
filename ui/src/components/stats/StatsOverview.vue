@@ -6,10 +6,26 @@
     <template v-else-if="stats">
       <!-- Aktuálny stav: čo práve beží, nie čo pribudlo. -->
       <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile :label="t('stats.now.activeEvents')" :value="totals.events.active" :to="link('events')" />
-        <StatTile :label="t('stats.now.running')" :value="totals.events.running" :to="link('events')" />
-        <StatTile :label="t('stats.now.today')" :value="totals.events.today" :to="link('events')" />
-        <StatTile :label="t('stats.now.next7d')" :value="totals.events.next7d" :to="link('events')" />
+        <StatTile
+          :label="t('stats.now.activeEvents')"
+          :value="totals.events.active"
+          :to="link('events', { status: 'published', phase: 'active', sort: 'upcoming' })"
+        />
+        <StatTile
+          :label="t('stats.now.running')"
+          :value="totals.events.running"
+          :to="link('events', { status: 'published', phase: 'running', sort: 'upcoming' })"
+        />
+        <StatTile
+          :label="t('stats.now.today')"
+          :value="totals.events.today"
+          :to="link('events', { phase: 'today', sort: 'upcoming' })"
+        />
+        <StatTile
+          :label="t('stats.now.next7d')"
+          :value="totals.events.next7d"
+          :to="link('events', { phase: 'next7d', sort: 'upcoming' })"
+        />
       </section>
 
       <!-- Vyžaduje pozornosť -->
@@ -414,9 +430,16 @@ const generatedLabel = computed(() => {
   return at ? fmtTime(new Date(at)) : '—'
 })
 
-/** Rovnaké stránky žijú pod /dashboard aj /admin — cieľ sa líši len prefixom. */
-function link(path: string): string {
-  return `/${props.scope}/${path}`
+/**
+ * Rovnaké stránky žijú pod /dashboard aj /admin — cieľ sa líši len prefixom.
+ * Filtre sa pridávajú ako query, aby výpis po kliknutí ukázal presne tie
+ * záznamy, ktoré sa do čísla rátali.
+ */
+function link(path: string, query: Record<string, string> = {}): string {
+  const target = `/${props.scope}/${path}`
+  const params = new URLSearchParams(query).toString()
+
+  return params ? `${target}${target.includes('?') ? '&' : '?'}${params}` : target
 }
 
 function startLabel(startAt: string | null): string {

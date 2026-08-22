@@ -373,9 +373,9 @@ class Detector
      * Prepíše surový zoškrabaný text do HTML popisu cez copywritera.
      *
      * Extraktor vracia jeden zlepený riadok bez formátovania — v „AI verzii"
-     * potom nie sú odstavce ani zvýraznenia. Zlyhanie copywritera (krátky
-     * text, príliš dlhý vstup, výpadok OpenAI) nie je fatálne: volajúci má
-     * fallback na surový text.
+     * potom nie sú odstavce ani zvýraznenia. Zlyhanie copywritera (krátky text,
+     * výpadok OpenAI) nie je fatálne: volajúci má fallback na surový text.
+     * Dlhý text zlyhaním nie je — ten si copywriter rozdelí na časti sám.
      */
     private function rewriteAsHtml(string $text): ?string
     {

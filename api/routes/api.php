@@ -344,6 +344,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/{event}/publish', [DashboardEventController::class, 'publish'])
         ->name('events.publish')
         ->middleware('permission:event.update');
+    Route::post('events/{event}/unarchive', [DashboardEventController::class, 'unarchive'])
+        ->name('events.unarchive')
+        ->middleware('permission:event.update');
     Route::post('events/{event}/duplicate', [DashboardEventController::class, 'duplicate'])
         ->name('events.duplicate')
         ->middleware('permission:event.create');
@@ -454,6 +457,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
         ->name('venues.detect')
         ->middleware(['permission:venue.create', 'throttle:ai']);
+    Route::post('venues/geocode', [DashboardVenueController::class, 'geocode'])
+        ->name('venues.geocode')
+        ->middleware(['permission:venue.view', 'throttle:60,1']);
     Route::get('venues/municipalities-overview', [DashboardVenueController::class, 'municipalitiesOverview'])
         ->name('venues.municipalities.overview')
         ->middleware('permission:venue.view');
@@ -574,6 +580,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('events/{event}/publish', [AdminEventController::class, 'publish'])
         ->name('events.publish')
         ->middleware('permission:event.update');
+    Route::post('events/{event}/unarchive', [AdminEventController::class, 'unarchive'])
+        ->name('events.unarchive')
+        ->middleware('permission:event.update');
     Route::post('events/{event}/duplicate', [AdminEventController::class, 'duplicate'])
         ->name('events.duplicate')
         ->middleware('permission:event.create');
@@ -641,6 +650,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('venues/detect', [AdminVenueController::class, 'detect'])
         ->name('venues.detect')
         ->middleware(['permission:venue.create', 'throttle:ai']);
+    Route::post('venues/geocode', [AdminVenueController::class, 'geocode'])
+        ->name('venues.geocode')
+        ->middleware(['permission:venue.view', 'throttle:60,1']);
     Route::get('venues/municipalities-overview', [AdminVenueController::class, 'municipalitiesOverview'])
         ->name('venues.municipalities.overview')
         ->middleware('permission:venue.view');

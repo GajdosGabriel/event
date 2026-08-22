@@ -127,6 +127,17 @@ class EventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
+    /** Viď DashboardEventController::unarchive() — rovnaké pravidlo. */
+    public function unarchive(string $id): JsonResponse
+    {
+        $event = $this->eventRepository->adminShow($id);
+        $this->authorize('unarchive', $event);
+
+        $event = $this->eventRepository->publish($id, false);
+
+        return response()->json(new EventResource($event), 200);
+    }
+
     public function duplicate(string $id, Request $request): JsonResponse
     {
         $event = $this->eventRepository->adminShow($id);

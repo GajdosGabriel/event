@@ -10,43 +10,43 @@
       </RouterLink>
 
       <nav class="aside-nav">
-        <RouterLink to="/admin/events" class="aside-link" active-class="active" :title="collapsed ? t('nav.events') : undefined">
+        <RouterLink to="/admin/events" class="aside-link" :class="{ active: inSection('/admin/events') }" :title="collapsed ? t('nav.events') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span class="nav-label">{{ t('nav.events') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/canals" class="aside-link" active-class="active" :title="collapsed ? t('nav.canals') : undefined">
+        <RouterLink to="/admin/canals" class="aside-link" :class="{ active: inSection('/admin/canals') }" :title="collapsed ? t('nav.canals') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
           <span class="nav-label">{{ t('nav.canals') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/venues" class="aside-link" active-class="active" :title="collapsed ? t('nav.venues') : undefined">
+        <RouterLink to="/admin/venues" class="aside-link" :class="{ active: inSection('/admin/venues') }" :title="collapsed ? t('nav.venues') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
           <span class="nav-label">{{ t('nav.venues') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/organizations" class="aside-link" active-class="active" :title="collapsed ? t('nav.organizations') : undefined">
+        <RouterLink to="/admin/organizations" class="aside-link" :class="{ active: inSection('/admin/organizations') }" :title="collapsed ? t('nav.organizations') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
           <span class="nav-label">{{ t('nav.organizations') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/municipalities" class="aside-link" active-class="active" :title="collapsed ? t('nav.municipalities') : undefined">
+        <RouterLink to="/admin/municipalities" class="aside-link" :class="{ active: inSection('/admin/municipalities') }" :title="collapsed ? t('nav.municipalities') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           <span class="nav-label">{{ t('nav.municipalities') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/oznamy" class="aside-link" active-class="active" :title="collapsed ? t('nav.announcements') : undefined">
+        <RouterLink to="/admin/oznamy" class="aside-link" :class="{ active: inSection('/admin/oznamy') }" :title="collapsed ? t('nav.announcements') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11v2a1 1 0 001 1h2l4 4V6L6 10H4a1 1 0 00-1 1zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg>
           <span class="nav-label">{{ t('nav.announcements') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/users" class="aside-link" active-class="active" :title="collapsed ? t('nav.users') : undefined">
+        <RouterLink to="/admin/users" class="aside-link" :class="{ active: inSection('/admin/users') }" :title="collapsed ? t('nav.users') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           <span class="nav-label">{{ t('nav.users') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/files" class="aside-link" active-class="active" :title="collapsed ? t('nav.files') : undefined">
+        <RouterLink to="/admin/files" class="aside-link" :class="{ active: inSection('/admin/files') }" :title="collapsed ? t('nav.files') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           <span class="nav-label">{{ t('nav.files') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/tools" class="aside-link" active-class="active" :title="collapsed ? t('nav.tools') : undefined">
+        <RouterLink to="/admin/tools" class="aside-link" :class="{ active: inSection('/admin/tools') }" :title="collapsed ? t('nav.tools') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14.121 14.121L19 19M10 7a3 3 0 100 6 3 3 0 000-6z"/></svg>
           <span class="nav-label">{{ t('nav.tools') }}</span>
         </RouterLink>
-        <RouterLink to="/admin/settings" class="aside-link" active-class="active" :title="collapsed ? t('nav.settings') : undefined">
+        <RouterLink to="/admin/settings" class="aside-link" :class="{ active: inSection('/admin/settings') }" :title="collapsed ? t('nav.settings') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
           <span class="nav-label">{{ t('nav.settings') }}</span>
         </RouterLink>
@@ -111,6 +111,13 @@ const collapsed = ref(localStorage.getItem(STORAGE_KEY) === '1')
 function toggle() {
   collapsed.value = !collapsed.value
   localStorage.setItem(STORAGE_KEY, collapsed.value ? '1' : '0')
+}
+
+// Položka menu ostáva zvýraznená aj na detailoch a podstránkach sekcie
+// (napr. /dashboard/events/12/edit). RouterLink si to sám neodvodí, lebo
+// detailné routy sú súrodenci indexu, nie jeho potomkovia.
+function inSection(prefix: string): boolean {
+  return route.path === prefix || route.path.startsWith(prefix + '/')
 }
 
 const MUN_RESOURCES = ['events', 'canals', 'venues']

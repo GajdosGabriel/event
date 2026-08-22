@@ -63,6 +63,7 @@ class IndexFilterRequest extends FormRequest
             'sort' => ['nullable', 'in:newest,oldest,name,upcoming'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'phase' => ['nullable', 'in:active,running,today,next7d,past'],
         ];
     }
 
@@ -81,6 +82,7 @@ class IndexFilterRequest extends FormRequest
             'sort' => $this->input('sort'),
             'date_from' => $this->input('date_from'),
             'date_to' => $this->input('date_to'),
+            'phase' => $this->input('phase'),
         ];
     }
 

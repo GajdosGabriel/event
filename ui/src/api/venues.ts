@@ -1,6 +1,6 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import type { VenueItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
+import type { VenueItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem, CoordinatesSource } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
 
@@ -36,6 +36,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     updatedAt: (raw['updated_at'] as string) ?? '',
     uploadedFiles: (raw['uploaded_files'] as VenueItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as VenueItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
+    deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     allowedStatuses: (raw['allowed_statuses'] as VenueItem['allowedStatuses']) ?? [],
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
     canalsList: ((raw['canals_list'] as Record<string,unknown>[]) ?? []).map(c => ({ id: c['id'] as number, name: c['name'] as string, isOwner: c['is_owner'] as boolean })),
@@ -94,6 +95,27 @@ export async function detectVenue(
 ): Promise<Record<string, unknown>> {
   const { data } = await http.post('/dashboard/venues/detect', { name, city, country })
   return data as Record<string, unknown>
+}
+
+export interface AddressGeocodeResult {
+  latitude: number | null
+  longitude: number | null
+  /** 'address' = presná adresa, 'municipality' = stred obce, null = nenájdené. */
+  source: CoordinatesSource | null
+  city: string | null
+  postcode: string | null
+}
+
+/**
+ * Poloha z rozpísanej adresy — mapa v editore miesta skočí na obec hneď po jej
+ * výbere a spresní sa, keď pribudne ulica s číslom.
+ */
+export async function geocodeVenueAddress(
+  scope: Scope,
+  payload: { village_id: number; street?: string | null; postcode?: string | null; country?: string | null },
+): Promise<AddressGeocodeResult> {
+  const { data } = await http.post(`${baseUrl(scope)}/geocode`, payload)
+  return data as AddressGeocodeResult
 }
 
 export interface VenueEventItem {

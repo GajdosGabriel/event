@@ -126,6 +126,22 @@ class DashboardEventController extends Controller
         return response()->json(new EventResource($event), 200);
     }
 
+    /**
+     * Odomkne archivované podujatie späť do konceptu — viď EventPolicy::unarchive().
+     * Ide o presný opak publikovania, preto repozitár nedostáva vlastnú metódu:
+     * publish(false) robí presne to, čo treba (koncept + zhodené published_at
+     * aj publish_at).
+     */
+    public function unarchive(string $id): JsonResponse
+    {
+        $event = $this->eventRepository->dashboardShow($id);
+        $this->authorize('unarchive', $event);
+
+        $event = $this->eventRepository->publish($id, false);
+
+        return response()->json(new EventResource($event), 200);
+    }
+
     public function duplicate(string $id, Request $request): JsonResponse
     {
         $event = $this->eventRepository->dashboardShow($id);

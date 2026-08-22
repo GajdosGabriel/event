@@ -58,6 +58,15 @@ class CanalResource extends JsonResource
             ];
         }
 
+        // Fakturačná identita kanála. Osobný kanál žiadnu nemá, preto sa kľúč
+        // pridáva len keď vzťah naozaj sedí.
+        if ($this->relationLoaded('organization') && $this->organization) {
+            $data['organization'] = [
+                'id' => $this->organization->id,
+                'name' => $this->organization->title,
+            ];
+        }
+
         if ($this->relationLoaded('venues')) {
             $data['venues_list'] = $this->venues->map(fn ($v) => [
                 'id' => $v->id,

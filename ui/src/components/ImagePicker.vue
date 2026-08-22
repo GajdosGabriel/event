@@ -1,30 +1,5 @@
 <template>
   <div class="picker">
-    <!-- Drop zone / trigger -->
-    <div
-      class="drop-zone"
-      :class="{ 'drag-over': dragging }"
-      @click="input?.click()"
-      @dragover.prevent="dragging = true"
-      @dragleave.prevent="dragging = false"
-      @drop.prevent="onDrop"
-    >
-      <svg class="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-      </svg>
-      <span class="text-sm text-slate-500">{{ t('media.picker.drop') }}</span>
-      <span class="text-xs text-slate-400">{{ t('media.picker.formats') }}</span>
-    </div>
-
-    <input
-      ref="input"
-      type="file"
-      :accept="UPLOAD_ACCEPT"
-      multiple
-      class="hidden"
-      @change="onFileInput"
-    />
-
     <!-- Previews -->
     <div v-if="items.length" class="previews">
       <div v-for="(item, i) in items" :key="item.preview || item.file.name" class="preview-item">
@@ -42,6 +17,31 @@
         <span class="preview-name">{{ item.file.name }}</span>
       </div>
     </div>
+    <!-- Drop zone / trigger -->
+    <div
+      class="drop-zone"
+      :class="{ 'drag-over': dragging }"
+      @click="input?.click()"
+      @dragover.prevent="dragging = true"
+      @dragleave.prevent="dragging = false"
+      @drop.prevent="onDrop"
+    >
+      <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+      </svg>
+      <span class="text-sm text-slate-500">{{ t('media.picker.drop') }}</span>
+      <span class="text-xs text-slate-400">{{ t('media.picker.formats') }}</span>
+    </div>
+
+    <input
+      ref="input"
+      type="file"
+      :accept="UPLOAD_ACCEPT"
+      multiple
+      class="hidden"
+      @change="onFileInput"
+    />
+
   </div>
 </template>
 
@@ -100,7 +100,7 @@ defineExpose({
 .picker { @apply flex flex-col gap-3; }
 
 .drop-zone {
-  @apply flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-8 transition-colors hover:border-blue-400 hover:bg-blue-50;
+  @apply flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-4 transition-colors hover:border-blue-400 hover:bg-blue-50;
 }
 .drag-over { @apply border-blue-500 bg-blue-50; }
 

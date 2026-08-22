@@ -5,11 +5,9 @@ namespace App\Policies;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\User;
-use App\Policies\Traits\DeniesArchivedUpdate;
 
 class CanalPolicy
 {
-    use DeniesArchivedUpdate;
     /**
      * Determine whether the user can view any models.
      */
@@ -35,11 +33,8 @@ class CanalPolicy
     }
 
     /**
-     * Determine whether the user can update the model.
-     */
-    /**
-     * Archivovaný kanál sa editovať smie — archív je zámok proti mazaniu, nie
-     * proti oprave. Viď rovnaký komentár vo VenuePolicy::update().
+     * Archivovaný kanál sa editovať smie — archív znamená „mimo prevádzky", nie
+     * „nedotknuteľné". Viď rovnaký komentár vo VenuePolicy::update().
      */
     public function update(User $user, Canal $canal): bool
     {
@@ -68,13 +63,18 @@ class CanalPolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Stavový zámok: mazať sa dá len to, čo nie je vonku (`published`).
+     *
+     * Archivované sa nekontroluje — kanál s podujatiami, miestami či členmi drží
+     * referenčný zámok bez ohľadu na stav, a prázdny archivovaný kanál si
+     * vlastník aj tak odomkol prepnutím stavu na koncept. Viď
+     * VenuePolicy::delete(), platí to isté.
+     *
+     * Referenčný zámok tu nie je zámerne — patrí do modelu a odchádza ako 422.
      */
     public function delete(User $user, Canal $canal): bool
     {
-        // Referenčný zámok tu nie je zámerne — viď VenuePolicy::delete().
-        return $this->isNotArchived($canal)
-            && $canal->status !== ModelStatus::Published
+        return $canal->status !== ModelStatus::Published
             && $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
@@ -103,8 +103,14 @@ class CanalPolicy
         return $user->canInCanal((int) $canal->id, 'canal.view');
     }
 
+    /**
+     * Ani tu sa archív nekontroluje — je to rovnaký mäkký zámok ako pri mazaní
+     * (obišiel ho jeden prepnutý stav) a archív pri kanáli znamená „mimo
+     * prevádzky", nie zmrazený záznam. Vyradený kanál sa aj tak dá vrátiť medzi
+     * koncepty a tím v ňom upratať; zamykať to len o krok skôr nič nechránilo.
+     */
     public function manageTeam(User $user, Canal $canal): bool
     {
-        return $this->isNotArchived($canal) && $user->canInCanal((int) $canal->id, 'canal.team');
+        return $user->canInCanal((int) $canal->id, 'canal.team');
     }
 }

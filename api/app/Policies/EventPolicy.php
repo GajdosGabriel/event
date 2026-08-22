@@ -64,6 +64,30 @@ class EventPolicy
     }
 
     /**
+     * Archivované podujatie späť do konceptu.
+     *
+     * Archivácia beží automaticky desať minút po `end_at`
+     * (app:events-archive-finished), takže preklep v roku zamkne podujatie skôr,
+     * než si ho niekto všimne — a update, delete aj unpublish sú archivovanému
+     * zakázané. Bez tejto cesty by organizátorovi ostalo len duplikovať
+     * a vypĺňať odznova.
+     *
+     * Vracia sa do konceptu, nie späť medzi publikované: z verejného výpisu tým
+     * zmizne, nič sa spätne neprepisuje a von ide normálnou cestou cez publish()
+     * aj s jej kontrolami.
+     *
+     * Zámkom je história, nie čas. Podujatie s vydanými lístkami sa neodomyká —
+     * koncept verejnosť nevidí (404) a držiteľom lístkov by zmizol detail akcie,
+     * na ktorú prišli. Podujatie bez lístkov nedrží nič, čo by sa dalo pokaziť.
+     */
+    public function unarchive(User $user, Event $event): bool
+    {
+        return $event->status === ModelStatus::Archived
+            && $user->canInCanal((int) $event->canal_id, 'event.update')
+            && ! $event->tickets()->exists();
+    }
+
+    /**
      * Determine whether the user can create a new draft event based on this one.
      * Intentionally does NOT check isNotArchived() — duplicating an archived event
      * is the whole point (it's the "edit" replacement once an event is locked).
