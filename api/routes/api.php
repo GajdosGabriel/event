@@ -28,6 +28,7 @@ use App\Http\Controllers\Dashboard\DashboardTicketController;
 use App\Http\Controllers\Dashboard\DashboardTicketTypeController;
 use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
+use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
 use App\Http\Controllers\Public\AnnouncementController as PublicAnnouncementController;
@@ -260,6 +261,13 @@ Route::apiResources([
 Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
     Route::get('municipalities/all', [DashboardMunicipalityController::class, 'all']);
+
+    // Poloha z rozpísanej adresy — spoločné pre editor miesta aj kanála. Bez
+    // `permission:` middlewaru: ide o dopyt na verejný geokóder, nie o dáta
+    // záznamu, takže právo k miestu ani ku kanálu tu nedáva zmysel.
+    Route::post('geocode', GeocodeController::class)
+        ->name('geocode')
+        ->middleware('throttle:60,1');
     Route::get('canals/municipalities-overview', [DashboardCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');
@@ -457,7 +465,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
         ->name('venues.detect')
         ->middleware(['permission:venue.create', 'throttle:ai']);
-    Route::post('venues/geocode', [DashboardVenueController::class, 'geocode'])
+    // Alias na `dashboard/geocode` — editor miesta ho volal ešte predtým, než
+    // adresu dostal aj kanál a endpoint sa osamostatnil.
+    Route::post('venues/geocode', GeocodeController::class)
         ->name('venues.geocode')
         ->middleware(['permission:venue.view', 'throttle:60,1']);
     Route::get('venues/municipalities-overview', [DashboardVenueController::class, 'municipalitiesOverview'])
@@ -524,6 +534,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
 Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('home');
     Route::get('municipalities/all', [AdminMunicipalityController::class, 'all']);
+    Route::post('geocode', GeocodeController::class)
+        ->name('geocode')
+        ->middleware('throttle:60,1');
     // Podklad na rozšírenie číselníka štítkov (číselník sám je v TagSeeder-i).
     Route::get('tag-suggestions', [AdminTagSuggestionController::class, 'index'])->name('tag-suggestions.index');
     Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
@@ -650,7 +663,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('venues/detect', [AdminVenueController::class, 'detect'])
         ->name('venues.detect')
         ->middleware(['permission:venue.create', 'throttle:ai']);
-    Route::post('venues/geocode', [AdminVenueController::class, 'geocode'])
+    Route::post('venues/geocode', GeocodeController::class)
         ->name('venues.geocode')
         ->middleware(['permission:venue.view', 'throttle:60,1']);
     Route::get('venues/municipalities-overview', [AdminVenueController::class, 'municipalitiesOverview'])

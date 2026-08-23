@@ -62,27 +62,7 @@
           </div>
         </fieldset>
 
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('venues.sections.address') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.street" :label="t('venues.fields.street')" :error="errors.street" :placeholder="t('venues.fields.streetPlaceholder')" class="lg:col-span-2" />
-            <FormField v-model="form.village_id" :label="t('venues.fields.village')" required :error="errors.village_id">
-              <template #default="{ value, invalid, update }">
-                <SearchableSelect
-                  :model-value="value ?? null"
-                  :options="municipalities"
-                  :placeholder="t('venues.fields.villagePlaceholder')"
-                  :invalid="invalid"
-                  @update:model-value="update"
-                />
-              </template>
-            </FormField>
-            <FormField v-model="form.postcode" :label="t('venues.fields.postcode')" :error="errors.postcode" />
-            <FormField v-model="form.country" :label="t('venues.fields.country')" :error="errors.country" :placeholder="t('venues.fields.countryPlaceholder')" class="lg:col-span-2" />
-            <FormField v-model="form.latitude" type="number" :label="t('venues.fields.latitude')" step="any" :error="errors.latitude" />
-            <FormField v-model="form.longitude" type="number" :label="t('venues.fields.longitude')" step="any" :error="errors.longitude" />
-          </div>
-        </fieldset>
+        <AddressFieldset ref="addressFields" v-model="address" :scope="scope" :errors="errors" municipality-key="village_id" />
 
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('venues.sections.contact') }}</legend>
@@ -107,21 +87,7 @@
     </div>
 
     <div class="edit-card grid gap-6">
-      <div>
-        <h2 class="mb-2 text-lg font-semibold text-slate-800">{{ t('venues.sections.location') }}</h2>
-        <VenueMapPicker
-          :lat="form.latitude"
-          :lng="form.longitude"
-          :source="form.coordinates_source"
-          @update:lat="form.latitude = $event"
-          @update:lng="form.longitude = $event"
-          @update:source="form.coordinates_source = $event"
-        />
-        <div class="mt-2 grid grid-cols-2 gap-2">
-          <FormField v-model="form.latitude" type="number" :label="t('venues.fields.lat')" step="any" class="text-xs" />
-          <FormField v-model="form.longitude" type="number" :label="t('venues.fields.lng')" step="any" class="text-xs" />
-        </div>
-      </div>
+      <AddressMapField v-model="address" />
 
       <div>
         <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('venues.sections.images') }}</h2>
@@ -135,7 +101,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showVenue, createVenue, updateVenue, detectVenue, geocodeVenueAddress } from '@/api/venues'
+import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
+import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'
 import type { CoordinatesSource } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
@@ -145,12 +112,12 @@ import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AddressFieldset from '@/components/AddressFieldset.vue'
+import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
-import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
-import VenueMapPicker from '@/components/VenueMapPicker.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -165,20 +132,13 @@ const fileableId = computed(() => route.params.id ? Number(route.params.id) : sa
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const auth = useAuthStore()
-const { municipalities, canals, loadMunicipalities, loadCanals } = useFormOptions(scope.value)
+const { canals, loadCanals } = useFormOptions(scope.value)
 
 const validation = provideFormValidation()
 
 const form = ref({
   name: '',
   canal_id: null as number | null,
-  village_id: null as number | null,
-  street: '',
-  postcode: '',
-  country: '',
-  latitude: null as number | null,
-  longitude: null as number | null,
-  coordinates_source: null as CoordinatesSource | null,
   capacity: null as number | null,
   category: '',
   website: '',
@@ -187,6 +147,11 @@ const form = ref({
   body: '',
   status: 'draft',
 })
+
+// Adresa aj poloha žijú v AddressFieldset / AddressMapField — vrátane PSČ z
+// číselníka a geokódera. Rovnaký kus formulára má aj editor kanála.
+const address = ref(emptyAddress())
+const addressFields = ref<InstanceType<typeof AddressFieldset> | null>(null)
 
 const errors = ref<Record<string, string>>({})
 
@@ -209,43 +174,6 @@ watch(canals, (list) => {
     form.value.canal_id = list[0].id
   }
 })
-
-// Adresa riadi mapu. Kým sa načítava uložené miesto, watcher spí — inak by
-// geokóder prepísal presné súradnice hneď po otvorení formulára.
-const addressLive = ref(false)
-let geocodeTimer: ReturnType<typeof setTimeout> | null = null
-
-/** PSČ obce je v číselníku, takže sa nemusí ťukať ručne. Vyplnené pole
- *  prepíšeme len vtedy, keď v ňom sedí PSČ predošlej obce. */
-watch(() => form.value.village_id, (id, prev) => {
-  const zip = municipalities.value.find(m => m.id === id)?.zip ?? null
-  if (!zip) return
-  const prevZip = prev != null ? (municipalities.value.find(m => m.id === prev)?.zip ?? null) : null
-  if (!form.value.postcode || form.value.postcode === prevZip) form.value.postcode = zip
-})
-
-watch([() => form.value.village_id, () => form.value.street], () => {
-  if (!addressLive.value) return
-  if (geocodeTimer) clearTimeout(geocodeTimer)
-  geocodeTimer = setTimeout(runGeocode, 600)
-})
-
-async function runGeocode() {
-  const villageId = form.value.village_id
-  if (!villageId) return
-  try {
-    const res = await geocodeVenueAddress(scope.value, {
-      village_id: villageId,
-      street: form.value.street || null,
-      postcode: form.value.postcode || null,
-      country: form.value.country || null,
-    })
-    if (res.latitude == null || res.longitude == null) return
-    form.value.latitude = res.latitude
-    form.value.longitude = res.longitude
-    form.value.coordinates_source = res.source
-  } catch { /* mapa ostane, kde bola — geokóder nesmie zhodiť formulár */ }
-}
 
 const detectOpen = ref(false)
 const detecting = ref(false)
@@ -283,23 +211,30 @@ function applyDetect() {
   const p = detectResult.value?.['venue_store_payload'] as Record<string, unknown> | undefined
   if (!p) return
   if (p['name']) form.value.name = p['name'] as string
-  if (p['street']) form.value.street = p['street'] as string
-  if (p['postcode']) form.value.postcode = p['postcode'] as string
-  if (p['country']) form.value.country = p['country'] as string
-  if (p['latitude'] != null) form.value.latitude = p['latitude'] as number
-  if (p['longitude'] != null) form.value.longitude = p['longitude'] as number
-  form.value.coordinates_source = (p['coordinates_source'] as CoordinatesSource) ?? null
   if (p['website']) form.value.website = p['website'] as string
   if (p['email']) form.value.email = p['email'] as string
   if (p['phone']) form.value.phone = p['phone'] as string
   if (p['body']) form.value.body = p['body'] as string
-  if (p['village_id'] != null) form.value.village_id = p['village_id'] as number
+  address.value = {
+    municipalityId: (p['village_id'] as number) ?? address.value.municipalityId,
+    street: (p['street'] as string) || address.value.street,
+    postcode: (p['postcode'] as string) || address.value.postcode,
+    country: (p['country'] as string) || address.value.country,
+    latitude: (p['latitude'] as number) ?? address.value.latitude,
+    longitude: (p['longitude'] as number) ?? address.value.longitude,
+    coordinatesSource: (p['coordinates_source'] as CoordinatesSource) ?? null,
+  }
   detectOpen.value = false
   toast.success(t('venues.detect.applied'))
+
+  // Detekcia obec a ulicu nájde častejšie než súradnice. Keď mapa ostane
+  // prázdna, dotiahne ju geokóder z práve doplnenej adresy.
+  if (address.value.latitude == null || address.value.longitude == null) {
+    addressFields.value?.geocode()
+  }
 }
 
 onMounted(async () => {
-  loadMunicipalities()
   loadCanals()
   if (!isCreate.value) {
     try {
@@ -307,13 +242,6 @@ onMounted(async () => {
       form.value = {
         name: v.name,
         canal_id: v.canalId ?? null,
-        village_id: v.villageId ?? null,
-        street: v.street ?? '',
-        postcode: v.postcode ?? '',
-        country: v.country ?? '',
-        latitude: v.latitude ?? null,
-        longitude: v.longitude ?? null,
-        coordinates_source: v.coordinatesSource ?? null,
         capacity: v.capacity ?? null,
         category: v.category ?? '',
         website: v.website ?? '',
@@ -322,18 +250,22 @@ onMounted(async () => {
         body: v.body ?? '',
         status: v.status,
       }
+      address.value = addressFrom(v)
       applyWebsiteIssue(v)
     } catch { serverError.value = t('venues.form.loadFailed') }
   }
-  addressLive.value = true
 })
+
+function payload(): Record<string, unknown> {
+  return { ...form.value, ...toAddressPayload(address.value, 'village_id') }
+}
 
 async function submit() {
   validation.markValidated()
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {
-      const v = await createVenue(form.value as Record<string, unknown>, scope.value)
+      const v = await createVenue(payload(), scope.value)
       savedId.value = v.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
@@ -346,7 +278,7 @@ async function submit() {
       toast.success(t('venues.form.created'))
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
-      await updateVenue(Number(route.params.id), form.value as Record<string, unknown>, scope.value)
+      await updateVenue(Number(route.params.id), payload(), scope.value)
       toast.success(t('venues.form.saved'))
     }
   } catch (e: unknown) {

@@ -20,22 +20,13 @@
               <option value="published">{{ t('canals.statuses.published') }}</option>
               <option value="archived">{{ t('canals.statuses.archived') }}</option>
             </FormField>
-            <FormField v-model="form.municipality_id" :label="t('canals.fields.municipality')" required :error="errors.municipality_id">
-              <template #default="{ value, invalid, update }">
-                <SearchableSelect
-                  :model-value="value ?? null"
-                  :options="municipalities"
-                  :placeholder="t('canals.fields.municipalityPlaceholder')"
-                  :invalid="invalid"
-                  @update:model-value="update"
-                />
-              </template>
-            </FormField>
             <FormField :label="t('canals.fields.description')" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
             </FormField>
           </div>
         </fieldset>
+
+        <AddressFieldset v-model="address" :scope="scope" :errors="errors" municipality-key="municipality_id" />
 
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('canals.sections.contact') }}</legend>
@@ -60,22 +51,7 @@
     </div>
 
     <div class="edit-card grid gap-6">
-      <div>
-        <h2 class="mb-2 text-lg font-semibold text-slate-800">{{ t('canals.sections.location') }}</h2>
-        <p class="mb-2 text-xs text-slate-500">
-          {{ t('canals.locationHint') }}
-        </p>
-        <VenueMapPicker
-          :lat="form.latitude"
-          :lng="form.longitude"
-          @update:lat="form.latitude = $event"
-          @update:lng="form.longitude = $event"
-        />
-        <div class="mt-2 grid grid-cols-2 gap-2">
-          <FormField v-model="form.latitude" type="number" :label="t('canals.fields.lat')" step="any" class="text-xs" />
-          <FormField v-model="form.longitude" type="number" :label="t('canals.fields.lng')" step="any" class="text-xs" />
-        </div>
-      </div>
+      <AddressMapField v-model="address" />
 
       <div>
         <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('canals.sections.images') }}</h2>
@@ -89,6 +65,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'
 import { showCanal, createCanal, updateCanal } from '@/api/canals'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
@@ -97,12 +74,12 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AddressFieldset from '@/components/AddressFieldset.vue'
+import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
-import SearchableSelect from '@/components/SearchableSelect.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
-import VenueMapPicker from '@/components/VenueMapPicker.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -118,7 +95,7 @@ const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
-const { municipalities, loadMunicipalities, canalIdentityModes, loadCanalIdentityModes } = useFormOptions(scope.value)
+const { canalIdentityModes, loadCanalIdentityModes } = useFormOptions(scope.value)
 
 const validation = provideFormValidation()
 
@@ -131,14 +108,15 @@ const form = ref({
   // Nový kanál je koncept — publikuje sa až vtedy, keď ho niekto naozaj chce
   // mať vonku (alebo automaticky s prvým publikovaným podujatím).
   status: 'draft',
-  municipality_id: null as number | null,
   email: '',
   phone: '',
   website: '',
-  latitude: null as number | null,
-  longitude: null as number | null,
   body: '',
 })
+
+// Adresa sídla kanála. Rovnaký tvar aj rovnaký editor ako pri mieste — vrátane
+// PSČ z číselníka a polohy, ktorá ide za adresou.
+const address = ref(emptyAddress())
 
 const errors = ref<Record<string, string>>({})
 
@@ -159,7 +137,6 @@ async function reloadWebsiteIssue() {
 }
 
 onMounted(async () => {
-  loadMunicipalities()
   loadCanalIdentityModes()
   if (!isCreate.value) {
     try {
@@ -170,25 +147,27 @@ onMounted(async () => {
         title_suffix: c.titleSuffix ?? '',
         identity_mode: c.identityMode ?? 'organization',
         status: c.status ?? 'draft',
-        municipality_id: c.municipalityId ?? null,
         email: c.email ?? '',
         phone: c.phone ?? '',
         website: c.website ?? '',
-        latitude: c.latitude ?? null,
-        longitude: c.longitude ?? null,
         body: c.body ?? '',
       }
+      address.value = addressFrom(c)
       applyWebsiteIssue(c)
     } catch { serverError.value = t('canals.form.loadFailed') }
   }
 })
+
+function payload() {
+  return { ...form.value, ...toAddressPayload(address.value, 'municipality_id') }
+}
 
 async function submit() {
   validation.markValidated()
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {
-      const c = await createCanal(form.value, scope.value)
+      const c = await createCanal(payload(), scope.value)
       savedId.value = c.id
       const pending = picker.value?.files ?? []
       if (pending.length) {
@@ -202,7 +181,7 @@ async function submit() {
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
-      await updateCanal(Number(route.params.id), form.value, scope.value)
+      await updateCanal(Number(route.params.id), payload(), scope.value)
       toast.success(t('canals.form.saved'))
       await reloadWebsiteIssue()
     }

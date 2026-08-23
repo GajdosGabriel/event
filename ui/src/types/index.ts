@@ -293,8 +293,13 @@ export interface CanalItem {
   publishedAt: string | null
   status: ModelStatus
   website: string | null
+  street: string | null
+  postcode: string | null
+  country: string | null
   latitude: number | null
   longitude: number | null
+  /** Odkiaľ sú súradnice: budova / adresa / odhad AI / stred obce / ručne. */
+  coordinatesSource: CoordinatesSource | null
   deletedAt: string | null
   createdAt: string
   updatedAt: string
@@ -319,6 +324,24 @@ export interface CanalItem {
  * vedieť, ktorý prípad vidí.
  */
 export type CoordinatesSource = 'venue' | 'address' | 'ai' | 'municipality' | 'manual'
+
+/**
+ * Adresa v editore — jeden tvar pre miesto aj kanál, aby ju vedel obslúžiť
+ * jeden komponent (AddressFieldset + AddressMapField).
+ *
+ * Kľúč obce je zámerne `municipalityId`: tak sa volá číselník aj stĺpec v
+ * kanáloch. Miesto ho má v DB ako `village_id` — premenuje sa až tesne pred
+ * odoslaním, viď `toAddressPayload()`.
+ */
+export interface AddressModel {
+  municipalityId: number | null
+  street: string
+  postcode: string
+  country: string
+  latitude: number | null
+  longitude: number | null
+  coordinatesSource: CoordinatesSource | null
+}
 
 export interface VenueItem {
   id: number

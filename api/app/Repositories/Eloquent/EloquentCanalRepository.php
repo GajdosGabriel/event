@@ -151,13 +151,22 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         }
 
         $city = $this->resolveMunicipalityName($canal->municipality_id);
+        $country = trim((string) $canal->country) !== '' ? $canal->country : 'Slovensko';
 
-        $coords = $this->coordinateResolver->resolve($canal->name, $city, 'Slovensko');
+        // Rozpisana adresa ma prednost pred holym nazvom kanalu — odkedy ju
+        // editor zbiera, je to najpresnejsi vstup, aky geokoder dostane.
+        $coords = $this->coordinateResolver->resolve(
+            $canal->name,
+            $city,
+            $country,
+            $canal->street,
+            $canal->postcode,
+        );
 
         // Kanal je casto organizator (nie fyzicke miesto) - ak sa podla nazvu nic
         // nenajde, pouzi aspon stred obce, aby sa mapa dala zobrazit.
         if (($coords['latitude'] === null || $coords['longitude'] === null) && $city !== null) {
-            $coords = $this->coordinateResolver->resolve(null, $city, 'Slovensko');
+            $coords = $this->coordinateResolver->resolve(null, $city, $country);
         }
 
         if ($coords['latitude'] === null || $coords['longitude'] === null) {
@@ -167,6 +176,9 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $canal->forceFill([
             'latitude' => $coords['latitude'],
             'longitude' => $coords['longitude'],
+            // Bez zdroja by sa priblizna poloha (stred obce) navonok nelisila
+            // od presnej — rovnako to drzi EloquentVenueRepository.
+            'coordinates_source' => $coords['source'],
         ])->save();
     }
 

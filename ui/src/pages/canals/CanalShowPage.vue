@@ -133,10 +133,16 @@
               </dd>
             </div>
 
-            <!-- Obec -->
-            <div v-if="canal.municipality" class="detail-card">
-              <dt>{{ t('common.municipality') }}</dt>
-              <dd>{{ canal.municipality.name }}</dd>
+            <!-- Adresa sídla. Rovnaký zápis ako na detaile miesta — obec je
+                 povinná, zvyšok adresy pribudol s editorom adresy. -->
+            <div v-if="canal.street || canal.municipality" class="detail-card">
+              <dt>{{ t('common.address') }}</dt>
+              <dd>
+                <span v-if="canal.street">{{ canal.street }}<br/></span>
+                <span v-if="canal.postcode">{{ canal.postcode }} </span>
+                <span v-if="canal.municipality">{{ canal.municipality.name }}</span>
+                <span v-if="canal.country && canal.country !== 'Slovakia'" class="block text-slate-500 text-xs">{{ canal.country }}</span>
+              </dd>
             </div>
 
             <!-- Kontakt -->

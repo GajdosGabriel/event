@@ -45,6 +45,11 @@ class CanalStoreRequest extends FormRequest
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'municipality_id' => 'required|integer|exists:municipalities,id',
+            'street' => 'nullable|string|max:250',
+            'postcode' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:100',
+            // Presnost suradnic: budova / adresa / odhad AI / stred obce / rucne.
+            'coordinates_source' => ['nullable', 'string', Rule::in(['venue', 'address', 'ai', 'municipality', 'manual'])],
             // Kanál doteraz nemal cestu, ako si stav zmeniť — ostával na DB
             // defaulte `published`. Rovnaký zápis ako VenueStoreRequest.
             'status' => ['nullable', 'string', Rule::in(array_column(

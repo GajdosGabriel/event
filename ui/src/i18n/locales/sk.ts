@@ -929,6 +929,37 @@ const sk = {
       failed: 'Uloženie zlyhalo.',
     },
   },
+  // Adresa a poloha. Jeden slovník pre editor miesta aj kanála — obe formuláre
+  // stavia ten istý AddressFieldset a AddressMapField, takže popisky musia byť
+  // neutrálne („Obec“, nie „Obec miesta“).
+  address: {
+    section: 'Adresa',
+    map: 'Poloha',
+    mapHint: 'Poloha sa dopĺňa podľa adresy. Značku presuňte alebo kliknite do mapy, ak sedieť nemá.',
+    searching: 'Hľadám polohu podľa adresy…',
+    municipality: 'Obec / Mesto',
+    municipalityPlaceholder: '— vyberte obec —',
+    street: 'Ulica a číslo',
+    streetPlaceholder: 'napr. Hlavná 12',
+    postcode: 'PSČ',
+    country: 'Krajina',
+    countryPlaceholder: 'Slovensko',
+    lat: 'Lat',
+    lng: 'Lng',
+    // Presnosť GPS súradníc. Detekcia ich dopĺňa rebríkom zdrojov (budova →
+    // adresa → odhad AI → stred obce), takže značka nemusí stáť na budove —
+    // operátor to musí vidieť a vedieť ju dotiahnuť.
+    coordinates: {
+      venue: 'Poloha budovy z OpenStreetMap',
+      address: 'Poloha podľa adresy',
+      ai: 'Približná poloha z AI',
+      municipality: 'Približná poloha — stred obce',
+      manual: 'Poloha určená ručne',
+      missing: 'Poloha nie je určená',
+      approximateHint: 'Presuňte značku na mape na skutočnú polohu.',
+      missingHint: 'Kliknite do mapy a určte polohu.',
+    },
+  },
   venues: {
     index: {
       title: 'Miesta',
@@ -955,9 +986,7 @@ const sk = {
     },
     sections: {
       basic: 'Základné info',
-      address: 'Adresa podujatia',
       contact: 'Kontakt',
-      location: 'Poloha',
       images: 'Obrázky',
     },
     fields: {
@@ -969,18 +998,6 @@ const sk = {
       categoryPlaceholder: 'napr. kultúrny dom, škola…',
       capacity: 'Kapacita',
       description: 'Popis',
-      village: 'Obec / Mesto',
-      villagePlaceholder: '— vyberte obec —',
-      street: 'Ulica a číslo',
-      streetPlaceholder: 'napr. Hlavná 12',
-      postcode: 'PSČ',
-      country: 'Krajina',
-      countryPlaceholder: 'Slovensko',
-      latitude: 'Zemepisná šírka (lat)',
-      longitude: 'Zemepisná dĺžka (lng)',
-      lat: 'Lat',
-      lng: 'Lng',
-      coordinatesSource: 'Presnosť polohy',
       website: 'Web',
       websiteIssueLabel: 'Táto adresa',
       email: 'Email',
@@ -991,19 +1008,6 @@ const sk = {
       published: 'Publikovaný',
       archived: 'Archivovaný',
       blocked: 'Blokovaný',
-    },
-    // Presnosť GPS súradníc. Detekcia ich dopĺňa rebríkom zdrojov (budova →
-    // adresa → odhad AI → stred obce), takže značka nemusí stáť na budove —
-    // operátor to musí vidieť a vedieť ju dotiahnuť.
-    coordinates: {
-      venue: 'Poloha budovy z OpenStreetMap',
-      address: 'Poloha podľa adresy',
-      ai: 'Približná poloha z AI',
-      municipality: 'Približná poloha — stred obce',
-      manual: 'Poloha určená ručne',
-      missing: 'Poloha nie je určená',
-      approximateHint: 'Presuňte značku na mape na skutočnú polohu.',
-      missingHint: 'Kliknite do mapy a určte polohu.',
     },
     // Predvyplnenie miesta z AI. Formulár sa prepíše až po potvrdení, aby
     // ručne zadané údaje nezmizli jedným kliknutím.
@@ -1059,7 +1063,6 @@ const sk = {
     sections: {
       basic: 'Základné info',
       contact: 'Kontakt',
-      location: 'Poloha',
       images: 'Obrázky',
     },
     fields: {
@@ -1070,17 +1073,12 @@ const sk = {
       titleSuffixPlaceholder: 'napr. o.z.',
       identityMode: 'Typ identity',
       status: 'Stav',
-      municipality: 'Obec / Mesto',
-      municipalityPlaceholder: '— vyberte obec —',
       description: 'Popis',
       email: 'Email',
       phone: 'Telefón',
       website: 'Web',
       websiteIssueLabel: 'Táto adresa',
-      lat: 'Lat',
-      lng: 'Lng',
     },
-    locationHint: 'Súradnice sa po uložení skúsia doplniť automaticky pomocou AI. Polohu môžeš upraviť kliknutím do mapy.',
   },
   // Tím kanála. Popisky rolí posiela server (`team.roles`), tu je rám okolo nich.
   team: {

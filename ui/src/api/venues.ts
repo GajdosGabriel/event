@@ -97,26 +97,8 @@ export async function detectVenue(
   return data as Record<string, unknown>
 }
 
-export interface AddressGeocodeResult {
-  latitude: number | null
-  longitude: number | null
-  /** 'address' = presná adresa, 'municipality' = stred obce, null = nenájdené. */
-  source: CoordinatesSource | null
-  city: string | null
-  postcode: string | null
-}
-
-/**
- * Poloha z rozpísanej adresy — mapa v editore miesta skočí na obec hneď po jej
- * výbere a spresní sa, keď pribudne ulica s číslom.
- */
-export async function geocodeVenueAddress(
-  scope: Scope,
-  payload: { village_id: number; street?: string | null; postcode?: string | null; country?: string | null },
-): Promise<AddressGeocodeResult> {
-  const { data } = await http.post(`${baseUrl(scope)}/geocode`, payload)
-  return data as AddressGeocodeResult
-}
+// Geokódovanie adresy sa presťahovalo do `@/api/address` — endpoint je
+// spoločný pre miesto aj kanál, tak ako editor adresy nad ním.
 
 export interface VenueEventItem {
   id: number

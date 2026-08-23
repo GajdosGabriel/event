@@ -44,7 +44,7 @@
           <!-- Poloha -->
           <div class="show-card overflow-hidden p-0">
             <div class="flex flex-wrap items-baseline gap-2 px-4 pt-4">
-              <h2 class="text-base font-semibold text-slate-800">{{ t('venues.sections.location') }}</h2>
+              <h2 class="text-base font-semibold text-slate-800">{{ t('address.map') }}</h2>
               <!-- Značka môže sedieť na budove aj len na strede obce — bez
                    štítku sa to na mape nedá rozoznať. -->
               <span v-if="coordinatesLabel" class="text-xs" :class="coordinatesApproximate ? 'font-semibold text-amber-700' : 'text-slate-500'">
@@ -231,13 +231,13 @@ const coordinatesApproximate = computed(
 )
 
 const coordinatesLabel = computed(() => {
-  if (!hasCoordinates.value) return t('venues.coordinates.missing')
+  if (!hasCoordinates.value) return t('address.coordinates.missing')
   switch (venue.value?.coordinatesSource) {
-    case 'venue': return t('venues.coordinates.venue')
-    case 'address': return t('venues.coordinates.address')
-    case 'ai': return t('venues.coordinates.ai')
-    case 'municipality': return t('venues.coordinates.municipality')
-    case 'manual': return t('venues.coordinates.manual')
+    case 'venue': return t('address.coordinates.venue')
+    case 'address': return t('address.coordinates.address')
+    case 'ai': return t('address.coordinates.ai')
+    case 'municipality': return t('address.coordinates.municipality')
+    case 'manual': return t('address.coordinates.manual')
     // Miesta uložené pred zavedením presnosti zdroj nemajú.
     default: return ''
   }

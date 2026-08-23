@@ -7,9 +7,9 @@
       <span>{{ sourceLabel }}</span>
       <span v-if="sourceHint" class="source-badge__hint">{{ sourceHint }}</span>
     </p>
-    <div class="venue-map-wrapper">
-      <div ref="mapEl" class="venue-map" />
-      <p v-if="!hasCoords" class="map-hint">{{ t('venues.coordinates.missingHint') }}</p>
+    <div class="map-picker-wrapper">
+      <div ref="mapEl" class="map-picker" />
+      <p v-if="!hasCoords" class="map-hint">{{ t('address.coordinates.missingHint') }}</p>
     </div>
   </div>
 </template>
@@ -55,13 +55,13 @@ const DEFAULT_ZOOM = 7
 const hasCoords = computed(() => props.lat != null && props.lng != null)
 
 const sourceLabel = computed(() => {
-  if (!hasCoords.value) return t('venues.coordinates.missing')
+  if (!hasCoords.value) return t('address.coordinates.missing')
   switch (props.source) {
-    case 'venue': return t('venues.coordinates.venue')
-    case 'address': return t('venues.coordinates.address')
-    case 'ai': return t('venues.coordinates.ai')
-    case 'municipality': return t('venues.coordinates.municipality')
-    case 'manual': return t('venues.coordinates.manual')
+    case 'venue': return t('address.coordinates.venue')
+    case 'address': return t('address.coordinates.address')
+    case 'ai': return t('address.coordinates.ai')
+    case 'municipality': return t('address.coordinates.municipality')
+    case 'manual': return t('address.coordinates.manual')
     // Miesta uložené pred zavedením presnosti zdroj nemajú — tvrdiť o nich
     // čokoľvek by bola domnienka, preto ostane štítok bez presnosti.
     default: return ''
@@ -72,7 +72,7 @@ const isApproximate = computed(() => props.source === 'municipality' || props.so
 
 const sourceHint = computed(() => {
   if (!hasCoords.value) return ''
-  return isApproximate.value ? t('venues.coordinates.approximateHint') : ''
+  return isApproximate.value ? t('address.coordinates.approximateHint') : ''
 })
 
 /** Ručný zásah prebíja akýkoľvek automatický zdroj. */
@@ -137,13 +137,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.venue-map-wrapper {
+.map-picker-wrapper {
   position: relative;
   border-radius: 0.75rem;
   overflow: hidden;
   border: 1px solid #e2e8f0;
 }
-.venue-map {
+.map-picker {
   height: 320px;
   width: 100%;
 }
