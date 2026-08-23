@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\QuestionVisibility;
 use App\Support\SubmissionTicket;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -31,15 +32,21 @@ class QuestionStoreRequest extends FormRequest
             // pre prednášajúceho, ale príspevok do diskusie — na to sú správy.
             'body' => ['required', 'string', 'min:3', 'max:500'],
             'author_name' => ['nullable', 'string', 'max:80'],
+            // Komu je otázka určená. Chýbajúca hodnota je „verejná" — to bolo
+            // jediné možné správanie predtým a musí ním zostať aj pre klienta,
+            // ktorý o prepínači nevie.
+            'visibility' => ['sometimes', 'string', Rule::enum(QuestionVisibility::class)],
             // „Dajte mi vedieť, keď organizátor odpovie." Zaškrtávacie pole,
             // nie predvolený stav — adresu pýtame len od toho, kto o odpoveď
-            // naozaj stojí.
+            // naozaj stojí. Pri súkromnej otázke sa nepýtame vôbec: inde než
+            // v e-maile sa odpoveď zobraziť nemá kde.
             'notify' => ['sometimes', 'boolean'],
-            // Povinná až so zaškrtnutím, a to len keď adresu nevieme odinakiaľ.
+            // Povinná až so zaškrtnutím (alebo pri súkromnej otázke, kde je
+            // zaškrtnutie automatické), a to len keď adresu nevieme odinakiaľ.
             // Prihlásenému ju doplní server z účtu, presne ako pri lístkoch
             // (TicketStoreRequest).
             'author_email' => ['nullable', 'string', 'email:filter', 'max:190', Rule::requiredIf(
-                fn () => $this->boolean('notify') && ! auth('sanctum')->check(),
+                fn () => $this->wantsAnswerNotification() && ! auth('sanctum')->check(),
             )],
             // Jazyk, v ktorom si stránku čítal. Odpoveď má prísť v ňom.
             'locale' => ['nullable', 'string', 'max:5'],
@@ -115,10 +122,25 @@ class QuestionStoreRequest extends FormRequest
         return $name !== '' ? $name : null;
     }
 
-    /** Chce sa pisateľ dozvedieť odpoveď e-mailom? */
+    /** Komu je otázka určená. Bez hodnoty verejná — to je pôvodné správanie. */
+    public function questionVisibility(): QuestionVisibility
+    {
+        return QuestionVisibility::tryFrom((string) $this->input('visibility'))
+            ?? QuestionVisibility::Public;
+    }
+
+    /**
+     * Chce sa pisateľ dozvedieť odpoveď e-mailom?
+     *
+     * Pri súkromnej otázke to nie je voľba, ale dôsledok: odpoveď nebude vo
+     * verejnom zozname ani na stene, takže bez e-mailu by sa k pisateľovi
+     * nedostala nijako. Preto sa zaškrtnutie neposiela z formulára — vyplýva
+     * z voľby „súkromná" a odvodzuje sa tu, na serveri, aby ho nešlo obísť
+     * podstrčeným formulárom.
+     */
     public function wantsAnswerNotification(): bool
     {
-        return $this->boolean('notify');
+        return $this->boolean('notify') || $this->questionVisibility()->requiresContact();
     }
 
     /** Adresa sa ukladá malými písmenami — rovnako ako pri odberoch. */

@@ -43,12 +43,16 @@ class QuestionBoardResource extends JsonResource
             'show_questions' => (bool) $this->show_questions,
             'allow_upvotes' => (bool) $this->allow_upvotes,
             'ask_for_name' => (bool) $this->ask_for_name,
+            'allow_private' => (bool) $this->allow_private,
             'intro' => $this->intro,
 
             'questions_count' => (int) $this->questions_count,
             // Odznak „čaká na teba" pri zapnutom moderovaní. Jeden COUNT na
             // nástenku; nástienok je na podujatie rádovo jednotky.
             'pending_count' => $this->questions()->where('status', QuestionStatus::Pending->value)->count(),
+            // Odznak „ozvi sa im": súkromný vstup nikde inde vidieť nie je
+            // a pisateľ čaká odpoveď e-mailom.
+            'private_open_count' => $this->questions()->onlyPrivate()->whereNull('answered_at')->count(),
         ];
     }
 }

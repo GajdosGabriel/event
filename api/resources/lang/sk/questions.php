@@ -16,6 +16,13 @@ return [
         'hidden' => 'Skrytá',
     ],
 
+    // Komu je otázka určená. Súkromná sa nikde nezverejní a odpoveď na ňu
+    // chodí len e-mailom — viď App\Enums\QuestionVisibility.
+    'visibility' => [
+        'public' => 'Verejná',
+        'private' => 'Súkromná',
+    ],
+
     'target' => [
         'event' => 'Podujatie',
         'workshop' => 'Workshop',
@@ -31,6 +38,10 @@ return [
         'workshop_only' => 'Nástenku otázok má zmysel zapnúť len na workshope, nie na bežnom type lístka.',
         'unknown_variant' => 'Neznámy formát alebo motív snímky.',
         'rendering_unavailable' => 'Server nemá nainštalovanú podporu pre vykresľovanie textu (GD FreeType), snímka sa nedá vytvoriť.',
+        'private_unavailable' => 'Súkromné otázky sa na tomto podujatí posielať nedajú.',
+        'private_needs_account' => 'Podnet počas akcie môže poslať len prihlásený účastník.',
+        'private_needs_email' => 'Na súkromnú otázku potrebujeme e-mailovú adresu — odpoveď inde neuvidíte.',
+        'private_not_highlightable' => 'Súkromnú otázku nie je kam zvýrazniť — na premietacej stene nie je.',
     ],
 
     // Texty vypálené do obrázka. Držať ich krátke — na snímke sú vo veľkom

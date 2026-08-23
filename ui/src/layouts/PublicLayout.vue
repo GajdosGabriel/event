@@ -89,6 +89,10 @@
     <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
       <span>© {{ new Date().getFullYear() }} Event</span>
       <nav class="flex flex-wrap gap-4">
+        <!-- Archív. Skončené podujatia zmiznú z výpisov, ale ich stránky žijú
+             ďalej kvôli odkazom z vyhľadávača a zo zdieľaní — pätička je to
+             miesto, odkiaľ na ne vedie odkaz z celého portálu. -->
+        <RouterLink :to="publicArchivePath()" class="text-slate-600 hover:text-slate-900">{{ t('public.seo.archiveHeading') }}</RouterLink>
         <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
         <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
       </nav>
@@ -103,6 +107,7 @@ import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
 import AnnouncementBar from '@/components/AnnouncementBar.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
+import { publicArchivePath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
 const auth = useAuthStore()

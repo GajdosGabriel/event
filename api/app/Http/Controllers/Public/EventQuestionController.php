@@ -10,6 +10,7 @@ use App\Http\Resources\QuestionResource;
 use App\Models\Event;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Questions\PrivateQuestionAlert;
 use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
 use App\Support\SubmissionTicket;
@@ -36,6 +37,10 @@ use Illuminate\Http\JsonResponse;
  *
  * Otázky sem chodia ako QuestionChannel::EventPage, teda smú niesť e-mail
  * a väzbu na účet — pisateľ z gauča chce odpoveď dostať, nie ju chodiť hľadať.
+ * A práve preto je toto jediný vchod, ktorý berie aj **súkromný** vstup:
+ * otázku, ktorá sa na plátno nehodí, a počas akcie podnet organizátorovi
+ * („v sále je zima"). Bez adresy na odpoveď by súkromná otázka nedávala zmysel,
+ * takže na nástenke z QR kódu možná nie je (QuestionDraft).
  */
 class EventQuestionController extends Controller
 {
@@ -45,6 +50,7 @@ class EventQuestionController extends Controller
     public function __construct(
         protected EventRepository $eventRepository,
         private QuestionSubmitter $submitter,
+        private PrivateQuestionAlert $organizerAlert,
     ) {
     }
 
@@ -70,6 +76,11 @@ class EventQuestionController extends Controller
             'show_questions' => (bool) $board->show_questions,
             'allow_upvotes' => (bool) $board->allow_upvotes,
             'ask_for_name' => (bool) $board->ask_for_name,
+            // Smie sa tu niečo opýtať súkromne, a čo si to vyžaduje. Pravidlá
+            // patria serveru — front z nich len skladá formulár a to isté si
+            // pri odoslaní necháva overiť znova.
+            'allow_private' => $board->acceptsPrivateQuestions(),
+            'private_needs_account' => $phase->requiresAccountForPrivate(),
             'intro' => $board->intro,
             'questions_count' => (int) $board->questions_count,
             'answered_count' => $questions->filter(fn ($q) => $q->answered_at !== null)->count(),
@@ -87,6 +98,8 @@ class EventQuestionController extends Controller
             abort(422, __('questions.errors.closed'));
         }
 
+        $this->guardPrivate($request, $model);
+
         // Ochranné vrstvy sú tie isté ako pri nástenke z QR — líši sa len vchod,
         // a s ním to, či otázka nesie kontakt na pisateľa (QuestionDraft).
         $question = $this->submitter->submit(
@@ -95,14 +108,51 @@ class EventQuestionController extends Controller
             QuestionDraft::from($request, $board, QuestionChannel::EventPage),
         );
 
+        // O súkromný vstup sa organizátor nemá ako dozvedieť inak — na verejnej
+        // stránke nie je a počas akcie by mu bol na nič zajtra.
+        if ($question->isPrivate()) {
+            $this->organizerAlert->notify($question, $model);
+        }
+
         return response()->json([
             'id' => $question->id,
             'pending' => ! $question->isPublished(),
             // Nie ozvena vstupu: adresu mohol doplniť server z účtu, takže front
             // sa inak nedozvie, či sľúbiť „ozveme sa".
             'notify' => $question->author_email !== null,
-            'question' => $question->isPublished() ? new QuestionResource($question) : null,
+            'visibility' => $question->visibility->value,
+            // Súkromná otázka nie je vo verejnom zozname ani vtedy, keď je
+            // „zverejnená" — front ju do zoznamu nemá čo dopisovať.
+            'question' => $question->isPubliclyVisible() ? new QuestionResource($question) : null,
         ], 201);
+    }
+
+    /**
+     * Podnet počas akcie smie poslať len prihlásený.
+     *
+     * Je to prevádzková informácia, podľa ktorej niekto niečo urobí — pustí
+     * kúrenie, pridá zvuk. Anonymné „v sále je zima" z druhého konca internetu
+     * nie je podnet, je to šum, a rozoznať ich od seba sa inak nedá.
+     * Lístok nepýtame: voľné podujatia žiadny nemajú a účet je jediná
+     * podmienka, ktorá platí na všetkých.
+     *
+     * Pred akciou a po nej pravidlo neplatí — tam je súkromná otázka bežná
+     * otázka a adresa na odpoveď je dostatočný kontakt (QuestionDraft).
+     */
+    private function guardPrivate(QuestionStoreRequest $request, Event $event): void
+    {
+        if (! $request->questionVisibility()->isPrivate()) {
+            return;
+        }
+
+        $needsAccount = QuestionBoardPhase::for($event)->requiresAccountForPrivate();
+
+        // `auth('sanctum')`, nie `$request->user()` — verejná cesta nemá
+        // `auth:sanctum` middleware a predvolený guard by prihláseného
+        // s tokenom nevidel (viď QuestionDraft).
+        if ($needsAccount && auth('sanctum')->check() === false) {
+            abort(422, __('questions.errors.private_needs_account'));
+        }
     }
 
     /**

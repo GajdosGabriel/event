@@ -14,6 +14,11 @@ return [
         'hidden' => 'Skrytá',
     ],
 
+    'visibility' => [
+        'public' => 'Veřejná',
+        'private' => 'Soukromá',
+    ],
+
     'target' => [
         'event' => 'Akce',
         'workshop' => 'Workshop',
@@ -29,6 +34,10 @@ return [
         'workshop_only' => 'Nástěnku otázek má smysl zapnout jen u workshopu, ne u běžného typu vstupenky.',
         'unknown_variant' => 'Neznámý formát nebo motiv snímku.',
         'rendering_unavailable' => 'Server nemá nainstalovanou podporu pro vykreslování textu (GD FreeType), snímek nelze vytvořit.',
+        'private_unavailable' => 'Soukromé otázky u této akce posílat nelze.',
+        'private_needs_account' => 'Podnět během akce může poslat jen přihlášený účastník.',
+        'private_needs_email' => 'U soukromé otázky potřebujeme e-mailovou adresu — odpověď jinde neuvidíte.',
+        'private_not_highlightable' => 'Soukromou otázku není kam zvýraznit — na promítací stěně není.',
     ],
 
     'slide' => [

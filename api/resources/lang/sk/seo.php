@@ -18,6 +18,11 @@ return [
         'tag_heading' => 'Podujatia — :name',
         'tag_title' => ':name — podujatia',
         'tag_description' => 'Nadchádzajúce podujatia so štítkom :name.',
+        // Archív. Popis zámerne hovorí „už sa konali" — vo výsledku vyhľadávania
+        // je to jediné, čo človeku povie, že za odkazom nie je pozvánka.
+        'archive_heading' => 'Archív podujatí',
+        'archive_title' => 'Archív podujatí',
+        'archive_description' => 'Podujatia, ktoré sa už konali — od najnovších.',
         'of_name' => 'Podujatia — :name',
     ],
     'venue_description' => 'Podujatia na mieste :name.',
@@ -37,5 +42,8 @@ return [
         'related' => 'Ďalšie podujatia — :name',
         'all_events' => 'Všetky podujatia',
         'weekend' => 'Podujatia tento víkend',
+        'ended' => 'Toto podujatie sa už skončilo.',
+        'past' => 'Uplynulé podujatia',
+        'archive' => 'Archív podujatí',
     ],
 ];

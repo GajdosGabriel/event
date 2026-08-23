@@ -17,4 +17,11 @@
 
     <h2>{{ __('seo.page.upcoming') }}</h2>
     @include('prerender._events', ['events' => $events])
+
+    {{-- Uplynulé podujatia — viď prerender/venue.blade.php. --}}
+    @if ($pastEvents->isNotEmpty())
+        <h2>{{ __('seo.page.past') }}</h2>
+        @include('prerender._events', ['events' => $pastEvents])
+        <p><a href="{{ \App\Support\PublicUrl::archive() }}">{{ __('seo.page.archive') }}</a></p>
+    @endif
 @endsection

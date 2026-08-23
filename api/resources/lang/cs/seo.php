@@ -13,6 +13,9 @@ return [
         'tag_heading' => 'Akce — :name',
         'tag_title' => ':name — akce',
         'tag_description' => 'Nadcházející akce se štítkem :name.',
+        'archive_heading' => 'Archiv akcí',
+        'archive_title' => 'Archiv akcí',
+        'archive_description' => 'Akce, které se už konaly — od nejnovějších.',
         'of_name' => 'Akce — :name',
     ],
     'venue_description' => 'Akce na místě :name.',
@@ -31,5 +34,8 @@ return [
         'related' => 'Další akce — :name',
         'all_events' => 'Všechny akce',
         'weekend' => 'Akce tento víkend',
+        'ended' => 'Tato akce už skončila.',
+        'past' => 'Uplynulé akce',
+        'archive' => 'Archiv akcí',
     ],
 ];

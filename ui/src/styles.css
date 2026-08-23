@@ -116,6 +116,19 @@
   .form-checkbox { @apply mt-0.5 accent-blue-600; }
 
   /*
+   * Prepínač (radio) je celá karta, nie holý krúžok s textom vedľa: každá
+   * možnosť má pod popiskou vetu, čo znamená, a kliknúť sa musí dať kamkoľvek
+   * do nej. Vybraná je zvýraznená rámčekom — na telefóne je bodka v krúžku
+   * sama o sebe slabo viditeľná.
+   */
+  .form-radio-group { @apply grid gap-2 border-0 p-0; }
+  .form-radio-legend { @apply mb-1 text-sm font-semibold text-slate-900; }
+  .form-radio { @apply flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300; }
+  .form-radio.selected { @apply border-blue-500 bg-blue-50/60 text-slate-900; }
+  .form-radio.disabled { @apply cursor-not-allowed opacity-60 hover:border-slate-200; }
+  .form-radio-input { @apply mt-0.5 accent-blue-600; }
+
+  /*
    * Červená len po validácii. Sú na to dva zdroje a oba znamenajú „už sme to
    * kontrolovali": trieda .invalid (chyba zo servera alebo prázdne povinné pole
    * po pokuse o odoslanie) a natívne :user-invalid, ktoré prehliadač nasadí až

@@ -96,6 +96,79 @@ class PrerenderTest extends TestCase
     }
 
     /**
+     * Desať minút po skončení preklopí podujatie `app:events-archive-finished`
+     * na `archived`. Verejný detail ho v SPA ukazuje ďalej — a crawler musí
+     * dostať to isté, inak sa každý zdieľaný odkaz deň po akcii zmení na 404
+     * a Google stránku vyhodí z indexu.
+     */
+    #[Test]
+    public function finished_archived_event_is_still_rendered_for_crawlers(): void
+    {
+        $past = Event::factory()->past()->create([
+            'name' => 'Minuloročný festival',
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $response = $this->prerender(PublicUrl::eventPath($past));
+
+        $response->assertOk();
+        $response->assertSee('Minuloročný festival', false);
+        $response->assertSee('<link rel="canonical" href="'.PublicUrl::event($past).'">', false);
+    }
+
+    /** Návštevník z vyhľadávača musí hneď vidieť, že akcia už bola. */
+    #[Test]
+    public function finished_event_says_it_has_ended(): void
+    {
+        $past = Event::factory()->past()->create([
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $this->prerender(PublicUrl::eventPath($past))
+            ->assertOk()
+            ->assertSee(__('seo.page.ended'), false);
+    }
+
+    /**
+     * Lístky na akciu, ktorá už bola, nie sú v predaji. `offers` po termíne
+     * v markupe znamená nepravdivé štruktúrované dáta.
+     */
+    #[Test]
+    public function finished_event_drops_offers_from_json_ld(): void
+    {
+        $past = Event::factory()->past()->create([
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $schema = $this->firstJsonLd($this->prerender(PublicUrl::eventPath($past))->getContent());
+
+        $this->assertSame('Event', $schema['@type']);
+        $this->assertArrayNotHasKey('offers', $schema);
+    }
+
+    #[Test]
+    public function archive_landing_page_lists_finished_events(): void
+    {
+        $past = Event::factory()->past()->create([
+            'name' => 'Archívne podujatie',
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $response = $this->prerender('/'.PublicUrl::archivePath());
+
+        $response->assertOk();
+        $response->assertSee('Archívne podujatie', false);
+        $response->assertSee(PublicUrl::event($past), false);
+        // Nadchádzajúce do archívu nepatria — inak by to bol len druhý výpis
+        // toho istého a Google by riešil, ktorý z nich indexovať.
+        $response->assertDontSee(PublicUrl::event($this->event), false);
+    }
+
+    /**
      * `body` sa ukladá bez sanitizácie, takže prerender ho musí prečistiť sám —
      * je to jediná verejná HTML odpoveď, ktorú aplikácia vracia.
      */

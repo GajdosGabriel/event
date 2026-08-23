@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\Tag;
 use App\Models\Venue;
+use App\Support\EventTimeframe;
 use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,12 +23,23 @@ use Illuminate\Support\Facades\Cache;
  * ide o tisícky adries, teda hlboko pod limitom 50 000 URL, a nasadenie tak
  * potrebuje jediné pravidlo v `.htaccess`.
  *
- * Do mapy patrí len to, čo je naozaj verejné a živé — skončené podujatia by
- * z nej robili zoznam 404-iek v očiach vyhľadávača.
+ * Skončené podujatia v mape sú zámerne. Ich detail ostáva na svojej adrese
+ * (`ModelStatus::publiclyReadableValues()` púšťa aj archivované), takže vracia
+ * 200 — a stránka, ktorá vracia 200 a má z portálu odkaz, do mapy patrí. Bez
+ * nej Google minuloročné akcie časom vyhodí z indexu, hoci na ne stále vedú
+ * odkazy z e-mailov, zo sociálnych sietí aj z cudzích webov. Sú len nižšou
+ * prioritou než to, čo ešte len bude.
  */
 class SitemapController extends Controller
 {
     private const CACHE_SECONDS = 3600;
+
+    /**
+     * Strop pre archív. Limit sitemapy je 50 000 URL a na tento počet portál
+     * zatiaľ nedosiahne; strop je tu preto, aby mapa nerástla donekonečna
+     * a aby ju vedel Laravel poskladať v jednom dotaze.
+     */
+    private const PAST_LIMIT = 5000;
 
     public function __invoke(): Response
     {
@@ -43,7 +55,9 @@ class SitemapController extends Controller
         $urls = collect()
             ->push($this->url(PublicUrl::events(), null, 'hourly', '1.0'))
             ->push($this->url(PublicUrl::thisWeekend(), null, 'daily', '0.9'))
+            ->push($this->url(PublicUrl::archive(), null, 'daily', '0.5'))
             ->merge($this->events())
+            ->merge($this->pastEvents())
             ->merge($this->municipalities())
             ->merge($this->tags())
             ->merge($this->venues())
@@ -69,6 +83,28 @@ class SitemapController extends Controller
                 $event->updated_at,
                 'daily',
                 '0.8',
+            ));
+    }
+
+    /**
+     * Archív. `changefreq` je `yearly` a priorita nízka — obsah sa už nemení
+     * a robot nemá dôvod chodiť si po neho častejšie než po to, čo sa deje.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    private function pastEvents()
+    {
+        return EventTimeframe::past(Event::query(), 'events')
+            ->whereIn('events.status', ModelStatus::publiclyReadableValues())
+            ->with(['canal:id,slug,name'])
+            ->orderByDesc('events.start_at')
+            ->limit(self::PAST_LIMIT)
+            ->get()
+            ->map(fn (Event $event) => $this->url(
+                PublicUrl::event($event),
+                $event->updated_at,
+                'yearly',
+                '0.3',
             ));
     }
 
@@ -146,15 +182,8 @@ class SitemapController extends Controller
      */
     private function publishedUpcomingEvents(): Builder
     {
-        return Event::query()
-            ->where('events.status', ModelStatus::Published->value)
-            ->where(function (Builder $timeframe) {
-                $timeframe->where('events.end_at', '>=', now())
-                    ->orWhere(function (Builder $inner) {
-                        $inner->whereNull('events.end_at')
-                            ->where('events.start_at', '>=', now()->startOfDay());
-                    });
-            });
+        return EventTimeframe::upcoming(Event::query(), 'events')
+            ->where('events.status', ModelStatus::Published->value);
     }
 
     private function url(string $location, ?CarbonInterface $lastModified, string $changeFrequency, string $priority): string

@@ -16,6 +16,38 @@
     </span>
   </label>
 
+  <!-- Prepínač je skupina, nie jedno pole: popiska je `<legend>` a každá
+       možnosť má vlastnú `<label>`. Preto tiež vlastná vetva. -->
+  <fieldset v-else-if="type === 'radio'" class="form-radio-group" :class="wrapperClass" :style="wrapperStyle">
+    <legend v-if="label || $slots.label" class="form-radio-legend">
+      <slot name="label">{{ label }}</slot><span v-if="required" class="form-required" aria-hidden="true">*</span>
+    </legend>
+
+    <label
+      v-for="opt in options"
+      :key="String(opt.value)"
+      class="form-radio"
+      :class="{ selected: field === opt.value, disabled: opt.disabled }"
+    >
+      <input
+        v-model="field"
+        type="radio"
+        class="form-radio-input"
+        :value="opt.value"
+        :disabled="opt.disabled"
+        :aria-invalid="invalid || undefined"
+        v-bind="controlAttrs"
+      />
+      <span>
+        <span class="block">{{ opt.label }}</span>
+        <span v-if="opt.hint" class="form-hint block">{{ opt.hint }}</span>
+      </span>
+    </label>
+
+    <span v-if="error" class="field-error">{{ error }}</span>
+    <span v-else-if="hint" class="form-hint">{{ hint }}</span>
+  </fieldset>
+
   <label v-else class="form-label" :class="wrapperClass" :style="wrapperStyle">
     <span v-if="label || $slots.label">
       <slot name="label">{{ label }}</slot><span v-if="required" class="form-required" aria-hidden="true">*</span>
@@ -106,7 +138,7 @@ import type { FieldOption, FieldValue } from '@/types'
 
 type FieldType =
   | 'text' | 'email' | 'url' | 'tel' | 'number' | 'search' | 'date' | 'time'
-  | 'password' | 'datetime' | 'textarea' | 'select' | 'checkbox'
+  | 'password' | 'datetime' | 'textarea' | 'select' | 'checkbox' | 'radio'
 
 defineOptions({ inheritAttrs: false })
 
@@ -118,7 +150,10 @@ const props = withDefaults(defineProps<{
   error?: string | null
   /** Vysvetlivka pod poľom. Chyba má prednosť. */
   hint?: string
-  /** Možnosti pre `type="select"`; alternatívou je slot `options`. */
+  /**
+   * Možnosti pre `type="select"` (alternatívou je slot `options`) a pre
+   * `type="radio"`, kde môže mať každá vlastnú vysvetlivku aj byť nedostupná.
+   */
   options?: FieldOption[]
   /** Orezať biele znaky (ekvivalent `v-model.trim`). */
   trim?: boolean

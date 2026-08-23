@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Models\Event;
+use Carbon\CarbonInterface;
 
 /**
  * V akej fáze je nástenka otázok voči svojmu podujatiu.
@@ -34,7 +35,13 @@ enum QuestionBoardPhase: string
      */
     private const LIVE_MARGIN_HOURS = 2;
 
-    public static function for(?Event $event): self
+    /**
+     * `$at` je okamih, ku ktorému sa fáza počíta. Predvolene „teraz" — to je
+     * pohľad návštevníka na stránke. Dashboard ho posiela ako `created_at`
+     * otázky, aby vedel povedať „toto prišlo počas akcie", teda že to nie je
+     * otázka do FAQ, ale podnet, ktorý mal riešiť vtedy.
+     */
+    public static function for(?Event $event, ?CarbonInterface $at = null): self
     {
         if ($event?->start_at === null) {
             // Bez termínu sa fáza určiť nedá. „Pred" je najbezpečnejšia voľba:
@@ -42,19 +49,44 @@ enum QuestionBoardPhase: string
             return self::Before;
         }
 
+        $at ??= now();
         $start = $event->start_at->copy()->subHours(self::LIVE_MARGIN_HOURS);
         $end = ($event->end_at ?? $event->start_at)->copy()->addHours(self::LIVE_MARGIN_HOURS);
 
-        if (now()->lt($start)) {
+        if ($at->lt($start)) {
             return self::Before;
         }
 
-        return now()->lte($end) ? self::Live : self::After;
+        return $at->lte($end) ? self::Live : self::After;
     }
 
     /** Ide o otázky pre organizátora (FAQ), nie pre prednášajúceho? */
     public function isFaq(): bool
     {
         return $this !== self::Live;
+    }
+
+    /** Práve sa hrá — otázka aj podnet sa riešia teraz, nie zajtra. */
+    public function isLive(): bool
+    {
+        return $this === self::Live;
+    }
+
+    /**
+     * Musí byť pisateľ súkromného vstupu prihlásený?
+     *
+     * Počas akcie áno. Podnet („v sále je zima") je prevádzková informácia,
+     * podľa ktorej organizátor niečo urobí — a urobí to na základe toho, že
+     * píše človek, ktorý v tej sále naozaj sedí. Anonymné „je zima" z druhého
+     * konca internetu nie je podnet, je to šum. Zároveň je to jediná forma
+     * účtu, ktorú vieme na verejnej stránke vyžadovať bez toho, aby sme
+     * pýtali lístok — voľné podujatia žiadny nemajú.
+     *
+     * Pred akciou a po nej to neplatí: tam je súkromná otázka bežná otázka
+     * a adresa na odpoveď je dostatočný kontakt.
+     */
+    public function requiresAccountForPrivate(): bool
+    {
+        return $this->isLive();
     }
 }

@@ -13,6 +13,7 @@ use App\Services\Files\FileManager;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\Tags\EventAttributeDeriver;
+use App\Support\EventTimeframe;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
@@ -394,7 +395,11 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
     public function publicIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
     {
-        $query = $this->applyPublicTimeframe($this->publicIndexQuery(), $filters['list'] ?? 'upcoming');
+        $list = $filters['list'] ?? 'upcoming';
+
+        $query = $list === 'past'
+            ? $this->publicArchiveQuery()
+            : $this->applyPublicTimeframe($this->publicIndexQuery(), $list);
 
         return $this->paginateFilteredQuery($query, $perPage, $filters);
     }
@@ -419,6 +424,35 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
     public function publicIndexQuery()
     {
+        return EventTimeframe::upcoming($this->publicEventQuery())
+            ->where('status', ModelStatus::Published->value)
+            ->orderBy('start_at', 'asc');
+    }
+
+    /**
+     * Archív — uplynulé podujatia od najnovšieho.
+     *
+     * Stav je širší než vo výpise: desať minút po skončení preklopí podujatie
+     * `app:events-archive-finished` na `archived`, takže filter len na
+     * `published` by vrátil prázdny archív. Rovnaké stavy púšťa aj verejný
+     * detail (ModelStatus::publiclyReadableValues()) — zoznam a detail sa tak
+     * nemôžu rozísť a odkaz z archívu nikdy nekončí na 404.
+     */
+    public function publicArchiveQuery(): Builder
+    {
+        return EventTimeframe::past($this->publicEventQuery())
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->orderByDesc('start_at');
+    }
+
+    /**
+     * Spoločný základ verejných výpisov — bez stavu, termínu a zoradenia; tie
+     * si každý výpis určuje sám.
+     *
+     * @return Builder<Event>
+     */
+    private function publicEventQuery(): Builder
+    {
         return $this->model()
             ->with([
                 // `website` vypisuje EventResource — bez neho vo výbere by na
@@ -430,16 +464,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                     ->with('municipality'),
                 'files',
                 'tags',
-            ])
-            ->where('status', ModelStatus::Published->value)
-            ->where(function ($q) {
-                $q->where('end_at', '>=', now())
-                  ->orWhere(function ($inner) {
-                      $inner->whereNull('end_at')
-                            ->where('start_at', '>=', now()->startOfDay());
-                  });
-            })
-            ->orderBy('start_at', 'asc');
+            ]);
     }
 
     private function applyMunicipalityOverviewScope(Builder $query, string $scope): Builder

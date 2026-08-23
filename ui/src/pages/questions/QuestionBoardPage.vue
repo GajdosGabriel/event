@@ -263,6 +263,11 @@ async function submit() {
         createdAt: new Date().toISOString(),
         status: 'pending',
         statusLabel: null,
+        // Nástenka z QR súkromné otázky neprijíma — bez adresy by odpoveď
+        // nemala kam prísť (QuestionDraft).
+        visibility: 'public',
+        live: false,
+        notifiesAuthor: false,
       }, ...pendingMine.value]
     }
 

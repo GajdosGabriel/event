@@ -201,6 +201,21 @@ return [
         'outro'        => 'Vaši adresu jsme použili jen na tuto jednu odpověď a už ji nemáme — další e-mail od nás nepřijde.',
     ],
 
+    'private_question_received' => [
+        'feedback' => [
+            'subject' => 'Podnět z publika: :event',
+            'intro'   => 'Někdo z publika vám během akce **„:event"** poslal podnět:',
+        ],
+        'question' => [
+            'subject' => 'Soukromá otázka: :event',
+            'intro'   => 'Někdo se vás soukromě ptá na akci **„:event"**:',
+        ],
+        'from'   => 'Píše: :name',
+        'hint'   => 'Tuto otázku nikdo jiný nevidí. Odpověď napíšete v nástěnce a pisateli ji pošleme e-mailem.',
+        'action' => 'Otevřít nástěnku otázek',
+        'outro'  => 'Další podněty z této nástěnky vám půl hodiny neoznamujeme — najdete je pohromadě v dashboardu.',
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject'   => 'Budeme vás informovat: :event',

@@ -26,6 +26,10 @@ const router = createRouter({
         // vyhľadávač ako indexovať.
         { path: 'podujatia', name: 'events-public-index', component: EventListPage },
         { path: 'podujatia/tento-vikend', name: 'events-public-weekend', component: EventListPage, props: { variant: 'weekend' } },
+        // Archív. Skončené podujatia zmiznú z výpisu, ale ich detaily žijú
+        // ďalej — bez tejto stránky by na ne z portálu neviedol žiadny odkaz
+        // a vyhľadávač by ich časom vyhodil z indexu ako nedostupné.
+        { path: 'podujatia/archiv', name: 'events-public-archive', component: EventListPage, props: { variant: 'archive' } },
         {
           path: 'podujatia/mesto/:slug',
           name: 'events-public-municipality',

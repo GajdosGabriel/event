@@ -32,9 +32,9 @@
 
     <!-- Odoslané -->
     <div v-if="sent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-      <p class="font-semibold">{{ pending ? t('public.questions.pendingTitle') : t('public.questions.sentTitle') }}</p>
-      <p>{{ pending ? t('public.questions.pendingLead') : t('public.questions.sentLead') }}</p>
-      <p v-if="notified">{{ t('public.questions.sentLeadNotify') }}</p>
+      <p class="font-semibold">{{ sentTitle }}</p>
+      <p>{{ sentLead }}</p>
+      <p v-if="notified && !sentPrivate">{{ t('public.questions.sentLeadNotify') }}</p>
       <button type="button" class="mt-2 text-sm font-medium text-green-700 hover:underline" @click="askAgain">
         {{ t('public.questions.askAnother') }}
       </button>
@@ -51,15 +51,27 @@
       >{{ t('public.questions.ask') }}</button>
 
       <form v-else class="space-y-3" @submit.prevent="submit">
+        <!-- Komu to ide. Pred podujatím je to „verejná otázka / súkromná
+             otázka", počas neho „otázka pre prednášajúceho / podnet
+             organizátorovi" — je to tá istá voľba, len sa v tej chvíli inak
+             volá, lebo inak sa aj používa. -->
+        <FormField
+          v-if="view.allowPrivate"
+          v-model="visibility"
+          type="radio"
+          :label="t('public.questions.audience')"
+          :options="visibilityOptions"
+        />
+
         <FormField
           v-model="body"
           type="textarea"
-          :label="t('public.questions.yourQuestion')"
+          :label="isFeedback ? t('public.questions.yourFeedback') : t('public.questions.yourQuestion')"
           required
           trim
           rows="3"
           maxlength="500"
-          :placeholder="t('public.questions.placeholder')"
+          :placeholder="isFeedback ? t('public.questions.feedbackPlaceholder') : t('public.questions.placeholder')"
         />
 
         <!-- Prihláseného sa na meno nepýtame — vieme ho z účtu a doplní ho
@@ -76,16 +88,22 @@
           {{ t('public.questions.signedAsAccount', { name: auth.displayName }) }}
         </p>
 
-        <!-- Odpoveď e-mailom. Zámerne nezaškrtnuté: adresu pýtame len od toho,
-             kto o odpoveď naozaj stojí. -->
+        <!-- Odpoveď e-mailom. Pri verejnej otázke je to ponuka a zámerne
+             nezaškrtnutá — adresu pýtame len od toho, kto o odpoveď naozaj
+             stojí. Pri súkromnej sa nepýtame vôbec: odpoveď nebude ani vo
+             verejnom zozname, ani na plátne, takže e-mail nie je voľba, ale
+             jediná cesta, ako sa k pisateľovi dostane. Server si to odvodí
+             sám (QuestionStoreRequest), tu sa to len povie nahlas. -->
         <FormField
+          v-if="!isPrivate"
           v-model="notify"
           type="checkbox"
           :label="t('public.questions.notifyMe')"
         />
+        <p v-else class="text-xs text-slate-500">{{ t('public.questions.notifyPrivate') }}</p>
 
         <FormField
-          v-if="notify && !signedIn"
+          v-if="wantsEmail && !signedIn"
           v-model="authorEmail"
           type="email"
           :label="t('public.questions.yourEmail')"
@@ -95,7 +113,7 @@
           :placeholder="t('public.questions.emailPlaceholder')"
           :hint="t('public.questions.emailPrivacy')"
         />
-        <p v-else-if="notify" class="text-xs text-slate-500">
+        <p v-else-if="wantsEmail" class="text-xs text-slate-500">
           {{ t('public.questions.notifyAccount') }}
         </p>
 
@@ -107,7 +125,9 @@
           </label>
         </div>
 
-        <p v-if="view.moderation" class="text-xs text-slate-500">{{ t('public.questions.moderationNote') }}</p>
+        <!-- Moderovanie sa týka len verejného zoznamu — súkromná otázka ide
+             rovno organizátorovi a nikde sa neschvaľuje. -->
+        <p v-if="view.moderation && !isPrivate" class="text-xs text-slate-500">{{ t('public.questions.moderationNote') }}</p>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <div class="flex gap-2">
@@ -115,7 +135,7 @@
             type="submit"
             :disabled="submitting"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-          >{{ submitting ? t('public.questions.submitting') : t('public.questions.submit') }}</button>
+          >{{ submitting ? t('public.questions.submitting') : submitLabel }}</button>
           <button
             type="button"
             class="rounded-lg px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
@@ -137,7 +157,9 @@ import {
   askEventQuestion,
   type EventQuestionsView,
   type QuestionItem,
+  type QuestionVisibility,
 } from '@/api/questions'
+import type { FieldOption } from '@/types'
 import { t, currentLocale } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useAuthStore } from '@/stores/auth'
@@ -167,6 +189,9 @@ const authorName = ref('')
 const authorEmail = ref('')
 const notify = ref(false)
 const website = ref('')
+const visibility = ref<QuestionVisibility>('public')
+/** Čím bolo to, čo práve odišlo — potvrdenie hovorí o ňom, nie o aktuálnej voľbe. */
+const sentPrivate = ref(false)
 
 /**
  * Prázdna sekcia je horšia než žiadna. Nástenka sa zakladá lenivo, takže väčšina
@@ -179,10 +204,68 @@ const visible = computed(() => {
   return v.open || questions.value.length > 0
 })
 
-/** Pred podujatím smeruje otázka organizátorovi, počas neho prednášajúcemu. */
-const leadText = computed(() =>
-  view.value?.phase === 'live' ? t('public.questions.leadLive') : t('public.questions.leadBefore'),
+const isLive = computed(() => view.value?.phase === 'live')
+const isPrivate = computed(() => visibility.value === 'private')
+
+/**
+ * Súkromný vstup počas akcie je podnet, nie otázka: „v sále je zima", „nie je
+ * počuť". Je to tá istá vec v databáze, ale iná vec pre človeka, ktorý ju píše
+ * — preto sa mení popiska poľa, príklad aj tlačidlo.
+ */
+const isFeedback = computed(() => isPrivate.value && isLive.value)
+
+/** Prihlásený adresu nevypĺňa, ale aj tak má vedieť, kam odpoveď príde. */
+const wantsEmail = computed(() => notify.value || isPrivate.value)
+
+/**
+ * Podnet počas akcie smie poslať len prihlásený — rozhoduje o tom server
+ * (`privateNeedsAccount`), tu sa voľba len zamkne a povie prečo. Zostáva
+ * viditeľná zámerne: kto o nej nevie, nemá sa prečo prihlasovať.
+ */
+const privateLocked = computed(() => Boolean(view.value?.privateNeedsAccount) && !signedIn.value)
+
+const visibilityOptions = computed<FieldOption[]>(() => [
+  {
+    value: 'public',
+    label: isLive.value ? t('public.questions.publicLive') : t('public.questions.publicAsk'),
+    hint: isLive.value ? t('public.questions.publicLiveHint') : t('public.questions.publicAskHint'),
+  },
+  {
+    value: 'private',
+    label: isLive.value ? t('public.questions.feedbackAsk') : t('public.questions.privateAsk'),
+    hint: privateLocked.value
+      ? t('public.questions.privateLocked')
+      : isLive.value ? t('public.questions.feedbackAskHint') : t('public.questions.privateAskHint'),
+    disabled: privateLocked.value,
+  },
+])
+
+const submitLabel = computed(() =>
+  isFeedback.value ? t('public.questions.submitFeedback') : t('public.questions.submit'),
 )
+
+const sentTitle = computed(() => {
+  if (sentPrivate.value) return t('public.questions.sentPrivateTitle')
+
+  return pending.value ? t('public.questions.pendingTitle') : t('public.questions.sentTitle')
+})
+
+const sentLead = computed(() => {
+  if (sentPrivate.value) return t('public.questions.sentPrivateLead')
+
+  return pending.value ? t('public.questions.pendingLead') : t('public.questions.sentLead')
+})
+
+/**
+ * Pred podujatím smeruje otázka organizátorovi, počas neho prednášajúcemu —
+ * a keď sa dá aj podnet, patrí to do úvodnej vety: inak sa o tej možnosti
+ * dozvie len ten, kto si rozklikne formulár.
+ */
+const leadText = computed(() => {
+  if (!isLive.value) return t('public.questions.leadBefore')
+
+  return view.value?.allowPrivate ? t('public.questions.leadLiveFeedback') : t('public.questions.leadLive')
+})
 
 onMounted(load)
 
@@ -201,6 +284,10 @@ function askAgain() {
   sent.value = false
   pending.value = false
   notified.value = false
+  // Ďalšia vec býva iná než tá predošlá — voľba sa vracia na verejnú, aby sa
+  // omylom nepridal súkromný vstup tam, kde mala ísť otázka pre všetkých.
+  sentPrivate.value = false
+  visibility.value = 'public'
   formOpen.value = true
 }
 
@@ -213,6 +300,7 @@ async function submit() {
     const result = await askEventQuestion(props.eventId, {
       body: body.value,
       author_name: authorName.value || null,
+      visibility: visibility.value,
       // Adresu posiela len hosť — prihlásenému ju server vezme z účtu.
       notify: notify.value,
       author_email: authorEmail.value || null,
@@ -222,13 +310,15 @@ async function submit() {
     })
 
     // Bez moderovania je otázka rovno vonku — nech ju človek vidí v zozname
-    // hneď a nemusí stránku obnovovať.
+    // hneď a nemusí stránku obnovovať. Súkromná do zoznamu nikdy nepribudne,
+    // server ju v odpovedi ani neposiela.
     if (result.question) {
       questions.value = [...questions.value, result.question]
     }
 
     pending.value = result.pending
     notified.value = result.notify
+    sentPrivate.value = result.visibility === 'private'
     sent.value = true
     formOpen.value = false
     body.value = ''

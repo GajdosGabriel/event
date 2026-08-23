@@ -80,6 +80,12 @@
               :label="t('questions.dashboard.settings.askForName')"
               :hint="t('questions.dashboard.settings.askForNameHint')"
             />
+            <FormField
+              v-model="settings.allow_private"
+              type="checkbox"
+              :label="t('questions.dashboard.settings.allowPrivate')"
+              :hint="t('questions.dashboard.settings.allowPrivateHint')"
+            />
           </div>
 
           <FormField
@@ -102,10 +108,10 @@
             <div class="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
               <button
                 v-for="filter in filters"
-                :key="String(filter.value)"
+                :key="filter.value"
                 type="button"
                 class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                :class="statusFilter === filter.value ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                :class="activeFilter === filter.value ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
                 @click="setFilter(filter.value)"
               >
                 {{ filter.label }}
@@ -121,7 +127,17 @@
           <ul v-else class="divide-y divide-slate-100">
             <li v-for="question in questions" :key="question.id" class="py-3">
               <div class="flex flex-wrap items-center gap-2">
-                <span v-if="question.statusLabel" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                <!-- Súkromný vstup je iná vec než otázka na plátno a musí to
+                     byť vidieť skôr, než organizátor začne čítať: podnet
+                     z akcie („v sále je zima") sa rieši teraz alebo nikdy. -->
+                <span
+                  v-if="question.visibility === 'private'"
+                  class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                  :class="question.live ? 'bg-amber-100 text-amber-900' : 'bg-violet-100 text-violet-800'"
+                >
+                  {{ question.live ? t('questions.dashboard.moderation.feedbackBadge') : t('questions.dashboard.moderation.privateBadge') }}
+                </span>
+                <span v-else-if="question.statusLabel" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                   {{ question.statusLabel }}
                 </span>
                 <span v-if="question.highlighted" class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">
@@ -130,24 +146,42 @@
                 <span v-if="question.answeredAt" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                   {{ t('questions.list.answered') }}
                 </span>
-                <span class="text-xs text-slate-400">▲ {{ question.upvotesCount }}</span>
+                <span v-if="question.visibility !== 'private'" class="text-xs text-slate-400">▲ {{ question.upvotesCount }}</span>
               </div>
 
               <p class="mt-1 whitespace-pre-line break-words text-slate-900">{{ question.body }}</p>
               <p class="mt-0.5 text-xs text-slate-500">{{ question.authorName || t('questions.list.anonymous') }}</p>
+              <!-- Adresa pisateľa sa nezobrazuje nikde — organizátor odpovedá
+                   tu a e-mail odošleme my. -->
+              <p v-if="question.visibility === 'private'" class="mt-0.5 text-xs text-violet-700">
+                {{ question.notifiesAuthor
+                  ? t('questions.dashboard.moderation.privateNotify')
+                  : t('questions.dashboard.moderation.privateNotified') }}
+              </p>
 
               <div class="mt-2 flex flex-wrap gap-2">
-                <button v-if="question.status !== 'published'" type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { status: 'published' })">
-                  {{ t('questions.dashboard.moderation.approve') }}
-                </button>
+                <!-- Zverejniť ani zvýrazniť sa súkromný vstup nedá: pisateľ ho
+                     písal s tým, že ho nikto iný neuvidí, a na stene nie je. -->
+                <template v-if="question.visibility !== 'private'">
+                  <button v-if="question.status !== 'published'" type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { status: 'published' })">
+                    {{ t('questions.dashboard.moderation.approve') }}
+                  </button>
+                  <button type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { highlighted: !question.highlighted })">
+                    {{ question.highlighted ? t('questions.dashboard.moderation.unhighlight') : t('questions.dashboard.moderation.highlight') }}
+                  </button>
+                </template>
                 <button v-if="question.status !== 'hidden'" type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { status: 'hidden' })">
                   {{ t('questions.dashboard.moderation.hide') }}
                 </button>
-                <button type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { highlighted: !question.highlighted })">
-                  {{ question.highlighted ? t('questions.dashboard.moderation.unhighlight') : t('questions.dashboard.moderation.highlight') }}
-                </button>
+                <!-- Podnet sa väčšinou nezodpovedá, ale vybaví — pustí sa
+                     kúrenie, pridá zvuk. Je to ten istý príznak, len sa pri
+                     ňom inak volá. -->
                 <button type="button" class="action-btn" :disabled="busyId === question.id" @click="moderate(question, { answered: !question.answeredAt })">
-                  {{ question.answeredAt ? t('questions.dashboard.moderation.unmarkAnswered') : t('questions.dashboard.moderation.markAnswered') }}
+                  {{ question.answeredAt
+                    ? t('questions.dashboard.moderation.unmarkAnswered')
+                    : question.live && question.visibility === 'private'
+                      ? t('questions.dashboard.moderation.markHandled')
+                      : t('questions.dashboard.moderation.markAnswered') }}
                 </button>
                 <button type="button" class="action-btn" @click="toggleAnswer(question)">
                   {{ t('questions.dashboard.moderation.answer') }}
@@ -219,8 +253,16 @@ const enabling = ref(false)
 const saving = ref(false)
 
 const questions = ref<QuestionItem[]>([])
-const counts = ref<QuestionCounts>({ pending: 0, published: 0, hidden: 0 })
-const statusFilter = ref<QuestionStatus | null>(null)
+const counts = ref<QuestionCounts>({ pending: 0, published: 0, hidden: 0, private: 0, privateOpen: 0 })
+
+/**
+ * Filter zoznamu. Súkromné idú vedľa stavov, nie medzi ne — nie je to štvrtý
+ * stav otázky, ale iný druh vstupu: nikde sa nezverejní a čaká sa pri ňom
+ * odpoveď e-mailom.
+ */
+type FilterKey = 'all' | QuestionStatus | 'private'
+
+const activeFilter = ref<FilterKey>('all')
 const busyId = ref<number | null>(null)
 const answeringId = ref<number | null>(null)
 const answerDraft = ref('')
@@ -231,6 +273,7 @@ const settings = reactive({
   show_questions: true,
   allow_upvotes: true,
   ask_for_name: true,
+  allow_private: true,
   intro: '' as string | null,
 })
 
@@ -238,11 +281,14 @@ const key = (slot: QuestionBoardSlot) => `${slot.targetType}-${slot.targetId}`
 const active = computed(() => slots.value.find((slot) => key(slot) === activeKey.value) ?? slots.value[0] ?? null)
 const isActive = (slot: QuestionBoardSlot) => key(slot) === activeKey.value
 
-const filters = computed(() => [
-  { value: null as QuestionStatus | null, label: t('questions.dashboard.moderation.all'), count: 0 },
-  { value: 'pending' as QuestionStatus, label: t('questions.dashboard.moderation.pending'), count: counts.value.pending },
-  { value: 'published' as QuestionStatus, label: t('questions.dashboard.moderation.published'), count: counts.value.published },
-  { value: 'hidden' as QuestionStatus, label: t('questions.dashboard.moderation.hidden'), count: counts.value.hidden },
+const filters = computed<{ value: FilterKey; label: string; count: number }[]>(() => [
+  { value: 'all', label: t('questions.dashboard.moderation.all'), count: 0 },
+  { value: 'pending', label: t('questions.dashboard.moderation.pending'), count: counts.value.pending },
+  { value: 'published', label: t('questions.dashboard.moderation.published'), count: counts.value.published },
+  { value: 'hidden', label: t('questions.dashboard.moderation.hidden'), count: counts.value.hidden },
+  // Číslo je zámerne „bez odpovede", nie „spolu": len ono hovorí, či treba
+  // niečo urobiť.
+  { value: 'private', label: t('questions.dashboard.moderation.private'), count: counts.value.privateOpen },
 ])
 
 async function load() {
@@ -270,6 +316,7 @@ watch(active, (slot) => {
   settings.show_questions = board.showQuestions
   settings.allow_upvotes = board.allowUpvotes
   settings.ask_for_name = board.askForName
+  settings.allow_private = board.allowPrivate
   settings.intro = board.intro ?? ''
 
   void loadQuestions()
@@ -328,8 +375,12 @@ async function loadQuestions() {
     return
   }
 
+  const key = activeFilter.value
+  const status = key === 'all' || key === 'private' ? null : key
+  const visibility = key === 'private' ? 'private' : null
+
   try {
-    const result = await indexBoardQuestions(board.id, statusFilter.value)
+    const result = await indexBoardQuestions(board.id, status, visibility)
     questions.value = result.questions
     counts.value = result.counts
   } catch {
@@ -337,8 +388,8 @@ async function loadQuestions() {
   }
 }
 
-function setFilter(status: QuestionStatus | null) {
-  statusFilter.value = status
+function setFilter(key: FilterKey) {
+  activeFilter.value = key
   void loadQuestions()
 }
 

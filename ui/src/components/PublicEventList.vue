@@ -90,7 +90,7 @@
 
     <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div ref="listTop" class="min-w-0 scroll-mt-4 space-y-4">
-        <OngoingEventsStrip v-if="!search.trim() && !range" :municipality="municipalityFilter" />
+        <OngoingEventsStrip v-if="!search.trim() && !range && !list" :municipality="municipalityFilter" />
 
         <!-- Časové okná mali vlastné adresy, ale zo zoznamu na ne nič neviedlo —
              „tento víkend" sa dalo nájsť len tak, že o ňom človek už vedel. -->
@@ -218,7 +218,7 @@ import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 import { usePageQuery } from '@/composables/usePageQuery'
-import { absoluteUrl, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { absoluteUrl, publicArchivePath, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
 const props = withDefaults(defineProps<{
@@ -231,6 +231,11 @@ const props = withDefaults(defineProps<{
   /** Pomenované časové okno; dnes jediné `weekend`. */
   range?: string | null
   /**
+   * Ktoré okno zoznam pýta od API. Dnes len `past` pre archív — ostatné
+   * výpisy nechávajú predvolené `upcoming`.
+   */
+  list?: string | null
+  /**
    * Úroveň nadpisu. Homepage má vlastné `h1` nad hero sekciou, tam je zoznam
    * až druhou úrovňou — dve `h1` na stránke by rozbili osnovu dokumentu.
    */
@@ -239,6 +244,7 @@ const props = withDefaults(defineProps<{
   municipality: null,
   tags: null,
   range: null,
+  list: null,
   headingLevel: 'h1',
 })
 
@@ -290,13 +296,22 @@ const shortcuts = computed(() => [
     label: t('filters.events.all'),
     emoji: '📅',
     to: PUBLIC_EVENTS,
-    active: !props.range && !props.tags && !props.municipality,
+    active: !props.range && !props.list && !props.tags && !props.municipality,
   },
   {
     label: t('filters.events.weekend'),
     emoji: '🎉',
     to: publicWeekendPath(),
     active: props.range === 'weekend',
+  },
+  // Archív. Odkaz je vo výpise zámerne: je to jediná cesta na detaily
+  // skončených podujatí — pre človeka, ktorý hľadá „čo tu bolo vlani",
+  // aj pre crawlera, ktorému by inak tie stránky ostali nedostupné.
+  {
+    label: t('filters.events.archive'),
+    emoji: '🗄️',
+    to: publicArchivePath(),
+    active: props.list === 'past',
   },
 ])
 
@@ -388,7 +403,9 @@ async function fetchPage(p: number) {
   error.value = null
   try {
     const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
-    params['list'] = search.value.trim() ? 'all' : 'upcoming'
+    // Archív ostáva archívom aj počas hľadania — inak by výraz zadaný nad
+    // uplynulými podujatiami ticho preskočil na nadchádzajúce.
+    params['list'] = props.list ?? (search.value.trim() ? 'all' : 'upcoming')
     if (municipalityParam.value) params['municipality'] = municipalityParam.value
     if (tagsParam.value) params['tags'] = tagsParam.value
     if (props.range) params['range'] = props.range

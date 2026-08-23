@@ -49,6 +49,13 @@ export type FieldValue = string | number | boolean | null | undefined
 export interface FieldOption {
   value: FieldValue
   label: string
+  /**
+   * Vysvetlivka pod popiskou. Používa ju `type="radio"`, kde možnosť bez vety
+   * „čo to znamená" núti človeka hádať; `<select>` ju ignoruje.
+   */
+  hint?: string
+  /** Nedostupná voľba. Zostáva vidieť aj s dôvodom v `hint` — inak by človek nevedel, že existuje. */
+  disabled?: boolean
 }
 
 export interface ModelPermissions {

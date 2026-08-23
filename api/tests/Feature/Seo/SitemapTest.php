@@ -73,13 +73,40 @@ class SitemapTest extends TestCase
     }
 
     #[Test]
-    public function sitemap_omits_drafts_and_finished_events(): void
+    public function sitemap_omits_drafts(): void
     {
         $response = $this->get('/api/sitemap.xml');
 
         $response->assertOk();
         $response->assertDontSee(PublicUrl::event($this->draft), false);
-        $response->assertDontSee(PublicUrl::event($this->past), false);
+    }
+
+    /**
+     * Skončené podujatia v mape ostávajú zámerne: ich detail vracia 200 (viď
+     * ModelStatus::publiclyReadableValues()) a vedú naň odkazy z e-mailov,
+     * zo sociálnych sietí aj z cudzích webov. Bez mapy by ich Google časom
+     * vyhodil z indexu a tie odkazy by prestali niekam viesť.
+     */
+    #[Test]
+    public function sitemap_contains_finished_events_with_low_priority(): void
+    {
+        $response = $this->get('/api/sitemap.xml');
+
+        $response->assertOk();
+        $response->assertSee(PublicUrl::event($this->past), false);
+
+        $this->assertMatchesRegularExpression(
+            '#<loc>'.preg_quote(PublicUrl::event($this->past), '#').'</loc>.*?<priority>0\.3</priority>#s',
+            (string) $response->getContent(),
+        );
+    }
+
+    #[Test]
+    public function sitemap_contains_archive_landing_page(): void
+    {
+        $this->get('/api/sitemap.xml')
+            ->assertOk()
+            ->assertSee(PublicUrl::archive(), false);
     }
 
     #[Test]

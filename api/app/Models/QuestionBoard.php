@@ -38,6 +38,7 @@ class QuestionBoard extends Model
         'show_questions' => 'boolean',
         'allow_upvotes' => 'boolean',
         'ask_for_name' => 'boolean',
+        'allow_private' => 'boolean',
         'questions_count' => 'integer',
     ];
 
@@ -84,6 +85,18 @@ class QuestionBoard extends Model
     public function acceptsQuestions(): bool
     {
         return (bool) $this->is_open;
+    }
+
+    /**
+     * Prijíma nástenka aj súkromné otázky a podnety?
+     *
+     * Viazané na `is_open` rovnako ako verejné otázky — zavretá nástenka
+     * neberie nič. Súkromný vstup má navyše vlastný vypínač: je to záväzok
+     * odpovedať e-mailom a kto ho nechce dať, nemá ho ani sľubovať.
+     */
+    public function acceptsPrivateQuestions(): bool
+    {
+        return $this->acceptsQuestions() && (bool) $this->allow_private;
     }
 
     /** Stav, v ktorom má vzniknúť nová otázka. */

@@ -3,6 +3,12 @@ import http, { BASE_URL } from './index'
 export type QuestionTargetType = 'event' | 'workshop'
 export type QuestionStatus = 'pending' | 'published' | 'hidden'
 
+/**
+ * Komu je otázka určená. `private` sa nikde nezverejní — ani na stene, ani vo
+ * verejnom zozname — a odpoveď na ňu chodí výhradne e-mailom.
+ */
+export type QuestionVisibility = 'public' | 'private'
+
 export interface QuestionItem {
   id: number
   body: string
@@ -15,6 +21,12 @@ export interface QuestionItem {
   /** Len v moderačnom zozname — verejná odpoveď stav neposiela. */
   status: QuestionStatus | null
   statusLabel: string | null
+  /** Tiež len v moderačnom zozname. Verejný zoznam súkromné otázky neobsahuje. */
+  visibility: QuestionVisibility | null
+  /** Prišla počas akcie? Vtedy je to podnet („v sále je zima"), nie otázka do FAQ. */
+  live: boolean
+  /** Odíde po dopísaní odpovede e-mail pisateľovi? Samotná adresa von nejde nikdy. */
+  notifiesAuthor: boolean
 }
 
 /** Verejná nástenka spoza tokenu z QR kódu. */
@@ -58,9 +70,13 @@ export interface QuestionBoardAdmin {
   showQuestions: boolean
   allowUpvotes: boolean
   askForName: boolean
+  /** Berie nástenka aj súkromné otázky a podnety z publika? */
+  allowPrivate: boolean
   intro: string | null
   questionsCount: number
   pendingCount: number
+  /** Súkromné vstupy bez odpovede — jediné číslo, na ktoré treba reagovať. */
+  privateOpenCount: number
 }
 
 /** Miesto, kde nástenka môže byť — podujatie alebo jeden jeho workshop. */
@@ -75,6 +91,9 @@ export interface QuestionCounts {
   pending: number
   published: number
   hidden: number
+  /** Súkromné otázky a podnety spolu a z nich tie bez odpovede. */
+  private: number
+  privateOpen: number
 }
 
 function mapQuestion(raw: Record<string, unknown>): QuestionItem {
@@ -89,6 +108,9 @@ function mapQuestion(raw: Record<string, unknown>): QuestionItem {
     createdAt: raw['created_at'] as string,
     status: (raw['status'] as QuestionStatus) ?? null,
     statusLabel: (raw['status_label'] as string) ?? null,
+    visibility: (raw['visibility'] as QuestionVisibility) ?? null,
+    live: Boolean(raw['live']),
+    notifiesAuthor: Boolean(raw['notifies_author']),
   }
 }
 
@@ -134,9 +156,11 @@ function mapBoardAdmin(raw: Record<string, unknown>): QuestionBoardAdmin {
     showQuestions: Boolean(raw['show_questions']),
     allowUpvotes: Boolean(raw['allow_upvotes']),
     askForName: Boolean(raw['ask_for_name']),
+    allowPrivate: Boolean(raw['allow_private']),
     intro: (raw['intro'] as string) ?? null,
     questionsCount: Number(raw['questions_count'] ?? 0),
     pendingCount: Number(raw['pending_count'] ?? 0),
+    privateOpenCount: Number(raw['private_open_count'] ?? 0),
   }
 }
 
@@ -236,6 +260,7 @@ export interface BoardSettingsPayload {
   show_questions?: boolean
   allow_upvotes?: boolean
   ask_for_name?: boolean
+  allow_private?: boolean
   intro?: string | null
 }
 
@@ -252,14 +277,15 @@ export async function rotateQuestionBoardToken(boardId: number): Promise<Questio
 export async function indexBoardQuestions(
   boardId: number,
   status?: QuestionStatus | null,
+  visibility?: QuestionVisibility | null,
 ): Promise<{ questions: QuestionItem[]; counts: QuestionCounts }> {
   const { data } = await http.get(`/dashboard/question-boards/${boardId}/questions`, {
-    params: status ? { status } : {},
+    params: { ...(status ? { status } : {}), ...(visibility ? { visibility } : {}) },
   })
 
   return {
     questions: ((data.data ?? []) as Record<string, unknown>[]).map(mapQuestion),
-    counts: (data.counts as QuestionCounts) ?? { pending: 0, published: 0, hidden: 0 },
+    counts: (data.counts as QuestionCounts) ?? { pending: 0, published: 0, hidden: 0, private: 0, privateOpen: 0 },
   }
 }
 
@@ -318,6 +344,13 @@ export interface EventQuestionsView {
   showQuestions: boolean
   allowUpvotes: boolean
   askForName: boolean
+  /** Dá sa tu niečo opýtať súkromne? Rozhoduje nastavenie nástenky. */
+  allowPrivate: boolean
+  /**
+   * Vyžaduje súkromný vstup prihlásenie? Počas akcie áno — podnet („v sále je
+   * zima") má cenu len od človeka, ktorý v tej sále naozaj sedí.
+   */
+  privateNeedsAccount: boolean
   intro: string | null
   questionsCount: number
   /** Koľko z nich má odpoveď — podľa toho sa rozhoduje, či sekcia stojí za zobrazenie. */
@@ -339,6 +372,8 @@ export async function showEventQuestions(eventId: number): Promise<EventQuestion
     showQuestions: Boolean(raw['show_questions']),
     allowUpvotes: Boolean(raw['allow_upvotes']),
     askForName: Boolean(raw['ask_for_name']),
+    allowPrivate: Boolean(raw['allow_private']),
+    privateNeedsAccount: Boolean(raw['private_needs_account']),
     intro: (raw['intro'] as string) ?? null,
     questionsCount: Number(raw['questions_count'] ?? 0),
     answeredCount: Number(raw['answered_count'] ?? 0),
@@ -358,11 +393,18 @@ export interface EventAskPayload extends AskPayload {
   author_email?: string | null
   /** Jazyk, v ktorom si stránku čítal — odpoveď má prísť v ňom. */
   locale?: string
+  /**
+   * Verejná otázka, alebo súkromná? Pri súkromnej je oznámenie e-mailom
+   * automatické — server si ho odvodí sám a `notify` sa naň neposiela.
+   */
+  visibility?: QuestionVisibility
 }
 
 export interface EventAskResult extends AskResult {
   /** Beží notifikácia? Nie je to ozvena vstupu — adresu mohol doplniť server. */
   notify: boolean
+  /** Čo z toho nakoniec vzniklo. Súkromná otázka sa do verejného zoznamu nedopisuje. */
+  visibility: QuestionVisibility
 }
 
 export async function askEventQuestion(
@@ -375,6 +417,7 @@ export async function askEventQuestion(
     id: data.id as number,
     pending: Boolean(data.pending),
     notify: Boolean(data.notify),
+    visibility: (data.visibility as QuestionVisibility) ?? 'public',
     question: data.question ? mapQuestion(data.question as Record<string, unknown>) : null,
   }
 }

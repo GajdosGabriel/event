@@ -6,6 +6,7 @@
       :municipality="municipalityFilter"
       :tags="tagFilter"
       :range="rangeFilter"
+      :list="listFilter"
     />
   </div>
 </template>
@@ -16,7 +17,7 @@ import { useHead } from '@vueuse/head'
 import PublicEventList from '@/components/PublicEventList.vue'
 import { showPublicMunicipality } from '@/api/municipalities'
 import { indexTags } from '@/api/tags'
-import { absoluteUrl, publicMunicipalityPath, publicTagPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { absoluteUrl, publicArchivePath, publicMunicipalityPath, publicTagPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -32,7 +33,7 @@ const { t } = useI18n()
  * `PrerenderController` na backende; nadpisy a popisy sú zámerne rovnaké.
  */
 const props = withDefaults(defineProps<{
-  variant?: 'all' | 'weekend' | 'municipality' | 'tag'
+  variant?: 'all' | 'weekend' | 'municipality' | 'tag' | 'archive'
   slug?: string
 }>(), {
   variant: 'all',
@@ -45,12 +46,15 @@ const resolvedName = ref<string | null>(null)
 const municipalityFilter = computed(() => (props.variant === 'municipality' ? props.slug : null))
 const tagFilter = computed(() => (props.variant === 'tag' ? props.slug : null))
 const rangeFilter = computed(() => (props.variant === 'weekend' ? 'weekend' : null))
+/** Archív si pýta uplynulé podujatia; ostatné varianty berú predvolený výpis. */
+const listFilter = computed(() => (props.variant === 'archive' ? 'past' : null))
 
 const label = computed(() => resolvedName.value ?? props.slug)
 
 const heading = computed(() => {
   switch (props.variant) {
     case 'weekend': return t('public.seo.listHeadingWeekend')
+    case 'archive': return t('public.seo.archiveHeading')
     case 'municipality':
     case 'tag': return t('public.seo.listHeadingLabel', { label: label.value })
     default: return t('public.seo.listHeading')
@@ -60,6 +64,7 @@ const heading = computed(() => {
 const title = computed(() => {
   switch (props.variant) {
     case 'weekend': return t('public.seo.listHeadingWeekend')
+    case 'archive': return t('public.seo.archiveTitle')
     case 'municipality': return t('public.seo.listTitleMunicipality', { label: label.value })
     case 'tag': return t('public.seo.listTitleTag', { label: label.value })
     default: return t('public.seo.homeTitle')
@@ -69,6 +74,7 @@ const title = computed(() => {
 const description = computed(() => {
   switch (props.variant) {
     case 'weekend': return t('public.seo.listDescriptionWeekend')
+    case 'archive': return t('public.seo.archiveDescription')
     case 'municipality': return t('public.seo.listDescriptionMunicipality', { label: label.value })
     case 'tag': return t('public.seo.listDescriptionTag', { label: label.value })
     default: return t('public.seo.homeDescription')
@@ -78,6 +84,7 @@ const description = computed(() => {
 const canonical = computed(() => {
   switch (props.variant) {
     case 'weekend': return publicWeekendPath()
+    case 'archive': return publicArchivePath()
     case 'municipality': return publicMunicipalityPath(props.slug)
     case 'tag': return publicTagPath(props.slug)
     default: return PUBLIC_EVENTS

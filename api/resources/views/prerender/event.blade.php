@@ -4,6 +4,14 @@
     <article>
         <h1>{{ $event->name }}</h1>
 
+        {{-- Adresa skončeného podujatia ostáva funkčná navždy, ale musí to
+             o sebe povedať hneď v prvom odseku — návštevník z vyhľadávača inak
+             číta pozvánku na akciu, ktorá už bola. Rovnaké oznámenie ukazuje
+             SPA (EventPublicShowPage), aby crawler videl tú istú stránku. --}}
+        @if ($hasEnded)
+            <p><strong>{{ __('seo.page.ended') }}</strong></p>
+        @endif
+
         <dl>
             @if ($event->start_at)
                 <dt>{{ __('seo.page.when') }}</dt>
@@ -75,6 +83,16 @@
                     {{ __('seo.page.related', ['name' => $event->municipality->shortname]) }}
                 </a>
             </p>
+        @endif
+
+        {{-- Zo skončeného podujatia musí viesť cesta ďalej — pre človeka, ktorý
+             sem prišiel z vyhľadávača neskoro, aj pre crawlera, ktorému by inak
+             stránka bola slepou uličkou. --}}
+        @if ($hasEnded && $upcomingElsewhere->isNotEmpty())
+            <section>
+                <h2>{{ __('seo.page.upcoming') }}</h2>
+                @include('prerender._events', ['events' => $upcomingElsewhere])
+            </section>
         @endif
     </article>
 @endsection

@@ -14,6 +14,11 @@ return [
         'hidden' => 'Ausgeblendet',
     ],
 
+    'visibility' => [
+        'public' => 'Öffentlich',
+        'private' => 'Privat',
+    ],
+
     'target' => [
         'event' => 'Veranstaltung',
         'workshop' => 'Workshop',
@@ -29,6 +34,10 @@ return [
         'workshop_only' => 'Eine Fragen-Pinnwand ist nur bei einem Workshop sinnvoll, nicht bei einer gewöhnlichen Ticketart.',
         'unknown_variant' => 'Unbekanntes Format oder Design der Folie.',
         'rendering_unavailable' => 'Auf dem Server fehlt die Textdarstellung (GD FreeType), die Folie kann nicht erstellt werden.',
+        'private_unavailable' => 'Private Fragen sind bei dieser Veranstaltung nicht möglich.',
+        'private_needs_account' => 'Einen Hinweis während der Veranstaltung kann nur ein angemeldeter Teilnehmer senden.',
+        'private_needs_email' => 'Für eine private Frage brauchen wir eine E-Mail-Adresse — die Antwort sehen Sie sonst nirgends.',
+        'private_not_highlightable' => 'Eine private Frage lässt sich nicht hervorheben — sie steht nicht an der Wand.',
     ],
 
     'slide' => [

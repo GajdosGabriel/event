@@ -42,6 +42,12 @@ class PrerenderController extends Controller
     private const LIST_LIMIT = 60;
 
     /**
+     * Koľko uplynulých podujatí visí na profile miesta/organizátora. Je to
+     * cesta crawlera k archívu, nie samotný archív — ten má vlastnú adresu.
+     */
+    private const PAST_ON_PROFILE = 20;
+
+    /**
      * Koľko zodpovedaných otázok ide do `FAQPage`. Google z nich aj tak
      * zobrazí len hŕstku a stovka otázok by z tela stránky spravila archív,
      * v ktorom sa stratí samotné podujatie.
@@ -117,6 +123,7 @@ class PrerenderController extends Controller
         return match (true) {
             $second === null => $this->eventList($jsonLd),
             $second === PublicUrl::THIS_WEEKEND => $this->weekendList($jsonLd),
+            $second === PublicUrl::ARCHIVE => $this->archiveList($jsonLd),
             $second === PublicUrl::BY_MUNICIPALITY => $this->municipalityList($segments[2] ?? '', $jsonLd),
             $second === PublicUrl::BY_TAG => $this->tagList($segments[2] ?? '', $jsonLd),
             default => $this->event($second, $jsonLd),
@@ -140,7 +147,13 @@ class PrerenderController extends Controller
                 'tags',
                 'ticketTypes' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order'),
             ])
-            ->where('status', ModelStatus::Published->value)
+            // Archivované sem patria rovnako ako publikované. Desať minút po
+            // skončení podujatia ho archivuje app:events-archive-finished, a keby
+            // sa filtrovalo len na `published`, crawler by na každom minulom
+            // podujatí dostal 404 — na tej istej adrese, na ktorej človek v SPA
+            // stránku normálne vidí. Odkaz zdieľaný na Facebooku by sa deň po
+            // akcii zmenil na „stránka sa nenašla".
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->find($id);
 
         if (! $event) {
@@ -172,6 +185,15 @@ class PrerenderController extends Controller
             'event' => $event,
             'bodyHtml' => $this->safeBody($event->body ?? $event->body_ai),
             'faq' => $faq,
+            // Stránka skončeného podujatia ostáva v indexe (viď archív nižšie),
+            // ale musí to o sebe povedať — inak návštevník z vyhľadávača číta
+            // pozvánku na akciu, ktorá už bola.
+            'hasEnded' => EventTimeframe::hasEnded($event),
+            'upcomingElsewhere' => EventTimeframe::hasEnded($event)
+                ? $this->upcomingEvents(fn (Builder $query) => $event->canal_id
+                    ? $query->where('canal_id', $event->canal_id)
+                    : $query->where('venue_id', $event->venue_id))->take(5)
+                : new Collection(),
             'structuredData' => array_values(array_filter([
                 $jsonLd->event($event),
                 $jsonLd->faqPage($faq, PublicUrl::event($event)),
@@ -228,6 +250,7 @@ class PrerenderController extends Controller
         }
 
         $events = $this->upcomingEvents(fn (Builder $query) => $query->where('venue_id', $venue->id));
+        $past = $this->pastEvents(fn (Builder $query) => $query->where('venue_id', $venue->id), self::PAST_ON_PROFILE);
 
         return view('prerender.venue', [
             'meta' => $this->meta(
@@ -243,6 +266,7 @@ class PrerenderController extends Controller
             'venue' => $venue,
             'bodyHtml' => $this->safeBody($venue->body),
             'events' => $events,
+            'pastEvents' => $past,
             'structuredData' => [
                 $jsonLd->venue($venue),
                 $jsonLd->eventList($events, PublicUrl::venue($venue), __('seo.list.of_name', ['name' => $venue->name])),
@@ -269,6 +293,7 @@ class PrerenderController extends Controller
         }
 
         $events = $this->upcomingEvents(fn (Builder $query) => $query->where('canal_id', $canal->id));
+        $past = $this->pastEvents(fn (Builder $query) => $query->where('canal_id', $canal->id), self::PAST_ON_PROFILE);
 
         return view('prerender.canal', [
             'meta' => $this->meta(
@@ -280,6 +305,7 @@ class PrerenderController extends Controller
             'canal' => $canal,
             'bodyHtml' => $this->safeBody($canal->body),
             'events' => $events,
+            'pastEvents' => $past,
             'structuredData' => [
                 $jsonLd->canal($canal),
                 $jsonLd->eventList($events, PublicUrl::canal($canal), __('seo.list.of_name', ['name' => $canal->name])),
@@ -316,6 +342,23 @@ class PrerenderController extends Controller
             ]),
             canonical: PublicUrl::thisWeekend(),
             events: $events,
+            jsonLd: $jsonLd,
+        );
+    }
+
+    /**
+     * Archív. Jediná stránka, z ktorej vedie odkaz na skončené podujatia —
+     * bez nej sú ich detaily osirené: nevedie na ne nič z portálu a Google
+     * ich časom vyhodí z indexu ako stránky, ku ktorým sa nedá dostať.
+     */
+    private function archiveList(JsonLd $jsonLd): View
+    {
+        return $this->list(
+            heading: __('seo.list.archive_heading'),
+            title: __('seo.list.archive_title'),
+            description: __('seo.list.archive_description'),
+            canonical: PublicUrl::archive(),
+            events: $this->pastEvents(),
             jsonLd: $jsonLd,
         );
     }
@@ -389,19 +432,8 @@ class PrerenderController extends Controller
      */
     private function upcomingEvents(?callable $filter = null): Collection
     {
-        $query = Event::query()
-            ->with([
-                'canal:id,name,slug',
-                'venue' => fn ($relation) => $relation->with('municipality'),
-                'files',
-            ])
+        $query = EventTimeframe::upcoming($this->publicEvents())
             ->where('status', ModelStatus::Published->value)
-            ->where(function (Builder $timeframe) {
-                $timeframe->where('end_at', '>=', now())
-                    ->orWhere(function (Builder $inner) {
-                        $inner->whereNull('end_at')->where('start_at', '>=', now()->startOfDay());
-                    });
-            })
             ->orderBy('start_at');
 
         if ($filter) {
@@ -409,6 +441,39 @@ class PrerenderController extends Controller
         }
 
         return $query->limit(self::LIST_LIMIT)->get();
+    }
+
+    /**
+     * Skončené podujatia, od najnovšieho. Stav je širší než pri nadchádzajúcich:
+     * po skončení ich `app:events-archive-finished` preklopí na `archived`,
+     * takže filter len na `published` by vrátil prázdno.
+     *
+     * @param  (callable(Builder): Builder)|null  $filter
+     * @return Collection<int, Event>
+     */
+    private function pastEvents(?callable $filter = null, int $limit = self::LIST_LIMIT): Collection
+    {
+        $query = EventTimeframe::past($this->publicEvents())
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->orderByDesc('start_at');
+
+        if ($filter) {
+            $filter($query);
+        }
+
+        return $query->limit($limit)->get();
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function publicEvents(): Builder
+    {
+        return Event::query()->with([
+            'canal:id,name,slug',
+            'venue' => fn ($relation) => $relation->with('municipality'),
+            'files',
+        ]);
     }
 
     /**

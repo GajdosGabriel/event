@@ -56,12 +56,13 @@ class QuestionSubmitter
                 'locale' => $draft->locale,
                 'author_hash' => $authorHash,
                 'status' => $status,
+                'visibility' => $draft->visibility,
             ]);
 
-            // Počítadlo drží len zverejnené otázky — číslo sa ukazuje verejne
-            // a nesmie prezradiť, koľko toho visí v moderácii. Pri schválení ho
-            // dvíha QuestionModerator.
-            if ($question->isPublished()) {
+            // Počítadlo drží len otázky vo verejnom zozname — číslo sa ukazuje
+            // verejne a nesmie prezradiť, koľko toho visí v moderácii ani koľko
+            // súkromných podnetov prišlo. Pri schválení ho dvíha QuestionModerator.
+            if ($question->isPubliclyVisible()) {
                 $board->increment('questions_count');
             }
 

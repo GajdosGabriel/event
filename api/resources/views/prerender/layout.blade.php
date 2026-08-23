@@ -52,6 +52,9 @@
     <nav>
         <a href="{{ \App\Support\PublicUrl::events() }}">{{ __('seo.page.all_events') }}</a>
         <a href="{{ \App\Support\PublicUrl::thisWeekend() }}">{{ __('seo.page.weekend') }}</a>
+        {{-- Archív je v pätičke každej stránky zámerne: je to jediný vstup do
+             skončených podujatí a crawler ho tak nájde odkiaľkoľvek. --}}
+        <a href="{{ \App\Support\PublicUrl::archive() }}">{{ __('seo.page.archive') }}</a>
     </nav>
 </footer>
 </body>

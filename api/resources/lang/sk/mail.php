@@ -202,6 +202,23 @@ return [
         'outro'        => 'Vašu adresu sme použili len na túto jednu odpoveď a už ju nemáme — ďalší e-mail od nás nepríde.',
     ],
 
+    // App\Notifications\PrivateQuestionReceived — jediný e-mail, ktorý z nástenky
+    // otázok chodí organizátorovi. Verejné otázky sa mu neoznamujú vôbec.
+    'private_question_received' => [
+        'feedback' => [
+            'subject' => 'Podnet z publika: :event',
+            'intro'   => 'Niekto z publika vám počas podujatia **„:event"** poslal podnet:',
+        ],
+        'question' => [
+            'subject' => 'Súkromná otázka: :event',
+            'intro'   => 'Niekto sa vás súkromne pýta na podujatie **„:event"**:',
+        ],
+        'from'   => 'Píše: :name',
+        'hint'   => 'Túto otázku nikto iný nevidí. Odpoveď dopíšete v nástenke a pisateľovi ju pošleme e-mailom.',
+        'action' => 'Otvoriť nástenku otázok',
+        'outro'  => 'Ďalšie podnety z tejto nástenky vám pol hodiny neoznamujeme — nájdete ich pokope v dashboarde.',
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject'   => 'Budeme vás informovať: :event',

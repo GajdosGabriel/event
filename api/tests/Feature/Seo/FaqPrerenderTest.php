@@ -4,6 +4,7 @@ namespace Tests\Feature\Seo;
 
 use App\Enums\ModelStatus;
 use App\Enums\QuestionStatus;
+use App\Enums\QuestionVisibility;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\PublicUrl;
@@ -101,6 +102,30 @@ class FaqPrerenderTest extends TestCase
         ]);
 
         $this->prerender()->assertOk()->assertDontSee('Neschválená otázka', false);
+    }
+
+    #[Test]
+    public function answered_private_question_stays_out(): void
+    {
+        $board = $this->event->ensureQuestionBoard();
+
+        $board->questions()->create([
+            'body' => 'Som na vozíku, dostanem sa dnu?',
+            'author_hash' => 'd',
+            'status' => QuestionStatus::Published,
+            'visibility' => QuestionVisibility::Private,
+            'answer_body' => 'Áno, vchod z dvora je bezbariérový.',
+            'answered_at' => now(),
+        ]);
+
+        // Toto je najtichšia cesta, ktorou by súkromná otázka mohla uniknúť:
+        // odpoveď na ňu je presne ten obsah, ktorý inak ide do `FAQPage` —
+        // teda rovno do vyhľadávača.
+        $response = $this->prerender()->assertOk();
+
+        $response->assertDontSee('Som na vozíku, dostanem sa dnu?', false);
+        $response->assertDontSee('bezbariérový', false);
+        $response->assertDontSee('FAQPage', false);
     }
 
     #[Test]

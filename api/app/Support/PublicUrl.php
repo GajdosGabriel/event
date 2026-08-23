@@ -44,6 +44,13 @@ final class PublicUrl
     public const THIS_WEEKEND = 'tento-vikend';
 
     /**
+     * Archív uplynulých podujatí. Ich detaily ostávajú na svojich adresách
+     * navždy (odkazy z Googlu, z e-mailov aj zo zdieľaní musia fungovať aj
+     * o rok), ale bez tohto výpisu by na ne z portálu neviedlo nič.
+     */
+    public const ARCHIVE = 'archiv';
+
+    /**
      * Nástenka otázok z publika. Jediná verejná cesta, ktorá nie je slovenské
      * slovo — a je to zámer: adresa sa premieta na plátno a ľudia v zadnom rade
      * si ju prepisujú rukou do telefónu, takže každý znak navyše je cena.
@@ -137,6 +144,16 @@ final class PublicUrl
     public static function thisWeekend(): string
     {
         return self::absolute(self::thisWeekendPath());
+    }
+
+    public static function archivePath(): string
+    {
+        return self::EVENTS.'/'.self::ARCHIVE;
+    }
+
+    public static function archive(): string
+    {
+        return self::absolute(self::archivePath());
     }
 
     public static function questionBoardPath(string $token): string

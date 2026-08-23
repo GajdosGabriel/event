@@ -13,6 +13,9 @@ return [
         'tag_heading' => 'Veranstaltungen — :name',
         'tag_title' => ':name — Veranstaltungen',
         'tag_description' => 'Kommende Veranstaltungen mit dem Schlagwort :name.',
+        'archive_heading' => 'Veranstaltungsarchiv',
+        'archive_title' => 'Veranstaltungsarchiv',
+        'archive_description' => 'Bereits stattgefundene Veranstaltungen — die neuesten zuerst.',
         'of_name' => 'Veranstaltungen — :name',
     ],
     'venue_description' => 'Veranstaltungen am Ort :name.',
@@ -31,5 +34,8 @@ return [
         'related' => 'Weitere Veranstaltungen — :name',
         'all_events' => 'Alle Veranstaltungen',
         'weekend' => 'Veranstaltungen an diesem Wochenende',
+        'ended' => 'Diese Veranstaltung ist bereits vorbei.',
+        'past' => 'Vergangene Veranstaltungen',
+        'archive' => 'Veranstaltungsarchiv',
     ],
 ];

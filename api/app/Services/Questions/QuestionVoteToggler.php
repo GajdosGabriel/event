@@ -77,7 +77,10 @@ class QuestionVoteToggler
             abort(422, __('questions.errors.votes_disabled'));
         }
 
-        if (! $question->isPublished()) {
+        // Súkromná otázka vo verejnom zozname nie je, takže jej id sa nemá ako
+        // dostať von — ale pozná ho ten, kto ju poslal. Hlas za ňu by nič
+        // neprezradil, len rozhýbal počítadlo pri niečom, čo nikto nevidí.
+        if (! $question->isPubliclyVisible()) {
             abort(422, __('questions.errors.not_votable'));
         }
     }

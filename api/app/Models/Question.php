@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\QuestionStatus;
+use App\Enums\QuestionVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +32,7 @@ class Question extends Model
 
     protected $casts = [
         'status' => QuestionStatus::class,
+        'visibility' => QuestionVisibility::class,
         'upvotes_count' => 'integer',
         'answered_at' => 'datetime',
         'answer_notified_at' => 'datetime',
@@ -65,10 +67,28 @@ class Question extends Model
         return $this->author_email !== null && $this->answer_notified_at === null;
     }
 
-    /** Otázky, ktoré smie vidieť verejnosť. */
+    /**
+     * Otázky, ktoré smie vidieť verejnosť.
+     *
+     * Sú tu obe podmienky naraz zámerne: `status` rieši moderovanie,
+     * `visibility` sľub daný pisateľovi. Keby súkromnú otázku strážil len
+     * `status`, stačilo by jedno kliknutie „zverejniť" v dashboarde (alebo
+     * jedno miesto v kóde, ktoré na filter zabudne) a vec, ktorú niekto
+     * napísal ako súkromnú, by visela na verejnej stránke. Preto je filter
+     * jeden a používajú ho všetky verejné cesty — detail, stena, stream aj
+     * prerender.
+     */
     public function scopePubliclyVisible(Builder $query): Builder
     {
-        return $query->where('status', QuestionStatus::Published->value);
+        return $query
+            ->where('status', QuestionStatus::Published->value)
+            ->where('visibility', QuestionVisibility::Public->value);
+    }
+
+    /** Súkromné otázky a podnety — len pre organizátora v dashboarde. */
+    public function scopeOnlyPrivate(Builder $query): Builder
+    {
+        return $query->where('visibility', QuestionVisibility::Private->value);
     }
 
     /**
@@ -113,5 +133,23 @@ class Question extends Model
     public function isPublished(): bool
     {
         return $this->status === QuestionStatus::Published;
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->visibility === QuestionVisibility::Private;
+    }
+
+    /**
+     * Je otázka práve teraz vo verejnom zozname?
+     *
+     * Rovnaká dvojica podmienok ako `scopePubliclyVisible()`, len nad načítaným
+     * riadkom. Podľa nej sa hýbe denormalizované `questions_count` — to je
+     * verejné číslo a súkromná otázka doň nepatrí, aj keby mala stav
+     * „zverejnená" (ten pri vypnutom moderovaní dostane každý nový riadok).
+     */
+    public function isPubliclyVisible(): bool
+    {
+        return $this->isPublished() && ! $this->isPrivate();
     }
 }

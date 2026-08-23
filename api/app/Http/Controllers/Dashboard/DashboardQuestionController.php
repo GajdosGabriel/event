@@ -84,6 +84,7 @@ class DashboardQuestionController extends Controller
 
         $filters = $request->validate([
             'status' => ['nullable', 'string', 'in:pending,published,hidden'],
+            'visibility' => ['nullable', 'string', 'in:public,private'],
         ]);
 
         $query = $board->questions()->inWallOrder();
@@ -92,10 +93,17 @@ class DashboardQuestionController extends Controller
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['visibility'])) {
+            $query->where('visibility', $filters['visibility']);
+        }
+
         $questions = $query->limit(500)->get();
+        // Jeden dotaz na celý zoznam: podľa neho sa pri každej otázke počíta,
+        // či prišla počas akcie (teda či je to podnet, nie otázka do FAQ).
+        $event = $board->event();
 
         return response()->json([
-            'data' => $questions->map(fn (Question $q) => (new QuestionResource($q))->withModeration()),
+            'data' => $questions->map(fn (Question $q) => (new QuestionResource($q))->withModeration($event)),
             'counts' => $this->statusCounts($board),
         ]);
     }
@@ -117,9 +125,16 @@ class DashboardQuestionController extends Controller
             'answer_body' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ]);
 
+        // Zvýraznenie je „práve na toto odpovedáme" na premietacej stene.
+        // Súkromná otázka tam nie je a nikdy nebude — a zvýraznením by navyše
+        // zhaslo zvýraznenie tej otázky, ktorú sála práve číta.
+        if (($data['highlighted'] ?? false) && $question->isPrivate()) {
+            abort(422, __('questions.errors.private_not_highlightable'));
+        }
+
         DB::transaction(function () use ($question, $data) {
             $board = $question->board()->lockForUpdate()->first();
-            $wasPublished = $question->isPublished();
+            $wasPublic = $question->isPubliclyVisible();
 
             $attributes = [];
 
@@ -153,7 +168,7 @@ class DashboardQuestionController extends Controller
 
             $question->update($attributes);
 
-            $this->syncCount($board, $wasPublished, $question->refresh()->isPublished());
+            $this->syncCount($board, $wasPublic, $question->refresh()->isPubliclyVisible());
         });
 
         // Až po commite: v transakcii by e-mail odišiel aj pri rollbacku
@@ -162,7 +177,9 @@ class DashboardQuestionController extends Controller
             $this->notifyAuthor($question->refresh());
         }
 
-        return response()->json((new QuestionResource($question->refresh()))->withModeration());
+        $event = $question->board()->first()?->event();
+
+        return response()->json((new QuestionResource($question->refresh()))->withModeration($event));
     }
 
     /**
@@ -211,11 +228,11 @@ class DashboardQuestionController extends Controller
 
         DB::transaction(function () use ($question) {
             $board = $question->board()->lockForUpdate()->first();
-            $wasPublished = $question->isPublished();
+            $wasPublic = $question->isPubliclyVisible();
 
             $question->delete();
 
-            $this->syncCount($board, $wasPublished, false);
+            $this->syncCount($board, $wasPublic, false);
         });
 
         return response()->json(['deleted' => true]);
@@ -226,13 +243,13 @@ class DashboardQuestionController extends Controller
      * moderačnom zásahu ho treba posunúť podľa toho, či otázka do verejného
      * zoznamu pribudla alebo z neho zmizla.
      */
-    private function syncCount(QuestionBoard $board, bool $wasPublished, bool $isPublished): void
+    private function syncCount(QuestionBoard $board, bool $wasPublic, bool $isPublic): void
     {
-        if ($wasPublished === $isPublished) {
+        if ($wasPublic === $isPublic) {
             return;
         }
 
-        if ($isPublished) {
+        if ($isPublic) {
             $board->increment('questions_count');
 
             return;
@@ -253,6 +270,12 @@ class DashboardQuestionController extends Controller
             'pending' => (int) ($counts[QuestionStatus::Pending->value] ?? 0),
             'published' => (int) ($counts[QuestionStatus::Published->value] ?? 0),
             'hidden' => (int) ($counts[QuestionStatus::Hidden->value] ?? 0),
+            // Súkromné idú vedľa stavov, nie medzi ne: sú to iné otázky —
+            // nikde sa nezverejnia a čaká sa pri nich odpoveď e-mailom.
+            // Zvlášť ešte tie bez odpovede: to je jediné číslo, na ktoré má
+            // organizátor počas akcie reagovať.
+            'private' => (int) $board->questions()->onlyPrivate()->count(),
+            'private_open' => (int) $board->questions()->onlyPrivate()->whereNull('answered_at')->count(),
         ];
     }
 

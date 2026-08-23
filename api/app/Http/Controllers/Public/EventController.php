@@ -29,7 +29,10 @@ class EventController extends Controller
         $perPage = max(1, min((int) $request->integer('per_page') ?: 15, 100));
         $search = trim((string) $request->input('search', '')) ?: null;
         $list = $request->input('list');
-        $list = in_array($list, ['upcoming', 'ongoing', 'all'], true) ? $list : 'upcoming';
+        // `past` je archív — uplynulé podujatia od najnovšieho. Ich detaily
+        // ostávajú verejné navždy (odkazy z Googlu a zo zdieľaní musia fungovať
+        // aj o rok), takže potrebujú aj výpis, z ktorého sa na ne dá dostať.
+        $list = in_array($list, ['upcoming', 'ongoing', 'all', 'past'], true) ? $list : 'upcoming';
 
         [$dateFrom, $dateTo] = $this->range($request);
 

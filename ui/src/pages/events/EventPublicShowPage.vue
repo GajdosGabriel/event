@@ -81,6 +81,20 @@
       <div class="mx-auto w-full max-w-300 px-4 py-6">
         <BreadcrumbNav :items="breadcrumbs" class="mb-5" />
 
+        <!-- Skončené podujatie. Stránka ostáva na svojej adrese kvôli odkazom
+             z vyhľadávača a zo zdieľaní, ale musí to o sebe povedať skôr, než
+             sa niekto začne chystať. Odkaz vedie ďalej, nie do prázdna. -->
+        <div
+          v-if="hasEnded"
+          class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4"
+        >
+          <p class="text-sm font-semibold text-amber-900">{{ t('public.event.ended') }}</p>
+          <RouterLink
+            :to="PUBLIC_EVENTS"
+            class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-semibold text-amber-900 no-underline transition-colors hover:bg-amber-100"
+          >{{ t('public.event.endedCta') }}</RouterLink>
+        </div>
+
         <!-- Bez fotky nesie nadpis vlastný blok; prázdny biely priestor navrchu
              pôsobil, akoby sa stránka nedonačítala. -->
         <div v-if="!heroImage" class="mb-6 rounded-2xl bg-linear-to-br from-slate-800 to-slate-600 px-6 py-8 text-white">
@@ -542,6 +556,25 @@ const showMobileCta = computed(() => Boolean(event.value?.ticketsEnabled) && !vi
 const isUpcoming = computed(() => {
   const start = event.value?.startAt
   return start ? new Date(start).getTime() > Date.now() : true
+})
+
+/**
+ * Podujatie, ktoré už bolo. Zrkadlo `EventTimeframe::hasEnded()` na backende:
+ * bez `end_at` platí celý deň začiatku, aby jednodňová akcia zadaná len dátumom
+ * nebola „skončená" už ráno v deň konania.
+ *
+ * Detail skončeného podujatia ostáva verejný navždy — vedú naň odkazy z Googlu,
+ * z e-mailov aj zo zdieľaní. Práve preto musí stránka povedať, že akcia už bola;
+ * inak návštevník z vyhľadávača číta pozvánku na niečo, čo mu ušlo.
+ */
+const hasEnded = computed(() => {
+  const e = event.value
+  if (!e) return false
+  if (e.endAt) return new Date(e.endAt).getTime() < Date.now()
+  if (!e.startAt) return false
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  return new Date(e.startAt).getTime() < startOfToday.getTime()
 })
 
 /**

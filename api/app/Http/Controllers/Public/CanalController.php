@@ -67,8 +67,12 @@ class CanalController extends Controller
     {
         $canal = Canal::findOrFail($id);
 
+        // Aj archivované — po skončení podujatia ho tam preklopí
+        // `app:events-archive-finished`, takže filter len na `published` by
+        // z profilu organizátora spravil zoznam bez histórie. Zoradenie je
+        // zostupné, takže nadchádzajúce ostávajú hore.
         $events = Event::where('canal_id', $canal->id)
-            ->where('status', ModelStatus::Published->value)
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->with('canal')
             ->orderByDesc('start_at')
             ->limit(100)

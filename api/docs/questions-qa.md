@@ -332,6 +332,11 @@ na detaile to, na čo sa **už odpovedalo** — návštevník prišiel pre odpov
 | `Wall` — QR v sále | nikdy | `is_open` |
 | `EventPage` — verejný detail | na výslovné želanie | `is_open` |
 
+Z toho jedného rozdielu plynie aj druhý: **súkromná otázka je možná len na
+detaile podujatia**. Bez adresy by odpoveď na ňu nemala kam prísť, takže na
+nástenke z QR by bola správa do prázdna (viď „Súkromná otázka a podnet
+z publika" nižšie).
+
 Kedy je nástenka otvorená, sa podľa vchodu nelíši — o tom rozhoduje jeden
 vypínač pre obe cesty.
 
@@ -356,6 +361,99 @@ môže vypýtať, zaškrtávacím poľom pri formulári.
 Obe pravidlá o zahadzovaní vstupu (meno pri vypnutom `ask_for_name`, kontakt mimo
 `EventPage`) sedia na jednom mieste — [`QuestionDraft`](../app/Services/Questions/QuestionDraft.php).
 Formulár sa dá podstrčiť, server nie.
+
+### Súkromná otázka a podnet z publika
+
+Všetko doteraz popísané stojí na tom, že otázka je **verejná**: píše sa preto,
+aby ju videli aj ostatní, ide na plátno a zodpovedaná je aj SEO obsahom. Dva
+prípady sa do toho nezmestili:
+
+- **pred podujatím** otázka, ktorá sa na plátno nehodí („som na vozíku, dostanem
+  sa dnu?"),
+- **počas podujatia** podnet organizátorovi — v sále je zima, nie je počuť. To
+  nie je otázka pre prednášajúceho, je to prevádzková informácia pre toho, kto
+  akciu robí, a nikoho iného v sále nezaujíma.
+
+Rieši ich **jeden stĺpec** `questions.visibility` ([`QuestionVisibility`](../app/Enums/QuestionVisibility.php)),
+nie druhá tabuľka ani druhý typ otázky.
+
+**Podnet nie je uložený príznak.** Od súkromnej otázky sa líši jedine tým, kedy
+prišiel — a to sa dá povedať z `created_at` oproti termínu podujatia, teda tou
+istou `QuestionBoardPhase`, ktorá už fázu odvodzuje pre celú sekciu. Uložené
+„toto je podnet" by bol druhý zdroj tej istej pravdy. Preto `for()` prijíma aj
+okamih: dashboard ním pýta fázu k času vzniku otázky, nie k teraz.
+
+**Prečo nie správa (`messages`).** Správa je vlákno s vlastníkom účtu a žije
+v inboxe. Podnet musí pribudnúť tam, kam sa organizátor počas akcie pozerá —
+do nástenky otázok — a odpoveď naň je tá istá odpoveď ako pri verejnej otázke,
+vrátane e-mailu pisateľovi. Bola by to celá druhá cesta k tomu istému.
+
+| | verejná | súkromná |
+|---|---|---|
+| vo verejnom zozname, na stene, v `FAQPage` | áno | **nikdy** |
+| ráta sa do `questions_count` | áno | nie |
+| dá sa za ňu hlasovať / zvýrazniť na stene | áno | nie |
+| odpoveď e-mailom | ponuka (zaškrtávacie pole) | **povinná** — inde ju niet kde uvidieť |
+| organizátorovi príde e-mail o novej | nie | áno, najviac raz za pol hodinu |
+
+Strážia to tri miesta a každé z iného dôvodu:
+
+1. [`Question::scopePubliclyVisible()`](../app/Models/Question.php) — jeden
+   filter pre **všetky** verejné cesty (detail, stena, stream, prerender).
+   `status` v ňom rieši moderovanie, `visibility` sľub daný pisateľovi. Keby
+   súkromnú otázku strážil len stav, stačilo by jedno kliknutie „zverejniť".
+2. [`QuestionDraft`](../app/Services/Questions/QuestionDraft.php) — súkromná
+   otázka sa prijme len tam, kde má odpoveď kam doručiť (teda nie z QR nástenky),
+   a len keď ju nástenka berie (`allow_private`). Inak **422, nie tiché
+   zverejnenie**.
+3. `QuestionStoreRequest::wantsAnswerNotification()` — pri súkromnej otázke sa
+   `notify` neposiela z formulára vôbec, odvodí sa. Adresa je potom povinná
+   rovnako ako pri zaškrtnutom „dajte mi vedieť"; prihlásenému ju doplní server
+   z účtu.
+
+**Prepnúť súkromnú otázku na verejnú sa nedá ani organizátorovi.** Pisateľ ju
+písal s tým, že ju nikto iný neuvidí, a to je sľub, ktorý sa jedným klikom
+v dashboarde nemá dať zrušiť.
+
+#### Podnet počas akcie chce účet
+
+Súkromný vstup vo fáze `live` prijmeme len od prihláseného
+(`QuestionBoardPhase::requiresAccountForPrivate()`). Podnet je informácia, podľa
+ktorej niekto niečo urobí — pustí kúrenie, pridá zvuk; anonymné „v sále je zima"
+z druhého konca internetu nie je podnet, je to šum. Lístok zámerne nepýtame:
+voľné podujatia žiadny nemajú a účet je jediná podmienka, ktorá platí na
+všetkých. Pred akciou a po nej pravidlo neplatí — tam je adresa na odpoveď
+dostatočný kontakt.
+
+#### Jediný e-mail organizátorovi z celej nástenky
+
+Verejné otázky sa organizátorovi neoznamujú (počas prednášky by ich prišli
+desiatky). Súkromný vstup by sa ale bez upozornenia stratil: nikde nie je vidieť
+a pisateľovi sme sľúbili odpoveď. Preto
+[`PrivateQuestionAlert`](../app/Services/Questions/PrivateQuestionAlert.php)
+pošle vlastníkovi podujatia [`PrivateQuestionReceived`](../app/Notifications/PrivateQuestionReceived.php)
+— a potom je **pol hodiny ticho** (`Cache::add()`, teda atomicky; nie stĺpec
+v databáze, je to prevádzková drobnosť s hodinovou životnosťou). Prvé „je zima"
+obráti organizátora k dashboardu, ďalších dvadsať už len pribudne do zoznamu.
+
+Adresa pisateľa v tom e-maile **nie je** — neopúšťa server ani smerom
+k organizátorovi. Text otázky áno: podnet má cenu len vtedy, keď sa dá prečítať
+bez otvárania dashboardu.
+
+#### Vo formulári a v dashboarde
+
+Na verejnom detaile pribudol prepínač („Komu to ide"). Jeho popisky sa menia
+podľa fázy — pred akciou *verejná / súkromná otázka*, počas nej *otázka pre
+prednášajúceho / podnet z publika* — lebo je to tá istá voľba, ktorá sa v tej
+chvíli inak používa. Pri súkromnej voľbe zmizne zaškrtávacie pole „dajte mi
+vedieť" a nahradí ho veta, že odpoveď príde e-mailom; hosťovi sa stane adresa
+povinnou. Kvôli tomu vie `FormField` po novom aj `type="radio"` (možnosť má
+vlastnú vysvetlivku a dá sa vypnúť aj s dôvodom).
+
+V dashboarde majú súkromné vlastnú záložku vedľa stavov — nie je to štvrtý stav,
+je to iný druh vstupu. Číslo pri nej je „bez odpovede", nie „spolu": len ono
+hovorí, či treba niečo urobiť. Podnet z akcie má vlastný odznak a tlačidlo
+„označiť za vybavené" namiesto „zodpovedané" — kúrenie sa pustí, neodpovedá sa.
 
 ### Prečo to má zmysel: zodpovedané otázky sú SEO obsah
 
@@ -394,6 +492,10 @@ Ručne stojí za pozretie:
 6. Na verejnom detaile položiť otázku so zaškrtnutým „dajte mi vedieť", dopísať
    odpoveď v dashboarde a overiť, že e-mail odišiel **raz** a `author_email` je
    v databáze prázdny. Druhá úprava odpovede už nesmie poslať nič.
+7. Posunúť podujatiu termín na „práve prebieha", prihlásiť sa a poslať z detailu
+   podnet („v sále je zima"): nesmie sa objaviť vo verejnom zozname ani na stene,
+   organizátorovi má prísť jeden e-mail a druhý podnet do pol hodiny už žiadny.
+   Odhlásený sa k voľbe „podnet" nesmie dostať.
 
 Na produkcii navyše skontrolovať, že GD má FreeType — bez neho renderer nemá
 čím kresliť text a endpoint vráti 503 s hláškou, nie rozbitý obrázok:

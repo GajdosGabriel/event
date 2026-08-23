@@ -201,6 +201,21 @@ return [
         'outro'        => 'We used your address for this single answer and no longer have it — you will not hear from us again.',
     ],
 
+    'private_question_received' => [
+        'feedback' => [
+            'subject' => 'Feedback from the audience: :event',
+            'intro'   => 'Someone in the audience sent you feedback during **":event"**:',
+        ],
+        'question' => [
+            'subject' => 'Private question: :event',
+            'intro'   => 'Someone is asking you privately about **":event"**:',
+        ],
+        'from'   => 'From: :name',
+        'hint'   => 'Nobody else can see this question. Write the answer on the board and we will e-mail it to them.',
+        'action' => 'Open the question board',
+        'outro'  => 'We will stay quiet about further items from this board for half an hour — you will find them together in the dashboard.',
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject'   => 'We will keep you posted: :event',

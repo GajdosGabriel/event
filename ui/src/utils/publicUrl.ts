@@ -55,6 +55,17 @@ export function publicWeekendPath(): string {
   return `${PUBLIC_EVENTS}/tento-vikend`
 }
 
+/**
+ * Archív uplynulých podujatí — zrkadlo `PublicUrl::ARCHIVE`.
+ *
+ * Detail skončeného podujatia ostáva na svojej adrese navždy (odkazy z Googlu,
+ * z e-mailov a zo zdieľaní musia fungovať aj o rok), ale bez tohto výpisu by
+ * naň z portálu neviedol žiadny odkaz.
+ */
+export function publicArchivePath(): string {
+  return `${PUBLIC_EVENTS}/archiv`
+}
+
 export function publicQuestionBoardPath(token: string): string {
   return `${PUBLIC_QUESTIONS}/${token}`
 }

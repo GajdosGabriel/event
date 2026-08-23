@@ -70,4 +70,43 @@ class PublicEventListParamTest extends TestCase
         $this->assertContains($this->ongoingEvent->id, $ids);
         $this->assertContains($this->upcomingEvent->id, $ids);
     }
+
+    /**
+     * Archív. Stav je širší než pri ostatných výpisoch — skončené podujatie
+     * preklopí `app:events-archive-finished` na `archived`, takže filter len
+     * na `published` by vrátil prázdny zoznam.
+     */
+    #[Test]
+    public function past_list_returns_finished_events_newest_first(): void
+    {
+        $older = Event::factory()->past()->create([
+            'start_at' => now()->subMonths(6),
+            'end_at' => now()->subMonths(6)->addHours(3),
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $newer = Event::factory()->past()->create([
+            'start_at' => now()->subWeek(),
+            'end_at' => now()->subWeek()->addHours(3),
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subMonths(2),
+        ]);
+
+        $ids = $this->fetchIds('?list=past');
+
+        $this->assertSame([$newer->id, $older->id], array_slice($ids, 0, 2));
+        $this->assertNotContains($this->upcomingEvent->id, $ids);
+    }
+
+    #[Test]
+    public function default_list_excludes_finished_events(): void
+    {
+        $past = Event::factory()->past()->create([
+            'status' => ModelStatus::Archived->value,
+            'published_at' => now()->subYear(),
+        ]);
+
+        $this->assertNotContains($past->id, $this->fetchIds());
+    }
 }

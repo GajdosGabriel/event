@@ -14,6 +14,11 @@ return [
         'hidden' => 'Hidden',
     ],
 
+    'visibility' => [
+        'public' => 'Public',
+        'private' => 'Private',
+    ],
+
     'target' => [
         'event' => 'Event',
         'workshop' => 'Workshop',
@@ -29,6 +34,10 @@ return [
         'workshop_only' => 'A question board only makes sense on a workshop, not on a regular ticket type.',
         'unknown_variant' => 'Unknown slide format or theme.',
         'rendering_unavailable' => 'The server has no text rendering support (GD FreeType), so the slide cannot be created.',
+        'private_unavailable' => 'Private questions cannot be sent for this event.',
+        'private_needs_account' => 'Only a signed-in attendee can send feedback while the event is running.',
+        'private_needs_email' => 'A private question needs an e-mail address — there is nowhere else you could see the answer.',
+        'private_not_highlightable' => 'A private question cannot be highlighted — it is not on the wall.',
     ],
 
     'slide' => [

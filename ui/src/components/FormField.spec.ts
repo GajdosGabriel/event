@@ -152,4 +152,34 @@ describe('FormField', () => {
     await wrapper.get('input').setValue('')
     expect(model.value).toBeNull()
   })
+
+  it('prepínač ukáže vysvetlivku možnosti a nedostupnú nepustí ďalej', async () => {
+    const model = ref<string>('public')
+
+    const wrapper = mount(defineComponent({
+      setup: () => () => h(FormField, {
+        type: 'radio',
+        label: 'Komu to ide',
+        modelValue: model.value,
+        'onUpdate:modelValue': (v: FieldValue) => { model.value = String(v) },
+        options: [
+          { value: 'public', label: 'Verejná otázka', hint: 'Uvidia ju aj ostatní.' },
+          { value: 'private', label: 'Podnet z publika', hint: 'Len pre prihlásených.', disabled: true },
+        ],
+      }),
+    }))
+
+    const choices = wrapper.findAll('.form-radio')
+
+    // Vybraná možnosť je zvýraznená celá — nielen krúžok, ktorý je na telefóne
+    // sotva vidieť.
+    expect(choices[0]!.classes()).toContain('selected')
+    expect(choices[0]!.text()).toContain('Uvidia ju aj ostatní.')
+
+    // Nedostupná možnosť zostáva viditeľná aj s dôvodom: kto o nej nevie,
+    // nemá sa prečo prihlásiť.
+    expect(choices[1]!.classes()).toContain('disabled')
+    expect(choices[1]!.get('input').attributes('disabled')).toBeDefined()
+    expect(choices[1]!.text()).toContain('Len pre prihlásených.')
+  })
 })

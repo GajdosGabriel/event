@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\QuestionBoardPhase;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,9 +23,17 @@ class QuestionResource extends JsonResource
 {
     private bool $moderation = false;
 
-    public function withModeration(): self
+    private ?Event $event = null;
+
+    /**
+     * Moderačný pohľad. `$event` je nepovinné — slúži len na to, aby sa dalo
+     * povedať „toto prišlo počas akcie", teda že súkromný vstup nie je otázka
+     * do FAQ, ale podnet, ktorý mal niekto riešiť vtedy.
+     */
+    public function withModeration(?Event $event = null): self
     {
         $this->moderation = true;
+        $this->event = $event;
 
         return $this;
     }
@@ -47,8 +57,27 @@ class QuestionResource extends JsonResource
         if ($this->moderation) {
             $data['status'] = $this->status?->value;
             $data['status_label'] = $this->status?->label();
+            $data['visibility'] = $this->visibility?->value;
+            // Prišlo to počas akcie? Potom je to podnet („v sále je zima"),
+            // nie otázka do FAQ — a v zozname to musí byť vidieť na prvý
+            // pohľad, lebo podnet sa rieši teraz alebo nikdy.
+            $data['live'] = $this->arrivedLive();
+            // Či po odpovedi odíde e-mail. Samotná adresa von nejde nikdy
+            // (Question::$hidden) — organizátorovi stačí vedieť, že píše
+            // človeku, ktorý odpoveď dostane do schránky.
+            $data['notifies_author'] = $this->resource->wantsAnswerNotification();
         }
 
         return $data;
+    }
+
+    /**
+     * Prišla otázka v čase, keď podujatie bežalo? Bez znalosti podujatia sa to
+     * povedať nedá — vtedy radšej nič než domnienka.
+     */
+    private function arrivedLive(): bool
+    {
+        return $this->event !== null
+            && QuestionBoardPhase::for($this->event, $this->created_at)->isLive();
     }
 }

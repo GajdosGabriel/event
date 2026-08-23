@@ -23,6 +23,7 @@ class QuestionBoardSettingsRequest extends FormRequest
             'show_questions' => ['sometimes', 'boolean'],
             'allow_upvotes' => ['sometimes', 'boolean'],
             'ask_for_name' => ['sometimes', 'boolean'],
+            'allow_private' => ['sometimes', 'boolean'],
             'intro' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }

@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Question as QuestionModel;
 use App\Models\TicketType;
 use App\Models\Venue;
+use App\Support\EventTimeframe;
 use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -28,6 +29,13 @@ class JsonLd
      */
     public function event(Event $event): array
     {
+        // Po termíne sa markup mení: `offers` by inak vyhľadávaču tvrdili, že
+        // lístky sú stále v predaji, a boli by to nepravdivé štruktúrované dáta
+        // — presne to, za čo Google berie rich results preč. `EventScheduled`
+        // ostáva, tá vypovedá o tom, že sa akcia nezrušila ani nepresunula;
+        // z indexu ju po `endDate` vyradí vyhľadávač sám.
+        $hasEnded = EventTimeframe::hasEnded($event);
+
         $data = array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'Event',
@@ -41,7 +49,7 @@ class JsonLd
             'image' => $this->images($event),
             'location' => $this->location($event),
             'organizer' => $this->organizer($event),
-            'offers' => $this->offers($event),
+            'offers' => $hasEnded ? null : $this->offers($event),
         ], fn ($value) => $value !== null && $value !== []);
 
         return $data;

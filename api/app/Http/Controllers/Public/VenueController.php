@@ -46,8 +46,11 @@ class VenueController extends Controller
     {
         $venue = Venue::findOrFail($id);
 
+        // Aj archivované — pozri Public\CanalController::events(). Bez nich by
+        // profil miesta nemal históriu a na skončené podujatia by z portálu
+        // neviedol žiadny odkaz.
         $events = Event::where('venue_id', $venue->id)
-            ->where('status', ModelStatus::Published->value)
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->with('canal:id,name')
             ->orderByDesc('start_at')
             ->limit(100)

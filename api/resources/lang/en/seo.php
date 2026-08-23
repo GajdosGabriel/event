@@ -13,6 +13,9 @@ return [
         'tag_heading' => 'Events — :name',
         'tag_title' => ':name — events',
         'tag_description' => 'Upcoming events tagged :name.',
+        'archive_heading' => 'Event archive',
+        'archive_title' => 'Event archive',
+        'archive_description' => 'Events that have already taken place — newest first.',
         'of_name' => 'Events — :name',
     ],
     'venue_description' => 'Events at the venue :name.',
@@ -31,5 +34,8 @@ return [
         'related' => 'More events — :name',
         'all_events' => 'All events',
         'weekend' => 'Events this weekend',
+        'ended' => 'This event has already taken place.',
+        'past' => 'Past events',
+        'archive' => 'Event archive',
     ],
 ];
