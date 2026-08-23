@@ -9,6 +9,10 @@ const cs: Messages = {
     en: 'English',
   },
   nav: {
+    browse: 'Akce',
+    weekend: 'Tento víkend',
+    uploadPoster: 'Nahrát plakát',
+    menu: 'Menu',
     login: 'Přihlášení',
     register: 'Registrace',
     logout: 'Odhlásit se',
@@ -215,15 +219,11 @@ const cs: Messages = {
       stepUpload: 'Nahrajete plakát',
       stepReview: 'Ukážeme, co jsme našli',
       stepSave: 'Uložíte akci',
-      how: 'Jak to funguje?',
-      details:
-        'Nahrajte PDF, Word, fotku plakátu nebo jen text pozvánky. Přečteme z něj termín, místo i pořadatele, napojíme akci na existující místo či kanál a ukážeme vám, co jsme našli a co je potřeba doplnit. Akci hned zveřejníme.',
       cta: 'Nahrát plakát',
-      formats: 'PDF, Word, obrázek nebo text',
     },
     page: {
       title: 'Nahrajte plakát, o všechno ostatní se postaráme',
-      lead: 'Z plakátu přečteme termín, místo i pořadatele a připravíme z nich akci. Účet budeme potřebovat až při ukládání.',
+      lead: 'Nahrajte PDF, Word, fotku plakátu nebo jen text pozvánky. Přečteme z něj termín, místo i pořadatele, napojíme akci na existující místo či kanál a ukážeme vám, co jsme našli a co je potřeba doplnit. Účet budeme potřebovat až při ukládání.',
       note: 'Nahraný soubor se nikde nezveřejní, dokud akci sami nepublikujete. Nedokončená nahrání po sedmi dnech automaticky mažeme.',
     },
     wizard: {

@@ -25,10 +25,13 @@
         @dragleave.prevent="dragging = false"
         @drop.prevent="onDrop"
       >
-        <p class="mb-1 text-base font-semibold text-slate-900">{{ t('poster.wizard.drop') }}</p>
-        <p class="mb-4 text-sm text-slate-500">{{ t('poster.wizard.formats') }}</p>
+        <p class="mb-4 text-base font-semibold text-slate-900">{{ t('poster.wizard.drop') }}</p>
 
         <button type="button" class="btn btn-primary" @click="fileInput?.click()">{{ t('poster.wizard.pick') }}</button>
+
+        <!-- Zoznam formátov stojí pod tlačidlom: je to poznámka pod čiarou,
+             nie krok — nad tlačidlom len odďaľoval výzvu k akcii. -->
+        <p class="mt-3 text-sm text-slate-500">{{ t('poster.wizard.formats') }}</p>
         <input
           ref="fileInput"
           type="file"

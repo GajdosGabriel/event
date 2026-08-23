@@ -9,40 +9,60 @@
         <p class="text-slate-500">{{ subheading }}</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Hľadanie bolo schované za ikonou a stav sa nedržal v adrese: výsledok
-             sa nedal poslať ani založiť a tlačidlo „späť" ho zahodilo. -->
-        <div class="relative">
-          <label for="event-search" class="sr-only">{{ t('filters.events.searchLabel') }}</label>
-          <svg
-            class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
-          </svg>
-          <input
-            id="event-search"
-            ref="searchInput"
-            v-model="search"
-            type="search"
-            :placeholder="t('filters.events.search')"
-            autocomplete="off"
-            class="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-800 outline-none transition-colors focus:border-blue-500 sm:w-64"
-            @input="onSearchInput"
-            @keydown.esc="clearSearch"
-          />
+      <div class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+        <!-- Zbalené hľadanie je len ikona, aby sa na telefóne zmestilo do
+             jedného riadku s prepínačom pohľadu; po kliknutí sa roztiahne na
+             plnú šírku. Stav zostáva v adrese (`?q=`) — výsledok sa dá poslať
+             aj založiť a tlačidlo „späť" ho nezahodí. -->
+        <div class="relative h-9 min-w-0" :class="searchOpen ? 'flex-1 sm:w-64 sm:flex-none' : 'w-9'">
           <button
-            v-if="search"
+            v-if="!searchOpen"
             type="button"
-            :aria-label="t('filters.events.clearSearch')"
-            class="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            @click="clearSearch"
+            :aria-label="t('filters.events.searchLabel')"
+            :aria-expanded="false"
+            aria-controls="event-search"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            @click="openSearch"
           >
-            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
             </svg>
           </button>
+
+          <template v-else>
+            <label for="event-search" class="sr-only">{{ t('filters.events.searchLabel') }}</label>
+            <svg
+              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
+            </svg>
+            <input
+              id="event-search"
+              ref="searchInput"
+              v-model="search"
+              type="search"
+              :placeholder="t('filters.events.search')"
+              autocomplete="off"
+              class="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-800 outline-none transition-colors focus:border-blue-500"
+              @input="onSearchInput"
+              @keydown.esc="onSearchEscape"
+              @blur="collapseSearch"
+            />
+            <button
+              v-if="search"
+              type="button"
+              :aria-label="t('filters.events.clearSearch')"
+              class="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              @click="clearSearch"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          </template>
         </div>
 
         <div
@@ -90,13 +110,12 @@
           </RouterLink>
         </nav>
 
-        <TagChips />
+        <TagChips :count="loading ? null : resultLabel" />
 
         <div>
           <!-- Kostra v tvare výsledku: text „Načítavam…" nechal plochu prázdnu
                a po dobehnutí obsah skočil o celú výšku zoznamu. -->
           <div v-if="loading" class="animate-pulse space-y-2" aria-hidden="true">
-            <div class="h-4 w-32 rounded bg-slate-200" />
             <div v-if="view === 'grid'" class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
               <div v-for="n in 6" :key="n" class="overflow-hidden rounded-lg border border-slate-200">
                 <div class="h-40 w-full bg-slate-200" />
@@ -156,9 +175,6 @@
           </div>
 
           <template v-else>
-            <!-- Počet výsledkov: na landing stránke je to prvá informácia,
-                 ktorú človek aj vyhľadávač hľadá („koľko toho tu je"). -->
-            <p class="mb-2 text-sm text-slate-500" role="status" aria-live="polite">{{ resultLabel }}</p>
             <EventAgenda v-if="view === 'agenda'" :events="events" />
             <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
               <EventCard
@@ -189,7 +205,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { indexEvents } from '@/api/events'
@@ -262,6 +278,8 @@ const listTop = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
 /** Hľadaný výraz žije v adrese (`?q=`), aby sa dal zdieľať a prežil „späť". */
 const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
+/** Zbalené na ikonu; s výrazom v adrese sa otvára rovno rozbalené. */
+const searchOpen = ref(Boolean(search.value))
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 /** Stránkovanie drží v adrese `?page=` — bez neho „späť" vracalo na prvú stranu. */
@@ -312,12 +330,33 @@ useHead(computed(() => {
   }
 }))
 
+function openSearch() {
+  searchOpen.value = true
+  // Až po prekreslení — pole ešte v DOM nie je, keď sa tlačidlo klikne.
+  void nextTick(() => searchInput.value?.focus())
+}
+
+/** Prázdne pole sa po opustení zbalí; s výrazom by sa stratil kontext filtra. */
+function collapseSearch() {
+  if (!search.value.trim()) searchOpen.value = false
+}
+
 function clearSearch() {
-  if (!search.value) return
-  search.value = ''
-  clearTimeout(searchTimer)
-  void loadPage(1)
+  if (search.value) {
+    search.value = ''
+    clearTimeout(searchTimer)
+    void loadPage(1)
+  }
   searchInput.value?.focus()
+}
+
+/** Esc najprv zruší výraz, druhé stlačenie zbalí pole späť na ikonu. */
+function onSearchEscape() {
+  if (search.value) {
+    clearSearch()
+    return
+  }
+  searchOpen.value = false
 }
 
 function onSearchInput() {

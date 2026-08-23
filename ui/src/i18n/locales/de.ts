@@ -9,6 +9,10 @@ const de: Messages = {
     en: 'English',
   },
   nav: {
+    browse: 'Veranstaltungen',
+    weekend: 'Dieses Wochenende',
+    uploadPoster: 'Plakat hochladen',
+    menu: 'Menü',
     login: 'Anmelden',
     register: 'Registrieren',
     logout: 'Abmelden',
@@ -215,15 +219,11 @@ const de: Messages = {
       stepUpload: 'Sie laden das Plakat hoch',
       stepReview: 'Wir zeigen, was wir gefunden haben',
       stepSave: 'Sie speichern die Veranstaltung',
-      how: 'Wie funktioniert das?',
-      details:
-        'Laden Sie ein PDF, ein Word-Dokument, ein Foto des Plakats oder einfach den Text der Einladung hoch. Wir lesen daraus Termin, Ort und Veranstalter aus, verknüpfen die Veranstaltung mit einem vorhandenen Ort oder Kanal und zeigen Ihnen, was wir gefunden haben und was noch fehlt. Die Veranstaltung veröffentlichen wir sofort.',
       cta: 'Plakat hochladen',
-      formats: 'PDF, Word, Bild oder Text',
     },
     page: {
       title: 'Laden Sie ein Plakat hoch, um alles Weitere kümmern wir uns',
-      lead: 'Aus dem Plakat lesen wir Termin, Ort und Veranstalter und machen daraus eine Veranstaltung. Ein Konto brauchen wir erst beim Speichern.',
+      lead: 'Laden Sie ein PDF, ein Word-Dokument, ein Foto des Plakats oder einfach den Text der Einladung hoch. Wir lesen daraus Termin, Ort und Veranstalter aus, verknüpfen die Veranstaltung mit einem vorhandenen Ort oder Kanal und zeigen Ihnen, was wir gefunden haben und was noch fehlt. Ein Konto brauchen wir erst beim Speichern.',
       note: 'Die hochgeladene Datei wird nirgends veröffentlicht, solange Sie die Veranstaltung nicht selbst publizieren. Unvollendete Uploads löschen wir nach sieben Tagen automatisch.',
     },
     wizard: {

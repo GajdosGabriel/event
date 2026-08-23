@@ -9,6 +9,10 @@ const en: Messages = {
     en: 'English',
   },
   nav: {
+    browse: 'Events',
+    weekend: 'This weekend',
+    uploadPoster: 'Upload poster',
+    menu: 'Menu',
     login: 'Sign in',
     register: 'Sign up',
     logout: 'Sign out',
@@ -215,15 +219,11 @@ const en: Messages = {
       stepUpload: 'You upload the poster',
       stepReview: 'We show what we found',
       stepSave: 'You save the event',
-      how: 'How does it work?',
-      details:
-        'Upload a PDF, a Word file, a photo of the poster or just the text of the invitation. We read the date, venue and organiser from it, link the event to an existing venue or canal and show you what we found and what needs filling in. We publish the event right away.',
       cta: 'Upload poster',
-      formats: 'PDF, Word, image or text',
     },
     page: {
       title: 'Upload a poster, we will take care of the rest',
-      lead: 'We read the date, the venue and the organiser from the poster and turn them into an event. An account is only needed when saving.',
+      lead: 'Upload a PDF, a Word file, a photo of the poster or just the text of the invitation. We read the date, venue and organiser from it, link the event to an existing venue or canal and show you what we found and what needs filling in. An account is only needed when saving.',
       note: 'The uploaded file is not published anywhere until you publish the event yourself. Unfinished uploads are deleted automatically after seven days.',
     },
     wizard: {

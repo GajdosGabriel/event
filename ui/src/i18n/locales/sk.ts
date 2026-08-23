@@ -12,6 +12,10 @@ const sk = {
   },
   nav: {
     // verejná časť
+    browse: 'Podujatia',
+    weekend: 'Tento víkend',
+    uploadPoster: 'Nahrať plagát',
+    menu: 'Menu',
     login: 'Prihlásenie',
     register: 'Registrácia',
     logout: 'Odhlásiť sa',
@@ -232,16 +236,12 @@ const sk = {
       stepUpload: 'Nahráte plagát',
       stepReview: 'Ukážeme, čo sme našli',
       stepSave: 'Uložíte podujatie',
-      how: 'Ako to funguje?',
-      details:
-        'Nahrajte PDF, Word, fotku plagátu alebo len text pozvánky. Prečítame z neho termín, miesto aj organizátora, napojíme podujatie na existujúce miesto či kanál a ukážeme vám, čo sme našli a čo treba doplniť. Podujatie hneď zverejníme.',
       cta: 'Nahrať plagát',
-      formats: 'PDF, Word, obrázok alebo text',
     },
     // Stránka okolo sprievodcu.
     page: {
       title: 'Nahrajte plagát, o všetko ostatné sa postaráme',
-      lead: 'Z plagátu prečítame termín, miesto aj organizátora a pripravíme z nich podujatie. Účet budeme potrebovať až pri ukladaní.',
+      lead: 'Nahrajte PDF, Word, fotku plagátu alebo len text pozvánky. Prečítame z neho termín, miesto aj organizátora, napojíme podujatie na existujúce miesto či kanál a ukážeme vám, čo sme našli a čo treba doplniť. Účet budeme potrebovať až pri ukladaní.',
       note: 'Nahratý súbor sa nikde nezverejní, kým podujatie sami nepublikujete. Nedokončené nahratia po siedmich dňoch automaticky mažeme.',
     },
     // Sprievodca nahratím. Kroky idú: nahratie → analýza → kontrola → účet.

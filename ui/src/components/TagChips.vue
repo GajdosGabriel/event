@@ -2,50 +2,60 @@
   <!-- Verejný filter podľa obsahových štítkov.
        Stav drží URL (?tags=koncert,folklor), nie komponent — rovnako ako obecný
        facet v MunicipalityAside. Odkaz sa tak dá zdieľať aj založiť. -->
-  <div v-if="groups.length" class="rounded-xl border border-slate-200 bg-white p-3">
-    <div class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-slate-600 transition-colors hover:bg-slate-50"
-        @click="expanded = !expanded"
-      >
-        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M3 4h18M6 12h12M10 20h4" stroke-linecap="round" />
-        </svg>
-        {{ t('filters.tags.title') }}
-        <span
-          v-if="active.length"
-          class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[0.65rem] font-medium text-white"
-        >{{ active.length }}</span>
-        <svg
-          class="h-3 w-3 shrink-0 transition-transform"
-          :class="{ 'rotate-180': expanded }"
-          fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+  <div v-if="groups.length || count" class="rounded-xl border border-slate-200 bg-white p-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <!-- Počet výsledkov stál pod kartou vo vlastnom riadku; vedľa štítkov
+           povie to isté a ušetrí výšku, ktorej je na telefóne najmenej. -->
+      <p v-if="count" class="text-sm text-slate-500" role="status" aria-live="polite">{{ count }}</p>
+      <span v-else></span>
+
+      <!-- Prepínač je posledný, aby ikona so slovom „Štítky" stála úplne
+           vpravo; zvolené štítky sa vypisujú pred ním. -->
+      <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <!-- Zvolené štítky sú vidno aj keď je panel zbalený, inak by používateľ
+             nevedel, prečo je výsledkov málo. -->
+        <RouterLink
+          v-for="tag in activeTags"
+          :key="tag.slug"
+          :to="linkFor(tag.slug)"
+          class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white no-underline transition-opacity hover:opacity-80"
         >
-          <path d="M6 9l6 6 6-6" stroke-linecap="round" />
-        </svg>
-      </button>
+          <span v-if="tag.emoji">{{ tag.emoji }}</span>
+          {{ tag.name }}
+          <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+          </svg>
+        </RouterLink>
 
-      <!-- Zvolené štítky sú vidno aj keď je panel zbalený, inak by používateľ
-           nevedel, prečo je výsledkov málo. -->
-      <RouterLink
-        v-for="tag in activeTags"
-        :key="tag.slug"
-        :to="linkFor(tag.slug)"
-        class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white no-underline transition-opacity hover:opacity-80"
-      >
-        <span v-if="tag.emoji">{{ tag.emoji }}</span>
-        {{ tag.name }}
-        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
-      </RouterLink>
+        <RouterLink
+          v-if="active.length"
+          :to="basePath"
+          class="text-xs text-slate-500 no-underline hover:text-slate-800 hover:underline"
+        >{{ t('filters.tags.clearAll') }}</RouterLink>
 
-      <RouterLink
-        v-if="active.length"
-        :to="basePath"
-        class="text-xs text-slate-500 no-underline hover:text-slate-800 hover:underline"
-      >{{ t('filters.tags.clearAll') }}</RouterLink>
+        <button
+          v-if="groups.length"
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+          @click="expanded = !expanded"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 4h18M6 12h12M10 20h4" stroke-linecap="round" />
+          </svg>
+          {{ t('filters.tags.title') }}
+          <span
+            v-if="active.length"
+            class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[0.65rem] font-medium text-white"
+          >{{ active.length }}</span>
+          <svg
+            class="h-3 w-3 shrink-0 transition-transform"
+            :class="{ 'rotate-180': expanded }"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+          >
+            <path d="M6 9l6 6 6-6" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div v-if="expanded" class="mt-3 space-y-3 border-t border-slate-100 pt-3">
@@ -78,6 +88,9 @@ import { indexTags } from '@/api/tags'
 import type { TagGroupItem } from '@/types'
 import { PUBLIC_EVENTS, publicTagPath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
+
+/** Popis počtu výsledkov zo zoznamu — karta ho len zobrazí, nepočíta ho. */
+defineProps<{ count?: string | null }>()
 
 const { t } = useI18n()
 const route = useRoute()
