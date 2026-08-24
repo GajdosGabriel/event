@@ -65,22 +65,20 @@
           </template>
         </div>
 
-        <div
-          class="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm"
-          role="group"
-          :aria-label="t('public.list.viewLabel')"
-        >
+        <!-- Prepínač zobrazenia je ten istý prvok ako karty v dashboarde,
+             takže aj rovnako vyzerá — `.nav-tab.active` v styles.css. -->
+        <div class="nav-tabs" role="group" :aria-label="t('public.list.viewLabel')">
           <button
             type="button"
-            class="px-3 py-1.5 transition-colors"
-            :class="view === 'agenda' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+            class="nav-tab"
+            :class="{ active: view === 'agenda' }"
             :aria-pressed="view === 'agenda'"
             @click="setView('agenda')"
           >{{ t('public.list.agenda') }}</button>
           <button
             type="button"
-            class="px-3 py-1.5 transition-colors"
-            :class="view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"
+            class="nav-tab"
+            :class="{ active: view === 'grid' }"
             :aria-pressed="view === 'grid'"
             @click="setView('grid')"
           >{{ t('public.list.grid') }}</button>
@@ -99,10 +97,8 @@
             v-for="shortcut in shortcuts"
             :key="shortcut.to"
             :to="shortcut.to"
-            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm no-underline transition-colors"
-            :class="shortcut.active
-              ? 'border-slate-900 bg-slate-900 text-white'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+            class="chip"
+            :class="{ active: shortcut.active }"
             :aria-current="shortcut.active ? 'page' : undefined"
           >
             <span aria-hidden="true">{{ shortcut.emoji }}</span>

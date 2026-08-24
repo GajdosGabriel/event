@@ -12,7 +12,7 @@
         <div class="flex min-w-0 items-center gap-6">
           <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
           <nav class="hidden items-center gap-5 md:flex">
-            <RouterLink v-for="link in mainLinks" :key="link.to" :to="link.to" class="text-sm text-slate-300 no-underline hover:text-white">
+            <RouterLink v-for="link in mainLinks" :key="link.to" :to="link.to" class="nav-top-link" :class="{ active: isCurrent(link.to) }">
               {{ link.label }}
             </RouterLink>
           </nav>
@@ -62,7 +62,8 @@
           v-for="link in mainLinks"
           :key="link.to"
           :to="link.to"
-          class="block rounded-lg px-2 py-2.5 text-sm text-slate-200 no-underline hover:bg-white/10 hover:text-white"
+          class="nav-top-link block rounded-lg px-2 py-2.5 hover:bg-white/10"
+          :class="{ active: isCurrent(link.to) }"
         >
           {{ link.label }}
         </RouterLink>
@@ -115,11 +116,27 @@ const route = useRoute()
 const { t } = useI18n()
 
 // Computed, nie konštanta — popisky sa musia prekresliť pri prepnutí jazyka.
+//
+// „Podujatia" tu zámerne nie sú: úvodná stránka je zoznam podujatí, takže
+// odkaz vedľa loga viedol takmer tam, odkiaľ človek klikol. V navigácii má
+// zmysel len to, čo sa z úvodnej stránky inak nedá dosiahnuť.
 const mainLinks = computed(() => [
-  { to: '/podujatia', label: t('nav.browse') },
   { to: '/podujatia/tento-vikend', label: t('nav.weekend') },
   { to: '/nahrat-plagat', label: t('nav.uploadPoster') },
 ])
+
+/**
+ * Ktorý odkaz je práve otvorený. Porovnáva sa aj začiatok cesty, aby zostal
+ * zvýraznený aj na podstránke danej sekcie.
+ *
+ * Samotné zvýraznenie je v `.nav-top-link.active` (styles.css) — rovnako ako
+ * `.aside-link.active` v dashboarde a `.nav-tab.active` na kartách. V celom
+ * projekte platí jedno pravidlo: aktívna položka navigácie nesie triedu
+ * `active` a ako vyzerá, rieši CSS na jednom mieste.
+ */
+function isCurrent(to: string): boolean {
+  return route.path === to || route.path.startsWith(`${to}/`)
+}
 
 const menuOpen = ref(false)
 

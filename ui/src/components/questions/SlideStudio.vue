@@ -19,13 +19,13 @@
     <div class="space-y-4">
       <div>
         <p class="form-label-text">{{ t('questions.dashboard.materials.theme') }}</p>
-        <div class="mt-1 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+        <div class="nav-tabs mt-1">
           <button
             v-for="option in themes"
             :key="option.value"
             type="button"
-            class="studio-toggle"
-            :class="theme === option.value ? 'studio-toggle-active' : ''"
+            class="nav-tab"
+            :class="{ active: theme === option.value }"
             @click="theme = option.value"
           >{{ option.label }}</button>
         </div>
@@ -33,13 +33,13 @@
 
       <div>
         <p class="form-label-text">{{ t('questions.dashboard.materials.variant') }}</p>
-        <div class="mt-1 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+        <div class="nav-tabs mt-1">
           <button
             v-for="option in variants"
             :key="option.value"
             type="button"
-            class="studio-toggle"
-            :class="variant === option.value ? 'studio-toggle-active' : ''"
+            class="nav-tab"
+            :class="{ active: variant === option.value }"
             @click="variant = option.value"
           >{{ option.label }}</button>
         </div>
@@ -152,13 +152,6 @@ async function copyLink() {
 <style scoped>
 @reference "tailwindcss";
 
-.studio-toggle {
-  @apply rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900;
-}
-
-.studio-toggle-active {
-  @apply bg-white text-blue-700 shadow-sm;
-}
 
 .form-label-text {
   @apply text-sm font-medium text-slate-700;

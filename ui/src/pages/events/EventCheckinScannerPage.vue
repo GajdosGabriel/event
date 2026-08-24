@@ -49,6 +49,16 @@
           <button type="submit" class="action-btn">{{ t('checkin.verify') }}</button>
         </form>
       </template>
+
+      <!-- Kto smie skenovať, sa nastavuje rolou v tíme kanála. Odkaz patrí sem:
+           na to, že brigádnik na vstupe nemá prístup, sa príde pri skeneri. -->
+      <p v-if="canal" class="mt-6 border-t border-slate-100 pt-4 text-xs text-slate-500">
+        {{ t('checkin.whoCanScan') }}
+        <RouterLink :to="{ name: 'dashboard-canals-show', params: { id: canal.id }, hash: '#team' }"
+          class="font-medium text-blue-600 hover:underline">
+          {{ t('checkin.manageTeam', { canal: canal.name }) }}
+        </RouterLink>
+      </p>
     </div>
   </div>
 </template>
@@ -59,6 +69,7 @@ import { useRoute } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
 import { checkinTicket, checkinStats } from '@/api/tickets'
+import { showEvent } from '@/api/events'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import { currentLocale, t } from '@/i18n'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
@@ -76,6 +87,7 @@ const manualToken = ref('')
 const stats = ref<CheckinStats | null>(null)
 const typesLoading = ref(true)
 const hasTypes = ref(false)
+const canal = ref<{ id: number; name: string } | null>(null)
 
 let scanner: QrScanner | null = null
 let processing = false
@@ -135,6 +147,10 @@ const resultClass = computed(() => {
 })
 
 onMounted(async () => {
+  showEvent('dashboard', eventId)
+    .then((e) => { if (e.canalId) canal.value = { id: e.canalId, name: e.canalName } })
+    .catch(() => {})
+
   try {
     hasTypes.value = (await indexTicketTypes(eventId)).length > 0
   } catch {

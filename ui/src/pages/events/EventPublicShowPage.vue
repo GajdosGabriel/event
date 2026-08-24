@@ -185,14 +185,23 @@
               </div>
             </section>
 
-            <!-- Mapa -->
-            <section v-if="mapCoords" class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div class="flex items-center gap-2 px-6 pb-3 pt-5">
-                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
-                </svg>
+            <!-- Mapa. Zabalená: v module Miesto je náhľad, ktorý na otázku
+                 „kde to je" odpovie skôr, než sem človek doscrolluje. Kto chce
+                 mapu naplno, rozbalí ju jedným klikom — a kto nie, nemá pod
+                 textom tristo pixelov cudzieho iframu.
+
+                 `<details>` zámerne namiesto vlastného stavu: funguje
+                 klávesnicou aj bez JS, prehliadač sám rieši `aria-expanded`
+                 a obsah zabalenej sekcie sa ani nenačítava. -->
+            <details v-if="mapCoords" class="collapsible group overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <summary class="flex cursor-pointer items-center gap-2 px-6 py-4">
+                <AppIcon name="mapPin" class="h-4 w-4 text-slate-400" />
                 <h2 class="text-base font-semibold text-slate-800">{{ t('public.event.map') }}</h2>
-              </div>
+                <AppIcon
+                  name="chevronDown"
+                  class="ml-auto h-4 w-4 text-slate-400 transition-transform group-open:rotate-180"
+                />
+              </summary>
               <!-- `lazy`: mapa je pod zlomom a iframe z cudzej domény inak
                    predlžuje načítanie stránky aj tým, kto na ňu nikdy nedoscrolluje. -->
               <iframe
@@ -209,7 +218,7 @@
                   target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"
                 >{{ t('public.event.navigate') }}</a>
               </div>
-            </section>
+            </details>
           </div>
 
           <!-- Sidebar. `sticky` drží termín a registráciu na očiach aj pri dlhom
@@ -297,6 +306,29 @@
                   </dl>
                 </div>
               </template>
+
+              <!-- Náhľad mapy pri adrese: „kde to je" je otázka, ktorú si človek
+                   kladie práve tu, nie o dve obrazovky nižšie. Bez súradníc sa
+                   nezobrazí nič — prázdny rámček by bol horší než žiadny.
+
+                   Mapa je zámerne **neinteraktívna** (`pointer-events-none`):
+                   inak by iframe pohltil klik aj scroll a na telefóne by sa
+                   stránka pod prstom prestala hýbať. Klik tak vždy spadne na
+                   odkaz okolo a mapa sa otvorí naplno vo vedľajšej karte. -->
+              <a
+                v-if="mapCoords"
+                :href="`https://www.google.com/maps?q=${mapCoords.lat},${mapCoords.lng}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-3 block overflow-hidden rounded-xl border border-slate-200 transition-colors hover:border-blue-400"
+                :aria-label="t('public.event.openInMaps')"
+              >
+                <iframe
+                  :src="mapUrl" width="100%" height="130" loading="lazy"
+                  frameborder="0" scrolling="no" tabindex="-1" aria-hidden="true"
+                  class="pointer-events-none block"
+                />
+              </a>
             </section>
 
             <!-- Organizátor -->
@@ -419,6 +451,7 @@ import { showPublicEvent, indexEvents } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { useAuthStore } from '@/stores/auth'
 import type { EventItem, TicketTypeItem } from '@/types'
+import AppIcon from '@/components/AppIcon.vue'
 import ImageLightbox from '@/components/ImageLightbox.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import AddToCalendarButton from '@/components/AddToCalendarButton.vue'

@@ -1,5 +1,5 @@
 <template>
-  <div class="show-card">
+  <div id="team" ref="rootEl" class="show-card">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-base font-semibold text-slate-800">{{ t('team.title') }}</h2>
       <span v-if="team" class="text-xs text-slate-500">
@@ -95,6 +95,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   fetchCanalTeam,
   inviteCanalMember,
@@ -115,7 +116,9 @@ import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ canalId: number }>()
 
+const route = useRoute()
 const toast = useToast()
+const rootEl = ref<HTMLElement | null>(null)
 const validation = provideFormValidation()
 
 const team = ref<CanalTeam | null>(null)
@@ -198,6 +201,11 @@ async function cancelInvite(invitation: CanalTeamInvitation) {
 }
 
 onMounted(async () => {
+  // Odkaz „Kto môže skenovať“ zo skenera mieri sem cez #team. Doskrolovať si
+  // musíme sami — scrollBehavior routera beží ešte pred načítaním kanála, keď
+  // panel v DOM neexistuje a kotva nemá kam skočiť.
+  if (route.hash === '#team') rootEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
   loading.value = true
   try {
     team.value = await fetchCanalTeam(props.canalId)

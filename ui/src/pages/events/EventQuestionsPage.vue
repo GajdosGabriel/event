@@ -13,13 +13,13 @@
     <template v-else>
       <!-- Prepínač nástienok. Podujatie má vždy jednu, každý workshop môže mať
            vlastnú — s vlastným kódom, vlastnou stenou aj vlastnými otázkami. -->
-      <nav v-if="slots.length > 1" class="mb-4 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+      <nav v-if="slots.length > 1" class="nav-tabs mb-4">
         <button
           v-for="slot in slots"
           :key="`${slot.targetType}-${slot.targetId}`"
           type="button"
-          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-          :class="isActive(slot) ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="nav-tab"
+          :class="{ active: isActive(slot) }"
           @click="select(slot)"
         >
           {{ slot.targetType === 'event' ? t('questions.dashboard.slotEvent') : slot.title }}
@@ -105,17 +105,17 @@
           <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-lg font-semibold text-slate-800">{{ t('questions.dashboard.moderation.title') }}</h2>
 
-            <div class="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+            <div class="nav-tabs">
               <button
                 v-for="filter in filters"
                 :key="filter.value"
                 type="button"
-                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                :class="activeFilter === filter.value ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                class="nav-tab"
+                :class="{ active: activeFilter === filter.value }"
                 @click="setFilter(filter.value)"
               >
                 {{ filter.label }}
-                <span v-if="filter.count" class="ml-1 text-xs text-slate-400">{{ filter.count }}</span>
+                <span v-if="filter.count" class="nav-tab-count">{{ filter.count }}</span>
               </button>
             </div>
           </div>
@@ -140,8 +140,10 @@
                 <span v-else-if="question.statusLabel" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                   {{ question.statusLabel }}
                 </span>
+                <!-- Odznak je stav („táto je práve na plátne"), tlačidlo nižšie
+                     je akcia — preto dva rôzne texty, nie jeden. -->
                 <span v-if="question.highlighted" class="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                  {{ t('questions.dashboard.moderation.highlight') }}
+                  {{ t('questions.dashboard.moderation.onWall') }}
                 </span>
                 <span v-if="question.answeredAt" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                   {{ t('questions.list.answered') }}

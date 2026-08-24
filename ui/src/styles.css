@@ -72,7 +72,54 @@
   /* Zvyšné metadáta sú obyčajný text oddelený bodkou — nesúťažia s chipmi. */
   .row-facts { @apply flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500; }
   .row-facts > span + span::before { @apply mr-2 text-slate-300; content: '·'; }
-  .action-btn { @apply rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs text-slate-700 no-underline hover:bg-slate-100; }
+  /* `inline-flex` + `gap` kvôli ikone: tlačidlo bez nej vyzerá rovnako ako
+     predtým, s ňou sedí ikona na strede textu a nie na účiare. */
+  .action-btn { @apply inline-flex items-center gap-1.5 rounded border border-slate-300 bg-slate-50 px-2 py-1 align-middle text-xs text-slate-700 no-underline hover:bg-slate-100; }
+
+  /*
+   * Prepínač kariet (segmented control) — jeden vzhľad pre celý projekt.
+   *
+   * Konvencia je rovnaká ako v bočnom paneli dashboardu (`.aside-link.active`):
+   * **aktívna položka nesie triedu `active`**, nič viac. Volajúci teda nerieši
+   * farby, len povie, ktorá je práve zapnutá — a keď sa vzhľad zmení, zmení sa
+   * naraz na kartách podujatia, vo filtri otázok aj v prepínačoch snímky.
+   *
+   * Predtým bola tá istá sada tried opísaná v troch komponentoch a už sa
+   * stihla rozísť (raz `text-blue-700`, inde `text-slate-900`).
+   */
+  .nav-tabs { @apply flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1; }
+  .nav-tab {
+    @apply inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 no-underline transition-colors hover:text-slate-900;
+  }
+  .nav-tab.active { @apply bg-white text-blue-700 shadow-sm; }
+  /* Číslo pri karte (čakajúce otázky, počty vo filtri) — pri aktívnej sa musí
+     odlíšiť od nej, inak splynie s bielym podkladom. */
+  .nav-tab-count { @apply text-xs text-slate-400; }
+  .nav-tab.active .nav-tab-count { @apply text-blue-400; }
+
+  /*
+   * Štítok/skratka (chip) — okrúhly filter vo výpisoch. Tretia podoba toho
+   * istého „vybrané / nevybrané", takže opäť jedno miesto a tá istá trieda
+   * `active`.
+   */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 no-underline transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .chip.active { @apply border-slate-900 bg-slate-900 text-white hover:bg-slate-900; }
+
+  /*
+   * Odkaz v hornej lište verejnej časti. Tmavý podklad, takže aktívny sa
+   * značí presvetlením, nie farebnou plochou — ale pravidlo je to isté:
+   * trieda `active`.
+   */
+  .nav-top-link { @apply text-sm text-slate-300 no-underline transition-colors hover:text-white; }
+  .nav-top-link.active { @apply font-semibold text-white; }
+
+  /* Rozbaliteľná sekcia mimo formulárov (napr. mapa na detaile podujatia).
+     Trojuholník prehliadača preč — rozbalenie značí vlastná šípka vpravo,
+     rovnako ako pri `.form-section`. */
+  .collapsible > summary { list-style: none; }
+  .collapsible > summary::-webkit-details-marker { display: none; }
   .action-btn-publish { @apply border-green-300 bg-green-50 text-green-800; }
   .action-btn-danger { @apply border-red-300 bg-red-50 text-red-800; }
   .row-menu-item { @apply flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 no-underline hover:bg-slate-50; }

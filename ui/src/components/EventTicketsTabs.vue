@@ -4,25 +4,31 @@
          chodí navigáciou nižšie, nie tlačidlom späť. Vracia tam, odkiaľ
          používateľ do sekcie lístkov prišiel; ak to nevieme, na event. -->
     <button v-if="showBack" type="button" class="action-btn" @click="goBack">{{ t('common.back') }}</button>
-    <nav class="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1" :class="showBack ? 'ml-auto' : ''">
+    <nav class="nav-tabs" :class="showBack ? 'ml-auto' : ''">
       <RouterLink
         v-for="tab in tabs"
         :key="tab.name"
         :to="tab.to"
-        class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-        :class="isActive(tab.name)
-          ? 'bg-white text-blue-700 shadow-sm'
-          : 'text-slate-600 hover:text-slate-900'"
+        class="nav-tab"
+        :class="{ active: isActive(tab.name) }"
       >
+        <AppIcon :name="tab.icon" class="h-4 w-4" />
         {{ tab.label }}
       </RouterLink>
     </nav>
+
+    <!-- Kontrola „ako to vidí návštevník" — na dosah zo všetkých kariet
+         podujatia, nie schovaná o dve obrazovky vyššie. -->
+    <PublicPreviewLink :to="publicPath" :class="showBack ? '' : 'ml-auto'" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppIcon, { type IconName } from '@/components/AppIcon.vue'
+import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
+import { publicEventPath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
 const props = withDefaults(defineProps<{ eventId: number; showBack?: boolean }>(), { showBack: false })
@@ -32,11 +38,17 @@ const { t } = useI18n()
 
 const eventPath = computed(() => `/dashboard/events/${props.eventId}`)
 
-const tabs = computed(() => [
-  { name: 'settings', label: t('tickets.tabs.settings'), to: `${eventPath.value}/tickets` },
-  { name: 'attendees', label: t('tickets.tabs.attendees'), to: `${eventPath.value}/attendees` },
-  { name: 'checkin', label: t('tickets.tabs.checkin'), to: `${eventPath.value}/checkin` },
-  { name: 'questions', label: t('questions.dashboard.tab'), to: `${eventPath.value}/otazky` },
+// Bez slugu — routuje sa aj tak len id za poslednou pomlčkou a karty lístkov
+// názov podujatia nenačítavajú. Verejný detail si kanonickú adresu doplní sám.
+const publicPath = computed(() => publicEventPath({ id: props.eventId }))
+
+// Ikony sa neberú odtiaľto, ale z registra v AppIcon — tá istá ikona je na
+// karte aj na tlačidle na detaile podujatia a mení sa na jednom mieste.
+const tabs = computed<{ name: string; label: string; to: string; icon: IconName }[]>(() => [
+  { name: 'settings', label: t('tickets.tabs.settings'), to: `${eventPath.value}/tickets`, icon: 'ticket' },
+  { name: 'attendees', label: t('tickets.tabs.attendees'), to: `${eventPath.value}/attendees`, icon: 'users' },
+  { name: 'checkin', label: t('tickets.tabs.checkin'), to: `${eventPath.value}/checkin`, icon: 'checkin' },
+  { name: 'questions', label: t('questions.dashboard.tab'), to: `${eventPath.value}/otazky`, icon: 'question' },
 ])
 
 function isActive(name: string): boolean {
