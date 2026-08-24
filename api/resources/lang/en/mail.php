@@ -201,19 +201,24 @@ return [
         'outro'        => 'We used your address for this single answer and no longer have it — you will not hear from us again.',
     ],
 
-    'private_question_received' => [
+    'question_received' => [
         'feedback' => [
             'subject' => 'Feedback from the audience: :event',
             'intro'   => 'Someone in the audience sent you feedback during **":event"**:',
+            'hint'    => 'Only you can see this. If anything can be done about it, now is the time — then mark it as handled on the board.',
         ],
-        'question' => [
+        'private' => [
             'subject' => 'Private question: :event',
             'intro'   => 'Someone is asking you privately about **":event"**:',
+            'hint'    => 'Nobody else can see this question. Write the answer on the board and we will e-mail it to them.',
+        ],
+        'public' => [
+            'subject' => 'New question: :event',
+            'intro'   => 'Someone is asking about **":event"**:',
+            'hint'    => 'The question is public on the event page. Write the answer on the board and it stays there as an FAQ.',
         ],
         'from'   => 'From: :name',
-        'hint'   => 'Nobody else can see this question. Write the answer on the board and we will e-mail it to them.',
         'action' => 'Open the question board',
-        'outro'  => 'We will stay quiet about further items from this board for half an hour — you will find them together in the dashboard.',
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".

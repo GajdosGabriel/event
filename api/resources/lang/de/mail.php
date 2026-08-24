@@ -201,19 +201,24 @@ return [
         'outro'        => 'Wir haben Ihre Adresse nur für diese eine Antwort verwendet und nicht mehr gespeichert — weitere E-Mails erhalten Sie von uns nicht.',
     ],
 
-    'private_question_received' => [
+    'question_received' => [
         'feedback' => [
             'subject' => 'Hinweis aus dem Publikum: :event',
             'intro'   => 'Jemand aus dem Publikum hat Ihnen während **„:event"** einen Hinweis geschickt:',
+            'hint'    => 'Das sehen nur Sie. Wenn sich etwas tun lässt, dann jetzt — markieren Sie es danach auf der Pinnwand als erledigt.',
         ],
-        'question' => [
+        'private' => [
             'subject' => 'Private Frage: :event',
             'intro'   => 'Jemand fragt Sie privat zu **„:event"**:',
+            'hint'    => 'Diese Frage sieht sonst niemand. Die Antwort schreiben Sie auf der Pinnwand, wir schicken sie per E-Mail.',
+        ],
+        'public' => [
+            'subject' => 'Neue Frage: :event',
+            'intro'   => 'Jemand fragt zu **„:event"**:',
+            'hint'    => 'Die Frage steht öffentlich auf der Veranstaltungsseite. Die Antwort auf der Pinnwand bleibt dort als FAQ.',
         ],
         'from'   => 'Von: :name',
-        'hint'   => 'Diese Frage sieht sonst niemand. Die Antwort schreiben Sie auf der Pinnwand, wir schicken sie per E-Mail.',
         'action' => 'Fragen-Pinnwand öffnen',
-        'outro'  => 'Weitere Hinweise von dieser Pinnwand melden wir eine halbe Stunde lang nicht — sie sammeln sich im Dashboard.',
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".

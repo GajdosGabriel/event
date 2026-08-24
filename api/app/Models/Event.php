@@ -89,6 +89,45 @@ class Event extends Model implements HasQuestionBoard, Messageable
         return $owner && $owner->canReceiveMessages() ? $owner : null;
     }
 
+    /**
+     * Komu sa ozveme, keď na nástenke pribudne súkromná otázka alebo podnet
+     * z publika.
+     *
+     * Zámerne to **nie je** `messageRecipient()`, hoci otázka znie rovnako
+     * („kto sa o toto podujatie stará?"). Ten pri importovanom zázname vracia
+     * null a má na to dobrý dôvod: na verejnú správu určenú organizátorovi
+     * nemá kto odpovedať, keď sme podujatie len prevzali z cudzieho zdroja.
+     *
+     * Nástenka otázok je iný prípad. Neexistuje sama od seba — vzniká až tým,
+     * že ju niekto ručne zapol v dashboarde, a ten niekto sa o podujatie stará
+     * bez ohľadu na to, odkiaľ sa doviezlo. S pravidlom o importe by podnet
+     * „v sále je zima" na importovanom podujatí nedostal nikdy nikto, hoci
+     * nástenku naň niekto vedome zapol. Presne to sa aj stalo pri prvom
+     * ostrom podnete.
+     *
+     * Prvá voľba je vlastník podujatia; keď jeho účet e-mail prijať nemôže
+     * (neoverený, zablokovaný), skúsi sa vlastník kanála — ten má na nástenku
+     * práva tak či tak (QuestionBoardPolicy).
+     */
+    public function questionBoardRecipient(): ?User
+    {
+        // Explicitný dotaz namiesto `$this->user`: mimo produkcie je lenivé
+        // načítanie tvrdá chyba a sem sa chodí z verejnej cesty, kde model
+        // prišiel z repozitára bez relácií.
+        $owner = $this->relationLoaded('user') ? $this->getRelation('user') : $this->user()->first();
+
+        if ($owner?->canReceiveMessages()) {
+            return $owner;
+        }
+
+        return User::query()
+            ->whereHas('canals', fn ($query) => $query
+                ->where('canals.id', (int) $this->canal_id)
+                ->where('canal_user.is_owner', true))
+            ->get()
+            ->first(fn (User $user) => $user->canReceiveMessages());
+    }
+
     /** Nástenka otázok na podujatí patrí samotnému podujatiu. */
     public function questionBoardEvent(): ?Event
     {

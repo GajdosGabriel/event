@@ -99,8 +99,10 @@ ju pýta späť, takže bot, ktorý našiel len POST endpoint, ju nemá odkiaľ 
 Minútový limit je zámerne voľnejší než pri ostatných verejných zápisoch: v sále
 je celá miestnosť za jednou NATovanou adresou. Skutočnú brzdu robí hodinový limit.
 
-**Notifikácia organizátorovi sa neposiela** — počas prednášky by mu prišlo
-štyridsať e-mailov.
+**Notifikácia organizátorovi sa posiela pri každej otázke** — viď
+„Nová otázka → e-mail organizátorovi" nižšie. Pôvodne sa neposielala vôbec
+(argument: počas prednášky by ich prišlo štyridsať), lenže otázka, o ktorej sa
+organizátor nedozvie, je otázka bez odpovede.
 
 ### Tri rôzne identity toho istého človeka
 
@@ -394,7 +396,7 @@ vrátane e-mailu pisateľovi. Bola by to celá druhá cesta k tomu istému.
 | ráta sa do `questions_count` | áno | nie |
 | dá sa za ňu hlasovať / zvýrazniť na stene | áno | nie |
 | odpoveď e-mailom | ponuka (zaškrtávacie pole) | **povinná** — inde ju niet kde uvidieť |
-| organizátorovi príde e-mail o novej | nie | áno, najviac raz za pol hodinu |
+| organizátorovi príde e-mail o novej | áno | áno |
 
 Strážia to tri miesta a každé z iného dôvodu:
 
@@ -425,16 +427,37 @@ voľné podujatia žiadny nemajú a účet je jediná podmienka, ktorá platí n
 všetkých. Pred akciou a po nej pravidlo neplatí — tam je adresa na odpoveď
 dostatočný kontakt.
 
-#### Jediný e-mail organizátorovi z celej nástenky
+#### Nová otázka → e-mail organizátorovi
 
-Verejné otázky sa organizátorovi neoznamujú (počas prednášky by ich prišli
-desiatky). Súkromný vstup by sa ale bez upozornenia stratil: nikde nie je vidieť
-a pisateľovi sme sľúbili odpoveď. Preto
-[`PrivateQuestionAlert`](../app/Services/Questions/PrivateQuestionAlert.php)
-pošle vlastníkovi podujatia [`PrivateQuestionReceived`](../app/Notifications/PrivateQuestionReceived.php)
-— a potom je **pol hodiny ticho** (`Cache::add()`, teda atomicky; nie stĺpec
-v databáze, je to prevádzková drobnosť s hodinovou životnosťou). Prvé „je zima"
-obráti organizátora k dashboardu, ďalších dvadsať už len pribudne do zoznamu.
+Jedno pravidlo bez výnimiek:
+[`QuestionAlert`](../app/Services/Questions/QuestionAlert.php) pošle
+organizátorovi [`QuestionReceived`](../app/Notifications/QuestionReceived.php)
+pri **každej** otázke — verejnej aj súkromnej, z detailu podujatia aj z QR
+nástenky. Druhá polovica dvojice už existovala: keď organizátor odpoveď dopíše,
+e-mail dostane pisateľ (`QuestionAnswered`).
+
+Predtým tu bolo obmedzovanie počtu e-mailov podľa fázy podujatia — obrana pred
+sálou, kde tú istú vec napíše dvadsať ľudí naraz. Vypadlo to zámerne: bola to
+schovaná zložitosť, ktorú si po mesiaci nikto nepamätá, a **správa, ktorá nikdy
+nepríde, sa nedá odlíšiť od chyby**. Cena opačnej voľby je e-mail navyše. Keby
+sa raz stalo, že počas veľkej akcie chodí e-mailov priveľa, patrí riešenie do
+nastavení nástenky (viditeľný vypínač), nie do skrytého pravidla v službe.
+
+Text e-maila sa líši podľa toho, čo organizátor potrebuje vedieť skôr, než ho
+otvorí: *podnet z publika* (súkromný počas akcie, rieši sa teraz), *súkromná
+otázka* (nevidno ju nikde) a *nová otázka* (visí na stránke). Rozhoduje o tom
+`QuestionReceived::textKey()`, nič sa neukladá.
+
+Príjemcom je [`Event::questionBoardRecipient()`](../app/Models/Event.php),
+**nie `messageRecipient()`**, hoci otázka znie rovnako. Ten pri importovanom
+zázname zámerne nevracia nikoho: na verejnú správu pre organizátora nemá kto
+odpovedať, keď sme podujatie len prevzali z cudzieho zdroja. Nástenka je iný
+prípad — vzniká len tým, že ju niekto ručne zapol v dashboarde, a ten sa
+o podujatie stará bez ohľadu na jeho pôvod. S pravidlom o importe by podnet
+z importovaného podujatia (a tých je v katalógu väčšina) nedostal nikdy nikto;
+presne to sa stalo pri prvom ostrom podnete. Keď vlastník podujatia e-mail
+prijať nemôže (neoverený, zablokovaný), skúsi sa vlastník kanála — ten má na
+nástenku práva tak či tak.
 
 Adresa pisateľa v tom e-maile **nie je** — neopúšťa server ani smerom
 k organizátorovi. Text otázky áno: podnet má cenu len vtedy, keď sa dá prečítať
@@ -494,7 +517,7 @@ Ručne stojí za pozretie:
    v databáze prázdny. Druhá úprava odpovede už nesmie poslať nič.
 7. Posunúť podujatiu termín na „práve prebieha", prihlásiť sa a poslať z detailu
    podnet („v sále je zima"): nesmie sa objaviť vo verejnom zozname ani na stene,
-   organizátorovi má prísť jeden e-mail a druhý podnet do pol hodiny už žiadny.
+   organizátorovi má prísť e-mail o každom.
    Odhlásený sa k voľbe „podnet" nesmie dostať.
 
 Na produkcii navyše skontrolovať, že GD má FreeType — bez neho renderer nemá

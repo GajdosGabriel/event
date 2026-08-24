@@ -9,6 +9,7 @@ use App\Http\Resources\QuestionResource;
 use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Services\Questions\BoardLocator;
+use App\Services\Questions\QuestionAlert;
 use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
 use App\Services\Questions\QuestionVoteToggler;
@@ -25,6 +26,7 @@ class QuestionController extends Controller
         private BoardLocator $locator,
         private QuestionSubmitter $submitter,
         private QuestionVoteToggler $votes,
+        private QuestionAlert $organizerAlert,
     ) {
     }
 
@@ -39,6 +41,15 @@ class QuestionController extends Controller
             $request,
             QuestionDraft::from($request, $board, QuestionChannel::Wall),
         );
+
+        // Aj otázka z QR kódu sa oznámi. Prednášajúci ju síce vidí na plátne,
+        // ale nástenka žije aj mimo sály — kód sa dá naskenovať dopredu aj na
+        // druhý deň a takú otázku by inak nikto nezachytil (QuestionAlert).
+        $event = $board->event();
+
+        if ($event !== null) {
+            $this->organizerAlert->notify($question, $event);
+        }
 
         // Odpoveď obsahuje aj stav nástenky, aby front vedel povedať „čaká na
         // schválenie" bez druhého dotazu, a `id` pre lokálne označenie „moja".

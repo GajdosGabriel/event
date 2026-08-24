@@ -202,21 +202,27 @@ return [
         'outro'        => 'Vašu adresu sme použili len na túto jednu odpoveď a už ju nemáme — ďalší e-mail od nás nepríde.',
     ],
 
-    // App\Notifications\PrivateQuestionReceived — jediný e-mail, ktorý z nástenky
-    // otázok chodí organizátorovi. Verejné otázky sa mu neoznamujú vôbec.
-    'private_question_received' => [
+    // App\Notifications\QuestionReceived — chodí pri každej otázke z nástenky.
+    // Líši sa len text: podnet z akcie sa rieši teraz, verejná otázka visí na
+    // stránke, súkromnú nevidno nikde.
+    'question_received' => [
         'feedback' => [
             'subject' => 'Podnet z publika: :event',
             'intro'   => 'Niekto z publika vám počas podujatia **„:event"** poslal podnet:',
+            'hint'    => 'Vidíte to len vy. Ak sa dá s tým niečo urobiť, tak teraz — v nástenke to potom označte za vybavené.',
         ],
-        'question' => [
+        'private' => [
             'subject' => 'Súkromná otázka: :event',
             'intro'   => 'Niekto sa vás súkromne pýta na podujatie **„:event"**:',
+            'hint'    => 'Túto otázku nikto iný nevidí. Odpoveď dopíšete v nástenke a pisateľovi ju pošleme e-mailom.',
+        ],
+        'public' => [
+            'subject' => 'Nová otázka: :event',
+            'intro'   => 'Niekto sa pýta na podujatie **„:event"**:',
+            'hint'    => 'Otázka je na stránke podujatia verejne. Odpoveď dopíšete v nástenke a zostane tam ako FAQ.',
         ],
         'from'   => 'Píše: :name',
-        'hint'   => 'Túto otázku nikto iný nevidí. Odpoveď dopíšete v nástenke a pisateľovi ju pošleme e-mailom.',
         'action' => 'Otvoriť nástenku otázok',
-        'outro'  => 'Ďalšie podnety z tejto nástenky vám pol hodiny neoznamujeme — nájdete ich pokope v dashboarde.',
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".

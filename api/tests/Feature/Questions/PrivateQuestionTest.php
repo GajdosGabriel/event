@@ -5,7 +5,7 @@ namespace Tests\Feature\Questions;
 use App\Enums\ModelStatus;
 use App\Enums\QuestionStatus;
 use App\Enums\QuestionVisibility;
-use App\Notifications\PrivateQuestionReceived;
+use App\Notifications\QuestionReceived;
 use App\Support\SubmissionTicket;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
@@ -208,13 +208,15 @@ class PrivateQuestionTest extends EventSetupTest
     }
 
     #[Test]
-    public function the_organizer_is_told_once_per_window(): void
+    public function every_question_reaches_the_organizer(): void
     {
         $this->futureEvent->ensureQuestionBoard();
         $this->makeEventLive();
 
         $this->actingAs($this->user, 'sanctum');
 
+        // Pravidlo je jedno a bez výnimiek: otázka, o ktorej sa organizátor
+        // nedozvie, je otázka bez odpovede. Aj keď hovoria to isté.
         foreach (['V sále je veľká zima.', 'A stále je zima.'] as $body) {
             $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
                 'body' => $body,
@@ -223,22 +225,64 @@ class PrivateQuestionTest extends EventSetupTest
             ])->assertCreated();
         }
 
-        // Prvý podnet obráti organizátora k dashboardu, ďalších dvadsať by ho
-        // už len zavalilo — presne to, čo verejné otázky zámerne nerobia.
-        Notification::assertSentTimes(PrivateQuestionReceived::class, 1);
+        Notification::assertSentTimes(QuestionReceived::class, 2);
     }
 
     #[Test]
-    public function a_public_question_alerts_nobody(): void
+    public function a_public_question_reaches_the_organizer_too(): void
     {
         $this->futureEvent->ensureQuestionBoard();
 
+        // Verejná otázka síce visí na stránke, ale nezodpovedaná tam visí
+        // rovnako dlho, kým sa organizátor sám nepozrie do dashboardu.
         $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
             'body' => 'Je pri budove parkovanie?',
             'ticket' => $this->ticket(),
         ])->assertCreated();
 
-        Notification::assertNothingSent();
+        Notification::assertSentTimes(QuestionReceived::class, 1);
+    }
+
+    #[Test]
+    public function a_question_from_the_qr_board_reaches_the_organizer(): void
+    {
+        $board = $this->futureEvent->ensureQuestionBoard();
+
+        $ticket = $this->travelTo(
+            now()->subSeconds(10),
+            fn () => SubmissionTicket::issue('question:' . $board->token),
+        );
+
+        $this->postJson("/api/q/{$board->token}/questions", [
+            'body' => 'Bude prezentácia k dispozícii?',
+            'ticket' => $ticket,
+        ])->assertCreated();
+
+        Notification::assertSentTimes(QuestionReceived::class, 1);
+    }
+
+    #[Test]
+    public function an_imported_event_alerts_its_organizer_too(): void
+    {
+        $this->futureEvent->ensureQuestionBoard();
+
+        // Importované podujatie nemá príjemcu **verejných správ**: za cudzieho
+        // organizátora nevie odpovedať ten, kto ho len prevzal zo zdroja.
+        // Nástenka je iný prípad — niekto ju na tomto podujatí ručne zapol.
+        // Bez tohto rozlíšenia by otázka z importovaného podujatia (a tých je
+        // v katalógu väčšina) neoznámila nikdy nikomu nič.
+        $this->futureEvent->forceFill(['orginal_source' => 'https://www.vyveska.sk/nieco/'])->save();
+
+        $this->assertNull($this->futureEvent->messageRecipient());
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
+            'body' => 'Som na vozíku, dostanem sa dnu?',
+            'visibility' => 'private',
+            'author_email' => 'zuzana@example.com',
+            'ticket' => $this->ticket(),
+        ])->assertCreated();
+
+        Notification::assertSentTimes(QuestionReceived::class, 1);
     }
 
     #[Test]

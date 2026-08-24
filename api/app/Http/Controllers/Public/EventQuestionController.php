@@ -10,7 +10,7 @@ use App\Http\Resources\QuestionResource;
 use App\Models\Event;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
-use App\Services\Questions\PrivateQuestionAlert;
+use App\Services\Questions\QuestionAlert;
 use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
 use App\Support\SubmissionTicket;
@@ -50,7 +50,7 @@ class EventQuestionController extends Controller
     public function __construct(
         protected EventRepository $eventRepository,
         private QuestionSubmitter $submitter,
-        private PrivateQuestionAlert $organizerAlert,
+        private QuestionAlert $organizerAlert,
     ) {
     }
 
@@ -108,11 +108,9 @@ class EventQuestionController extends Controller
             QuestionDraft::from($request, $board, QuestionChannel::EventPage),
         );
 
-        // O súkromný vstup sa organizátor nemá ako dozvedieť inak — na verejnej
-        // stránke nie je a počas akcie by mu bol na nič zajtra.
-        if ($question->isPrivate()) {
-            $this->organizerAlert->notify($question, $model);
-        }
+        // Každá otázka sa organizátorovi oznámi — verejná aj súkromná. Otázka,
+        // o ktorej sa nedozvie, je otázka bez odpovede (QuestionAlert).
+        $this->organizerAlert->notify($question, $model);
 
         return response()->json([
             'id' => $question->id,
