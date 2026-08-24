@@ -277,7 +277,9 @@
                 </svg>
                 {{ t('public.event.place') }}
               </h2>
+              <!-- Nové okno: návštevník si pozrie miesto a nepríde o rozčítané podujatie. -->
               <RouterLink v-if="event.venue?.id" :to="publicVenuePath({ id: event.venue.id })"
+                target="_blank" rel="noopener"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.venue.name }}</RouterLink>
               <p v-else-if="event.locationName" class="font-semibold text-slate-900">{{ event.locationName }}</p>
               <p v-if="event.venue?.street || event.venue?.postcode" class="mt-0.5 text-sm text-slate-500">
@@ -340,6 +342,7 @@
                 {{ t('public.event.organizer') }}
               </h2>
               <RouterLink :to="publicCanalPath({ id: event.canal.id })"
+                target="_blank" rel="noopener"
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
               <ExternalLink v-if="event.canal.website" :href="event.canal.website" target="canal"
                 :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">{{ t('public.web') }}</ExternalLink>

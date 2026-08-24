@@ -8,6 +8,25 @@ export default [
   },
 
   js.configs.recommended,
+
+  // Skripty v scripts/ bežia v Node, nie v prehliadači. Sú to obyčajné .mjs
+  // súbory, takže na nich (na rozdiel od TypeScriptu) platí no-undef a bez
+  // deklarovaných globálov hlási `process` chybu.
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
   ...pluginVue.configs['flat/recommended'],
   ...vueTsConfig(),
 

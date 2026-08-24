@@ -1273,6 +1273,7 @@ const sk = {
       seatsHint: 'Prvá vstupenka patrí tebe. Vyplň údaje ostatných účastníkov — každému pošleme jeho vstupenku e-mailom.',
       seat: 'Vstupenka {n}',
       seatRemove: 'Zrušiť vstupenku {n}',
+      seatYours: 'tvoja vstupenka',
       attendeeName: 'Meno a priezvisko',
       attendeeEmail: 'E-mail',
       total: 'Spolu ({seats})',
@@ -1390,7 +1391,7 @@ const sk = {
       templatesLead: 'Vyberte typ lístka — predvyplníme názov aj nastavenia. Všetko sa dá nižšie doladiť.',
       // `name` je predvyplnený názov lístka, teda obsah — nie popiska.
       templates: {
-        free: { title: 'Vstup zdarma', subtitle: 'Bezplatná registrácia', name: 'Vstup zdarma' },
+        free: { title: 'Vstup zdarma', subtitle: 'Bezplatná registrácia', name: 'Vstup zdarma (za registráciu)' },
         standard: { title: 'Štandard', subtitle: 'Bežná platená vstupenka', name: 'Štandardný lístok' },
         vip: { title: 'VIP', subtitle: 'Prémiová vstupenka', name: 'VIP' },
         workshop: { title: 'Workshop', subtitle: 'Pre prihlásených účastníkov', name: 'Workshop' },

@@ -1201,6 +1201,7 @@ const en: Messages = {
       seatsHint: 'The first ticket is yours. Fill in the details of the other attendees — each of them gets their ticket by email.',
       seat: 'Ticket {n}',
       seatRemove: 'Remove ticket {n}',
+      seatYours: 'your ticket',
       attendeeName: 'First and last name',
       attendeeEmail: 'Email',
       total: 'Total ({seats})',
@@ -1317,7 +1318,7 @@ const en: Messages = {
       templatesTitle: 'Start from a template',
       templatesLead: 'Pick a ticket type — we prefill the name and the settings. Everything can be adjusted below.',
       templates: {
-        free: { title: 'Free entry', subtitle: 'Free registration', name: 'Free entry' },
+        free: { title: 'Free entry', subtitle: 'Free registration', name: 'Free entry (with registration)' },
         standard: { title: 'Standard', subtitle: 'An ordinary paid ticket', name: 'Standard ticket' },
         vip: { title: 'VIP', subtitle: 'A premium ticket', name: 'VIP' },
         workshop: { title: 'Workshop', subtitle: 'For registered attendees', name: 'Workshop' },

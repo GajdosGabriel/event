@@ -145,6 +145,8 @@ export interface AuthCanalItem {
 export interface AuthIdentity {
   id: number
   display_name: string
+  /** Vlastný e-mail prihláseného návštevníka — cudzie e-maily API neposiela. */
+  email?: string | null
   canal_id: number | null
   canal: string
   roles?: string[]

@@ -82,16 +82,23 @@
             : type.priceAmount ? t('tickets.request.buy') : t('tickets.request.reserve') }}
         </button>
 
-        <!-- Údaje ďalších účastníkov (1. vstupenka patrí objednávateľovi) -->
-        <div v-if="extraSeatIndexes(type).length" class="mt-3 space-y-2">
+        <!-- Zoznam vstupeniek: 1. patrí objednávateľovi (needitovateľná, aby
+             bolo vidieť, na koho je), ostatné si pýtajú údaje účastníka. -->
+        <div v-if="qty(type) > 0" class="mt-3 space-y-2">
           <p class="text-xs text-slate-500">
             {{ t('tickets.request.seatsHint') }}
           </p>
-          <div v-for="i in extraSeatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
+          <div v-for="i in seatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-xs font-semibold text-slate-600">{{ t('tickets.request.seat', { n: i + 1 }) }}</p>
-              <!-- Zruší práve túto vstupenku; „−" v stepperi vždy uberá poslednú. -->
-              <button type="button"
+              <p class="text-xs font-semibold text-slate-600">
+                {{ t('tickets.request.seat', { n: i + 1 }) }}
+                <span v-if="isHolderSeat(type, i)" class="font-normal text-slate-400">
+                  — {{ t('tickets.request.seatYours') }}
+                </span>
+              </p>
+              <!-- Zruší práve túto vstupenku; „−" v stepperi vždy uberá poslednú.
+                   Vstupenka objednávateľa sa takto zrušiť nedá — uberá sa stepperom. -->
+              <button v-if="!isHolderSeat(type, i)" type="button"
                 class="-mr-0.5 rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
                 :title="t('tickets.request.seatRemove', { n: i + 1 })"
                 :aria-label="t('tickets.request.seatRemove', { n: i + 1 })"
@@ -101,8 +108,17 @@
                 </svg>
               </button>
             </div>
-            <FormField v-model="attendee(type, i).name" required trim maxlength="250" :placeholder="t('tickets.request.attendeeName')" />
-            <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :placeholder="t('tickets.request.attendeeEmail')" />
+
+            <!-- Údaje objednávateľa sa berú z účtu alebo z polí nižšie — tu sa
+                 len ukazujú. -->
+            <template v-if="isHolderSeat(type, i)">
+              <FormField :model-value="holderName" disabled :placeholder="t('tickets.request.attendeeName')" />
+              <FormField :model-value="holderEmail" type="email" disabled :placeholder="t('tickets.request.attendeeEmail')" />
+            </template>
+            <template v-else>
+              <FormField v-model="attendee(type, i).name" required trim maxlength="250" :placeholder="t('tickets.request.attendeeName')" />
+              <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :placeholder="t('tickets.request.attendeeEmail')" />
+            </template>
           </div>
         </div>
       </div>
@@ -248,12 +264,19 @@ function attendee(type: TicketTypeItem, index: number): { name: string; email: s
 /** Prvý vybraný typ — jeho prvá vstupenka patrí objednávateľovi. */
 const firstSelectedId = computed(() => orderableTypes.value.find(t => qty(t) > 0)?.id ?? null)
 
-/** Indexy vstupeniek typu, ku ktorým treba vyplniť údaje účastníka. */
-function extraSeatIndexes(type: TicketTypeItem): number[] {
-  const start = type.id === firstSelectedId.value ? 1 : 0
-  const n = qty(type)
-  return n > start ? Array.from({ length: n - start }, (_, i) => i + start) : []
+/** Všetky objednané vstupenky typu — vrátane tej pre objednávateľa. */
+function seatIndexes(type: TicketTypeItem): number[] {
+  return Array.from({ length: qty(type) }, (_, i) => i)
 }
+
+/** Prvá vstupenka prvého vybraného typu — tá je objednávateľova. */
+function isHolderSeat(type: TicketTypeItem, index: number): boolean {
+  return index === 0 && type.id === firstSelectedId.value
+}
+
+/** Meno a e-mail objednávateľa: z účtu, alebo z polí „iné údaje" nižšie. */
+const holderName = computed(() => (oneClick.value ? auth.displayName : form.holder_name))
+const holderEmail = computed(() => (oneClick.value ? auth.email : form.holder_email))
 
 /** „Rezervovať"/„Kúpiť" — aktivuje typ s predvoleným 1 miestom. */
 function activate(type: TicketTypeItem) {

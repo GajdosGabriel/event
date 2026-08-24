@@ -60,6 +60,12 @@ class UserResource extends JsonResource
                 'role' => $activeCanalRole?->value,
                 'role_label' => $activeCanalRole?->label(),
             ],
+            // Vlastný e-mail smie návštevník vidieť kdekoľvek (predvyplní si ním
+            // objednávku); cudzie e-maily zostávajú len v admin scope nižšie.
+            $this->mergeWhen($user?->id === $this->resource->id, fn () => [
+                'email' => $this->email,
+            ]),
+
             'permissions' => [
                 'view'    => $user?->can('view', $this->resource) ?? false,
                 'update'  => $user?->can('update', $this->resource) ?? false,

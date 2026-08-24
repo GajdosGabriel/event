@@ -7,9 +7,20 @@ use Tests\TestSupport\CanalSetupTest;
 
 class DashboardCanalIdentityModeTest extends CanalSetupTest
 {
+    /**
+     * Symfony dáva testovaciemu requestu implicitné „Accept-Language: en-us,en"
+     * a SetLocale ju od commitu „lang + organization with lang" rešpektuje.
+     * Bez prebitia by odpoveď prišla po anglicky, hoci default je sk.
+     */
+    private function withoutLanguagePreference(): self
+    {
+        return $this->withHeader('Accept-Language', '');
+    }
+
     public function test_identity_mode_options_come_from_lang(): void
     {
-        $response = $this->getJson('/api/dashboard/canals/identity-modes');
+        $response = $this->withoutLanguagePreference()
+            ->getJson('/api/dashboard/canals/identity-modes');
 
         $response->assertOk();
         $response->assertJson([
@@ -25,7 +36,8 @@ class DashboardCanalIdentityModeTest extends CanalSetupTest
     {
         $this->canalPrimary->update(['identity_mode' => CanalIdentityMode::Organization->value]);
 
-        $response = $this->getJson('/api/dashboard/canals/' . $this->canalPrimary->id);
+        $response = $this->withoutLanguagePreference()
+            ->getJson('/api/dashboard/canals/'.$this->canalPrimary->id);
 
         $response->assertOk();
         $response->assertJsonFragment(['identity_mode_label' => 'Organizácia']);

@@ -2,17 +2,15 @@
 
 namespace Tests\Feature\Canal;
 
+use App\Enums\ModelStatus;
+use App\Models\Canal;  // Import the User model
+use App\Models\User; // Import the Canal model
+use Illuminate\Support\Str; // Import the ModelStatus enum if needed
 use PHPUnit\Framework\Attributes\Test;
-use App\Models\User;  // Import the User model
-use App\Models\Canal; // Import the Canal model
-use App\Enums\ModelStatus; // Import the ModelStatus enum if needed
-use Illuminate\Support\Str;
 use Tests\TestSupport\CanalSetupTest;
-
 
 class DashboardCanalStoreTest extends CanalSetupTest
 {
-
     #[Test]
     public function an_canal_can_be_created_through_the_form()
     {
@@ -59,7 +57,9 @@ class DashboardCanalStoreTest extends CanalSetupTest
         $creator->givePermissionTo('canal.update');
         $this->actingAs($creator, 'sanctum');
 
-        $payload = Canal::factory()->make()->toArray();
+        // Nie Canal::factory()->make(), tá losuje status aj spomedzi hodnôt,
+        // ktoré CanalStoreRequest neprijme (pending_review, rejected, blocked).
+        $payload = $this->formCanal;
 
         $response = $this->postJson('/api/dashboard/canals', $payload);
 
@@ -80,9 +80,8 @@ class DashboardCanalStoreTest extends CanalSetupTest
     {
         // 2. Vytvorenie dát canalu
         $canalData = Canal::factory()->make([
-            'status' => ModelStatus::Draft->value
+            'status' => ModelStatus::Draft->value,
         ])->toArray();
-
 
         // 3. Formátovanie všetkých dátumových polí
         $canalData['published_at'] = $canalData['published_at'];
@@ -99,4 +98,3 @@ class DashboardCanalStoreTest extends CanalSetupTest
         ]);
     }
 }
-

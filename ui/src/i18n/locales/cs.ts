@@ -1200,6 +1200,7 @@ const cs: Messages = {
       seatsHint: 'První vstupenka patří tobě. Vyplň údaje ostatních účastníků — každému pošleme jeho vstupenku e-mailem.',
       seat: 'Vstupenka {n}',
       seatRemove: 'Zrušit vstupenku {n}',
+      seatYours: 'tvoje vstupenka',
       attendeeName: 'Jméno a příjmení',
       attendeeEmail: 'E-mail',
       total: 'Celkem ({seats})',
@@ -1316,7 +1317,7 @@ const cs: Messages = {
       templatesTitle: 'Začněte šablonou',
       templatesLead: 'Vyberte typ vstupenky — předvyplníme název i nastavení. Všechno se dá níže doladit.',
       templates: {
-        free: { title: 'Vstup zdarma', subtitle: 'Bezplatná registrace', name: 'Vstup zdarma' },
+        free: { title: 'Vstup zdarma', subtitle: 'Bezplatná registrace', name: 'Vstup zdarma (za registraci)' },
         standard: { title: 'Standard', subtitle: 'Běžná placená vstupenka', name: 'Standardní vstupenka' },
         vip: { title: 'VIP', subtitle: 'Prémiová vstupenka', name: 'VIP' },
         workshop: { title: 'Workshop', subtitle: 'Pro přihlášené účastníky', name: 'Workshop' },
