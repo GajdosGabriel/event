@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * Klient pre Account — centrálnu evidenciu firiem.
@@ -130,6 +131,8 @@ class AccountClient
      */
     public function createOrLinkOrganization(array $data): array
     {
+        $this->assertWritesAllowed();
+
         $response = $this->request()->post('/api/v1/organizations', $data);
 
         $this->throwValidationErrors($response);
@@ -150,6 +153,8 @@ class AccountClient
      */
     public function updateOrganization(string $uuid, array $data): array
     {
+        $this->assertWritesAllowed();
+
         $response = $this->request()->put("/api/v1/organizations/{$uuid}", $data);
 
         $this->throwValidationErrors($response);
@@ -164,6 +169,42 @@ class AccountClient
     /* ---------------------------------------------------------------
      | Pomocné
      |---------------------------------------------------------------*/
+
+    /**
+     * Poistka proti zápisu do cudzej inštancie Accountu.
+     *
+     * Zápis nemá fronta ani retry — čo sa raz pošle, to v centrálnej evidencii
+     * firiem zostane a uvidia to všetky ostatné projekty. Vývojár, ktorý si
+     * skopíruje produkčný `.env` (alebo len prehodí `ACCOUNT_URL`, aby si
+     * pozrel reálne dáta), tak jedným uložením formulára založí testovaciu
+     * firmu v ostrej prevádzke. Preto sa mimo produkcie do vzdialenej inštancie
+     * nepíše, kým to niekto vedome nepovolí `ACCOUNT_ALLOW_REMOTE_WRITES=true`.
+     *
+     * Čítanie sa tým zámerne neobmedzuje — to nič nemení.
+     */
+    public function assertWritesAllowed(): void
+    {
+        if (app()->isProduction() || config('account.allow_remote_writes') || $this->targetsLocalInstance()) {
+            return;
+        }
+
+        // 503, nie 500: nie je to chyba v kóde, ale nastavenie prostredia.
+        throw new ServiceUnavailableHttpException(null, __('organizations.account.remote_write_blocked'));
+    }
+
+    /** Ukazuje `ACCOUNT_URL` na vývojársku inštanciu na tomto stroji? */
+    protected function targetsLocalInstance(): bool
+    {
+        $host = strtolower((string) parse_url((string) config('account.url'), PHP_URL_HOST));
+
+        if (in_array($host, ['localhost', '127.0.0.1', '::1', ''], true)) {
+            return true;
+        }
+
+        // `.test` a `.localhost` sú vyhradené (RFC 6761), `.local` patrí mDNS
+        // (RFC 6762) — ani jedna sa na verejnom internete vyskytnúť nemôže.
+        return (bool) preg_match('/\.(local|test|localhost)$/', $host);
+    }
 
     public function forget(string $uuid): void
     {

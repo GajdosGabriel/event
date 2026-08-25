@@ -79,6 +79,11 @@ class OrganizationSync
                 : $this->account->createOrLinkOrganization($payload + ['external_ref' => (string) $organization->id]);
         } catch (ValidationException $e) {
             throw $this->prefixErrors($e);
+        } catch (HttpException $e) {
+            // Vedomé odmietnutie zápisu (poistka proti cudzej inštancii) nie je
+            // výpadok Accountu. Bez tejto vetvy by hlášku prepísalo „Account
+            // neodpovedá“ a človek by hľadal výpadok siete namiesto `.env`.
+            throw $e;
         } catch (\Throwable $e) {
             // Zápis sa zámerne nezaraďuje do fronty na neskôr. Tichý retry by
             // znamenal, že používateľ vidí uložené údaje, ktoré v Accounte

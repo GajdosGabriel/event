@@ -40,11 +40,26 @@ firmy skončí na 403.
 
 ### 2. `.env` v Evente
 
+Account beží v každom prostredí ako samostatná inštancia s vlastnou databázou:
+
+| Prostredie | `ACCOUNT_URL` | Odkiaľ token a webhook secret |
+|---|---|---|
+| lokál | `http://account.local` | z lokálneho Accountu |
+| produkcia | `https://account.zastavy-vlajky.sk` | z produkčného Accountu |
+
 ```env
-ACCOUNT_URL=https://account.tvojafirma.sk
+ACCOUNT_URL=https://account.zastavy-vlajky.sk
 ACCOUNT_TOKEN=acc_xxxxxxxxxxxxxxxxxxxx
 ACCOUNT_WEBHOOK_SECRET=whsec_xxxxxxxx
 ```
+
+**Token, webhook secret aj `account_uuid` patria k jednej inštancii.** Lokálny
+token na produkčnej adrese vráti 401 a uuid z lokálnej databázy na produkcii
+neexistuje. Preto sa `.env` medzi prostrediami nekopíruje po častiach — buď
+celý blok `ACCOUNT_*` z jedného prostredia, alebo žiadny.
+
+Produkčný hosting nemá shell, takže po zmene `.env` treba cache vyčistiť cez
+`GET /api/artisan/run?token=<CRON_SECRET>`.
 
 ### 3. Migrácia
 
@@ -67,6 +82,29 @@ Tajomstvo endpointu patrí do `ACCOUNT_WEBHOOK_SECRET`.
 
 Bez webhooku to funguje tiež, len sa zmena z iného projektu prejaví v Evente
 až po vypršaní cache (`ACCOUNT_ORGANIZATION_TTL`, predvolene hodina).
+
+### 5. Poistka proti zápisu do cudzej inštancie
+
+Zápis do Accountu nemá frontu ani retry — čo sa raz pošle, to v centrálnej
+evidencii firiem zostane a uvidia to všetky ostatné projekty. Stačí, aby si
+vývojár prehodil `ACCOUNT_URL` na produkciu (typicky preto, že si chce pozrieť
+reálne dáta), uloží formulár a v ostrej evidencii je testovacia firma.
+
+Preto: **mimo produkcie** (`APP_ENV` iné než `production`) Event odmieta
+zapisovať do inštancie, ktorá nie je lokálna — teda takej, ktorej hostname nie
+je `localhost`, `127.0.0.1` ani nekončí na `.local`, `.test`, `.localhost`.
+Uloženie organizácie skončí na 503 s hláškou a do Accountu neodíde nič.
+
+Čítanie a lookup IČO sa neobmedzujú, tie nič nemenia.
+
+Keď zápis do vzdialenej inštancie naozaj potrebuješ (napr. ladenie proti
+staging Accountu), povoľ ho vedome:
+
+```env
+ACCOUNT_ALLOW_REMOTE_WRITES=true
+```
+
+Na produkcii sa poistka neuplatňuje — tam je vzdialená inštancia to správne.
 
 ---
 

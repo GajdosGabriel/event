@@ -76,7 +76,11 @@ poznámky (import, varianty súborov, waitlist) v [api/docs/](api/docs).
 Fakturačnú identitu organizátorov (IČO, DIČ, sídlo, banka) nedrží Event, ale
 centrálny **Account** — Event si k organizácii ukladá len `account_uuid`.
 Bez `ACCOUNT_TOKEN` v `api/.env` je napojenie ticho vypnuté a organizácie
-zostávajú lokálne. Postup sprevádzkovania, tvar volaní a správanie pri výpadku:
+zostávajú lokálne. Adresa Accountu je per prostredie — lokálne
+`http://account.local`, na produkcii `https://account.zastavy-vlajky.sk` — a
+token patrí vždy k tej inštancii, ktorú udáva `ACCOUNT_URL`. Mimo produkcie
+Event do vzdialenej inštancie zámerne nezapisuje. Postup sprevádzkovania, tvar
+volaní a správanie pri výpadku:
 [api/docs/account-integration.md](api/docs/account-integration.md).
 
 ## Prevádzka a monitoring

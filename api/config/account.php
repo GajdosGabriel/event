@@ -13,7 +13,11 @@
 | Bez `ACCOUNT_TOKEN` je celé napojenie ticho vypnuté a Event funguje
 | ako doteraz — organizácia sa uloží len lokálne.
 |
-|   ACCOUNT_URL=https://account.tvojafirma.sk
+| Adresa je per prostredie: lokálne `http://account.local`, na produkcii
+| `https://account.zastavy-vlajky.sk`. Token aj webhook secret patria vždy
+| k tej inštancii, ktorú udáva `ACCOUNT_URL` — sú to samostatné databázy.
+|
+|   ACCOUNT_URL=https://account.zastavy-vlajky.sk
 |   ACCOUNT_TOKEN=acc_xxxxxxxxxxxxxxxx
 |   ACCOUNT_WEBHOOK_SECRET=whsec_xxxxxxxx
 |
@@ -23,6 +27,14 @@ return [
     'url' => rtrim((string) env('ACCOUNT_URL', 'http://account.local'), '/'),
     'token' => env('ACCOUNT_TOKEN'),
     'webhook_secret' => env('ACCOUNT_WEBHOOK_SECRET'),
+
+    // Zápis do Accountu ide okamžite a natvrdo — žiadna fronta, žiadny retry.
+    // Keď si niekto lokálne prehodí `ACCOUNT_URL` na produkciu (alebo si skopíruje
+    // produkčný `.env`), vzniknú v živej evidencii firiem testovacie záznamy,
+    // ktoré vidia všetky ostatné projekty. Mimo produkcie preto zápis do
+    // vzdialenej inštancie treba potvrdiť. Čítanie zostáva voľné — pozrieť sa
+    // do produkčného Accountu pri ladení je legitímne.
+    'allow_remote_writes' => (bool) env('ACCOUNT_ALLOW_REMOTE_WRITES', false),
 
     // Timeout schválne krátky — Account nesmie brzdiť Event.
     'timeout' => (int) env('ACCOUNT_TIMEOUT', 4),

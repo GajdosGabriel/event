@@ -260,6 +260,56 @@ class OrganizationAccountSyncTest extends UserSetupTest
         Http::assertNothingSent();
     }
 
+    /**
+     * Vývojár si prehodí ACCOUNT_URL na produkciu, aby videl reálne dáta —
+     * a jedným uložením formulára založí testovaciu firmu v ostrej evidencii,
+     * ktorú vidia všetky ostatné projekty. Zápis preto musí zlyhať skôr,
+     * než odíde prvý paket.
+     */
+    #[Test]
+    public function write_to_remote_account_is_blocked_outside_production(): void
+    {
+        config()->set('account.url', 'https://account.zastavy-vlajky.sk');
+        Http::fake();
+
+        $response = $this->postJson('/api/dashboard/organizations', [
+            'title' => 'Testovacia firma',
+            'status' => 'draft',
+            'account' => ['ico' => '12345678'],
+        ]);
+
+        $response->assertStatus(503);
+        Http::assertNothingSent();
+
+        // Zápis beží v transakcii, takže nesmie zostať ani lokálny polotovar.
+        $this->assertDatabaseMissing('organizations', ['title' => 'Testovacia firma']);
+    }
+
+    #[Test]
+    public function remote_write_passes_when_explicitly_allowed(): void
+    {
+        config()->set('account.url', 'https://account.zastavy-vlajky.sk');
+        config()->set('account.allow_remote_writes', true);
+
+        Http::fake([
+            'https://account.zastavy-vlajky.sk/api/v1/organizations' => Http::response([
+                'data' => ['id' => '99999999-8888-7777-6666-555555555555', 'name' => 'Povolená firma'],
+            ], 201),
+        ]);
+
+        $response = $this->postJson('/api/dashboard/organizations', [
+            'title' => 'Povolená firma',
+            'status' => 'draft',
+            'account' => ['ico' => '12345678'],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('organizations', [
+            'title' => 'Povolená firma',
+            'account_uuid' => '99999999-8888-7777-6666-555555555555',
+        ]);
+    }
+
     #[Test]
     public function detail_attaches_billing_data_read_from_account(): void
     {
