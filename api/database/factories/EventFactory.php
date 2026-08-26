@@ -48,6 +48,15 @@ class EventFactory extends Factory
         return $this->faker->dateTimeBetween($deadlineFrom, $deadlineTo);
     }
 
+    /**
+     * Zosúladí kanál a miesto tak, aby patrili k sebe.
+     *
+     * Poradie je zámerné: keď volajúci určí `venue_id`, kanál sa dopočíta
+     * z miesta; inak sa miesto hľadá v kanáli. `definition()` preto miesto
+     * sama nenastavuje — inak by tu vždy vyhrala jej náhodná dvojica
+     * a `Event::factory()->create(['canal_id' => $x])` by ticho vyrobilo
+     * podujatie v cudzom kanáli.
+     */
     private function syncLocationFields(Event $event): void
     {
         if ($event->venue_id) {
@@ -100,15 +109,6 @@ class EventFactory extends Factory
         $startAt = $this->halfHourDate('-1 year', '+1 year');
         $canal = Canal::query()->inRandomOrder()->first() ?? Canal::factory()->create();
 
-        $venue = Venue::query()
-            ->whereHas('canals', fn ($query) => $query->where('canals.id', $canal->id))
-            ->inRandomOrder()
-            ->first()
-            ?? Venue::factory()->create([
-                'canal_id' => $canal->id,
-                'village_id' => (int) (Municipality::query()->inRandomOrder()->value('id') ?? 4209),
-            ]);
-
         return [
             'name' => $name, // Zmenené z $this->faker->sentence(3) na $name
             'slug' => Str::slug($name),
@@ -122,11 +122,17 @@ class EventFactory extends Factory
                 );
             },
             'registration_deadline_at' => $this->registrationDeadlineFor($startAt),
-            'status' => $this->faker->randomElement(ModelStatus::cases())->value,
+            // Stav sa nelosuje. Náhodný ModelStatus znamená, že test, ktorý
+            // podujatie ide upraviť, publikovať alebo zmazať, prejde len pri
+            // niektorých zo siedmich losov — a CI padá raz za čas na inom teste.
+            // Kto konkrétny stav potrebuje, vypýta si ho (`active()`, alebo
+            // `create(['status' => ...])`).
+            'status' => ModelStatus::Draft->value,
             'website' => $this->faker->url,
             'email' => $this->faker->optional()->safeEmail(),
             'phone' => $this->faker->optional()->phoneNumber(),
-            'venue_id' => (int) $venue->id,
+            // `venue_id` sa dopĺňa až v afterMaking (syncLocationFields), aby
+            // prípadný `canal_id` od volajúceho určil miesto, nie naopak.
             'canal_id' => (int) $canal->id,
             'user_id' => User::inRandomOrder()->value('id'),
         ];

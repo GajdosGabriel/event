@@ -50,16 +50,24 @@ abstract class EventSetupTest extends CanalSetupTest
         $primaryVenue->forceFill(['status' => ModelStatus::Published->value])->save();
 
         // 1. Vytvorte testovacie eventy
+        // EventFactory losuje `status` naprieč všetkými ModelStatus. Fixture
+        // ale slúži testom dashboardu, a archivované (a publikované) podujatie
+        // má iné práva — update archivovaného padá na 403, delete
+        // publikovaného tiež. Bez pevného stavu je preto každý taký test
+        // lotéria 1:7. Kto potrebuje iný stav, prepíše si ho u seba;
+        // koncept je najnižší spoločný menovateľ.
         $this->futureEvent = Event::factory()->future()->create([
             'canal_id' => $primaryCanalId,
             'venue_id' => $primaryVenue->id,
             'user_id' => $this->user->id,
+            'status' => ModelStatus::Draft->value,
         ]);
 
         $this->pastEvent = Event::factory()->past()->create([
             'canal_id' => $primaryCanalId,
             'venue_id' => $primaryVenue->id,
             'user_id' => $this->user->id,
+            'status' => ModelStatus::Draft->value,
         ]);
 
         $foreignCanal = Canal::factory()->active()->create();
@@ -73,6 +81,7 @@ abstract class EventSetupTest extends CanalSetupTest
             'canal_id' => $foreignCanal->id,
             'venue_id' => $foreignVenue->id,
             'user_id' => $foreignCanal->users()->value('users.id') ?? $this->user->id,
+            'status' => ModelStatus::Draft->value,
         ]);
     }
 }

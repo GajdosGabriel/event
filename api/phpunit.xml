@@ -36,6 +36,15 @@
         <!-- Odstup medzi dotazmi na Nominatim je zdvorilost voci verejnej sluzbe;
              v testoch chodi geokoder cez Http::fake, takze by len spomaloval. -->
         <env name="NOMINATIM_MIN_INTERVAL" value="0"/>
+        <!-- Napojenie na Account je v testoch vypnuté. Bez tohto by sa do behu
+             prepísal ACCOUNT_TOKEN z lokálneho .env a testy, ktoré Account
+             nefakujú (zakladanie organizácie), by strieľali na account.local
+             a padali na 503. CI má .env.example s prázdnym tokenom, takže by
+             červené bolo len u vývojára — čo je ten horší prípad.
+             OrganizationAccountSyncTest si napojenie zapína sám cez config(). -->
+        <env name="ACCOUNT_URL" value="https://account.test"/>
+        <env name="ACCOUNT_TOKEN" value=""/>
+        <env name="ACCOUNT_WEBHOOK_SECRET" value=""/>
         <env name="IMPORTS_DESCRIBE_WITH_AI" value="false"/>
          <env name="DB_CONNECTION" value="mysql"/>
     <env name="DB_DATABASE" value="event-test"/>
