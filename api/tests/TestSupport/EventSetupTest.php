@@ -8,16 +8,17 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\EventRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestSupport\CanalSetupTest;
-
 
 abstract class EventSetupTest extends CanalSetupTest
 {
     use RefreshDatabase;
 
     protected EventRepository $eventRepository;
+
     protected $futureEvent;
+
     protected $pastEvent;
+
     protected $cudziEvent;
 
     protected function setUp(): void
