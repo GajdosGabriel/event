@@ -3,30 +3,32 @@
     <!-- Späť ukazujeme len na prvej karte (Nastavenia) — medzi kartami sa
          chodí navigáciou nižšie, nie tlačidlom späť. Vracia tam, odkiaľ
          používateľ do sekcie lístkov prišiel; ak to nevieme, na event. -->
-    <button v-if="showBack" type="button" class="action-btn" @click="goBack">{{ t('common.back') }}</button>
-    <nav class="nav-tabs" :class="showBack ? 'ml-auto' : ''">
-      <RouterLink
+    <ActionButton v-if="showBack" :label="t('common.back')" @click="goBack" />
+    <nav class="nav-tabs min-w-0 max-w-full" :class="showBack ? 'ml-auto' : ''">
+      <ActionButton
         v-for="tab in tabs"
         :key="tab.name"
+        variant="tab"
         :to="tab.to"
-        class="nav-tab"
-        :class="{ active: isActive(tab.name) }"
-      >
-        <AppIcon :name="tab.icon" class="h-4 w-4" />
-        {{ tab.label }}
-      </RouterLink>
-    </nav>
+        :icon="tab.icon"
+        :label="tab.label"
+        :active="isActive(tab.name)"
+      />
 
-    <!-- Kontrola „ako to vidí návštevník" — na dosah zo všetkých kariet
-         podujatia, nie schovaná o dve obrazovky vyššie. -->
-    <PublicPreviewLink :to="publicPath" :class="showBack ? '' : 'ml-auto'" />
+      <!-- Kontrola „ako to vidí návštevník" — na dosah zo všetkých kariet
+           podujatia, nie schovaná o dve obrazovky vyššie. Kreslí sa ako karta,
+           lebo v tomto pruhu stojí medzi kartami; že odíde z aplikácie, hovorí
+           šípka za textom. -->
+      <PublicPreviewLink :to="publicPath" variant="tab" />
+    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AppIcon, { type IconName } from '@/components/AppIcon.vue'
+import { type IconName } from '@/components/AppIcon.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import { publicEventPath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'

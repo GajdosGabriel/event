@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setLocale } from '@/i18n'
-import { displayName, initials, avatarColor, pluralUsers } from './userDisplay'
+import { displayName, initials, avatarColor, pluralUsers, surnameFirst } from './userDisplay'
 
 // Popisky idú cez slovník, testy overujú slovenské tvary.
 beforeEach(() => setLocale('sk'))
@@ -17,6 +17,24 @@ describe('displayName', () => {
 
   it('má zrozumiteľný fallback', () => {
     expect(displayName({})).toBe('Neznámy')
+  })
+})
+
+describe('surnameFirst', () => {
+  it('dá priezvisko dopredu', () => {
+    expect(surnameFirst('Gabriel Gajdoš')).toBe('Gajdoš Gabriel')
+  })
+
+  it('viacslovné meno nechá pokope za priezviskom', () => {
+    expect(surnameFirst('Ing. Gabriel Gajdoš')).toBe('Gajdoš Ing. Gabriel')
+  })
+
+  it('jednoslovné meno nechá tak, ako je', () => {
+    expect(surnameFirst('gajdosgabo')).toBe('gajdosgabo')
+  })
+
+  it('zvládne prázdnu hodnotu', () => {
+    expect(surnameFirst(null)).toBe('')
   })
 })
 

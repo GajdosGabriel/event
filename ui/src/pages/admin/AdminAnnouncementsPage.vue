@@ -8,54 +8,58 @@
     <p v-if="loading" class="text-slate-600">{{ t('admin.announcements.loading') }}</p>
 
     <div v-else class="panel-card">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-            <th class="pb-2 pr-4">{{ t('admin.announcements.colTitle') }}</th>
-            <th class="pb-2 pr-4">{{ t('admin.announcements.colPlacement') }}</th>
-            <th class="pb-2 pr-4">{{ t('admin.announcements.colStatus') }}</th>
-            <th class="pb-2 pr-4">{{ t('admin.announcements.colVisibility') }}</th>
-            <th class="pb-2">{{ t('admin.announcements.colActions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0 align-top">
-            <td class="py-2 pr-4">
-              <div class="font-medium text-slate-900">{{ item.title }}</div>
-              <div class="text-slate-500">{{ plainBody(item.body) || '—' }}</div>
-            </td>
-            <td class="py-2 pr-4 text-slate-600">
-              <span class="announcement-chip" :class="`announcement-${item.variant}`">{{ placementLabel(item.placement) }}</span>
-            </td>
-            <td class="py-2 pr-4">
-              <!-- Vypnutie je zmena stavu, nie mazanie — text ostane uložený. -->
-              <button
-                type="button"
-                class="status-toggle"
-                :class="isVisible(item) ? 'status-toggle-on' : 'status-toggle-off'"
-                :title="isVisible(item) ? t('admin.announcements.toggleOff') : t('admin.announcements.toggleOn')"
-                @click="toggle(item)"
-              >
-                <span class="status-dot" :class="isVisible(item) ? 'bg-green-500' : 'bg-slate-400'" />
-                {{ isVisible(item) ? t('admin.announcements.visible') : t('admin.announcements.hidden') }}
-              </button>
-            </td>
-            <td class="py-2 pr-4 text-slate-600">
-              <div>{{ t('admin.announcements.from') }} {{ item.publishedFrom ?? '—' }}</div>
-              <div>{{ t('admin.announcements.to') }} {{ item.publishedUntil ?? '—' }}</div>
-            </td>
-            <td class="py-2">
-              <RowActions>
-                <button class="row-menu-item" @click="openEdit(item)">{{ t('admin.announcements.edit') }}</button>
-                <button class="row-menu-item row-menu-item-danger" @click="remove(item)">{{ t('admin.announcements.remove') }}</button>
-              </RowActions>
-            </td>
-          </tr>
-          <tr v-if="items.length === 0">
-            <td colspan="5" class="py-4 text-slate-500">{{ t('admin.announcements.empty') }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Široká tabuľka sa posúva vo vlastnom rámčeku — na telefóne inak
+           roztiahne celý dashboard a posúva sa stránka. -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+              <th class="pb-2 pr-4">{{ t('admin.announcements.colTitle') }}</th>
+              <th class="pb-2 pr-4">{{ t('admin.announcements.colPlacement') }}</th>
+              <th class="pb-2 pr-4">{{ t('admin.announcements.colStatus') }}</th>
+              <th class="pb-2 pr-4">{{ t('admin.announcements.colVisibility') }}</th>
+              <th class="pb-2">{{ t('admin.announcements.colActions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0 align-top">
+              <td class="py-2 pr-4">
+                <div class="font-medium text-slate-900">{{ item.title }}</div>
+                <div class="text-slate-500">{{ plainBody(item.body) || '—' }}</div>
+              </td>
+              <td class="py-2 pr-4 text-slate-600">
+                <span class="announcement-chip" :class="`announcement-${item.variant}`">{{ placementLabel(item.placement) }}</span>
+              </td>
+              <td class="py-2 pr-4">
+                <!-- Vypnutie je zmena stavu, nie mazanie — text ostane uložený. -->
+                <button
+                  type="button"
+                  class="status-toggle"
+                  :class="isVisible(item) ? 'status-toggle-on' : 'status-toggle-off'"
+                  :title="isVisible(item) ? t('admin.announcements.toggleOff') : t('admin.announcements.toggleOn')"
+                  @click="toggle(item)"
+                >
+                  <span class="status-dot" :class="isVisible(item) ? 'bg-green-500' : 'bg-slate-400'" />
+                  {{ isVisible(item) ? t('admin.announcements.visible') : t('admin.announcements.hidden') }}
+                </button>
+              </td>
+              <td class="py-2 pr-4 text-slate-600">
+                <div>{{ t('admin.announcements.from') }} {{ item.publishedFrom ?? '—' }}</div>
+                <div>{{ t('admin.announcements.to') }} {{ item.publishedUntil ?? '—' }}</div>
+              </td>
+              <td class="py-2">
+                <RowActions>
+                  <button class="row-menu-item" @click="openEdit(item)">{{ t('admin.announcements.edit') }}</button>
+                  <button class="row-menu-item row-menu-item-danger" @click="remove(item)">{{ t('admin.announcements.remove') }}</button>
+                </RowActions>
+              </td>
+            </tr>
+            <tr v-if="items.length === 0">
+              <td colspan="5" class="py-4 text-slate-500">{{ t('admin.announcements.empty') }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div v-if="meta.last_page > 1" class="mt-4 flex items-center gap-2">
         <button class="btn btn-secondary" :disabled="meta.current_page <= 1" @click="loadPage(meta.current_page - 1)">‹</button>

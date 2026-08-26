@@ -15,10 +15,10 @@
           <ResourceFilterBar
             v-model:search="filters.search"
             v-model:status="filters.status"
-            v-model:sort="filters.sort"
             :status-options="statusOptions"
-            :sort-options="sortOptions"
+            :sort-options="[]"
             :extra-active="extraActive"
+            collapsible
             history-key="event-attendees"
             class="flex-1"
             @change="load(1)"
@@ -78,12 +78,22 @@
         <p v-else-if="error" class="text-red-600">{{ error }}</p>
         <p v-else-if="!tickets.length" class="text-slate-400">{{ t('tickets.attendees.empty') }}</p>
 
-        <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
-                <th class="px-4 py-3"></th>
-                <th class="px-4 py-3">{{ t('tickets.attendees.colName') }}</th>
+                <th class="px-4 py-3">
+                  <button type="button" class="th-sort" @click="toggleSort('id')">
+                    {{ t('tickets.attendees.colId') }}
+                    <span :class="sortArrow('id') ? 'text-slate-600' : 'text-slate-300'">{{ sortArrow('id') || '▾' }}</span>
+                  </button>
+                </th>
+                <th class="px-4 py-3">
+                  <button type="button" class="th-sort" @click="toggleSort('surname')">
+                    {{ t('tickets.attendees.colName') }}
+                    <span :class="sortArrow('surname') ? 'text-slate-600' : 'text-slate-300'">{{ sortArrow('surname') || '▾' }}</span>
+                  </button>
+                </th>
                 <th class="px-4 py-3">{{ t('tickets.attendees.colTickets') }}</th>
                 <th class="px-4 py-3">{{ t('tickets.attendees.colCheckin') }}</th>
                 <th class="px-4 py-3">{{ t('tickets.attendees.colStatus') }}</th>
@@ -94,8 +104,11 @@
             <tbody class="divide-y divide-slate-100">
               <template v-for="ticket in tickets" :key="ticket.id">
                 <tr class="cursor-pointer hover:bg-slate-50" @click="toggle(ticket.id!)">
-                  <td class="px-4 py-3 text-slate-400">{{ expanded === ticket.id ? '▾' : '▸' }}</td>
-                  <td class="px-4 py-3 font-medium text-slate-900">{{ ticket.holderName }}</td>
+                  <td class="whitespace-nowrap px-4 py-3 text-slate-400">
+                    {{ expanded === ticket.id ? '▾' : '▸' }}
+                    <span class="tabular-nums">{{ ticket.id }}</span>
+                  </td>
+                  <td class="px-4 py-3 font-medium text-slate-900">{{ surnameFirst(ticket.holderName) }}</td>
                   <td class="px-4 py-3 text-slate-600">{{ ticket.admissionsTotal }}</td>
                   <td class="px-4 py-3">
                     <span class="rounded-full px-2 py-0.5 text-xs font-medium"
@@ -140,7 +153,7 @@
                       <div v-for="(adm, i) in ticket.admissions" :key="adm.uuid"
                         class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
                         <span class="text-sm font-medium text-slate-800">
-                          {{ adm.attendeeName || t('tickets.attendees.seat', { n: i + 1 }) }}
+                          {{ adm.attendeeName ? surnameFirst(adm.attendeeName) : t('tickets.attendees.seat', { n: i + 1 }) }}
                         </span>
                         <span v-if="adm.ticketType" class="text-xs"
                           :class="adm.ticketType.kind === 'workshop' ? 'rounded-full bg-violet-100 px-2 py-0.5 font-medium text-violet-700' : 'text-slate-500'">
@@ -181,11 +194,16 @@
         </div>
       </div>
 
-      <aside class="grid gap-3 self-start lg:sticky lg:top-4">
+      <!-- Bočný panel: prehľad pri vchode a doplnkové nastavenia podujatia —
+           zamykanie workshopov aj pripomienka sa týkajú účastníkov, preto stoja
+           tu. Pri dlhom zozname typov lístkov sa panel roluje sám, nech je
+           tlačidlo Uložiť vždy dosiahnuteľné. -->
+      <aside class="grid gap-3 self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
         <AttendeeStatsPanel v-if="summary" :summary="summary" />
         <RouterLink :to="{ name: 'dashboard-events-checkin', params: { id: eventId } }" class="btn btn-secondary">
           {{ t('tickets.stats.openScanner') }}
         </RouterLink>
+        <EventExtraSettingsPanel :event-id="eventId" />
       </aside>
     </div>
   </div>
@@ -217,10 +235,12 @@ import { showEvent } from '@/api/events'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import AttendeeStatsPanel from '@/components/stats/AttendeeStatsPanel.vue'
+import EventExtraSettingsPanel from '@/components/EventExtraSettingsPanel.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import FormField from '@/components/FormField.vue'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import RowActions from '@/components/RowActions.vue'
+import { surnameFirst } from '@/utils/userDisplay'
 import type { AttendeeSummary, PaginatedResponse, TicketItem, TicketTypeItem } from '@/types'
 import { currentLocale, useI18n } from '@/i18n'
 
@@ -263,11 +283,28 @@ const paymentOptions = computed<FilterOption[]>(() => [
   { value: 'refunded', label: t('tickets.payments.refunded') },
 ])
 
-const sortOptions = computed<FilterOption[]>(() => [
-  { value: 'newest', label: t('filters.attendees.sort.newest') },
-  { value: 'oldest', label: t('filters.attendees.sort.oldest') },
-  { value: 'name', label: t('filters.attendees.sort.name') },
-])
+/**
+ * Radenie nie je vo filtri, ale klikom v hlavičke tabuľky: ID = najnovšie /
+ * najstaršie, meno = podľa priezviska (podľa neho sa v zozname hľadá).
+ */
+function toggleSort(column: 'id' | 'surname') {
+  if (column === 'id') {
+    filters.sort = filters.sort === 'newest' ? 'oldest' : 'newest'
+  } else {
+    filters.sort = filters.sort === 'surname' ? 'surname_desc' : 'surname'
+  }
+
+  load(1)
+}
+
+/** Šípka v hlavičke; prázdny reťazec = podľa tohto stĺpca sa práve neradí. */
+function sortArrow(column: 'id' | 'surname'): string {
+  if (column === 'id') {
+    return filters.sort === 'newest' ? '▼' : filters.sort === 'oldest' ? '▲' : ''
+  }
+
+  return filters.sort === 'surname' ? '▲' : filters.sort === 'surname_desc' ? '▼' : ''
+}
 
 /** Filtre zo slotu si lišta sama nespočíta — musí o nich vedieť od stránky. */
 const extraActive = computed(() =>
@@ -277,6 +314,7 @@ function resetExtraFilters() {
   filters.payment = ''
   filters.ticketTypeId = ''
   filters.checkin = ''
+  filters.sort = 'newest'
 }
 
 function formatDateTime(d: string | null) {

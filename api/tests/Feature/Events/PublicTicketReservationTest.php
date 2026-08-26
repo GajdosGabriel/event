@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Events;
 
-use App\Models\PendingProfile;
+use App\Enums\CanalIdentityMode;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -49,11 +49,15 @@ class PublicTicketReservationTest extends EventSetupTest
     #[Test]
     public function logged_in_user_reserves_with_account_details(): void
     {
-        // $this->user je prihlásený cez sanctum (EventSetupTest).
-        PendingProfile::create([
-            'user_id' => $this->user->id,
-            'display_name' => 'Gabriel Testovací',
-        ]);
+        // $this->user je prihlásený cez sanctum (EventSetupTest). Meno účtu
+        // nesie osobný kanál založený pri registrácii, nie samotný používateľ
+        // (viď User::displayName()) — fixture ho preto prepisuje tam.
+        // PendingProfile by tu bol falošný: provisioner ho po založení kanála
+        // maže, takže obe naraz v realite neexistujú.
+        $personal = $this->user->canals()
+            ->where('canals.identity_mode', CanalIdentityMode::Personal->value)
+            ->firstOrFail();
+        $personal->update(['name' => 'Gabriel Testovací']);
 
         $this->futureEvent->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
 

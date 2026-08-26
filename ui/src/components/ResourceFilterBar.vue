@@ -72,7 +72,8 @@
       <!-- Mobile toggle for the rest of the filters -->
       <button
         type="button"
-        class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 sm:hidden"
+        class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700"
+        :class="{ 'sm:hidden': !collapsible }"
         :aria-expanded="expanded"
         @click="expanded = !expanded"
       >
@@ -85,10 +86,10 @@
       </button>
     </div>
 
-    <!-- Collapsible filter group (always visible from sm up) -->
+    <!-- Collapsible filter group (visible from sm up, unless `collapsible`) -->
     <div
-      class="w-full flex-wrap items-center gap-2 sm:flex sm:w-auto"
-      :class="expanded ? 'flex' : 'hidden'"
+      class="w-full flex-wrap items-center gap-2"
+      :class="[expanded ? 'flex' : 'hidden', collapsible ? '' : 'sm:flex sm:w-auto']"
     >
     <!-- Status -->
     <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" @change="emitChange">
@@ -102,8 +103,8 @@
       <option v-for="opt in phaseOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
-    <!-- Sort -->
-    <select v-model="sort" class="form-input w-auto" :title="t('filters.sortTitle')" @change="emitChange">
+    <!-- Sort (stránka ho môže vypnúť prázdnym poľom — napr. keď radí klikom v hlavičke tabuľky) -->
+    <select v-if="sortChoices.length" v-model="sort" class="form-input w-auto" :title="t('filters.sortTitle')" @change="emitChange">
       <option v-for="opt in sortChoices" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
@@ -171,6 +172,11 @@ const props = withDefaults(defineProps<{
    * Bez tohto by ich počítadlo ani tlačidlo „Zrušiť filtre" nevideli.
    */
   extraActive?: number
+  /**
+   * Filtre sú schované pod tlačidlom aj na širokej obrazovke — vhodné tam, kde
+   * je ich veľa a rozťahovali by lištu cez pol stránky.
+   */
+  collapsible?: boolean
 }>(), {
   statusOptions: () => [],
   phaseOptions: () => [],
@@ -182,6 +188,7 @@ const props = withDefaults(defineProps<{
   canalFilter: null,
   historyKey: '',
   extraActive: 0,
+  collapsible: false,
 })
 
 const { t } = useI18n()

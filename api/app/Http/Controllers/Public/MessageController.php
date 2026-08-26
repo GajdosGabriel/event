@@ -50,9 +50,7 @@ class MessageController extends Controller
             abort(422, __('messages.errors.self'));
         }
 
-        $senderName = $sender->pendingProfile?->display_name
-            ?? $sender->canal?->name
-            ?? strtok((string) $sender->email, '@');
+        $senderName = $sender->displayName();
 
         $message = $target->messages()->create([
             'sender_user_id' => $sender->id,

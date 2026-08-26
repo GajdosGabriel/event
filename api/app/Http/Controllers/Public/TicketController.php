@@ -39,8 +39,7 @@ class TicketController extends Controller
             $properties['holder_email'] = $properties['holder_email']
                 ?? $user->email;
             $properties['holder_name'] = $properties['holder_name']
-                ?? $user->pendingProfile?->display_name
-                ?? strtok((string) $user->email, '@');
+                ?? $user->displayName();
         }
 
         $ticket = $this->ticketRepository->issueForEvent($event, $properties);

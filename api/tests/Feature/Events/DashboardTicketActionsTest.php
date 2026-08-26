@@ -223,6 +223,45 @@ class DashboardTicketActionsTest extends EventSetupTest
     }
 
     #[Test]
+    public function the_list_can_be_sorted_by_surname_and_by_order_id(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        $type = $this->futureEvent->ticketTypes()->create([
+            'name' => 'Standard', 'price_amount' => 0, 'is_active' => true,
+        ]);
+
+        foreach (['Gabriel Gajdoš' => 'g@example.com', 'Zuzana Adamová' => 'z@example.com'] as $name => $email) {
+            $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+                'holder_name' => $name,
+                'holder_email' => $email,
+                'items' => [['ticket_type_id' => $type->id, 'quantity' => 1]],
+            ])->assertStatus(201);
+        }
+
+        $this->actingAsOrganizer();
+        $base = "/api/dashboard/events/{$this->futureEvent->id}/tickets";
+
+        // Podľa priezviska: Adamová pred Gajdošom (krstné meno je opačné poradie).
+        $this->getJson("$base?sort=surname")
+            ->assertOk()
+            ->assertJsonPath('data.0.holder_email', 'z@example.com');
+
+        $this->getJson("$base?sort=surname_desc")
+            ->assertOk()
+            ->assertJsonPath('data.0.holder_email', 'g@example.com');
+
+        // Podľa objednávky: najnovšia hore, najstaršia hore.
+        $this->getJson("$base?sort=newest")
+            ->assertOk()
+            ->assertJsonPath('data.0.holder_email', 'z@example.com');
+
+        $this->getJson("$base?sort=oldest")
+            ->assertOk()
+            ->assertJsonPath('data.0.holder_email', 'g@example.com');
+    }
+
+    #[Test]
     public function the_attendee_summary_reports_the_door_and_the_types(): void
     {
         $order = $this->order('prehlad@example.com', quantity: 3);

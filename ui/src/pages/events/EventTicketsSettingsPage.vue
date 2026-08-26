@@ -11,9 +11,7 @@
     <p v-else-if="loadError" class="text-red-600">{{ loadError }}</p>
 
     <template v-else>
-      <!-- Typy lístkov sú to hlavné, čo tu človek rieši — preto sú prvé.
-           Doplnkové nastavenia (a ich uloženie) čakajú až pod nimi. -->
-      <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
+      <section class="rounded-2xl border border-slate-200 bg-white p-5">
         <div class="mb-1 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-slate-800">{{ t('tickets.settings.typesTitle') }}</h2>
           <RouterLink :to="{ name: 'dashboard-events-tickets-create', params: { id: eventId } }" class="btn btn-secondary">
@@ -25,7 +23,7 @@
 
         <p v-if="!types.length" class="text-sm text-slate-400">{{ t('tickets.settings.typesEmpty') }}</p>
 
-        <div v-else class="overflow-hidden rounded-xl border border-slate-200">
+        <div v-else class="overflow-x-auto rounded-xl border border-slate-200">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
@@ -75,52 +73,18 @@
           </table>
         </div>
       </section>
-
-      <!-- Doplnkové nastavenia podujatia. Nie sú súčasťou typov lístkov, preto
-           majú vlastné tlačidlo Uložiť — inak by sa uložili „samé od seba“. -->
-      <section class="max-w-[1000px] rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 class="mb-1 text-lg font-semibold text-slate-800">{{ t('tickets.settings.heading') }}</h2>
-        <p class="mb-3 text-xs text-slate-500">{{ t('tickets.settings.headingLead') }}</p>
-        <FormField
-          v-model="settings.workshop_lock_on_start"
-          type="checkbox"
-          :label="t('tickets.settings.workshopLock')"
-          :hint="t('tickets.settings.workshopLockHint')"
-          class="mb-3"
-        />
-        <FormField v-model="settings.reminder_hours_before" type="select" :label="t('tickets.settings.reminder')" class="max-w-sm">
-          <option :value="null">{{ t('tickets.settings.reminderNone') }}</option>
-          <option :value="2">{{ t('tickets.settings.reminder2h') }}</option>
-          <option :value="24">{{ t('tickets.settings.reminder24h') }}</option>
-          <option :value="48">{{ t('tickets.settings.reminder48h') }}</option>
-          <option :value="168">{{ t('tickets.settings.reminder168h') }}</option>
-          <template #footer>
-            <span class="form-hint">
-              {{ t('tickets.settings.reminderHint') }}
-              <template v-if="reminderSentAt"> {{ t('tickets.settings.reminderSent', { date: reminderSentAt }) }}</template>
-            </span>
-          </template>
-        </FormField>
-
-        <div class="mt-4">
-          <button type="button" class="btn btn-primary" :disabled="savingSettings" @click="saveSettings">
-            {{ savingSettings ? t('tickets.settings.saving') : t('tickets.settings.save') }}
-          </button>
-        </div>
-      </section>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
-import { indexTicketTypes, deleteTicketType, updateTicketingSettings } from '@/api/ticketTypes'
-import { currentLocale, t } from '@/i18n'
+import { indexTicketTypes, deleteTicketType } from '@/api/ticketTypes'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
-import FormField from '@/components/FormField.vue'
 import RowActions from '@/components/RowActions.vue'
 import type { TicketTypeItem } from '@/types'
 import { formatPrice } from '@/utils/money'
@@ -131,15 +95,7 @@ const eventId = Number(route.params.id)
 
 const loading = ref(false)
 const loadError = ref<string | null>(null)
-const savingSettings = ref(false)
 const eventName = ref('')
-
-const settings = reactive({
-  workshop_lock_on_start: true,
-  reminder_hours_before: null as number | null,
-})
-
-const reminderSentAt = ref<string | null>(null)
 
 const types = ref<TicketTypeItem[]>([])
 
@@ -149,31 +105,11 @@ async function loadAll() {
   try {
     const ev = await showEvent('dashboard', eventId)
     eventName.value = ev.name
-    settings.workshop_lock_on_start = ev.workshopLockOnStart ?? true
-    settings.reminder_hours_before = ev.reminderHoursBefore
-    reminderSentAt.value = ev.reminderSentAt
-      ? new Date(ev.reminderSentAt).toLocaleString(currentLocale(), { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : null
     types.value = await indexTicketTypes(eventId)
   } catch {
     loadError.value = t('tickets.settings.loadFailed')
   } finally {
     loading.value = false
-  }
-}
-
-async function saveSettings() {
-  savingSettings.value = true
-  try {
-    await updateTicketingSettings(eventId, {
-      workshop_lock_on_start: settings.workshop_lock_on_start,
-      reminder_hours_before: settings.reminder_hours_before,
-    })
-    toast.success(t('tickets.settings.saved'))
-  } catch {
-    toast.error(t('tickets.settings.saveFailed'))
-  } finally {
-    savingSettings.value = false
   }
 }
 

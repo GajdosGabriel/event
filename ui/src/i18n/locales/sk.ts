@@ -602,6 +602,9 @@ const sk = {
       button: 'Pripomeň mi',
       title: 'Dáme vám vedieť',
       lead: 'Ozveme sa, ak sa termín alebo miesto zmení, prípadne ak sa podujatie neuskutoční. Deň vopred pošleme pripomienku.',
+      account: 'Pripomienku pošleme na',
+      useOther: 'Použiť inú adresu',
+      useAccount: 'Použiť adresu účtu',
       email: 'E-mailová adresa',
       emailPlaceholder: 'vas@email.sk',
       privacy: 'Adresu použijeme len na tieto upozornenia. Odhlásiť sa dá jedným klikom z každého e-mailu.',
@@ -1344,7 +1347,8 @@ const sk = {
       loading: 'Načítavam…',
       loadFailed: 'Zoznam sa nepodarilo načítať.',
       empty: 'Zatiaľ žiadni prihlásení.',
-      colName: 'Meno',
+      colId: 'ID',
+      colName: 'Priezvisko a meno',
       colTickets: 'Lístky',
       colCheckin: 'Vstup',
       colStatus: 'Stav',
@@ -2053,11 +2057,6 @@ const sk = {
       checkinPending: 'Zatiaľ neprišli',
       paymentTitle: 'Platba',
       allPayments: 'Všetky platby',
-      sort: {
-        newest: 'Najnovšie objednávky',
-        oldest: 'Najstaršie objednávky',
-        name: 'Podľa mena',
-      },
     },
     // Verejné fasety vedľa zoznamu. Názvy krajov, obcí a štítkov posiela API —
     // tu je len rám okolo nich.

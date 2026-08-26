@@ -22,28 +22,23 @@
            výpise; lístky, check-in a otázky ostávajú tlačidlami — sú to vlastné
            obrazovky, nie akcie nad záznamom. -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <ActionButton :to="indexRoute" :label="t('common.back')" />
         <!-- Ikony sú tie isté ako na kartách vnútri sekcie (EventTicketsTabs) —
              obe strany si ich berú z registra v AppIcon, takže tlačidlo
              a karta, kam vedie, nikdy neukážu iný obrázok. -->
-        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn action-btn-feature">
-          <AppIcon name="ticket" class="h-4 w-4" />{{ t('events.show.tickets') }}
-        </RouterLink>
+        <ActionButton v-if="event.permissions.viewTickets" variant="feature" icon="ticket"
+          :to="`/dashboard/events/${route.params.id}/tickets`" :label="t('events.show.tickets')" />
         <!-- Check-in má zmysel až keď existuje typ lístka — dovtedy tlačidlo
              nikam nevedie a len povie, čo treba doplniť. Preto ostáva šedé:
              modrá v tomto pruhu znamená „funkcia je pripravená". -->
-        <button v-if="event.permissions.checkin && ticketTypesLoaded && !ticketTypes.length"
-          type="button" class="action-btn opacity-60" @click="warnNoTicketTypes">
-          <AppIcon name="checkin" class="h-4 w-4" />{{ t('events.show.checkin') }}
-        </button>
-        <RouterLink v-else-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn action-btn-feature">
-          <AppIcon name="checkin" class="h-4 w-4" />{{ t('events.show.checkin') }}
-        </RouterLink>
+        <ActionButton v-if="event.permissions.checkin && ticketTypesLoaded && !ticketTypes.length"
+          icon="checkin" :label="t('events.show.checkin')" class="opacity-60" @click="warnNoTicketTypes" />
+        <ActionButton v-else-if="event.permissions.checkin" variant="feature" icon="checkin"
+          :to="`/dashboard/events/${route.params.id}/checkin`" :label="t('events.show.checkin')" />
         <!-- Otázky z publika. Cesta je dashboardová aj v admin režime, rovnako
              ako lístky a check-in vyššie — nástenku spravuje organizátor. -->
-        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn action-btn-feature">
-          <AppIcon name="question" class="h-4 w-4" />{{ t('questions.dashboard.tab') }}
-        </RouterLink>
+        <ActionButton v-if="event.permissions.viewTickets" variant="feature" icon="question"
+          :to="`/dashboard/events/${route.params.id}/otazky`" :label="t('questions.dashboard.tab')" />
         <!-- „Ako to vidí návštevník." Rovnaké tlačidlo ako susedia vľavo, len
              odsadené doprava — a otvára sa v novej karte. -->
         <PublicPreviewLink class="ml-auto" :to="publicEventPath(event)" />
@@ -282,7 +277,7 @@ import { showEvent, duplicateEvent } from '@/api/events'
 import { listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import type { EventItem, TicketTypeItem } from '@/types'
-import AppIcon from '@/components/AppIcon.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'

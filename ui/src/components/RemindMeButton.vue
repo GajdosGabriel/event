@@ -51,7 +51,13 @@
                    ktorý ľudia prijmú bez váhania — pripomienka je až bonus. -->
               <p class="text-sm text-slate-600">{{ t('public.remind.lead') }}</p>
 
+              <!-- Prihlásený → adresu netreba pýtať, je v účte. -->
+              <div v-if="useAccount" class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                {{ t('public.remind.account') }} <strong>{{ auth.email }}</strong>.
+              </div>
+
               <FormField
+                v-else
                 v-model="email"
                 type="email"
                 :label="t('public.remind.email')"
@@ -73,6 +79,16 @@
 
               <p class="text-xs text-slate-500">{{ t('public.remind.privacy') }}</p>
 
+              <!-- Adresa účtu nemusí byť tá, na ktorej to človek chce mať. -->
+              <button
+                v-if="hasAccountEmail"
+                type="button"
+                class="text-xs font-medium text-slate-500 hover:text-blue-600"
+                @click="useOther = !useOther"
+              >
+                {{ useOther ? t('public.remind.useAccount') : t('public.remind.useOther') }}
+              </button>
+
               <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
               <button
@@ -91,11 +107,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { subscribeToEvent, subscriptionTicket } from '@/api/subscriptions'
 import { t, currentLocale } from '@/i18n'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { useAuthStore } from '@/stores/auth'
 import FormField from '@/components/FormField.vue'
 
 const props = withDefaults(defineProps<{
@@ -109,6 +126,7 @@ const props = withDefaults(defineProps<{
   variant: 'primary',
 })
 
+const auth = useAuthStore()
 const validation = provideFormValidation()
 
 const open = ref(false)
@@ -117,7 +135,14 @@ const done = ref(false)
 const error = ref<string | null>(null)
 const email = ref('')
 const website = ref('')
+/** Prihlásený si vyžiadal inú adresu než tú z účtu. */
+const useOther = ref(false)
 const ticket = ref('')
+
+// Prihlásený má adresu v účte — pýtať sa naň znova je zbytočné trenie.
+// Kým sa identita načíta, adresa je prázdna a formulár sa správa ako pre hosťa.
+const hasAccountEmail = computed(() => auth.isAuthenticated && auth.email !== '')
+const useAccount = computed(() => hasAccountEmail.value && !useOther.value)
 
 /**
  * Známka sa pýta až pri otvorení formulára, nie pri načítaní stránky. Backend
@@ -127,6 +152,12 @@ const ticket = ref('')
  */
 async function openForm() {
   open.value = true
+
+  // Detail podujatia sa dá otvoriť aj mimo PublicLayout (a rovno na odkaz),
+  // takže identita nemusí byť načítaná — bez nej by sme adresu pýtali zbytočne.
+  if (auth.isAuthenticated && auth.identity === null) {
+    auth.fetchIdentity()
+  }
 
   if (ticket.value !== '') return
 
@@ -144,6 +175,7 @@ function close() {
   if (done.value) {
     done.value = false
     email.value = ''
+    useOther.value = false
   }
 
   error.value = null
@@ -167,7 +199,7 @@ async function submit() {
     }
 
     await subscribeToEvent(props.eventId, {
-      email: email.value,
+      email: useAccount.value ? auth.email : email.value,
       ticket: ticket.value,
       locale: currentLocale(),
       website: website.value,

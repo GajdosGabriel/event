@@ -40,7 +40,7 @@ class DashboardTicketController extends Controller
             'payment' => ['nullable', Rule::enum(TicketPaymentStatus::class)],
             'ticket_type_id' => ['nullable', 'integer'],
             'checkin' => ['nullable', 'in:arrived,pending'],
-            'sort' => ['nullable', 'in:newest,oldest,name'],
+            'sort' => ['nullable', 'in:newest,oldest,surname,surname_desc'],
         ]);
 
         $data = $this->ticketRepository->dashboardIndexForEvent(

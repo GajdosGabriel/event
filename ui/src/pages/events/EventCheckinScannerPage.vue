@@ -4,7 +4,7 @@
 
     <!-- Skener je úzky stĺpec (mieri na mobil), ale hlavička s kartami drží
          rovnakú šírku ako ostatné stránky sekcie, nech pri prepínaní neposkakuje.
-         Tím kanála ide vedľa: kto smie skenovať, sa rieši práve pri skeneri. -->
+         Vedľa je bočný panel s tým, čo sa rieši práve pri skeneri. -->
     <div class="grid gap-4 lg:grid-cols-[minmax(0,28rem)_22rem]">
       <div>
         <h1 class="mb-2 text-2xl font-semibold text-slate-900">{{ t('checkin.title') }}</h1>
@@ -53,16 +53,18 @@
         </template>
       </div>
 
-      <!-- Kto smie skenovať, sa nastavuje rolou v tíme kanála — preto je tím
-           priamo tu, nie len ako odkaz preč zo stránky. Meniť sa dá v úprave
-           kanála, kam vedie odkaz v paneli. -->
-      <aside v-if="canal" class="grid gap-3 self-start">
-        <p class="text-xs text-slate-500">{{ t('checkin.whoCanScan') }}</p>
-        <CanalTeamPanel
-          :canal-id="canal.id"
-          readonly
-          :manage-to="`/dashboard/canals/${canal.id}/edit#team`"
-        />
+      <!-- Vedľajší panel drží to, čo sa rieši práve pri príchode ľudí: kto smie
+           skenovať (rola v tíme kanála). Doplnkové nastavenia podujatia sú pri
+           zozname účastníkov, ktorých sa týkajú. -->
+      <aside class="grid gap-4 self-start">
+        <div v-if="canal" class="grid gap-3">
+          <p class="text-xs text-slate-500">{{ t('checkin.whoCanScan') }}</p>
+          <CanalTeamPanel
+            :canal-id="canal.id"
+            readonly
+            :manage-to="`/dashboard/canals/${canal.id}/edit#team`"
+          />
+        </div>
       </aside>
     </div>
   </div>

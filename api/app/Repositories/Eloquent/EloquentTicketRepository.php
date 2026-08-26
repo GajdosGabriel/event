@@ -222,7 +222,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
 
         $order = $this->issueForEvent($event, [
             'user_id' => $user->id,
-            'holder_name' => $this->displayNameFor($user),
+            'holder_name' => $user->displayName(),
             'holder_email' => $user->email,
             'items' => [['ticket_type_id' => $type->id, 'quantity' => 1]],
         ]);
@@ -522,6 +522,30 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             ->notify(new TicketIssued($ticket, restored: true));
     }
 
+    /**
+     * Radenie zoznamu prihlásených. Okrem poradia objednávok (id = najnovšie /
+     * najstaršie) vie radiť podľa priezviska — v zozname pri vchode sa hľadá
+     * práve podľa neho, nie podľa krstného mena.
+     *
+     * Priezvisko = posledné slovo mena (Ing. Gabriel Gajdoš → Gajdoš);
+     * jednoslovné meno („gajdosgabo") ostáva samo sebou.
+     *
+     * Radí sa podľa `id`, nie `created_at` — dve objednávky vytvorené v tej
+     * istej sekunde by inak mali nestabilné poradie a stránkovanie by mohlo
+     * jednu z nich preskočiť.
+     */
+    private function applyAttendeeSort($query, ?string $sort): void
+    {
+        $surname = "SUBSTRING_INDEX(TRIM(tickets.holder_name), ' ', -1)";
+
+        match ($sort) {
+            'oldest' => $query->reorder()->orderBy('tickets.id'),
+            'surname' => $query->reorder()->orderByRaw("$surname ASC")->orderBy('tickets.holder_name'),
+            'surname_desc' => $query->reorder()->orderByRaw("$surname DESC")->orderByDesc('tickets.holder_name'),
+            default => $query->reorder()->orderByDesc('tickets.id'),
+        };
+    }
+
     /** Voľné miesta workshopu (null kapacita = neobmedzené → veľké číslo). */
     private function remainingSeats(TicketType $type): int
     {
@@ -551,7 +575,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         $order = Ticket::create([
             'event_id' => $event->id,
             'user_id' => $user->id,
-            'holder_name' => $this->displayNameFor($user),
+            'holder_name' => $user->displayName(),
             'holder_email' => $user->email,
             'quantity' => 1,
             'status' => TicketStatus::Reserved->value,
@@ -564,7 +588,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             'ticket_id' => $order->id,
             'ticket_type_id' => $type->id,
             'event_id' => $event->id,
-            'attendee_name' => $this->displayNameFor($user),
+            'attendee_name' => $user->displayName(),
             'attendee_email' => mb_strtolower(trim((string) $user->email)),
             'status' => AdmissionStatus::Waitlisted->value,
         ]);
@@ -596,11 +620,6 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 ? 'tickets.errors.workshop_locked_join'
                 : 'tickets.errors.workshop_locked_leave'));
         }
-    }
-
-    private function displayNameFor(User $user): string
-    {
-        return $user->pendingProfile?->display_name ?? strtok((string) $user->email, '@');
     }
 
     /** Aktívne miesta používateľa na workshope — platné aj miesto v čakačke. */
@@ -1119,8 +1138,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         // `event` kvôli TicketPolicy — kontroluje kanál podujatia pri každom riadku.
         $query = Ticket::query()
             ->where('event_id', $event->id)
-            ->with(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
-            ->latest();
+            ->with(['event', 'admissions.ticketType', 'admissions.checkedInBy']);
 
         if (! empty($filters['payment'])) {
             $query->where('payment_status', $filters['payment']);
@@ -1140,12 +1158,10 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 ->whereNull('checked_in_at'));
         }
 
-        // `bySort('name')` pozná len stĺpec `name`; objednávka má meno objednávateľa.
-        if (($filters['sort'] ?? '') === 'name') {
-            $query->reorder()->orderBy('holder_name');
-        }
+        $this->applyAttendeeSort($query, $filters['sort'] ?? null);
 
-        return $this->paginateFilteredQuery($query, $perPage, $filters);
+        // Radenie si riešime sami (podľa priezviska), `bySort` by ho prepísalo.
+        return $this->paginateFilteredQuery($query, $perPage, array_diff_key($filters, ['sort' => null]));
     }
 
     public function publicIndexQuery()

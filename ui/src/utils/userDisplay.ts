@@ -8,6 +8,19 @@ export function displayName(user: UserLike): string {
   return (user.display_name as string) || (user.email as string) || t('users.unknown')
 }
 
+/**
+ * „Gabriel Gajdoš" → „Gajdoš Gabriel". V zoznamoch sa hľadá podľa priezviska,
+ * tak nech je vpredu. Jednoslovné meno (prezývka, e-mailový login) ostáva tak,
+ * ako je.
+ */
+export function surnameFirst(name: string | null | undefined): string {
+  const parts = String(name ?? '').trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length < 2) return parts[0] ?? ''
+
+  return [parts[parts.length - 1], ...parts.slice(0, -1)].join(' ')
+}
+
 export function initials(name: string): string {
   const parts = name.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/).filter(Boolean)
   if (!parts.length) return '?'

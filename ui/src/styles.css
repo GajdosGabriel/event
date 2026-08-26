@@ -128,6 +128,8 @@
   .action-btn-feature { @apply border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100; }
   .action-btn-publish { @apply border-green-300 bg-green-50 text-green-800; }
   .action-btn-danger { @apply border-red-300 bg-red-50 text-red-800; }
+  /* Radenie klikom v hlavičke tabuľky — dedí veľkosť aj farbu z `<th>`. */
+  .th-sort { @apply inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-inherit hover:text-slate-700; }
   .row-menu-item { @apply flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 no-underline hover:bg-slate-50; }
   /* Zablokovaná položka ostáva vidieť kvôli tooltipu s dôvodom. */
   .row-menu-item:disabled { @apply cursor-not-allowed text-slate-400 hover:bg-transparent; }
