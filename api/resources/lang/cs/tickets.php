@@ -53,6 +53,14 @@ return [
         'workshop_locked_join' => 'Akce už začala — přihlášení na workshopy už nelze měnit.',
         'workshop_locked_leave' => 'Akce už začala — odhlášení z workshopu už není možné.',
         'no_attendees' => 'Na tuto akci zatím není nikdo přihlášen.',
+        // Akcie v zozname prihlásených (dashboard).
+        'restore_not_cancelled' => 'Objednávka není zrušená — obnovit lze jen zrušenou objednávku.',
+        'restore_not_cancelled_seat' => 'Vstupenka není zrušená — obnovit lze jen zrušenou vstupenku.',
+        'restore_capacity' => 'Kapacita „:name“ je už naplněná — vstupenku není kam obnovit.',
+        'delete_not_cancelled' => 'Smazat lze jen zrušenou objednávku.',
+        'delete_not_cancelled_seat' => 'Smazat lze jen zrušenou vstupenku.',
+        'confirm_not_reserved' => 'Potvrdit lze jen rezervaci čekající na potvrzení.',
+        'payment_not_pending' => 'Platba už byla vyřízena.',
     ],
 
     'counts' => [

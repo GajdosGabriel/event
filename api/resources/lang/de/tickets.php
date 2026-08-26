@@ -53,6 +53,14 @@ return [
         'workshop_locked_join' => 'Die Veranstaltung hat begonnen — die Workshop-Anmeldung lässt sich nicht mehr ändern.',
         'workshop_locked_leave' => 'Die Veranstaltung hat begonnen — die Abmeldung vom Workshop ist nicht mehr möglich.',
         'no_attendees' => 'Für diese Veranstaltung ist noch niemand angemeldet.',
+        // Akcie v zozname prihlásených (dashboard).
+        'restore_not_cancelled' => 'Die Bestellung ist nicht storniert — nur eine stornierte Bestellung kann wiederhergestellt werden.',
+        'restore_not_cancelled_seat' => 'Das Ticket ist nicht storniert — nur ein storniertes Ticket kann wiederhergestellt werden.',
+        'restore_capacity' => 'Die Kapazität von „:name“ ist bereits ausgeschöpft — es ist kein Platz zum Wiederherstellen frei.',
+        'delete_not_cancelled' => 'Nur eine stornierte Bestellung kann gelöscht werden.',
+        'delete_not_cancelled_seat' => 'Nur ein storniertes Ticket kann gelöscht werden.',
+        'confirm_not_reserved' => 'Nur eine Reservierung, die auf Bestätigung wartet, kann bestätigt werden.',
+        'payment_not_pending' => 'Die Zahlung wurde bereits abgewickelt.',
     ],
 
     'counts' => [

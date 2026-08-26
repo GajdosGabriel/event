@@ -103,6 +103,12 @@ return [
         'outro'        => 'Bring the ticket on your phone or print it and present it at the door.',
     ],
 
+    // App\Notifications\TicketIssued s príznakom `restored` — obnovená objednávka.
+    'ticket_restored' => [
+        'subject' => 'Your registration for :event is valid again',
+        'intro'   => 'We have restored your cancelled registration for **":event"** — your seats are valid again.',
+    ],
+
     // App\Notifications\AttendeeTicketIssued — ďalšiemu účastníkovi objednávky.
     'attendee_ticket_issued' => [
         'subject'           => 'Your ticket for :event',

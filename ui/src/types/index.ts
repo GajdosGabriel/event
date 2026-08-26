@@ -695,6 +695,22 @@ export interface CheckinStats {
   remaining: number
 }
 
+/** Prehľad do bočného panela zoznamu prihlásených. */
+export interface AttendeeSummary {
+  admissions: { total: number; arrived: number; remaining: number; cancelled: number; waitlisted: number }
+  orders: { total: number; confirmed: number; reserved: number; cancelled: number }
+  payments: { currency: string; paidAmount: number; pendingAmount: number; pendingCount: number }
+  types: {
+    id: number
+    name: string
+    kind: 'ticket' | 'workshop'
+    capacity: number | null
+    sold: number
+    arrived: number
+    waitlisted: number
+  }[]
+}
+
 // Prehľadová štatistika pre úvodnú stránku dashboardu a adminu.
 export type StatsScope = 'dashboard' | 'admin'
 export type StatsPeriodKey = 'day' | 'week' | 'month' | 'all'

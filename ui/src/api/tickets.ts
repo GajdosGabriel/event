@@ -1,6 +1,7 @@
 import http, { BASE_URL } from './index'
 import type {
   AdmissionItem,
+  AttendeeSummary,
   CheckinStats,
   EventItem,
   PaginatedResponse,
@@ -105,9 +106,20 @@ export function admissionQrImageUrl(uuid: string): string {
   return `${BASE_URL}/admissions/${uuid}/qr`
 }
 
+export interface AttendeeFilters {
+  search?: string
+  status?: string
+  payment?: string
+  ticket_type_id?: number
+  checkin?: string
+  sort?: string
+  page?: number
+  per_page?: number
+}
+
 export async function indexEventTickets(
   eventId: number,
-  params?: { search?: string; page?: number; per_page?: number },
+  params?: AttendeeFilters,
 ): Promise<PaginatedResponse<TicketItem>> {
   const { data } = await http.get(`/dashboard/events/${eventId}/tickets`, { params })
   const items = (data.data ?? data) as Record<string, unknown>[]
@@ -145,6 +157,24 @@ export async function checkinStats(eventId: number): Promise<CheckinStats> {
   return data as CheckinStats
 }
 
+/** Prehľad do bočného panela zoznamu prihlásených. */
+export async function attendeeStats(eventId: number): Promise<AttendeeSummary> {
+  const { data } = await http.get(`/dashboard/events/${eventId}/attendee-stats`)
+  const payments = (data.payments ?? {}) as Record<string, unknown>
+
+  return {
+    admissions: data.admissions as AttendeeSummary['admissions'],
+    orders: data.orders as AttendeeSummary['orders'],
+    payments: {
+      currency: (payments['currency'] as string) ?? 'EUR',
+      paidAmount: Number(payments['paid_amount'] ?? 0),
+      pendingAmount: Number(payments['pending_amount'] ?? 0),
+      pendingCount: Number(payments['pending_count'] ?? 0),
+    },
+    types: (data.types ?? []) as AttendeeSummary['types'],
+  }
+}
+
 export async function cancelTicket(id: number): Promise<TicketItem> {
   const { data } = await http.post(`/dashboard/tickets/${id}`)
   return mapTicket((data.data ?? data) as Record<string, unknown>)
@@ -153,6 +183,40 @@ export async function cancelTicket(id: number): Promise<TicketItem> {
 export async function cancelAdmission(admissionId: number): Promise<AdmissionItem> {
   const { data } = await http.post(`/dashboard/admissions/${admissionId}/cancel`)
   return mapAdmission((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Obnovenie zrušenej objednávky — objednávateľ dostane vstupenky e-mailom znova. */
+export async function restoreTicket(id: number): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/tickets/${id}/restore`)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Zmazanie zrušenej objednávky zo zoznamu (bez e-mailu). */
+export async function deleteTicket(id: number): Promise<void> {
+  await http.delete(`/dashboard/tickets/${id}`)
+}
+
+/** Potvrdenie rezervácie organizátorom. */
+export async function confirmTicket(id: number): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/tickets/${id}/confirm`)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Ručné označenie platby ako uhradenej. */
+export async function markTicketPaid(id: number): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/tickets/${id}/paid`)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Obnovenie jednej zrušenej vstupenky. */
+export async function restoreAdmission(admissionId: number): Promise<AdmissionItem> {
+  const { data } = await http.post(`/dashboard/admissions/${admissionId}/restore`)
+  return mapAdmission((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Zmazanie jednej zrušenej vstupenky zo zoznamu (bez e-mailu). */
+export async function deleteAdmission(admissionId: number): Promise<void> {
+  await http.delete(`/dashboard/admissions/${admissionId}`)
 }
 
 export async function resendTicket(id: number): Promise<void> {

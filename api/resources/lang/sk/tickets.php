@@ -55,6 +55,14 @@ return [
         'workshop_locked_join' => 'Podujatie už začalo — prihlásenie na workshopy sa už nedá meniť.',
         'workshop_locked_leave' => 'Podujatie už začalo — odhlásenie z workshopu už nie je možné.',
         'no_attendees' => 'Na toto podujatie zatiaľ nie je nikto prihlásený.',
+        // Akcie v zozname prihlásených (dashboard).
+        'restore_not_cancelled' => 'Objednávka nie je zrušená — obnoviť sa dá len zrušená objednávka.',
+        'restore_not_cancelled_seat' => 'Vstupenka nie je zrušená — obnoviť sa dá len zrušená vstupenka.',
+        'restore_capacity' => 'Kapacita „:name“ je už naplnená — vstupenku nie je kam obnoviť.',
+        'delete_not_cancelled' => 'Zmazať sa dá len zrušená objednávka.',
+        'delete_not_cancelled_seat' => 'Zmazať sa dá len zrušená vstupenka.',
+        'confirm_not_reserved' => 'Potvrdiť sa dá len rezervácia čakajúca na potvrdenie.',
+        'payment_not_pending' => 'Platba už bola vybavená.',
     ],
 
     // Tvary podľa počtu (trans_choice). Rozsahy sú zapísané explicitne, takže

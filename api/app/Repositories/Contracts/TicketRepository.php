@@ -27,6 +27,9 @@ interface TicketRepository extends InterfaceRepository
     /** Štatistika príchodov pre podujatie. */
     public function checkinStats(Event $event): array;
 
+    /** Prehľad prihlásených pre bočný panel (príchody, objednávky, platby, typy). */
+    public function attendeeSummary(Event $event): array;
+
     /** Jednoklikové prihlásenie používateľa na workshop; pri plnom workshope zaradí medzi náhradníkov. */
     public function joinWorkshop(Event $event, TicketType $type, User $user): Admission;
 
@@ -53,5 +56,24 @@ interface TicketRepository extends InterfaceRepository
 
     public function cancel($id): Ticket;
     public function cancelAdmission(int $admissionId): Admission;
+
+    /** Obnovenie zrušenej objednávky (aj s miestami) — objednávateľ dostane vstupenky znova. */
+    public function restoreCancelled($id): Ticket;
+
+    /** Obnovenie jednej zrušenej vstupenky v objednávke. */
+    public function restoreAdmission(int $admissionId): Admission;
+
+    /** Zmazanie zrušenej objednávky zo zoznamu prihlásených (bez e-mailu). */
+    public function deleteCancelled($id): void;
+
+    /** Zmazanie jednej zrušenej vstupenky zo zoznamu (bez e-mailu). */
+    public function deleteAdmission(int $admissionId): void;
+
+    /** Potvrdenie rezervácie organizátorom. */
+    public function confirm($id): Ticket;
+
+    /** Ručné označenie platby ako uhradenej. */
+    public function markPaid($id): Ticket;
+
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator;
 }

@@ -1,7 +1,7 @@
 @component('mail::message')
 # {{ __('mail.common.greeting_named', ['name' => $greetingName]) }}
 
-{{ __('mail.ticket_issued.intro', ['event' => $eventName]) }}
+{{ $intro ?? __('mail.ticket_issued.intro', ['event' => $eventName]) }}
 
 @if ($quantity > 1)
 {{ __('mail.ticket_issued.quantity', ['count' => $quantity]) }}

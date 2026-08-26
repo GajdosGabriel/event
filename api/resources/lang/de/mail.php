@@ -103,6 +103,12 @@ return [
         'outro'        => 'Bringen Sie das Ticket auf dem Handy mit oder drucken Sie es aus und legen Sie es am Einlass vor.',
     ],
 
+    // App\Notifications\TicketIssued s príznakom `restored` — obnovená objednávka.
+    'ticket_restored' => [
+        'subject' => 'Ihre Anmeldung für :event ist wieder gültig',
+        'intro'   => 'Wir haben Ihre stornierte Anmeldung für **„:event"** wiederhergestellt — Ihre Plätze sind wieder gültig.',
+    ],
+
     // App\Notifications\AttendeeTicketIssued — ďalšiemu účastníkovi objednávky.
     'attendee_ticket_issued' => [
         'subject'           => 'Ihr Ticket für :event',

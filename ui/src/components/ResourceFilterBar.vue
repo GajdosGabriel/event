@@ -166,6 +166,11 @@ const props = withDefaults(defineProps<{
   canalFilter?: { id: number; name: string } | null
   /** Priečinok histórie hľadania v prehliadači; prázdny kľúč históriu vypne. */
   historyKey?: string
+  /**
+   * Počet aktívnych filtrov, ktoré si stránka vykresľuje do slotu `filters`.
+   * Bez tohto by ich počítadlo ani tlačidlo „Zrušiť filtre" nevideli.
+   */
+  extraActive?: number
 }>(), {
   statusOptions: () => [],
   phaseOptions: () => [],
@@ -176,6 +181,7 @@ const props = withDefaults(defineProps<{
   showDateRange: false,
   canalFilter: null,
   historyKey: '',
+  extraActive: 0,
 })
 
 const { t } = useI18n()
@@ -189,6 +195,8 @@ const sortChoices = computed<FilterOption[]>(() => props.sortOptions ?? [
 const emit = defineEmits<{
   change: []
   'clear-canal': []
+  /** Kliknutie na „Zrušiť filtre" — stránka si dočistí vlastné filtre zo slotu. */
+  reset: []
 }>()
 
 const search = defineModel<string>('search', { default: '' })
@@ -211,7 +219,7 @@ const activeCount = computed(() => {
   if (dateFrom.value) n++
   if (dateTo.value) n++
   if (props.canalFilter) n++
-  return n
+  return n + props.extraActive
 })
 
 // ── História hľadania ────────────────────────────────────────────────────────
@@ -317,6 +325,7 @@ function reset() {
   dateTo.value = ''
   closeHistory()
   if (props.canalFilter) emit('clear-canal')
+  emit('reset')
   emitChange()
 }
 

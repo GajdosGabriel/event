@@ -12,12 +12,14 @@ use App\Models\Event;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Notifications\TicketIssued;
 use App\Notifications\WorkshopSeatGranted;
 use App\Notifications\WorkshopWaitlisted;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\AttendeeConfirmation;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
@@ -247,7 +249,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             $freed = $admissions->contains(fn ($a) => $a->status === AdmissionStatus::Valid);
 
             foreach ($admissions as $admission) {
-                $admission->update(['status' => AdmissionStatus::Cancelled->value]);
+                $this->markCancelled($admission);
             }
 
             $this->cancelEmptyOrders($admissions->pluck('ticket_id'));
@@ -298,7 +300,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 );
 
                 $ticket->update(['status' => TicketStatus::Cancelled->value]);
-                $ticket->admissions()->update(['status' => AdmissionStatus::Cancelled->value]);
+                $this->cancelAdmissionsOf($ticket);
             }
 
             return $freed->filter()->unique('id');
@@ -424,6 +426,100 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * Zruší miesta objednávky a poznačí, z akého stavu — vďaka tomu vie
+     * obnovenie vrátiť náhradníka späť do čakačky a nie rovno na miesto.
+     */
+    private function cancelAdmissionsOf(Ticket $ticket): void
+    {
+        $admissions = $ticket->admissions()
+            ->whereIn('status', [AdmissionStatus::Valid->value, AdmissionStatus::Waitlisted->value])
+            ->get();
+
+        foreach ($admissions as $admission) {
+            $this->markCancelled($admission, withOrder: true);
+        }
+    }
+
+    /** Zrušenie miesta so značkou pôvodného stavu (pre neskoršie obnovenie). */
+    private function markCancelled(Admission $admission, bool $withOrder = false): void
+    {
+        $admission->update([
+            'status' => AdmissionStatus::Cancelled->value,
+            'meta' => array_merge((array) $admission->meta, array_filter([
+                'cancelled_from' => $admission->status->value,
+                'cancelled_with_order' => $withOrder ?: null,
+            ], fn ($v) => $v !== null)),
+        ]);
+    }
+
+    /** Vrátenie miesta do stavu spred zrušenia (platné miesto / čakačka). */
+    private function markRestored(Admission $admission): void
+    {
+        $admission->update([
+            'status' => $this->cancelledFrom($admission)->value,
+            'meta' => Arr::except((array) $admission->meta, ['cancelled_from', 'cancelled_with_order']),
+        ]);
+    }
+
+    /** Stav, v ktorom bolo miesto pred zrušením (staré zrušenia značku nemajú). */
+    private function cancelledFrom(Admission $admission): AdmissionStatus
+    {
+        return AdmissionStatus::tryFrom((string) ($admission->meta['cancelled_from'] ?? ''))
+            ?? AdmissionStatus::Valid;
+    }
+
+    /**
+     * Ochrana pred „prebookovaním" pri obnovení — miesto medzitým mohol dostať
+     * niekto iný (napr. náhradník z čakačky).
+     *
+     * @param  \Illuminate\Support\Collection<int, Admission>  $admissions
+     */
+    private function assertSeatsAvailableFor($admissions): void
+    {
+        $seats = $admissions
+            ->filter(fn (Admission $a) => $this->cancelledFrom($a) === AdmissionStatus::Valid)
+            ->filter(fn (Admission $a) => $a->ticketType !== null)
+            ->groupBy('ticket_type_id');
+
+        foreach ($seats as $group) {
+            /** @var TicketType $type */
+            $type = $group->first()->ticketType;
+
+            if ($group->count() > $this->remainingSeats($type)) {
+                abort(422, __('tickets.errors.restore_capacity', ['name' => $type->name]));
+            }
+        }
+    }
+
+    /** Stav, do ktorého sa objednávka vracia po obnovení. */
+    private function reactivatedStatus(Ticket $ticket): TicketStatus
+    {
+        return $ticket->payment_status === TicketPaymentStatus::Pending
+            ? TicketStatus::Reserved
+            : TicketStatus::Confirmed;
+    }
+
+    /**
+     * Po obnovení pošleme objednávateľovi vstupenky znova — QR kódy z pôvodného
+     * e-mailu sú síce platné, ale medzitým dostal potvrdenie o zrušení.
+     */
+    private function notifyRestored(?Ticket $ticket): void
+    {
+        if ($ticket === null || $ticket->holder_email === null) {
+            return;
+        }
+
+        $ticket = $ticket->fresh(['event', 'admissions.ticketType']);
+
+        if ($ticket === null || $ticket->admissions_total === 0) {
+            return;
+        }
+
+        Notification::route('mail', $ticket->holder_email)
+            ->notify(new TicketIssued($ticket, restored: true));
     }
 
     /** Voľné miesta workshopu (null kapacita = neobmedzené → veľké číslo). */
@@ -725,6 +821,90 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         ];
     }
 
+    /**
+     * Prehľad pre bočný panel zoznamu prihlásených: koľko ľudí už prešlo
+     * dverami, ako sú na tom objednávky, platby a jednotlivé typy lístkov.
+     */
+    public function attendeeSummary(Event $event): array
+    {
+        Gate::authorize('view', $event);
+
+        $valid = fn () => Admission::query()
+            ->where('event_id', $event->id)
+            ->where('status', AdmissionStatus::Valid->value);
+
+        $total = (int) $valid()->count();
+        $arrived = (int) $valid()->whereNotNull('checked_in_at')->count();
+
+        $orders = Ticket::query()
+            ->where('event_id', $event->id)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->get()
+            ->keyBy(fn (Ticket $row) => $row->status->value)
+            ->map(fn (Ticket $row) => (int) $row->aggregate);
+
+        // Peniaze rátame len zo živých objednávok — zrušená objednávka
+        // už nie je ani pohľadávka, ani tržba.
+        $payments = Ticket::query()
+            ->where('event_id', $event->id)
+            ->where('status', '!=', TicketStatus::Cancelled->value)
+            ->selectRaw('payment_status, COUNT(*) as aggregate, COALESCE(SUM(price_amount), 0) as amount')
+            ->groupBy('payment_status')
+            ->get()
+            ->keyBy(fn (Ticket $row) => $row->payment_status->value);
+
+        $types = TicketType::query()
+            ->where('event_id', $event->id)
+            ->withCount([
+                'admissions as sold' => fn ($q) => $q->where('status', AdmissionStatus::Valid->value),
+                'admissions as arrived' => fn ($q) => $q
+                    ->where('status', AdmissionStatus::Valid->value)
+                    ->whereNotNull('checked_in_at'),
+                'admissions as waitlisted' => fn ($q) => $q->where('status', AdmissionStatus::Waitlisted->value),
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'admissions' => [
+                'total' => $total,
+                'arrived' => $arrived,
+                'remaining' => max(0, $total - $arrived),
+                'cancelled' => (int) Admission::query()
+                    ->where('event_id', $event->id)
+                    ->where('status', AdmissionStatus::Cancelled->value)
+                    ->count(),
+                'waitlisted' => (int) Admission::query()
+                    ->where('event_id', $event->id)
+                    ->where('status', AdmissionStatus::Waitlisted->value)
+                    ->count(),
+            ],
+            'orders' => [
+                'total' => (int) $orders->sum(),
+                'confirmed' => (int) ($orders[TicketStatus::Confirmed->value] ?? 0),
+                'reserved' => (int) ($orders[TicketStatus::Reserved->value] ?? 0),
+                'cancelled' => (int) ($orders[TicketStatus::Cancelled->value] ?? 0),
+            ],
+            'payments' => [
+                'currency' => $event->price_currency ?? 'EUR',
+                'paid_amount' => (int) ($payments[TicketPaymentStatus::Paid->value]->amount ?? 0),
+                'pending_amount' => (int) ($payments[TicketPaymentStatus::Pending->value]->amount ?? 0),
+                'pending_count' => (int) ($payments[TicketPaymentStatus::Pending->value]->aggregate ?? 0),
+            ],
+            'types' => $types->map(fn (TicketType $type) => [
+                'id' => $type->id,
+                'name' => $type->name,
+                'kind' => $type->kind->value,
+                'capacity' => $type->capacity,
+                'sold' => (int) $type->sold,
+                'arrived' => (int) $type->arrived,
+                'waitlisted' => (int) $type->waitlisted,
+            ])->all(),
+        ];
+    }
+
     public function cancel($id): Ticket
     {
         [$ticket, $freedTypes] = DB::transaction(function () use ($id) {
@@ -743,7 +923,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 ->unique('id');
 
             $ticket->update(['status' => TicketStatus::Cancelled->value]);
-            $ticket->admissions()->update(['status' => AdmissionStatus::Cancelled->value]);
+            $this->cancelAdmissionsOf($ticket);
 
             return [$ticket->fresh(['admissions.ticketType']), $freed];
         });
@@ -767,7 +947,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 ? $admission->ticketType
                 : null;
 
-            $admission->update(['status' => AdmissionStatus::Cancelled->value]);
+            $this->markCancelled($admission);
 
             return [$admission->fresh(['ticketType']), $freed];
         });
@@ -779,14 +959,191 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         return $admission;
     }
 
+    /**
+     * Obnovenie zrušenej objednávky — vráti ju aj s miestami späť do hry.
+     *
+     * Späť idú len miesta zrušené spolu s objednávkou; tie, ktoré organizátor
+     * zrušil jednotlivo skôr, zostávajú zrušené (obnoví ich `restoreAdmission`).
+     * Náhradník sa vracia do čakačky, nie na miesto.
+     */
+    public function restoreCancelled($id): Ticket
+    {
+        $ticket = DB::transaction(function () use ($id) {
+            /** @var Ticket $ticket */
+            $ticket = $this->find($id);
+            Gate::authorize('update', $ticket);
+
+            if ($ticket->status !== TicketStatus::Cancelled) {
+                abort(422, __('tickets.errors.restore_not_cancelled'));
+            }
+
+            $cancelled = $ticket->admissions()
+                ->where('status', AdmissionStatus::Cancelled->value)
+                ->with('ticketType')
+                ->lockForUpdate()
+                ->get();
+
+            $withOrder = $cancelled->filter(fn (Admission $a) => (bool) ($a->meta['cancelled_with_order'] ?? false));
+
+            // Zrušenia spred zavedenia značky ju nemajú — vtedy vraciame všetko.
+            $restoring = $withOrder->isNotEmpty() ? $withOrder : $cancelled;
+
+            $this->assertSeatsAvailableFor($restoring);
+
+            foreach ($restoring as $admission) {
+                $this->markRestored($admission);
+            }
+
+            $ticket->update(['status' => $this->reactivatedStatus($ticket)->value]);
+
+            return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
+        });
+
+        $this->notifyRestored($ticket);
+
+        return $ticket;
+    }
+
+    /** Obnovenie jednej zrušenej vstupenky (miesta) v objednávke. */
+    public function restoreAdmission(int $admissionId): Admission
+    {
+        $admission = DB::transaction(function () use ($admissionId) {
+            /** @var Admission $admission */
+            $admission = Admission::query()->lockForUpdate()->findOrFail($admissionId);
+            $admission->loadMissing('event', 'ticket', 'ticketType');
+            Gate::authorize('update', $admission);
+
+            if ($admission->status !== AdmissionStatus::Cancelled) {
+                abort(422, __('tickets.errors.restore_not_cancelled_seat'));
+            }
+
+            $this->assertSeatsAvailableFor(collect([$admission]));
+            $this->markRestored($admission);
+
+            // Objednávka nemôže zostať zrušená, keď opäť drží platné miesto.
+            $ticket = $admission->ticket;
+
+            if ($ticket !== null && $ticket->status === TicketStatus::Cancelled) {
+                $ticket->update(['status' => $this->reactivatedStatus($ticket)->value]);
+            }
+
+            return $admission->fresh(['ticketType', 'ticket']);
+        });
+
+        $this->notifyRestored($admission->ticket);
+
+        return $admission;
+    }
+
+    /**
+     * Zmazanie zrušenej objednávky zo zoznamu prihlásených (soft delete).
+     * Nikomu sa nič neposiela — je to len upratanie zoznamu.
+     */
+    public function deleteCancelled($id): void
+    {
+        DB::transaction(function () use ($id) {
+            /** @var Ticket $ticket */
+            $ticket = $this->find($id);
+            Gate::authorize('update', $ticket);
+
+            if ($ticket->status !== TicketStatus::Cancelled) {
+                abort(422, __('tickets.errors.delete_not_cancelled'));
+            }
+
+            $ticket->admissions()->delete();
+            $ticket->delete();
+        });
+    }
+
+    /** Zmazanie jednej zrušenej vstupenky zo zoznamu (soft delete, bez e-mailu). */
+    public function deleteAdmission(int $admissionId): void
+    {
+        DB::transaction(function () use ($admissionId) {
+            /** @var Admission $admission */
+            $admission = Admission::query()->findOrFail($admissionId);
+            $admission->loadMissing('event');
+            Gate::authorize('update', $admission);
+
+            if ($admission->status !== AdmissionStatus::Cancelled) {
+                abort(422, __('tickets.errors.delete_not_cancelled_seat'));
+            }
+
+            $admission->delete();
+        });
+    }
+
+    /** Potvrdenie rezervácie organizátorom (napr. po dohode mimo systému). */
+    public function confirm($id): Ticket
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->find($id);
+        Gate::authorize('update', $ticket);
+
+        if ($ticket->status !== TicketStatus::Reserved) {
+            abort(422, __('tickets.errors.confirm_not_reserved'));
+        }
+
+        $ticket->update(['status' => TicketStatus::Confirmed->value]);
+
+        return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
+    }
+
+    /**
+     * Ručné označenie platby (prevod na účet, platba na mieste).
+     * Uhradená rezervácia sa tým zároveň stáva potvrdenou objednávkou.
+     */
+    public function markPaid($id): Ticket
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->find($id);
+        Gate::authorize('update', $ticket);
+
+        if (! in_array($ticket->payment_status, [TicketPaymentStatus::Pending, TicketPaymentStatus::Failed], true)) {
+            abort(422, __('tickets.errors.payment_not_pending'));
+        }
+
+        $ticket->update([
+            'payment_status' => TicketPaymentStatus::Paid->value,
+            'status' => $ticket->status === TicketStatus::Reserved
+                ? TicketStatus::Confirmed->value
+                : $ticket->status->value,
+        ]);
+
+        return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
+    }
+
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         Gate::authorize('view', $event);
 
+        // `event` kvôli TicketPolicy — kontroluje kanál podujatia pri každom riadku.
         $query = Ticket::query()
             ->where('event_id', $event->id)
-            ->with(['admissions.ticketType', 'admissions.checkedInBy'])
+            ->with(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
             ->latest();
+
+        if (! empty($filters['payment'])) {
+            $query->where('payment_status', $filters['payment']);
+        }
+
+        // Typ lístka ani stav vstupu nie sú na objednávke, ale na jej miestach —
+        // objednávka prejde filtrom, keď mu vyhovie aspoň jedno jej miesto.
+        if (! empty($filters['ticket_type_id'])) {
+            $query->whereHas('admissions', fn ($q) => $q->where('ticket_type_id', (int) $filters['ticket_type_id']));
+        }
+
+        if (($filters['checkin'] ?? '') === 'arrived') {
+            $query->whereHas('admissions', fn ($q) => $q->whereNotNull('checked_in_at'));
+        } elseif (($filters['checkin'] ?? '') === 'pending') {
+            $query->whereHas('admissions', fn ($q) => $q
+                ->where('status', AdmissionStatus::Valid->value)
+                ->whereNull('checked_in_at'));
+        }
+
+        // `bySort('name')` pozná len stĺpec `name`; objednávka má meno objednávateľa.
+        if (($filters['sort'] ?? '') === 'name') {
+            $query->reorder()->orderBy('holder_name');
+        }
 
         return $this->paginateFilteredQuery($query, $perPage, $filters);
     }

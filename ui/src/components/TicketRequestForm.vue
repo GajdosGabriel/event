@@ -85,7 +85,8 @@
         <!-- Zoznam vstupeniek: 1. patrí objednávateľovi (needitovateľná, aby
              bolo vidieť, na koho je), ostatné si pýtajú údaje účastníka. -->
         <div v-if="qty(type) > 0" class="mt-3 space-y-2">
-          <p class="text-xs text-slate-500">
+          <!-- Pri jednej vstupenke niet čie údaje dopĺňať, hint by len mátal. -->
+          <p v-if="qty(type) > 1" class="text-xs text-slate-500">
             {{ t('tickets.request.seatsHint') }}
           </p>
           <div v-for="i in seatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
@@ -120,40 +121,41 @@
               <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :placeholder="t('tickets.request.attendeeEmail')" />
             </template>
           </div>
+
+          <!-- Prihlásený → one-click -->
+          <div v-if="oneClick" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            {{ t('tickets.request.oneClickPrefix') }} <strong>{{ auth.displayName }}</strong>. {{ t('tickets.request.oneClickSuffix') }}
+          </div>
+
+          <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
+          <template v-if="!oneClick">
+            <FormField v-model="form.holder_name" :label="t('tickets.request.holderName')" required trim maxlength="250" />
+            <FormField v-model="form.holder_email" type="email" :label="t('tickets.request.holderEmail')" required trim maxlength="190" />
+            <FormField v-model="form.holder_phone" type="tel" :label="t('tickets.request.holderPhone')" trim maxlength="30" />
+          </template>
+
+          <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold text-slate-800">
+            <span>{{ t('tickets.request.total', { seats: plural('tickets.request.counts.seats', qty(type)) }) }}</span>
+            <span>{{ priceFor(type) ? formatPrice(priceFor(type), type.priceCurrency) : t('tickets.request.free') }}</span>
+          </div>
+
+          <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+
+          <!-- Odoslanie patrí do karty typu: jedno spoločné tlačidlo pod
+               všetkými kartami sa nedalo spárovať s tým, čo si návštevník
+               práve vybral, a pri viacerých typoch mu vypadlo z obrazovky. -->
+          <button type="submit" :disabled="loading"
+            class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+            {{ loading ? t('tickets.request.submitting') : submitLabel(type) }}
+          </button>
+
+          <button v-if="auth.isAuthenticated" type="button"
+            class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
+            @click="useOwnDetails = !useOwnDetails">
+            {{ useOwnDetails ? t('tickets.request.useAccount') : t('tickets.request.useOther') }}
+          </button>
         </div>
       </div>
-
-      <template v-if="totalSeats > 0">
-        <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
-          <span>{{ t('tickets.request.total', { seats: plural('tickets.request.counts.seats', totalSeats) }) }}</span>
-          <span>{{ totalPrice ? formatPrice(totalPrice, currency) : t('tickets.request.free') }}</span>
-        </div>
-
-        <!-- Prihlásený → one-click -->
-        <div v-if="oneClick" class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
-          {{ t('tickets.request.oneClickPrefix') }} <strong>{{ auth.displayName }}</strong>. {{ t('tickets.request.oneClickSuffix') }}
-        </div>
-
-        <!-- Údaje objednávateľa (hosť alebo „iné údaje") -->
-        <template v-if="!oneClick">
-          <FormField v-model="form.holder_name" :label="t('tickets.request.holderName')" required trim maxlength="250" />
-          <FormField v-model="form.holder_email" type="email" :label="t('tickets.request.holderEmail')" required trim maxlength="190" />
-          <FormField v-model="form.holder_phone" type="tel" :label="t('tickets.request.holderPhone')" trim maxlength="30" />
-        </template>
-
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-
-        <button type="submit" :disabled="loading"
-          class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-          {{ loading ? t('tickets.request.submitting') : actionLabel }}
-        </button>
-
-        <button v-if="auth.isAuthenticated" type="button"
-          class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
-          @click="useOwnDetails = !useOwnDetails">
-          {{ useOwnDetails ? t('tickets.request.useAccount') : t('tickets.request.useOther') }}
-        </button>
-      </template>
     </form>
   </div>
 </template>
@@ -278,9 +280,18 @@ function isHolderSeat(type: TicketTypeItem, index: number): boolean {
 const holderName = computed(() => (oneClick.value ? auth.displayName : form.holder_name))
 const holderEmail = computed(() => (oneClick.value ? auth.email : form.holder_email))
 
-/** „Rezervovať"/„Kúpiť" — aktivuje typ s predvoleným 1 miestom. */
+/**
+ * „Rezervovať"/„Kúpiť" — aktivuje typ s predvoleným 1 miestom.
+ *
+ * Každá karta je samostatná objednávka s vlastným odoslaním, takže naraz môže
+ * byť aktívny len jeden typ — výber iného ten predchádzajúci zruší.
+ */
 function activate(type: TicketTypeItem) {
-  if (maxFor(type) > 0) quantities[type.id!] = 1
+  if (maxFor(type) <= 0) return
+  for (const id of Object.keys(quantities)) delete quantities[Number(id)]
+  for (const id of Object.keys(attendees)) delete attendees[Number(id)]
+  quantities[type.id!] = 1
+  error.value = null
 }
 
 function inc(type: TicketTypeItem) {
@@ -307,14 +318,14 @@ function removeSeat(type: TicketTypeItem, index: number) {
 
 const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))
 
-const currency = computed(() => types.value.find(t => t.priceAmount)?.priceCurrency ?? 'EUR')
-const totalPrice = computed(() =>
-  orderableTypes.value.reduce((sum, t) => sum + (t.priceAmount ?? 0) * qty(t), 0),
-)
+/** Cena za objednané miesta jedného typu. */
+function priceFor(type: TicketTypeItem): number {
+  return (type.priceAmount ?? 0) * qty(type)
+}
 
-const actionLabel = computed(() =>
-  totalPrice.value > 0 ? t('tickets.request.submitPaid') : t('tickets.request.submitFree'),
-)
+function submitLabel(type: TicketTypeItem): string {
+  return type.priceAmount ? t('tickets.request.submitPaid') : t('tickets.request.submitFree')
+}
 
 async function submit() {
   if (totalSeats.value === 0) return

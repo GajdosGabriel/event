@@ -53,6 +53,14 @@ return [
         'workshop_locked_join' => 'The event has started — workshop sign-ups can no longer be changed.',
         'workshop_locked_leave' => 'The event has started — leaving a workshop is no longer possible.',
         'no_attendees' => 'Nobody has registered for this event yet.',
+        // Akcie v zozname prihlásených (dashboard).
+        'restore_not_cancelled' => 'This order is not cancelled — only a cancelled order can be restored.',
+        'restore_not_cancelled_seat' => 'This ticket is not cancelled — only a cancelled ticket can be restored.',
+        'restore_capacity' => '":name" is already sold out — there is no seat left to restore into.',
+        'delete_not_cancelled' => 'Only a cancelled order can be deleted.',
+        'delete_not_cancelled_seat' => 'Only a cancelled ticket can be deleted.',
+        'confirm_not_reserved' => 'Only a reservation awaiting confirmation can be confirmed.',
+        'payment_not_pending' => 'This payment has already been settled.',
     ],
 
     'counts' => [

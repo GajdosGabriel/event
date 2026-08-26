@@ -15,8 +15,13 @@ class TicketIssued extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param  bool  $restored  Objednávka bola obnovená po zrušení — mení sa len
+     *                          úvod e-mailu, vstupenky a QR kódy sú rovnaké.
+     */
     public function __construct(
-        protected Ticket $ticket
+        protected Ticket $ticket,
+        protected bool $restored = false,
     ) {
     }
 
@@ -58,10 +63,13 @@ class TicketIssued extends Notification implements ShouldQueue
 
         $calendar = new EventCalendarLinks($this->ticket->event);
 
+        $key = $this->restored ? 'mail.ticket_restored' : 'mail.ticket_issued';
+
         $mail = (new MailMessage())
-            ->subject(__('mail.ticket_issued.subject', ['event' => $eventName]))
+            ->subject(__($key . '.subject', ['event' => $eventName]))
             ->markdown('mail.ticket-issued', [
                 'greetingName' => $this->ticket->holder_name,
+                'intro'        => __($key . '.intro', ['event' => $eventName]),
                 'eventName'    => $eventName,
                 'quantity'     => (int) ($this->ticket->quantity ?? 1),
                 'seats'        => $seats,

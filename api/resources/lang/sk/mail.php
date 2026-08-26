@@ -104,6 +104,12 @@ return [
         'outro'        => 'Lístok si prineste v telefóne alebo vytlačte a predložte ho pri vstupe na akciu.',
     ],
 
+    // App\Notifications\TicketIssued s príznakom `restored` — obnovená objednávka.
+    'ticket_restored' => [
+        'subject' => 'Vaša registrácia na :event je opäť platná',
+        'intro'   => 'Vašu zrušenú registráciu na akciu **„:event"** sme obnovili — vaše miesta opäť platia.',
+    ],
+
     // App\Notifications\AttendeeTicketIssued — ďalšiemu účastníkovi objednávky.
     'attendee_ticket_issued' => [
         'subject'           => 'Vaša vstupenka na :event',

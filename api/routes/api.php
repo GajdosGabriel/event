@@ -413,6 +413,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('events/{event}/checkin-stats', [DashboardTicketController::class, 'checkinStats'])
         ->name('events.checkin-stats')
         ->middleware('permission:ticket.view');
+    Route::get('events/{event}/attendee-stats', [DashboardTicketController::class, 'attendeeStats'])
+        ->name('events.attendee-stats')
+        ->middleware('permission:ticket.view');
 
     // Zoznam prihlásených: export a hromadný e-mail. Export má právo `ticket.view`
     // (je to čítanie zoznamu), rozposlanie `event.update` — je to komunikácia
@@ -444,8 +447,26 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('tickets/{id}/resend', [DashboardTicketController::class, 'resend'])
         ->name('tickets.resend')
         ->middleware('permission:ticket.update');
+    Route::post('tickets/{id}/restore', [DashboardTicketController::class, 'restore'])
+        ->name('tickets.restore')
+        ->middleware('permission:ticket.update');
+    Route::post('tickets/{id}/confirm', [DashboardTicketController::class, 'confirm'])
+        ->name('tickets.confirm')
+        ->middleware('permission:ticket.update');
+    Route::post('tickets/{id}/paid', [DashboardTicketController::class, 'markPaid'])
+        ->name('tickets.paid')
+        ->middleware('permission:ticket.update');
+    Route::delete('tickets/{id}', [DashboardTicketController::class, 'destroy'])
+        ->name('tickets.destroy')
+        ->middleware('permission:ticket.update');
     Route::post('admissions/{admission}/cancel', [DashboardTicketController::class, 'cancelAdmission'])
         ->name('admissions.cancel')
+        ->middleware('permission:ticket.update');
+    Route::post('admissions/{admission}/restore', [DashboardTicketController::class, 'restoreAdmission'])
+        ->name('admissions.restore')
+        ->middleware('permission:ticket.update');
+    Route::delete('admissions/{admission}', [DashboardTicketController::class, 'destroyAdmission'])
+        ->name('admissions.destroy')
         ->middleware('permission:ticket.update');
 
     // Inbox správ. Bez `permission:` middlewaru — inbox je osobný, právo drží
