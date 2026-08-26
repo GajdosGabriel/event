@@ -78,6 +78,8 @@ class OrganizationAccountSyncTest extends UserSetupTest
             'account_uuid' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
         ]);
 
+        $this->linkToOwnCanal($organization);
+
         Http::fake([
             'https://account.test/api/v1/organizations/*' => Http::response([
                 'data' => ['id' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'name' => 'Divadlo'],
@@ -319,6 +321,8 @@ class OrganizationAccountSyncTest extends UserSetupTest
             'account_uuid' => 'ffffffff-0000-1111-2222-333333333333',
         ]);
 
+        $this->linkToOwnCanal($organization);
+
         Http::fake([
             'https://account.test/api/v1/organizations/*' => Http::response([
                 'data' => ['id' => 'ffffffff-0000-1111-2222-333333333333', 'identifiers' => ['ico' => '87654321']],
@@ -431,5 +435,18 @@ class OrganizationAccountSyncTest extends UserSetupTest
         );
 
         $response->assertStatus(400);
+    }
+
+    /**
+     * Do dashboardu sa organizácia dostane len cez kanál používateľa
+     * (EloquentOrganizationRepository::dashboardIndexQuery). Firma založená
+     * priamo cez model je pre svojho autora neviditeľná — bez tejto väzby
+     * vráti detail aj update 404, presne ako cudzia firma.
+     */
+    private function linkToOwnCanal(Organization $organization): void
+    {
+        $this->user->canals->first()->forceFill([
+            'organization_id' => $organization->getKey(),
+        ])->save();
     }
 }
