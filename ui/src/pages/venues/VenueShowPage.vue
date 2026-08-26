@@ -165,22 +165,9 @@
               </dd>
             </div>
 
-            <!-- Meta -->
-            <div class="detail-card">
-              <dt>{{ t('venues.fields.status') }}</dt>
-              <dd>
-                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
-                  :class="statusClass(venue.status)">{{ statusLabel('venues', venue.status) }}</span>
-              </dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.createdAt') }}</dt>
-              <dd>{{ formatDate(venue.createdAt) }}</dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.updatedAt') }}</dt>
-              <dd>{{ formatDate(venue.updatedAt) }}</dd>
-            </div>
+            <!-- Stav ani dátumy vytvorenia/úpravy tu nie sú zámerne — sú to
+                 technické údaje, ktoré pri práci s miestom nikto nečíta.
+                 Zmazaný záznam ostáva: to musí byť na prvý pohľad vidieť. -->
             <div v-if="venue.deletedAt" class="detail-card bg-red-50">
               <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ formatDate(venue.deletedAt) }}</dd>
@@ -207,7 +194,6 @@ import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 import type { VenueItem } from '@/types'
-import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -250,15 +236,6 @@ const openingHoursRows = computed(() => {
     .map(([day, hours]) => ({ day: weekdayLabel(day), hours }))
     .filter(r => r.hours)
 })
-
-function statusClass(status: string) {
-  return {
-    published: 'bg-green-100 text-green-800',
-    draft: 'bg-amber-100 text-amber-800',
-    archived: 'bg-slate-100 text-slate-600',
-    blocked: 'bg-red-100 text-red-800',
-  }[status] ?? 'bg-slate-100 text-slate-600'
-}
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')

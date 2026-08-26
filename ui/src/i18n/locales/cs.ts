@@ -86,10 +86,6 @@ const cs: Messages = {
     photos: 'Fotografie',
     owner: '[vlastník]',
     googleMaps: 'Google Maps ↗',
-    record: 'Záznam',
-    createdAt: 'Vytvořeno',
-    updatedAt: 'Upraveno',
-    publishedAt: 'Publikováno',
     deletedAt: 'Smazáno',
     none: '—',
     rel: {

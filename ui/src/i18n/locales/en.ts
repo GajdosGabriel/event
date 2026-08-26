@@ -86,10 +86,6 @@ const en: Messages = {
     photos: 'Photos',
     owner: '[owner]',
     googleMaps: 'Google Maps ↗',
-    record: 'Record',
-    createdAt: 'Created',
-    updatedAt: 'Updated',
-    publishedAt: 'Published',
     deletedAt: 'Deleted',
     none: '—',
     rel: {

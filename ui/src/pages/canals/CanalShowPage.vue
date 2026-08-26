@@ -173,26 +173,9 @@
               </dd>
             </div>
 
-            <!-- Meta -->
-            <div class="detail-card">
-              <dt>{{ t('canals.fields.status') }}</dt>
-              <dd>
-                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
-                  :class="statusClass(canal.status)">{{ statusLabel('canals', canal.status) }}</span>
-              </dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.publishedAt') }}</dt>
-              <dd>{{ canal.publishedAt ? formatDate(canal.publishedAt) : t('common.none') }}</dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.createdAt') }}</dt>
-              <dd>{{ formatDate(canal.createdAt) }}</dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.updatedAt') }}</dt>
-              <dd>{{ formatDate(canal.updatedAt) }}</dd>
-            </div>
+            <!-- Stav a technické dátumy (publikované/vytvorené/upravené) tu
+                 zámerne nie sú — pri práci s kanálom ich nikto nečíta. Kôš je
+                 iné: zmazaný záznam musí byť na prvý pohľad vidieť. -->
             <div v-if="canal.deletedAt" class="detail-card bg-red-50">
               <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ formatDate(canal.deletedAt) }}</dd>
@@ -220,7 +203,6 @@ import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
-import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -236,15 +218,6 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
-
-function statusClass(status: string) {
-  return {
-    published: 'bg-green-100 text-green-800',
-    draft: 'bg-amber-100 text-amber-800',
-    archived: 'bg-slate-100 text-slate-600',
-    blocked: 'bg-red-100 text-red-800',
-  }[status] ?? 'bg-slate-100 text-slate-600'
-}
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')

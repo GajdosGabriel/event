@@ -98,10 +98,6 @@ const sk = {
     photos: 'Fotografie',
     owner: '[vlastník]',
     googleMaps: 'Google Maps ↗',
-    record: 'Záznam',
-    createdAt: 'Vytvorené',
-    updatedAt: 'Upravené',
-    publishedAt: 'Publikované',
     deletedAt: 'Zmazané',
     none: '—',
     // Relatívny čas („pred 3 d“) — používa ho zoznam používateľov aj súborov.

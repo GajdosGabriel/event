@@ -26,25 +26,26 @@
         <!-- Ikony sú tie isté ako na kartách vnútri sekcie (EventTicketsTabs) —
              obe strany si ich berú z registra v AppIcon, takže tlačidlo
              a karta, kam vedie, nikdy neukážu iný obrázok. -->
-        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn">
+        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/tickets`" class="action-btn action-btn-feature">
           <AppIcon name="ticket" class="h-4 w-4" />{{ t('events.show.tickets') }}
         </RouterLink>
         <!-- Check-in má zmysel až keď existuje typ lístka — dovtedy tlačidlo
-             nikam nevedie a len povie, čo treba doplniť. -->
+             nikam nevedie a len povie, čo treba doplniť. Preto ostáva šedé:
+             modrá v tomto pruhu znamená „funkcia je pripravená". -->
         <button v-if="event.permissions.checkin && ticketTypesLoaded && !ticketTypes.length"
           type="button" class="action-btn opacity-60" @click="warnNoTicketTypes">
           <AppIcon name="checkin" class="h-4 w-4" />{{ t('events.show.checkin') }}
         </button>
-        <RouterLink v-else-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn">
+        <RouterLink v-else-if="event.permissions.checkin" :to="`/dashboard/events/${route.params.id}/checkin`" class="action-btn action-btn-feature">
           <AppIcon name="checkin" class="h-4 w-4" />{{ t('events.show.checkin') }}
         </RouterLink>
         <!-- Otázky z publika. Cesta je dashboardová aj v admin režime, rovnako
              ako lístky a check-in vyššie — nástenku spravuje organizátor. -->
-        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn">
+        <RouterLink v-if="event.permissions.viewTickets" :to="`/dashboard/events/${route.params.id}/otazky`" class="action-btn action-btn-feature">
           <AppIcon name="question" class="h-4 w-4" />{{ t('questions.dashboard.tab') }}
         </RouterLink>
-        <!-- „Ako to vidí návštevník." Nenápadný odkaz, nie tlačidlo: je to
-             kontrola, nie akcia nad záznamom — a otvára sa v novej karte. -->
+        <!-- „Ako to vidí návštevník." Rovnaké tlačidlo ako susedia vľavo, len
+             odsadené doprava — a otvára sa v novej karte. -->
         <PublicPreviewLink class="ml-auto" :to="publicEventPath(event)" />
         <ResourceActionsMenu
           resource="event"
@@ -254,23 +255,14 @@
             <ContactButton target-type="event" :target-id="event.id" :target-name="event.name" />
           </div>
 
-          <!-- Meta -->
-          <dl class="show-card grid gap-3">
-            <div class="detail-card">
-              <dt>{{ t('events.fields.status') }}</dt>
-              <dd>
-                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
-                  :class="statusClass(event.status)">{{ statusLabel('events', event.status) }}</span>
-              </dd>
-            </div>
-            <div class="detail-card">
-              <dt>{{ t('common.record') }}</dt>
-              <dd class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <span v-if="event.publishAt" class="font-medium text-amber-700">{{ t('events.show.publishAt', { date: fmt(event.publishAt) }) }}</span>
-                <span v-if="event.publishedAt">{{ t('common.publishedAt') }} {{ fmt(event.publishedAt) }}</span>
-                <span v-if="event.createdAt">{{ t('common.createdAt') }} {{ fmt(event.createdAt) }}</span>
-                <span v-if="event.updatedAt">{{ t('common.updatedAt') }} {{ fmt(event.updatedAt) }}</span>
-              </dd>
+          <!-- Stav, dátumy vytvorenia a úpravy tu nie sú zámerne: technickú
+               históriu záznamu pri práci s podujatím nikto nečíta. Zostáva len
+               to, čo mení, čo vidieť ďalej — plánované zverejnenie a to, že je
+               záznam v koši. -->
+          <dl v-if="event.publishAt || event.deletedAt" class="show-card grid gap-3">
+            <div v-if="event.publishAt" class="detail-card">
+              <dt>{{ t('events.fields.publishAt') }}</dt>
+              <dd class="font-medium text-amber-700">{{ fmt(event.publishAt) }}</dd>
             </div>
             <div v-if="event.deletedAt" class="detail-card bg-red-50">
               <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
@@ -302,7 +294,6 @@ import { useToast } from '@/composables/useToast'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n, localeTag } from '@/i18n'
 import { publicEventPath } from '@/utils/publicUrl'
-import { statusLabel } from '@/utils/statusLabel'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -366,18 +357,6 @@ function fmt(d: string | null) {
 function fmtDateTime(d: string) {
   const date = new Date(d)
   return date.toLocaleString(localeTag(), { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-function statusClass(status: string) {
-  return {
-    published: 'bg-green-100 text-green-800',
-    draft: 'bg-amber-100 text-amber-800',
-    archived: 'bg-slate-100 text-slate-600',
-    scheduled: 'bg-blue-100 text-blue-800',
-    pending_review: 'bg-purple-100 text-purple-800',
-    rejected: 'bg-red-100 text-red-800',
-    blocked: 'bg-red-100 text-red-800',
-  }[status] ?? 'bg-slate-100 text-slate-600'
 }
 
 onMounted(async () => {

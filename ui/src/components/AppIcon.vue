@@ -70,6 +70,11 @@ const ICONS = {
     'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1',
     'M16 8l-4-4m0 0L8 8m4-4v12',
   ],
+  /** Odkaz von z administrácie — šípka z rámu, otvára sa v novej karte. */
+  externalLink: [
+    'M14 4h6m0 0v6m0-6L10 14',
+    'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6',
+  ],
   /** Rozbalenie sekcie. */
   chevronDown: [
     'M19 9l-7 7-7-7',
