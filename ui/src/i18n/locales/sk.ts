@@ -1129,6 +1129,14 @@ const sk = {
     inviting: 'Odosielam…',
     invited: 'Pozvánka odoslaná.',
     inviteHint: 'Pozvánka príde e-mailom. Prijať ju musí účet s tou istou adresou.',
+    manage: 'Pridať alebo upraviť členov tímu',
+    // Čo ktorá rola smie — vysvetlivky pod formulárom pozvánky. Zoznam rolí
+    // posiela server, kľúč sa skladá z jej hodnoty (owner/editor/checkin).
+    roleHints: {
+      owner: 'spravuje kanál, jeho podujatia, miesta aj tím a môže pozývať ďalších.',
+      editor: 'robí obsah — vytvára a upravuje podujatia, miesta a lístky. Kanál nezmaže a tím nespravuje.',
+      checkin: 'obsluha vstupu — vidí podujatia a lístky a načítava QR kódy pri príchode. Nič neupravuje.',
+    },
     actionFailed: 'Akciu sa nepodarilo dokončiť.',
     counts: {
       members: { one: '{n} člen', few: '{n} členovia', many: '{n} členov' },
@@ -1237,7 +1245,6 @@ const sk = {
     usedAt: '⚠️ Lístok už bol použitý o {time}',
     invalid: '❌ Neplatný lístok',
     whoCanScan: 'Skenovať môžu členovia tímu kanála s rolou Vlastník, Editor alebo Vstup.',
-    manageTeam: 'Spravovať tím kanála {canal}',
   },
   // Lístky: `request` je verejná objednávka, `settings` a `type` sú
   // nastavenia na strane organizátora.

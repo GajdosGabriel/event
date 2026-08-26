@@ -4,6 +4,8 @@ namespace Tests\Feature\Canal;
 
 use App\Enums\ModelStatus;
 use App\Models\Canal;
+use App\Models\Event;
+use App\Models\User;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\CanalSetupTest;
 
@@ -52,6 +54,46 @@ class DashboardCanalPublishTest extends CanalSetupTest
             ->assertJsonPath('status', ModelStatus::Draft->value);
 
         $this->assertSame(ModelStatus::Draft, $canal->fresh()->status);
+    }
+
+    /**
+     * Kanál, pod ktorý už patrí podujatie, sa z výpisu stiahnuť nesmie — odkaz
+     * z podujatia by viedol do prázdna. Viď CanalPolicy::unpublish().
+     */
+    #[Test]
+    public function published_canal_with_an_event_cannot_be_unpublished(): void
+    {
+        $canal = $this->ownedCanal(ModelStatus::Published);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'venue_id' => null,
+            'user_id' => User::factory()->create()->id,
+        ]);
+
+        $this->postJson('/api/dashboard/canals/' . $canal->id . '/publish', ['published' => false])
+            ->assertForbidden();
+
+        $this->assertSame(ModelStatus::Published, $canal->fresh()->status);
+    }
+
+    /** Rovnaký zámok drží aj druhá cesta k stavu — <select> vo formulári. */
+    #[Test]
+    public function form_cannot_unpublish_a_canal_with_an_event(): void
+    {
+        $canal = $this->ownedCanal(ModelStatus::Published);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'venue_id' => null,
+            'user_id' => User::factory()->create()->id,
+        ]);
+
+        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+            'status' => ModelStatus::Draft->value,
+        ]))->assertStatus(422);
+
+        $this->assertSame(ModelStatus::Published, $canal->fresh()->status);
     }
 
     /** Archív je zámok proti mazaniu, nie proti oprave. */

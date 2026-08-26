@@ -13,6 +13,7 @@ use App\Repositories\Contracts\CanalRepository;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
+use App\Services\Publishing\UnpublishGuard;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -131,6 +132,11 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         // uložiť — inak si ho admin otvorí a pri uložení dostane 404. Rovnako
         // to majú EloquentEventRepository aj EloquentVenueRepository.
         $canal = $this->model()->withTrashed()->findOrFail($id);
+
+        // Stav sa dá zhodiť aj <select>-om vo formulári, nielen tlačidlom —
+        // zámok odpublikovania musí stáť v oboch cestách. Viď UnpublishGuard.
+        (new UnpublishGuard)->assert($canal, $properties['status'] ?? null);
+
         $canal->update($properties);
 
         $this->backfillCoordinates($canal);

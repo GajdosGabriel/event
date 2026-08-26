@@ -1062,6 +1062,12 @@ const cs: Messages = {
     inviting: 'Odesílám…',
     invited: 'Pozvánka odeslána.',
     inviteHint: 'Pozvánka přijde e-mailem. Přijmout ji musí účet se stejnou adresou.',
+    manage: 'Přidat nebo upravit členy týmu',
+    roleHints: {
+      owner: 'spravuje kanál, jeho akce, místa i tým a může zvát další.',
+      editor: 'dělá obsah — vytváří a upravuje akce, místa a vstupenky. Kanál nesmaže a tým nespravuje.',
+      checkin: 'obsluha vstupu — vidí akce a vstupenky a načítá QR kódy při příchodu. Nic neupravuje.',
+    },
     actionFailed: 'Akci se nepodařilo dokončit.',
     counts: {
       members: { one: '{n} člen', few: '{n} členové', many: '{n} členů' },
@@ -1167,7 +1173,6 @@ const cs: Messages = {
     usedAt: '⚠️ Vstupenka už byla použita v {time}',
     invalid: '❌ Neplatná vstupenka',
     whoCanScan: 'Skenovat mohou členové týmu kanálu s rolí Vlastník, Editor nebo Vstup.',
-    manageTeam: 'Spravovat tým kanálu {canal}',
   },
   tickets: {
     tabs: {

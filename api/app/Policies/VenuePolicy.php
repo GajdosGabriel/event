@@ -43,10 +43,16 @@ class VenuePolicy
             && $venue->status !== ModelStatus::Published;
     }
 
+    /**
+     * Odpublikovať sa dá len miesto, ktoré ešte nepoužilo žiadne podujatie —
+     * stiahnuté miesto by z podujatia viedlo do prázdna. Rovnaký referenčný
+     * zámok ako pri mazaní, len iný zoznam vzťahov.
+     */
     public function unpublish(User $user, Venue $venue): bool
     {
         return $this->update($user, $venue)
-            && $venue->status === ModelStatus::Published;
+            && $venue->status === ModelStatus::Published
+            && $venue->isUnpublishable();
     }
 
     public function archive(User $user, Venue $venue): bool
@@ -56,14 +62,12 @@ class VenuePolicy
     }
 
     /**
-     * Stavový zámok: mazať sa dá len to, čo nie je vonku (`published`).
-     *
-     * Archivované sa tu zámerne nekontroluje. Miesto s históriou drží referenčný
-     * zámok bez ohľadu na stav a miesto bez histórie si vlastník aj tak odomkol
-     * jedným prepnutím stavu na koncept (update archivovanému miestu povolený
-     * je) — archív tu teda nechránil nič, len pridával krok navyše. Archív pri
-     * mieste znamená „mimo prevádzky", nie „nedotknuteľné"; nedotknuteľnosť
-     * rieši história, nie stav.
+     * Stav o mazaní nerozhoduje. Miesto s históriou drží referenčný zámok bez
+     * ohľadu na stav a miesto bez histórie si vlastník aj tak odomkol jedným
+     * prepnutím stavu na koncept (update publikovanému aj archivovanému miestu
+     * povolený je) — stavový zámok teda nechránil nič, len pridával krok
+     * navyše. Publikované ani archivované neznamená „nedotknuteľné";
+     * nedotknuteľnosť rieši história, nie stav.
      *
      * Referenčný zámok („už to používa podujatie") sem nepatrí — to nie je
      * otázka práva, ale stavu dát, a musí odísť ako 422 s vysvetlením, nie ako
@@ -72,14 +76,9 @@ class VenuePolicy
      */
     public function delete(User $user, Venue $venue): bool
     {
-        return (
-            $venue->status !== ModelStatus::Published
-            && $this->ownsVenueThrough($user, $venue, 'venue.delete')
-        )
+        return $this->ownsVenueThrough($user, $venue, 'venue.delete')
             // Odpojenie cudzieho miesta nie je mazanie — väzba ostáva na
-            // vlastníckom kanáli, takže referenčný ani stavový zámok sa naň
-            // nevzťahuje. Podmienka „cudzie" tu predtým chýbala a vlastník
-            // si cez túto vetvu vedel zmazať aj publikované miesto.
+            // vlastníckom kanáli, takže referenčný zámok sa naň nevzťahuje.
             || ($this->isForeignVenue($user, $venue) && $this->isLinkedToVenueCanal($user, $venue));
     }
 

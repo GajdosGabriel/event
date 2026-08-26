@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Imports;
 
+use App\Enums\CanalRole;
 use App\Models\Canal;
 use App\Models\User;
 use App\Services\Imports\ImportedCanalManager;
@@ -101,6 +102,34 @@ class ImportedCanalManagerTest extends TestCase
 
         $this->assertSame($first->id, $second->id);
         $this->assertSame(1, Canal::query()->where('name', 'tkkbs.sk')->count());
+    }
+
+    /**
+     * Regresia z produkcie: pripojenie vlastníka nezapisovalo rolu, tak pivot
+     * ostal na DB defaulte `editor` — a editor nemá `canal.update` ani
+     * `canal.team`. Vlastník importovaného kanála ho v dashboarde nevedel ani
+     * upraviť, ani spravovať jeho tím, hoci `is_owner` bolo `1`.
+     */
+    #[Test]
+    public function the_owner_of_an_imported_canal_may_update_it(): void
+    {
+        $superAdmin = User::query()->whereHas('roles', fn ($q) => $q->where('name', 'super-admin'))->firstOrFail();
+
+        $canal = app(ImportedCanalManager::class)->resolveOrCreate(
+            'Bratislavská arcidiecéza',
+            'Bratislavská arcidiecéza',
+            'https://www.tkkbs.sk',
+        );
+
+        $pivot = $superAdmin->canals()->where('canals.id', $canal->id)->firstOrFail()->pivot;
+
+        $this->assertTrue((bool) $pivot->is_owner);
+        $this->assertSame(CanalRole::Owner->value, $pivot->role);
+        $this->assertTrue(
+            $superAdmin->canInCanal((int) $canal->id, 'canal.update'),
+            'Vlastník importovaného kanála ho musí vedieť upraviť.',
+        );
+        $this->assertTrue($superAdmin->canInCanal((int) $canal->id, 'canal.team'));
     }
 
     #[Test]

@@ -1063,6 +1063,12 @@ const en: Messages = {
     inviting: 'Sending…',
     invited: 'Invitation sent.',
     inviteHint: 'The invitation arrives by email. It has to be accepted by an account with the same address.',
+    manage: 'Add or edit team members',
+    roleHints: {
+      owner: 'manages the channel, its events, venues and the team, and can invite others.',
+      editor: 'makes the content — creates and edits events, venues and tickets. Cannot delete the channel or manage the team.',
+      checkin: 'door staff — sees events and tickets and scans QR codes on arrival. Edits nothing.',
+    },
     actionFailed: 'The action could not be completed.',
     counts: {
       members: { one: '{n} member', few: '{n} members', many: '{n} members' },
@@ -1168,7 +1174,6 @@ const en: Messages = {
     usedAt: '⚠️ The ticket was already used at {time}',
     invalid: '❌ Invalid ticket',
     whoCanScan: 'Scanning is open to canal team members with the Owner, Editor or Check-in role.',
-    manageTeam: 'Manage the {canal} team',
   },
   tickets: {
     tabs: {

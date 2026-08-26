@@ -1063,6 +1063,12 @@ const de: Messages = {
     inviting: 'Wird gesendet…',
     invited: 'Einladung gesendet.',
     inviteHint: 'Die Einladung kommt per E-Mail. Annehmen muss sie ein Konto mit derselben Adresse.',
+    manage: 'Teammitglieder hinzufügen oder bearbeiten',
+    roleHints: {
+      owner: 'verwaltet den Kanal, seine Veranstaltungen, Orte und das Team und kann weitere einladen.',
+      editor: 'macht die Inhalte — legt Veranstaltungen, Orte und Tickets an und bearbeitet sie. Löscht den Kanal nicht und verwaltet das Team nicht.',
+      checkin: 'Einlasskraft — sieht Veranstaltungen und Tickets und scannt QR-Codes beim Ankommen. Bearbeitet nichts.',
+    },
     actionFailed: 'Die Aktion konnte nicht abgeschlossen werden.',
     counts: {
       members: { one: '{n} Mitglied', few: '{n} Mitglieder', many: '{n} Mitglieder' },
@@ -1168,7 +1174,6 @@ const de: Messages = {
     usedAt: '⚠️ Das Ticket wurde bereits um {time} verwendet',
     invalid: '❌ Ungültiges Ticket',
     whoCanScan: 'Scannen dürfen Team-Mitglieder des Kanals mit der Rolle Eigentümer, Redakteur oder Einlass.',
-    manageTeam: 'Team von {canal} verwalten',
   },
   tickets: {
     tabs: {

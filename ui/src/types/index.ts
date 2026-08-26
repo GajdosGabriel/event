@@ -316,6 +316,8 @@ export interface CanalItem {
   permissions: ModelPermissions
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
   deleteBlockedReason: string | null
+  /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
+  unpublishBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
   municipality: { id: number; name: string } | null
   /** Fakturačná identita kanála; `null` pri osobnom kanáli bez firmy. */
@@ -383,6 +385,8 @@ export interface VenueItem {
   permissions: ModelPermissions
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
   deleteBlockedReason: string | null
+  /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
+  unpublishBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
   municipality: { id: number; name: string } | null
   canalsList: { id: number; name: string; isOwner: boolean }[]

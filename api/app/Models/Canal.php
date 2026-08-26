@@ -171,6 +171,17 @@ class Canal extends Model implements Messageable
         ];
     }
 
+    /**
+     * Odpublikovanie drží späť len podujatie. Miesta a používatelia stiahnutie
+     * z výpisu prežijú — podujatie nie, to na kanál verejne odkazuje.
+     */
+    protected function unpublishBlockerCounts(): array
+    {
+        return [
+            'canals.errors.unpublish_blocked_by_events' => $this->events()->withTrashed()->count(),
+        ];
+    }
+
     protected function defaultThumbImageUrl(): string
     {
         return $this->publicImageUrl('images/canal.svg', 'images/default.svg');

@@ -14,8 +14,17 @@ use Illuminate\Database\Eloquent\Model;
  */
 class RecordPublisher
 {
+    public function __construct(
+        private readonly UnpublishGuard $unpublishGuard = new UnpublishGuard,
+    ) {}
+
     public function apply(Model $model, bool $publish): Model
     {
+        // Použitý kanál či miesto sa z výpisu stiahnuť nesmie — viď UnpublishGuard.
+        if (! $publish) {
+            $this->unpublishGuard->assertUnpublishable($model);
+        }
+
         $attributes = [
             'status' => $publish ? ModelStatus::Published->value : ModelStatus::Draft->value,
         ];

@@ -37,6 +37,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     uploadedFiles: (raw['uploaded_files'] as VenueItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as VenueItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
     deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
+    unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     allowedStatuses: (raw['allowed_statuses'] as VenueItem['allowedStatuses']) ?? [],
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
     canalsList: ((raw['canals_list'] as Record<string,unknown>[]) ?? []).map(c => ({ id: c['id'] as number, name: c['name'] as string, isOwner: c['is_owner'] as boolean })),

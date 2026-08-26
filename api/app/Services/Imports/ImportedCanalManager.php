@@ -3,6 +3,7 @@
 namespace App\Services\Imports;
 
 use App\Enums\CanalIdentityMode;
+use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
@@ -108,9 +109,14 @@ class ImportedCanalManager
     {
         $superAdmin = $this->systemOwner();
 
+        // Rola musí ísť s `is_owner` ruka v ruke (viď App\Enums\CanalRole).
+        // Bez nej ostal pivot na DB defaulte `editor` — a editor nemá
+        // `canal.update` ani `canal.team`, takže vlastník importovaného kanála
+        // ho v dashboarde nevedel ani upraviť, ani spravovať jeho tím.
         $superAdmin->canals()->syncWithoutDetaching([
             $canal->id => [
                 'is_owner' => true,
+                'role' => CanalRole::Owner->value,
                 'status' => ModelStatus::Published->value,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -119,9 +125,14 @@ class ImportedCanalManager
 
         $superAdmin->canals()->updateExistingPivot($canal->id, [
             'is_owner' => true,
+            'role' => CanalRole::Owner->value,
             'status' => ModelStatus::Published->value,
             'updated_at' => now(),
         ]);
+
+        // Práva sa kešujú na používateľa — bez zabudnutia by v tej istej
+        // požiadavke ostala platiť rola spred priradenia.
+        $superAdmin->forgetCanalRoles();
 
         if ($superAdmin->canal_id === null) {
             $superAdmin->forceFill(['canal_id' => $canal->id])->save();

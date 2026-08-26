@@ -82,8 +82,13 @@ class DashboardVenueDestroyTest extends EventSetupTest
         $this->assertNotNull($row['delete_blocked_reason']);
     }
 
+    /**
+     * Stav o mazaní nerozhoduje — rozhoduje história. Publikované miesto, ktoré
+     * nikto nepoužil, sa zmazať dá; predtým to policy odmietla len preto, že
+     * bolo `published`, a stačilo ho prepnúť na koncept. Viď VenuePolicy::delete().
+     */
     #[Test]
-    public function owner_cannot_delete_published_venue(): void
+    public function owner_can_delete_published_venue_that_no_event_used(): void
     {
         $this->user->givePermissionTo('venue.delete');
 
@@ -91,9 +96,9 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'status' => ModelStatus::Published->value,
         ]);
 
-        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertForbidden();
+        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(204);
 
-        $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
+        $this->assertSoftDeleted('venues', ['id' => $venue->id]);
     }
 
     /**

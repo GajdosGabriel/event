@@ -40,6 +40,11 @@ class VenueResource extends JsonResource
         $blocker = $canUpdate ? $this->resource->deletionBlocker() : null;
 
         $data['delete_blocked_reason'] = $blocker;
+        // To isté pre stiahnutie z výpisu — použité miesto z neho zmizne
+        // nesmie, lebo naň verejne odkazuje podujatie.
+        $data['unpublish_blocked_reason'] = $canUpdate && $isPublished
+            ? $this->resource->unpublishBlocker()
+            : null;
 
         $data['permissions'] = [
             'view' => $user?->can('view', $this->resource) ?? false,

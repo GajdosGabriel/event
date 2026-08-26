@@ -49,8 +49,12 @@
               <option :value="null">{{ t('venues.fields.canalPlaceholder') }}</option>
               <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
             </FormField>
-            <FormField v-model="form.status" type="select" :label="t('venues.fields.status')" :error="errors.status">
-              <option value="draft">{{ t('venues.statuses.draft') }}</option>
+            <!-- Koncept = stiahnutie z výpisu. Miesto, ktoré používa podujatie,
+                 sa stiahnuť nesmie — voľba zošedne a povie prečo, nech to
+                 nekončí až chybou po uložení. -->
+            <FormField v-model="form.status" type="select" :label="t('venues.fields.status')" :error="errors.status"
+              :hint="unpublishBlockedReason ?? undefined">
+              <option value="draft" :disabled="Boolean(unpublishBlockedReason)">{{ t('venues.statuses.draft') }}</option>
               <option value="published">{{ t('venues.statuses.published') }}</option>
               <option value="archived">{{ t('venues.statuses.archived') }}</option>
             </FormField>
@@ -162,6 +166,13 @@ const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 
+/**
+ * Prečo sa miesto nedá stiahnuť z výpisu (používa ho podujatie). Backend ho
+ * počíta len publikovanému miestu; tu zošedne voľbu „Koncept", nech to nekončí
+ * až chybou po uložení.
+ */
+const unpublishBlockedReason = ref<string | null>(null)
+
 // Kanál pre nové miesto: aktívny kanál používateľa, inak prvý dostupný.
 // Rovnaká predvoľba ako v editore eventu — organizátor s jedným kanálom ho
 // nemá čo vyberať ručne.
@@ -250,6 +261,7 @@ onMounted(async () => {
         body: v.body ?? '',
         status: v.status,
       }
+      unpublishBlockedReason.value = v.unpublishBlockedReason
       address.value = addressFrom(v)
       applyWebsiteIssue(v)
     } catch { serverError.value = t('venues.form.loadFailed') }

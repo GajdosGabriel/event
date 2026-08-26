@@ -39,6 +39,7 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     uploadedFiles: (raw['uploaded_files'] as CanalItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as CanalItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
     deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
+    unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     allowedStatuses: (raw['allowed_statuses'] as CanalItem['allowedStatuses']) ?? [],
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
     organization: raw['organization'] ? { id: (raw['organization'] as Record<string,unknown>)['id'] as number, name: (raw['organization'] as Record<string,unknown>)['name'] as string } : null,

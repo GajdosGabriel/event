@@ -88,8 +88,14 @@
             </ul>
           </div>
 
-          <!-- Tím kanála (len v dashboarde — admin spravuje používateľov inde) -->
-          <CanalTeamPanel v-if="scope === 'dashboard'" :canal-id="canal.id" />
+          <!-- Tím kanála (len v dashboarde — admin spravuje používateľov inde).
+               Detail tím ukazuje, meniť sa dá v úprave kanála. -->
+          <CanalTeamPanel
+            v-if="scope === 'dashboard'"
+            :canal-id="canal.id"
+            readonly
+            :manage-to="`${prefix}/canals/${canal.id}/edit#team`"
+          />
 
           <!-- Eventy kanálu -->
           <div class="show-card">

@@ -18,16 +18,16 @@
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
             :class="avatarColor(m.name)">{{ initials(m.name) }}</span>
 
-          <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-medium text-slate-900">
-              {{ m.name }}
-              <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">{{ t('team.self') }}</span>
-            </span>
-            <span v-if="m.email" class="block truncate text-xs text-slate-500">{{ m.email }}</span>
+          <!-- E-mail tu nie je zámerne: kto pozvánku prijal, má v tíme meno a to
+               ho identifikuje. Adresa je vidieť len dovtedy, kým je z člena ešte
+               len pozvánka (zoznam nižšie) — tam meno zatiaľ neexistuje. -->
+          <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">
+            {{ m.name }}
+            <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">{{ t('team.self') }}</span>
           </span>
 
           <!-- Vlastnú rolu si meniť nemožno — kanál by ostal bez správcu. -->
-          <select v-if="team.canManage && !m.isSelf" :value="m.role" :disabled="busy"
+          <select v-if="canManage && !m.isSelf" :value="m.role" :disabled="busy"
             class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
             @change="changeRole(m, ($event.target as HTMLSelectElement).value as CanalRole)">
             <option v-for="r in team.roles" :key="r.value" :value="r.value">{{ r.label }}</option>
@@ -35,7 +35,7 @@
           <span v-else class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
             :class="roleClass(m.role)">{{ m.roleLabel }}</span>
 
-          <button v-if="team.canManage && !m.isSelf" type="button" :disabled="busy"
+          <button v-if="canManage && !m.isSelf" type="button" :disabled="busy"
             class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             @click="remove(m)">
             {{ t('team.remove') }}
@@ -56,22 +56,31 @@
                 <template v-if="i.expiresAt"> · {{ t('team.expires', { date: formatDate(i.expiresAt) }) }}</template>
               </span>
             </span>
-            <button type="button" :disabled="busy"
-              class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
-              @click="resend(i)">
-              {{ t('team.resend') }}
-            </button>
-            <button type="button" :disabled="busy"
-              class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
-              @click="cancelInvite(i)">
-              {{ t('team.cancel') }}
-            </button>
+            <template v-if="canManage">
+              <button type="button" :disabled="busy"
+                class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                @click="resend(i)">
+                {{ t('team.resend') }}
+              </button>
+              <button type="button" :disabled="busy"
+                class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                @click="cancelInvite(i)">
+                {{ t('team.cancel') }}
+              </button>
+            </template>
           </li>
         </ul>
       </div>
 
+      <!-- Detail kanála tím len ukazuje; mení sa tam, kde sa mení všetko
+           ostatné — v úprave kanála. -->
+      <RouterLink v-if="readonly && team.canManage && manageTo" :to="manageTo"
+        class="mt-4 inline-block text-sm font-medium text-blue-700 no-underline hover:underline">
+        {{ t('team.manage') }} →
+      </RouterLink>
+
       <!-- Pozvanie -->
-      <form v-if="team.canManage" class="mt-4 border-t border-slate-100 pt-4" @submit.prevent="invite">
+      <form v-if="canManage" class="mt-4 border-t border-slate-100 pt-4" @submit.prevent="invite">
         <label class="mb-1 block text-xs font-medium text-slate-600">{{ t('team.inviteLabel') }}</label>
         <div class="flex flex-wrap gap-2">
           <FormField v-model="inviteEmail" type="email" required trim :placeholder="t('team.invitePlaceholder')"
@@ -88,13 +97,23 @@
         <p class="mt-2 text-xs text-slate-500">
           {{ t('team.inviteHint') }}
         </p>
+
+        <!-- Čo ktorá rola smie. Popisky rolí posiela server (`team.roles`),
+             vysvetlivky sú preklady — sú vedľa výberu, lebo práve tu sa rola
+             vyberá a nikde inde sa nedá dočítať, čo znamená. -->
+        <dl class="mt-2 grid gap-1 text-xs text-slate-500">
+          <div v-for="r in team.roles" :key="r.value">
+            <dt class="inline font-medium text-slate-600">{{ r.label }}</dt>
+            <dd class="inline"> — {{ roleHint(r.value) }}</dd>
+          </div>
+        </dl>
       </form>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   fetchCanalTeam,
@@ -109,12 +128,16 @@ import {
   type CanalTeamMember,
 } from '@/api/canalTeam'
 import { avatarColor, initials } from '@/utils/userDisplay'
-import { currentLocale, t, plural } from '@/i18n'
+import { currentLocale, t, plural, type MessageKey } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 
-const props = defineProps<{ canalId: number }>()
+/**
+ * `readonly` = panel len ukazuje, kto je v tíme (detail kanála). Ovládanie
+ * býva v úprave kanála, kam vedie odkaz `manageTo`.
+ */
+const props = defineProps<{ canalId: number; readonly?: boolean; manageTo?: string }>()
 
 const route = useRoute()
 const toast = useToast()
@@ -128,6 +151,22 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const inviteEmail = ref('')
 const inviteRole = ref<CanalRole>('editor')
+
+/**
+ * Právo od servera aj režim panela naraz — inak by sa to pýtalo v každom v-if.
+ */
+const canManage = computed(() => Boolean(team.value?.canManage) && !props.readonly)
+
+/**
+ * Vysvetlivka k role. Zoznam rolí prichádza zo servera, takže kľúč sa skladá
+ * až za behu — rola bez prekladu ostane bez vysvetlenia, nie s kľúčom v texte.
+ */
+function roleHint(role: string): string {
+  const key = `team.roleHints.${role}` as MessageKey
+  const hint = t(key)
+
+  return hint === key ? '' : hint
+}
 
 function roleClass(role: CanalRole): string {
   switch (role) {

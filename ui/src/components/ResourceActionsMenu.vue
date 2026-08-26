@@ -12,11 +12,16 @@
       class="row-menu-item"
       @click="duplicate"
     >{{ t('common.copy') }}</button>
+    <!-- Rovnako ako pri mazaní: zablokované stiahnutie z výpisu sa neskrýva,
+         ale zošedne a povie prečo — použitý kanál či miesto z výpisu zmiznúť
+         nesmie, lebo naň verejne odkazuje podujatie. -->
     <button
-      v-if="showPublish && (item.permissions?.publish || item.permissions?.unpublish)"
+      v-if="showPublish && (item.permissions?.publish || showsUnpublish)"
       class="row-menu-item"
+      :disabled="Boolean(item.unpublishBlockedReason)"
+      :title="item.unpublishBlockedReason ?? undefined"
       @click="togglePublish"
-    >{{ item.permissions?.unpublish ? t('common.unpublish') : t('common.publish') }}</button>
+    >{{ showsUnpublish ? t('common.unpublish') : t('common.publish') }}</button>
     <!-- Archivované podujatie sa inak nedá ani upraviť, ani zmazať; toto je
          jediná cesta späť, keď ho archivoval preklep v termíne. Ponúka sa len
          tomu, na kom nevisia vydané lístky — rozhoduje backend. -->
@@ -59,6 +64,8 @@ interface ActionsMenuItem {
   deletedAt?: string | null
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
   deleteBlockedReason?: string | null
+  /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
+  unpublishBlockedReason?: string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -85,6 +92,16 @@ const API_SLUGS = { canal: 'canals', venue: 'venues', event: 'events' } as const
 
 /** Cesta v routeri aj v API je tá istá — `/dashboard/canals/5`. */
 const base = computed(() => `/${props.scope}/${API_SLUGS[props.resource]}/${props.item.id}`)
+
+/**
+ * Zablokované stiahnutie z výpisu policy nepovolí, takže právo `unpublish`
+ * príde `false` — ale tlačidlo aj tak patrí do smeru „stiahnuť", inak by
+ * publikovaný záznam ponúkal „Publikovať". Rozhoduje teda dôvod blokácie,
+ * ktorý backend počíta len publikovanému záznamu.
+ */
+const showsUnpublish = computed(
+  () => Boolean(props.item.permissions?.unpublish) || Boolean(props.item.unpublishBlockedReason),
+)
 
 async function togglePublish() {
   // Smer určuje právo, nie published_at — publikované podujatie má `unpublish`,

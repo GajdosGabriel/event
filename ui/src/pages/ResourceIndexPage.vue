@@ -141,6 +141,8 @@ interface ResourceItem {
   permissions?: ModelPermissions
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
   deleteBlockedReason?: string | null
+  /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
+  unpublishBlockedReason?: string | null
   canalId?: number | null
   canalName?: string | null
   /** Firma nad kanálom — v odpovedi je len v admin výpise. */
@@ -191,6 +193,7 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     createdAt,
     permissions: raw['permissions'] as ModelPermissions | undefined,
     deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
+    unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     canalId,
     canalName,
     organizationTitle: canalRaw?.organization?.title ?? null,

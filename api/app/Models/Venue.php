@@ -108,6 +108,18 @@ class Venue extends Model implements Messageable
         ];
     }
 
+    /**
+     * Použité miesto sa nesmie stiahnuť z výpisu — podujatie naň verejne
+     * odkazuje. Archivácii to nebráni, archív znamená „mimo prevádzky" a
+     * záznam ostáva dohľadateľný (viď VenuePolicy::update()).
+     */
+    protected function unpublishBlockerCounts(): array
+    {
+        return [
+            'venues.errors.unpublish_blocked_by_events' => $this->events()->withTrashed()->count(),
+        ];
+    }
+
     public function assignCanal(Canal|int $canal, bool $isOwner = false, ModelStatus|string|bool|null $status = null): void
     {
         $canalId = $canal instanceof Canal ? $canal->id : $canal;

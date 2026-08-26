@@ -47,10 +47,16 @@ class CanalPolicy
             && $canal->status !== ModelStatus::Published;
     }
 
+    /**
+     * Odpublikovať sa dá len to, na čo sa ešte neodvoláva podujatie —
+     * stiahnutý kanál by z podujatia viedol do prázdna. Rovnaký referenčný
+     * zámok ako pri mazaní, len iný zoznam vzťahov.
+     */
     public function unpublish(User $user, Canal $canal): bool
     {
         return $this->update($user, $canal)
-            && $canal->status === ModelStatus::Published;
+            && $canal->status === ModelStatus::Published
+            && $canal->isUnpublishable();
     }
 
     /**
@@ -63,19 +69,18 @@ class CanalPolicy
     }
 
     /**
-     * Stavový zámok: mazať sa dá len to, čo nie je vonku (`published`).
+     * Stavový zámok tu už nie je. Zmazateľnosť rozhoduje jediná otázka —
+     * odvoláva sa naň niečo? — a tú vie referenčný zámok na modeli. Zámok cez
+     * `published` chránil len zdanlivo: prázdny publikovaný kanál si vlastník
+     * odomkol jedným prepnutím stavu na koncept, kým kanál s podujatiami drží
+     * referenčný zámok bez ohľadu na stav. Viď VenuePolicy::delete().
      *
-     * Archivované sa nekontroluje — kanál s podujatiami, miestami či členmi drží
-     * referenčný zámok bez ohľadu na stav, a prázdny archivovaný kanál si
-     * vlastník aj tak odomkol prepnutím stavu na koncept. Viď
-     * VenuePolicy::delete(), platí to isté.
-     *
-     * Referenčný zámok tu nie je zámerne — patrí do modelu a odchádza ako 422.
+     * Referenčný zámok sám tu nie je zámerne — patrí do modelu a odchádza ako
+     * 422 s vysvetlením, nie ako holé 403.
      */
     public function delete(User $user, Canal $canal): bool
     {
-        return $canal->status !== ModelStatus::Published
-            && $user->canInCanal((int) $canal->id, 'canal.delete');
+        return $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
     /**

@@ -15,8 +15,12 @@
             <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
             <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
             <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
-            <FormField v-model="form.status" type="select" :label="t('canals.fields.status')" :error="errors.status">
-              <option value="draft">{{ t('canals.statuses.draft') }}</option>
+            <!-- Koncept = stiahnutie z výpisu. Kanál, na ktorý odkazuje
+                 podujatie, sa stiahnuť nesmie — voľba zošedne a povie prečo,
+                 nech to nekončí až chybou po uložení. -->
+            <FormField v-model="form.status" type="select" :label="t('canals.fields.status')" :error="errors.status"
+              :hint="unpublishBlockedReason ?? undefined">
+              <option value="draft" :disabled="Boolean(unpublishBlockedReason)">{{ t('canals.statuses.draft') }}</option>
               <option value="published">{{ t('canals.statuses.published') }}</option>
               <option value="archived">{{ t('canals.statuses.archived') }}</option>
             </FormField>
@@ -58,6 +62,11 @@
         <ImageManager v-if="fileableId" fileable-type="canal" :fileable-id="fileableId" />
         <ImagePicker v-else ref="picker" />
       </div>
+
+      <!-- Tím sa spravuje tu, kde sa upravuje kanál — detail naň už len
+           odkazuje. V admine nie: tam sa používatelia riešia inde. Nový kanál
+           ešte nemá komu poslať pozvánku, preto až po uložení. -->
+      <CanalTeamPanel v-if="scope === 'dashboard' && fileableId" :canal-id="fileableId" />
     </div>
   </div>
 </template>
@@ -77,6 +86,7 @@ import { scrollToError } from '@/utils/scrollToError'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
+import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import FormField from '@/components/FormField.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
@@ -127,6 +137,13 @@ const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 
+/**
+ * Prečo sa kanál nedá stiahnuť z výpisu (odkazuje naň podujatie). Backend ho
+ * počíta len publikovanému kanálu; tu zošedne voľbu „Koncept", nech to
+ * nekončí až chybou po uložení.
+ */
+const unpublishBlockedReason = ref<string | null>(null)
+
 /** Po uložení sa upozornenie na web načíta znova — adresa sa mohla zmeniť. */
 async function reloadWebsiteIssue() {
   const id = fileableId.value
@@ -152,6 +169,7 @@ onMounted(async () => {
         website: c.website ?? '',
         body: c.body ?? '',
       }
+      unpublishBlockedReason.value = c.unpublishBlockedReason
       address.value = addressFrom(c)
       applyWebsiteIssue(c)
     } catch { serverError.value = t('canals.form.loadFailed') }
