@@ -41,11 +41,9 @@ class CanalResource extends JsonResource
 
         $data['delete_blocked_reason'] = $blocker;
         // To isté pre stiahnutie z výpisu: policy vráti len „nesmieš",
-        // tlačidlo potrebuje vedieť prečo. Počíta sa len publikovanému kanálu,
-        // inde otázka nedáva zmysel.
-        $data['unpublish_blocked_reason'] = $canUpdate && $isPublished
-            ? $this->resource->unpublishBlocker()
-            : null;
+        // tlačidlo potrebuje vedieť prečo. Viď VenueResource — počíta sa
+        // v každom stave, lebo voľbu „Koncept" zamyká aj archivovanému kanálu.
+        $data['unpublish_blocked_reason'] = $canUpdate ? $this->resource->unpublishBlocker() : null;
 
         $data['permissions'] = [
             'view' => $user?->can('view', $this->resource) ?? false,

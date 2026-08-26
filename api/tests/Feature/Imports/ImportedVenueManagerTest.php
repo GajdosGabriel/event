@@ -126,6 +126,42 @@ class ImportedVenueManagerTest extends TestCase
         };
     }
 
+    /**
+     * Importované miesto musí mať vlastnícky kanál — VenuePolicy::update() sa
+     * pýta výhradne naň, takže bez neho ho v dashboarde neupraví nikto okrem
+     * super-admina. Presne toto bolo na produkcii pri všetkých 113 miestach.
+     */
+    #[Test]
+    public function a_newly_imported_venue_is_owned_by_the_canal_that_created_it(): void
+    {
+        config()->set('services.imports.detect_canal_with_ai', false);
+        config()->set('services.imports.describe_with_ai', false);
+
+        $canal = Canal::factory()->create();
+
+        $venue = app(ImportedVenueManager::class)->resolveOrDetect($canal, 'Kultúrny dom Ladce', 'Ladce');
+
+        $this->assertSame(
+            [$canal->id],
+            $venue->ownerCanals()->pluck('canals.id')->all(),
+            'Kanál, ktorý miesto priniesol, ho musí aj vlastniť.',
+        );
+    }
+
+    /** Zberné miesto je spoločné — vlastníka dostať nesmie. */
+    #[Test]
+    public function the_shared_fallback_venue_stays_without_an_owner(): void
+    {
+        config()->set('services.imports.detect_canal_with_ai', false);
+        config()->set('services.imports.describe_with_ai', false);
+
+        $canal = Canal::factory()->create();
+
+        $fallback = app(ImportedVenueManager::class)->resolveFallbackVenueForCanal($canal);
+
+        $this->assertSame([], $fallback->ownerCanals()->pluck('canals.id')->all());
+    }
+
     #[Test]
     public function a_country_wide_name_lands_on_the_shared_fallback(): void
     {

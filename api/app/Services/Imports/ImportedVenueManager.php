@@ -91,7 +91,11 @@ class ImportedVenueManager
                         }
 
                         $venue = Venue::create($payload);
-                        $venue->assignCanal($canal, isOwner: false);
+                        // Kto miesto priniesol, ten ho aj vlastní — VenuePolicy
+                        // sa pýta výhradne na `ownerCanals()`, takže bez toho
+                        // importované miesto v dashboarde neupraví nikto okrem
+                        // super-admina. Viď backfill_venue_owner_canal.
+                        $venue->assignCanal($canal, isOwner: true);
                         return $venue;
                     }
                 } catch (\Throwable) {
@@ -134,7 +138,8 @@ class ImportedVenueManager
                 'latitude'   => $hasCoordinates ? $latitude : $municipality['latitude'],
                 'longitude'  => $hasCoordinates ? $longitude : $municipality['longitude'],
             ]);
-            $venue->assignCanal($canal, isOwner: false);
+            // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
+            $venue->assignCanal($canal, isOwner: true);
             return $venue;
         }
 
@@ -144,6 +149,8 @@ class ImportedVenueManager
     public function resolveFallbackVenueForCanal(Canal $canal): Venue
     {
         $venue = $this->resolveFallbackVenue();
+        // Zberné „Celé Slovensko" vlastníka nemá a mať nesmie: je spoločné pre
+        // všetky importy a prvý náhodný kanál by ho dostal do rúk.
         if (!$venue->activeCanals()->where('canals.id', $canal->id)->exists()) {
             $venue->assignCanal($canal, isOwner: false);
         }

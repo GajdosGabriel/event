@@ -20,7 +20,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Archivácia zámku nepodlieha: archív znamená „mimo prevádzky", nie zmazané —
  * záznam ostáva dohľadateľný a odkaz z podujatia nikam nespadne. Viď
- * VenuePolicy::update().
+ * VenuePolicy::update(). Cesta z archívu späť do konceptu mu ale podlieha:
+ * použitý záznam konceptom byť nesmie, nech doň smeruje z ktorejkoľvek strany.
  *
  * Nie je to otázka práva, ale stavu dát, preto odchádza ako 422 s vysvetlením,
  * nie ako holé 403. V dashboarde to zachytí už policy; v /admin nie, tam má
@@ -47,7 +48,12 @@ class UnpublishGuard
             ? $model->status
             : ModelStatus::tryFrom((string) $model->status);
 
-        if ($current !== ModelStatus::Published) {
+        // Zámok stráži cestu *do* konceptu, nie zotrvanie v ňom. Záznam, ktorý
+        // konceptom už je, sa musí dať uložiť — inak by aj oprava adresy
+        // skončila na 422 a riadok by ostal neopraviteľný. Taký stav vzniká len
+        // tak, že podujatie pribudlo až po ňom; existujúce riadky raz dorovnala
+        // migrácia retire_draft_records_used_by_events.
+        if ($current === ModelStatus::Draft) {
             return;
         }
 

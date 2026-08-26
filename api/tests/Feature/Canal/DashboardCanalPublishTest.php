@@ -110,6 +110,51 @@ class DashboardCanalPublishTest extends CanalSetupTest
         $this->assertSame(ModelStatus::Published, $canal->fresh()->status);
     }
 
+    /**
+     * Zámok drží aj z druhej strany: použitý kanál sa do konceptu nesmie vrátiť
+     * ani cez archív. Viď rovnaký test pri mieste.
+     */
+    #[Test]
+    public function archived_canal_with_an_event_cannot_go_back_to_draft(): void
+    {
+        $canal = $this->ownedCanal(ModelStatus::Archived);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'venue_id' => null,
+            'user_id' => User::factory()->create()->id,
+        ]);
+
+        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+            'status' => ModelStatus::Draft->value,
+        ]))->assertStatus(422);
+
+        $this->assertSame(ModelStatus::Archived, $canal->fresh()->status);
+    }
+
+    /**
+     * Zámok stráži cestu *do* konceptu, nie zotrvanie v ňom — inak by sa kanál,
+     * ku ktorému podujatie pribudlo až dodatočne, nedal ani opraviť.
+     */
+    #[Test]
+    public function draft_canal_with_an_event_can_still_be_edited(): void
+    {
+        $canal = $this->ownedCanal(ModelStatus::Draft);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'venue_id' => null,
+            'user_id' => User::factory()->create()->id,
+        ]);
+
+        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+            'name' => 'Opraveny kanal ' . uniqid(),
+            'status' => ModelStatus::Draft->value,
+        ]))->assertOk();
+
+        $this->assertSame(ModelStatus::Draft, $canal->fresh()->status);
+    }
+
     #[Test]
     public function form_rejects_a_status_the_user_may_not_set(): void
     {

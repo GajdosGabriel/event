@@ -60,6 +60,8 @@ import type { ModelPermissions } from '@/types'
 /** Toľko zo záznamu, koľko menu potrebuje — výpis aj detail to majú. */
 interface ActionsMenuItem {
   id: number
+  /** Stav záznamu — určuje smer tlačidla (publikovať vs stiahnuť z výpisu). */
+  status?: string | null
   permissions?: ModelPermissions
   deletedAt?: string | null
   /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
@@ -96,11 +98,13 @@ const base = computed(() => `/${props.scope}/${API_SLUGS[props.resource]}/${prop
 /**
  * Zablokované stiahnutie z výpisu policy nepovolí, takže právo `unpublish`
  * príde `false` — ale tlačidlo aj tak patrí do smeru „stiahnuť", inak by
- * publikovaný záznam ponúkal „Publikovať". Rozhoduje teda dôvod blokácie,
- * ktorý backend počíta len publikovanému záznamu.
+ * publikovaný záznam ponúkal „Publikovať". Rozhoduje teda dôvod blokácie —
+ * len pri publikovanom zázname: dôvod chodí v každom stave (zamyká vo formulári
+ * voľbu „Koncept"), ale konceptu a archívu patrí opačný smer, „Publikovať".
  */
 const showsUnpublish = computed(
-  () => Boolean(props.item.permissions?.unpublish) || Boolean(props.item.unpublishBlockedReason),
+  () => Boolean(props.item.permissions?.unpublish)
+    || (props.item.status === 'published' && Boolean(props.item.unpublishBlockedReason)),
 )
 
 async function togglePublish() {
