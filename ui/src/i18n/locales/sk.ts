@@ -1931,6 +1931,12 @@ const sk = {
   filters: {
     search: 'Hľadať…',
     searchHint: 'Stlač / pre vyhľadávanie',
+    // Naposledy hľadané výrazy pod poľom — držia sa len v prehliadači.
+    history: {
+      label: 'Naposledy hľadané',
+      remove: 'Odstrániť z histórie',
+      clear: 'Vymazať históriu',
+    },
     noResults: 'Žiadne výsledky',
     toggle: 'Filtre',
     reset: 'Zrušiť filtre',

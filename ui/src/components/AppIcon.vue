@@ -61,6 +61,15 @@ const ICONS = {
     'M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z',
     'M12 11a2 2 0 110-4 2 2 0 010 4z',
   ],
+  /** Kalendár — výpisy viazané na dátum. */
+  calendar: [
+    'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+  ],
+  /** Nahratie súboru. */
+  upload: [
+    'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1',
+    'M16 8l-4-4m0 0L8 8m4-4v12',
+  ],
   /** Rozbalenie sekcie. */
   chevronDown: [
     'M19 9l-7 7-7-7',

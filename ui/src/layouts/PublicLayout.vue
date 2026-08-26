@@ -12,7 +12,14 @@
         <div class="flex min-w-0 items-center gap-6">
           <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
           <nav class="hidden items-center gap-5 md:flex">
-            <RouterLink v-for="link in mainLinks" :key="link.to" :to="link.to" class="nav-top-link" :class="{ active: isCurrent(link.to) }">
+            <RouterLink
+              v-for="link in mainLinks"
+              :key="link.to"
+              :to="link.to"
+              class="nav-top-link inline-flex items-center gap-1.5"
+              :class="{ active: isCurrent(link.to) }"
+            >
+              <AppIcon :name="link.icon" class="h-4 w-4 shrink-0" />
               {{ link.label }}
             </RouterLink>
           </nav>
@@ -62,9 +69,10 @@
           v-for="link in mainLinks"
           :key="link.to"
           :to="link.to"
-          class="nav-top-link block rounded-lg px-2 py-2.5 hover:bg-white/10"
+          class="nav-top-link flex items-center gap-2 rounded-lg px-2 py-2.5 hover:bg-white/10"
           :class="{ active: isCurrent(link.to) }"
         >
+          <AppIcon :name="link.icon" class="h-4 w-4 shrink-0" />
           {{ link.label }}
         </RouterLink>
 
@@ -108,6 +116,7 @@ import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
 import AnnouncementBar from '@/components/AnnouncementBar.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
+import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 import { publicArchivePath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
@@ -120,9 +129,11 @@ const { t } = useI18n()
 // „Podujatia" tu zámerne nie sú: úvodná stránka je zoznam podujatí, takže
 // odkaz vedľa loga viedol takmer tam, odkiaľ človek klikol. V navigácii má
 // zmysel len to, čo sa z úvodnej stránky inak nedá dosiahnuť.
-const mainLinks = computed(() => [
-  { to: '/podujatia/tento-vikend', label: t('nav.weekend') },
-  { to: '/nahrat-plagat', label: t('nav.uploadPoster') },
+// Ikony sa neberú z lokálneho `<svg>`, ale z registra v AppIcon — tá istá
+// ikona tak vyzerá v navigácii rovnako ako všade inde v aplikácii.
+const mainLinks = computed<Array<{ to: string; label: string; icon: IconName }>>(() => [
+  { to: '/podujatia/tento-vikend', label: t('nav.weekend'), icon: 'calendar' },
+  { to: '/nahrat-plagat', label: t('nav.uploadPoster'), icon: 'upload' },
 ])
 
 /**

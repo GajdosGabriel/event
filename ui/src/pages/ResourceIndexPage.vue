@@ -17,6 +17,7 @@
         :sort-options="sortOptions"
         :show-date-range="resource === 'event'"
         :canal-filter="canalFilter"
+        :history-key="`${scope}-${resource}`"
         @change="load(1)"
         @clear-canal="canalFilter = null"
       />

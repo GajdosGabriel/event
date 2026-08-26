@@ -1832,6 +1832,11 @@ const en: Messages = {
   filters: {
     search: 'Search…',
     searchHint: 'Press / to search',
+    history: {
+      label: 'Recent searches',
+      remove: 'Remove from history',
+      clear: 'Clear history',
+    },
     noResults: 'No results',
     toggle: 'Filters',
     reset: 'Clear filters',

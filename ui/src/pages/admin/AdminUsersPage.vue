@@ -19,6 +19,7 @@
       v-model:sort="sort"
       :status-options="statusOptions"
       :sort-options="sortOptions"
+      history-key="admin-users"
     >
       <template #filters>
         <select v-model="roleFilter" class="form-input w-auto" :title="t('filters.users.roleTitle')">

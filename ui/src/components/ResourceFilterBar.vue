@@ -2,7 +2,7 @@
   <div class="flex flex-wrap items-center gap-2">
     <!-- Search + mobile toggle -->
     <div class="flex w-full items-center gap-2 sm:w-auto">
-      <!-- Search with "/" shortcut hint -->
+      <!-- Search with "/" shortcut hint + history dropdown -->
       <div class="relative w-full max-w-xs">
         <input
           ref="searchInput"
@@ -10,12 +10,63 @@
           type="search"
           :placeholder="t('filters.search')"
           class="form-input pr-8"
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          :aria-expanded="showHistory"
           @input="onSearchInput"
+          @focus="historyOpen = true"
+          @blur="onSearchBlur"
+          @keydown.down.prevent="moveHistory(1)"
+          @keydown.up.prevent="moveHistory(-1)"
+          @keydown.enter="onSearchEnter"
+          @keydown.esc="closeHistory"
         />
         <kbd
+          v-if="!showHistory"
           class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-slate-300 bg-slate-50 px-1.5 text-xs text-slate-400"
           :title="t('filters.searchHint')"
         >/</kbd>
+
+        <!-- Naposledy hľadané. `mousedown.prevent` drží fokus v poli — inak by
+             blur zavrel zoznam skôr, než sa klik stihne vyhodnotiť. -->
+        <div
+          v-if="showHistory"
+          class="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
+          <div class="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-slate-400">
+            <span>{{ t('filters.history.label') }}</span>
+            <button type="button" class="transition-colors hover:text-slate-600" @mousedown.prevent="clearHistory">
+              {{ t('filters.history.clear') }}
+            </button>
+          </div>
+          <ul class="max-h-64 overflow-y-auto pb-1">
+            <li
+              v-for="(item, i) in historySuggestions"
+              :key="item"
+              class="flex items-center"
+              :class="i === historyIndex ? 'bg-slate-100' : ''"
+              @mouseenter="historyIndex = i"
+            >
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700"
+                @mousedown.prevent="pickHistory(item)"
+              >
+                <svg class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="truncate">{{ item }}</span>
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1.5 text-slate-300 transition-colors hover:text-slate-600"
+                :title="t('filters.history.remove')"
+                @mousedown.prevent="removeHistory(item)"
+              >
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- Mobile toggle for the rest of the filters -->
@@ -99,6 +150,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 import { useI18n } from '@/i18n'
 
 export interface FilterOption {
@@ -112,6 +164,8 @@ const props = withDefaults(defineProps<{
   phaseOptions?: FilterOption[]
   showDateRange?: boolean
   canalFilter?: { id: number; name: string } | null
+  /** Priečinok histórie hľadania v prehliadači; prázdny kľúč históriu vypne. */
+  historyKey?: string
 }>(), {
   statusOptions: () => [],
   phaseOptions: () => [],
@@ -121,6 +175,7 @@ const props = withDefaults(defineProps<{
   sortOptions: undefined,
   showDateRange: false,
   canalFilter: null,
+  historyKey: '',
 })
 
 const { t } = useI18n()
@@ -159,11 +214,90 @@ const activeCount = computed(() => {
   return n
 })
 
+// ── História hľadania ────────────────────────────────────────────────────────
+
+const historyKey = computed(() => props.historyKey)
+const { items: historyItems, add: rememberSearch, remove: forgetSearch, clear: forgetAll } =
+  useSearchHistory(historyKey)
+
+/** Fokus v poli; zoznam sa naozaj ukáže, až keď má čo ponúknuť. */
+const historyOpen = ref(false)
+/** Index zvýrazneného návrhu, -1 = žiadny (platí to, čo je napísané). */
+const historyIndex = ref(-1)
+
+const historySuggestions = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return historyItems.value.filter(item => {
+    const value = item.toLowerCase()
+    // Presnú zhodu neponúkame — to už používateľ napísal.
+    return value !== q && (!q || value.includes(q))
+  })
+})
+
+const showHistory = computed(() => historyOpen.value && historySuggestions.value.length > 0)
+
+function closeHistory() {
+  historyOpen.value = false
+  historyIndex.value = -1
+}
+
+function moveHistory(delta: number) {
+  historyOpen.value = true
+  const n = historySuggestions.value.length
+  if (!n) return
+  const next = historyIndex.value + delta
+  historyIndex.value = next < 0 ? n - 1 : next >= n ? 0 : next
+}
+
+function pickHistory(term: string) {
+  clearTimeout(searchTimer)
+  search.value = term
+  rememberSearch(term)
+  closeHistory()
+  emitChange()
+}
+
+function removeHistory(term: string) {
+  forgetSearch(term)
+  historyIndex.value = -1
+  searchInput.value?.focus()
+}
+
+function clearHistory() {
+  forgetAll()
+  historyIndex.value = -1
+  searchInput.value?.focus()
+}
+
+function onSearchEnter() {
+  const picked = historySuggestions.value[historyIndex.value]
+  if (showHistory.value && picked) {
+    pickHistory(picked)
+    return
+  }
+  // Enter znamená „hľadaj hneď“ — nečakáme na doklepnutie debounce.
+  clearTimeout(searchTimer)
+  rememberSearch(search.value)
+  closeHistory()
+  emitChange()
+}
+
+function onSearchBlur() {
+  // Opustené pole berieme ako dokončené hľadanie; rozpísané tvary („bra“ pred
+  // „bratislava“) si história zahodí sama pri ďalšom zápise.
+  rememberSearch(search.value)
+  closeHistory()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function emitChange() {
   emit('change')
 }
 
 function onSearchInput() {
+  historyOpen.value = true
+  historyIndex.value = -1
   clearTimeout(searchTimer)
   searchTimer = setTimeout(emitChange, 400)
 }
@@ -181,6 +315,7 @@ function reset() {
   sort.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''
+  closeHistory()
   if (props.canalFilter) emit('clear-canal')
   emitChange()
 }
@@ -198,5 +333,7 @@ onMounted(() => window.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   clearTimeout(searchTimer)
+  // Klik na výsledok odchádza zo stránky skôr, než pole stihne stratiť fokus.
+  rememberSearch(search.value)
 })
 </script>

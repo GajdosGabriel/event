@@ -1831,6 +1831,11 @@ const cs: Messages = {
   filters: {
     search: 'Hledat…',
     searchHint: 'Stiskni / pro vyhledávání',
+    history: {
+      label: 'Naposledy hledané',
+      remove: 'Odebrat z historie',
+      clear: 'Vymazat historii',
+    },
     noResults: 'Žádné výsledky',
     toggle: 'Filtry',
     reset: 'Zrušit filtry',
