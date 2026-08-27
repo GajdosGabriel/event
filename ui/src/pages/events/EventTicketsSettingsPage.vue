@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <EventTicketsTabs :event-id="eventId" show-back />
+    <EventTicketsTabs :event-id="eventId" />
 
     <div class="mb-4">
       <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('tickets.settings.title') }}</h1>

@@ -183,7 +183,7 @@ const munResource = computed(() => {
 .collapsed .toggle-btn { @apply justify-center; }
 
 .body { @apply min-w-0 overflow-auto p-4; }
-.body-inner { @apply flex min-h-full gap-4; }
+.body-inner { @apply mx-auto flex min-h-full w-full max-w-[1300px] gap-4; }
 .page-content { @apply min-w-0 flex-1; }
 .right-aside { @apply hidden xl:block w-72 shrink-0 self-stretch border-l border-slate-200; }
 .footer { @apply border-t border-slate-200 bg-white px-5 py-4 text-slate-600; }

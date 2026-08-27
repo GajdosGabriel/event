@@ -2,13 +2,16 @@
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
     <EventTicketsTabs :event-id="eventId" />
 
-    <!-- Skener je úzky stĺpec (mieri na mobil), ale hlavička s kartami drží
-         rovnakú šírku ako ostatné stránky sekcie, nech pri prepínaní neposkakuje.
-         Vedľa je bočný panel s tým, čo sa rieši práve pri skeneri. -->
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,28rem)_22rem]">
-      <div>
-        <h1 class="mb-2 text-2xl font-semibold text-slate-900">{{ t('checkin.title') }}</h1>
+    <div class="mb-4">
+      <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('checkin.title') }}</h1>
+      <p v-if="eventName" class="text-sm text-slate-500">{{ t('checkin.title') }}</p>
+    </div>
 
+    <!-- Rovnaké rozloženie ako zoznam prihlásených: obsah vľavo, panel vpravo.
+         Úzky ostáva len samotný skener (mieri na mobil) — stropom je karta, nie
+         stĺpec, inak by sa obraz z kamery roztiahol cez pol obrazovky. -->
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div class="min-w-0 max-w-[28rem]">
         <p v-if="typesLoading" class="text-slate-500">{{ t('common.loading') }}</p>
 
         <!-- Bez typu lístka nevznikne žiadna vstupenka, takže niet čo skenovať —
@@ -53,18 +56,18 @@
         </template>
       </div>
 
-      <!-- Vedľajší panel drží to, čo sa rieši práve pri príchode ľudí: kto smie
-           skenovať (rola v tíme kanála). Doplnkové nastavenia podujatia sú pri
-           zozname účastníkov, ktorých sa týkajú. -->
-      <aside class="grid gap-4 self-start">
-        <div v-if="canal" class="grid gap-3">
+      <!-- Panel drží to, čo sa rieši práve pri príchode ľudí: kto smie skenovať
+           (rola v tíme kanála). Doplnkové nastavenia podujatia sú pri zozname
+           účastníkov, ktorých sa týkajú. -->
+      <aside class="grid gap-3 self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+        <template v-if="canal">
           <p class="text-xs text-slate-500">{{ t('checkin.whoCanScan') }}</p>
           <CanalTeamPanel
             :canal-id="canal.id"
             readonly
             :manage-to="`/dashboard/canals/${canal.id}/edit#team`"
           />
-        </div>
+        </template>
       </aside>
     </div>
   </div>
@@ -96,6 +99,7 @@ const stats = ref<CheckinStats | null>(null)
 const typesLoading = ref(true)
 const hasTypes = ref(false)
 const canal = ref<{ id: number; name: string } | null>(null)
+const eventName = ref('')
 
 let scanner: QrScanner | null = null
 let processing = false
@@ -156,7 +160,10 @@ const resultClass = computed(() => {
 
 onMounted(async () => {
   showEvent('dashboard', eventId)
-    .then((e) => { if (e.canalId) canal.value = { id: e.canalId, name: e.canalName } })
+    .then((e) => {
+      eventName.value = e.name
+      if (e.canalId) canal.value = { id: e.canalId, name: e.canalName }
+    })
     .catch(() => {})
 
   try {

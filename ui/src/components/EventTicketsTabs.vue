@@ -1,10 +1,10 @@
 <template>
   <div class="mb-4 flex flex-wrap items-center gap-2">
-    <!-- Späť ukazujeme len na prvej karte (Nastavenia) — medzi kartami sa
-         chodí navigáciou nižšie, nie tlačidlom späť. Vracia tam, odkiaľ
-         používateľ do sekcie lístkov prišiel; ak to nevieme, na event. -->
-    <ActionButton v-if="showBack" :label="t('common.back')" @click="goBack" />
-    <nav class="nav-tabs min-w-0 max-w-full" :class="showBack ? 'ml-auto' : ''">
+    <!-- Späť stojí na každej karte sekcie, nielen na prvej: pruh má vyzerať
+         rovnako, nech používateľ príde na ktorúkoľvek z nich. Vracia tam,
+         odkiaľ do sekcie lístkov prišiel; ak to nevieme, na event. -->
+    <ActionButton :label="t('common.back')" @click="goBack" />
+    <nav class="nav-tabs ml-auto min-w-0 max-w-full">
       <ActionButton
         v-for="tab in tabs"
         :key="tab.name"
@@ -33,7 +33,7 @@ import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import { publicEventPath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
-const props = withDefaults(defineProps<{ eventId: number; showBack?: boolean }>(), { showBack: false })
+const props = defineProps<{ eventId: number }>()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
