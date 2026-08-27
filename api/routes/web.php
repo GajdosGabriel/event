@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 Route::get('/login', function () {
     return null;
@@ -18,14 +19,19 @@ Route::get('/cron/schedule-run', function (Request $request) {
         abort(403);
     }
 
-    Artisan::call('schedule:run');
-    $output = Artisan::output();
+    // Vlastný buffer, nie Artisan::output(): naplánované príkazy sa teraz volajú
+    // v procese (viď routes/console.php) a každé vnorené Artisan::call() prepíše
+    // to, čo Artisan::output() vráti — bez neho by tu ostal výpis posledného
+    // príkazu namiesto prehľadu celého behu.
+    $output = new BufferedOutput;
+
+    Artisan::call('schedule:run', [], $output);
 
     // Až po úspešnom behu — nedoručený ping je pre watchdog signál, že webcron
     // vypadol. Viď App\Support\CronHeartbeat.
     CronHeartbeat::ping();
 
-    return response($output, 200)->header('Content-Type', 'text/plain');
+    return response($output->fetch(), 200)->header('Content-Type', 'text/plain');
 });
 
 if (! Route::has('sanctum.csrf-cookie')) {

@@ -39,7 +39,12 @@ class WebcronEndpointTest extends TestCase
     {
         config(['app.cron_secret' => 'tajny-token', 'services.cron_heartbeat.url' => '']);
 
-        $this->get('/cron/schedule-run?token=tajny-token')->assertOk();
+        // Telo odpovede je jediný pohľad na beh, ktorý webcron dostane. Príkazy
+        // sa volajú v procese a každé vnorené Artisan::call() prepisuje
+        // Artisan::output(), takže výpis musí prísť z vlastného bufferu.
+        $this->get('/cron/schedule-run?token=tajny-token')
+            ->assertOk()
+            ->assertSee('app:ai-detector');
     }
 
     public function test_it_pings_the_watchdog_after_a_successful_run(): void
