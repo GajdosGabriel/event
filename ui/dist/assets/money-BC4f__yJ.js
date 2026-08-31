@@ -1,1 +1,0 @@
-import{G as o,O as t}from"./index-BV2kfI2O.js";function a(r,e="EUR"){return new Intl.NumberFormat(o(),{style:"currency",currency:e??"EUR"}).format(r/100)}function f(r,e="EUR"){return r?a(r,e):t("common.free")}export{f as a,a as f};
