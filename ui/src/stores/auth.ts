@@ -33,6 +33,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function socialLogin(
+    mode: 'login' | 'register',
+    provider: 'google' | 'facebook',
+    payload: { id_token?: string; access_token?: string; terms_accepted?: boolean },
+  ) {
+    loading.value = true
+    try {
+      const result = await authApi.socialLogin(mode, provider, payload)
+      identity.value = result.identity
+      return result
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout()
@@ -51,5 +66,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('auth_token')
   }
 
-  return { identity, loading, isAuthenticated, isSuperAdmin, displayName, email, canalName, canalId, fetchIdentity, login, logout, setActiveCanal, clear }
+  return { identity, loading, isAuthenticated, isSuperAdmin, displayName, email, canalName, canalId, fetchIdentity, login, socialLogin, logout, setActiveCanal, clear }
 })

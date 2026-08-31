@@ -20,6 +20,8 @@ const de: Messages = {
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super-Admin',
+    activeCanal: 'aktiv',
+    allCanals: 'Alle Kanäle ({count})',
 
     events: 'Veranstaltungen',
     canals: 'Kanäle',
@@ -457,8 +459,6 @@ const de: Messages = {
       password: 'Passwort',
       submit: 'Anmelden',
       submitting: 'Anmeldung läuft…',
-      google: 'Mit Google anmelden',
-      facebook: 'Mit Facebook anmelden',
       noAccount: 'Noch kein Konto?',
       registerLink: 'Registrieren',
       failed: 'Die Anmeldung ist fehlgeschlagen.',
@@ -482,6 +482,12 @@ const de: Messages = {
       privacyLink: 'Verarbeitung meiner personenbezogenen Daten',
       termsSuffix: ' zur Kenntnis.',
       termsRequired: 'Ohne Zustimmung zu den Geschäftsbedingungen können wir kein Konto anlegen.',
+    },
+    social: {
+      or: 'oder',
+      termsForNew: 'Dies ist ein neues Konto. Bitte akzeptieren Sie die Bedingungen, bevor Sie fortfahren.',
+      continue: 'Weiter',
+      unavailable: 'Die Google-Anmeldung ist derzeit nicht verfügbar.',
     },
     verify: {
       title: 'E-Mail-Bestätigung',

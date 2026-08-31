@@ -23,6 +23,8 @@ const sk = {
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super admin',
+    activeCanal: 'aktívny',
+    allCanals: 'Všetky kanály ({count})',
 
     // dashboard + admin bočný panel
     events: 'Eventy',
@@ -485,8 +487,6 @@ const sk = {
       password: 'Heslo',
       submit: 'Prihlásiť sa',
       submitting: 'Prihlasujem…',
-      google: 'Prihlásiť cez Google',
-      facebook: 'Prihlásiť cez Facebook',
       noAccount: 'Nemáte účet?',
       registerLink: 'Registrovať sa',
       failed: 'Prihlásenie zlyhalo.',
@@ -515,6 +515,12 @@ const sk = {
       privacyLink: 'spracúvanie mojich osobných údajov',
       termsSuffix: '.',
       termsRequired: 'Bez súhlasu s obchodnými podmienkami účet nevytvoríme.',
+    },
+    social: {
+      or: 'alebo',
+      termsForNew: 'Toto je nový účet. Pred pokračovaním potvrďte súhlas s podmienkami.',
+      continue: 'Pokračovať',
+      unavailable: 'Prihlásenie cez Google nie je momentálne dostupné.',
     },
     verify: {
       title: 'Overenie emailu',

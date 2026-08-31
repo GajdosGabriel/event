@@ -41,7 +41,9 @@ class FacebookAuthTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('token_type', 'Bearer');
         $response->assertJsonPath('is_new_user', true);
-        $response->assertJsonPath('user.registered_via', 'facebook');
+        // Odpoveď má tvar UserResource (rovnako ako pri /api/login).
+        $response->assertJsonPath('user.email', 'new-facebook-user@example.test');
+        $response->assertJsonStructure(['user' => ['id', 'display_name', 'canal_context']]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'new-facebook-user@example.test',

@@ -20,6 +20,8 @@ const en: Messages = {
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super admin',
+    activeCanal: 'active',
+    allCanals: 'All channels ({count})',
 
     events: 'Events',
     canals: 'Canals',
@@ -457,8 +459,6 @@ const en: Messages = {
       password: 'Password',
       submit: 'Sign in',
       submitting: 'Signing in…',
-      google: 'Sign in with Google',
-      facebook: 'Sign in with Facebook',
       noAccount: 'No account yet?',
       registerLink: 'Sign up',
       failed: 'Signing in failed.',
@@ -482,6 +482,12 @@ const en: Messages = {
       privacyLink: 'processing of my personal data',
       termsSuffix: '.',
       termsRequired: 'We cannot create an account without your agreement to the terms and conditions.',
+    },
+    social: {
+      or: 'or',
+      termsForNew: 'This is a new account. Please accept the terms before continuing.',
+      continue: 'Continue',
+      unavailable: 'Google sign-in is currently unavailable.',
     },
     verify: {
       title: 'Email verification',

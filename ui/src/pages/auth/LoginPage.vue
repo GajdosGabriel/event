@@ -14,13 +14,17 @@
         </button>
       </form>
 
-      <div class="grid gap-2 mt-1">
-        <button class="social-button" @click="socialLogin('google')">
-          <span>{{ t('auth.login.google') }}</span>
-        </button>
-        <button class="social-button" @click="socialLogin('facebook')">
-          <span>{{ t('auth.login.facebook') }}</span>
-        </button>
+      <div class="social-auth grid gap-2">
+        <div class="social-divider"><span>{{ t('auth.social.or') }}</span></div>
+        <GoogleSignInButton context="signin" @credential="onGoogleCredential" />
+
+        <div v-if="needsTerms" class="grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p class="text-sm text-amber-800">{{ t('auth.social.termsForNew') }}</p>
+          <TermsConsentField v-model="socialTerms" :error="socialTermsError" />
+          <button class="btn btn-primary" :disabled="socialLoading" @click="continueWithTerms">
+            {{ socialLoading ? t('auth.login.submitting') : t('auth.social.continue') }}
+          </button>
+        </div>
       </div>
 
       <small>{{ t('auth.login.noAccount') }} <RouterLink to="/register">{{ t('auth.login.registerLink') }}</RouterLink></small>
@@ -32,10 +36,11 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { startSocialLogin } from '@/api/auth'
 import { t } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
+import TermsConsentField from '@/components/TermsConsentField.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -47,14 +52,17 @@ const form = ref({ email: '', password: '' })
 const error = ref<string | null>(null)
 const loading = ref(false)
 
+function redirectTarget() {
+  return typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+}
+
 async function submit() {
   validation.markValidated()
   error.value = null
   loading.value = true
   try {
     await auth.login(form.value.email, form.value.password)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
-    router.push(redirect)
+    router.push(redirectTarget())
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('auth.login.failed')
   } finally {
@@ -62,15 +70,47 @@ async function submit() {
   }
 }
 
-function socialLogin(provider: 'google' | 'facebook') {
-  startSocialLogin(provider)
+// Prihlásenie cez Google. Ak Google účet ešte nemá profil v portáli, backend
+// vzniknutie účtu odmietne s `code: 'terms_required'` — vtedy doplníme súhlas
+// a ten istý token pošleme znova (JWT z GSI platí ~hodinu).
+const needsTerms = ref(false)
+const socialTerms = ref(false)
+const socialTermsError = ref<string | null>(null)
+const socialLoading = ref(false)
+let pendingCredential = ''
+
+async function onGoogleCredential(credential: string) {
+  pendingCredential = credential
+  await runGoogleLogin(false)
+}
+
+async function continueWithTerms() {
+  if (!socialTerms.value) {
+    socialTermsError.value = t('auth.register.termsRequired')
+    return
+  }
+  await runGoogleLogin(true)
+}
+
+async function runGoogleLogin(termsAccepted: boolean) {
+  error.value = null
+  socialTermsError.value = null
+  socialLoading.value = true
+  try {
+    await auth.socialLogin('login', 'google', {
+      id_token: pendingCredential,
+      terms_accepted: termsAccepted || undefined,
+    })
+    router.push(redirectTarget())
+  } catch (e: unknown) {
+    const res = (e as { response?: { data?: { message?: string; code?: string } } })?.response
+    if (res?.data?.code === 'terms_required') {
+      needsTerms.value = true
+    } else {
+      error.value = res?.data?.message ?? t('auth.login.failed')
+    }
+  } finally {
+    socialLoading.value = false
+  }
 }
 </script>
-
-<style scoped>
-@reference "tailwindcss";
-
-.social-button {
-  @apply inline-flex h-10 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50;
-}
-</style>

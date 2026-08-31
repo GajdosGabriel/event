@@ -78,6 +78,26 @@ export async function verifyRegistrationLink(token: string): Promise<{ message: 
   return data as { message: string }
 }
 
-export function startSocialLogin(provider: 'google' | 'facebook') {
-  window.location.assign(`/api/auth/${provider}/redirect`)
+export interface SocialLoginResult {
+  identity: AuthIdentity
+  isNewUser: boolean
+}
+
+/**
+ * Prihlásenie/registrácia cez poskytovateľa identity. Google posiela `id_token`
+ * (JWT z GSI), Facebook `access_token`. `terms_accepted` je povinné len keď
+ * tým vzniká nový účet — backend to inak odmietne s `code: 'terms_required'`.
+ */
+export async function socialLogin(
+  mode: 'login' | 'register',
+  provider: 'google' | 'facebook',
+  payload: { id_token?: string; access_token?: string; terms_accepted?: boolean },
+): Promise<SocialLoginResult> {
+  await csrf()
+  const { data } = await http.post(`/${mode}/${provider}`, payload)
+  const token = data.access_token ?? data.token ?? data.auth_token
+  if (token) localStorage.setItem('auth_token', token)
+  const identity = unwrapIdentity(data)
+  if (!identity) throw new Error('No identity in social login response')
+  return { identity, isNewUser: Boolean(data.is_new_user) }
 }

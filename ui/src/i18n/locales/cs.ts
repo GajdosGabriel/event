@@ -20,6 +20,8 @@ const cs: Messages = {
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super admin',
+    activeCanal: 'aktivní',
+    allCanals: 'Všechny kanály ({count})',
 
     events: 'Akce',
     canals: 'Kanály',
@@ -456,8 +458,6 @@ const cs: Messages = {
       password: 'Heslo',
       submit: 'Přihlásit se',
       submitting: 'Přihlašuji…',
-      google: 'Přihlásit přes Google',
-      facebook: 'Přihlásit přes Facebook',
       noAccount: 'Nemáte účet?',
       registerLink: 'Registrovat se',
       failed: 'Přihlášení selhalo.',
@@ -481,6 +481,12 @@ const cs: Messages = {
       privacyLink: 'zpracování mých osobních údajů',
       termsSuffix: '.',
       termsRequired: 'Bez souhlasu s obchodními podmínkami účet nevytvoříme.',
+    },
+    social: {
+      or: 'nebo',
+      termsForNew: 'Toto je nový účet. Před pokračováním potvrďte souhlas s podmínkami.',
+      continue: 'Pokračovat',
+      unavailable: 'Přihlášení přes Google není momentálně dostupné.',
     },
     verify: {
       title: 'Ověření e-mailu',

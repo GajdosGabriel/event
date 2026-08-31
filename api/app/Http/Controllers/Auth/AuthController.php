@@ -308,8 +308,13 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Rovnaký tvar odpovede ako pri login() — front (unwrapIdentity, auth
+        // store) čaká UserResource, nie surový model. Bez Auth::login by
+        // UserResource nevidel prihláseného používateľa (e-mail, permissions).
+        Auth::login($user);
+
         return response()->json([
-            'user' => $user,
+            'user' => new UserResource($user),
             'access_token' => $token,
             'token_type' => 'Bearer',
             'is_new_user' => $created,
