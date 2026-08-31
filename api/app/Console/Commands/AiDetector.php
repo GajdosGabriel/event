@@ -31,7 +31,7 @@ class AiDetector extends Command
         $event = Event::query()
             ->whereNotNull('published_at')
             ->whereNotNull('orginal_source')
-            ->whereNull('body_ai')
+            ->whereNull('body_rewritten_at')
             ->orderByDesc('created_at')
             ->first();
 
@@ -64,14 +64,25 @@ class AiDetector extends Command
             'event_payload' => $result['event_payload'] ?? null,
         ];
 
-        $event->update([
-            // Prednosť má HTML od copywritera — „AI verzia" sa v UI vykresľuje
-            // cez v-html a surový extrakt je jeden zlepený odstavec bez
-            // formátovania. Keď copywriter zlyhá, ostáva surový text.
-            'body_ai' => $this->pickString($result['corrected_text'] ?? null)
-                ?? $this->pickString($result['extracted_text'] ?? null),
-            'meta' => $meta,
-        ]);
+        // Podujatie je spracované (claim `body_rewritten_at IS NULL`), nech sa
+        // ďalší beh posunie na staršie. Tvrdé zlyhania OpenAI sem nedôjdu —
+        // rieši ich `$result['success']` vyššie a tie sa skúšajú znova.
+        $payload = ['meta' => $meta, 'body_rewritten_at' => now()];
+
+        // Popis prepíšeme len keď máme skutočný copywriter HTML. Surový extrakt
+        // je jeden zlepený odstavec bez formátovania a bez „Odkazov" — horší než
+        // to, čo už v `body` je z importu.
+        $rewritten = $this->pickString($result['corrected_text'] ?? null);
+        if ($rewritten !== null) {
+            $raw = (string) ($event->body ?? '');
+            if ($raw !== '' && empty($meta['imported_raw_body'])) {
+                $meta['imported_raw_body'] = $raw;
+                $payload['meta'] = $meta;
+            }
+            $payload['body'] = $rewritten;
+        }
+
+        $event->update($payload);
 
         $this->info('AiDetector processed event id ' . $event->id . '.');
 

@@ -34,7 +34,6 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     name: raw['name'] as string,
     slug: (raw['slug'] as string) ?? '',
     body: (raw['body'] as string) ?? null,
-    bodyAi: (raw['body_ai'] as string) ?? null,
     status: (raw['status'] as EventItem['status']) ?? 'draft',
     startAt,
     endAt,

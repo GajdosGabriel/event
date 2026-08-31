@@ -494,9 +494,11 @@ class ImportEventSourcesCommandTest extends TestCase
             ->expectsOutput('Event import summary -> processed: 1, imported: 1, updated: 0, skipped: 0, errors: 0')
             ->assertSuccessful();
 
-        $canal = Canal::query()->where('website', 'https://www.vyveska.sk')->first();
+        // Výveska označuje reálneho organizátora ("Organizátor: Evanjelický
+        // spolok") — podujatie ide pod jeho kanál, nie pod zberný "vyveska.sk".
+        $canal = Canal::query()->where('name', 'Evanjelický spolok')->first();
         $this->assertNotNull($canal);
-        $this->assertSame('vyveska.sk', $canal->name);
+        $this->assertSame('https://www.vyveska.sk', $canal->website);
 
         $event = Event::query()->where('orginal_source', $detailUrl)->first();
         $this->assertNotNull($event);

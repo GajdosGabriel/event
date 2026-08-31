@@ -57,15 +57,6 @@ class BodySanitizationTest extends TestCase
     }
 
     #[Test]
-    public function it_cleans_the_ai_body_too(): void
-    {
-        $event = new Event;
-        $event->body_ai = '<p>Popis od AI.</p><script>alert(1)</script>';
-
-        $this->assertSame('<p>Popis od AI.</p>', $event->body_ai);
-    }
-
-    #[Test]
     public function it_cleans_the_canal_body(): void
     {
         $canal = new Canal;

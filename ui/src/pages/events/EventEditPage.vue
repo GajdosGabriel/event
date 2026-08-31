@@ -115,7 +115,7 @@
                   <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> {{ t('events.improve.expand') }}
                 </label>
               </div>
-              <p class="text-xs text-violet-600">{{ t('events.improve.note', { field: 'body_ai' }) }}</p>
+              <p class="text-xs text-violet-600">{{ t('events.improve.note') }}</p>
               <div class="flex items-center gap-3">
                 <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent"
                   :disabled="improving || !improveModes.length" @click="runImprove">
@@ -142,50 +142,14 @@
                   <pre v-else class="whitespace-pre-wrap text-xs text-slate-700 font-mono">{{ improveResult.improved_text }}</pre>
                 </div>
                 <div class="flex flex-wrap gap-2 border-t border-violet-100 px-3 py-2">
-                  <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent" @click="applyImproveAsAi">
-                    {{ t('events.improve.saveAsAi') }}
-                  </button>
-                  <button type="button" class="btn btn-sm btn-secondary" @click="applyImproveAsBody">
-                    {{ t('events.improve.replaceOriginal') }}
+                  <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent" @click="applyImproveAsBody">
+                    {{ t('events.improve.apply') }}
                   </button>
                   <button type="button" class="btn btn-sm btn-secondary" @click="improveResult = null">
                     {{ t('events.improve.discard') }}
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- body_ai section — shown when AI version exists -->
-          <div v-if="form.body_ai" class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                  {{ t('events.ai.badge') }}
-                </span>
-                <span class="text-xs text-emerald-600">{{ t('events.ai.savedWithForm') }}</span>
-              </div>
-              <div class="flex gap-1">
-                <button type="button"
-                  :class="aiPreview === 'html' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
-                  class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  @click="aiPreview = 'html'">{{ t('events.ai.preview') }}</button>
-                <button type="button"
-                  :class="aiPreview === 'edit' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'"
-                  class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  @click="aiPreview = 'edit'">{{ t('events.ai.edit') }}</button>
-              </div>
-            </div>
-            <div v-if="aiPreview === 'html'" class="max-h-60 overflow-y-auto rounded-lg border border-emerald-100 bg-white p-3">
-              <div class="prose prose-sm prose-slate max-w-none" v-html="form.body_ai" />
-            </div>
-            <HtmlEditor v-else v-model="form.body_ai" min-height="150px" />
-            <div class="mt-2 flex gap-2">
-              <button type="button" class="btn btn-sm btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200"
-                @click="form.body_ai = ''">
-                {{ t('events.ai.remove') }}
-              </button>
             </div>
           </div>
         </fieldset>
@@ -326,7 +290,6 @@ const form = ref({
   email: '',
   phone: '',
   body: '',
-  body_ai: '',
   // Len ručne zvolené štítky — tie od AI a odvodené z dát spravuje backend
   // a prepočítava ich, takže do formulára nepatria.
   tag_ids: [] as number[],
@@ -428,7 +391,6 @@ const improveError = ref<string | null>(null)
 const improveModes = ref<ImproveMode[]>(['grammar', 'style'])
 const improveResult = ref<{ improved_text: string; changes_summary: string } | null>(null)
 const improvePreview = ref<'html' | 'raw'>('html')
-const aiPreview = ref<'html' | 'edit'>('html')
 
 async function runImprove() {
   improveError.value = null
@@ -445,15 +407,6 @@ async function runImprove() {
   } finally {
     improving.value = false
   }
-}
-
-function applyImproveAsAi() {
-  if (!improveResult.value) return
-  form.value.body_ai = improveResult.value.improved_text
-  improveResult.value = null
-  improveOpen.value = false
-  aiPreview.value = 'html'
-  toast.success(t('events.improve.savedAsAi'))
 }
 
 function applyImproveAsBody() {
@@ -484,7 +437,6 @@ onMounted(async () => {
         email: ev.email ?? '',
         phone: ev.phone ?? '',
         body: ev.body ?? '',
-        body_ai: ev.bodyAi ?? '',
         // Ručné štítky sa naďalej posielajú späť nezmenené — editor ich len
         // neukazuje, mazať ich pri uložení by bola tichá strata dát.
         tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),

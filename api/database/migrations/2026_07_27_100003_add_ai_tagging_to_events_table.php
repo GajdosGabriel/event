@@ -16,8 +16,7 @@ return new class extends Migration
      * `ai_tags_hash` je MD5 zdrojového textu — nezmenené podujatie sa druhýkrát
      * neštítkuje. `ai_tags_attempts` zastaví opakované pokusy po treťom zlyhaní;
      * bez neho by podujatie s trvalo padajúcim volaním viselo vo výbere navždy
-     * a každý beh by stálo peniaze (presne to sa deje v app:ai-detector, ktorý
-     * ako claim používa len `body_ai IS NULL`).
+     * a každý beh by stálo peniaze.
      */
     public function up(): void
     {

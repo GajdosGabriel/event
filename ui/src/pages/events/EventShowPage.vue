@@ -64,23 +64,7 @@
         <div class="grid gap-4">
           <!-- Popis -->
           <div class="show-card">
-            <div v-if="event.body || event.bodyAi">
-              <!-- Toggle between body versions when both exist -->
-              <div v-if="event.body && event.bodyAi" class="mb-3 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 w-fit">
-                <button type="button"
-                  :class="bodyView === 'original' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
-                  class="rounded-md px-3 py-1 text-xs font-medium transition-all"
-                  @click="bodyView = 'original'">{{ t('events.show.original') }}</button>
-                <button type="button"
-                  :class="bodyView === 'ai' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'"
-                  class="rounded-md px-3 py-1 text-xs font-medium transition-all"
-                  @click="bodyView = 'ai'">
-                  <span class="flex items-center gap-1">
-                    <svg class="h-3 w-3 text-violet-500" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    {{ t('events.ai.badge') }}
-                  </span>
-                </button>
-              </div>
+            <div v-if="event.body">
               <div class="prose prose-slate max-w-none text-slate-700" v-html="renderedBody" />
             </div>
             <p v-else class="text-sm text-slate-400">{{ t('events.show.noBody') }}</p>
@@ -307,7 +291,6 @@ const relatedEvents = ref<CanalEventItem[]>([])
 const workshops = ref<TicketTypeItem[]>([])
 const ticketTypes = ref<TicketTypeItem[]>([])
 const ticketTypesLoaded = ref(false)
-const bodyView = ref<'original' | 'ai'>('ai')
 
 /** Klik na Check-in, kým event nemá typ lístka: povieme prečo sa nikam nejde. */
 function warnNoTicketTypes() {
@@ -341,7 +324,7 @@ function withBlankLinks(html: string): string {
 }
 
 const renderedBody = computed(() => {
-  const html = bodyView.value === 'ai' && event.value?.bodyAi ? event.value.bodyAi : event.value?.body
+  const html = event.value?.body
   return html ? withBlankLinks(html) : ''
 })
 

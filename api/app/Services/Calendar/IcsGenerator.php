@@ -347,7 +347,7 @@ final class IcsGenerator
      */
     private function description(Event $event, string $url): string
     {
-        $body = trim(html_entity_decode(strip_tags((string) ($event->body ?: $event->body_ai)), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $body = trim(html_entity_decode(strip_tags((string) $event->body), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $body = trim((string) preg_replace('/\s+/u', ' ', $body));
 
         $parts = array_filter([

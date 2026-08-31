@@ -239,13 +239,13 @@ class EventDetailService
 	}
 
 	/**
-	 * Info-box lines prepended to the plain-text body. Only "Kedy" (a date
-	 * fallback for the AI when the regex parse fails) and "Kde" (read by the
-	 * venue extractor) are kept. "Organizátor" is deliberately dropped: Výveska
-	 * is an aggregator, so its events stay under one host-named "vyveska.sk"
-	 * canal rather than being split per third-party organizer. The trailing
-	 * region middot on the "Kde" line ("… · Trnavský") is stripped so it does
-	 * not leak into the extracted venue name.
+	 * Info-box lines prepended to the plain-text body. "Kedy" is a date fallback
+	 * for the AI when the regex parse fails, "Kde" is read by the venue
+	 * extractor, "Organizátor" by the organizer extractor — Výveska labels the
+	 * real third-party organizer ("Organizátor: Dominikáni"), so the event lands
+	 * under that canal instead of the collective host canal. The trailing region
+	 * middot on the "Kde" line ("… · Trnavský") is stripped so it does not leak
+	 * into the extracted venue name.
 	 */
 	private function extractVyveskaInfoText(\DOMXPath $xpath): string
 	{
@@ -258,6 +258,8 @@ class EventDetailService
 			if (preg_match('/^Kde\s*:/iu', $text)) {
 				$lines[] = preg_replace('/\s*·\s*\S+\s*$/u', '', $text) ?? $text;
 			} elseif (preg_match('/^Kedy\s*:/iu', $text)) {
+				$lines[] = $text;
+			} elseif (preg_match('/^Organiz[aá]tor\s*:/iu', $text)) {
 				$lines[] = $text;
 			}
 		}

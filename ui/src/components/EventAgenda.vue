@@ -94,7 +94,7 @@ function place(event: EventItem): string {
 }
 
 function summary(event: EventItem): string {
-  const raw = event.body ?? event.bodyAi
+  const raw = event.body
   if (!raw) return ''
   const text = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
   return text.length > 160 ? `${text.slice(0, 160).trimEnd()}…` : text

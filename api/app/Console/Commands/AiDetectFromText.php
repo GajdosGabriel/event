@@ -34,10 +34,10 @@ class AiDetectFromText extends Command
             return self::FAILURE;
         }
 
-        $text = $event->body ?? $event->body_ai ?? null;
+        $text = $event->body ?? null;
 
         if (! is_string($text) || trim($text) === '') {
-            $this->warn("Event ID {$eventId} nemá žiadny body text (body ani body_ai sú prázdne).");
+            $this->warn("Event ID {$eventId} nemá žiadny body text.");
 
             return self::FAILURE;
         }
@@ -62,7 +62,7 @@ class AiDetectFromText extends Command
 
             $this->saveDetectionResult($event, $result);
 
-            $this->info('Ulozene: event bol aktualizovany (body_ai, meta, canal_id, venue_id, user_id).');
+            $this->info('Ulozene: event bol aktualizovany (body, meta, canal_id, venue_id, user_id).');
         }
 
         $this->newLine();
@@ -107,8 +107,10 @@ class AiDetectFromText extends Command
                 'result' => $result,
             ];
 
+            $rewritten = $this->pickString($result['corrected_text'] ?? null);
+
             $event->update([
-                'body_ai' => $this->pickString($result['corrected_text'] ?? null),
+                ...($rewritten !== null ? ['body' => $rewritten, 'body_rewritten_at' => now()] : []),
                 'name' => $this->pickString($eventPayload['title'] ?? null, $event->name) ?? $event->name,
                 'start_at' => $startAt,
                 'end_at' => $endAt,

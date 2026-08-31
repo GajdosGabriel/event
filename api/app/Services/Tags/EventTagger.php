@@ -102,7 +102,6 @@ class EventTagger
         return md5(implode('|', [
             $this->catalogVersion(),
             (string) $event->name,
-            (string) ($event->body_ai ?? ''),
             (string) ($event->body ?? ''),
         ]));
     }
@@ -128,13 +127,7 @@ class EventTagger
 
     private function sourceText(Event $event): string
     {
-        // Prednosť má `body`, hoci je to HTML z editora: `body_ai` drží surový
-        // zoškrabaný text z importu a v 26 z 91 podujatí má rozbitú diakritiku
-        // (dvojité prekódovanie Windows-1250 v import pipeline) — model potom
-        // číta „rodièov" namiesto „rodičov".
-        $body = trim(strip_tags((string) ($event->body ?? ''))) !== ''
-            ? strip_tags((string) $event->body)
-            : (string) ($event->body_ai ?? '');
+        $body = strip_tags((string) ($event->body ?? ''));
 
         $text = trim((string) $event->name . "\n\n" . $body);
 

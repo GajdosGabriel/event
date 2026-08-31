@@ -161,7 +161,7 @@ class PrerenderController extends Controller
         }
 
         $description = $this->description(
-            $event->body ?? $event->body_ai,
+            $event->body,
             trim(implode(' · ', array_filter([
                 $event->start_at?->translatedFormat('j. F Y, H:i'),
                 $event->venue?->name,
@@ -183,7 +183,7 @@ class PrerenderController extends Controller
                 type: 'article',
             ),
             'event' => $event,
-            'bodyHtml' => $this->safeBody($event->body ?? $event->body_ai),
+            'bodyHtml' => $this->safeBody($event->body),
             'faq' => $faq,
             // Stránka skončeného podujatia ostáva v indexe (viď archív nižšie),
             // ale musí to o sebe povedať — inak návštevník z vyhľadávača číta

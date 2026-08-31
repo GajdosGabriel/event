@@ -46,6 +46,7 @@ class Event extends Model implements HasQuestionBoard, Messageable
         'end_at' => 'datetime',
         'registration_deadline_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
+        'body_rewritten_at' => 'datetime',
         'workshop_lock_on_start' => 'boolean',
         'price_amount' => 'integer',
         'meta' => 'array',
@@ -55,12 +56,6 @@ class Event extends Model implements HasQuestionBoard, Messageable
     {
         $this->attributes['name'] = $value;
         $this->attributes['slug'] = Str::slug($value);
-    }
-
-    /** Popis od AI sa vykresľuje rovnako cez v-html — viď SanitizesHtmlBody. */
-    public function setBodyAiAttribute(mixed $value): void
-    {
-        $this->attributes['body_ai'] = static::sanitizeHtmlBody($value);
     }
 
     public function canal()

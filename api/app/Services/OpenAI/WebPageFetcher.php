@@ -40,7 +40,7 @@ class WebPageFetcher
         }
 
         // Zdroj nemusí byť v UTF-8 (tkkbs.sk servíruje Windows-1250). Bez
-        // prekódovania tu skončí rozbitá diakritika v `body_ai` každého
+        // prekódovania tu skončí rozbitá diakritika v popise každého
         // importovaného podujatia.
         return $this->charsetNormalizer->normalize(
             (string) $response,

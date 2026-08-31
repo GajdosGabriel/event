@@ -18,7 +18,7 @@ class AiDetectorCommandTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function it_processes_latest_imported_published_event_without_body_ai(): void
+    public function it_rewrites_the_body_of_the_latest_imported_published_event(): void
     {
         $canal = Canal::factory()->create([
             'website' => 'https://www.vyveska.sk',
@@ -37,7 +37,7 @@ class AiDetectorCommandTest extends TestCase
             'status' => ModelStatus::Published->value,
             'published_at' => now()->subHour(),
             'orginal_source' => 'https://example.test/older-event',
-            'body_ai' => 'already processed',
+            'body_rewritten_at' => now()->subHour(),
         ]);
 
         $event = Event::factory()->create([
@@ -47,7 +47,8 @@ class AiDetectorCommandTest extends TestCase
             'status' => ModelStatus::Published->value,
             'published_at' => now(),
             'orginal_source' => 'https://example.test/event',
-            'body_ai' => null,
+            'body' => '<p>Surový zoškrabaný text z importu.</p>',
+            'body_rewritten_at' => null,
             'meta' => ['import' => ['source' => 'external_source']],
         ]);
 
@@ -75,16 +76,18 @@ class AiDetectorCommandTest extends TestCase
 
         $event->refresh();
 
-        // „AI verzia" sa vykresľuje cez v-html, takže do body_ai patrí HTML od
-        // copywritera — nie zlepený surový extrakt.
-        $this->assertSame('<h3>Program</h3>' . "\n" . '<p>Púť sa začína <strong>o 9:00</strong>.</p>', $event->body_ai);
+        // Popis prepíše copywriter HTML — vykresľuje sa cez v-html.
+        $this->assertSame('<h3>Program</h3>' . "\n" . '<p>Púť sa začína <strong>o 9:00</strong>.</p>', $event->body);
+        $this->assertNotNull($event->body_rewritten_at);
+        // Pôvodný zoškrabaný text ostáva dostupný v meta.
+        $this->assertSame('<p>Surový zoškrabaný text z importu.</p>', $event->meta['imported_raw_body'] ?? null);
         $this->assertSame('https://example.test/event', $event->meta['ai_detector']['source_url'] ?? null);
         $this->assertSame(['https://example.test/info'], $event->meta['ai_detector']['links'] ?? null);
         $this->assertSame('Detected name', $event->meta['ai_detector']['event_payload']['name'] ?? null);
     }
 
     #[Test]
-    public function it_falls_back_to_the_raw_extract_when_the_copywriter_returns_nothing(): void
+    public function it_marks_the_event_processed_but_keeps_the_body_when_the_copywriter_returns_nothing(): void
     {
         $canal = Canal::factory()->create();
         $user = User::factory()->create(['canal_id' => $canal->id]);
@@ -97,7 +100,8 @@ class AiDetectorCommandTest extends TestCase
             'status' => ModelStatus::Published->value,
             'published_at' => now(),
             'orginal_source' => 'https://example.test/event',
-            'body_ai' => null,
+            'body' => '<p>Pôvodný text.</p>',
+            'body_rewritten_at' => null,
         ]);
 
         $detector = Mockery::mock(Detector::class);
@@ -113,8 +117,13 @@ class AiDetectorCommandTest extends TestCase
 
         $this->artisan('app:ai-detector')->assertSuccessful();
 
-        // Mutator surový text obalí do odstavca (viď SanitizesHtmlBody).
-        $this->assertSame('<p>AI extracted body text</p>', $event->refresh()->body_ai);
+        $event->refresh();
+
+        // Bez copywriter HTML sa telo nedotýka — surový extrakt je horší než to,
+        // čo už v `body` je z importu. Podujatie je ale označené za spracované,
+        // aby ďalší beh nezacyklil na tom istom zázname.
+        $this->assertSame('<p>Pôvodný text.</p>', $event->body);
+        $this->assertNotNull($event->body_rewritten_at);
     }
 
     #[Test]

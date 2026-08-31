@@ -41,7 +41,7 @@ class JsonLd
             '@type' => 'Event',
             'name' => $event->name,
             'url' => PublicUrl::event($event),
-            'description' => $this->plainText($event->body ?? $event->body_ai, 500),
+            'description' => $this->plainText($event->body, 500),
             'startDate' => $this->iso($event->start_at),
             'endDate' => $this->iso($event->end_at),
             'eventStatus' => 'https://schema.org/EventScheduled',

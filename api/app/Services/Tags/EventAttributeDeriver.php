@@ -158,8 +158,6 @@ class EventAttributeDeriver
 
     private function text(Event $event): string
     {
-        // `body` je čistý text z editora; `body_ai` má v časti importovaných
-        // podujatí rozbitú diakritiku, takže by kľúčové slová nesedeli.
-        return (string) $event->name . ' ' . strip_tags((string) ($event->body ?? $event->body_ai ?? ''));
+        return (string) $event->name . ' ' . strip_tags((string) ($event->body ?? ''));
     }
 }

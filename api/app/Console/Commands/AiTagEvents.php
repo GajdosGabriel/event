@@ -65,7 +65,7 @@ class AiTagEvents extends Command
             // tie isté podujatia štítkovali dokola. Verzia číselníka je prvý
             // člen — po doplnení štítka do seedra sa preštítkuje všetko.
             $query->whereRaw(
-                "(ai_tagged_at IS NULL OR ai_tags_hash <> MD5(CONCAT_WS('|', ?, COALESCE(name, ''), COALESCE(body_ai, ''), COALESCE(body, ''))))",
+                "(ai_tagged_at IS NULL OR ai_tags_hash <> MD5(CONCAT_WS('|', ?, COALESCE(name, ''), COALESCE(body, ''))))",
                 [$tagger->catalogVersion()],
             );
         }

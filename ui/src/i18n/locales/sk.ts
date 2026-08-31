@@ -835,7 +835,6 @@ const sk = {
       checkin: 'Check-in',
       checkinNoTypes: 'Event zatiaľ nemá žiadny typ lístka — bez neho niet čo skenovať. Pridajte ho v sekcii Lístky.',
       noBody: 'Bez popisu.',
-      original: 'Originál',
       workshops: 'Workshopy ({n})',
       manage: 'Spravovať →',
       relatedCanal: 'Ďalšie eventy — {name}',
@@ -909,32 +908,23 @@ const sk = {
       manageHint: 'Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.',
       manage: 'Spravovať lístky →',
     },
-    // AI návrh popisu. Výsledok sa ukladá vedľa originálu (body_ai), takže
-    // pôvodný text sa nikdy neprepíše bez kliknutia.
+    // AI návrh popisu. Návrh sa nikam neukladá sám — do popisu sa dostane až
+    // kliknutím na „Použiť text" a následným uložením formulára.
     improve: {
       show: 'AI návrh vylepšeného textu',
       hide: 'Skryť AI návrh',
       grammar: 'Gramatika',
       style: 'Štýl',
       expand: 'Rozšíriť obsah',
-      note: 'HTML formátovanie je vždy zapnuté — výsledok sa uloží do poľa {field}, originál ostane zachovaný.',
+      note: 'HTML formátovanie je vždy zapnuté. Návrh sa použije, až keď kliknete na „Použiť text".',
       run: 'Vygenerovať AI návrh',
       running: 'Generujem AI návrh…',
       preview: 'Náhľad',
       source: 'Zdrojový kód',
-      saveAsAi: 'Uložiť ako AI verziu',
-      replaceOriginal: 'Nahradiť originál',
+      apply: 'Použiť text',
       discard: 'Zahodiť',
       failed: 'Vylepšenie zlyhalo.',
-      savedAsAi: 'AI verzia uložená. Nezabudnite uložiť formulár.',
-      replaced: 'Originálny text bol nahradený.',
-    },
-    ai: {
-      badge: 'AI verzia',
-      savedWithForm: 'Uloží sa spolu s formulárom',
-      preview: 'Náhľad',
-      edit: 'Upraviť',
-      remove: 'Zmazať AI verziu',
+      replaced: 'Text popisu bol nahradený.',
     },
     // Rýchle založenie miesta priamo nad formulárom eventu.
     venueModal: {

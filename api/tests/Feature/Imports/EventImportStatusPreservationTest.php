@@ -111,6 +111,28 @@ class EventImportStatusPreservationTest extends TestCase
     }
 
     #[Test]
+    public function reimport_does_not_overwrite_a_body_that_the_copywriter_already_rewrote(): void
+    {
+        $event = $this->importOnce();
+
+        // app:ai-detector prepísal zoškrabaný popis na finálny `body`.
+        $event->update([
+            'body' => '<h3>Program</h3><p>Naformátovaný popis od copywritera.</p>',
+            'body_rewritten_at' => now(),
+        ]);
+
+        // Do článku pribudol iný text — bežný nočný re-import ho ťahá do `body`.
+        $this->fakeSource('Modlitebné spoločenstvo ECAV pozýva. Zmenený text zdroja v termíne 13. – 15. marca 2026.');
+
+        $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1, '--force' => true])
+            ->assertSuccessful();
+
+        $event->refresh();
+        $this->assertStringContainsString('od copywritera', (string) $event->body);
+        $this->assertStringNotContainsString('Zmenený text zdroja', (string) $event->body);
+    }
+
+    #[Test]
     public function it_publishes_a_draft_once_the_missing_date_appears_in_the_article(): void
     {
         Storage::fake('public');

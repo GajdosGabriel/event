@@ -19,7 +19,6 @@ class AiTagEventsCommandTest extends EventSetupTest
         return md5(implode('|', [
             self::CATALOG_VERSION,
             (string) $event->name,
-            (string) ($event->body_ai ?? ''),
             (string) ($event->body ?? ''),
         ]));
     }
@@ -113,8 +112,7 @@ class AiTagEventsCommandTest extends EventSetupTest
     #[Test]
     public function attempts_are_counted_before_the_call_and_capped(): void
     {
-        // Zlyhanie nesmie nechať podujatie vo fronte navždy — presne to robí
-        // app:ai-detector, ktorý ako claim používa len `body_ai IS NULL`.
+        // Zlyhanie nesmie nechať podujatie vo fronte navždy.
         $this->fakeTagger(success: false, expectedCalls: 3);
 
         for ($run = 1; $run <= 3; $run++) {

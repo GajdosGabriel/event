@@ -215,6 +215,13 @@ class EventImportService
             // medzi kanálmi a zmazala by sa aj ručná oprava od administrátora.
             unset($payload['canal_id']);
 
+            // Keď už `body` prepísal copywriter (app:ai-detector), surový scrape
+            // z tohto behu ho nesmie prebiť — inak by sa na fronte zas objavil
+            // zlepený odstavec namiesto naformátovaného popisu.
+            if ($existingEvent->body_rewritten_at !== null) {
+                unset($payload['body']);
+            }
+
             // Stav existujúceho podujatia import nikdy neznižuje ani nevracia
             // späť medzi publikované — archiváciu aj zrušenie publikovania robí
             // človek (alebo app:events-archive-finished) a import ich nesmie
