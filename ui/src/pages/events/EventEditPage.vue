@@ -1,103 +1,42 @@
 <template>
   <div class="edit-shell">
-    <div class="edit-card">
-      <div class="mb-4">
+    <!-- Hlavička stránky. Odkaz na verejný detail je tu preto, aby sa dala
+         úprava hneď skontrolovať — pri vytváraní ešte nie je čo zobraziť. -->
+    <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div>
         <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('events.form.back') }}</RouterLink>
         <h1 class="my-2 text-2xl text-slate-900">
           {{ fileableId ? t('events.form.editTitle') : t('events.form.createTitle') }}
         </h1>
       </div>
+      <RouterLink v-if="fileableId" :to="`${prefix}/events/${fileableId}`" class="btn btn-secondary">
+        {{ t('events.form.view') }}
+      </RouterLink>
+    </div>
 
-      <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
-      <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
+    <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
+    <p v-if="serverError" ref="errorBanner" class="mb-4 text-red-600">{{ serverError }}</p>
 
-      <form v-if="!loadingData" class="grid gap-4 mt-4" @submit.prevent="submit">
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('events.sections.basic') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" class="lg:col-span-2" />
-            <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
-                 nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
-                 a to iba dovtedy, kým naň nevisia vydané lístky. -->
-            <FormField
-              v-model="form.status"
-              type="select"
-              :label="t('events.fields.status')"
-              :error="errors.status"
-              :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
-            >
-              <option value="draft">{{ t('events.statuses.draft') }}</option>
-              <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
-              <option value="published">{{ t('events.statuses.published') }}</option>
-              <option value="archived">{{ t('events.statuses.archived') }}</option>
-            </FormField>
-            <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
-                 stavoch ho backend aj tak zahodí, tak ho ani neukazujeme. -->
-            <FormField
-              v-if="form.status === 'scheduled'"
-              v-model="form.publish_at"
-              type="datetime"
-              :label="t('events.fields.publishAt')"
-              required
-              :error="errors.publish_at"
-              :hint="t('events.fields.publishAtHint')"
-              class="lg:col-span-2"
-            />
-            <FormField v-model="form.canal_id" type="select" :label="t('events.fields.canal')" :error="errors.canal_id">
-              <option v-if="!form.canal_id" :value="null" disabled>{{ t('events.fields.canalPlaceholder') }}</option>
-              <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </FormField>
-            <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id" class="lg:col-span-2">
-              <template #default="{ value, invalid, update }">
-                <div class="flex gap-2">
-                  <div class="min-w-0 flex-1">
-                    <SearchableSelect
-                      :model-value="value ?? null"
-                      :options="venuesForCanal"
-                      :placeholder="t('events.fields.venuePlaceholder')"
-                      :invalid="invalid"
-                      @update:model-value="update"
-                    />
-                  </div>
-                  <button type="button" class="btn btn-secondary shrink-0" @click="openVenueModal">
-                    {{ t('events.fields.venueAdd') }}
-                  </button>
-                </div>
-              </template>
-            </FormField>
-          </div>
-        </fieldset>
+    <!--
+      Obsah vľavo, nastavenia v lepkavom paneli vpravo. Celá mriežka je vnútri
+      jedného <form>: tlačidlo Uložiť síce sedí v paneli, ale odosiela natívne
+      a prehliadač zvaliduje povinné polia z oboch stĺpcov naraz.
+    -->
+    <form v-if="!loadingData" class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]" @submit.prevent="submit">
+      <!-- ── Ľavý stĺpec: to, čo sa píše ──────────────────────────────── -->
+      <div class="grid gap-5">
+        <div class="edit-card grid gap-4">
+          <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" />
 
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('events.sections.schedule') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.start_at" type="datetime" :label="t('events.fields.startAt')" :error="errors.start_at" />
-            <FormField v-model="form.end_at" type="datetime" :label="t('events.fields.endAt')" :error="errors.end_at" />
-          </div>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('events.sections.tickets') }}</legend>
-          <p v-if="isCreate" class="text-sm text-slate-500">
-            {{ t('events.tickets.createHint') }}
-          </p>
-          <div v-else class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
-            <p class="text-sm text-slate-600">{{ t('events.tickets.manageHint') }}</p>
-            <RouterLink :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary shrink-0">
-              {{ t('events.tickets.manage') }}
-            </RouterLink>
-          </div>
-        </fieldset>
-
-        <!-- Štítky sa v editore nezobrazujú: prideľuje ich `app:events-ai-tag`
-             a odvodenie z dát, ručný zásah tu nemá čo meniť. -->
-
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('events.sections.description') }}</legend>
-          <HtmlEditor v-model="form.body" :placeholder="t('events.fields.bodyPlaceholder')" min-height="180px" />
+          <!-- Popis je obalený vo FormField len kvôli popiske a chybe zo
+               servera — kým tu FormField nebol, chyba na `body` sa nemala kde
+               zobraziť a človek videl iba všeobecný banner. -->
+          <FormField :label="t('events.sections.description')" :error="errors.body">
+            <HtmlEditor v-model="form.body" :placeholder="t('events.fields.bodyPlaceholder')" min-height="260px" />
+          </FormField>
 
           <!-- AI suggest panel — active when body >= 100 chars -->
-          <div v-if="form.body.length >= 100" class="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
+          <div v-if="form.body.length >= 100" class="rounded-xl border border-violet-200 bg-violet-50 p-3">
             <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-violet-700"
               @click="improveOpen = !improveOpen">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -152,11 +91,24 @@
               </div>
             </div>
           </div>
-        </fieldset>
+        </div>
 
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('events.sections.contact') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div class="edit-card">
+          <p class="field-legend">{{ t('events.sections.schedule') }}</p>
+          <!-- `allow-past` je tu podstatné: bez neho dá DateTimeInput na pole
+               `min="teraz"`, termín v minulosti je natívne neplatný a
+               prehliadač odoslanie formulára ticho zablokuje — event sa
+               jednoducho nedá uložiť a nie je vidieť prečo. -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormField v-model="form.start_at" type="datetime" :allow-past="true" :label="t('events.fields.startAt')" :error="errors.start_at" />
+            <FormField v-model="form.end_at" type="datetime" :allow-past="true" :label="t('events.fields.endAt')" :error="errors.end_at" />
+          </div>
+        </div>
+
+        <!-- Kontakt sa pri bežnej úprave neotvára, tak je zbalený. Chyba zo
+             servera ho otvorí za človeka — inak by ostala neviditeľná. -->
+        <FormSection :title="t('events.sections.contact')" :note="contactNote" :force-open="hasContactError">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website">
               <template #footer>
                 <AttributeIssueHint :issue="websiteIssue" :label="t('events.fields.websiteIssueLabel')" />
@@ -165,22 +117,102 @@
             <FormField v-model="form.email" type="email" :label="t('events.fields.email')" :error="errors.email" />
             <FormField v-model="form.phone" type="tel" :label="t('events.fields.phone')" :error="errors.phone" />
           </div>
-        </fieldset>
+        </FormSection>
+      </div>
 
-        <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary" :disabled="saving">
-            {{ saving ? t('events.form.saving') : t('events.form.save') }}
-          </button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
+      <!-- ── Pravý panel: nastavenia. Drží sa pri skrolovaní, aby bolo
+             Uložiť vždy na dosah. ──────────────────────────────────────── -->
+      <aside class="grid gap-4 xl:sticky xl:top-4 xl:self-start">
+        <div class="edit-card grid gap-3">
+          <p class="field-legend mb-0">{{ t('events.sections.publish') }}</p>
+          <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
+               nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
+               a to iba dovtedy, kým naň nevisia vydané lístky. -->
+          <FormField
+            v-model="form.status"
+            type="select"
+            :label="t('events.fields.status')"
+            :error="errors.status"
+            :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
+          >
+            <option value="draft">{{ t('events.statuses.draft') }}</option>
+            <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
+            <option value="published">{{ t('events.statuses.published') }}</option>
+            <option value="archived">{{ t('events.statuses.archived') }}</option>
+          </FormField>
+          <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
+               stavoch ho backend aj tak zahodí, tak ho ani neukazujeme.
+               Minulosť sa zakazuje len pri zakladaní — pri úprave už
+               naplánovaného eventu by inak nešlo uložiť vôbec nič. -->
+          <FormField
+            v-if="form.status === 'scheduled'"
+            v-model="form.publish_at"
+            type="datetime"
+            :allow-past="!isCreate"
+            :label="t('events.fields.publishAt')"
+            required
+            :error="errors.publish_at"
+            :hint="t('events.fields.publishAtHint')"
+          />
+          <div class="mt-1 flex gap-2">
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              {{ saving ? t('events.form.saving') : t('events.form.save') }}
+            </button>
+            <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
+          </div>
         </div>
-      </form>
-    </div>
 
-    <div class="edit-card">
-      <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('events.sections.images') }}</h2>
-      <ImageManager v-if="fileableId" fileable-type="event" :fileable-id="fileableId" />
-      <ImagePicker v-else ref="picker" />
-    </div>
+        <div class="edit-card grid gap-3">
+          <p class="field-legend mb-0">{{ t('events.sections.placement') }}</p>
+          <FormField v-model="form.canal_id" type="select" :label="t('events.fields.canal')" :error="errors.canal_id">
+            <option v-if="!form.canal_id" :value="null" disabled>{{ t('events.fields.canalPlaceholder') }}</option>
+            <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </FormField>
+          <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
+            <template #default="{ value, invalid, update }">
+              <div class="grid gap-2">
+                <SearchableSelect
+                  :model-value="value ?? null"
+                  :options="venuesForCanal"
+                  :placeholder="t('events.fields.venuePlaceholder')"
+                  :invalid="invalid"
+                  @update:model-value="update"
+                />
+                <button type="button" class="btn btn-secondary btn-sm justify-self-start" @click="openVenueModal">
+                  {{ t('events.fields.venueAdd') }}
+                </button>
+              </div>
+            </template>
+          </FormField>
+        </div>
+
+        <div class="edit-card">
+          <p class="field-legend">{{ t('events.sections.images') }}</p>
+          <ImageManager v-if="fileableId" fileable-type="event" :fileable-id="fileableId" />
+          <ImagePicker v-else ref="picker" />
+          <!-- Obrázky sa neukladajú s formulárom, ale hneď pri každej zmene —
+               z rozloženia to poznať nie je, tak to treba povedať. -->
+          <p class="mt-3 text-xs text-slate-500">{{ t('events.sections.imagesNote') }}</p>
+        </div>
+
+        <!-- Nastavenie vstupeniek žije len v dashboarde (route
+             `admin-events-tickets` neexistuje) a je vecou vlastníka kanála,
+             nie super-admina — v admin scope sa preto neponúka vôbec. -->
+        <div v-if="scope === 'dashboard'" class="edit-card">
+          <p class="field-legend">{{ t('events.sections.tickets') }}</p>
+          <p v-if="isCreate" class="text-sm text-slate-500">{{ t('events.tickets.createHint') }}</p>
+          <template v-else>
+            <p class="mb-3 text-sm text-slate-600">{{ t('events.tickets.manageHint') }}</p>
+            <RouterLink :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary">
+              {{ t('events.tickets.manage') }}
+            </RouterLink>
+          </template>
+        </div>
+      </aside>
+    </form>
+
+    <!-- Štítky sa v editore nezobrazujú: prideľuje ich `app:events-ai-tag`
+         a odvodenie z dát, ručný zásah tu nemá čo meniť. -->
   </div>
 
   <!-- Quick venue create modal -->
@@ -253,6 +285,7 @@ import { scrollToError } from '@/utils/scrollToError'
 import { errorBody, isCancelled, withDependencyConsent } from '@/utils/publishFlow'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
+import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
@@ -305,11 +338,20 @@ const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 const loadingData = ref(false)
 
+// Zhrnutie zbaleného Kontaktu — nech je bez rozbalenia vidieť, či je vyplnený.
+const contactNote = computed(() => form.value.website || form.value.email || form.value.phone || t('events.contact.empty'))
+const hasContactError = computed(() => Boolean(errors.value.website || errors.value.email || errors.value.phone))
+
 watch(() => auth.canalId, (id) => {
   if (id && !form.value.canal_id) form.value.canal_id = id
 }, { immediate: true })
 
+// Predvoľba prvého kanála je pomôcka pri zakladaní, nie pri úprave. Zoznam sa
+// načítava paralelne so `showEvent()`, takže pri úprave eventu bez kanála
+// dobehol až po ňom a ticho mu priradil prvý kanál zo zoznamu — v admin scope
+// úplne ľubovoľný kanál platformy.
 watch(canals, (list) => {
+  if (!isCreate.value) return
   if (list.length > 0 && form.value.canal_id === null) {
     form.value.canal_id = list[0].id
   }
@@ -331,6 +373,9 @@ watch(() => form.value.canal_id, () => {
   if (!venues.value.length) return
   if (form.value.venue_id && !venuesForCanal.value.some(v => v.id === form.value.venue_id)) {
     form.value.venue_id = null
+    // Bez upozornenia by človek uložil event bez miesta a nevedel by o tom —
+    // pole je v bočnom paneli a zmena kanála ho zhodí ticho.
+    toast.info(t('events.fields.venueReset'))
   }
 })
 
@@ -371,7 +416,9 @@ async function saveNewVenue() {
       postcode: venueModal.value.form.postcode || null,
       canal_id: form.value.canal_id,
     }
-    const created = await createVenue(payload)
+    // Zápis musí ísť do rovnakého scope ako zvyšok stránky — dashboard
+    // endpoint vyžaduje vlastníctvo cez kanál a admin na ňom skončil na 403.
+    const created = await createVenue(payload, scope.value)
     venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
     form.value.venue_id = created.id
     venueModal.value.show = false

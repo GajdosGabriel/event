@@ -875,6 +875,7 @@ const sk = {
       created: 'Event vytvorený.',
       saved: 'Event uložený.',
       archivedHint: 'Archivované podujatie sa už nedá upraviť. Späť medzi koncepty ho vrátite akciou „Vrátiť z archívu“ — pri podujatí s vydanými lístkami to však už nejde.',
+      view: 'Zobraziť',
     },
     sections: {
       basic: 'Základné info',
@@ -883,6 +884,13 @@ const sk = {
       description: 'Popis akcie',
       contact: 'Kontakt',
       images: 'Obrázky',
+      publish: 'Publikovanie',
+      placement: 'Zaradenie',
+      imagesNote: 'Zmeny sa ukladajú okamžite — netreba klikať na Uložiť.',
+    },
+    // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.
+    contact: {
+      empty: 'Nevyplnené',
     },
     fields: {
       name: 'Názov',
@@ -894,6 +902,7 @@ const sk = {
       venue: 'Miesto konania',
       venuePlaceholder: '— bez miesta —',
       venueAdd: '+ Pridať nové',
+      venueReset: 'Miesto sa zrušilo — nepatrí do zvoleného kanála.',
       startAt: 'Začiatok',
       endAt: 'Koniec',
       bodyPlaceholder: 'Napíšte popis eventu…',

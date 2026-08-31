@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-4">
+  <div class="@container space-y-4">
     <!-- Image grid -->
-    <div v-if="allItems.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+    <div v-if="allItems.length" class="grid grid-cols-2 gap-3 @sm:grid-cols-3 @md:grid-cols-4">
       <div
         v-for="(item, idx) in allItems"
         :key="item.key"
@@ -85,13 +85,13 @@
             class="flex-1 rounded-lg bg-slate-100 py-1 text-center text-xs font-medium text-slate-700 hover:bg-slate-200"
             @click.stop
           >{{ t('media.manager.original') }}</a>
-          <button
+          <button type="button"
             v-if="!item.data.isPrimary"
             class="flex-1 rounded-lg bg-blue-50 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
             :disabled="settingPrimary === item.data.id"
             @click.stop="setPrimary(item.data)"
           >{{ t('media.manager.setPrimary') }}</button>
-          <button
+          <button type="button"
             class="flex-1 rounded-lg bg-red-50 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
             :disabled="deleting === item.data.id"
             @click.stop="remove(item.data)"
@@ -103,23 +103,23 @@
     <p v-else class="text-sm text-slate-400">{{ t('media.manager.empty') }}</p>
     <!-- Upload zone -->
     <div
-      class="relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-4 text-center transition"
+      class="relative flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-3 text-center transition"
       :class="isDraggingOver ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'"
       @dragover.prevent="isDraggingOver = true"
       @dragleave="isDraggingOver = false"
       @drop.prevent="onDrop"
     >
-      <svg class="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-      </svg>
       <p class="text-sm text-slate-500">
+        <svg class="mr-1 inline h-4 w-4 -translate-y-px text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
         {{ t('media.manager.drop') }}
         <label class="cursor-pointer text-blue-600 hover:underline">
           {{ t('media.manager.browse') }}
           <input ref="fileInputEl" type="file" multiple :accept="UPLOAD_ACCEPT" class="sr-only" @change="onFileInput" />
         </label>
       </p>
-      <p class="text-xs text-slate-400">{{ t('media.manager.formats') }}</p>
+      <p class="text-[11px] text-slate-400">{{ t('media.manager.formats') }}</p>
     </div>
 
     <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
@@ -144,13 +144,13 @@
           @keydown.left="lightboxPrev"
           @keydown.right="lightboxNext"
         >
-          <button class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" @click="closeLightbox">
+          <button type="button" class="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" @click="closeLightbox">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
 
-          <button
+          <button type="button"
             v-if="lightboxIdx !== null && lightboxIdx > 0"
             class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
             @click="lightboxPrev"
@@ -160,7 +160,7 @@
             </svg>
           </button>
 
-          <button
+          <button type="button"
             v-if="lightboxIdx !== null && lightboxIdx < images.length - 1"
             class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
             @click="lightboxNext"

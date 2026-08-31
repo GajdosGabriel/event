@@ -821,6 +821,7 @@ const cs: Messages = {
       created: 'Akce vytvořena.',
       saved: 'Akce uložena.',
       archivedHint: 'Archivovanou akci už nelze upravit. Zpět mezi koncepty ji vrátíte akcí „Vrátit z archivu“ — u akce s vydanými vstupenkami to už ale nejde.',
+      view: 'Zobrazit',
     },
     sections: {
       basic: 'Základní info',
@@ -829,6 +830,13 @@ const cs: Messages = {
       description: 'Popis akce',
       contact: 'Kontakt',
       images: 'Obrázky',
+      publish: 'Publikování',
+      placement: 'Zařazení',
+      imagesNote: 'Změny se ukládají okamžitě — není třeba klikat na Uložit.',
+    },
+    // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.
+    contact: {
+      empty: 'Nevyplněno',
     },
     fields: {
       name: 'Název',
@@ -840,6 +848,7 @@ const cs: Messages = {
       venue: 'Místo konání',
       venuePlaceholder: '— bez místa —',
       venueAdd: '+ Přidat nové',
+      venueReset: 'Místo bylo zrušeno — nepatří do zvoleného kanálu.',
       startAt: 'Začátek',
       endAt: 'Konec',
       bodyPlaceholder: 'Napište popis akce…',

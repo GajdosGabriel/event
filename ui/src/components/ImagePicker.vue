@@ -1,5 +1,5 @@
 <template>
-  <div class="picker">
+  <div class="picker @container">
     <!-- Previews -->
     <div v-if="items.length" class="previews">
       <div v-for="(item, i) in items" :key="item.preview || item.file.name" class="preview-item">
@@ -100,12 +100,12 @@ defineExpose({
 .picker { @apply flex flex-col gap-3; }
 
 .drop-zone {
-  @apply flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-4 transition-colors hover:border-blue-400 hover:bg-blue-50;
+  @apply flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-3 transition-colors hover:border-blue-400 hover:bg-blue-50;
 }
 .drag-over { @apply border-blue-500 bg-blue-50; }
 
 .previews {
-  @apply grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4;
+  @apply grid grid-cols-2 gap-2 @sm:grid-cols-3 @md:grid-cols-4;
 }
 
 .preview-item {

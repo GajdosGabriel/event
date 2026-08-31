@@ -822,6 +822,7 @@ const en: Messages = {
       created: 'Event created.',
       saved: 'Event saved.',
       archivedHint: 'An archived event can no longer be edited. “Restore from archive” takes it back to drafts — but not once tickets have been issued.',
+      view: 'View',
     },
     sections: {
       basic: 'Basic info',
@@ -830,6 +831,13 @@ const en: Messages = {
       description: 'Description',
       contact: 'Contact',
       images: 'Images',
+      publish: 'Publishing',
+      placement: 'Placement',
+      imagesNote: 'Changes are saved immediately — no need to click Save.',
+    },
+    // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.
+    contact: {
+      empty: 'Not filled in',
     },
     fields: {
       name: 'Name',
@@ -841,6 +849,7 @@ const en: Messages = {
       venue: 'Venue',
       venuePlaceholder: '— no venue —',
       venueAdd: '+ Add new',
+      venueReset: 'The venue was cleared — it does not belong to the selected canal.',
       startAt: 'Start',
       endAt: 'End',
       bodyPlaceholder: 'Write the event description…',

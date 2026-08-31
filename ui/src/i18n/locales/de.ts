@@ -822,6 +822,7 @@ const de: Messages = {
       created: 'Veranstaltung erstellt.',
       saved: 'Veranstaltung gespeichert.',
       archivedHint: 'Eine archivierte Veranstaltung lässt sich nicht mehr bearbeiten. „Aus dem Archiv holen“ bringt sie zurück in die Entwürfe — nicht mehr, sobald Tickets ausgegeben wurden.',
+      view: 'Ansehen',
     },
     sections: {
       basic: 'Grunddaten',
@@ -830,6 +831,13 @@ const de: Messages = {
       description: 'Beschreibung',
       contact: 'Kontakt',
       images: 'Bilder',
+      publish: 'Veröffentlichung',
+      placement: 'Zuordnung',
+      imagesNote: 'Änderungen werden sofort gespeichert — Speichern ist nicht nötig.',
+    },
+    // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.
+    contact: {
+      empty: 'Nicht ausgefüllt',
     },
     fields: {
       name: 'Name',
@@ -841,6 +849,7 @@ const de: Messages = {
       venue: 'Veranstaltungsort',
       venuePlaceholder: '— ohne Ort —',
       venueAdd: '+ Neu hinzufügen',
+      venueReset: 'Der Ort wurde entfernt — er gehört nicht zum gewählten Kanal.',
       startAt: 'Beginn',
       endAt: 'Ende',
       bodyPlaceholder: 'Beschreibung der Veranstaltung…',
