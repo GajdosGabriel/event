@@ -923,24 +923,6 @@ const sk = {
       manageHint: 'Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.',
       manage: 'Spravovať lístky →',
     },
-    // AI návrh popisu. Návrh sa nikam neukladá sám — do popisu sa dostane až
-    // kliknutím na „Použiť text" a následným uložením formulára.
-    improve: {
-      show: 'AI návrh vylepšeného textu',
-      hide: 'Skryť AI návrh',
-      grammar: 'Gramatika',
-      style: 'Štýl',
-      expand: 'Rozšíriť obsah',
-      note: 'HTML formátovanie je vždy zapnuté. Návrh sa použije, až keď kliknete na „Použiť text".',
-      run: 'Vygenerovať AI návrh',
-      running: 'Generujem AI návrh…',
-      preview: 'Náhľad',
-      source: 'Zdrojový kód',
-      apply: 'Použiť text',
-      discard: 'Zahodiť',
-      failed: 'Vylepšenie zlyhalo.',
-      replaced: 'Text popisu bol nahradený.',
-    },
     // Rýchle založenie miesta priamo nad formulárom eventu.
     venueModal: {
       title: 'Nové miesto konania',
@@ -1706,6 +1688,67 @@ const sk = {
   },
   // Dôvody zlyhania sondy. Kľúče sú tie isté, aké posiela server
   // (App\Services\Attributes) — a tie isté, aké používa e-mail s upozornením.
+  // Panel „Vyplniť pomocou AI" — spoločný pre podujatie, miesto aj kanál
+  // (AiAssistPanel.vue). Jeden text pre všetky tri formuláre; kde sa líšia,
+  // rozhoduje `kinds`.
+  ai: {
+    show: 'Vyplniť pomocou AI',
+    hide: 'Skryť pomocníka',
+    lead: 'Záznam je pripravený na zverejnenie. AI vám ešte môže pomôcť s textom popisu.',
+    modes: {
+      grammar: 'Opraviť gramatiku',
+      style: 'Vylepšiť štýl',
+      expand: 'Rozšíriť obsah',
+    },
+    modeHints: {
+      grammar: 'Preklepy, diakritika, interpunkcia.',
+      style: 'Plynulejšie vety, menej opakovania, lepšia štruktúra.',
+      expand: 'Doplní vysvetlenie a rozdelí text na odseky. Nové fakty nepridáva.',
+    },
+    note: 'Návrh sa len zobrazí. Do popisu sa dostane, až keď kliknete na „Použiť text".',
+    run: 'Vygenerovať návrh',
+    running: 'Generujem návrh…',
+    draft: 'Napísať popis za mňa',
+    draftRunning: 'Píšem popis…',
+    draftHint: 'Z verejne známych informácií o subjekte. Vždy si výsledok prečítajte.',
+    preview: 'Náhľad',
+    source: 'Zdrojový kód',
+    apply: 'Použiť text',
+    discard: 'Zahodiť',
+    applied: 'Text popisu bol nahradený.',
+    failed: 'Návrh sa nepodarilo vygenerovať.',
+    pickMode: 'Vyberte aspoň jednu úpravu.',
+    // Ukazovateľ pripravenosti nad panelom.
+    readiness: {
+      title: 'Pripravenosť na zverejnenie',
+      progress: 'Hotové {done} zo {total}',
+      ready: 'Všetko podstatné je vyplnené.',
+      missing: 'Ešte chýba:',
+      hint: 'Nie je to podmienka uloženia — záznam môžete zverejniť aj tak. Je to zoznam toho, čo návštevník na stránke hľadá.',
+      keys: {
+        name: 'názov',
+        start_at: 'dátum a čas začiatku',
+        venue: 'miesto konania',
+        body: 'popis (aspoň pár odsekov)',
+        image: 'obrázok',
+        contact: 'kontakt (web, e-mail alebo telefón)',
+        address: 'obec',
+      },
+    },
+    // Výsledok kontroly po zverejnení — to isté, o čom prišiel e-mail.
+    review: {
+      title: 'Poznámky ku zverejnenému textu',
+      summaryLabel: 'Zhrnutie',
+      score: 'Hodnotenie textu: {score} zo 100',
+      stale: 'Text ste od tejto kontroly upravili — poznámky sa môžu týkať staršej verzie.',
+      fix: 'Opraviť pomocou AI',
+      dismiss: 'Skryť poznámky',
+      severity: {
+        warning: 'Chyba',
+        notice: 'Návrh',
+      },
+    },
+  },
   attributeIssue: {
     text: '{label} nám neodpovedá. {reason}',
     defaultLabel: 'Táto hodnota',

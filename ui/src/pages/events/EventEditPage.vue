@@ -35,62 +35,13 @@
             <HtmlEditor v-model="form.body" :placeholder="t('events.fields.bodyPlaceholder')" min-height="260px" />
           </FormField>
 
-          <!-- AI suggest panel — active when body >= 100 chars -->
-          <div v-if="form.body.length >= 100" class="rounded-xl border border-violet-200 bg-violet-50 p-3">
-            <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-violet-700"
-              @click="improveOpen = !improveOpen">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              {{ improveOpen ? t('events.improve.hide') : t('events.improve.show') }}
-            </button>
-            <div v-if="improveOpen" class="mt-3 grid gap-3">
-              <div class="flex flex-wrap gap-3">
-                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="grammar" class="accent-violet-600" /> {{ t('events.improve.grammar') }}
-                </label>
-                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="style" class="accent-violet-600" /> {{ t('events.improve.style') }}
-                </label>
-                <label class="flex items-center gap-1.5 text-sm text-violet-800 cursor-pointer">
-                  <input type="checkbox" v-model="improveModes" value="expand" class="accent-violet-600" /> {{ t('events.improve.expand') }}
-                </label>
-              </div>
-              <p class="text-xs text-violet-600">{{ t('events.improve.note') }}</p>
-              <div class="flex items-center gap-3">
-                <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent"
-                  :disabled="improving || !improveModes.length" @click="runImprove">
-                  {{ improving ? t('events.improve.running') : t('events.improve.run') }}
-                </button>
-                <span v-if="improveError" class="text-sm text-red-600">{{ improveError }}</span>
-              </div>
-              <div v-if="improveResult" class="rounded-lg border border-violet-200 bg-white overflow-hidden">
-                <div class="flex items-center justify-between gap-2 border-b border-violet-100 bg-violet-50 px-3 py-2">
-                  <p class="text-xs font-semibold text-violet-700">{{ improveResult.changes_summary }}</p>
-                  <div class="flex gap-1">
-                    <button type="button"
-                      :class="improvePreview === 'html' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
-                      class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                      @click="improvePreview = 'html'">{{ t('events.improve.preview') }}</button>
-                    <button type="button"
-                      :class="improvePreview === 'raw' ? 'bg-violet-600 text-white' : 'text-violet-700 hover:bg-violet-100'"
-                      class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                      @click="improvePreview = 'raw'">{{ t('events.improve.source') }}</button>
-                  </div>
-                </div>
-                <div class="max-h-72 overflow-y-auto p-3">
-                  <div v-if="improvePreview === 'html'" class="prose prose-sm prose-slate max-w-none" v-html="improveResult.improved_text" />
-                  <pre v-else class="whitespace-pre-wrap text-xs text-slate-700 font-mono">{{ improveResult.improved_text }}</pre>
-                </div>
-                <div class="flex flex-wrap gap-2 border-t border-violet-100 px-3 py-2">
-                  <button type="button" class="btn btn-sm bg-violet-600 text-white hover:bg-violet-700 border-transparent" @click="applyImproveAsBody">
-                    {{ t('events.improve.apply') }}
-                  </button>
-                  <button type="button" class="btn btn-sm btn-secondary" @click="improveResult = null">
-                    {{ t('events.improve.discard') }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!--
+            Pomocník s textom. Panel si sám rozhodne, čo z neho ukázať —
+            ukazovateľ pripravenosti, poznámky z kontroly po zverejnení alebo
+            samotnú AI (viď AiAssistPanel.vue).
+          -->
+          <AiAssistPanel v-model="form.body" kind="event" :scope="scope" :values="readinessValues"
+            :name="form.name" :record-id="fileableId" />
         </div>
 
         <div class="edit-card">
@@ -188,7 +139,7 @@
 
         <div class="edit-card">
           <p class="field-legend">{{ t('events.sections.images') }}</p>
-          <ImageManager v-if="fileableId" fileable-type="event" :fileable-id="fileableId" />
+          <ImageManager v-if="fileableId" ref="imageManager" fileable-type="event" :fileable-id="fileableId" />
           <ImagePicker v-else ref="picker" />
           <!-- Obrázky sa neukladajú s formulárom, ale hneď pri každej zmene —
                z rozloženia to poznať nie je, tak to treba povedať. -->
@@ -272,7 +223,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showEvent, createEvent, updateEvent, improveEventText, type ImproveMode } from '@/api/events'
+import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
@@ -283,6 +234,7 @@ import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
 import { errorBody, isCancelled, withDependencyConsent } from '@/utils/publishFlow'
+import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
 import FormSection from '@/components/FormSection.vue'
@@ -306,6 +258,7 @@ const indexRoute = computed(() => `${prefix.value}/events`)
 const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
+const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
 
 const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
 
@@ -432,37 +385,18 @@ async function saveNewVenue() {
   }
 }
 
-const improveOpen = ref(false)
-const improving = ref(false)
-const improveError = ref<string | null>(null)
-const improveModes = ref<ImproveMode[]>(['grammar', 'style'])
-const improveResult = ref<{ improved_text: string; changes_summary: string } | null>(null)
-const improvePreview = ref<'html' | 'raw'>('html')
-
-async function runImprove() {
-  improveError.value = null
-  improveResult.value = null
-  improving.value = true
-  try {
-    const modes: ImproveMode[] = [...improveModes.value, 'html']
-    const res = await improveEventText(scope.value, form.value.body, modes)
-    if (!res.success) throw new Error(res.error ?? t('events.improve.failed'))
-    improveResult.value = { improved_text: res.improved_text!, changes_summary: res.changes_summary! }
-    improvePreview.value = 'html'
-  } catch (e: unknown) {
-    improveError.value = (e as Error)?.message ?? t('events.improve.failed')
-  } finally {
-    improving.value = false
-  }
-}
-
-function applyImproveAsBody() {
-  if (!improveResult.value) return
-  form.value.body = improveResult.value.improved_text
-  improveResult.value = null
-  improveOpen.value = false
-  toast.success(t('events.improve.replaced'))
-}
+/**
+ * Hodnoty pre ukazovateľ pripravenosti pod menami z `config/content_review.php`
+ * — jediného miesta, kde je napísané, čo znamená „hotové".
+ *
+ * `image` sa musí doplniť ručne: obrázky sa neukladajú s formulárom, ale hneď
+ * pri každej zmene, takže vo `form` nie sú. Pri úprave ich vie ImageManager,
+ * pri zakladaní ležia vo výbere súborov.
+ */
+const readinessValues = computed(() => ({
+  ...form.value,
+  image: fileableId.value ? (imageManager.value?.imageCount ?? 0) > 0 : (picker.value?.files.length ?? 0) > 0,
+}))
 
 onMounted(async () => {
   loadCanals()

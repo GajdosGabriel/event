@@ -27,10 +27,17 @@
             <FormField :label="t('canals.fields.description')" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
             </FormField>
+
+            <!--
+              Pomocník s textom — ten istý komponent ako v podujatí a mieste.
+              Panel si sám rozhodne, čo z neho ukázať (viď AiAssistPanel.vue).
+            -->
+            <AiAssistPanel v-model="form.body" kind="canal" :scope="scope" :values="readinessValues"
+              :name="form.name" :context="aiContext" :record-id="fileableId" class="lg:col-span-2" />
           </div>
         </fieldset>
 
-        <AddressFieldset v-model="address" :scope="scope" :errors="errors" municipality-key="municipality_id" />
+        <AddressFieldset ref="addressFields" v-model="address" :scope="scope" :errors="errors" municipality-key="municipality_id" />
 
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('canals.sections.contact') }}</legend>
@@ -59,7 +66,7 @@
 
       <div>
         <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('canals.sections.images') }}</h2>
-        <ImageManager v-if="fileableId" fileable-type="canal" :fileable-id="fileableId" />
+        <ImageManager v-if="fileableId" ref="imageManager" fileable-type="canal" :fileable-id="fileableId" />
         <ImagePicker v-else ref="picker" />
       </div>
 
@@ -83,6 +90,7 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
@@ -127,6 +135,21 @@ const form = ref({
 // Adresa sídla kanála. Rovnaký tvar aj rovnaký editor ako pri mieste — vrátane
 // PSČ z číselníka a polohy, ktorá ide za adresou.
 const address = ref(emptyAddress())
+const addressFields = ref<InstanceType<typeof AddressFieldset> | null>(null)
+const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
+
+/**
+ * Hodnoty pre ukazovateľ pripravenosti pod menami z `config/content_review.php`
+ * — jediného miesta, kde je napísané, čo znamená „hotové".
+ */
+const readinessValues = computed(() => ({
+  ...form.value,
+  municipality_id: address.value.municipalityId,
+  image: fileableId.value ? (imageManager.value?.imageCount ?? 0) > 0 : (picker.value?.files.length ?? 0) > 0,
+}))
+
+/** Obec ako kontext pre AI — bez nej model o polohe radšej nepíše. */
+const aiContext = computed(() => addressFields.value?.municipalityName ?? undefined)
 
 const errors = ref<Record<string, string>>({})
 

@@ -226,6 +226,15 @@ const fileInputEl = ref<HTMLInputElement | null>(null)
 // Map<fileId, objectUrl>
 const postUploadPreviews = ref(new Map<number, string>())
 
+/**
+ * Koľko obrázkov záznam má. Obrázky sa neukladajú s formulárom, ale hneď pri
+ * každej zmene, takže o nich formulár inak nemá ako vedieť — a ukazovateľ
+ * pripravenosti (viď usePublishReadiness.ts) sa práve na to pýta.
+ */
+const imageCount = computed(() => images.value.length)
+
+defineExpose({ imageCount })
+
 const allItems = computed<GridItem[]>(() => [
   ...images.value.map(img => ({ type: 'uploaded' as const, key: `u-${img.id}`, data: img })),
   ...pendingPreviews.value,

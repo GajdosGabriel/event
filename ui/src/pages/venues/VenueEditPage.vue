@@ -63,6 +63,15 @@
             <FormField :label="t('venues.fields.description')" :error="errors.body" class="lg:col-span-2">
               <HtmlEditor v-model="form.body" min-height="130px" />
             </FormField>
+
+            <!--
+              Pomocník s textom — ten istý komponent ako v podujatí a kanáli.
+              Panel si sám rozhodne, čo z neho ukázať (viď AiAssistPanel.vue).
+              Nad ním ostáva „AI detekcia": tá vypĺňa polia z názvu a obce,
+              kým tento pracuje s hotovým popisom.
+            -->
+            <AiAssistPanel v-model="form.body" kind="venue" :scope="scope" :values="readinessValues"
+              :name="form.name" :context="aiContext" :record-id="fileableId" class="lg:col-span-2" />
           </div>
         </fieldset>
 
@@ -95,7 +104,7 @@
 
       <div>
         <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('venues.sections.images') }}</h2>
-        <ImageManager v-if="fileableId" fileable-type="venue" :fileable-id="fileableId" />
+        <ImageManager v-if="fileableId" ref="imageManager" fileable-type="venue" :fileable-id="fileableId" />
         <ImagePicker v-else ref="picker" />
       </div>
     </div>
@@ -116,6 +125,7 @@ import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
+import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
@@ -156,6 +166,22 @@ const form = ref({
 // číselníka a geokódera. Rovnaký kus formulára má aj editor kanála.
 const address = ref(emptyAddress())
 const addressFields = ref<InstanceType<typeof AddressFieldset> | null>(null)
+const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
+
+/**
+ * Hodnoty pre ukazovateľ pripravenosti pod menami z `config/content_review.php`.
+ * Obec sa musí premenovať: miesto ju má v `village_id`, kanál v
+ * `municipality_id`, a konfigurácia pozná len jedno meno — rovnako ako
+ * `addressFrom()` a PublishReadiness::valuesFrom() na serveri.
+ */
+const readinessValues = computed(() => ({
+  ...form.value,
+  municipality_id: address.value.municipalityId,
+  image: fileableId.value ? (imageManager.value?.imageCount ?? 0) > 0 : (picker.value?.files.length ?? 0) > 0,
+}))
+
+/** Obec ako kontext pre AI — bez nej model o polohe radšej nepíše. */
+const aiContext = computed(() => addressFields.value?.municipalityName ?? undefined)
 
 const errors = ref<Record<string, string>>({})
 

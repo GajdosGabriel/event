@@ -39,6 +39,21 @@ return [
         'ignore'  => 'Pokud jste si účet nevytvářeli, nemusíte dělat nic.',
     ],
 
+    // App\Notifications\ContentReviewNotice
+    'content_review' => [
+        'types' => [
+            'canal' => 'kanálu',
+            'venue' => 'místa',
+            'event' => 'akce',
+        ],
+        'subject'     => 'Pár poznámek k textu: :name',
+        'intro'       => 'Po zveřejnění jsme si text :type přečetli a všimli si pár věcí, které by šlo vylepšit.',
+        'intro_named' => 'Po zveřejnění jsme si přečetli popis :type **„:name"** a všimli si pár věcí, které by šlo vylepšit.',
+        'action'      => 'Otevřít formulář s pomocníkem',
+        'assistant'   => 'Ve formuláři nad popisem najdete tlačítko **„Vyplnit pomocí AI"** — už s přednastaveným tím, čeho se poznámky týkají. Návrh vám ukáže vedle původního textu a nic se nezmění, dokud jej sami nepotvrdíte.',
+        'no_change'   => 'Nic jsme neupravili a nemusíte dělat nic — text je zveřejněný a funguje dál.',
+    ],
+
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     'attribute_issue' => [

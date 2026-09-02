@@ -175,6 +175,12 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // Panel „Mit KI ausfüllen" (App\Http\Controllers\AiAssistController)
+    'ai_text_too_short' => 'Der Text ist zu kurz, um ihn zu verbessern — schreiben Sie mindestens ein paar Sätze.',
+    'ai_draft_event_unsupported' => 'Eine Veranstaltungsbeschreibung lässt sich nicht aus dem Nichts schreiben — bei Veranstaltungen bearbeitet die KI nur, was Sie geschrieben haben.',
+    'ai_draft_unknown_subject' => 'Wir kennen dieses Subjekt noch nicht gut genug für eine sachliche Beschreibung. Ergänzen Sie die Gemeinde oder schreiben Sie ein paar Sätze und lassen Sie diese erweitern.',
+    'ai_draft_summary' => 'Ein Beschreibungsentwurf aus öffentlich bekannten Informationen. Bitte lesen Sie ihn durch und korrigieren Sie, was nicht stimmt.',
+
     'attributes' => [
         // Autentifikácia
         'email'              => 'Die E-Mail-Adresse',

@@ -5,7 +5,7 @@ namespace App\Services\OpenAI;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptCopywriter, PromptData, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
+use App\Services\OpenAI\{PromptCanal, PromptContentReview, PromptCopywriter, PromptData, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
 
 class ChatGPT
 {
@@ -41,6 +41,7 @@ class ChatGPT
         private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
         private readonly PromptProfile $promptProfile = new PromptProfile(),
         private readonly PromptTags $promptTags = new PromptTags(),
+        private readonly PromptContentReview $promptContentReview = new PromptContentReview(),
     ) {}
 
     /**
@@ -499,6 +500,45 @@ class ChatGPT
         $description = trim($description);
 
         return $description !== '' ? $description : null;
+    }
+
+    /**
+     * Posudok zverejneného textu — čo je na ňom zlé a ktorý režim panela to
+     * vie opraviť. Model tu text nemení, len ho hodnotí (viď
+     * PromptContentReview); prepis je samostatné volanie, ktoré púšťa človek.
+     *
+     * @param  array<string, string>  $context
+     * @return array{score: int, summary: string, issues: array<int, array{severity: string, mode: string, message: string, quote: string}>}
+     */
+    public function extractContentReview(string $kind, string $name, string $body, array $context = []): array
+    {
+        $content = $this->chatComplete(
+            (string) config('content_review.model', 'gpt-4o-mini'),
+            0,
+            $this->promptContentReview->prompt($kind, $this->sanitizeUtf8($name), $this->sanitizeUtf8($body), $context),
+            $this->promptContentReview->jsonSchema(),
+        );
+
+        $data = $this->decodeJson($content);
+
+        // normalizeResponseData() sa tu nevolá zámerne — sploštila by pole
+        // `issues` na skalár (rovnaký dôvod ako pri extractTags()).
+        $data['issues'] = array_values(array_filter(
+            (array) ($data['issues'] ?? []),
+            static fn ($issue) => is_array($issue),
+        ));
+
+        $validator = Validator::make($data, $this->promptContentReview->validator());
+
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
+        }
+
+        return [
+            'score' => (int) $data['score'],
+            'summary' => trim((string) $data['summary']),
+            'issues' => $data['issues'],
+        ];
     }
 
     private function applyEventDateTimeFallbackFromText(array $data, string $text): array

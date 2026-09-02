@@ -39,6 +39,21 @@ return [
         'ignore'  => 'If you did not create an account, no action is required.',
     ],
 
+    // App\Notifications\ContentReviewNotice
+    'content_review' => [
+        'types' => [
+            'canal' => 'your channel',
+            'venue' => 'your venue',
+            'event' => 'your event',
+        ],
+        'subject'     => 'A few notes on your text: :name',
+        'intro'       => 'After publishing we read the description of :type and noticed a few things that could be improved.',
+        'intro_named' => 'After publishing we read the description of :type **":name"** and noticed a few things that could be improved.',
+        'action'      => 'Open the form with the assistant',
+        'assistant'   => 'Above the description in the form you will find the **"Fill in with AI"** button — already set to what these notes are about. It shows the suggestion next to your original text and nothing changes until you confirm it yourself.',
+        'no_change'   => 'We changed nothing and you need not do anything — your text stays published and keeps working.',
+    ],
+
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     'attribute_issue' => [

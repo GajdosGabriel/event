@@ -176,13 +176,8 @@ export async function detectEventFromText(text: string): Promise<Record<string, 
   return data as Record<string, unknown>
 }
 
-export type ImproveMode = 'grammar' | 'style' | 'expand' | 'html'
-
-export async function improveEventText(scope: 'dashboard' | 'admin', text: string, modes: ImproveMode[]): Promise<{ success: boolean; improved_text?: string; changes_summary?: string; error?: string }> {
-  const url = scope === 'admin' ? '/admin/events/improve-text' : '/dashboard/events/improve-text'
-  const { data } = await http.post(url, { text, modes })
-  return data as { success: boolean; improved_text?: string; changes_summary?: string; error?: string }
-}
+// Vylepšenie textu už nie je vecou podujatia — ten istý panel obsluhuje aj
+// miesto a kanál cez spoločný endpoint, viď `@/api/ai`.
 
 export async function runAdminTool(tool: 'ai-detector' | 'archive-events', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
   const { data } = await http.post(`/admin/tools/${tool}`, options ?? {})

@@ -177,6 +177,12 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // Panel „Vyplniť pomocou AI" (App\Http\Controllers\AiAssistController)
+    'ai_text_too_short' => 'Text je príliš krátky na to, aby sa dal vylepšiť — napíšte aspoň pár viet.',
+    'ai_draft_event_unsupported' => 'Popis podujatia sa nedá napísať od nuly — pri podujatí AI len upravuje to, čo ste napísali.',
+    'ai_draft_unknown_subject' => 'Tento subjekt zatiaľ nepoznáme natoľko, aby sme o ňom napísali vecný popis. Skúste doplniť obec alebo napíšte pár viet a nechajte ich rozšíriť.',
+    'ai_draft_summary' => 'Návrh popisu z verejne známych informácií. Prejdite si ho, prosím, a opravte, čo nesedí.',
+
     'attributes' => [
         // Autentifikácia
         'email'              => 'e-mail',

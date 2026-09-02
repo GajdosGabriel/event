@@ -170,5 +170,15 @@ async function runGeocode() {
 onBeforeUnmount(() => { if (timer) clearTimeout(timer) })
 
 /** Po hromadnom vyplnení zvonku (AI detekcia) sa poloha dohľadá na požiadanie. */
-defineExpose({ geocode: runGeocode })
+/**
+ * Názov zvolenej obce. Formuláre ho posielajú AI ako kontext k názvu, aby
+ * model netipoval polohu — PromptProfile má zakázané ju hádať a bez obce
+ * o subjekte radšej mlčí (viď App\Services\OpenAI\PromptProfile).
+ */
+const municipalityName = computed(() => {
+  const id = model.value.municipalityId
+  return id == null ? null : (municipalities.value.find(m => m.id === id)?.name ?? null)
+})
+
+defineExpose({ geocode: runGeocode, municipalityName })
 </script>

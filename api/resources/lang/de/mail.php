@@ -39,6 +39,21 @@ return [
         'ignore'  => 'Wenn Sie kein Konto angelegt haben, brauchen Sie nichts zu tun.',
     ],
 
+    // App\Notifications\ContentReviewNotice
+    'content_review' => [
+        'types' => [
+            'canal' => 'Ihres Kanals',
+            'venue' => 'Ihres Veranstaltungsorts',
+            'event' => 'Ihrer Veranstaltung',
+        ],
+        'subject'     => 'Ein paar Anmerkungen zu Ihrem Text: :name',
+        'intro'       => 'Nach der Veröffentlichung haben wir den Text :type gelesen und ein paar Dinge bemerkt, die sich verbessern lassen.',
+        'intro_named' => 'Nach der Veröffentlichung haben wir die Beschreibung :type **„:name"** gelesen und ein paar Dinge bemerkt, die sich verbessern lassen.',
+        'action'      => 'Formular mit dem Assistenten öffnen',
+        'assistant'   => 'Im Formular über der Beschreibung finden Sie die Schaltfläche **„Mit KI ausfüllen"** — bereits auf das eingestellt, worum es in den Anmerkungen geht. Der Vorschlag erscheint neben Ihrem Originaltext, und es ändert sich nichts, bis Sie ihn selbst bestätigen.',
+        'no_change'   => 'Wir haben nichts geändert und Sie müssen nichts tun — Ihr Text bleibt veröffentlicht und funktioniert weiter.',
+    ],
+
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     'attribute_issue' => [

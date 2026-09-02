@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
+use App\Http\Controllers\AiAssistController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
@@ -336,9 +337,17 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/detect-from-text', [DashboardEventController::class, 'detectFromText'])
         ->name('events.detect-from-text')
         ->middleware(['permission:event.create', 'throttle:ai']);
-    Route::post('events/improve-text', [DashboardEventController::class, 'improveText'])
-        ->name('events.improve-text')
-        ->middleware(['permission:event.create', 'throttle:ai']);
+    // Panel „Vyplniť pomocou AI" — jeden endpoint pre podujatie, miesto aj
+    // kanál (viď AiAssistController). Autorizuje sa cez policy podľa `kind`,
+    // preto tu nie je `permission:` — to by muselo poznať typ vopred.
+    Route::post('ai/assist', [AiAssistController::class, 'assist'])
+        ->name('ai.assist')
+        ->middleware('throttle:ai');
+    Route::get('ai/review/{kind}/{id}', [AiAssistController::class, 'review'])
+        ->name('ai.review')
+        ->whereNumber('id');
+    Route::get('publish-readiness', [AiAssistController::class, 'readiness'])
+        ->name('publish-readiness');
 
     Route::apiResource('events', DashboardEventController::class)
         ->only(['index', 'show'])
@@ -598,9 +607,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
         ->name('events.municipalities.overview')
         ->middleware('permission:event.view');
-    Route::post('events/improve-text', [AdminEventController::class, 'improveText'])
-        ->name('events.improve-text')
-        ->middleware(['permission:event.update', 'throttle:ai']);
+    // Ten istý panel v admin scope — ten istý controller. Kým mal admin
+    // vlastnú kópiu `improveText`, mala iné limity validácie než dashboardová
+    // a nikto o tom nevedel, kým to nezačalo rôzne padať.
+    Route::post('ai/assist', [AiAssistController::class, 'assist'])
+        ->name('ai.assist')
+        ->middleware('throttle:ai');
+    Route::get('ai/review/{kind}/{id}', [AiAssistController::class, 'review'])
+        ->name('ai.review')
+        ->whereNumber('id');
+    Route::get('publish-readiness', [AiAssistController::class, 'readiness'])
+        ->name('publish-readiness');
 
     Route::apiResource('events', AdminEventController::class)
         ->only(['index', 'show'])

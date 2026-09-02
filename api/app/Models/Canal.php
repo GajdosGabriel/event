@@ -10,6 +10,7 @@ use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Traits\HasCheckedAttributes;
 use App\Models\Traits\HasCommonFilters;
+use App\Models\Traits\HasContentReview;
 use App\Models\Traits\HasFile;
 use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
@@ -23,7 +24,7 @@ use Illuminate\Support\Str;
 class Canal extends Model implements Messageable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasCheckedAttributes, HasCommonFilters, HasFactory, HasFile, HasViews, InteractsAsMessageable, ProtectsReferencedRecords, SanitizesHtmlBody, SoftDeletes;
+    use HasCheckedAttributes, HasCommonFilters, HasContentReview, HasFactory, HasFile, HasViews, InteractsAsMessageable, ProtectsReferencedRecords, SanitizesHtmlBody, SoftDeletes;
 
     /** Indexy dodáva migrácia `add_fulltext_search_indexes`. */
     protected function usesFulltextSearch(): bool

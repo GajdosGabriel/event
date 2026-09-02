@@ -39,6 +39,23 @@ return [
         'ignore'  => 'Ak ste si účet nevytvárali, nemusíte robiť nič.',
     ],
 
+    // App\Notifications\ContentReviewNotice — výhrady ku textu, ktorý je už
+    // zverejnený. Tón je ponuka, nie výčitka: text funguje, len sa dá zlepšiť
+    // a vo formulári na to čaká AI panel.
+    'content_review' => [
+        'types' => [
+            'canal' => 'kanála',
+            'venue' => 'miesta',
+            'event' => 'podujatia',
+        ],
+        'subject'     => 'Pár poznámok k textu: :name',
+        'intro'       => 'Po zverejnení sme si text :type prečítali a všimli sme si pár vecí, ktoré by sa dali zlepšiť.',
+        'intro_named' => 'Po zverejnení sme si prečítali popis :type **„:name"** a všimli sme si pár vecí, ktoré by sa dali zlepšiť.',
+        'action'      => 'Otvoriť formulár s pomocníkom',
+        'assistant'   => 'Vo formulári nad popisom nájdete tlačidlo **„Vyplniť pomocou AI"** — už s prednastaveným tým, čoho sa poznámky týkajú. Návrh vám ukáže vedľa pôvodného textu a nič sa nezmení, kým ho sami nepotvrdíte.',
+        'no_change'   => 'Nič sme neupravili a nemusíte robiť nič — text je zverejnený a funguje ďalej.',
+    ],
+
     // App\Notifications\AttributeIssueNotice — spoločné upozornenie na údaj,
     // ktorý prestal fungovať (dnes webová adresa, neskôr čokoľvek ďalšie).
     // Nový overovaný údaj = nový riadok v `attributes`, nie nová notifikácia.

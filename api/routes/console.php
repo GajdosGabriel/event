@@ -77,6 +77,11 @@ $artisan('app:events-ai-tag')->everyTwoMinutes()->withoutOverlapping();
 // s ostatnými príkazmi. Zároveň sa tým rýchlo vybaví podnet od návštevníka,
 // ktorý klikol na odkaz (viď BrokenLinkReportController).
 $artisan('app:attribute-checks-run')->everyFiveMinutes()->withoutOverlapping(10);
+// Kontrola zverejnených popisov. Desať minút a malá dávka: každý záznam je
+// jedno volanie OpenAI, takže beh je drahší než sondy odkazov, a nikam
+// nespěchá — samotné plánovanie už má po zverejnení odklad (viď
+// config/content_review.php), aby e-mail neodišiel skôr, než človek dopíše.
+$artisan('app:content-reviews-run')->everyTenMinutes()->withoutOverlapping(15);
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 $artisan('app:views-prune')->dailyAt('03:20');

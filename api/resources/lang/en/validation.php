@@ -196,6 +196,12 @@ return [
     |
     */
 
+    // "Fill in with AI" panel (App\Http\Controllers\AiAssistController)
+    'ai_text_too_short' => 'The text is too short to improve — write at least a few sentences.',
+    'ai_draft_event_unsupported' => 'An event description cannot be written from scratch — for events the AI only edits what you wrote.',
+    'ai_draft_unknown_subject' => 'We do not know this subject well enough to write a factual description. Try adding the municipality, or write a few sentences and have them expanded.',
+    'ai_draft_summary' => 'A draft description from publicly known information. Please read it through and correct anything that is wrong.',
+
     'attributes' => [
         // Authentication
         'email'              => 'e-mail',

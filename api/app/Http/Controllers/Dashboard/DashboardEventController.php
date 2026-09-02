@@ -12,8 +12,6 @@ use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\EventResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
-use App\Services\Imports\HtmlBodyCleaner;
-use App\Services\OpenAI\Chatgpt;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Http\JsonResponse;
@@ -175,28 +173,4 @@ class DashboardEventController extends Controller
         return response()->json($result);
     }
 
-    public function improveText(Request $request, Chatgpt $chatgpt, HtmlBodyCleaner $cleaner): JsonResponse
-    {
-        $this->authorize('create', Event::class);
-
-        $validated = $request->validate([
-            'text'    => 'required|string|min:50|max:20000',
-            'modes'   => 'sometimes|array',
-            'modes.*' => 'string|in:grammar,style,expand,html',
-        ]);
-
-        $modes = $validated['modes'] ?? ['grammar', 'style'];
-
-        try {
-            $result = $chatgpt->extractTextEdit($validated['text'], $modes);
-
-            if (in_array('html', $modes, true) && is_string($result['improved_text'] ?? null)) {
-                $result['improved_text'] = $cleaner->cleanHtmlString($result['improved_text']);
-            }
-
-            return response()->json(['success' => true, ...$result]);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()]);
-        }
-    }
 }
