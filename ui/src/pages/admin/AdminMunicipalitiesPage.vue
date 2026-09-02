@@ -18,7 +18,6 @@
             <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
               <th class="pb-2 pr-4">{{ t('municipalities.colId') }}</th>
               <th class="pb-2 pr-4">{{ t('municipalities.colName') }}</th>
-              <th class="pb-2 pr-4">{{ t('municipalities.colShort') }}</th>
               <th class="pb-2 pr-4">{{ t('municipalities.colZip') }}</th>
               <th class="pb-2">{{ t('municipalities.colActions') }}</th>
             </tr>
@@ -26,8 +25,7 @@
           <tbody>
             <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0">
               <td class="py-2 pr-4 text-slate-400">{{ item.id }}</td>
-              <td class="py-2 pr-4 font-medium text-slate-900">{{ item.name }}</td>
-              <td class="py-2 pr-4 text-slate-600">{{ item.shortname ?? '—' }}</td>
+              <td class="py-2 pr-4 font-medium text-slate-900">{{ item.shortname ?? '—' }}</td>
               <td class="py-2 pr-4 text-slate-600">{{ item.zip ?? '—' }}</td>
               <td class="py-2">
                 <RowActions>
@@ -37,7 +35,7 @@
               </td>
             </tr>
             <tr v-if="items.length === 0">
-              <td colspan="5" class="py-4 text-slate-500">{{ t('municipalities.empty') }}</td>
+              <td colspan="4" class="py-4 text-slate-500">{{ t('municipalities.empty') }}</td>
             </tr>
           </tbody>
         </table>
