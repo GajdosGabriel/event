@@ -89,12 +89,27 @@ export function statusOf(user: UserLike): { label: string; cls: string; dot: str
   return { label: t(`users.statuses.${key}` as MessageKey), ...STATUS_STYLES[key] }
 }
 
+// Ikony k hodnotám `users.registered_via`. Popisky sú v slovníku pod
+// `users.providers.*` — hodnoty, ktoré tu nie sú, ostávajú tak, ako prišli.
+const PROVIDER_ICONS: Record<string, string> = {
+  local: '✉️',
+  email: '✉️',
+  google: '🟢',
+  facebook: '🔵',
+  ticket: '🎟️',
+  message: '💬',
+}
+
 export function providerMeta(via?: string): { icon: string; label: string } {
-  switch (via) {
-    case 'google':   return { icon: '🟢', label: 'Google' }
-    case 'facebook': return { icon: '🔵', label: 'Facebook' }
-    case 'email':    return { icon: '✉️', label: 'Email' }
-    default:         return { icon: '👤', label: via || t('users.providerDirect') }
+  if (!via) return { icon: '👤', label: t('users.providerDirect') }
+
+  const key = `users.providers.${via}` as MessageKey
+  const label = t(key)
+
+  return {
+    icon: PROVIDER_ICONS[via] ?? '👤',
+    // `t()` vracia pri neznámom kľúči samotný kľúč — vtedy radšej holú hodnotu.
+    label: label === key ? via : label,
   }
 }
 

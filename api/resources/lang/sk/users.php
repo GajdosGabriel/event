@@ -7,4 +7,13 @@ return [
         'self_update' => 'Nemôžete upraviť vlastný účet.',
         'self_delete' => 'Nemôžete zmazať vlastný účet.',
     ],
+    // Názvy polí do chybových hlások validátora (AdminUserUpdateRequest).
+    'fields' => [
+        'email' => 'e-mail',
+        'status' => 'stav',
+        'password' => 'heslo',
+        'canal_id' => 'osobný kanál',
+        'blocked_until' => 'blokovať do',
+        'blocked_reason' => 'dôvod blokovania',
+    ],
 ];

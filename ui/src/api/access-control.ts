@@ -31,15 +31,29 @@ export async function restoreUser(userId: number, scope: ACScope = 'dashboard'):
   await http.post(`/${scope}/users/${userId}/restore`, {})
 }
 
-export interface BlockUserPayload {
-  blocked: boolean
+/**
+ * Čo všetko sa dá poslať na `PUT /{scope}/users/{id}`.
+ *
+ * Všetko je nepovinné a server berie len to, čo naozaj prišlo — ten istý
+ * endpoint obsluhuje celý admin formulár aj samotné (od)blokovanie z detailu.
+ */
+export interface UpdateUserPayload {
+  email?: string
+  status?: string
+  /** Potvrdenie/zrušenie overenia e-mailu adminom. */
+  email_verified?: boolean
+  /** Prázdne alebo vynechané = heslo sa nemení. */
+  password?: string
+  /** Osobný kanál používateľa (users.canal_id). */
+  canal_id?: number | null
+  blocked?: boolean
   blocked_until?: string | null
   blocked_reason?: string | null
 }
 
 export async function updateUser(
   userId: number,
-  payload: BlockUserPayload,
+  payload: UpdateUserPayload,
   scope: ACScope = 'dashboard',
 ): Promise<Record<string, unknown>> {
   const { data } = await http.put(`/${scope}/users/${userId}`, payload)

@@ -156,6 +156,7 @@ const router = createRouter({
         { path: 'oznamy', name: 'admin-announcements', component: () => import('@/pages/admin/AdminAnnouncementsPage.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/pages/admin/AdminUsersPage.vue') },
         { path: 'users/:id', name: 'admin-users-show', component: () => import('@/pages/admin/AdminUserShowPage.vue') },
+        { path: 'users/:id/edit', name: 'admin-users-edit', component: () => import('@/pages/admin/AdminUserEditPage.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/pages/admin/AdminSettingsPage.vue') },
         { path: 'files', name: 'admin-files', component: FileListPage, props: { scope: 'admin' } },
         { path: 'tools', name: 'admin-tools', component: () => import('@/pages/admin/AdminToolsPage.vue') },

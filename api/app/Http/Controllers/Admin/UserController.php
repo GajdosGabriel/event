@@ -47,21 +47,53 @@ class UserController extends Controller
         return response()->json(new UserResource($user), 200);
     }
 
+    /**
+     * Úprava účtu. Formulár posiela profil, detail len blokovanie — preto sa
+     * berie výhradne to, čo v požiadavke naozaj prišlo (viď
+     * AdminUserUpdateRequest, kde je všetko `sometimes`).
+     */
     public function update(AdminUserUpdateRequest $request, string $id): JsonResponse
     {
         $user = $this->userRepository->adminShow($id);
         $this->authorize('update', $user);
         abort_if((int) $user->id === (int) $request->user()->id, 403, __('users.errors.self_update'));
 
-        $blocked = $request->boolean('blocked');
+        $data = $request->validated();
+        $attributes = [];
 
-        $user->forceFill([
-            'blocked_at'     => $blocked ? ($user->blocked_at ?? now()) : null,
-            'blocked_until'  => $blocked ? $request->input('blocked_until') : null,
-            'blocked_reason' => $blocked ? $request->input('blocked_reason') : null,
-        ])->save();
+        foreach (['email', 'status', 'canal_id'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $attributes[$key] = $data[$key];
+            }
+        }
 
-        return response()->json(new UserResource($user->fresh()), 200);
+        // Prázdne pole znamená „nechať staré heslo“, nie prázdne heslo.
+        // Zahašuje ho cast na modeli.
+        if (! empty($data['password'])) {
+            $attributes['password'] = $data['password'];
+        }
+
+        // Pôvodnú značku overenia neprepisujeme — dokladuje, kedy si účet
+        // adresu overil sám. Odškrtnutie ju zmaže a overenie sa vyžiada znova.
+        if (array_key_exists('email_verified', $data)) {
+            $attributes['email_verified_at'] = $data['email_verified']
+                ? ($user->email_verified_at ?? now())
+                : null;
+        }
+
+        if (array_key_exists('blocked', $data)) {
+            $blocked = (bool) $data['blocked'];
+
+            $attributes['blocked_at']     = $blocked ? ($user->blocked_at ?? now()) : null;
+            $attributes['blocked_until']  = $blocked ? ($data['blocked_until'] ?? null) : null;
+            $attributes['blocked_reason'] = $blocked ? ($data['blocked_reason'] ?? null) : null;
+        }
+
+        if ($attributes !== []) {
+            $user->forceFill($attributes)->save();
+        }
+
+        return response()->json(new UserResource($this->userRepository->adminShow($id)), 200);
     }
 
     public function destroy(string $id): JsonResponse

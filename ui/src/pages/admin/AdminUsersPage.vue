@@ -118,7 +118,8 @@
               <td class="px-4 py-3">
                 <div class="flex justify-end">
                   <RowActions>
-                    <RouterLink :to="`/admin/users/${user.id}`" class="row-menu-item block">{{ t('common.edit') }}</RouterLink>
+                    <RouterLink :to="`/admin/users/${user.id}`" class="row-menu-item block">{{ t('admin.user.view') }}</RouterLink>
+                    <RouterLink :to="`/admin/users/${user.id}/edit`" class="row-menu-item block">{{ t('common.edit') }}</RouterLink>
                     <template v-if="user.deleted_at">
                       <button class="row-menu-item" @click="restore(user.id as number)">{{ t('common.restore') }}</button>
                     </template>

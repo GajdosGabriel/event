@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\CanalRole;
+use App\Enums\ModelStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -76,20 +77,31 @@ class UserResource extends JsonResource
             // Admin-only management fields. Foreign emails / audit data stay
             // out of the public + dashboard scopes.
             $this->mergeWhen($request->routeIs('admin.*'), fn () => [
+                'uuid'              => $this->uuid,
                 'email'             => $this->email,
                 'status'            => $this->status,
+                'status_label'      => $this->status?->label(),
+                // Číselník pre admin formulár — rovnako ako pri kanáli
+                // a podujatí posiela popisky server, front ich neprekladá.
+                'allowed_statuses'  => ModelStatus::allowedForUser($user),
                 'registered_via'    => $this->registered_via,
                 'email_verified'    => $this->email_verified_at !== null,
+                'email_verified_at' => $this->email_verified_at,
+                // Osobný kanál — v ňom je používateľ vlastníkom aj bez pivotu
+                // (viď User::canalRole), preto ho admin formulár ukazuje zvlášť.
+                'canal_id'          => $this->canal_id,
                 // Doklad o súhlase s podmienkami — kedy a s akou verziou.
                 'terms_accepted_at' => $this->terms_accepted_at,
                 'terms_version'     => $this->terms_version,
                 'is_blocked'        => $this->resource->isBlocked(),
+                'blocked_at'        => $this->blocked_at,
                 'blocked_until'     => $this->blocked_until,
                 'blocked_reason'    => $this->blocked_reason,
                 'canals_count'      => $canals->count(),
                 'last_login_at'     => $this->last_login_at,
                 'last_activity'     => $this->last_activity,
                 'created_at'        => $this->created_at,
+                'updated_at'        => $this->updated_at,
                 'deleted_at'        => $this->deleted_at,
             ]),
         ];

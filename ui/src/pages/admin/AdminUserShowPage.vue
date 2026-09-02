@@ -31,6 +31,10 @@
             </span>
           </div>
         </div>
+        <!-- Detail je na čítanie; meniť sa dá vo formulári. -->
+        <RouterLink :to="`/admin/users/${userId}/edit`" class="btn btn-primary shrink-0">
+          {{ t('admin.user.edit') }}
+        </RouterLink>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -46,9 +50,14 @@
               </div>
               <div>
                 <dt class="text-xs text-slate-400">{{ t('admin.user.verified') }}</dt>
-                <dd class="text-sm" :class="user.email_verified ? 'text-emerald-600' : 'text-amber-600'">
+                <dd class="text-sm" :class="user.email_verified ? 'text-emerald-600' : 'text-amber-600'"
+                  :title="fullDate(user.email_verified_at)">
                   {{ user.email_verified ? t('admin.user.yes') : t('admin.user.no') }}
                 </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.status') }}</dt>
+                <dd class="text-sm text-slate-800">{{ user.status_label || user.status || '—' }}</dd>
               </div>
               <div>
                 <dt class="text-xs text-slate-400">{{ t('admin.user.registeredVia') }}</dt>
@@ -71,6 +80,12 @@
                 <dt class="text-xs text-slate-400">{{ t('admin.user.lastActivity') }}</dt>
                 <dd class="text-sm text-slate-800" :title="fullDate(user.last_activity)">{{ relTime(user.last_activity ?? user.last_login_at) }}</dd>
               </div>
+              <div>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.updatedAt') }}</dt>
+                <dd class="text-sm text-slate-800" :title="fullDate(user.updated_at)">
+                  {{ user.updated_at ? fmtDate(user.updated_at as string) : '—' }}
+                </dd>
+              </div>
               <!-- Doklad o súhlase s podmienkami: účty založené pred jeho
                    zavedením ho nemajú, preto sa tu môže objaviť pomlčka. -->
               <div>
@@ -82,6 +97,10 @@
                   </template>
                   <template v-else>—</template>
                 </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.uuid') }}</dt>
+                <dd class="break-words text-sm text-slate-800">{{ user.uuid || '—' }}</dd>
               </div>
             </dl>
           </section>
@@ -95,7 +114,12 @@
               <li v-for="c in canals" :key="c.id">
                 <RouterLink :to="`/admin/canals/${c.id}`"
                   class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors hover:bg-slate-50">
-                  <span class="min-w-0 truncate font-medium text-slate-800">{{ c.name }}</span>
+                  <span class="min-w-0 truncate font-medium text-slate-800">
+                    {{ c.name }}
+                    <span v-if="Number(user.canal_id) === c.id" class="ml-1 text-xs font-normal text-slate-400">
+                      ({{ t('admin.user.personalCanal') }})
+                    </span>
+                  </span>
                   <span class="shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-wide"
                     :class="canalStatusClass(c.status)">{{ statusLabel('canals', c.status) }}</span>
                 </RouterLink>
@@ -105,74 +129,35 @@
           </section>
         </div>
 
-        <!-- Right column: management -->
+        <!-- Right column: prehľad prístupu. Meniť sa dá vo formulári „Upraviť". -->
         <div class="grid content-start gap-4">
-          <!-- Roles -->
           <section class="panel-card">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.roles') }}</h2>
-            <div class="grid gap-2">
-              <label v-for="role in roles" :key="role.name" class="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" :value="role.name" v-model="selectedRoles" class="accent-blue-600" />
-                {{ role.label ?? roleLabel(role.name, roles) }}
-              </label>
+            <div v-if="roleNames.length" class="flex flex-wrap gap-1">
+              <span v-for="role in roleNames" :key="role"
+                class="rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset" :class="roleClass(role)">
+                {{ roleLabel(role, roles) }}
+              </span>
             </div>
-            <button class="btn btn-primary mt-4 w-full" :disabled="savingRoles || !rolesChanged" @click="saveRoles">
-              {{ savingRoles ? t('admin.user.saving') : t('admin.user.saveRoles') }}
-            </button>
+            <p v-else class="text-sm text-slate-400">—</p>
           </section>
 
-          <!-- Block -->
           <section class="panel-card">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.blocking') }}</h2>
 
-            <p v-if="isSelf" class="text-sm text-slate-400">{{ t('admin.user.blockSelf') }}</p>
-
-            <template v-else-if="user.is_blocked">
-              <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-                <p class="font-medium">{{ t('admin.user.blocked') }}</p>
-                <p v-if="user.blocked_reason" class="mt-1 text-red-600">{{ user.blocked_reason }}</p>
-                <p class="mt-1 text-xs text-red-500">
-                  {{ user.blocked_until
-                    ? t('admin.user.blockedUntil', { date: fullDate(user.blocked_until) })
-                    : t('admin.user.blockedForever') }}
-                </p>
-              </div>
-              <button class="btn btn-secondary mt-3 w-full" :disabled="savingBlock" @click="unblock">
-                {{ savingBlock ? t('admin.user.saving') : t('admin.user.unblock') }}
-              </button>
-            </template>
-
-            <template v-else>
-              <FormField v-model="blockReason" type="textarea" rows="2" :placeholder="t('admin.user.blockReasonPlaceholder')">
-                <template #label>{{ t('admin.user.blockReason') }} <span class="font-normal text-slate-400">{{ t('admin.user.optional') }}</span></template>
-              </FormField>
-              <FormField
-                v-model="blockUntil"
-                type="datetime"
-                allow-past
-                :hint="t('admin.user.blockUntilHint')"
-                class="mt-3"
-              >
-                <template #label>{{ t('admin.user.blockUntil') }} <span class="font-normal text-slate-400">{{ t('admin.user.optional') }}</span></template>
-              </FormField>
-              <button class="btn btn-danger mt-3 w-full" :disabled="savingBlock" @click="block">
-                {{ savingBlock ? t('admin.user.saving') : t('admin.user.block') }}
-              </button>
-            </template>
-          </section>
-
-          <!-- Danger zone -->
-          <section class="panel-card border-red-200">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-red-500">{{ t('admin.user.danger') }}</h2>
-            <button v-if="user.deleted_at" class="btn btn-secondary w-full" :disabled="savingDelete" @click="restore">
-              {{ savingDelete ? t('admin.user.saving') : t('admin.user.restore') }}
-            </button>
-            <template v-else>
-              <p v-if="isSelf" class="text-sm text-slate-400">{{ t('admin.user.deleteSelf') }}</p>
-              <button v-else class="btn btn-danger w-full" :disabled="savingDelete" @click="remove">
-                {{ savingDelete ? t('admin.user.removing') : t('admin.user.remove') }}
-              </button>
-            </template>
+            <div v-if="user.is_blocked" class="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+              <p class="font-medium">{{ t('admin.user.blocked') }}</p>
+              <p v-if="user.blocked_reason" class="mt-1 text-red-600">{{ user.blocked_reason }}</p>
+              <p class="mt-1 text-xs text-red-500">
+                {{ user.blocked_until
+                  ? t('admin.user.blockedUntil', { date: fullDate(user.blocked_until) })
+                  : t('admin.user.blockedForever') }}
+              </p>
+              <p v-if="user.blocked_at" class="mt-1 text-xs text-red-400">
+                {{ t('admin.user.blockedAt') }}: {{ fullDate(user.blocked_at) }}
+              </p>
+            </div>
+            <p v-else class="text-sm text-slate-500">{{ t('users.statuses.active') }}</p>
           </section>
         </div>
       </div>
@@ -182,14 +167,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { showUser, getRoles, updateUserRoles, updateUser, deleteUser, restoreUser } from '@/api/access-control'
+import { useRoute } from 'vue-router'
+import { showUser, getRoles } from '@/api/access-control'
 import type { AccessRole } from '@/types'
 import { t } from '@/i18n'
-import { useToast } from '@/composables/useToast'
-import { useAuthStore } from '@/stores/auth'
 import { fmtDate } from '@/utils/dateFormat'
-import FormField from '@/components/FormField.vue'
 import {
   displayName, initials, avatarColor, roleLabel, roleClass,
   statusOf, providerMeta, relTime, fullDate,
@@ -199,49 +181,25 @@ import { statusLabel } from '@/utils/statusLabel'
 const SCOPE = 'admin' as const
 
 const route = useRoute()
-const router = useRouter()
-const toast = useToast()
-const auth = useAuthStore()
 
-const userId = computed(() => Number(route.params.id))
+const userId = computed(() => Number(route.params['id']))
 const user = ref<Record<string, unknown> | null>(null)
 const roles = ref<AccessRole[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-const selectedRoles = ref<string[]>([])
-const savingRoles = ref(false)
-const savingBlock = ref(false)
-const savingDelete = ref(false)
-const blockReason = ref('')
-const blockUntil = ref('')
-
-const isSelf = computed(() => user.value && Number(user.value.id) === Number(auth.identity?.id))
 const roleNames = computed(() => (user.value?.roles as string[]) ?? [])
 const canals = computed(() => (user.value?.canals as { id: number; name: string; slug: string; status: string }[]) ?? [])
-const rolesChanged = computed(() => {
-  const a = [...selectedRoles.value].sort().join(',')
-  const b = [...roleNames.value].sort().join(',')
-  return a !== b
-})
 
-async function load() {
-  loading.value = true
-  error.value = null
+onMounted(async () => {
   try {
-    ;[user.value, roles.value] = await Promise.all([
-      showUser(userId.value, SCOPE),
-      roles.value.length ? Promise.resolve(roles.value) : getRoles(SCOPE),
-    ])
-    selectedRoles.value = [...roleNames.value]
+    ;[user.value, roles.value] = await Promise.all([showUser(userId.value, SCOPE), getRoles(SCOPE)])
   } catch {
     error.value = t('admin.user.loadFailed')
   } finally {
     loading.value = false
   }
-}
-
-onMounted(load)
+})
 
 function canalStatusClass(status: string): string {
   switch (status) {
@@ -250,70 +208,5 @@ function canalStatusClass(status: string): string {
     case 'blocked':   return 'bg-red-50 text-red-700'
     default:          return 'bg-amber-50 text-amber-700'
   }
-}
-
-async function saveRoles() {
-  savingRoles.value = true
-  try {
-    await updateUserRoles(userId.value, selectedRoles.value, SCOPE)
-    if (user.value) user.value.roles = [...selectedRoles.value]
-    toast.success(t('admin.user.rolesSaved'))
-  } catch { toast.error(t('admin.user.rolesFailed')) }
-  finally { savingRoles.value = false }
-}
-
-async function block() {
-  savingBlock.value = true
-  try {
-    const updated = await updateUser(userId.value, {
-      blocked: true,
-      blocked_reason: blockReason.value.trim() || null,
-      blocked_until: blockUntil.value || null,
-    }, SCOPE)
-    applyUpdated(updated)
-    blockReason.value = ''
-    blockUntil.value = ''
-    toast.success(t('admin.user.blockedOk'))
-  } catch { toast.error(t('admin.user.blockFailed')) }
-  finally { savingBlock.value = false }
-}
-
-async function unblock() {
-  savingBlock.value = true
-  try {
-    const updated = await updateUser(userId.value, { blocked: false }, SCOPE)
-    applyUpdated(updated)
-    toast.success(t('admin.user.unblocked'))
-  } catch { toast.error(t('admin.user.unblockFailed')) }
-  finally { savingBlock.value = false }
-}
-
-function applyUpdated(updated: Record<string, unknown>) {
-  if (!user.value) return
-  user.value.is_blocked = updated.is_blocked
-  user.value.blocked_until = updated.blocked_until
-  user.value.blocked_reason = updated.blocked_reason
-}
-
-async function remove() {
-  if (!user.value) return
-  if (!confirm(t('admin.user.removeConfirm', { name: displayName(user.value) }))) return
-  savingDelete.value = true
-  try {
-    await deleteUser(userId.value, SCOPE)
-    toast.success(t('admin.user.removed'))
-    router.push('/admin/users')
-  } catch { toast.error(t('admin.user.removeFailed')) }
-  finally { savingDelete.value = false }
-}
-
-async function restore() {
-  savingDelete.value = true
-  try {
-    await restoreUser(userId.value, SCOPE)
-    if (user.value) user.value.deleted_at = null
-    toast.success(t('admin.user.restored'))
-  } catch { toast.error(t('admin.user.restoreFailed')) }
-  finally { savingDelete.value = false }
 }
 </script>
