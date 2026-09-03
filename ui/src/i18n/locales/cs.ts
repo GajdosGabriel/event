@@ -918,6 +918,17 @@ const cs: Messages = {
       empty: 'Žádná místa.',
       loadFailed: 'Nepodařilo se načíst místa.',
     },
+    row: {
+      deleted: 'Smazané',
+      filterByMunicipality: 'Filtrovat podle obce: {name}',
+      ownerCanal: '{name} — vlastník místa',
+      moreCanals: '+{n} dalších',
+      capacity: 'kapacita {n}',
+      createdAt: 'vytvořeno {date}',
+      counts: {
+        events: { one: '{n} akce', few: '{n} akce', many: '{n} akcí' },
+      },
+    },
     show: {
       notFound: 'Místo nenalezeno',
       events: 'Akce na tomto místě',
@@ -984,6 +995,16 @@ const cs: Messages = {
       empty: 'Žádné kanály.',
       loadFailed: 'Nepodařilo se načíst kanály.',
       fallbackName: 'Kanál #{id}',
+    },
+    row: {
+      deleted: 'Smazaný',
+      filterByMunicipality: 'Filtrovat podle obce: {name}',
+      createdAt: 'vytvořen {date}',
+      counts: {
+        events: { one: '{n} akce', few: '{n} akce', many: '{n} akcí' },
+        venues: { one: '{n} místo', few: '{n} místa', many: '{n} míst' },
+        members: { one: '{n} člen', few: '{n} členové', many: '{n} členů' },
+      },
     },
     show: {
       notFound: 'Kanál nenalezen',
@@ -1998,8 +2019,17 @@ const cs: Messages = {
       search: 'Hledat název souboru…',
       entityId: 'ID entity',
       withTrashed: 'Včetně smazaných',
+      active: 'Bez smazaných',
+      onlyDeleted: 'Jen smazané',
+      typeTitle: 'Typ záznamu',
+      kindTitle: 'Druh souboru',
+      allKinds: 'Všechny druhy',
+      sort: {
+        largest: 'Největší',
+        smallest: 'Nejmenší',
+      },
       types: {
-        all: 'Všechny',
+        all: 'Všechny typy',
         event: 'Akce',
         canal: 'Kanál',
         venue: 'Místo',

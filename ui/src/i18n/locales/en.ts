@@ -919,6 +919,17 @@ const en: Messages = {
       empty: 'No venues.',
       loadFailed: 'Venues could not be loaded.',
     },
+    row: {
+      deleted: 'Deleted',
+      filterByMunicipality: 'Filter by municipality: {name}',
+      ownerCanal: '{name} — owns this venue',
+      moreCanals: '+{n} more',
+      capacity: 'capacity {n}',
+      createdAt: 'created {date}',
+      counts: {
+        events: { one: '{n} event', few: '{n} events', many: '{n} events' },
+      },
+    },
     show: {
       notFound: 'Venue not found',
       events: 'Events at this venue',
@@ -985,6 +996,16 @@ const en: Messages = {
       empty: 'No channels.',
       loadFailed: 'Channels could not be loaded.',
       fallbackName: 'Channel #{id}',
+    },
+    row: {
+      deleted: 'Deleted',
+      filterByMunicipality: 'Filter by municipality: {name}',
+      createdAt: 'created {date}',
+      counts: {
+        events: { one: '{n} event', few: '{n} events', many: '{n} events' },
+        venues: { one: '{n} venue', few: '{n} venues', many: '{n} venues' },
+        members: { one: '{n} member', few: '{n} members', many: '{n} members' },
+      },
     },
     show: {
       notFound: 'Channel not found',
@@ -1999,8 +2020,17 @@ const en: Messages = {
       search: 'Search file name…',
       entityId: 'Entity ID',
       withTrashed: 'Include deleted',
+      active: 'Without deleted',
+      onlyDeleted: 'Only deleted',
+      typeTitle: 'Record type',
+      kindTitle: 'File kind',
+      allKinds: 'All kinds',
+      sort: {
+        largest: 'Largest',
+        smallest: 'Smallest',
+      },
       types: {
-        all: 'All',
+        all: 'All types',
         event: 'Event',
         canal: 'Canal',
         venue: 'Venue',

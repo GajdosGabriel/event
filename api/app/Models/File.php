@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\FileType;
 use App\Casts\StringLength250;
 use App\Models\Traits\HasCommonFilters;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
@@ -47,6 +48,62 @@ class File extends Model
         'large_image_url',
     ];
 
+    /**
+     * Druh súboru, ako ho vo výpise ukazuje odznak vedľa názvu — obrázok, PDF,
+     * dokument… Nie je to stĺpec: skladá sa z MIME typu a prípony, takže filter
+     * musí použiť rovnaké pravidlá, inak by odznak a filter tvrdili každý niečo
+     * iné. Enum `type` (image|card|file) je na niečo iné — hovorí, na čo sa
+     * súbor v aplikácii používa, nie čo to je za formát.
+     */
+    protected const KIND_EXTENSIONS = [
+        'document'    => ['doc', 'docx', 'rtf', 'odt'],
+        'spreadsheet' => ['xls', 'xlsx', 'csv', 'ods'],
+        'archive'     => ['zip', 'rar', '7z', 'gz', 'tar'],
+    ];
+
+    /** Druhy odvodené z prefixu MIME typu. */
+    protected const KIND_MIME_PREFIXES = ['image', 'video', 'audio'];
+
+    /** Hodnoty, ktoré smie prísť vo filtri — validácia v kontroléroch ich preberá. */
+    public const KINDS = ['image', 'video', 'audio', 'pdf', 'document', 'spreadsheet', 'archive', 'other'];
+
+    public function scopeByKind(Builder $query, ?string $kind): Builder
+    {
+        if ($kind === null || $kind === '') {
+            return $query;
+        }
+
+        if (in_array($kind, self::KIND_MIME_PREFIXES, true)) {
+            return $query->where($this->qualifyColumn('mime_type'), 'like', $kind . '/%');
+        }
+
+        if ($kind === 'pdf') {
+            return $query->where(fn (Builder $q) => $q
+                ->where($this->qualifyColumn('mime_type'), 'application/pdf')
+                ->orWhere($this->qualifyColumn('extension'), 'pdf'));
+        }
+
+        if (isset(self::KIND_EXTENSIONS[$kind])) {
+            return $query->whereIn($this->qualifyColumn('extension'), self::KIND_EXTENSIONS[$kind]);
+        }
+
+        // „Iné" = všetko, čo nepadne do žiadnej pomenovanej skupiny. Negácia sa
+        // skladá z tých istých pravidiel, takže skupiny spolu pokryjú celý výpis.
+        if ($kind === 'other') {
+            return $query->where(function (Builder $rest) {
+                foreach (self::KIND_MIME_PREFIXES as $prefix) {
+                    $rest->where($this->qualifyColumn('mime_type'), 'not like', $prefix . '/%');
+                }
+
+                $rest->where($this->qualifyColumn('mime_type'), '!=', 'application/pdf');
+
+                $known = array_merge(['pdf'], ...array_values(self::KIND_EXTENSIONS));
+                $rest->whereNotIn($this->qualifyColumn('extension'), $known);
+            });
+        }
+
+        return $query;
+    }
     public function fileable()
     {
         return $this->morphTo();

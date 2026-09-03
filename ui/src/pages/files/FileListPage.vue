@@ -1,54 +1,56 @@
 <template>
   <div class="grid gap-4">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 class="text-2xl font-semibold text-slate-900">{{ isAdmin ? t('admin.files.title') : t('admin.files.myTitle') }}</h1>
-        <p class="mt-0.5 text-sm text-slate-500">
-          <template v-if="searched && !loading">{{ total }} {{ plural('admin.files.counts.files', total) }}</template>
-          <template v-else>&nbsp;</template>
-        </p>
-      </div>
-    </div>
-
-    <!-- Filter toolbar -->
-    <div class="panel-card flex flex-wrap items-center gap-2 !py-3">
-      <div class="relative w-full max-w-xs">
-        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-          viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
-        </svg>
-        <input v-model="filters.search" type="search" :placeholder="t('filters.files.search')"
-          class="form-input h-10 pl-9" @input="onSearchInput" />
+    <div class="index-head">
+      <div class="head-actions">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-900">{{ isAdmin ? t('admin.files.title') : t('admin.files.myTitle') }}</h1>
+          <p class="mt-0.5 text-sm text-slate-500">
+            <template v-if="searched && !loading">{{ total }} {{ plural('admin.files.counts.files', total) }}</template>
+            <template v-else>&nbsp;</template>
+          </p>
+        </div>
       </div>
 
-      <!-- Type segmented control -->
-      <div class="inline-flex h-10 items-center rounded-lg border border-slate-300 bg-white p-0.5">
-        <button v-for="opt in typeOptions" :key="opt.value" type="button"
-          class="h-9 rounded-md px-3 text-sm font-medium transition-colors"
-          :class="filters.fileable_type === opt.value ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'"
-          @click="setType(opt.value)">
-          {{ opt.label }}
-        </button>
-      </div>
+      <!-- Tá istá lišta ako nad ostatnými výpismi. Zo spoločných filtrov dáva
+           súborom zmysel hľadanie, kôš na mieste stavu, zoradenie a rozsah
+           dátumu (tu dátum nahratia). Časové okno ani filter kanála sem
+           nepatria — súbor nemá termín a na kanáli visí až cez záznam, ku
+           ktorému patrí. -->
+      <ResourceFilterBar
+        v-model:search="filters.search"
+        v-model:status="filters.trash"
+        v-model:sort="filters.sort"
+        v-model:date-from="filters.dateFrom"
+        v-model:date-to="filters.dateTo"
+        :status-options="trashOptions"
+        :all-statuses-label="t('filters.files.active')"
+        :search-placeholder="t('filters.files.search')"
+        :sort-options="sortOptions"
+        :extra-active="extraActive"
+        show-date-range
+        :history-key="historyKey"
+        @change="load(1)"
+        @reset="resetExtraFilters"
+      >
+        <template #filters>
+          <select v-model="filters.fileableType" class="form-input w-auto"
+            :title="t('filters.files.typeTitle')" @change="load(1)">
+            <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
 
-      <!-- Hľadanie podľa kľúča záznamu má zmysel len v admine, kde sa chodí za
-           konkrétnym ID z databázy; v dashboarde stačí filter typu. -->
-      <input v-if="isAdmin" v-model.number="filters.fileable_id" type="number" :placeholder="t('filters.files.entityId')"
-        class="form-input h-10 w-28" @keydown.enter="load(1)" @change="load(1)" />
+          <select v-model="filters.kind" class="form-input w-auto"
+            :title="t('filters.files.kindTitle')" @change="load(1)">
+            <option value="">{{ t('filters.files.allKinds') }}</option>
+            <option v-for="opt in kindOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
 
-      <label class="flex h-10 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
-        :class="{ 'border-red-300 bg-red-50 text-red-700': filters.with_trashed }">
-        <input type="checkbox" v-model="filters.with_trashed" class="accent-red-500" @change="load(1)" />
-        {{ t('filters.files.withTrashed') }}
-      </label>
-
-      <button v-if="activeFilterCount > 0" type="button"
-        class="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        @click="resetFilters">
-        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        {{ t('filters.reset') }}
-        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1 text-xs font-semibold text-blue-700">{{ activeFilterCount }}</span>
-      </button>
+          <!-- Hľadanie podľa kľúča záznamu má zmysel len v admine, kde sa chodí za
+               konkrétnym ID z databázy; v dashboarde stačí filter typu. -->
+          <input v-if="isAdmin" v-model.number="filters.fileableId" type="number"
+            :placeholder="t('filters.files.entityId')" class="form-input w-28"
+            @keydown.enter="load(1)" @change="load(1)" />
+        </template>
+      </ResourceFilterBar>
     </div>
 
     <p v-if="loading" class="text-slate-600">{{ t('common.loading') }}</p>
@@ -160,6 +162,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { listAdminFiles, listDashboardFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'
 import { useToast } from '@/composables/useToast'
 import RowActions from '@/components/RowActions.vue'
+import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n, localeTag, type MessageKey } from '@/i18n'
 
@@ -171,7 +174,17 @@ const isAdmin = computed(() => props.scope === 'admin')
 const { t, plural } = useI18n()
 const toast = useToast()
 
-const filters = ref({ fileable_type: '', fileable_id: undefined as number | undefined, search: '', with_trashed: false })
+/** `trash`: prázdne = bez zmazaných, `with_trashed` = aj zmazané, `deleted` = len zmazané. */
+const filters = ref({
+  fileableType: '',
+  fileableId: undefined as number | undefined,
+  kind: '',
+  search: '',
+  sort: 'newest',
+  dateFrom: '',
+  dateTo: '',
+  trash: '',
+})
 const files = ref<FileItem[]>([])
 const loading = ref(false)
 const searched = ref(false)
@@ -181,21 +194,62 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 const preview = ref<FileItem | null>(null)
 
-const typeOptions = computed(() => [
+/** História hľadania sa drží zvlášť pre admin a dashboard — sú to iné rozsahy. */
+const historyKey = computed(() => `${props.scope}-files`)
+
+const typeOptions = computed<FilterOption[]>(() => [
   { value: '', label: t('filters.files.types.all') },
   { value: 'event', label: t('filters.files.types.event') },
   { value: 'canal', label: t('filters.files.types.canal') },
   { value: 'venue', label: t('filters.files.types.venue') },
 ])
 
-const activeFilterCount = computed(() => {
+// Druh nie je stĺpec — skladá sa z MIME typu a prípony presne tak, ako odznak
+// pri názve súboru nižšie (kindMeta) a `File::scopeByKind()` na API. Keby sa
+// pravidlá rozišli, filter a odznak by o tom istom súbore tvrdili niečo iné.
+const kindOptions = computed<FilterOption[]>(() => [
+  { value: 'image', label: t('admin.files.kinds.image') },
+  { value: 'pdf', label: t('admin.files.kinds.pdf') },
+  { value: 'document', label: t('admin.files.kinds.document') },
+  { value: 'spreadsheet', label: t('admin.files.kinds.spreadsheet') },
+  { value: 'video', label: t('admin.files.kinds.video') },
+  { value: 'audio', label: t('admin.files.kinds.audio') },
+  { value: 'archive', label: t('admin.files.kinds.archive') },
+  { value: 'other', label: t('admin.files.kinds.file') },
+])
+
+/**
+ * Kôš stojí tam, kde ostatné výpisy majú stav — pre používateľa je to tá istá
+ * otázka „čo mám vidieť". Prázdna voľba znamená „bez zmazaných", nie „všetko";
+ * preto lišta dostáva vlastný popisok cez `all-statuses-label`.
+ */
+const trashOptions = computed<FilterOption[]>(() => [
+  { value: 'with_trashed', label: t('filters.files.withTrashed') },
+  { value: 'deleted', label: t('filters.files.onlyDeleted') },
+])
+
+const sortOptions = computed<FilterOption[]>(() => [
+  { value: 'newest', label: t('filters.sort.newest') },
+  { value: 'oldest', label: t('filters.sort.oldest') },
+  { value: 'name', label: t('filters.sort.name') },
+  { value: 'largest', label: t('filters.files.sort.largest') },
+  { value: 'smallest', label: t('filters.files.sort.smallest') },
+])
+
+/** Filtre zo slotu — lišta o nich nevie, počítadlo aj „Zrušiť filtre" ich berie odtiaľto. */
+const extraActive = computed(() => {
   let n = 0
-  if (filters.value.search) n++
-  if (filters.value.fileable_type) n++
-  if (filters.value.fileable_id) n++
-  if (filters.value.with_trashed) n++
+  if (filters.value.fileableType) n++
+  if (filters.value.kind) n++
+  if (filters.value.fileableId) n++
   return n
 })
+
+function resetExtraFilters() {
+  filters.value.fileableType = ''
+  filters.value.kind = ''
+  filters.value.fileableId = undefined
+}
 
 // Dashboard nemaže natrvalo — FilePolicy::forceDelete() to zakazuje každému,
 // takže v tomto rozsahu ani nemá zmysel akciu ponúkať.
@@ -207,35 +261,25 @@ function canRestore(file: FileItem): boolean {
   return isAdmin.value || file.permissions.restore
 }
 
-let searchTimer: ReturnType<typeof setTimeout>
-function onSearchInput() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => load(1), 350)
-}
-
-function setType(value: string) {
-  filters.value.fileable_type = value
-  load(1)
-}
-
-function resetFilters() {
-  filters.value = { fileable_type: '', fileable_id: undefined, search: '', with_trashed: false }
-  load(1)
-}
-
 async function load(page = 1) {
   loading.value = true
   searched.value = true
   error.value = null
   try {
     const params = {
-      ...(filters.value.fileable_type ? { fileable_type: filters.value.fileable_type } : {}),
+      ...(filters.value.fileableType ? { fileable_type: filters.value.fileableType } : {}),
+      ...(filters.value.kind ? { kind: filters.value.kind } : {}),
       ...(filters.value.search ? { search: filters.value.search } : {}),
-      ...(filters.value.with_trashed ? { with_trashed: true } : {}),
+      ...(filters.value.sort !== 'newest' ? { sort: filters.value.sort } : {}),
+      ...(filters.value.dateFrom ? { date_from: filters.value.dateFrom } : {}),
+      ...(filters.value.dateTo ? { date_to: filters.value.dateTo } : {}),
+      // Dve polohy toho istého prepínača: „aj zmazané" vs. „len zmazané".
+      ...(filters.value.trash === 'with_trashed' ? { with_trashed: true } : {}),
+      ...(filters.value.trash === 'deleted' ? { deleted: true } : {}),
       page,
     }
     const res = isAdmin.value
-      ? await listAdminFiles({ ...params, ...(filters.value.fileable_id ? { fileable_id: filters.value.fileable_id } : {}) })
+      ? await listAdminFiles({ ...params, ...(filters.value.fileableId ? { fileable_id: filters.value.fileableId } : {}) })
       : await listDashboardFiles(params)
     files.value = res.data
     total.value = res.total
@@ -356,8 +400,5 @@ onMounted(() => {
   load(1)
   window.addEventListener('keydown', onEsc)
 })
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onEsc)
-  clearTimeout(searchTimer)
-})
+onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
 </script>

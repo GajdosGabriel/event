@@ -27,7 +27,15 @@ class VenueController extends Controller
 
         $viewRecorder->record($venue, $request);
 
+        // Bez obce ostala na detaile z adresy len ulica a PSČ. Tvar {id, name}
+        // držíme rovnaký ako vo VenueResource — surová relácia nesie `fullname`,
+        // nie `name`, a front tak má na obec jedinú cestu.
+        $venue->loadMissing('municipality');
+
         $data = $venue->toArray();
+        $data['municipality'] = $venue->municipality
+            ? ['id' => $venue->municipality->id, 'name' => $venue->municipality->fullname]
+            : null;
         // Kontaktovateľné len ak má miesto vlastnícky kanál s aktívnym majiteľom
         // (a návštevník ním nie je sám).
         $data['contactable'] = $venue->isContactableBy(auth('sanctum')->user());

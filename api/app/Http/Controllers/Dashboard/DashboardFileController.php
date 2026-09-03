@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Http\Controllers\Concerns\FiltersFileListing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FileStoreRequest;
 use App\Http\Requests\FileUpdateRequest;
@@ -20,6 +21,8 @@ use Illuminate\Support\Collection;
 
 class DashboardFileController extends Controller
 {
+    use FiltersFileListing;
+
     private const FILEABLE_MAP = [
         'canal' => Canal::class,
         'event' => Event::class,
@@ -35,7 +38,8 @@ class DashboardFileController extends Controller
      * detaile. Bez neho o všetky súbory používateľa — tie, čo visia na jeho
      * kanáloch, ich podujatiach a miestach.
      *
-     * Query params: fileable_type (canal|event|venue), fileable_id, search, with_trashed
+     * Query params: fileable_type (canal|event|venue), fileable_id a filtre
+     * výpisu z {@see FiltersFileListing} (search, kind, sort, dátumy, kôš).
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -46,9 +50,7 @@ class DashboardFileController extends Controller
             // celého dashboardu je to nepovinný filter.
             'fileable_type' => [$request->filled('fileable_id') ? 'required' : 'sometimes', 'string', 'in:canal,event,venue'],
             'fileable_id'   => ['sometimes', 'integer', 'min:1'],
-            'search'        => ['sometimes', 'string', 'max:100'],
-            'with_trashed'  => ['sometimes', 'boolean'],
-        ]);
+        ] + $this->fileListingRules());
 
         if (! $request->filled('fileable_id')) {
             return $this->indexForUser($request);
@@ -86,9 +88,7 @@ class DashboardFileController extends Controller
 
         $query = File::query();
 
-        if ($request->boolean('with_trashed')) {
-            $query->withTrashed();
-        }
+        $this->applyFileTrashState($query, $request);
 
         $query->where(function ($outer) use ($types, $canalIds) {
             foreach ($types as $type) {
@@ -98,11 +98,7 @@ class DashboardFileController extends Controller
             }
         });
 
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->string('search') . '%');
-        }
-
-        $files = $query->latest()->paginate(30);
+        $files = $this->applyFileListFilters($query, $request)->paginate(30);
 
         $this->attachFileableNames($files->getCollection());
 

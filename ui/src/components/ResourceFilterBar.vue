@@ -8,7 +8,7 @@
           ref="searchInput"
           v-model="search"
           type="search"
-          :placeholder="t('filters.search')"
+          :placeholder="searchPlaceholder || t('filters.search')"
           class="form-input pr-8"
           autocomplete="off"
           role="combobox"
@@ -93,7 +93,7 @@
     >
     <!-- Status -->
     <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" @change="emitChange">
-      <option value="">{{ t('filters.allStatuses') }}</option>
+      <option value="">{{ allStatusesLabel || t('filters.allStatuses') }}</option>
       <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
@@ -161,6 +161,14 @@ export interface FilterOption {
 
 const props = withDefaults(defineProps<{
   statusOptions?: FilterOption[]
+  /**
+   * Popisok prázdnej voľby v prepínači stavu. Predvolene „Všetky stavy";
+   * stránka ho prepíše tam, kde prázdna voľba nie je „všetko" — vo výpise
+   * súborov znamená „bez zmazaných".
+   */
+  allStatusesLabel?: string
+  /** Popisok v hľadacom poli; predvolene všeobecné „Hľadať…". */
+  searchPlaceholder?: string
   sortOptions?: FilterOption[]
   phaseOptions?: FilterOption[]
   showDateRange?: boolean
@@ -179,6 +187,8 @@ const props = withDefaults(defineProps<{
   collapsible?: boolean
 }>(), {
   statusOptions: () => [],
+  allStatusesLabel: '',
+  searchPlaceholder: '',
   phaseOptions: () => [],
   // Bez default hodnoty: predvolené zoradenie sa skladá až v `sortChoices`,
   // inak by sa popisky preložili raz pri načítaní a prepnutie jazyka

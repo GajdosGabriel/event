@@ -34,6 +34,7 @@ class CanalResource extends JsonResource
         }
 
         $isPublished = $this->status === ModelStatus::Published;
+        $isTrashed = $this->resource->trashed();
         $canUpdate = $user?->can('update', $this->resource) ?? false;
 
         // Viď VenueResource — dôvod, prečo mazanie neprejde, ide do tlačidla.
@@ -50,9 +51,11 @@ class CanalResource extends JsonResource
             'update' => $canUpdate,
             'publish' => $user?->can('publish', $this->resource) ?? false,
             'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
-            'delete' => $blocker === null && ($user?->can('delete', $this->resource) ?? false),
+            // Viď VenueResource — k policy a referenčnému zámku pribúda kôš:
+            // zmazaný záznam sa už len obnovuje, živý sa neobnovuje.
+            'delete' => ! $isTrashed && $blocker === null && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
-            'restore' => $user?->can('restore', $this->resource) ?? false,
+            'restore' => $isTrashed && ($user?->can('restore', $this->resource) ?? false),
         ];
 
         if ($this->relationLoaded('municipality') && $this->municipality) {

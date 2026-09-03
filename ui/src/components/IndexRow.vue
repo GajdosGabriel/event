@@ -11,7 +11,7 @@
     </div>
 
     <div class="min-w-0">
-      <p class="text-base md:text-[0.97rem]">
+      <p class="text-base font-semibold md:text-[0.97rem]">
         <RouterLink v-if="showLink" :to="showLink" class="index-row-link">{{ title }}</RouterLink>
         <span v-else class="text-slate-900">{{ title }}</span>
       </p>

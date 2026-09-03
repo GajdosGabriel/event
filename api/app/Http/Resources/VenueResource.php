@@ -32,6 +32,7 @@ class VenueResource extends JsonResource
         }
 
         $isPublished = $this->status === ModelStatus::Published;
+        $isTrashed = $this->resource->trashed();
         $canUpdate = $user?->can('update', $this->resource) ?? false;
 
         // Prečo sa miesto nedá zmazať, hoci právo na to je — používa ho
@@ -53,10 +54,12 @@ class VenueResource extends JsonResource
             'publish' => $user?->can('publish', $this->resource) ?? false,
             'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
             // Stavový zámok rieši policy, referenčný model — tlačidlo potrebuje
-            // oba naraz, inak by kliknutie skončilo na 422.
-            'delete' => $blocker === null && ($user?->can('delete', $this->resource) ?? false),
+            // oba naraz, inak by kliknutie skončilo na 422. Kôš je tretia
+            // podmienka: zmazaný záznam sa už len obnovuje, živý sa neobnovuje.
+            // Menu sa na stav nedopytuje druhýkrát, verí tomuto príznaku.
+            'delete' => ! $isTrashed && $blocker === null && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
-            'restore' => $user?->can('restore', $this->resource) ?? false,
+            'restore' => $isTrashed && ($user?->can('restore', $this->resource) ?? false),
         ];
 
         if ($this->relationLoaded('municipality') && $this->municipality) {

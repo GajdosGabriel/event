@@ -1,11 +1,25 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
+import { mapNestedEventPermissions, type NestedEventPermissions } from './events'
 import type { VenueItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem, CoordinatesSource } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
 
 function baseUrl(scope: Scope) {
   return scope === 'admin' ? '/admin/venues' : '/dashboard/venues'
+}
+
+/**
+ * Obec z odpovede. Dashboard aj admin ju posielajú cez VenueResource ako
+ * `name`, staršie surové payloady nesú stĺpec `fullname` — bez oboch by na
+ * detaile mesto ticho zmizlo.
+ */
+function mapMunicipality(raw: unknown): VenueItem['municipality'] {
+  if (!raw || typeof raw !== 'object') return null
+  const m = raw as Record<string, unknown>
+  const name = (m['name'] as string) ?? (m['fullname'] as string) ?? null
+  if (!name) return null
+  return { id: m['id'] as number, name }
 }
 
 function mapVenue(raw: Record<string, unknown>): VenueItem {
@@ -36,10 +50,9 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     updatedAt: (raw['updated_at'] as string) ?? '',
     uploadedFiles: (raw['uploaded_files'] as VenueItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as VenueItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
-    deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     allowedStatuses: (raw['allowed_statuses'] as VenueItem['allowedStatuses']) ?? [],
-    municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
+    municipality: mapMunicipality(raw['municipality']),
     canalsList: ((raw['canals_list'] as Record<string,unknown>[]) ?? []).map(c => ({ id: c['id'] as number, name: c['name'] as string, isOwner: c['is_owner'] as boolean })),
     contactable: Boolean(raw['contactable']),
   }
@@ -111,6 +124,8 @@ export interface VenueEventItem {
   canalName: string | null
   imageUrl: string | null
   imageUrlLarge: string | null
+  /** Čo s podujatím smie prihlásený používateľ; verejný výpis ich neposiela. */
+  permissions?: NestedEventPermissions
 }
 
 function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
@@ -124,6 +139,7 @@ function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
     canalName: (r['canal_name'] as string) ?? null,
     imageUrl: (r['image_url'] as string) ?? null,
     imageUrlLarge: (r['image_url_large'] as string) ?? null,
+    permissions: mapNestedEventPermissions(r['permissions']),
   }
 }
 

@@ -78,12 +78,25 @@ class CanalController extends Controller
     {
         $canal = $this->canalRepository->adminShow($id);
 
+        $user = request()->user();
+
         $events = Event::where('canal_id', $canal->id)
             ->orderByDesc('start_at')
             ->limit(50)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
 
-        return response()->json($events);
+        return response()->json($events->map(fn ($ev) => [
+            'id' => $ev->id,
+            'name' => $ev->name,
+            'start_at' => $ev->start_at,
+            'end_at' => $ev->end_at,
+            'status' => $ev->status,
+            // Menu akcií nad zoznamom sa riadi právami — viď dashboard verziu.
+            'permissions' => [
+                'view' => $user->can('view', $ev),
+                'update' => $user->can('update', $ev),
+            ],
+        ]));
     }
 
     public function store(CanalStoreRequest $request): JsonResponse

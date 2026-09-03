@@ -116,9 +116,10 @@
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
                 <div class="shrink-0">
-                  <RowActions>
-                    <RouterLink :to="`/events/`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
-                    <RouterLink v-if="ev.status !== 'archived'" :to="`/events//edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+                  <!-- Viď VenueShowPage — položky aj odkazy riadi policy. -->
+                  <RowActions v-if="ev.permissions?.view || ev.permissions?.update">
+                    <RouterLink v-if="ev.permissions?.view" :to="`${prefix}/events/${ev.id}`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+                    <RouterLink v-if="ev.permissions?.update" :to="`${prefix}/events/${ev.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
                   </RowActions>
                 </div>
               </li>

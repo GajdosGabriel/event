@@ -84,7 +84,14 @@ export interface AdminFileParams {
   fileable_type?: string
   fileable_id?: number
   search?: string
+  /** Druh podľa formátu — image|pdf|document|spreadsheet|video|audio|archive|other. */
+  kind?: string
+  sort?: string
+  date_from?: string
+  date_to?: string
+  /** Vo výpise aj zmazané súbory; `deleted` naopak vráti len tie zmazané. */
   with_trashed?: boolean
+  deleted?: boolean
   page?: number
 }
 

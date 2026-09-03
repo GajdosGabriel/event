@@ -51,6 +51,34 @@
               @filter-canal="setCanalFilter(item)"
             />
           </template>
+          <template v-else-if="resource === 'canal'" #detail>
+            <CanalRowDetail
+              :municipality-id="item.municipalityId"
+              :municipality-name="item.municipalityName"
+              :organization-name="item.organizationName"
+              :identity-mode-label="item.identityModeLabel"
+              :events-count="item.eventsCount"
+              :venues-count="item.venuesCount"
+              :members-count="item.membersCount"
+              :created-at="item.createdAt"
+              :deleted="Boolean(item.deletedAt)"
+              :index-path="prefix"
+            />
+          </template>
+          <template v-else #detail>
+            <VenueRowDetail
+              :municipality-id="item.municipalityId"
+              :municipality-name="item.municipalityName"
+              :canals="item.canalsList"
+              :events-count="item.eventsCount"
+              :capacity="item.capacity"
+              :category="item.category"
+              :created-at="item.createdAt"
+              :deleted="Boolean(item.deletedAt)"
+              :index-path="prefix"
+              :canal-prefix="canalPrefix"
+            />
+          </template>
           <template #actions>
             <ResourceActionsMenu
               :resource="resource"
@@ -75,6 +103,8 @@ import { useRoute } from 'vue-router'
 import http from '@/api/index'
 import IndexRow from '@/components/IndexRow.vue'
 import EventRowDetail from '@/components/EventRowDetail.vue'
+import CanalRowDetail from '@/components/CanalRowDetail.vue'
+import VenueRowDetail from '@/components/VenueRowDetail.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
@@ -82,7 +112,7 @@ import { useSettings } from '@/composables/useSettings'
 import { fmtDate } from '@/utils/dateFormat'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { useI18n } from '@/i18n'
-import type { ModelPermissions } from '@/types'
+import type { ModelPermissions, RowCanal } from '@/types'
 
 const props = defineProps<{
   resource: 'canal' | 'venue' | 'event'
@@ -101,6 +131,8 @@ const perPage = computed(() => {
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => `${scope.value === 'admin' ? '/admin' : '/dashboard'}/${props.resource}s`)
+/** Riadok miesta odkazuje na detail kanála — ten žije pod iným zdrojom. */
+const canalPrefix = computed(() => `${scope.value === 'admin' ? '/admin' : '/dashboard'}/canals`)
 
 // ── Per-resource config ──────────────────────────────────────────────────────
 
@@ -140,8 +172,6 @@ interface ResourceItem {
   deletedAt?: string | null
   createdAt?: string | null
   permissions?: ModelPermissions
-  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
-  deleteBlockedReason?: string | null
   /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
   unpublishBlockedReason?: string | null
   canalId?: number | null
@@ -154,6 +184,28 @@ interface ResourceItem {
   endAt?: string | null
   /** Počet zobrazení; chýba, keď naň používateľ nemá právo. */
   viewsCount?: number | null
+  /** Obec záznamu — kanál ju má priamo, miesto cez `village_id`. */
+  municipalityId?: number | null
+  municipalityName?: string | null
+  /** Firma kanála (jeho vlastná, nie firma nad kanálom podujatia). */
+  organizationName?: string | null
+  identityModeLabel?: string | null
+  /** Kanály, ktoré miesto používajú. */
+  canalsList?: RowCanal[]
+  capacity?: number | null
+  category?: string | null
+  /**
+   * Počty zo vzťahov — dotiahne ich `withCount` v index dotaze. `null` znamená
+   * „odpoveď ich neniesla", nie nulu, takže sa fakt radšej nevykreslí.
+   */
+  eventsCount?: number | null
+  venuesCount?: number | null
+  membersCount?: number | null
+}
+
+/** Z `*_count` atribútov modelu — chýbajúci kľúč nesmie skončiť ako 0. */
+function countOrNull(value: unknown): number | null {
+  return typeof value === 'number' ? value : null
 }
 
 function mapItem(raw: Record<string, unknown>): ResourceItem {
@@ -180,6 +232,14 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
   const createdAtRaw = raw['created_at'] as string | null
   const createdAt = createdAtRaw ? fmtDate(createdAtRaw) : null
 
+  // Obec chodí ako objekt len tam, kde ju dotaz dotiahol vzťahom; pri kanáli
+  // ostane aspoň id zo stĺpca, ale bez názvu chip nekreslíme.
+  const municipalityRaw = raw['municipality'] as { id: number; name: string } | null
+  const organizationRaw = raw['organization'] as { id: number; name: string } | null
+
+  const canalsList = ((raw['canals_list'] as { id: number; name: string; is_owner: boolean }[] | undefined) ?? [])
+    .map((c) => ({ id: c.id, name: c.name, isOwner: Boolean(c.is_owner) }))
+
   return {
     id: raw['id'] as number,
     name: (raw['name'] as string) ?? '',
@@ -193,7 +253,6 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     deletedAt: (raw['deleted_at'] as string) ?? null,
     createdAt,
     permissions: raw['permissions'] as ModelPermissions | undefined,
-    deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     canalId,
     canalName,
@@ -202,6 +261,16 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
     // Backend ho do odpovede dáva len organizátorovi a adminovi — pre ostatných
     // kľúč vôbec neexistuje a počítadlo sa nevykreslí.
     viewsCount: typeof raw['views_count'] === 'number' ? (raw['views_count'] as number) : null,
+    municipalityId: municipalityRaw?.id ?? null,
+    municipalityName: municipalityRaw?.name ?? null,
+    organizationName: organizationRaw?.name ?? null,
+    identityModeLabel: (raw['identity_mode_label'] as string) ?? null,
+    canalsList,
+    capacity: countOrNull(raw['capacity']),
+    category: (raw['category'] as string) ?? null,
+    eventsCount: countOrNull(raw['events_count']),
+    venuesCount: countOrNull(raw['venues_count']),
+    membersCount: countOrNull(raw['users_count']),
   }
 }
 

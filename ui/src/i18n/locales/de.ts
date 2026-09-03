@@ -919,6 +919,17 @@ const de: Messages = {
       empty: 'Keine Orte.',
       loadFailed: 'Orte konnten nicht geladen werden.',
     },
+    row: {
+      deleted: 'Gelöscht',
+      filterByMunicipality: 'Nach Gemeinde filtern: {name}',
+      ownerCanal: '{name} — Eigentümer des Ortes',
+      moreCanals: '+{n} weitere',
+      capacity: 'Kapazität {n}',
+      createdAt: 'erstellt {date}',
+      counts: {
+        events: { one: '{n} Veranstaltung', few: '{n} Veranstaltungen', many: '{n} Veranstaltungen' },
+      },
+    },
     show: {
       notFound: 'Ort nicht gefunden',
       events: 'Veranstaltungen an diesem Ort',
@@ -985,6 +996,16 @@ const de: Messages = {
       empty: 'Keine Kanäle.',
       loadFailed: 'Kanäle konnten nicht geladen werden.',
       fallbackName: 'Kanal #{id}',
+    },
+    row: {
+      deleted: 'Gelöscht',
+      filterByMunicipality: 'Nach Gemeinde filtern: {name}',
+      createdAt: 'erstellt {date}',
+      counts: {
+        events: { one: '{n} Veranstaltung', few: '{n} Veranstaltungen', many: '{n} Veranstaltungen' },
+        venues: { one: '{n} Ort', few: '{n} Orte', many: '{n} Orte' },
+        members: { one: '{n} Mitglied', few: '{n} Mitglieder', many: '{n} Mitglieder' },
+      },
     },
     show: {
       notFound: 'Kanal nicht gefunden',
@@ -1999,8 +2020,17 @@ const de: Messages = {
       search: 'Dateinamen suchen…',
       entityId: 'ID der Entität',
       withTrashed: 'Gelöschte einschließen',
+      active: 'Ohne gelöschte',
+      onlyDeleted: 'Nur gelöschte',
+      typeTitle: 'Datensatztyp',
+      kindTitle: 'Dateiart',
+      allKinds: 'Alle Arten',
+      sort: {
+        largest: 'Größte',
+        smallest: 'Kleinste',
+      },
       types: {
-        all: 'Alle',
+        all: 'Alle Typen',
         event: 'Veranstaltung',
         canal: 'Kanal',
         venue: 'Ort',

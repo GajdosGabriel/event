@@ -156,6 +156,14 @@ trait HasCommonFilters
             return $query->where($this->qualifyColumn('village_id'), $municipality);
         }
 
+        // Kanál nesie obec priamo na sebe (`municipality_id`) — a práve podľa
+        // nej ho počíta bočný prehľad obcí. Bez tejto vetvy by spadol až na
+        // vetvu s miestami a filter by ukazoval iné záznamy, než na koľko sa
+        // kliklo.
+        if ($this->hasCommonFilterColumn('municipality_id')) {
+            return $query->where($this->qualifyColumn('municipality_id'), $municipality);
+        }
+
         if (method_exists($this, 'venue')) {
             return $query->whereHas('venue', fn (Builder $q) => $q->where('village_id', $municipality));
         }
@@ -290,6 +298,14 @@ trait HasCommonFilters
                 : $query,
             'upcoming' => $this->hasCommonFilterColumn('start_at')
                 ? $this->applyUpcomingSort($query->reorder())
+                : $query,
+            // Podľa veľkosti — dáva zmysel len tam, kde sa niečo ukladá (súbory);
+            // ostatným modelom stĺpec chýba a poradie ostane nezmenené.
+            'largest' => $this->hasCommonFilterColumn('size')
+                ? $query->reorder()->orderByDesc($this->qualifyColumn('size'))
+                : $query,
+            'smallest' => $this->hasCommonFilterColumn('size')
+                ? $query->reorder()->orderBy($this->qualifyColumn('size'))
                 : $query,
             default => $query,
         };

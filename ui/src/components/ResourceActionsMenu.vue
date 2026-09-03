@@ -2,45 +2,42 @@
   <!--
     Jedno menu akcií pre výpis aj detail kanála, miesta a podujatia. Položky
     riadi výhradne `permissions` z backendu, takže obe miesta ponúkajú presne
-    to isté a nikde sa nedá kliknúť na akciu, ktorú by policy odmietla.
+    to isté a v menu nestojí nič, čo by policy odmietla.
+
+    Neuskutočniteľná akcia sa neponúka ani zošednutá. Zošednuté „Zmazať"
+    s tooltipom vysvetľovalo dôvod, ale zároveň vyzeralo ako porucha —
+    a na dotyku, kde tooltip neexistuje, nevysvetlilo nič. Dôvod ostáva tam,
+    kde ho používateľ hľadá: vo formulári pri voľbe stavu (zamknutá voľba
+    „Koncept" s hintom) a v hláške z API, keď akciu spustí inou cestou.
   -->
-  <RowActions>
-    <RouterLink v-if="showView" :to="base" class="row-menu-item">{{ t('common.view') }}</RouterLink>
-    <RouterLink v-if="item.permissions?.update" :to="`${base}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+  <RowActions v-if="hasAnyAction">
+    <RouterLink v-if="canView" :to="base" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+    <RouterLink v-if="canUpdate" :to="`${base}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
     <button
-      v-else-if="resource === 'event' && item.permissions?.duplicate"
+      v-else-if="canDuplicate"
       class="row-menu-item"
       @click="duplicate"
     >{{ t('common.copy') }}</button>
-    <!-- Rovnako ako pri mazaní: zablokované stiahnutie z výpisu sa neskrýva,
-         ale zošedne a povie prečo — použitý kanál či miesto z výpisu zmiznúť
-         nesmie, lebo naň verejne odkazuje podujatie. -->
     <button
-      v-if="showPublish && (item.permissions?.publish || showsUnpublish)"
+      v-if="canPublish || canUnpublish"
       class="row-menu-item"
-      :disabled="Boolean(item.unpublishBlockedReason)"
-      :title="item.unpublishBlockedReason ?? undefined"
       @click="togglePublish"
-    >{{ showsUnpublish ? t('common.unpublish') : t('common.publish') }}</button>
+    >{{ canUnpublish ? t('common.unpublish') : t('common.publish') }}</button>
     <!-- Archivované podujatie sa inak nedá ani upraviť, ani zmazať; toto je
          jediná cesta späť, keď ho archivoval preklep v termíne. Ponúka sa len
          tomu, na kom nevisia vydané lístky — rozhoduje backend. -->
     <button
-      v-if="item.permissions?.unarchive"
+      v-if="canUnarchive"
       class="row-menu-item"
       @click="unarchive"
     >{{ t('common.unarchive') }}</button>
-    <!-- Zablokované mazanie sa neskrýva, ale zošedne a povie prečo —
-         tichý zmiznutý button je horší než vysvetlenie. -->
     <button
-      v-if="(item.permissions?.delete || item.deleteBlockedReason) && !item.deletedAt"
+      v-if="canDelete"
       class="row-menu-item row-menu-item-danger"
-      :disabled="Boolean(item.deleteBlockedReason)"
-      :title="item.deleteBlockedReason ?? undefined"
       @click="remove"
     >{{ t('common.remove') }}</button>
     <button
-      v-if="item.permissions?.restore && item.deletedAt"
+      v-if="canRestore"
       class="row-menu-item"
       @click="restore"
     >{{ t('common.restore') }}</button>
@@ -60,14 +57,7 @@ import type { ModelPermissions } from '@/types'
 /** Toľko zo záznamu, koľko menu potrebuje — výpis aj detail to majú. */
 interface ActionsMenuItem {
   id: number
-  /** Stav záznamu — určuje smer tlačidla (publikovať vs stiahnuť z výpisu). */
-  status?: string | null
   permissions?: ModelPermissions
-  deletedAt?: string | null
-  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
-  deleteBlockedReason?: string | null
-  /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
-  unpublishBlockedReason?: string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -95,22 +85,34 @@ const API_SLUGS = { canal: 'canals', venue: 'venues', event: 'events' } as const
 /** Cesta v routeri aj v API je tá istá — `/dashboard/canals/5`. */
 const base = computed(() => `/${props.scope}/${API_SLUGS[props.resource]}/${props.item.id}`)
 
-/**
- * Zablokované stiahnutie z výpisu policy nepovolí, takže právo `unpublish`
- * príde `false` — ale tlačidlo aj tak patrí do smeru „stiahnuť", inak by
- * publikovaný záznam ponúkal „Publikovať". Rozhoduje teda dôvod blokácie —
- * len pri publikovanom zázname: dôvod chodí v každom stave (zamyká vo formulári
- * voľbu „Koncept"), ale konceptu a archívu patrí opačný smer, „Publikovať".
- */
-const showsUnpublish = computed(
-  () => Boolean(props.item.permissions?.unpublish)
-    || (props.item.status === 'published' && Boolean(props.item.unpublishBlockedReason)),
-)
+const perms = computed<ModelPermissions | undefined>(() => props.item.permissions)
+
+// Každá položka menu = jedno právo z policy. Stav záznamu (publikované,
+// archivované, v koši) sa tu nedopočítava — to už spravil backend, keď právo
+// počítal, a dve nezávislé úvahy o tom istom sa vždy rozídu.
+const canView = computed(() => props.showView && Boolean(perms.value?.view))
+const canUpdate = computed(() => Boolean(perms.value?.update))
+const canDuplicate = computed(() => props.resource === 'event' && Boolean(perms.value?.duplicate))
+const canPublish = computed(() => props.showPublish && Boolean(perms.value?.publish))
+const canUnpublish = computed(() => props.showPublish && Boolean(perms.value?.unpublish))
+const canUnarchive = computed(() => Boolean(perms.value?.unarchive))
+const canDelete = computed(() => Boolean(perms.value?.delete))
+const canRestore = computed(() => Boolean(perms.value?.restore))
+
+/** Bez jedinej položky by ostalo visieť prázdne menu s troma bodkami. */
+const hasAnyAction = computed(() => canView.value
+  || canUpdate.value
+  || canDuplicate.value
+  || canPublish.value
+  || canUnpublish.value
+  || canUnarchive.value
+  || canDelete.value
+  || canRestore.value)
 
 async function togglePublish() {
   // Smer určuje právo, nie published_at — publikované podujatie má `unpublish`,
   // koncept `publish`. Endpoint je ten istý, líši sa len príznakom.
-  const publishing = !props.item.permissions?.unpublish
+  const publishing = !canUnpublish.value
   try {
     await publishRequest(`${base.value}/publish`, publishing)
     toast.success(publishing ? t('common.published') : t('common.unpublished'))

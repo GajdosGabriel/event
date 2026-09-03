@@ -116,20 +116,22 @@ class EventResource extends JsonResource
         ] : null;
 
         $isPublished = $this->status === ModelStatus::Published;
+        $isTrashed = $this->resource->trashed();
 
         $data['permissions'] = [
             'view' => $user?->can('view', $this->resource) ?? false,
             'update' => $user?->can('update', $this->resource) ?? false,
             'publish' => $user?->can('publish', $this->resource) ?? false,
             'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
-            'delete' => !$isPublished && ($user?->can('delete', $this->resource) ?? false),
+            // Kôš je súčasť práva, nie dopočet v menu — viď VenueResource.
+            'delete' => ! $isTrashed && !$isPublished && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
             // Stav sa pýta vopred, nech sa policy (a jej dotaz na lístky) nespúšťa
             // na každom riadku výpisu — odomykať je čo len archivovanému.
             'unarchive' => $this->status === ModelStatus::Archived
                 && ($user?->can('unarchive', $this->resource) ?? false),
             'duplicate' => $user?->can('duplicate', $this->resource) ?? false,
-            'restore' => $user?->can('restore', $this->resource) ?? false,
+            'restore' => $isTrashed && ($user?->can('restore', $this->resource) ?? false),
             'view_tickets' => $user?->can('view', $this->resource) ?? false,
             'checkin' => ($user?->can('view', $this->resource) ?? false) && ($user?->can('ticket.checkin') ?? false),
         ];

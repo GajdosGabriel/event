@@ -142,11 +142,25 @@ class DashboardCanalController extends Controller
         $canal = $this->canalRepository->dashboardShow($id);
         $this->authorize('view', $canal);
 
+        $user = request()->user();
+
         $events = Event::where('canal_id', $canal->id)
             ->orderByDesc('start_at')
             ->limit(50)
-            ->get(['id', 'name', 'start_at', 'end_at', 'status']);
+            ->get(['id', 'name', 'start_at', 'end_at', 'status', 'canal_id']);
 
-        return response()->json($events);
+        return response()->json($events->map(fn ($ev) => [
+            'id' => $ev->id,
+            'name' => $ev->name,
+            'start_at' => $ev->start_at,
+            'end_at' => $ev->end_at,
+            'status' => $ev->status,
+            // Aj tento zoznam má menu akcií — bez práv by ponúkalo „Upraviť"
+            // aj na archivovanom podujatí, ktorému to policy zakazuje.
+            'permissions' => [
+                'view' => $user->can('view', $ev),
+                'update' => $user->can('update', $ev),
+            ],
+        ]));
     }
 }

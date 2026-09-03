@@ -56,7 +56,9 @@
   .index-row-thumb { @apply block h-28 w-full overflow-hidden rounded-md border border-slate-200 md:h-14 md:w-[72px]; }
   .index-row-thumb img { @apply block size-full object-cover; }
   .index-row-thumb-empty { @apply grid size-full place-items-center bg-slate-50 text-slate-300; }
-  .index-row-status { @apply whitespace-nowrap rounded-full border border-slate-300 px-2 py-1 text-[0.72rem] uppercase tracking-wide text-slate-600; }
+  /* Typograficky zhodné s chipmi v riadku (`.row-chip`) — stav je ďalší údaj
+     o zázname, nie iný druh prvku. Odlišuje ho rámček, nie veľkosť písma. */
+  .index-row-status { @apply whitespace-nowrap rounded-full border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600; }
   .index-row-status.status-live { @apply border-green-300 bg-green-100 text-green-800; }
   .index-row-actions { @apply relative z-10 flex flex-wrap items-center justify-start gap-1.5 md:justify-end; }
 
@@ -68,7 +70,12 @@
   .row-chip-past { @apply bg-slate-100 text-slate-500; }
   .row-chip-danger { @apply bg-rose-100 text-rose-700; }
   .row-chip-canal { @apply relative z-10 bg-teal-50 text-teal-700; }
-  button.row-chip-canal { @apply cursor-pointer transition-colors hover:bg-teal-100; }
+  button.row-chip-canal, a.row-chip-canal { @apply cursor-pointer no-underline transition-colors hover:bg-teal-100; }
+  /* Obec. `relative z-10` je nutnosť, nie ozdoba — inak ho prekryje odkaz
+     názvu, ktorý sa cez `::after` roztiahne na celý riadok. */
+  .row-chip-place { @apply relative z-10 bg-slate-100 text-slate-600; }
+  a.row-chip-place { @apply cursor-pointer no-underline transition-colors hover:bg-slate-200; }
+  .row-chip-org { @apply bg-indigo-50 text-indigo-700; }
   /* Zvyšné metadáta sú obyčajný text oddelený bodkou — nesúťažia s chipmi. */
   .row-facts { @apply flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500; }
   .row-facts > span + span::before { @apply mr-2 text-slate-300; content: '·'; }

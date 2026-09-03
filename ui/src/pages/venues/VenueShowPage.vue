@@ -7,12 +7,20 @@
     </div>
 
     <template v-else-if="venue">
-      <!-- Breadcrumb + akcie. Úpravy, publikovanie aj mazanie sedia v tom istom
-           menu ako vo výpise — jedno ovládanie, jedny práva. -->
+      <!-- Hero obrázok -->
+      <div v-if="venue.imageUrl" class="mb-4 h-52 w-full overflow-hidden rounded-2xl">
+        <img :src="venue.imageUrl" :alt="venue.name" class="h-full w-full object-cover" />
+      </div>
+
+      <!-- Breadcrumb + akcie. Ten istý pruh ako nad podujatím a pod obrázkom
+           rovnako ako tam — kto prejde z jedného detailu na druhý, hľadá
+           tlačidlá na tom istom mieste. Miesto zatiaľ nemá vlastné funkčné
+           obrazovky (lístky, check-in), takže tu stojí len návrat, náhľad
+           verejnej stránky a menu s úpravou, publikovaním a mazaním. -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <ActionButton :to="indexRoute" :label="t('common.back')" />
+        <PublicPreviewLink class="ml-auto" :to="publicVenuePath(venue)" />
         <ResourceActionsMenu
-          class="ml-auto"
           resource="venue"
           :scope="scope"
           :item="venue"
@@ -20,11 +28,6 @@
           @changed="reload"
           @removed="router.push(indexRoute)"
         />
-      </div>
-
-      <!-- Hero obrázok -->
-      <div v-if="venue.imageUrl" class="mb-4 h-52 w-full overflow-hidden rounded-2xl">
-        <img :src="venue.imageUrl" :alt="venue.name" class="h-full w-full object-cover" />
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -111,9 +114,12 @@
                 </div>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
                 <div class="shrink-0">
-                  <RowActions>
-                    <RouterLink :to="`/events/`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
-                    <RouterLink v-if="ev.status !== 'archived'" :to="`/events//edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
+                  <!-- Odkazy aj položky riadi to isté, čo výpis podujatí:
+                       práva z policy. „Upraviť" pri archivovanom podujatí
+                       nechodí, takže sa ani neponúka. -->
+                  <RowActions v-if="ev.permissions?.view || ev.permissions?.update">
+                    <RouterLink v-if="ev.permissions?.view" :to="`${prefix}/events/${ev.id}`" class="row-menu-item">{{ t('common.view') }}</RouterLink>
+                    <RouterLink v-if="ev.permissions?.update" :to="`${prefix}/events/${ev.id}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
                   </RowActions>
                 </div>
               </li>
@@ -188,10 +194,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showVenue, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import { listFiles, type FileItem } from '@/api/files'
+import ActionButton from '@/components/ActionButton.vue'
+import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
+import { publicVenuePath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 import type { VenueItem } from '@/types'
 

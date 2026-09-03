@@ -173,6 +173,8 @@ class VenueController extends Controller
         $venue = $this->venueRepository->adminShow($id);
         $this->authorize('view', $venue);
 
+        $user = request()->user();
+
         $events = Event::where('venue_id', $venue->id)
             ->with('canal:id,name')
             ->orderByDesc('start_at')
@@ -187,6 +189,11 @@ class VenueController extends Controller
             'status' => $ev->status,
             'canal_id' => $ev->canal_id,
             'canal_name' => $ev->canal?->name,
+            // Menu akcií nad zoznamom sa riadi právami — viď dashboard verziu.
+            'permissions' => [
+                'view' => $user->can('view', $ev),
+                'update' => $user->can('update', $ev),
+            ],
         ]));
     }
 }

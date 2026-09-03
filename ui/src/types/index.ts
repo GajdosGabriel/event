@@ -313,8 +313,6 @@ export interface CanalItem {
   updatedAt: string
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
-  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
-  deleteBlockedReason: string | null
   /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
   unpublishBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
@@ -382,8 +380,6 @@ export interface VenueItem {
   updatedAt: string
   uploadedFiles: UploadedFileItem[]
   permissions: ModelPermissions
-  /** Prečo sa záznam nedá zmazať — počíta backend zo vzťahov, nie zo stavu. */
-  deleteBlockedReason: string | null
   /** Prečo sa záznam nedá stiahnuť z výpisu — odkazuje naň podujatie. */
   unpublishBlockedReason: string | null
   allowedStatuses: AllowedStatusOption[]
@@ -799,4 +795,11 @@ export interface StatsOverview {
   upcoming: { id: number; name: string; startAt: string | null; endAt: string | null; status: ModelStatus | null; venue: string | null; seats: number }[]
   topCanals: { id: number; name: string; eventsTotal: number; eventsRecent: number }[]
   users: { total: number; verified: number; blocked: number; active30d: number } | null
+}
+
+/** Kanál v chipe riadku výpisu miest — z `canals_list` v odpovedi. */
+export interface RowCanal {
+  id: number
+  name: string
+  isOwner: boolean
 }

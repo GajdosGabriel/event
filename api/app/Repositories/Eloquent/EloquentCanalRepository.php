@@ -14,6 +14,8 @@ use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -43,6 +45,46 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $user = Auth::user();
 
         return $this->latestFirst($user->canals()->withTrashed(), 'canals.created_at');
+    }
+
+    public function adminIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
+    {
+        Gate::authorize('viewAny', $this->entity);
+
+        return $this->paginateFilteredQuery($this->withRowContext($this->adminIndexQuery()), $perPage, $filters);
+    }
+
+    public function dashboardIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
+    {
+        Gate::authorize('viewAny', $this->entity);
+
+        return $this->paginateFilteredQuery($this->withRowContext($this->dashboardIndexQuery()), $perPage, $filters);
+    }
+
+    /**
+     * Kontext pre riadok výpisu — obec, firma a počty naviazaných záznamov.
+     * Bez nich nesie riadok len názov a stav, čo kanál od kanála nerozlíši.
+     *
+     * Zámerne tu, a nie v `adminIndexQuery()`/`dashboardIndexQuery()`: tie isté
+     * dotazy stavia aj prehľad obcí, ktorý ich prepína na agregáciu cez
+     * GROUP BY — podselecty z `withCount()` by mu do SELECTu pridali stĺpce
+     * mimo zoskupenia. Počty idú do odpovede samy ako `*_count` atribúty
+     * modelu, `CanalResource` k nim nemusí nič dopĺňať.
+     */
+    private function withRowContext($query)
+    {
+        $query
+            ->with(['municipality', 'organization'])
+            ->withCount(['events', 'venues', 'users']);
+
+        // `withCount()` pripne SELECT na `canals.*`. Dashboardový dotaz ide cez
+        // pivot používateľa, ktorého stĺpce sa dovtedy do odpovede dostávali
+        // spolu so `select *` — `is_owner` by tým z výpisu ticho zmizol.
+        if ($query instanceof BelongsToMany) {
+            $query->addSelect('canal_user.is_owner');
+        }
+
+        return $query;
     }
 
     public function adminShow($id)

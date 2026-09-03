@@ -979,6 +979,18 @@ const sk = {
       empty: 'Žiadne miesta.',
       loadFailed: 'Nepodarilo sa načítať miesta.',
     },
+    // Riadok vo výpise — obec, kanály a čísla, ktoré miesto od miesta odlíšia.
+    row: {
+      deleted: 'Zmazané',
+      filterByMunicipality: 'Filtrovať podľa obce: {name}',
+      ownerCanal: '{name} — vlastník miesta',
+      moreCanals: '+{n} ďalších',
+      capacity: 'kapacita {n}',
+      createdAt: 'vytvorené {date}',
+      counts: {
+        events: { one: '{n} event', few: '{n} eventy', many: '{n} eventov' },
+      },
+    },
     show: {
       notFound: 'Miesto nenájdené',
       events: 'Eventy na tomto mieste',
@@ -1048,6 +1060,17 @@ const sk = {
       loadFailed: 'Nepodarilo sa načítať kanály.',
       // Vo filtri podľa kanála chodí id z adresy aj bez názvu.
       fallbackName: 'Kanál #{id}',
+    },
+    // Riadok vo výpise — obec, identita a počty naviazaných záznamov.
+    row: {
+      deleted: 'Zmazaný',
+      filterByMunicipality: 'Filtrovať podľa obce: {name}',
+      createdAt: 'vytvorený {date}',
+      counts: {
+        events: { one: '{n} event', few: '{n} eventy', many: '{n} eventov' },
+        venues: { one: '{n} miesto', few: '{n} miesta', many: '{n} miest' },
+        members: { one: '{n} člen', few: '{n} členovia', many: '{n} členov' },
+      },
     },
     show: {
       notFound: 'Kanál nenájdený',
@@ -2114,8 +2137,21 @@ const sk = {
       search: 'Hľadať názov súboru…',
       entityId: 'ID entity',
       withTrashed: 'Vrátane zmazaných',
+      // Prázdna voľba prepínača kôša — zmazané sa predvolene nezobrazujú.
+      active: 'Bez zmazaných',
+      onlyDeleted: 'Len zmazané',
+      typeTitle: 'Typ záznamu',
+      // Druh podľa formátu (obrázok, PDF…) — to isté, čo hovorí odznak
+      // pri názve súboru vo výpise.
+      kindTitle: 'Druh súboru',
+      allKinds: 'Všetky druhy',
+      // Veľkosť je otázka, ktorú iné výpisy nemajú: „čo mi zaberá miesto".
+      sort: {
+        largest: 'Najväčšie',
+        smallest: 'Najmenšie',
+      },
       types: {
-        all: 'Všetky',
+        all: 'Všetky typy',
         event: 'Event',
         canal: 'Kanál',
         venue: 'Miesto',

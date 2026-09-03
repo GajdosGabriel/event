@@ -1,5 +1,6 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
+import { mapNestedEventPermissions, type NestedEventPermissions } from './events'
 import type { CanalItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
@@ -38,7 +39,6 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     updatedAt: (raw['updated_at'] as string) ?? '',
     uploadedFiles: (raw['uploaded_files'] as CanalItem['uploadedFiles']) ?? [],
     permissions: (raw['permissions'] as CanalItem['permissions']) ?? { view: true, update: false, delete: false, restore: false },
-    deleteBlockedReason: (raw['delete_blocked_reason'] as string) ?? null,
     unpublishBlockedReason: (raw['unpublish_blocked_reason'] as string) ?? null,
     allowedStatuses: (raw['allowed_statuses'] as CanalItem['allowedStatuses']) ?? [],
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
@@ -58,6 +58,8 @@ export interface CanalEventItem {
   status: string
   imageUrl: string | null
   imageUrlLarge: string | null
+  /** Čo s podujatím smie prihlásený používateľ; verejný výpis ich neposiela. */
+  permissions?: NestedEventPermissions
 }
 
 export async function listCanalEvents(scope: Scope | 'public', canalId: number): Promise<CanalEventItem[]> {
@@ -72,6 +74,7 @@ export async function listCanalEvents(scope: Scope | 'public', canalId: number):
     status: (r['status'] as string) ?? 'draft',
     imageUrl: (r['image_url'] as string) ?? null,
     imageUrlLarge: (r['image_url_large'] as string) ?? null,
+    permissions: mapNestedEventPermissions(r['permissions']),
   }))
 }
 

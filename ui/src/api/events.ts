@@ -10,6 +10,23 @@ function baseUrl(scope: Scope) {
   return '/dashboard/events'
 }
 
+/**
+ * Práva podujatia vo vnorených zoznamoch (detail miesta, detail kanála). Tie
+ * zoznamy nesú len zopár stĺpcov, nie celý EventResource — ale menu akcií nad
+ * nimi musí ponúkať presne to, čo policy povolí, tak isto ako výpis podujatí.
+ */
+export interface NestedEventPermissions {
+  view: boolean
+  update: boolean
+}
+
+/** `undefined` = odpoveď práva neniesla (verejný výpis) — menu sa nekreslí. */
+export function mapNestedEventPermissions(raw: unknown): NestedEventPermissions | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const p = raw as Record<string, unknown>
+  return { view: Boolean(p['view']), update: Boolean(p['update']) }
+}
+
 function buildDateRangeLabel(startAt: string | null, endAt: string | null): string | null {
   if (!startAt) return null
   const fmt = (d: string) => new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
@@ -75,6 +92,9 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
         unpublish: p['unpublish'] ?? false,
         delete: p['delete'] ?? false,
         archive: p['archive'] ?? false,
+        // Bez tohto kľúča by detail archivovaného podujatia neponúkol jedinú
+        // cestu späť z archívu — právo chodí, len sa sem nemapovalo.
+        unarchive: p['unarchive'] ?? false,
         duplicate: p['duplicate'] ?? false,
         restore: p['restore'] ?? false,
         viewTickets: p['view_tickets'] ?? false,

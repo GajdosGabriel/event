@@ -21,9 +21,9 @@ class DashboardFileIndexTest extends EventSetupTest
         $this->user->givePermissionTo(['file.view']);
     }
 
-    private function makeFile(string $type, int $id, string $name): File
+    private function makeFile(string $type, int $id, string $name, array $attributes = []): File
     {
-        return File::create([
+        return File::create(array_merge([
             'fileable_type' => $type,
             'fileable_id'   => $id,
             'name'          => $name,
@@ -34,7 +34,7 @@ class DashboardFileIndexTest extends EventSetupTest
             'disk'          => 'public',
             'path'          => 'files/' . $name,
             'type'          => FileType::IMAGE->value,
-        ]);
+        ], $attributes));
     }
 
     public function test_lists_only_files_from_users_own_records(): void
@@ -97,5 +97,88 @@ class DashboardFileIndexTest extends EventSetupTest
     {
         $this->getJson('/api/dashboard/files?fileable_id=' . $this->futureEvent->id)
             ->assertStatus(422);
+    }
+
+    /**
+     * Druh sa neukladá v stĺpci — skladá sa z MIME typu a prípony. Filter musí
+     * použiť tie isté pravidlá ako odznak vo výpise, inak by o tom istom súbore
+     * tvrdili každý niečo iné.
+     */
+    public function test_kind_filter_separates_images_from_documents(): void
+    {
+        $image = $this->makeFile(Event::class, $this->futureEvent->id, 'plagat.jpg');
+        $pdf = $this->makeFile(Event::class, $this->futureEvent->id, 'program.pdf', [
+            'extension' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'type'      => FileType::FILE->value,
+        ]);
+
+        $ids = fn (string $kind) => collect($this->getJson('/api/dashboard/files?kind=' . $kind)->json('data'))
+            ->pluck('id')->all();
+
+        $this->assertContains($image->id, $ids('image'));
+        $this->assertNotContains($pdf->id, $ids('image'));
+
+        $this->assertContains($pdf->id, $ids('pdf'));
+        $this->assertNotContains($image->id, $ids('pdf'));
+    }
+
+    public function test_unknown_kind_is_rejected(): void
+    {
+        $this->getJson('/api/dashboard/files?kind=nezmysel')->assertStatus(422);
+    }
+
+    /** Veľkosť je otázka, ktorú iné výpisy nemajú: „čo mi zaberá miesto". */
+    public function test_sort_by_size_puts_the_largest_file_first(): void
+    {
+        $small = $this->makeFile(Event::class, $this->futureEvent->id, 'maly.jpg', ['size' => 10]);
+        $large = $this->makeFile(Event::class, $this->futureEvent->id, 'velky.jpg', ['size' => 9_000_000]);
+
+        $ids = collect($this->getJson('/api/dashboard/files?sort=largest')->json('data'))->pluck('id')->all();
+
+        $this->assertSame($large->id, $ids[0]);
+        $this->assertLessThan(
+            array_search($small->id, $ids, true),
+            array_search($large->id, $ids, true),
+        );
+    }
+
+    /** Kôš má tri polohy; „len zmazané" nesmie prepustiť živý súbor. */
+    public function test_trash_states_narrow_the_listing(): void
+    {
+        $live = $this->makeFile(Event::class, $this->futureEvent->id, 'zivy.jpg');
+        $trashed = $this->makeFile(Event::class, $this->futureEvent->id, 'kos.jpg');
+        $trashed->delete();
+
+        $ids = fn (string $query) => collect($this->getJson('/api/dashboard/files?' . $query)->json('data'))
+            ->pluck('id')->all();
+
+        $default = $ids('');
+        $this->assertContains($live->id, $default);
+        $this->assertNotContains($trashed->id, $default);
+
+        $withTrashed = $ids('with_trashed=1');
+        $this->assertContains($live->id, $withTrashed);
+        $this->assertContains($trashed->id, $withTrashed);
+
+        $onlyDeleted = $ids('deleted=1');
+        $this->assertContains($trashed->id, $onlyDeleted);
+        $this->assertNotContains($live->id, $onlyDeleted);
+    }
+
+    /** Súbor nemá termín, takže rozsah dátumov sa viaže na dátum nahratia. */
+    public function test_date_range_filters_by_upload_date(): void
+    {
+        $old = $this->makeFile(Event::class, $this->futureEvent->id, 'stary.jpg');
+        $old->forceFill(['created_at' => now()->subMonth()])->saveQuietly();
+
+        $fresh = $this->makeFile(Event::class, $this->futureEvent->id, 'novy.jpg');
+
+        $ids = collect(
+            $this->getJson('/api/dashboard/files?date_from=' . now()->subDay()->toDateString())->json('data')
+        )->pluck('id')->all();
+
+        $this->assertContains($fresh->id, $ids);
+        $this->assertNotContains($old->id, $ids);
     }
 }

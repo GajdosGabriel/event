@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\FiltersFileListing;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\FileResource;
 use App\Models\File;
@@ -12,6 +13,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FileController extends Controller
 {
+    use FiltersFileListing;
+
     public function __construct(private readonly FileManager $fileManager) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -21,15 +24,11 @@ class FileController extends Controller
         $request->validate([
             'fileable_type' => ['sometimes', 'string', 'in:canal,event,venue'],
             'fileable_id'   => ['sometimes', 'integer', 'min:1'],
-            'search'        => ['sometimes', 'string', 'max:100'],
-            'with_trashed'  => ['sometimes', 'boolean'],
-        ]);
+        ] + $this->fileListingRules());
 
         $query = File::query();
 
-        if ($request->boolean('with_trashed')) {
-            $query->withTrashed();
-        }
+        $this->applyFileTrashState($query, $request);
 
         if ($request->filled('fileable_type')) {
             $query->where('fileable_type', 'App\\Models\\' . ucfirst($request->fileable_type));
@@ -39,11 +38,7 @@ class FileController extends Controller
             $query->where('fileable_id', $request->integer('fileable_id'));
         }
 
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->string('search') . '%');
-        }
-
-        $files = $query->latest()->paginate(30);
+        $files = $this->applyFileListFilters($query, $request)->paginate(30);
 
         return FileResource::collection($files);
     }

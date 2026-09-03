@@ -190,6 +190,13 @@ class DashboardVenueController extends Controller
             'status' => $ev->status,
             'canal_id' => $ev->canal_id,
             'canal_name' => $ev->canal?->name,
+            // Aj tento zoznam má menu akcií — bez práv by ponúkalo „Upraviť"
+            // aj na archivovanom či cudzom podujatí. Členstvá má User načítané
+            // raz za request, takže to nie je dotaz na riadok.
+            'permissions' => [
+                'view' => $user->can('view', $ev),
+                'update' => $user->can('update', $ev),
+            ],
         ]));
     }
 }

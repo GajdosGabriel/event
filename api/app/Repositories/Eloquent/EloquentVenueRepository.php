@@ -58,7 +58,30 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             ? $this->dashboardIndexQuery()
             : $this->latestFirst($this->model()->withTrashed());
 
-        return $this->paginateFilteredQuery($query, $perPage, $filters);
+        return $this->paginateFilteredQuery($this->withRowContext($query), $perPage, $filters);
+    }
+
+    public function adminIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
+    {
+        Gate::authorize('viewAny', $this->entity);
+
+        return $this->paginateFilteredQuery($this->withRowContext($this->adminIndexQuery()), $perPage, $filters);
+    }
+
+    /**
+     * Kontext pre riadok výpisu — obec, kanály a počet podujatí. Kanály si
+     * dotiahne aj `dashboardIndexQuery()`, tu sú znova kvôli vetve s hľadaním,
+     * ktorá stavia vlastný dotaz bez nich.
+     *
+     * Rovnako ako pri kanáloch to nepatrí do `*IndexQuery()` — z tých istých
+     * dotazov skladá prehľad obcí agregáciu cez GROUP BY, do ktorej podselect
+     * z `withCount()` nesmie.
+     */
+    private function withRowContext($query)
+    {
+        return $query
+            ->with(['canals', 'municipality'])
+            ->withCount('events');
     }
 
     public function dashboardShow($id)

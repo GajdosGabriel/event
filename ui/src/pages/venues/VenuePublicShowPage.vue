@@ -92,11 +92,9 @@
                 {{ t('public.venue.info') }}
               </div>
               <dl class="space-y-3 text-sm">
-                <div v-if="venue.street">
+                <div v-if="addressLine">
                   <dt class="text-xs text-slate-400 uppercase tracking-wide">{{ t('public.venue.address') }}</dt>
-                  <dd class="text-slate-700">
-                    {{ venue.street }}<span v-if="venue.postcode">, {{ venue.postcode }}</span>
-                  </dd>
+                  <dd class="text-slate-700">{{ addressLine }}</dd>
                 </div>
                 <div v-if="venue.capacity">
                   <dt class="text-xs text-slate-400 uppercase tracking-wide">{{ t('public.venue.capacity') }}</dt>
@@ -160,6 +158,18 @@ const events = ref<VenueEventItem[]>([])
 const eventsLoading = ref(false)
 
 const hasCoords = computed(() => venue.value?.latitude != null && venue.value?.longitude != null)
+
+/**
+ * Poštový tvar adresy: „ulica, PSČ obec". Obec tu predtým chýbala úplne, takže
+ * z miesta bolo vidieť len ulicu a PSČ. Samotná obec bez ulice je tiež adresa —
+ * pri importovaných miestach je často jediné, čo o polohe vieme.
+ */
+const addressLine = computed(() => {
+  const v = venue.value
+  if (!v) return null
+  const town = [v.postcode, v.municipality?.name].filter(Boolean).join(' ')
+  return [v.street, town].filter(Boolean).join(', ') || null
+})
 
 function formatDate(d: string | null) {
   if (!d) return ''
