@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Jobs\ImportSocialAvatarJob;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class GoogleAuthTest extends TestCase
@@ -173,5 +175,114 @@ class GoogleAuthTest extends TestCase
         $this->assertDatabaseMissing('pending_registrations', [
             'email' => 'pending-user@example.test',
         ]);
+    }
+
+    public function test_google_login_names_the_personal_canal_by_the_google_profile_name(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'jozko.mrkvicka@example.test',
+                'sub' => 'google-provider-canal',
+                'email_verified' => true,
+                'name' => 'Jožko Mrkvička',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+        ])->assertOk();
+
+        $user = User::where('email', 'jozko.mrkvicka@example.test')->firstOrFail();
+
+        // Osobný kanál zakladá UserObserver hneď po doplnení email_verified_at,
+        // takže meno z Googlu tam už musí byť — nie časť e-mailu pred zavináčom.
+        $this->assertSame('Jožko Mrkvička', $user->canals()->value('canals.name'));
+        $this->assertSame('Jožko Mrkvička', $user->displayName());
+    }
+
+    public function test_google_login_falls_back_to_given_and_family_name(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'split-name@example.test',
+                'sub' => 'google-provider-split',
+                'email_verified' => true,
+                'given_name' => 'Anna',
+                'family_name' => 'Nová',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+        ])->assertOk();
+
+        $user = User::where('email', 'split-name@example.test')->firstOrFail();
+
+        $this->assertSame('Anna Nová', $user->canals()->value('canals.name'));
+    }
+
+    public function test_google_login_queues_the_profile_picture_as_the_canal_image(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+        Queue::fake();
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'with-avatar@example.test',
+                'sub' => 'google-provider-avatar',
+                'email_verified' => true,
+                'name' => 'Avatar Tester',
+                'picture' => 'https://lh3.googleusercontent.com/a/abc123=s96-c',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+        ])->assertOk();
+
+        $canalId = (int) User::where('email', 'with-avatar@example.test')
+            ->firstOrFail()
+            ->canals()
+            ->value('canals.id');
+
+        Queue::assertPushed(
+            ImportSocialAvatarJob::class,
+            // Malá varianta z Googlu (=s96-c) sa vymení za väčšiu.
+            fn (ImportSocialAvatarJob $job) => $job->canalId === $canalId
+                && $job->avatarUrl === 'https://lh3.googleusercontent.com/a/abc123=s512-c',
+        );
+    }
+
+    public function test_google_login_without_a_picture_queues_no_avatar_job(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+        Queue::fake();
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'no-avatar@example.test',
+                'sub' => 'google-provider-no-avatar',
+                'email_verified' => true,
+                'name' => 'No Avatar',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/login/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+        ])->assertOk();
+
+        Queue::assertNotPushed(ImportSocialAvatarJob::class);
     }
 }

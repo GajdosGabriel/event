@@ -16,6 +16,7 @@ class PendingProfile extends Model
     protected $fillable = [
         'user_id',
         'display_name',
+        'avatar_url',
     ];
 
     protected static function booted()

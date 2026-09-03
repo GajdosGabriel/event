@@ -150,11 +150,22 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // ID token z Google Identity Services nesie okrem e-mailu aj profilové
+        // claimy (name, given_name, family_name, picture). `name` býva vyplnené
+        // takmer vždy; keď chýba, poskladáme ho z krstného a priezviska.
+        $displayName = trim((string) ($payload['name'] ?? ''));
+        if ($displayName === '') {
+            $displayName = trim(
+                trim((string) ($payload['given_name'] ?? '')) . ' ' . trim((string) ($payload['family_name'] ?? ''))
+            );
+        }
+
         return $this->authenticateSocialUser(
             provider: 'google',
             email: $email,
             providerId: $providerId,
-            displayName: trim((string) ($payload['name'] ?? '')),
+            displayName: $displayName,
+            avatarUrl: $this->googleAvatarUrl((string) ($payload['picture'] ?? '')),
             termsAccepted: $request->boolean('terms_accepted'),
         );
     }
@@ -206,7 +217,9 @@ class AuthController extends Controller
         $meResponse = Http::timeout(8)
             ->acceptJson()
             ->get('https://graph.facebook.com/me', [
-                'fields' => 'id,name,email',
+                // `picture.width(512)` vráti aj profilovku — bez uvedenia
+                // v `fields` ju Graph API do odpovede nedá vôbec.
+                'fields' => 'id,name,email,picture.width(512)',
                 'access_token' => $accessToken,
             ]);
 
@@ -233,16 +246,40 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Graph API zabaľuje profilovku do picture.data.url; `is_silhouette`
+        // označuje generický zástupný obrázok, ten preberať nemá zmysel.
+        $picture = $mePayload['picture']['data'] ?? [];
+        $avatarUrl = is_array($picture) && ! ($picture['is_silhouette'] ?? false)
+            ? trim((string) ($picture['url'] ?? ''))
+            : '';
+
         return $this->authenticateSocialUser(
             provider: 'facebook',
             email: $email,
             providerId: $providerId,
             displayName: $displayName,
+            avatarUrl: $avatarUrl,
             termsAccepted: $request->boolean('terms_accepted'),
         );
     }
 
-    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', bool $termsAccepted = false)
+    /**
+     * Google vracia avatar v rozmere, ktorý si vyžiadal front (`=s96-c`).
+     * Pre hlavný obrázok kanála je to málo, tak si vypýtame väčšiu variantu;
+     * keď URL tento tvar nemá, necháme ju tak, ako prišla.
+     */
+    protected function googleAvatarUrl(string $picture): string
+    {
+        $picture = trim($picture);
+
+        if ($picture === '' || ! str_starts_with($picture, 'https://')) {
+            return '';
+        }
+
+        return (string) preg_replace('/=s\d+(-c)?$/', '=s512$1', $picture);
+    }
+
+    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', string $avatarUrl = '', bool $termsAccepted = false)
     {
         $normalizedProviderId = $provider . ':' . $providerId;
 
@@ -276,6 +313,19 @@ class AuthController extends Controller
             $created = true;
         }
 
+        // Meno z Google/Facebooku musí byť v PendingProfile skôr, než sa doplní
+        // email_verified_at — ten totiž cez UserObserver spustí založenie
+        // osobného kanála a PersonalCanalProvisioner berie názov práve odtiaľto.
+        // Neskôr už kanál existuje a meno by ostalo nevyužité (kanál by sa volal
+        // podľa časti e-mailu pred zavináčom).
+        if ($displayName !== '' && ! $user->canals()->exists() && ! $user->pendingProfile()->exists()) {
+            PendingProfile::create([
+                'user_id' => $user->id,
+                'display_name' => $displayName,
+                'avatar_url' => $avatarUrl !== '' ? $avatarUrl : null,
+            ]);
+        }
+
         if ($user->provider_id === null || $user->provider_id === '') {
             $user->provider_id = $normalizedProviderId;
         }
@@ -297,13 +347,6 @@ class AuthController extends Controller
 
         if ($created) {
             $this->assignSuperAdminIfFirstUser($user);
-        }
-
-        if ($displayName !== '' && ! $user->pendingProfile()->exists()) {
-            PendingProfile::create([
-                'user_id' => $user->id,
-                'display_name' => $displayName,
-            ]);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

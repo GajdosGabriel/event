@@ -6,6 +6,7 @@ use App\Enums\CanalIdentityMode;
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
+use App\Jobs\ImportSocialAvatarJob;
 use App\Models\Canal;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -56,6 +57,13 @@ class PersonalCanalProvisioner
 
         $user->canal_id = $canal->id;
         $user->save();
+
+        // Profilovka z Google/Facebooku. Sťahuje ju až job vo fronte, aby
+        // prihlásenie nečakalo na cudzí server.
+        $avatarUrl = trim((string) ($pending?->avatar_url ?? ''));
+        if ($avatarUrl !== '') {
+            ImportSocialAvatarJob::dispatch((int) $canal->id, $avatarUrl);
+        }
 
         $pending?->delete();
 
