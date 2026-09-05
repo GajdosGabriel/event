@@ -138,6 +138,10 @@ const initials = computed(() => {
 const navLinks = computed(() => {
   const links: { to: string; label: string; icon: ReturnType<typeof defineComponent> }[] = []
 
+  // Vlastné vstupenky sú prvé: prihlásený návštevník bez kanála má v tomto
+  // menu inak len dashboard, ktorý mu nepatrí.
+  links.push({ to: '/moje-listky', label: t('nav.myTickets'), icon: IconTicket })
+
   links.push({ to: '/dashboard', label: t('nav.dashboard'), icon: IconDashboard })
 
   if (auth.isSuperAdmin) {
@@ -224,5 +228,6 @@ const IconAdmin = defineComponent({ render: () => h('svg', { fill: 'none', strok
 const IconGlobe = defineComponent({ render: () => h('svg', { fill: 'none', stroke: 'currentColor', 'stroke-width': '2', viewBox: '0 0 24 24' }, [h('circle', { cx: '12', cy: '12', r: '10' }), h('path', { 'stroke-linecap': 'round', d: 'M2 12h20M12 2c-2.5 2.5-4 5.9-4 10s1.5 7.5 4 10M12 2c2.5 2.5 4 5.9 4 10s-1.5 7.5-4 10' })]) })
 const IconCanal = defineComponent({ render: () => h('svg', { fill: 'none', stroke: 'currentColor', 'stroke-width': '2', viewBox: '0 0 24 24' }, [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' })]) })
 const IconCanalList = defineComponent({ render: () => h('svg', { fill: 'none', stroke: 'currentColor', 'stroke-width': '2', viewBox: '0 0 24 24' }, [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' })]) })
+const IconTicket = defineComponent({ render: () => h('svg', { fill: 'none', stroke: 'currentColor', 'stroke-width': '2', viewBox: '0 0 24 24' }, [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M4 9V7a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 6v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 100-6z' }), h('path', { 'stroke-linecap': 'round', d: 'M13 5v14' })]) })
 const IconLogout = defineComponent({ render: () => h('svg', { fill: 'none', stroke: 'currentColor', 'stroke-width': '2', viewBox: '0 0 24 24' }, [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1' })]) })
 </script>

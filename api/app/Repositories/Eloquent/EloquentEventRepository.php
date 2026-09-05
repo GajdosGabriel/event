@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Events\EventContentCopier;
+use App\Services\Events\EventSeriesManager;
 use App\Services\Files\FileManager;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\EventDependencyPublisher;
@@ -117,34 +119,14 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             $copy->status = ModelStatus::Draft->value;
             $copy->user_id = $user->id;
             $copy->name = $source->name . ' (kópia)';
+            // Duplikát je nové podujatie, nie ďalší termín — do série zdrojového
+            // podujatia nepatrí. Termín pridáva EventSeriesManager.
+            $copy->series_id = null;
             $copy->save();
 
-            foreach ($source->ticketTypes as $ticketType) {
-                $typeCopy = $ticketType->replicate([
-                    'sale_starts_at',
-                    'sale_ends_at',
-                    'starts_at',
-                    'ends_at',
-                    'deleted_at',
-                ]);
-                $typeCopy->event_id = $copy->id;
-                $typeCopy->save();
-            }
-
-            // replicate() pivot riadky neprenáša — štítky treba skopírovať ručne,
-            // aj s tým, kto ich priradil.
-            $sourceTags = DB::table('event_tag')->where('event_id', $source->id)->get();
-
-            if ($sourceTags->isNotEmpty()) {
-                DB::table('event_tag')->insert($sourceTags->map(fn ($row) => [
-                    'event_id' => $copy->id,
-                    'tag_id' => $row->tag_id,
-                    'confidence' => $row->confidence,
-                    'source' => $row->source,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ])->all());
-            }
+            // Typy lístkov, štítky aj prílohy — jedno miesto zdieľané so sériami.
+            // Obrázky sa dovtedy nekopírovali vôbec a duplikát prišiel o plagát.
+            app(EventContentCopier::class)->copy($source, $copy);
 
             return $copy->fresh(['files', 'ticketTypes', 'tags']);
         });
@@ -205,6 +187,12 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
         $event->update($properties);
 
+        // `getChanges()` vráti len to, čo sa naozaj zapísalo — nie celý payload
+        // formulára. Séria podľa toho vie, čo má prepísať do ostatných termínov
+        // a čoho sa nemá dotknúť.
+        $savedChanges = $event->getChanges();
+
+        $imagesBefore = $this->imageFingerprint($event);
         $this->syncEventFiles($event, $filePayload);
 
         if ($tagIds !== null) {
@@ -215,7 +203,55 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         // do štítkov a odvodené štítky by inak ostali zastarané.
         $this->deriveEventAttributes($event);
 
+        $this->propagateToSeries($event, $savedChanges, $tagIds, $imagesBefore);
+
         return $event->fresh(['files', 'tags']);
+    }
+
+    /**
+     * Prepíše spoločné veci do ostatných termínov série.
+     *
+     * Beží až po tom, čo je uložené všetko na samotnom podujatí — inak by
+     * súrodenci dostali polovicu zmeny. Podujatie mimo série tu neurobí nič.
+     *
+     * @param  array<string, mixed>  $savedChanges
+     * @param  array<int, int>|null  $tagIds
+     */
+    private function propagateToSeries(Event $event, array $savedChanges, ?array $tagIds, string $imagesBefore): void
+    {
+        if ($event->series_id === null) {
+            return;
+        }
+
+        $series = app(EventSeriesManager::class);
+
+        $series->propagate($event, $savedChanges);
+
+        // Štítky sa prepisujú len keď ich formulár naozaj poslal. Bez tejto
+        // podmienky by uloženie akéhokoľvek iného poľa zmazalo štítky
+        // v ostatných termínoch — `syncEventTags` sa volá s prázdnym zoznamom.
+        if ($tagIds !== null) {
+            foreach ($series->siblings($event) as $sibling) {
+                $this->syncEventTags($sibling, $tagIds);
+            }
+        }
+
+        if ($this->imageFingerprint($event->fresh(['files'])) !== $imagesBefore) {
+            $series->propagateImages($event);
+        }
+    }
+
+    /**
+     * Odtlačok množiny obrázkov podujatia. Slúži len na porovnanie „zmenilo sa
+     * to?" — kopírovanie obrázkov do celej série je drahé a nemá bežať pri
+     * každom uložení formulára, ktorý sa obrázkov nedotkol.
+     */
+    private function imageFingerprint(Event $event): string
+    {
+        return $event->images()
+            ->orderBy('id')
+            ->pluck('id')
+            ->implode(',');
     }
 
     /**
@@ -424,9 +460,38 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
     public function publicIndexQuery()
     {
-        return EventTimeframe::upcoming($this->publicEventQuery())
-            ->where('status', ModelStatus::Published->value)
-            ->orderBy('start_at', 'asc');
+        return $this->collapseSeries(
+            EventTimeframe::upcoming($this->publicEventQuery())
+                ->where('status', ModelStatus::Published->value)
+        )->orderBy('start_at', 'asc');
+    }
+
+    /**
+     * Zo série ponechá vo výpise len najbližší termín.
+     *
+     * Divadlo s ôsmimi reprízami by inak zabralo celú prvú stranu agendy a
+     * vytlačilo z nej všetko ostatné — pre návštevníka je to osemkrát ten istý
+     * riadok. Ostatné termíny nezmiznú: sú na detaile („ďalšie termíny") a majú
+     * vlastné adresy aj v sitemape, takže SEO to neuberá.
+     *
+     * Poddotaz hľadá súrodenca, ktorý je **skôr a stále v budúcnosti**. Práve
+     * preto sa výpis sám posúva: keď najbližší termín prebehne, na jeho miesto
+     * nastúpi ďalší, bez akéhokoľvek prepočtu.
+     */
+    private function collapseSeries(Builder $query): Builder
+    {
+        return $query->where(function (Builder $outer) {
+            $outer->whereNull('series_id')
+                ->orWhereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('events as earlier_in_series')
+                        ->whereColumn('earlier_in_series.series_id', 'events.series_id')
+                        ->whereColumn('earlier_in_series.start_at', '<', 'events.start_at')
+                        ->where('earlier_in_series.start_at', '>=', now())
+                        ->where('earlier_in_series.status', ModelStatus::Published->value)
+                        ->whereNull('earlier_in_series.deleted_at');
+                });
+        });
     }
 
     /**
@@ -464,7 +529,13 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                     ->with('municipality'),
                 'files',
                 'tags',
-            ]);
+            ])
+            // Odznak „a ďalších N termínov" na karte zbalenej série. Počíta sa
+            // poddotazom, nie načítaním termínov — na kartu treba číslo, nie
+            // zoznam.
+            ->withCount(['seriesEvents as series_upcoming_count' => fn (Builder $query) => $query
+                ->where('status', ModelStatus::Published->value)
+                ->where('start_at', '>=', now())]);
     }
 
     private function applyMunicipalityOverviewScope(Builder $query, string $scope): Builder

@@ -234,6 +234,25 @@
               </h2>
               <EventDateRange :start-at="event.startAt" :end-at="event.endAt" />
               <AddToCalendarButton :links="event.calendarLinks" class="mt-3" />
+
+              <!-- Ďalšie termíny série. Sedí pod dátumom, lebo je to odpoveď na
+                   otázku, ktorú si človek kladie práve tu: „a keď v stredu
+                   nemôžem?" Každý termín má vlastnú stránku aj vlastné lístky. -->
+              <div v-if="event.seriesOccurrences.length" class="mt-4 border-t border-slate-100 pt-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {{ t('public.series.title') }}
+                </p>
+                <ul class="mt-2 grid gap-1">
+                  <li v-for="occurrence in event.seriesOccurrences" :key="occurrence.id">
+                    <RouterLink
+                      :to="publicEventPath({ id: occurrence.id, slug: occurrence.slug })"
+                      class="text-sm text-blue-700 hover:underline"
+                    >
+                      {{ occurrence.dateRangeLabel ?? occurrence.name }}
+                    </RouterLink>
+                  </li>
+                </ul>
+              </div>
               <!-- Hneď pod „Pridať do kalendára": tam človek hľadá, čo si
                    s termínom počať. Kalendár si pripomenie sám (VALARM v .ics),
                    toto navyše sľubuje ozvať sa pri zmene či zrušení. -->

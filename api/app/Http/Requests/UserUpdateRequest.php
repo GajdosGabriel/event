@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UserUpdateRequest extends FormRequest
 {
@@ -22,12 +23,20 @@ class UserUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|string|email|max:255|unique:users',
+            // `ignore` na vlastný riadok je tu nutnosť, nie kozmetika: bez neho
+            // padne na „e-mail je obsadený“ každé uloženie, ktoré adresu nemení
+            // — teda každá zmena čohokoľvek iného v profile. Kľúč berieme
+            // z routy (`users/{user}`), nie z tela požiadavky.
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->route('user')),
+            ],
             'registered_via' => 'sometimes|string|in:local,google,facebook',
             'blocked_reason' => 'nullable|string|max:255',
             'blocked_until' => 'nullable|date',
         ];
     }
-
 }
-

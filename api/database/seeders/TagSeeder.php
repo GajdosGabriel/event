@@ -45,6 +45,19 @@ class TagSeeder extends Seeder
             ['diskusia', 'Diskusia alebo beseda', '💬'],
             ['modlitba', 'Modlitbové stretnutie', '📿'],
             ['duchovna-obnova', 'Duchovná obnova', '🕯️'],
+            // Druhá vlna podľa tag_suggestions. Formy, ktoré modelu chýbali
+            // najčastejšie po tom, čo sa naimportovali cirkevné zdroje
+            // (duchovné cvičenia 38×, spoločenstvo 34×, chvály 24×,
+            // konferencia 21×, adorácia 13×).
+            //
+            // „Duchovné cvičenia" sú zámerne samostatne od „Duchovnej obnovy":
+            // v bežnom úze je to viacdňové exercície verzus jednorazová obnova,
+            // a model ich rozlišoval sám od seba.
+            ['duchovne-cvicenia', 'Duchovné cvičenia', '🧘'],
+            ['spolocenstvo', 'Stretnutie spoločenstva', '👥'],
+            ['chvaly', 'Chvály', '🙌'],
+            ['konferencia', 'Konferencia', '🏛️'],
+            ['adoracia', 'Adorácia', '🕯️'],
         ],
         TagGroup::Topic->value => [
             ['hudba', 'Hudba', '🎵'],
@@ -61,6 +74,12 @@ class TagSeeder extends Seeder
             ['gastro', 'Jedlo a pitie', '🍲'],
             ['viera', 'Viera', '🙏'],
             ['literatura', 'Literatúra', '📚'],
+            // Tiež z tag_suggestions (psychológia 23×, evanjelizácia 14×).
+            // „Spiritualita" a „duchovné stretnutie" sa medzi návrhmi držali
+            // vyššie, ale do číselníka nešli: prekrývajú sa s `viera`
+            // a s formami vyššie natoľko, že by sa v UI nedali odlíšiť.
+            ['psychologia', 'Psychológia', '🧠'],
+            ['evanjelizacia', 'Evanjelizácia', '📣'],
         ],
         TagGroup::Audience->value => [
             ['pre-deti', 'Pre deti', '🧒'],

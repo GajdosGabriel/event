@@ -84,6 +84,67 @@ final class Url
         return $normalized;
     }
 
+    /**
+     * Cieľ presmerovania — tá istá bezpečnostná kontrola ako normalize(),
+     * ale cesta sa nechá presne tak, ako ju poslal server.
+     *
+     * Rozdiel je jediný znak a stál 114 falošných hlásení o pokazenom webe:
+     * normalize() zámerne orezáva lomku na konci cesty, lebo v uloženej
+     * hodnote je `…/kurz` a `…/kurz/` tá istá adresa. Pri nasledovaní
+     * presmerovania je to ale spor so serverom — WordPress (a s ním väčšina
+     * webov, ktoré organizátori uvádzajú) presmeruje `…/kurz` na kanonické
+     * `…/kurz/`, sonda si lomku zase odreže, server znova presmeruje, a po
+     * piatich skokoch to celé skončí ako `redirect_loop` na úplne funkčnom
+     * webe. Reťaz sa dá odkrokovať na hociktorej adrese z vyveska.sk.
+     *
+     * Čo z normalize() ostáva: povolená schéma, vierohodný host a zahodenie
+     * prihlasovacích údajov z adresy. Práve to je dôvod, prečo cieľ
+     * presmerovania cez túto kontrolu vôbec ide.
+     *
+     * @return string|null `null`, keď cieľ nie je použiteľná adresa
+     */
+    public static function redirectTarget(?string $url): ?string
+    {
+        $url = trim((string) $url);
+
+        if ($url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+
+        if ($parts === false || empty($parts['host'])) {
+            return null;
+        }
+
+        $scheme = strtolower($parts['scheme'] ?? '');
+
+        if (! in_array($scheme, self::SCHEMES, true)) {
+            return null;
+        }
+
+        $host = strtolower($parts['host']);
+
+        if (! self::isPlausibleHost($host)) {
+            return null;
+        }
+
+        $target = $scheme.'://'.$host;
+
+        if (isset($parts['port']) && ! self::isDefaultPort($scheme, (int) $parts['port'])) {
+            $target .= ':'.$parts['port'];
+        }
+
+        // Cesta doslova, vrátane lomky na konci — o to tu celé ide.
+        $target .= $parts['path'] ?? '';
+
+        if (isset($parts['query']) && $parts['query'] !== '') {
+            $target .= '?'.$parts['query'];
+        }
+
+        return $target;
+    }
+
     public static function host(?string $url): ?string
     {
         $normalized = self::normalize($url);

@@ -12,6 +12,8 @@ use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\EventResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Events\EventSeriesManager;
+use App\Support\EventDateRange;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Http\JsonResponse;
@@ -148,6 +150,83 @@ class DashboardEventController extends Controller
         $copy = $this->eventRepository->duplicateForUser($request->user(), $event);
 
         return response()->json(new EventResource($copy), 201);
+    }
+
+    /**
+     * Termíny série, do ktorej podujatie patrí — vrátane neho samého.
+     *
+     * Vracia holý zoznam (id, názov, termín, stav), nie EventResource: panel
+     * z toho vykreslí riadky s odkazom a celý resource by na každý termín
+     * pridal desiatky polí a niekoľko dotazov.
+     */
+    public function occurrences(string $id, EventSeriesManager $series): JsonResponse
+    {
+        $event = $this->eventRepository->dashboardShow($id);
+        $this->authorize('view', $event);
+
+        if ($event->series_id === null) {
+            return response()->json(['data' => []]);
+        }
+
+        $occurrences = $series->siblings($event)
+            ->push($event)
+            ->sortBy([
+                fn (Event $a, Event $b) => ($a->start_at === null) <=> ($b->start_at === null),
+                fn (Event $a, Event $b) => $a->start_at <=> $b->start_at,
+            ])
+            ->values()
+            ->map(fn (Event $occurrence) => [
+                'id' => $occurrence->id,
+                'name' => $occurrence->name,
+                'start_at' => $occurrence->start_at,
+                'end_at' => $occurrence->end_at,
+                'date_range_label' => EventDateRange::label($occurrence->start_at, $occurrence->end_at),
+                'status' => $occurrence->status,
+                'is_current' => $occurrence->id === $event->id,
+            ]);
+
+        return response()->json(['data' => $occurrences]);
+    }
+
+    /**
+     * Pridá k podujatiu ďalší termín tej istej série.
+     *
+     * Právo je `duplicate` — vzniká tým nové podujatie v tom istom kanáli, čiže
+     * presne to isté oprávnenie ako pri „Duplikovať". Vlastnú položku v policy
+     * by to potrebovalo len vtedy, keby sme chceli, aby niekto smel duplikovať
+     * a nesmel pridávať termíny; taký rozdiel nedáva zmysel.
+     */
+    public function addOccurrence(string $id, Request $request, EventSeriesManager $series): JsonResponse
+    {
+        $event = $this->eventRepository->dashboardShow($id);
+        $this->authorize('duplicate', $event);
+
+        $validated = $request->validate([
+            'start_at' => ['nullable', 'date'],
+            'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
+        ]);
+
+        $occurrence = $series->addOccurrence(
+            $request->user(),
+            $event,
+            $validated['start_at'] ?? null,
+            $validated['end_at'] ?? null,
+        );
+
+        return response()->json(new EventResource($occurrence), 201);
+    }
+
+    /**
+     * Vyradí termín zo série. Podujatie zostáva, len prestane patriť k programu.
+     */
+    public function detachFromSeries(string $id, EventSeriesManager $series): JsonResponse
+    {
+        $event = $this->eventRepository->dashboardShow($id);
+        $this->authorize('update', $event);
+
+        $series->detach($event);
+
+        return response()->json(new EventResource($event->fresh(['files', 'tags'])), 200);
     }
 
     public function municipalitiesOverview(Request $request): JsonResponse

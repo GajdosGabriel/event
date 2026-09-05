@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Event</title>
+    <!-- PWA: inštalácia na plochu a offline režim skenera aj vstupenky. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="theme-color" content="#1e293b" />
+    <!-- Titulok pred načítaním JS. „Event" samotné vyzeralo na pomalej linke
+         ako rozbitá stránka; `useHead` ho aj tak hneď prepíše na konkrétny. -->
+    <title>Event — podujatia a vstupenky</title>
   </head>
   <body>
     <div id="app"></div>

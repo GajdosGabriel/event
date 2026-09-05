@@ -23,6 +23,10 @@ class TicketCheckinRequest extends FormRequest
     {
         return [
             'qr_token' => ['required', 'string'],
+            // Čas skenu z offline fronty skenera. Bez neho by sa všetkým, čo
+            // prišli počas výpadku signálu, zapísal ten istý okamih — ten,
+            // v ktorom sa spojenie vrátilo.
+            'scanned_at' => ['nullable', 'date', 'before_or_equal:now', 'after:-1 day'],
         ];
     }
 }

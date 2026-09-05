@@ -7,6 +7,7 @@ use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
+use App\Models\Municipality;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -72,7 +73,9 @@ class ImportedCanalManager
         }
 
         $canal = Canal::query()->create([
-            'municipality_id' => 4209,
+            // Obec sa pri zakladaní kanála ešte nevie — miesto sa rieši až po ňom.
+            // Doplní ju CanalSeatDeriver, keď bude jasné, kde sa podujatia konajú.
+            'municipality_id' => Municipality::nationwideId(),
             'name' => $canalName,
             'title_prefix' => null,
             'title_suffix' => null,

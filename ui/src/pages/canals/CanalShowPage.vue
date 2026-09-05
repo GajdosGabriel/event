@@ -97,6 +97,10 @@
             :manage-to="`${prefix}/canals/${canal.id}/edit#team`"
           />
 
+          <!-- Widget na vlastný web organizátora. Len v dashboarde: je to
+               nástroj pre majiteľa kanála, nie pre správu portálu. -->
+          <EmbedSnippetPanel v-if="scope === 'dashboard'" :canal-id="canal.id" :canal-slug="canal.slug" />
+
           <!-- Eventy kanálu -->
           <div class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -198,6 +202,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
+import EmbedSnippetPanel from '@/components/EmbedSnippetPanel.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'

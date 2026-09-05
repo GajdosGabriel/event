@@ -49,6 +49,45 @@ class WebsiteProbeTest extends TestCase
         }
     }
 
+    /**
+     * Regresia, ktorá stála 114 falošných hlásení o pokazenom webe.
+     *
+     * WordPress — a s ním väčšina webov, ktoré organizátori uvádzajú —
+     * presmeruje `…/kurz` na kanonické `…/kurz/`. Kým si sonda cieľ
+     * presmerovania preháňala cez Url::normalize(), ktorý koncovú lomku
+     * zámerne orezáva, odpovedala serveru zakaždým tou istou adresou bez
+     * lomky. Server presmeroval znova a po piatich skokoch z toho bol
+     * `redirect_loop` na úplne funkčnom webe.
+     */
+    #[Test]
+    public function a_redirect_to_the_canonical_trailing_slash_is_followed(): void
+    {
+        Http::fake([
+            'https://example.com/kurz' => Http::response('', 301, ['Location' => 'https://example.com/kurz/']),
+            'https://example.com/kurz/' => Http::response('', 200),
+        ]);
+
+        $result = $this->probe()->probe('https://example.com/kurz/');
+
+        $this->assertTrue($result->ok, 'Kanonizácia lomkou nie je zacyklenie.');
+        $this->assertSame(200, $result->httpStatus);
+    }
+
+    /** Skutočné zacyklenie musí sonda naďalej rozpoznať. */
+    #[Test]
+    public function a_real_redirect_loop_is_still_a_failure(): void
+    {
+        Http::fake([
+            'https://example.com/a' => Http::response('', 302, ['Location' => 'https://example.com/b']),
+            'https://example.com/b' => Http::response('', 302, ['Location' => 'https://example.com/a']),
+        ]);
+
+        $result = $this->probe()->probe('https://example.com/a');
+
+        $this->assertFalse($result->ok);
+        $this->assertSame('redirect_loop', $result->reason);
+    }
+
     #[Test]
     public function a_missing_page_is_a_failure(): void
     {

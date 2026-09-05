@@ -42,6 +42,22 @@
         >
           {{ venueName }}
         </span>
+        <!-- Zbalená séria: vo výpise je z ôsmich repríz jedna karta, aby
+             nevytlačili všetko ostatné. Ostatné termíny sú na detaile. -->
+        <!-- Vzdialenosť od polohy návštevníka; ukazuje sa len so zapnutým
+             filtrom „v mojom okolí". -->
+        <span
+          v-if="distanceLabel"
+          class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
+        >
+          <span aria-hidden="true">📍</span>{{ distanceLabel }}
+        </span>
+        <span
+          v-if="seriesUpcomingCount"
+          class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+        >
+          {{ plural('public.series.more', seriesUpcomingCount) }}
+        </span>
       </div>
 
       <!-- Obsahové štítky. Modrá patrí dátumu, tyrkysová kanálu — štítky sú
@@ -65,6 +81,7 @@
 import { computed } from 'vue'
 import type { TagItem } from '@/types'
 import { publicEventPath } from '@/utils/publicUrl'
+import { plural } from '@/i18n'
 
 /** Viac čipov než toľko kartu rozbije — zvyšok sa zhrnie do „+N". */
 const MAX_VISIBLE_TAGS = 3
@@ -90,6 +107,10 @@ const props = defineProps<{
   tags?: TagItem[] | null
   /** Cieľ odkazu; predvolene detail eventu. */
   to?: string
+  /** Koľko ďalších termínov série ešte len bude; 0 alebo null = odznak sa neukáže. */
+  seriesUpcomingCount?: number | null
+  /** Vzdialenosť od polohy návštevníka, už naformátovaná. */
+  distanceLabel?: string | null
 }>()
 
 const link = computed(() => props.to ?? publicEventPath({ id: props.id, slug: props.slug }))

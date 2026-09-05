@@ -25,6 +25,22 @@
         </section>
 
         <template v-else>
+          <!-- Stav spojenia a fronty. Pri vchode musí byť na prvý pohľad
+               jasné, či sken doletel, alebo len čaká — inak obsluha nevie,
+               či môže pustiť ďalšieho. -->
+          <div
+            v-if="!online || queued > 0"
+            class="mb-3 flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"
+            :class="online ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-900'"
+          >
+            <span class="font-medium">
+              {{ online ? t('checkin.queueSending') : t('checkin.offline') }}
+            </span>
+            <span v-if="queued > 0" class="shrink-0 font-semibold">
+              {{ t('checkin.queued', { n: queued }) }}
+            </span>
+          </div>
+
           <div v-if="stats" class="mb-4 rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
             {{ t('checkin.arrived') }} <strong>{{ stats.arrived }}</strong> / {{ stats.total }}
             <span class="text-slate-400">{{ t('checkin.remaining', { n: stats.remaining }) }}</span>
@@ -79,6 +95,7 @@ import { useRoute } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
 import { checkinTicket, checkinStats } from '@/api/tickets'
+import { enqueue, pending, remove, isSupported as queueSupported } from '@/utils/checkinQueue'
 import { showEvent } from '@/api/events'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import { currentLocale, t } from '@/i18n'
@@ -104,6 +121,86 @@ const eventName = ref('')
 let scanner: QrScanner | null = null
 let processing = false
 
+/**
+ * Offline režim. `navigator.onLine` je len hrubá nápoveda (hlási aj sieť bez
+ * internetu), preto sa nespoliehame len na ňu — do fronty ide aj sken, ktorý
+ * zlyhal na sieťovej chybe pri online stave.
+ */
+const online = ref(navigator.onLine)
+const queued = ref(0)
+let flushing = false
+
+async function refreshQueue() {
+  if (!queueSupported()) return
+  queued.value = (await pending(eventId)).length
+}
+
+/**
+ * Prehrá frontu. Záznam sa maže až po odpovedi servera — check-in je
+ * idempotentný, takže druhé odoslanie je neškodné, kým stratený sken znamená
+ * človeka, ktorý pri vchode „nebol".
+ */
+async function flushQueue() {
+  if (flushing || !navigator.onLine || !queueSupported()) return
+
+  flushing = true
+  try {
+    for (const scan of await pending(eventId)) {
+      try {
+        await checkinTicket(scan.token, scan.scannedAt)
+        await remove(scan.id)
+      } catch {
+        // Spojenie je späť len napoly — zvyšok fronty počká na ďalší pokus.
+        break
+      }
+    }
+  } finally {
+    flushing = false
+    await refreshQueue()
+    await loadStats()
+  }
+}
+
+function onOnline() {
+  online.value = true
+  flushQueue()
+}
+
+function onOffline() {
+  online.value = false
+}
+
+/**
+ * Čerstvé počty naprieč zariadeniami.
+ *
+ * Pri dverách stoja bežne dvaja ľudia s dvoma telefónmi. Doteraz sa počítadlo
+ * obnovilo len po vlastnom skene, takže každé zariadenie ukazovalo iné číslo
+ * a ani jedno nebolo pravdivé.
+ *
+ * Polling, nie websocket: portál žiadny nemá a kvôli jednému číslu sa neoplatí.
+ * Interval je zámerne pokojný — údaj je orientačný, nie riadiaci.
+ */
+const STATS_REFRESH_MS = 20000
+let statsTimer: ReturnType<typeof setInterval> | undefined
+
+function startStatsRefresh() {
+  stopStatsRefresh()
+  statsTimer = setInterval(() => {
+    // Skrytá karta (telefón v kešeni medzi príchodmi) nemá čo obnovovať.
+    if (document.visibilityState === 'visible' && navigator.onLine) loadStats()
+  }, STATS_REFRESH_MS)
+}
+
+function stopStatsRefresh() {
+  if (statsTimer) clearInterval(statsTimer)
+  statsTimer = undefined
+}
+
+/** Návrat na kartu = najlepší moment na dotiahnutie čísel. */
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible' && navigator.onLine) loadStats()
+}
+
 function extractToken(scanned: string): string {
   return scanned.startsWith('TICKET:') ? scanned.slice('TICKET:'.length) : scanned
 }
@@ -120,13 +217,36 @@ async function handleToken(token: string) {
   if (processing || !token) return
   processing = true
   try {
+    if (!navigator.onLine && queueSupported()) {
+      await queueScan(token)
+      return
+    }
+
     result.value = await checkinTicket(token)
     if (result.value.status === 'checked_in') await loadStats()
-  } catch {
+  } catch (e: unknown) {
+    // Bez odpovede servera nevieme, či bola vstupenka platná — a hádať pri
+    // vchode „neplatná" je horšie než ju zaradiť a overiť neskôr. Odmietnutie
+    // so stavovým kódom (403, 422) je naopak skutočná odpoveď a do fronty
+    // nepatrí.
+    const status = (e as { response?: { status?: number } })?.response?.status
+
+    if (status === undefined && queueSupported()) {
+      await queueScan(token)
+      return
+    }
+
     result.value = { status: 'invalid', reason: null, admission: null }
   } finally {
     setTimeout(() => { processing = false }, 1500)
   }
+}
+
+/** Zaradí sken do fronty a povie to obsluhe — s vlastným, nie chybovým stavom. */
+async function queueScan(token: string) {
+  await enqueue(eventId, token)
+  await refreshQueue()
+  result.value = { status: 'queued', reason: null, admission: null }
 }
 
 async function submitManual() {
@@ -137,13 +257,21 @@ async function submitManual() {
 
 const resultTitle = computed(() => {
   switch (result.value?.status) {
+    case 'queued':
+      return t('checkin.queuedOk')
     case 'checked_in':
       return t('checkin.ok')
     case 'already_checked_in': {
-      const at = result.value.admission?.checkedInAt
-      return at
-        ? t('checkin.usedAt', { time: new Date(at).toLocaleTimeString(currentLocale()) })
-        : t('checkin.used')
+      const admission = result.value.admission
+      const at = admission?.checkedInAt
+      const time = at ? new Date(at).toLocaleTimeString(currentLocale()) : null
+      // Meno obsluhy je tu to podstatné: pri dvoch zariadeniach na dverách
+      // hovorí „pustil ho kolega", nie „niekto to skúša druhýkrát".
+      const by = admission?.checkedInBy?.name
+
+      if (time && by) return t('checkin.usedAtBy', { time, name: by })
+      if (time) return t('checkin.usedAt', { time })
+      return t('checkin.used')
     }
     default:
       return t('checkin.invalid')
@@ -152,6 +280,8 @@ const resultTitle = computed(() => {
 
 const resultClass = computed(() => {
   switch (result.value?.status) {
+    // Modrá, nie zelená: vstupenka ešte nie je overená, len uložená.
+    case 'queued': return 'bg-blue-50 text-blue-800'
     case 'checked_in': return 'bg-green-50 text-green-800'
     case 'already_checked_in': return 'bg-amber-50 text-amber-800'
     default: return 'bg-red-50 text-red-800'
@@ -159,6 +289,12 @@ const resultClass = computed(() => {
 })
 
 onMounted(async () => {
+  window.addEventListener('online', onOnline)
+  window.addEventListener('offline', onOffline)
+
+  // Fronta mohla ostať z minulého behu — zavretá karta, vybitý telefón.
+  refreshQueue().then(flushQueue)
+
   showEvent('dashboard', eventId)
     .then((e) => {
       eventName.value = e.name
@@ -177,6 +313,8 @@ onMounted(async () => {
   if (!hasTypes.value) return
 
   loadStats()
+  startStatsRefresh()
+  document.addEventListener('visibilitychange', onVisibilityChange)
   await nextTick()
   if (!videoEl.value) return
   try {
@@ -191,6 +329,10 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  stopStatsRefresh()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('online', onOnline)
+  window.removeEventListener('offline', onOffline)
   scanner?.stop()
   scanner?.destroy()
 })

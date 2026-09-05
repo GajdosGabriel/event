@@ -1,16 +1,16 @@
 import http, { BASE_URL } from './index'
+import { mapEvent } from './events'
 import type {
   AdmissionItem,
   AttendeeSummary,
   CheckinStats,
-  EventItem,
   PaginatedResponse,
   TicketCheckinResult,
   TicketItem,
 } from '@/types'
 
 export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
-  const checkedInBy = raw['checked_in_by'] as { id: number } | null
+  const checkedInBy = raw['checked_in_by'] as { id: number; name?: string } | null
   const rawType = raw['ticket_type'] as Record<string, unknown> | null
   const ticketType: AdmissionItem['ticketType'] = rawType
     ? {
@@ -43,7 +43,7 @@ export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
   }
 }
 
-function mapTicket(raw: Record<string, unknown>): TicketItem {
+export function mapTicket(raw: Record<string, unknown>): TicketItem {
   const permissions = raw['permissions'] as Record<string, boolean> | undefined
   const admissions = (raw['admissions'] as Record<string, unknown>[] | undefined) ?? []
 
@@ -66,7 +66,10 @@ function mapTicket(raw: Record<string, unknown>): TicketItem {
     admissions: admissions.map(mapAdmission),
     createdAt: raw['created_at'] as string,
     deletedAt: (raw['deleted_at'] as string) ?? null,
-    event: raw['event'] ? (raw['event'] as unknown as EventItem) : undefined,
+    // Cez mapEvent, nie pretypovaním: raw prichádza v snake_case, takže
+    // priame pretypovanie nechalo `dateRangeLabel` a ďalšie camelCase polia
+    // prázdne — na detaile vstupenky tak chýbal termín podujatia.
+    event: raw['event'] ? mapEvent(raw['event'] as Record<string, unknown>) : undefined,
     permissions: permissions
       ? { update: Boolean(permissions['update']), checkin: Boolean(permissions['checkin']) }
       : undefined,
@@ -137,8 +140,15 @@ function mapCheckinResult(data: Record<string, unknown>): TicketCheckinResult {
   }
 }
 
-export async function checkinTicket(qrToken: string): Promise<TicketCheckinResult> {
-  const { data } = await http.post('/dashboard/tickets/checkin', { qr_token: qrToken })
+/**
+ * `scannedAt` posiela skener pri prehrávaní offline fronty — bez neho by sa
+ * všetkým, čo prišli počas výpadku, zapísal čas, keď sa vrátil signál.
+ */
+export async function checkinTicket(qrToken: string, scannedAt?: string): Promise<TicketCheckinResult> {
+  const { data } = await http.post('/dashboard/tickets/checkin', {
+    qr_token: qrToken,
+    ...(scannedAt ? { scanned_at: scannedAt } : {}),
+  })
   return mapCheckinResult(data)
 }
 

@@ -5,10 +5,15 @@ namespace App\Services\Attributes;
 use App\Contracts\AttributeProbe;
 use App\Enums\AttributeCheckStatus;
 use App\Models\AttributeCheck;
+use App\Models\Canal;
+use App\Models\Event;
+use App\Models\Organization;
+use App\Models\Venue;
 use App\Notifications\AttributeIssueNotice;
 use App\Services\Attributes\Probes\WebsiteProbe;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -128,7 +133,18 @@ class AttributeCheckService
     {
         return AttributeCheck::query()
             ->due()
-            ->with('checkable')
+            // Vzťahy pre adresáta upozornenia sa musia natiahnuť spolu
+            // s modelom. Bez nich `notify()` siahne na `ownerCanals` až pri
+            // zlyhaní — a keďže `Model::preventLazyLoading()` je mimo
+            // produkcie zapnuté, celý príkaz na tom spadol. Na produkcii
+            // nespadol, len z každého zlyhania spravil sériu dotazov navyše.
+            ->with(['checkable' => fn (MorphTo $checkable) => $checkable->morphWith([
+                Venue::class => ['ownerCanals.owners'],
+                Canal::class => ['owners'],
+                Event::class => ['user'],
+                // Organization si adresáta ťahá vlastným dotazom (owners()->get()).
+                Organization::class => [],
+            ])])
             // Podnet od návštevníka má prednosť — o ten odkaz niekto naozaj
             // stál, kým zvyšok je len plánovaná obchôdzka.
             ->orderByRaw('reported_at is null')

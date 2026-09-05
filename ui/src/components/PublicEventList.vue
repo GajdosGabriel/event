@@ -82,6 +82,13 @@
             :aria-pressed="view === 'grid'"
             @click="setView('grid')"
           >{{ t('public.list.grid') }}</button>
+          <button
+            type="button"
+            class="nav-tab"
+            :class="{ active: view === 'map' }"
+            :aria-pressed="view === 'map'"
+            @click="setView('map')"
+          >{{ t('public.list.map') }}</button>
         </div>
       </div>
     </div>
@@ -104,6 +111,10 @@
             <span aria-hidden="true">{{ shortcut.emoji }}</span>
             {{ shortcut.label }}
           </RouterLink>
+
+          <!-- „V mojom okolí". V tom istom riadku ako časové skratky, lebo je
+               to tá istá otázka, len v druhej osi: kedy verzus kde. -->
+          <NearbyFilter @change="onNearbyChange" />
         </nav>
 
         <TagChips :count="loading ? null : resultLabel" />
@@ -171,7 +182,8 @@
           </div>
 
           <template v-else>
-            <EventAgenda v-if="view === 'agenda'" :events="events" />
+            <EventsMap v-if="view === 'map'" :events="events" />
+            <EventAgenda v-else-if="view === 'agenda'" :events="events" />
             <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
               <EventCard
                 v-for="event in events"
@@ -185,6 +197,8 @@
                 :canal-name="event.canalName"
                 :venue-name="event.venue?.name ?? null"
                 :tags="event.tags"
+                :series-upcoming-count="event.seriesUpcomingCount"
+                :distance-label="distanceLabel(event)"
               />
             </div>
           </template>
@@ -201,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { indexEvents } from '@/api/events'
@@ -212,10 +226,15 @@ import OngoingEventsStrip from '@/components/OngoingEventsStrip.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
+import NearbyFilter, { type NearbySelection } from '@/components/NearbyFilter.vue'
+// Mapa ťahá Leaflet aj jeho CSS — načíta sa až keď si ju niekto zapne, inak
+// by vyrástol balík každej verejnej stránky vrátane homepage.
+const EventsMap = defineAsyncComponent(() => import('@/components/EventsMap.vue'))
 import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { absoluteUrl, publicArchivePath, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
-import { useI18n } from '@/i18n'
+import { useI18n, localeTag } from '@/i18n'
+import { distanceKm, formatDistance } from '@/utils/geo'
 
 const props = withDefaults(defineProps<{
   heading: string
@@ -269,6 +288,34 @@ function setView(next: PublicEventsView) {
   save()
 }
 
+/**
+ * Poloha z „V mojom okolí". Žije len v pamäti komponentu — pozri komentár
+ * v NearbyFilter, prečo sa neukladá ani do adresy.
+ */
+const nearby = ref<NearbySelection | null>(null)
+
+function onNearbyChange(value: NearbySelection | null) {
+  nearby.value = value
+  loadPage(1)
+}
+
+/**
+ * Vzdialenosť sa počíta na fronte zo súradníc miesta, ktoré v odpovedi už sú —
+ * API by ju inak muselo posielať pre každý riadok len preto, že si niekto zapol
+ * filter. Bez zapnutej polohy sa neukazuje nič.
+ */
+function distanceLabel(event: EventItem): string | null {
+  const origin = nearby.value
+  if (!origin) return null
+
+  const latitude = Number(event.venue?.latitude)
+  const longitude = Number(event.venue?.longitude)
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+
+  return formatDistance(distanceKm(origin, { latitude, longitude }), localeTag())
+}
+
 const events = ref<EventItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -314,7 +361,7 @@ const shortcuts = computed(() => [
 /** Filtre zapísané v adrese — tie sa nedajú zrušiť tlačidlom, len odkazom. */
 const hasRouteFilters = computed(() => Boolean(props.range || props.tags || props.municipality
   || route.query.municipality || route.query.tags))
-const hasActiveFilters = computed(() => hasRouteFilters.value || Boolean(search.value.trim()))
+const hasActiveFilters = computed(() => hasRouteFilters.value || Boolean(search.value.trim()) || Boolean(nearby.value))
 
 const resultLabel = computed(() => plural('public.list.counts.events', total.value || events.value.length))
 
@@ -406,6 +453,11 @@ async function fetchPage(p: number) {
     if (tagsParam.value) params['tags'] = tagsParam.value
     if (props.range) params['range'] = props.range
     if (search.value.trim()) params['search'] = search.value.trim()
+    if (nearby.value) {
+      params['latitude'] = nearby.value.latitude
+      params['longitude'] = nearby.value.longitude
+      params['radius_km'] = nearby.value.radiusKm
+    }
     const res = await indexEvents('public', params)
     events.value = res.data
     page.value = res.meta.current_page

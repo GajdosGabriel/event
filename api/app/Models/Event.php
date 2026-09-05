@@ -17,6 +17,8 @@ use App\Models\Traits\InteractsAsQuestionBoard;
 use App\Models\Traits\SanitizesHtmlBody;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -33,7 +35,27 @@ class Event extends Model implements HasQuestionBoard, Messageable
 
     protected $guarded = [];
 
-    protected $hidden = [];
+    /**
+     * Vnútorná réžia, ktorá nepatrí do odpovede.
+     *
+     * Verejné endpointy serializujú model priamo cez toArray()
+     * (Public\EventController::show) a EventResource stavia na
+     * parent::toArray(), takže bez $hidden by tieto stĺpce videl každý
+     * návštevník — rovnaký dôvod ako pri `views_count` v HasViews.
+     *
+     * `meta` je z nich najcitlivejšia: drží surový text importu
+     * (`raw_text`, `imported_raw_body`) a celú odpoveď detektora vrátane
+     * `ai_detector.event_payload.persons[]`, kde bývajú mená, telefóny
+     * a e-maily kontaktných osôb. V UI sa nezobrazuje nikde; organizátorovi
+     * a adminovi ju vracia späť EventResource po kontrole práva `view`.
+     */
+    protected $hidden = [
+        'meta',
+        'ai_tagged_at',
+        'ai_tags_hash',
+        'ai_tags_attempts',
+        'body_rewritten_at',
+    ];
 
     protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
 
@@ -143,6 +165,43 @@ class Event extends Model implements HasQuestionBoard, Messageable
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    /**
+     * Séria opakovaných termínov, ak do nejakej patrí. `null` je bežný stav —
+     * väčšina podujatí sa koná raz.
+     */
+    public function series(): BelongsTo
+    {
+        return $this->belongsTo(EventSeries::class, 'series_id');
+    }
+
+    /**
+     * Všetky termíny série vrátane tohto — pre `withCount` vo výpise.
+     *
+     * Samostatná relácia popri `siblingOccurrences()` preto, že tá vylučuje
+     * seba cez `$this->getKey()`, a to pri počítaní nad dotazom (bez inštancie)
+     * nefunguje. Volajúci si od počtu odpočíta jednotku.
+     */
+    public function seriesEvents(): HasMany
+    {
+        return $this->hasMany(Event::class, 'series_id', 'series_id')
+            ->whereNotNull('series_id');
+    }
+
+    /**
+     * Ostatné termíny tej istej série (bez tohto). Prázdna kolekcia aj vtedy,
+     * keď podujatie sériu nemá — volajúci sa tak nemusí pýtať dvakrát.
+     */
+    public function siblingOccurrences(): HasMany
+    {
+        return $this->hasMany(Event::class, 'series_id', 'series_id')
+            ->whereKeyNot($this->getKey())
+            // `series_id` NULL sa v SQL nerovná ničomu vrátane seba, takže
+            // podujatie bez série tu prirodzene nedostane ani jeden riadok.
+            ->whereNotNull('series_id')
+            ->orderByRaw('start_at IS NULL')
+            ->orderBy('start_at');
     }
 
     public function ticketTypes()

@@ -39,6 +39,15 @@ return [
         'ignore'  => 'If you did not create an account, no action is required.',
     ],
 
+    // App\Notifications\PasswordResetLink
+    'password_reset' => [
+        'subject' => 'Password reset',
+        'intro'   => 'We received a request to reset the password for your account. Use the button below to set a new one.',
+        'action'  => 'Set a new password',
+        'expires' => '{1} The link is valid for :count minute and can be used once.|[2,*] The link is valid for :count minutes and can be used once.',
+        'ignore'  => 'If you did not ask for this, no action is required — your password stays as it is.',
+    ],
+
     // App\Notifications\ContentReviewNotice
     'content_review' => [
         'types' => [

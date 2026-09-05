@@ -27,13 +27,16 @@
         </div>
       </div>
 
+      <small>
+        <RouterLink :to="forgotLink">{{ t('auth.login.forgotLink') }}</RouterLink>
+      </small>
       <small>{{ t('auth.login.noAccount') }} <RouterLink to="/register">{{ t('auth.login.registerLink') }}</RouterLink></small>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
@@ -51,6 +54,13 @@ const validation = provideFormValidation()
 const form = ref({ email: '', password: '' })
 const error = ref<string | null>(null)
 const loading = ref(false)
+
+// Adresu z rozpísaného prihlásenia nesieme ďalej, nech ju človek po zlyhaní
+// hesla nepíše druhýkrát.
+const forgotLink = computed(() => ({
+  path: '/zabudnute-heslo',
+  query: form.value.email ? { email: form.value.email } : undefined,
+}))
 
 function redirectTarget() {
   return typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'

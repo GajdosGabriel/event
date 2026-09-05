@@ -37,7 +37,12 @@ function buildDateRangeLabel(startAt: string | null, endAt: string | null): stri
   return `${fmt(startAt)} – ${fmt(endAt)}`
 }
 
-function mapEvent(raw: Record<string, unknown>): EventItem {
+/**
+ * Exportované kvôli vnoreným podujatiam v iných odpovediach (objednávka nesie
+ * `event`). Bez toho si ich volajúci pretypovával priamo z raw dát a
+ * camelCase polia — `dateRangeLabel` a spol. — zostali nevyplnené.
+ */
+export function mapEvent(raw: Record<string, unknown>): EventItem {
   const canal = (raw['canal'] as { id: number; name: string } | null) ?? null
   const startAt = (raw['start_at'] as string) ?? null
   const endAt = (raw['end_at'] as string) ?? null
@@ -55,6 +60,21 @@ function mapEvent(raw: Record<string, unknown>): EventItem {
     startAt,
     endAt,
     dateRangeLabel: (raw['date_range_label'] as string) ?? buildDateRangeLabel(startAt, endAt),
+    seriesId: (raw['series_id'] as number) ?? null,
+    // Vo výpise ich prilepí withCount, na detaile nie sú — vtedy null,
+    // aby sa dalo odlíšiť „séria bez ďalších termínov" od „nevieme".
+    seriesUpcomingCount: raw['series_upcoming_count'] === undefined
+      ? null
+      : Number(raw['series_upcoming_count']),
+    seriesOccurrences: ((raw['series_occurrences'] as Record<string, unknown>[] | undefined) ?? []).map((item) => ({
+      id: item['id'] as number,
+      name: item['name'] as string,
+      slug: (item['slug'] as string) ?? null,
+      startAt: (item['start_at'] as string) ?? null,
+      endAt: (item['end_at'] as string) ?? null,
+      dateRangeLabel: (item['date_range_label'] as string) ?? null,
+      url: (item['url'] as string) ?? null,
+    })),
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
     ticketsEnabled: Boolean(raw['tickets_enabled']),
     workshopLockOnStart: raw['workshop_lock_on_start'] === undefined ? true : Boolean(raw['workshop_lock_on_start']),
@@ -184,6 +204,52 @@ export async function restoreEvent(id: number): Promise<void> {
 
 export async function publishEvent(id: number, published: boolean): Promise<void> {
   await http.post(`${baseUrl('dashboard')}/${id}/publish`, { published })
+}
+
+/** Jeden termín série tak, ako ho vracia dashboard. */
+export interface SeriesOccurrenceRow {
+  id: number
+  name: string
+  startAt: string | null
+  endAt: string | null
+  dateRangeLabel: string | null
+  status: string
+  isCurrent: boolean
+}
+
+function mapOccurrence(raw: Record<string, unknown>): SeriesOccurrenceRow {
+  return {
+    id: raw['id'] as number,
+    name: raw['name'] as string,
+    startAt: (raw['start_at'] as string) ?? null,
+    endAt: (raw['end_at'] as string) ?? null,
+    dateRangeLabel: (raw['date_range_label'] as string) ?? null,
+    status: (raw['status'] as string) ?? 'draft',
+    isCurrent: Boolean(raw['is_current']),
+  }
+}
+
+/** Termíny série vrátane tohto podujatia. Prázdne, keď do série nepatrí. */
+export async function eventOccurrences(id: number): Promise<SeriesOccurrenceRow[]> {
+  const { data } = await http.get(`/dashboard/events/${id}/occurrences`)
+  return ((data.data ?? []) as Record<string, unknown>[]).map(mapOccurrence)
+}
+
+/**
+ * Pridá ďalší termín. Prvé volanie sériu založí a zaradí do nej aj zdrojové
+ * podujatie; nový termín vzniká ako koncept.
+ */
+export async function addEventOccurrence(
+  id: number,
+  payload: { start_at?: string | null; end_at?: string | null } = {},
+): Promise<EventItem> {
+  const { data } = await http.post(`/dashboard/events/${id}/occurrences`, payload)
+  return mapEvent((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Vyradí termín zo série; podujatie zostáva. */
+export async function detachEventFromSeries(id: number): Promise<void> {
+  await http.delete(`/dashboard/events/${id}/series`)
 }
 
 export async function duplicateEvent(id: number, scope: Exclude<Scope, 'public'> = 'dashboard'): Promise<EventItem> {

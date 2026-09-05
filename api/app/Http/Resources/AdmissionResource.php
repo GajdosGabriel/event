@@ -2,11 +2,29 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdmissionResource extends JsonResource
 {
+    /**
+     * Mená obsluhy v rámci jednej požiadavky.
+     *
+     * `User::displayName()` sa pýta na osobný kanál a PendingProfile, takže by
+     * pri zozname prihlásených strieľal dva dotazy na každú vstupenku. Obsluhy
+     * je pritom pár — vo veľkom podujatí traja ľudia na dverách — takže cache
+     * má rádovo jednotky položiek a žije len do konca requestu.
+     *
+     * @var array<int, string>
+     */
+    private static array $staffNames = [];
+
+    private static function staffName(User $staff): string
+    {
+        return self::$staffNames[$staff->id] ??= $staff->displayName();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -25,7 +43,13 @@ class AdmissionResource extends JsonResource
             'confirmation_deadline_at' => $this->confirmation_deadline_at,
             'is_checked_in' => $this->is_checked_in,
             'checked_in_at' => $this->checked_in_at,
-            'checked_in_by' => $this->whenLoaded('checkedInBy', fn () => $this->checkedInBy ? ['id' => $this->checkedInBy->id] : null),
+            // Meno obsluhy, nie len id: pri check-ine na viacerých zariadeniach
+            // je „už prišiel" bez toho, kto ho pustil, informácia, s ktorou sa
+            // pri dverách nedá nič spraviť.
+            'checked_in_by' => $this->whenLoaded('checkedInBy', fn () => $this->checkedInBy ? [
+                'id' => $this->checkedInBy->id,
+                'name' => self::staffName($this->checkedInBy),
+            ] : null),
             'qr_url' => route('public.admissions.qr', $this->uuid),
             'ticket_type' => $this->whenLoaded('ticketType', fn () => $this->ticketType ? [
                 'id' => $this->ticketType->id,

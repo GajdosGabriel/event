@@ -16,7 +16,7 @@ interface TicketRepository extends InterfaceRepository
     public function findAdmissionByUuid(string $uuid): ?Admission;
 
     /** Check-in vstupenky pomocou naskenovaného QR tokenu. */
-    public function checkIn(string $qrToken, User $staff): array;
+    public function checkIn(string $qrToken, User $staff, ?\Carbon\Carbon $scannedAt = null): array;
 
     /** Manuálny check-in vstupenky pri vchode (bez skenovania). */
     public function manualCheckIn(int $admissionId, User $staff): array;

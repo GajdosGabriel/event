@@ -15,6 +15,7 @@ class RemoteAttachmentPersister
 {
     public function __construct(
         private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver(),
+        private readonly FileDuplicator $fileDuplicator = new FileDuplicator(),
     ) {}
 
     /**
@@ -79,6 +80,20 @@ class RemoteAttachmentPersister
                 }
             }
 
+            // Ten istý plagát visí pri viacerých podujatiach — v produkcii bol
+            // jeden PNG stiahnutý jedenásťkrát. Keď už rovnaký obsah niekde
+            // máme, netreba ho nahrávať znova ani znova prehnať generovaním
+            // variantov: objekty sa prekopírujú na disku aj s hotovým thumb
+            // a large. Rozhoduje checksum stiahnutého tela, nie odkaz, takže
+            // zámena obrázka na zdroji sa nedá prehliadnuť.
+            //
+            // Kópia, nie zdieľanie cesty — dôvod drží FileDuplicator.
+            $reused = $this->reuseStoredCopy($model, $checksum, $type, $safeOriginalName, $extension, $makePrimary && $index === 0, $meta, $attachment, $url);
+
+            if ($reused !== null) {
+                return $reused;
+            }
+
             $storedFileName = Str::random(40) . ($extension !== '' ? '.' . $extension : '');
             $path = trim($storageDirectory, '/') . '/' . $storedFileName;
 
@@ -116,6 +131,59 @@ class RemoteAttachmentPersister
     /**
      * @param array<string, mixed> $attachment
      */
+    /**
+     * Prekopíruje už uložený súbor s rovnakým obsahom, ak nejaký existuje.
+     *
+     * @param  array<string, mixed>  $meta
+     * @param  array<string, mixed>  $attachment
+     * @return \App\Models\File|null  null, keď sa nedá použiť a treba ukladať normálne
+     */
+    private function reuseStoredCopy(
+        Model $model,
+        string $checksum,
+        FileType $type,
+        string $safeOriginalName,
+        string $extension,
+        bool $makePrimary,
+        array $meta,
+        array $attachment,
+        string $url,
+    ): ?\App\Models\File {
+        $source = \App\Models\File::query()
+            ->where('checksum', $checksum)
+            ->where('type', $type->value)
+            ->whereNotNull('path')
+            // Vlastné prílohy tohto záznamu rieši kontrola vyššie; sem patrí
+            // len to, čo už visí inde.
+            ->where(fn ($query) => $query
+                ->where('fileable_type', '!=', $model->getMorphClass())
+                ->orWhere('fileable_id', '!=', $model->getKey()))
+            ->oldest('id')
+            ->first();
+
+        if ($source === null) {
+            return null;
+        }
+
+        // Vráti null aj vtedy, keď zdrojové objekty na disku medzitým zmizli
+        // (napr. po zmazaní originálu po vygenerovaní variantov) — vtedy sa
+        // ide normálnou cestou a súbor sa uloží nanovo.
+        return $this->fileDuplicator->copyTo($source, $model, [
+            'name' => $this->fileDisplayNameResolver->resolve($model, $safeOriginalName),
+            'original_name' => $safeOriginalName,
+            'extension' => $extension !== '' ? $extension : null,
+            'is_primary' => $makePrimary,
+            'sort_order' => 0,
+            'meta' => array_merge($meta, [
+                'source' => 'remote_attachment',
+                'source_url' => $url,
+                'source_name' => $attachment['name'] ?? null,
+                'source_link_text' => $attachment['link_text'] ?? null,
+                'source_size' => $attachment['size'] ?? null,
+                'reused_from' => $source->id,
+            ]),
+        ]);
+    }
     private function resolveOriginalName(array $attachment): string
     {
         $url = (string) ($attachment['url'] ?? '');

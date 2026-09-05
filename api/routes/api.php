@@ -14,6 +14,9 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\AiAssistController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Me\SubscriptionController as MeSubscriptionController;
+use App\Http\Controllers\Me\TicketController as MeTicketController;
 use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
@@ -87,6 +90,15 @@ Route::middleware('throttle:register')->group(function () {
 });
 
 Route::get('/register/verify/{token}', [AuthController::class, 'verifyRegistrationLink'])->name('auth.register.verify.link');
+
+// Obnova zabudnutého hesla. `forgot` posiela e-mail na cudziu adresu, preto má
+// vlastný limiter; `reset` ho zdieľa, lebo skúšanie tokenov je to isté hádanie
+// ako skúšanie hesiel. Odpoveď na `forgot` je vždy rovnaká — viď controller.
+Route::middleware('throttle:password-reset')->group(function () {
+    Route::post('/password/forgot', [PasswordResetController::class, 'forgot'])->name('auth.password.forgot');
+    Route::post('/password/reset', [PasswordResetController::class, 'reset'])->name('auth.password.reset');
+});
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:sanctum');
 
 // Dosah pre vyhľadávače a zdieľanie. Obe routy vracajú HTML/XML, nie JSON —
@@ -259,6 +271,16 @@ Route::apiResources([
     'canals' => PublicCanalController::class,
 ]);
 
+// Vlastný účet návštevníka: lístky a odbery. Zámerne mimo prefixu `dashboard`,
+// ktorý patrí organizovaniu — sem sa dostane každý prihlásený bez ohľadu na to,
+// či má kanál alebo rolu.
+Route::middleware('auth:sanctum')->prefix('me')->name('me.')->group(function () {
+    Route::get('tickets', [MeTicketController::class, 'index'])->name('tickets.index');
+    Route::get('subscriptions', [MeSubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::delete('subscriptions/{subscription}', [MeSubscriptionController::class, 'destroy'])
+        ->name('subscriptions.destroy');
+});
+
 Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
     Route::get('municipalities/all', [DashboardMunicipalityController::class, 'all']);
@@ -364,6 +386,18 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/{event}/unarchive', [DashboardEventController::class, 'unarchive'])
         ->name('events.unarchive')
         ->middleware('permission:event.update');
+    // Séria opakovaných termínov. Pridanie termínu je fakticky založenie
+    // podujatia v tom istom kanáli, preto zdieľa právo s duplikovaním.
+    Route::get('events/{event}/occurrences', [DashboardEventController::class, 'occurrences'])
+        ->name('events.occurrences.index')
+        ->middleware('permission:event.view');
+    Route::post('events/{event}/occurrences', [DashboardEventController::class, 'addOccurrence'])
+        ->name('events.occurrences.store')
+        ->middleware('permission:event.create');
+    Route::delete('events/{event}/series', [DashboardEventController::class, 'detachFromSeries'])
+        ->name('events.series.detach')
+        ->middleware('permission:event.update');
+
     Route::post('events/{event}/duplicate', [DashboardEventController::class, 'duplicate'])
         ->name('events.duplicate')
         ->middleware('permission:event.create');

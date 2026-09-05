@@ -62,6 +62,28 @@ export async function resendVerification(email: string): Promise<void> {
   await http.post('/register/resend', { email })
 }
 
+/**
+ * „Zabudnuté heslo". Backend odpovedá rovnako pre známu aj neznámu adresu,
+ * takže z návratovej hodnoty sa nedá (a nemá) zistiť, či účet existuje —
+ * stránka ukazuje to isté potvrdenie v oboch prípadoch.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  await csrf()
+  await http.post('/password/forgot', { email })
+}
+
+export interface ResetPasswordPayload {
+  token: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
+  await csrf()
+  await http.post('/password/reset', payload)
+}
+
 export async function verifyEmail(payload: { id: string; hash: string; expires: string; signature: string }): Promise<void> {
   await csrf()
   await http.post('/register/verify', payload)

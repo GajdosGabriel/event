@@ -6,6 +6,7 @@ use App\Enums\ModelStatus;
 use App\Enums\TicketTypeKindOption;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
+use App\Support\EventDateRange;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -41,6 +42,15 @@ class EventResource extends JsonResource
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);
 
+        // Séria opakovaných termínov. `series_upcoming_count` prilepí verejný
+        // výpis (withCount) a počíta aj tento termín — na karte nás zaujíma,
+        // koľko ich je *okrem* neho.
+        $data['series_id'] = $this->series_id;
+
+        if ($this->resource->series_id !== null && $this->resource->series_upcoming_count !== null) {
+            $data['series_upcoming_count'] = max(0, (int) $this->resource->series_upcoming_count - 1);
+        }
+
         $data['tickets_enabled'] = $this->tickets_enabled;
         $data['workshop_lock_on_start'] = (bool) $this->workshop_lock_on_start;
         $data['price_amount'] = $this->price_amount;
@@ -70,10 +80,17 @@ class EventResource extends JsonResource
 
         $data['allowed_statuses'] = $this->allowedStatuses($request);
 
-        // Počet zobrazení je len pre organizátora a admina — model ho drží
-        // v $hidden (HasViews), tu sa pridáva späť po kontrole práv.
+        // Vnútorná réžia, ktorú model drží v $hidden (views_count z HasViews,
+        // zvyšok z Event::$hidden), sa vracia späť až po kontrole práv — teda
+        // organizátorovi a adminovi. `meta` je medzi nimi tá citlivá: drží
+        // surový text importu a odpoveď detektora s kontaktnými osobami.
         if ($user?->can('view', $this->resource)) {
             $data['views_count'] = (int) $this->views_count;
+            $data['meta'] = $this->meta;
+            $data['ai_tagged_at'] = $this->ai_tagged_at;
+            $data['ai_tags_hash'] = $this->ai_tags_hash;
+            $data['ai_tags_attempts'] = (int) $this->ai_tags_attempts;
+            $data['body_rewritten_at'] = $this->body_rewritten_at;
         }
 
         // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží
@@ -153,27 +170,7 @@ class EventResource extends JsonResource
 
     private function dateRangeLabel(): ?string
     {
-        if (! $this->start_at instanceof CarbonInterface) {
-            return null;
-        }
-
-        if (! $this->end_at instanceof CarbonInterface) {
-            return $this->start_at->format('d. m. Y H:i');
-        }
-
-        if ($this->start_at->isSameDay($this->end_at)) {
-            return sprintf(
-                '%s - %s',
-                $this->start_at->format('d. m. Y H:i'),
-                $this->end_at->format('H:i'),
-            );
-        }
-
-        return sprintf(
-            '%s - %s',
-            $this->start_at->format('d. m. Y H:i'),
-            $this->end_at->format('d. m. Y H:i'),
-        );
+        return EventDateRange::label($this->start_at, $this->end_at);
     }
 
     private function dateRangeDays(): ?array

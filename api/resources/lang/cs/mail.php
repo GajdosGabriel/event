@@ -39,6 +39,15 @@ return [
         'ignore'  => 'Pokud jste si účet nevytvářeli, nemusíte dělat nic.',
     ],
 
+    // App\Notifications\PasswordResetLink
+    'password_reset' => [
+        'subject' => 'Obnovení hesla',
+        'intro'   => 'Dostali jsme žádost o obnovení hesla k vašemu účtu. Nové heslo si nastavíte tlačítkem níže.',
+        'action'  => 'Nastavit nové heslo',
+        'expires' => '{1} Odkaz je platný :count minutu a lze jej použít jednou.|[2,4] Odkaz je platný :count minuty a lze jej použít jednou.|[5,*] Odkaz je platný :count minut a lze jej použít jednou.',
+        'ignore'  => 'Pokud jste o obnovení nežádali, nemusíte dělat nic — heslo zůstává původní.',
+    ],
+
     // App\Notifications\ContentReviewNotice
     'content_review' => [
         'types' => [

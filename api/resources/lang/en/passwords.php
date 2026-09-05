@@ -19,4 +19,8 @@ return [
     'token' => 'This password reset token is invalid.',
     'user' => "We can't find a user with that email address.",
 
+    // Not from Laravel: the "forgot password" response must be identical for
+    // a registered and an unregistered address, or the form tells you who has an account.
+    'sent_blind' => 'If an account exists for this address, we have sent a password reset link to it.',
+
 ];

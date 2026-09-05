@@ -72,3 +72,32 @@ adresu podujatia; v Search Console odoslať `sitemap.xml`.
 `FRONTEND_URL` v `api/.env` musí byť **verejná adresa SPA hostu** (napr.
 `https://event.hlascirkvi.sk`). Z nej sa skladá `canonical`, `og:url` aj každá
 adresa v `sitemap.xml` — pri zlej hodnote budú odkazy ukazovať mimo portál.
+
+## Zmeny z 4. 9. 2026 (5.6 a 5.7)
+
+Predloha `ui/public/.htaccess` dostala tri veci, ktoré sa **musia preniesť do
+docrootu**, inak zostanú nefunkčné:
+
+1. **`webmanifest` medzi príponami**, ktoré sa neprepisujú na prerender. Bez
+   toho dostane crawler namiesto manifestu HTML a PWA sa neinštaluje.
+2. **Značka `EVENT_EMBED`** pre cesty `/embed/...` (pravidlo 2b).
+3. **Hlavičky proti rámovaniu.** Portál dovtedy neposielal `X-Frame-Options`
+   ani `frame-ancestors` — dal sa teda celý, vrátane dashboardu a prihlásenia,
+   natiahnuť do priehľadného rámu na cudzej stránke. Odteraz je rámovanie
+   zakázané všade okrem widgetu.
+
+Overenie po prenesení:
+
+```bash
+curl -sI https://<portal>/podujatia | grep -i -E 'x-frame|content-security'
+# → X-Frame-Options: SAMEORIGIN + frame-ancestors 'self'
+
+curl -sI https://<portal>/embed/organizator/x-1 | grep -i -E 'x-frame|content-security'
+# → X-Frame-Options tam byť NESMIE, frame-ancestors *
+
+curl -sI https://<portal>/manifest.webmanifest | head -3
+# → 200 a application/manifest+json (nie text/html)
+```
+
+Ak hlavičky nechodia vôbec, na hostingu pravdepodobne nie je `mod_headers` —
+celý blok je v `<IfModule>`, takže Apache nespadne, len sa ticho preskočí.

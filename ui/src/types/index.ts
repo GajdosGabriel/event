@@ -188,6 +188,17 @@ export interface CalendarLinks {
 }
 
 // Event
+/** Jeden ďalší termín série tak, ako ho vracia verejný detail. */
+export interface SeriesOccurrence {
+  id: number
+  name: string
+  slug: string | null
+  startAt: string | null
+  endAt: string | null
+  dateRangeLabel: string | null
+  url: string | null
+}
+
 export interface EventItem {
   id: number
   canalId: number | null
@@ -201,6 +212,12 @@ export interface EventItem {
   startAt: string | null
   endAt: string | null
   dateRangeLabel: string | null
+  /** Séria opakovaných termínov; null pri jednorazovom podujatí. */
+  seriesId: number | null
+  /** Koľko ďalších termínov série ešte len bude — len vo verejnom výpise. */
+  seriesUpcomingCount: number | null
+  /** Ostatné nadchádzajúce termíny série — len na verejnom detaile. */
+  seriesOccurrences: SeriesOccurrence[]
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
   workshopLockOnStart?: boolean
@@ -628,7 +645,8 @@ export interface AdmissionItem {
   confirmationDeadlineAt: string | null
   isCheckedIn: boolean
   checkedInAt: string | null
-  checkedInBy?: { id: number } | null
+  /** Kto vstupenku označil pri dverách — meno pribudlo kvôli check-inu na viacerých zariadeniach. */
+  checkedInBy?: { id: number; name?: string } | null
   qrUrl: string
   ticketType?: { id: number; name: string; kind?: 'ticket' | 'workshop'; startsAt?: string | null } | null
   holderName?: string | null
@@ -663,7 +681,11 @@ export interface TicketItem {
 }
 
 export interface TicketCheckinResult {
-  status: 'checked_in' | 'already_checked_in' | 'invalid' | 'reverted'
+  /**
+   * `queued` nechodí zo servera — skener ho nastaví sám, keď sken uložil do
+   * offline fronty a odošle ho, až keď bude spojenie.
+   */
+  status: 'checked_in' | 'already_checked_in' | 'invalid' | 'reverted' | 'queued'
   reason?: 'not_found' | 'cancelled' | 'waitlisted' | 'unconfirmed' | null
   admission: AdmissionItem | null
 }

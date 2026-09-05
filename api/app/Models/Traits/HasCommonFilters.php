@@ -327,6 +327,49 @@ trait HasCommonFilters
             ->orderByRaw("{$column} DESC");
     }
 
+    /**
+     * „Čo je dnes pri mne" — okruh okolo bodu, ktorý poslal prehliadač.
+     *
+     * Súradnice nie sú na podujatí, ale na **mieste** (`venues`) — `events`
+     * stĺpce `latitude`/`longitude` nemá. Filter preto ide cez reláciu; kto
+     * miesto nemá alebo ho má bez súradníc, do okruhu nespadne. Je to správne
+     * správanie: o podujatí bez adresy sa nedá povedať, že je blízko.
+     *
+     * Vzdialenosť sa počíta haversinom priamo v SQL. Presnejšie postupy
+     * (PostGIS, `ST_Distance_Sphere`) by na tomto objeme nič nepriniesli a
+     * viazali by nás na konkrétnu databázu.
+     *
+     * Pred haversine beží hrubé obdĺžnikové sito na `latitude`/`longitude`.
+     * Bez neho by musela databáza spočítať funkciu pre každý riadok tabuľky;
+     * s ním jej stačí index na súradniciach a zvyšok doráta na hŕstke miest.
+     */
+    public function scopeByDistance(Builder $query, ?float $latitude, ?float $longitude, ?float $radiusKm): Builder
+    {
+        if ($latitude === null || $longitude === null || $radiusKm === null || $radiusKm <= 0) {
+            return $query;
+        }
+
+        if (! method_exists($this, 'venue')) {
+            return $query;
+        }
+
+        // Jeden stupeň zemepisnej šírky je vždy ~111 km; pri dĺžke sa smerom
+        // k pólom skracuje, preto delenie kosínusom šírky.
+        $latDelta = $radiusKm / 111.045;
+        $lngDelta = $radiusKm / max(0.01, 111.045 * cos(deg2rad($latitude)));
+
+        return $query->whereHas('venue', function (Builder $venue) use ($latitude, $longitude, $radiusKm, $latDelta, $lngDelta) {
+            $venue->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+                ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+                ->whereRaw(
+                    '(6371 * ACOS(LEAST(1, COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(latitude))))) <= ?',
+                    [$latitude, $longitude, $latitude, $radiusKm],
+                );
+        });
+    }
+
     public function scopeApplyCommonFilters(Builder $query, array $filters): Builder
     {
         // bySort must run before bySearch: search relevance ordering keeps
@@ -342,6 +385,7 @@ trait HasCommonFilters
             ->byDeleted($filters['deleted'] ?? null)
             ->byMunicipality($filters['municipality'] ?? null)
             ->byTags($filters['tags'] ?? null)
+            ->byDistance($filters['latitude'] ?? null, $filters['longitude'] ?? null, $filters['radius_km'] ?? null)
             ->byCanal($filters['canal_id'] ?? null);
     }
 

@@ -60,6 +60,48 @@ class UrlTest extends TestCase
         $this->assertSame($once, Url::normalize((string) $once));
     }
 
+    /** @return array<string, array{0: string, 1: string|null}> */
+    public static function redirectTargets(): array
+    {
+        return [
+            // Toto je celý dôvod, prečo redirectTarget() existuje: normalize()
+            // by lomku odrezal, server by presmeroval späť a sonda by sa
+            // zacyklila na funkčnom webe.
+            'ponechá koncové lomítko' => ['https://divadlo.sk/program/', 'https://divadlo.sk/program/'],
+            'ponechá cestu bez lomítka' => ['https://divadlo.sk/program', 'https://divadlo.sk/program'],
+            'ponechá koreň' => ['https://divadlo.sk/', 'https://divadlo.sk/'],
+            'ponechá query' => ['https://divadlo.sk/p/?rok=2026', 'https://divadlo.sk/p/?rok=2026'],
+            'zjednotí veľkosť písmen v doméne' => ['https://WWW.Divadlo.SK/x/', 'https://www.divadlo.sk/x/'],
+            'zahodí prihlasovacie údaje' => ['https://user:heslo@divadlo.sk/x/', 'https://divadlo.sk/x/'],
+            'zahodí prednastavený port' => ['https://divadlo.sk:443/x/', 'https://divadlo.sk/x/'],
+            'ponechá neštandardný port' => ['https://divadlo.sk:8080/x/', 'https://divadlo.sk:8080/x/'],
+            'odmietne cudziu schému' => ['javascript:alert(1)', null],
+            'odmietne adresu bez schémy' => ['divadlo.sk/x/', null],
+            'odmietne IP adresu' => ['http://127.0.0.1/x', null],
+            'odmietne host bez bodky' => ['http://localhost/x', null],
+            'odmietne prázdnu hodnotu' => ['   ', null],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('redirectTargets')]
+    public function it_keeps_the_path_of_a_redirect_target_untouched(string $input, ?string $expected): void
+    {
+        $this->assertSame($expected, Url::redirectTarget($input));
+    }
+
+    #[Test]
+    public function a_redirect_target_keeps_what_normalizing_would_strip(): void
+    {
+        // Rozdiel medzi oboma metódami je zámerný a je to práve tá lomka.
+        // Keby sa zjednotili, vráti sa zacyklenie sondy na kanonizujúcich
+        // weboch — a s ním falošné hlásenia o pokazenom webe.
+        $slashed = 'https://divadlo.sk/program/';
+
+        $this->assertSame('https://divadlo.sk/program', Url::normalize($slashed));
+        $this->assertSame($slashed, Url::redirectTarget($slashed));
+    }
+
     #[Test]
     public function local_and_private_addresses_are_never_safe_to_probe(): void
     {

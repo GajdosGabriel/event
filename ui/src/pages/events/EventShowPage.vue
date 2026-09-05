@@ -80,6 +80,15 @@
             <EventWorkshops :workshops="workshops" show-inactive />
           </div>
 
+          <!-- Termíny série. Nad galériou zámerne: pri repríznom programe je to
+               to, čo organizátor hľadá častejšie než fotky. -->
+          <EventSeriesPanel
+            :event-id="Number(route.params.id)"
+            :prefix="prefix"
+            :can-add="Boolean(event.permissions.duplicate)"
+            @changed="reload"
+          />
+
           <!-- Galéria -->
           <div v-if="event.uploadedImages.length" class="show-card">
             <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('common.photos') }}</h2>
@@ -265,6 +274,7 @@ import ActionButton from '@/components/ActionButton.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
+import EventSeriesPanel from '@/components/EventSeriesPanel.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import PublicPreviewLink from '@/components/PublicPreviewLink.vue'

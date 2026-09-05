@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EventResource;
 use App\Http\Resources\FileResource;
@@ -10,7 +11,9 @@ use App\Models\Municipality;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Calendar\IcsGenerator;
 use App\Services\Views\ViewRecorder;
+use App\Support\EventDateRange;
 use App\Support\EventTimeframe;
+use App\Support\PublicUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -35,6 +38,7 @@ class EventController extends Controller
         $list = in_array($list, ['upcoming', 'ongoing', 'all', 'past'], true) ? $list : 'upcoming';
 
         [$dateFrom, $dateTo] = $this->range($request);
+        [$latitude, $longitude, $radiusKm] = $this->nearby($request);
 
         $events = $this->eventRepository->publicIndexWithFilters($perPage, [
             'municipality' => $this->municipalityId($request),
@@ -43,9 +47,46 @@ class EventController extends Controller
             'tags' => $this->tagSlugs($request),
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'radius_km' => $radiusKm,
         ]);
 
         return EventResource::collection($events);
+    }
+
+    /**
+     * „V mojom okolí" — bod z prehliadača a okruh v kilometroch.
+     *
+     * Všetky tri hodnoty musia dávať zmysel spolu, inak sa filter ticho vypne
+     * a vráti sa bežný výpis. Neplatná poloha nie je dôvod na chybu: prichádza
+     * z `navigator.geolocation`, teda z prostredia, ktoré nemáme pod kontrolou,
+     * a prázdny zoznam s hláškou 422 by vyzeral ako porucha portálu.
+     *
+     * Okruh je zhora obmedzený — nad 200 km už „okolie" nie je filter, ale celá
+     * krajina, a databáze by zostalo len počítanie funkcie nad všetkým.
+     *
+     * @return array{0: ?float, 1: ?float, 2: ?float}
+     */
+    private function nearby(Request $request): array
+    {
+        if (! $request->filled(['latitude', 'longitude', 'radius_km'])) {
+            return [null, null, null];
+        }
+
+        $latitude = (float) $request->input('latitude');
+        $longitude = (float) $request->input('longitude');
+        $radiusKm = (float) $request->input('radius_km');
+
+        $valid = $latitude >= -90 && $latitude <= 90
+            && $longitude >= -180 && $longitude <= 180
+            && $radiusKm > 0;
+
+        if (! $valid) {
+            return [null, null, null];
+        }
+
+        return [$latitude, $longitude, min($radiusKm, 200.0)];
     }
 
     /**
@@ -129,7 +170,48 @@ class EventController extends Controller
         // e-mail verejne NEvystavujeme — front dostane len tento boolean.
         $data['contactable'] = $event->isContactableBy(auth('sanctum')->user());
 
+        // Ostatné termíny série — „toto isté hráme aj vo štvrtok". Len
+        // publikované a len tie, ktoré ešte len budú: uplynulý termín
+        // návštevníkovi neponúkne nič, na čo by sa dal kúpiť lístok.
+        $data['series_occurrences'] = $this->seriesOccurrences($event);
+
         return response()->json($data);
+    }
+
+    /**
+     * Nadchádzajúce publikované termíny tej istej série, bez tohto.
+     *
+     * Vracia holý zoznam (id, názov, termín, adresa), nie celé EventResource:
+     * na detaile z toho je pár riadkov s odkazom a celý resource by pridal
+     * desiatky polí a niekoľko dotazov na každý termín.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function seriesOccurrences(Event $event): array
+    {
+        if ($event->series_id === null) {
+            return [];
+        }
+
+        return Event::query()
+            ->where('series_id', $event->series_id)
+            ->whereKeyNot($event->getKey())
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->whereNotNull('start_at')
+            ->where('start_at', '>=', now()->startOfDay())
+            ->orderBy('start_at')
+            ->limit(24)
+            ->get(['id', 'name', 'slug', 'start_at', 'end_at'])
+            ->map(fn (Event $occurrence) => [
+                'id' => $occurrence->id,
+                'name' => $occurrence->name,
+                'slug' => $occurrence->slug,
+                'start_at' => $occurrence->start_at,
+                'end_at' => $occurrence->end_at,
+                'date_range_label' => EventDateRange::label($occurrence->start_at, $occurrence->end_at),
+                'url' => PublicUrl::event($occurrence),
+            ])
+            ->all();
     }
 
     public function files($id): JsonResponse

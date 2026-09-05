@@ -18,6 +18,10 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('@/pages/home/HomePage.vue') },
         { path: 'login', name: 'login', component: () => import('@/pages/auth/LoginPage.vue') },
         { path: 'register', name: 'register', component: () => import('@/pages/auth/RegisterPage.vue') },
+        // Obnova hesla. Slovenské cesty ako pri ostatných verejných stránkach —
+        // `/obnova-hesla/{token}` chodí v e-maile, adresa je v query.
+        { path: 'zabudnute-heslo', name: 'password-forgot', component: () => import('@/pages/auth/ForgotPasswordPage.vue') },
+        { path: 'obnova-hesla/:token', name: 'password-reset', component: () => import('@/pages/auth/ResetPasswordPage.vue') },
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
         { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
         // Verejný katalóg. Statické segmenty (`tento-vikend`, `mesto`, `tema`)
@@ -60,6 +64,14 @@ const router = createRouter({
         // Návrat k rozpracovanému plagátu z odkazu v e-maile (token je v query).
         { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
+        // Vlastné vstupenky a odbery. Vo verejnom layoute, nie v dashboarde:
+        // patrí to návštevníkovi, ktorý žiadny kanál mať nemusí.
+        {
+          path: 'moje-listky',
+          name: 'my-tickets',
+          component: () => import('@/pages/tickets/MyTicketsPage.vue'),
+          meta: { requiresAuth: true },
+        },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
         // Odhlásenie z „Pripomeň mi". Chodí v pätičke každého e-mailu z odberu,
         // takže sa adresa nesmie meniť; segment drží PublicUrl::UNSUBSCRIBE.
@@ -88,6 +100,25 @@ const router = createRouter({
           name: 'legal-privacy',
           component: LegalPage,
           props: { kind: 'privacy' },
+        },
+      ],
+    },
+
+    // Embed — widget na cudzom webe. Vlastný layout bez hlavičky a pätičky;
+    // stránky bežia nad tým istým verejným API ako portál.
+    {
+      path: '/embed',
+      component: () => import('@/layouts/EmbedLayout.vue'),
+      children: [
+        {
+          path: 'organizator/:slugId',
+          name: 'embed-canal',
+          component: () => import('@/pages/embed/EmbedCanalPage.vue'),
+        },
+        {
+          path: 'podujatie/:slugId',
+          name: 'embed-event',
+          component: () => import('@/pages/embed/EmbedEventPage.vue'),
         },
       ],
     },
@@ -151,6 +182,9 @@ const router = createRouter({
         { path: 'organizations/create', name: 'admin-organizations-create', component: () => import('@/pages/organizations/OrganizationEditPage.vue'), props: { scope: 'admin' } },
         { path: 'organizations/:id/edit', name: 'admin-organizations-edit', component: () => import('@/pages/organizations/OrganizationEditPage.vue'), props: { scope: 'admin' } },
         { path: 'municipalities', name: 'admin-municipalities', component: () => import('@/pages/admin/AdminMunicipalitiesPage.vue') },
+        // Výrazy, ktoré AI chýbali v číselníku štítkov. Slovenská cesta
+        // zámerne — rovnako ako `oznamy` nižšie.
+        { path: 'navrhy-stitkov', name: 'admin-tag-suggestions', component: () => import('@/pages/admin/AdminTagSuggestionsPage.vue') },
         // Oznamy a bannery verejného layoutu. Slovenská cesta zámerne — rovnako
         // ako `spravy` v dashboarde.
         { path: 'oznamy', name: 'admin-announcements', component: () => import('@/pages/admin/AdminAnnouncementsPage.vue') },

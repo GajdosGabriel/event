@@ -2,7 +2,7 @@ import { ref } from 'vue'
 
 const STORAGE_KEY = 'project_settings'
 
-export type PublicEventsView = 'agenda' | 'grid'
+export type PublicEventsView = 'agenda' | 'grid' | 'map'
 
 export interface AppSettings {
   eventsPerPage: number
@@ -11,9 +11,14 @@ export interface AppSettings {
   publicEventsPerPage: number
   publicEventsView: PublicEventsView
   homeOngoingOpen: boolean
+  /** Okruh pre „V mojom okolí" v kilometroch. Samotná poloha sa neukladá. */
+  nearbyRadiusKm: number
 }
 
 export const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100]
+
+/** Okruhy pre „V mojom okolí“ — od pešej vzdialenosti po dojazd autom. */
+export const NEARBY_RADIUS_OPTIONS = [5, 10, 25, 50, 100]
 
 const DEFAULTS: AppSettings = {
   eventsPerPage: 25,
@@ -22,6 +27,7 @@ const DEFAULTS: AppSettings = {
   publicEventsPerPage: 12,
   publicEventsView: 'agenda',
   homeOngoingOpen: false,
+  nearbyRadiusKm: 25,
 }
 
 function loadFromStorage(): AppSettings {

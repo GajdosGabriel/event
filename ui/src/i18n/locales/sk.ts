@@ -20,6 +20,7 @@ const sk = {
     register: 'Registrácia',
     logout: 'Odhlásiť sa',
     public: 'Verejná časť',
+    myTickets: 'Moje lístky',
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super admin',
@@ -33,6 +34,7 @@ const sk = {
     organizations: 'Organizácie',
     messages: 'Správy',
     municipalities: 'Obce',
+    tagSuggestions: 'Návrhy štítkov',
     announcements: 'Oznamy',
     users: 'Používatelia',
     files: 'Súbory',
@@ -489,7 +491,38 @@ const sk = {
       submitting: 'Prihlasujem…',
       noAccount: 'Nemáte účet?',
       registerLink: 'Registrovať sa',
+      forgotLink: 'Zabudli ste heslo?',
       failed: 'Prihlásenie zlyhalo.',
+    },
+    forgot: {
+      title: 'Zabudnuté heslo',
+      lead: 'Zadajte adresu, ktorou sa prihlasujete. Pošleme na ňu odkaz na nastavenie nového hesla.',
+      email: 'Email',
+      submit: 'Poslať odkaz',
+      submitting: 'Odosielam…',
+      // Potvrdenie je zámerne podmienené („ak k adrese patrí účet"): backend
+      // nepovie, či adresa v portáli existuje, a stránka to nesmie prezradiť
+      // ani nepriamo.
+      sent: 'Ak k tejto adrese patrí účet, poslali sme naň odkaz na obnovu hesla.',
+      sentHint: 'Ak e-mail do pár minút nedorazí, pozrite priečinok s nevyžiadanou poštou.',
+      backToLogin: 'Späť na prihlásenie',
+      failed: 'Odkaz sa nepodarilo odoslať.',
+    },
+    reset: {
+      title: 'Nové heslo',
+      lead: 'Zadajte heslo, ktorým sa budete odteraz prihlasovať.',
+      email: 'Email',
+      password: 'Nové heslo',
+      passwordHint: 'Aspoň 8 znakov.',
+      passwordConfirm: 'Potvrdiť heslo',
+      submit: 'Uložiť heslo',
+      submitting: 'Ukladám…',
+      mismatch: 'Heslá sa nezhodujú.',
+      done: 'Heslo je zmenené. Prihláste sa ním.',
+      loginNow: 'Prihlásiť sa',
+      requestNew: 'Poslať nový odkaz',
+      backToLogin: 'Späť na prihlásenie',
+      failed: 'Heslo sa nepodarilo zmeniť.',
     },
     register: {
       title: 'Registrácia',
@@ -546,7 +579,57 @@ const sk = {
   // prihlásenia. Sekcia `seo` sú nadpisy a meta popisy landing stránok; tie
   // isté vety pre crawlerov skladá backend (PrerenderController), takže pri
   // zmene znenia patria obe miesta k sebe.
+  // Stránka /moje-listky — vlastné vstupenky a odbery prihláseného účtu.
+  myTickets: {
+    title: 'Moje lístky',
+    lead: 'Vstupenky, ktoré ste si objednali, a podujatia, na ktoré čakáte.',
+    upcoming: 'Nadchádzajúce',
+    past: 'História',
+    emptyUpcoming: 'Zatiaľ tu nič nemáte',
+    emptyPast: 'História je prázdna',
+    emptyLead: 'Keď si objednáte vstupenku, nájdete ju tu aj bez e-mailu.',
+    browse: 'Prezrieť podujatia',
+    unknownEvent: 'Podujatie',
+    // Tvary podľa počtu — viď helper `plural` v @/i18n.
+    admissions: { one: '{n} vstupenka', few: '{n} vstupenky', many: '{n} vstupeniek' },
+    open: 'Otvoriť vstupenku',
+    calendar: 'Do kalendára',
+    cancel: 'Zrušiť registráciu',
+    cancelling: 'Ruším…',
+    cancelConfirm: 'Naozaj zrušiť registráciu na toto podujatie?',
+    cancelled: 'Registrácia je zrušená.',
+    cancelFailed: 'Registráciu sa nepodarilo zrušiť.',
+    subscriptions: 'Sledujem',
+    subscriptionsLead: 'Ozveme sa, keď sa termín alebo miesto zmení.',
+    unsubscribe: 'Zrušiť',
+    unsubscribed: 'Odber je zrušený.',
+    unsubscribeFailed: 'Odber sa nepodarilo zrušiť.',
+  },
+  // Widget na cudzom webe (`/embed/...`) a generátor kódu v dashboarde.
+  embed: {
+    poweredBy: 'Podujatia beží na Evente',
+    empty: 'Momentálne tu nie sú žiadne nadchádzajúce podujatia.',
+    loadFailed: 'Program sa nepodarilo načítať.',
+    detail: 'Zobraziť podujatie',
+    panel: {
+      title: 'Program na váš web',
+      lead: 'Vložte tento kód na svoju stránku a bude na nej váš program — aktualizuje sa sám.',
+      count: 'Počet podujatí',
+      withTitle: 'Ukázať názov organizátora',
+      withImages: 'Ukázať obrázky',
+      copy: 'Kopírovať kód',
+      copied: 'Skopírované',
+      copyFailed: 'Kód sa nepodarilo skopírovať — označte ho a skopírujte ručne.',
+      preview: 'Náhľad ↗',
+      note: 'Widget ukazuje len publikované podujatia. Registrácia funguje aj priamo v ňom — stačí vymeniť data-canal za data-event s konkrétnym podujatím.',
+    },
+  },
   public: {
+    // Ďalšie termíny série na verejnom detaile a odznak na karte vo výpise.
+    series: {
+      title: 'Ďalšie termíny',
+      more: { one: 'a ďalší {n} termín', few: 'a ďalšie {n} termíny', many: 'a ďalších {n} termínov' },
+    },
     ongoing: 'Práve prebieha',
     ongoingUntil: 'do {date}',
     // Otázky a odpovede na verejnom detaile. Zodpovedané otázky sú tu to
@@ -639,6 +722,8 @@ const sk = {
       icsFile: 'Súbor .ics',
     },
     list: {
+      map: 'Mapa',
+      mapMissing: '{n} podujatí nie je na mape — ich miesto nemá súradnice.',
       viewLabel: 'Zobrazenie zoznamu',
       agenda: 'Agenda',
       grid: 'Mriežka',
@@ -819,6 +904,23 @@ const sk = {
   // Formulár eventu. Ten istý komponent slúži na vytvorenie aj úpravu,
   // v dashboarde aj v admine.
   events: {
+    // Séria opakovaných termínov (3.2). Panel na detaile podujatia.
+    series: {
+      title: 'Termíny ({n})',
+      emptyTitle: 'Opakuje sa podujatie?',
+      emptyLead: 'Pridajte ďalší termín a popis, obrázky aj miesto zostanú spoločné. Každý termín má vlastnú kapacitu a vlastný zoznam prihlásených.',
+      add: '+ Pridať termín',
+      adding: 'Pridávam…',
+      added: 'Termín je pridaný ako koncept — doplňte dátum.',
+      addFailed: 'Termín sa nepodarilo pridať.',
+      noDate: 'Bez termínu',
+      current: 'tento',
+      sharedHint: 'Popis, obrázky, miesto a štítky sú spoločné — zmena sa prepíše do všetkých termínov. Dátum, kapacita a lístky zostávajú vlastné.',
+      detach: 'Vyradiť tento termín zo série',
+      detachConfirm: 'Vyradiť tento termín zo série? Podujatie zostane, len prestane patriť k programu.',
+      detached: 'Termín je vyradený zo série.',
+      detachFailed: 'Termín sa nepodarilo vyradiť.',
+    },
     // Výpis a detail sú spoločné pre dashboard aj admin — líši sa len adresa.
     index: {
       title: 'Eventy',
@@ -1238,6 +1340,11 @@ const sk = {
   },
   // Skener QR pri vstupe.
   checkin: {
+      usedAtBy: 'Už použité o {time} — označil(a) {name}',
+      offline: 'Bez pripojenia — skeny sa ukladajú',
+      queueSending: 'Odosielam uložené skeny…',
+      queued: 'čaká {n}',
+      queuedOk: 'Uložené — odošle sa, keď bude signál',
     noTypesTitle: 'Zatiaľ nie sú žiadne typy lístkov',
     noTypesLead: 'Check-in overuje QR kódy z lístkov. Najprv pridajte typ lístka — až potom vzniknú lístky, ktoré sa dajú skenovať.',
     noTypesCta: 'Pridať typ lístka',
@@ -1792,6 +1899,26 @@ const sk = {
     },
   },
   // Číselník obcí — ten istý formulár v dashboarde aj v admine.
+  tagSuggestions: {
+    title: 'Návrhy štítkov',
+    intro: 'Výrazy, ktoré AI chcela priradiť, ale nenašla ich v číselníku štítkov. Slúžia ako podklad na doplnenie číselníka — samotný štítok sa zakladá v TagSeeder-i a jeho pridanie spustí preštítkovanie všetkých podujatí.',
+    loading: 'Načítavam…',
+    empty: 'Žiadne návrhy.',
+    colLabel: 'Výraz',
+    colOccurrences: 'Výskytov',
+    colLastSeen: 'Naposledy',
+    colActions: 'Akcie',
+    promote: 'Prijať',
+    reject: 'Zamietnuť',
+    resolved: 'Návrh vybavený.',
+    resolveFailed: 'Návrh sa nepodarilo vybaviť.',
+    loadFailed: 'Návrhy sa nepodarilo načítať.',
+    filter: {
+      unresolved: 'Nevybavené',
+      promoted: 'Prijaté',
+      rejected: 'Zamietnuté',
+    },
+  },
   municipalities: {
     title: 'Obce',
     new: '+ Nová obec',
@@ -2159,6 +2286,12 @@ const sk = {
     },
     // Verejný výpis podujatí — hľadanie a rýchle časové okná nad zoznamom.
     events: {
+      nearby: 'V mojom okolí',
+      nearbyLocating: 'Zisťujem polohu…',
+      nearbyRadius: 'Okruh',
+      nearbyKm: 'do {n} km',
+      nearbyFailed: 'Polohu sa nepodarilo zistiť.',
+      nearbyUnsupported: 'Tento prehliadač polohu neponúka.',
       search: 'Hľadať podujatie…',
       searchLabel: 'Hľadať podujatie podľa názvu',
       clearSearch: 'Zrušiť hľadanie',

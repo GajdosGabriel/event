@@ -18,6 +18,7 @@ use App\Notifications\WorkshopWaitlisted;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\AttendeeConfirmation;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -720,9 +721,22 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         return Admission::query()->where('uuid', $uuid)->first();
     }
 
-    public function checkIn(string $qrToken, User $staff): array
+    /**
+     * Overenie vstupenky pri vchode.
+     *
+     * `$scannedAt` je čas skenu z offline fronty skenera — bez neho by sa
+     * všetkým, čo prišli počas výpadku signálu, zapísal jeden a ten istý
+     * okamih (ten, v ktorom sa spojenie vrátilo). Hodnotu posiela zariadenie,
+     * takže sa jej verí len v rozsahu, ktorý pustí validácia požiadavky
+     * (minulosť, najviac deň dozadu); obsluha aj tak môže označiť príchod
+     * komukoľvek, takže tým nevzniká nové oprávnenie.
+     *
+     * Metóda je idempotentná: druhý sken tej istej vstupenky nič neprepíše
+     * a vráti `already_checked_in`. Práve o to sa opiera prehratie fronty.
+     */
+    public function checkIn(string $qrToken, User $staff, ?Carbon $scannedAt = null): array
     {
-        return DB::transaction(function () use ($qrToken, $staff) {
+        return DB::transaction(function () use ($qrToken, $staff, $scannedAt) {
             /** @var Admission|null $admission */
             $admission = Admission::query()->where('qr_token', $qrToken)->lockForUpdate()->first();
 
@@ -752,7 +766,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             }
 
             $admission->update([
-                'checked_in_at' => now(),
+                'checked_in_at' => $scannedAt ?? now(),
                 'checked_in_by' => $staff->id,
             ]);
 

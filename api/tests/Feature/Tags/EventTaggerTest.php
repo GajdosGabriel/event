@@ -162,6 +162,36 @@ class EventTaggerTest extends EventSetupTest
         $this->assertDatabaseMissing('tag_suggestions', ['slug' => 'festival']);
     }
 
+    /**
+     * Model dostáva číselník aj s názvami, takže návrh občas znie presne ako
+     * názov štítka, ktorý už existuje. V produkcii tak „Modlitbové stretnutie"
+     * — názov štítka `modlitba` — štrnásťkrát skončilo medzi chýbajúcimi.
+     */
+    #[Test]
+    public function a_suggestion_matching_a_tag_name_is_not_recorded(): void
+    {
+        Tag::query()->create([
+            'group' => 'format',
+            'slug' => 'modlitba',
+            'name' => 'Modlitbové stretnutie',
+            'sort_order' => 99,
+            'is_active' => true,
+        ]);
+
+        $this->tagger([], ['Modlitbové stretnutie'])->tag($this->futureEvent);
+
+        $this->assertDatabaseMissing('tag_suggestions', ['slug' => 'modlitbove-stretnutie']);
+    }
+
+    /** Skutočne chýbajúci výraz sa musí zapísať aj naďalej. */
+    #[Test]
+    public function a_term_matching_neither_slug_nor_name_is_still_recorded(): void
+    {
+        $this->tagger([], ['Adorácia'])->tag($this->futureEvent);
+
+        $this->assertDatabaseHas('tag_suggestions', ['slug' => 'adoracia', 'occurrences' => 1]);
+    }
+
     #[Test]
     public function dry_run_writes_nothing(): void
     {

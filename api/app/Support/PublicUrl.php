@@ -66,6 +66,13 @@ final class PublicUrl
      */
     public const UNSUBSCRIBE = 'odhlasenie';
 
+    /**
+     * Formulár na nastavenie nového hesla. Rovnako ako odhlásenie z odberu to
+     * je verejná stránka SPA, ktorú otvára odkaz z e-mailu a ktorá do sitemapy
+     * nepatrí — token v adrese je jediná autorizácia.
+     */
+    public const PASSWORD_RESET = 'obnova-hesla';
+
     public static function base(): string
     {
         return rtrim((string) config('app.frontend_url'), '/');
@@ -174,6 +181,16 @@ final class PublicUrl
     public static function unsubscribe(string $token): string
     {
         return self::absolute(self::UNSUBSCRIBE.'/'.$token);
+    }
+
+    /**
+     * E-mail je v adrese preto, že ho broker pri overení tokenu potrebuje —
+     * token sám o sebe nehovorí, komu patrí. Ide o query parameter, nie o
+     * segment cesty: adresa sa tak neláme na e-mailoch s neobvyklými znakmi.
+     */
+    public static function passwordReset(string $token, string $email): string
+    {
+        return self::absolute(self::PASSWORD_RESET.'/'.$token).'?email='.rawurlencode($email);
     }
 
     /**

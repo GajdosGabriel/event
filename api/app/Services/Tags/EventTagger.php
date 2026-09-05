@@ -70,7 +70,7 @@ class EventTagger
 
         $slugToId = Tag::query()->active()->pluck('id', 'slug');
         $resolved = $this->resolveTags($response['tags'] ?? [], $slugToId);
-        $suggested = $this->resolveSuggestions($response['suggested'] ?? [], $slugToId);
+        $suggested = $this->resolveSuggestions($response['suggested'] ?? [], $this->knownSlugs());
 
         // Facet „charakter" ide mimo AI — z termínu, ceny a typov lístkov.
         $derived = $dryRun
@@ -202,10 +202,39 @@ class EventTagger
     }
 
     /**
+     * Slugy, ktoré sa už v číselníku nachádzajú — vrátane slugu z názvu štítka.
+     *
+     * Model dostáva číselník aj s názvami a občas vráti návrh znejúci presne
+     * ako názov existujúceho štítka: „Modlitbové stretnutie" je názov štítka
+     * `modlitba`. Po slugifikácii z toho je `modlitbove-stretnutie`, čo sa so
+     * slugom nezhoduje — a návrh na už existujúci štítok tak štrnásťkrát
+     * skončil v zozname chýbajúcich.
+     *
+     * @return array<string, true>
+     */
+    private function knownSlugs(): array
+    {
+        $known = [];
+
+        foreach (Tag::query()->active()->get(['slug', 'name']) as $tag) {
+            $known[(string) $tag->slug] = true;
+
+            $fromName = Str::slug((string) $tag->name);
+
+            if ($fromName !== '') {
+                $known[$fromName] = true;
+            }
+        }
+
+        return $known;
+    }
+
+    /**
      * @param  array<int, mixed>  $rows
+     * @param  array<string, true>  $knownSlugs
      * @return array<int, array{slug: string, label: string}>
      */
-    private function resolveSuggestions(array $rows, \Illuminate\Support\Collection $slugToId): array
+    private function resolveSuggestions(array $rows, array $knownSlugs): array
     {
         $resolved = [];
 
@@ -218,7 +247,7 @@ class EventTagger
             $slug = Str::slug($label);
 
             // Návrh, ktorý už v číselníku je, nie je návrh.
-            if ($label === '' || $slug === '' || $slugToId->has($slug) || isset($resolved[$slug])) {
+            if ($label === '' || $slug === '' || isset($knownSlugs[$slug]) || isset($resolved[$slug])) {
                 continue;
             }
 

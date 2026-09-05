@@ -149,7 +149,9 @@ class WebsiteProbe implements AttributeProbe
                 .'/'.ltrim($location, '/');
         }
 
-        return Url::normalize($location);
+        // redirectTarget(), nie normalize(): cesta musí ostať presne taká,
+        // akú poslal server. Viď Url::redirectTarget().
+        return Url::redirectTarget($location);
     }
 
     private function connectionReason(ConnectionException $e): string

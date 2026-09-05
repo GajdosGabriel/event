@@ -30,6 +30,7 @@ const links = computed(() => [
   { to: '/admin/canals', label: t('nav.canals') },
   { to: '/admin/venues', label: t('nav.venues') },
   { to: '/admin/municipalities', label: t('nav.municipalities') },
+  { to: '/admin/navrhy-stitkov', label: t('nav.tagSuggestions') },
   { to: '/admin/users', label: t('nav.users') },
   { to: '/admin/files', label: t('nav.files') },
   { to: '/admin/tools', label: t('nav.tools') },

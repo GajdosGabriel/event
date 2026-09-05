@@ -225,4 +225,8 @@
   .announcement-red { @apply bg-rose-700 text-slate-100; }
   .announcement-purple { @apply bg-fuchsia-700 text-slate-100; }
   .announcement-dark { @apply bg-slate-800 text-slate-100; }
+
+  /* Widget na cudzom webe (`/embed/...`). Poznámka „načítavam / prázdne /
+     nepodarilo sa" má rovnaký tvar vo všetkých embed stránkach. */
+  .embed-note { @apply py-4 text-center text-sm text-slate-500; }
 }

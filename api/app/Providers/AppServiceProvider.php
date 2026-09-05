@@ -84,6 +84,21 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->tooManyRequests('Priveľa pokusov o registráciu. Skúste to neskôr.')),
         ]);
 
+        // Obnova hesla: `forgot` posiela e-mail na adresu, ktorú si volajúci
+        // vyberie, takže bez limitu je to nástroj na spamovanie cudzej schránky
+        // — rovnaké riziko ako pri registrácii. Minútový kôš je kľúčovaný aj
+        // e-mailom (útok na jeden účet nezablokuje ostatných z tej istej siete),
+        // hodinový už len IP, aby sa striedaním adries nedal obísť. Brokerov
+        // vlastný `throttle` (jeden e-mail za minútu na používateľa) beží nad
+        // tým a chráni schránku aj pri zmene IP.
+        RateLimiter::for('password-reset', fn (Request $request) => [
+            Limit::perMinute(3)
+                ->by($request->ip().'|'.Str::lower((string) $request->input('email')))
+                ->response($this->tooManyRequests('Priveľa pokusov o obnovu hesla. Skúste to o chvíľu znova.')),
+            Limit::perHour(10)->by($request->ip())
+                ->response($this->tooManyRequests('Priveľa pokusov o obnovu hesla. Skúste to neskôr.')),
+        ]);
+
         // Verejné zápisy bez prihlásenia: rezervácia lístkov a RSVP z e-mailu.
         RateLimiter::for('public-write', fn (Request $request) => [
             Limit::perMinute(10)->by($request->ip())

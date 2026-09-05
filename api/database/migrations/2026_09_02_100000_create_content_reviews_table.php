@@ -18,6 +18,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Tabuľka na produkcii už existuje bez zodpovedajúceho riadku
+        // v `migrations` — a `Schema::create()` na nej padal na
+        // „Table 'content_reviews' already exists". Keďže táto migrácia beží
+        // v poradí ako prvá z nespracovaných, zhodila celý `migrate` a tým
+        // blokovala aj všetky ďalšie. Guard ju nechá prejsť naprázdno
+        // a doplniť si chýbajúci riadok.
+        if (Schema::hasTable('content_reviews')) {
+            return;
+        }
+
         Schema::create('content_reviews', function (Blueprint $table) {
             $table->id();
 

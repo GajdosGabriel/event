@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Event;
+use App\Notifications\PasswordResetLink;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -92,6 +93,16 @@ class User extends Authenticatable
             'terms_accepted_at' => 'datetime',
             'status' => \App\Enums\ModelStatus::class,
         ];
+    }
+
+    /**
+     * Odkaz na obnovu hesla posielame vlastnou notifikáciou, lebo Laravelova
+     * `ResetPassword` mieri na blade routu `password.reset`, ktorá tu
+     * neexistuje — formulár je stránka SPA (viď [PasswordResetLink]).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PasswordResetLink($token, (string) $this->email));
     }
 
     public function canals()

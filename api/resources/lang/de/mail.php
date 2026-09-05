@@ -39,6 +39,15 @@ return [
         'ignore'  => 'Wenn Sie kein Konto angelegt haben, brauchen Sie nichts zu tun.',
     ],
 
+    // App\Notifications\PasswordResetLink
+    'password_reset' => [
+        'subject' => 'Passwort zurücksetzen',
+        'intro'   => 'Wir haben eine Anfrage zum Zurücksetzen des Passworts für Ihr Konto erhalten. Über die Schaltfläche unten setzen Sie ein neues.',
+        'action'  => 'Neues Passwort setzen',
+        'expires' => '{1} Der Link ist :count Minute gültig und lässt sich einmal verwenden.|[2,*] Der Link ist :count Minuten gültig und lässt sich einmal verwenden.',
+        'ignore'  => 'Wenn Sie das nicht angefordert haben, brauchen Sie nichts zu tun — Ihr Passwort bleibt unverändert.',
+    ],
+
     // App\Notifications\ContentReviewNotice
     'content_review' => [
         'types' => [

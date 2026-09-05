@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Admission;
 use App\Services\Tickets\AttendeeConfirmation;
+use App\Support\EventDateRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 
@@ -90,19 +91,6 @@ class AttendeeRsvpController extends Controller
 
     private function dateRangeLabel(\App\Models\Event $event): ?string
     {
-        $start = $event->start_at;
-        $end = $event->end_at;
-
-        if ($start === null) {
-            return null;
-        }
-
-        if ($end === null) {
-            return $start->format('d. m. Y H:i');
-        }
-
-        return $start->isSameDay($end)
-            ? sprintf('%s - %s', $start->format('d. m. Y H:i'), $end->format('H:i'))
-            : sprintf('%s - %s', $start->format('d. m. Y H:i'), $end->format('d. m. Y H:i'));
+        return EventDateRange::label($event->start_at, $event->end_at);
     }
 }

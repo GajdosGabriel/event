@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use App\Http\Requests\TicketCheckinRequest;
 use App\Http\Requests\TicketingSettingsRequest;
 use App\Http\Resources\AdmissionResource;
@@ -141,7 +142,13 @@ class DashboardTicketController extends Controller
 
     public function checkin(TicketCheckinRequest $request): JsonResponse
     {
-        $result = $this->ticketRepository->checkIn($request->validated()['qr_token'], $request->user());
+        $validated = $request->validated();
+
+        $result = $this->ticketRepository->checkIn(
+            $validated['qr_token'],
+            $request->user(),
+            isset($validated['scanned_at']) ? Carbon::parse($validated['scanned_at']) : null,
+        );
 
         return $this->checkinResponse($result);
     }

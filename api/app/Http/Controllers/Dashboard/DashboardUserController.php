@@ -42,12 +42,22 @@ class DashboardUserController extends Controller
             ]);
     }
 
+    /**
+     * Detail používateľa podľa id z adresy.
+     *
+     * Predtým tu bolo `dashboardShow(request()->user()->id)` — `$id` z routy sa
+     * zahodilo a endpoint vracal vždy prihláseného, nech sa pýtal na kohokoľvek.
+     * Vlastný profil má vlastnú adresu (`GET /api/user`), takže táto routa je na
+     * to, na čo vyzerá; kto smie koho vidieť, rieši `UserPolicy::view()`
+     * (sám seba alebo člena spoločného kanála) a `dashboardIndexQuery()`
+     * v repozitári, ktoré cudzí účet nepustí ďalej než na 404.
+     */
     public function show($id): JsonResponse
     {
-        $user = $this->userRepository->dashboardShow((int) request()->user()->id);
+        $user = $this->userRepository->dashboardShow($id);
         $this->authorize('view', $user);
 
-        return response()->json([$user]);
+        return response()->json(new UserResource($user));
     }
 
     public function update(string $id, UserUpdateRequest $request): JsonResponse

@@ -6,6 +6,7 @@ use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
 use App\Services\Publishing\EventDependencyPublisher;
@@ -20,6 +21,7 @@ class EventImportService
         private readonly ImportedCanalNameResolver $canalNameResolver,
         private readonly ImportedCanalManager $canalManager,
         private readonly ImportedVenueManager $venueManager,
+        private readonly CanalSeatDeriver $seatDeriver,
         private readonly EventRepository $eventRepository,
         private readonly FileManager $fileManager,
         private readonly PdfConverterService $pdfConverter,
@@ -246,6 +248,11 @@ class EventImportService
         if ($event->status === ModelStatus::Published) {
             $this->dependencyPublisher->publishAll($event);
         }
+
+        // Až teraz je známe miesto, takže až teraz sa dá kanálu odvodiť obec.
+        // resolveOrCreate() ho zakladá skôr, než sa rieši venue, a tak mu
+        // nezostáva iné než zberné „Celé Slovensko".
+        $this->seatDeriver->sync($canal);
 
         $this->syncImages($event, (array) $detail['image_urls'], (string) $detail['source_url']);
         $this->syncAttachments($event, (array) ($detail['attachments'] ?? []), (string) $detail['source_url']);

@@ -39,6 +39,15 @@ return [
         'ignore'  => 'Ak ste si účet nevytvárali, nemusíte robiť nič.',
     ],
 
+    // App\Notifications\PasswordResetLink
+    'password_reset' => [
+        'subject' => 'Obnova hesla',
+        'intro'   => 'Dostali sme žiadosť o obnovu hesla k vášmu účtu. Nové heslo si nastavíte cez tlačidlo nižšie.',
+        'action'  => 'Nastaviť nové heslo',
+        'expires' => '{1} Odkaz je platný :count minútu a použiť sa dá raz.|[2,4] Odkaz je platný :count minúty a použiť sa dá raz.|[5,*] Odkaz je platný :count minút a použiť sa dá raz.',
+        'ignore'  => 'Ak ste o obnovu nežiadali, nemusíte robiť nič — heslo zostáva pôvodné.',
+    ],
+
     // App\Notifications\ContentReviewNotice — výhrady ku textu, ktorý je už
     // zverejnený. Tón je ponuka, nie výčitka: text funguje, len sa dá zlepšiť
     // a vo formulári na to čaká AI panel.
