@@ -27,10 +27,20 @@
 
         <nav class="flex items-center gap-2 sm:gap-3">
           <LangSwitcher />
-          <template v-if="auth.isAuthenticated">
+          <!-- Kým nevieme, kto je prihlásený, nevykresľuje sa ani menu s
+               prázdnym menom, ani tlačidlá na prihlásenie — len zástupné
+               miesto rovnakej šírky. Inak hlavička po načítaní identity
+               poskočí a pri pomalom serveri chvíľu ukazuje nepravdu. -->
+          <template v-if="auth.isAuthenticated && !auth.ready">
+            <div class="flex items-center gap-2 px-3 py-1.5" aria-hidden="true">
+              <span class="h-7 w-7 shrink-0 animate-pulse rounded-full bg-white/15" />
+              <span class="hidden h-3.5 w-24 animate-pulse rounded bg-white/10 sm:block" />
+            </div>
+          </template>
+          <template v-else-if="auth.isAuthenticated">
             <UserDropdown />
           </template>
-          <template v-else>
+          <template v-else-if="auth.ready">
             <RouterLink to="/login" class="hidden text-sm text-slate-300 no-underline hover:text-white sm:inline">
               {{ t('nav.login') }}
             </RouterLink>
@@ -76,7 +86,7 @@
           {{ link.label }}
         </RouterLink>
 
-        <div v-if="!auth.isAuthenticated" class="mt-2 grid gap-2 border-t border-white/10 pt-3 sm:hidden">
+        <div v-if="auth.ready && !auth.isAuthenticated" class="mt-2 grid gap-2 border-t border-white/10 pt-3 sm:hidden">
           <RouterLink to="/login" class="rounded-lg px-2 py-2.5 text-sm text-slate-200 no-underline hover:bg-white/10 hover:text-white">
             {{ t('nav.login') }}
           </RouterLink>

@@ -67,6 +67,48 @@ class EventTextLabelExtractor
     }
 
     /**
+     * Obec organizátora prečítaná z vety, v ktorej je aj jeho názov —
+     * „Západoslovenské múzeum v Trnave pripravuje…".
+     *
+     * Sídlo organizátora je iný údaj než miesto konania: múzeum z Trnavy
+     * môže mať podujatie hocikde a naopak, jeden kostol hostí organizátorov
+     * z celého kraja. Preto vlastná metóda a nie odvodzovanie z venue.
+     *
+     * Mesto sa vracia tak, ako stálo v texte (teda skloňované) — na obec
+     * z číselníka ho preloží až `MunicipalityGeocodeResolver`.
+     */
+    public function extractOrganizerCity(string $text, string $organizerName): ?string
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $organizerName) ?? $organizerName);
+
+        if ($name === '') {
+            return null;
+        }
+
+        // Zalomenia riadkov by vetu rozbili — názov a mesto sú v článku bežne
+        // na hranici riadku.
+        $normalized = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        // Druhé slovo mesta musí byť tiež s veľkým začiatočným písmenom, inak
+        // by sa do názvu obce dostalo pokračovanie vety („v Trnave vďaka…").
+        $pattern = '/' . preg_quote($name, '/') . '\s+(?:v|vo)\s+(\p{Lu}[\p{L}\-]+(?:\s+\p{Lu}[\p{L}\-]+)?)/u';
+
+        if (! preg_match($pattern, $normalized, $match)) {
+            return null;
+        }
+
+        $city = $this->sanitize($match[1]);
+
+        // „… v Kostole Nanebovzatia" nie je sídlo organizátora, ale miesto
+        // konania nalepené za jeho názov.
+        if ($city === null || VenueKeywords::matches($city)) {
+            return null;
+        }
+
+        return $city;
+    }
+
+    /**
      * Returns ['name' => string|null, 'city' => string|null] or null.
      *
      * Slovak event format: "label: [city/municipality], [specific venue name]"

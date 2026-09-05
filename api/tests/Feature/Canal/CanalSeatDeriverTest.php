@@ -146,6 +146,72 @@ class CanalSeatDeriverTest extends TestCase
         $this->assertSame($chosenId, (int) $canal->fresh()->municipality_id);
     }
 
+    /**
+     * Sídlo organizátora je iný údaj než miesto konania a má pred ním prednosť:
+     * „Západoslovenské múzeum v Trnave" hovorí o organizátorovi, kým miesto
+     * patrí jednému podujatiu — a keď ho import trafí zle (rovnomenný kostol
+     * v inom meste), odvodenie z neho posadí kanál do cudzej obce.
+     */
+    #[Test]
+    public function the_detected_organizer_city_becomes_the_canal_seat(): void
+    {
+        $canal = $this->canal();
+
+        $this->assertTrue($this->deriver->applyDetectedCity($canal, 'Trnava'));
+        $this->assertSame(
+            (int) Municipality::query()->where('slug', 'trnava')->value('id'),
+            (int) $canal->fresh()->municipality_id,
+        );
+    }
+
+    #[Test]
+    public function the_organizer_city_overrides_a_seat_derived_from_the_venue(): void
+    {
+        $canal = $this->canal();
+        $this->eventAt($canal, $this->someMunicipality());
+
+        $this->assertTrue($this->deriver->sync($canal));
+
+        $this->assertTrue($this->deriver->applyDetectedCity($canal->fresh(), 'Trnava'));
+        $this->assertSame(
+            (int) Municipality::query()->where('slug', 'trnava')->value('id'),
+            (int) $canal->fresh()->municipality_id,
+        );
+    }
+
+    /** Ručne vybranú obec neprepíše ani mesto organizátora z článku. */
+    #[Test]
+    public function a_hand_picked_seat_survives_the_detected_organizer_city(): void
+    {
+        $chosenId = $this->someMunicipality(0);
+        $canal = $this->canal(['municipality_id' => $chosenId]);
+        // Podujatie inde než na ručne zadanej obci: kanál teda nesedí na tom,
+        // čo by odvodenie z miest vyrobilo samo — hodnotu zadal človek.
+        $this->eventAt($canal, $this->someMunicipality(1));
+
+        $this->assertFalse($this->deriver->applyDetectedCity($canal, 'Trnava'));
+        $this->assertSame($chosenId, (int) $canal->fresh()->municipality_id);
+    }
+
+    #[Test]
+    public function a_self_registered_canal_ignores_the_detected_organizer_city(): void
+    {
+        $canal = $this->canal(['registration_source' => RegistrationSource::SELF->value]);
+
+        $this->assertFalse($this->deriver->applyDetectedCity($canal, 'Trnava'));
+        $this->assertSame($this->nationwideId, (int) $canal->fresh()->municipality_id);
+    }
+
+    #[Test]
+    public function an_empty_organizer_city_changes_nothing(): void
+    {
+        $canal = $this->canal();
+
+        $this->assertFalse($this->deriver->applyDetectedCity($canal, null));
+        $this->assertFalse($this->deriver->applyDetectedCity($canal, '   '));
+        $this->assertSame($this->nationwideId, (int) $canal->fresh()->municipality_id);
+    }
+
     #[Test]
     public function a_soft_deleted_event_does_not_count(): void
     {

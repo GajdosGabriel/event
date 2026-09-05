@@ -25,12 +25,15 @@ class ImportedVenueManagerTest extends TestCase
         config()->set('services.imports.describe_with_ai', false);
 
         $canal = Canal::factory()->create();
-        $municipality = Municipality::query()->first();
+        // Obec musí sedieť s mestom z článku: zhoda podľa názvu je ohraničená
+        // obcou, aby rovnomenné miesto z iného mesta neprebralo podujatie.
+        $municipality = Municipality::query()->where('slug', 'velky-saris')->first();
+        $this->assertNotNull($municipality, 'Číselník musí obsahovať Veľký Šariš.');
 
         $existing = Venue::factory()->create([
             'name' => 'Šarišský hrad',
             'category' => null,
-            'village_id' => $municipality?->id,
+            'village_id' => $municipality->id,
         ]);
 
         $before = Venue::query()->count();
@@ -101,6 +104,35 @@ class ImportedVenueManagerTest extends TestCase
         $resolved = $manager->resolveOrDetect($canal, 'Evanjelickom kostole v Liptovskom Mikuláši', 'Liptovský Mikuláš');
 
         $this->assertNotSame($bratislava->id, $resolved->id);
+    }
+
+    #[Test]
+    public function a_same_named_venue_from_another_town_is_not_reused(): void
+    {
+        // Regresia: článok z Trnavy spomenul „Kostol Nanebovzatia Panny Márie"
+        // a zhoda podľa názvu bežala cez celé Slovensko, takže podujatie sadlo
+        // na rovnomenný kostol v Košiciach. Spolu s ním tam skončil aj kanál
+        // organizátora — obec sa mu odvodzuje z miest jeho podujatí.
+        config()->set('services.imports.detect_canal_with_ai', false);
+        config()->set('services.imports.describe_with_ai', false);
+
+        $canal = Canal::factory()->create();
+        $kosice = Municipality::query()->where('slug', 'kosice')->first();
+        $trnava = Municipality::query()->where('slug', 'trnava')->first();
+        $this->assertNotNull($kosice);
+        $this->assertNotNull($trnava);
+
+        $inKosice = Venue::factory()->create([
+            'name' => 'Kostol Nanebovzatia Panny Márie',
+            'category' => null,
+            'village_id' => $kosice->id,
+        ]);
+
+        $resolved = app(ImportedVenueManager::class)
+            ->resolveOrDetect($canal, 'Kostol Nanebovzatia Panny Márie', 'Trnava');
+
+        $this->assertNotSame($inKosice->id, $resolved->id);
+        $this->assertSame((int) $trnava->id, (int) $resolved->village_id);
     }
 
     private function detectorReturning(string $name, int $villageId): Detector

@@ -272,6 +272,18 @@ class ImportedVenueManager
                   ->orWhere('name', $name)
                   ->orWhere('name', 'like', '%' . addslashes(Str::limit($name, 100, '')) . '%');
             })
+            // Keď je obec známa, zhoda mimo nej sa neberie. Názvy miest sa
+            // opakujú po celom Slovensku a hľadanie bez tejto podmienky
+            // zaraďovalo podujatia do cudzích miest: „Kostol Nanebovzatia
+            // Panny Márie" z trnavského článku sadol na rovnomenný kostol
+            // v Košiciach — a spolu s ním tam skončil aj kanál organizátora,
+            // ktorému sa obec odvodzuje z miest jeho podujatí.
+            //
+            // Miesto bez obce sa vylúčiť nedá (nie je s čím porovnávať) a je
+            // to práve ten záznam, ktorému obec chýba a treba ho doplniť.
+            ->when($villageId !== null, fn ($q) => $q->where(
+                fn ($inner) => $inner->whereNull('village_id')->orWhere('village_id', $villageId)
+            ))
             ->first();
 
         if ($venue instanceof Venue) {

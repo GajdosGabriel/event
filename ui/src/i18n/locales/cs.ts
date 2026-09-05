@@ -1750,7 +1750,7 @@ const cs: Messages = {
     failed: 'Návrh se nepodařilo vygenerovat.',
     pickMode: 'Vyberte alespoň jednu úpravu.',
     readiness: {
-      title: 'Připravenost ke zveřejnění',
+      title: 'Vyplnění profilu',
       progress: 'Hotovo {done} z {total}',
       ready: 'Všechno podstatné je vyplněno.',
       missing: 'Ještě chybí:',

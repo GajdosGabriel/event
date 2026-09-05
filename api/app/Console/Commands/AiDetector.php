@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Canal;
 use App\Models\Event;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use App\Services\Canals\CanalSeatDeriver;
 use App\Services\OpenAI\Detector;
 
 class AiDetector extends Command
@@ -26,7 +28,7 @@ class AiDetector extends Command
     /**
      * Execute the console command.
      */
-    public function handle(Detector $detector): int
+    public function handle(Detector $detector, CanalSeatDeriver $seatDeriver): int
     {
         $event = Event::query()
             ->whereNotNull('published_at')
@@ -83,6 +85,19 @@ class AiDetector extends Command
         }
 
         $event->update($payload);
+
+        // Tento beh číta celý článok naraz, takže o organizátorovi vie viac než
+        // import (ten skladá výsledok z regexov a jedného AI volania nad
+        // scrapnutým textom). Keď z neho vyjde mesto organizátora, je to
+        // najlepší údaj o sídle kanála, aký o ňom máme — lepší než obec
+        // odvodená z miesta konania. `applyDetectedCity()` si sám stráži, aby
+        // neprepísal obec, ktorú niekto zadal ručne.
+        $organizerCity = $result['event_payload']['organizer']['city'] ?? null;
+        $canal = $event->canal;
+
+        if ($canal instanceof Canal && $seatDeriver->applyDetectedCity($canal, $this->pickString($organizerCity))) {
+            $this->info('AiDetector: kanál ' . $canal->id . ' dostal sídlo podľa organizátora (' . $this->pickString($organizerCity) . ').');
+        }
 
         $this->info('AiDetector processed event id ' . $event->id . '.');
 

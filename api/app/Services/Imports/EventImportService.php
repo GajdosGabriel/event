@@ -195,7 +195,13 @@ class EventImportService
                     'source' => 'external_source',
                     'source_origin' => $resolvedCanal['source_origin'],
                     'detected_canal_name' => $resolvedCanal['detected_name'],
+                    // Obce sa ukladajú tak, ako ich detekcia vrátila (teda aj
+                    // skloňované). Bez nich sa pri zle zaradenom kanáli alebo
+                    // mieste nedá spätne povedať, či zlyhalo čítanie textu,
+                    // alebo preklad na obec z číselníka.
+                    'detected_canal_city' => $resolvedCanal['detected_canal_city'] ?? null,
                     'detected_venue_name' => $resolvedCanal['detected_venue_name'] ?? null,
+                    'detected_venue_city' => $resolvedCanal['detected_venue_city'] ?? null,
                     'imported_at' => now()->toIso8601String(),
                     'published_at_source' => $detail['published_at_source']?->toIso8601String(),
                     'links' => $detail['links'],
@@ -249,9 +255,14 @@ class EventImportService
             $this->dependencyPublisher->publishAll($event);
         }
 
-        // Až teraz je známe miesto, takže až teraz sa dá kanálu odvodiť obec.
-        // resolveOrCreate() ho zakladá skôr, než sa rieši venue, a tak mu
-        // nezostáva iné než zberné „Celé Slovensko".
+        // Sídlo kanála: prednosť má mesto organizátora prečítané z článku,
+        // odvodenie z miest podujatí je až záloha. Miesto konania je údaj
+        // o jednom podujatí — keď ho import trafí zle (rovnomenný kostol
+        // v inom meste), odvodenie z neho posadí organizátora do cudzej obce.
+        //
+        // resolveOrCreate() kanál zakladá skôr, než sa rieši venue, takže
+        // dovtedy mu nezostáva iné než zberné „Celé Slovensko".
+        $this->seatDeriver->applyDetectedCity($canal, $resolvedCanal['detected_canal_city'] ?? null);
         $this->seatDeriver->sync($canal);
 
         $this->syncImages($event, (array) $detail['image_urls'], (string) $detail['source_url']);

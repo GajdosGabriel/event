@@ -75,4 +75,44 @@ class EventTextLabelExtractorTest extends TestCase
         $this->assertNull($this->extractor->extractVenue('Ideme o 9:00 na výlet do Tatier'));
         $this->assertNull($this->extractor->extractVenue('Príďte o 17:00, tešíme sa na vás.'));
     }
+
+    #[Test]
+    public function it_extracts_the_organizer_city_from_the_sentence_with_his_name(): void
+    {
+        $text = 'Trnava 4. septembra (TK KBS) Západoslovenské múzeum v Trnave pripravuje pri'
+            . " príležitosti 800. výročia\npodujatie Osem storočí – jeden príbeh.";
+
+        $this->assertSame(
+            'Trnave',
+            $this->extractor->extractOrganizerCity($text, 'Západoslovenské múzeum'),
+        );
+    }
+
+    #[Test]
+    public function it_reads_a_two_word_organizer_city(): void
+    {
+        $this->assertSame(
+            'Liptovskom Mikuláši',
+            $this->extractor->extractOrganizerCity(
+                'Cirkevný zbor ECAV v Liptovskom Mikuláši pozýva na koncert.',
+                'Cirkevný zbor ECAV',
+            ),
+        );
+    }
+
+    #[Test]
+    public function it_does_not_mistake_a_venue_for_the_organizer_city(): void
+    {
+        // „v Kostole…" za názvom organizátora je miesto konania, nie jeho sídlo.
+        $this->assertNull($this->extractor->extractOrganizerCity(
+            'Farnosť Prievidza v Kostole svätého Bartolomeja pozýva na koncert.',
+            'Farnosť Prievidza',
+        ));
+
+        // Pokračovanie vety malým písmenom nie je obec.
+        $this->assertNull($this->extractor->extractOrganizerCity(
+            'Západoslovenské múzeum v spolupráci s františkánmi pripravuje podujatie.',
+            'Západoslovenské múzeum',
+        ));
+    }
 }

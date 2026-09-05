@@ -1751,7 +1751,7 @@ const en: Messages = {
     failed: 'The suggestion could not be generated.',
     pickMode: 'Pick at least one edit.',
     readiness: {
-      title: 'Ready to publish',
+      title: 'Profile completion',
       progress: '{done} of {total} done',
       ready: 'Everything essential is filled in.',
       missing: 'Still missing:',

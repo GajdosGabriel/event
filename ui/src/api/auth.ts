@@ -1,4 +1,5 @@
 import http from './index'
+import { clearAuthToken, setAuthToken } from './authToken'
 import type { AuthIdentity, LoginPayload, RegisterPayload } from '@/types'
 
 const CSRF_URL = '/sanctum/csrf-cookie'
@@ -35,7 +36,7 @@ export async function login(payload: LoginPayload): Promise<AuthIdentity> {
   await csrf()
   const { data } = await http.post('/login', payload)
   const token = data.access_token ?? data.token ?? data.auth_token
-  if (token) localStorage.setItem('auth_token', token)
+  if (token) setAuthToken(token)
   const identity = unwrapIdentity(data)
   if (!identity) throw new Error('No identity in login response')
   return identity
@@ -48,7 +49,7 @@ export async function register(payload: RegisterPayload): Promise<void> {
 
 export async function logout(): Promise<void> {
   await http.post('/logout', {})
-  localStorage.removeItem('auth_token')
+  clearAuthToken()
 }
 
 export async function fetchMe(): Promise<AuthIdentity | null> {
@@ -118,7 +119,7 @@ export async function socialLogin(
   await csrf()
   const { data } = await http.post(`/${mode}/${provider}`, payload)
   const token = data.access_token ?? data.token ?? data.auth_token
-  if (token) localStorage.setItem('auth_token', token)
+  if (token) setAuthToken(token)
   const identity = unwrapIdentity(data)
   if (!identity) throw new Error('No identity in social login response')
   return { identity, isNewUser: Boolean(data.is_new_user) }

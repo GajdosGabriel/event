@@ -1850,7 +1850,7 @@ const sk = {
     pickMode: 'Vyberte aspoň jednu úpravu.',
     // Ukazovateľ pripravenosti nad panelom.
     readiness: {
-      title: 'Pripravenosť na zverejnenie',
+      title: 'Vyplnenie profilu',
       progress: 'Hotové {done} zo {total}',
       ready: 'Všetko podstatné je vyplnené.',
       missing: 'Ešte chýba:',

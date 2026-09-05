@@ -1751,7 +1751,7 @@ const de: Messages = {
     failed: 'Der Vorschlag konnte nicht erzeugt werden.',
     pickMode: 'Wählen Sie mindestens eine Bearbeitung.',
     readiness: {
-      title: 'Bereit zur Veröffentlichung',
+      title: 'Profil ausfüllen',
       progress: '{done} von {total} erledigt',
       ready: 'Alles Wesentliche ist ausgefüllt.',
       missing: 'Es fehlt noch:',

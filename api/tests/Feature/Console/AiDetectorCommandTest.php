@@ -3,8 +3,10 @@
 namespace Tests\Feature\Console;
 
 use App\Enums\ModelStatus;
+use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Event;
+use App\Models\Municipality;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\OpenAI\Detector;
@@ -124,6 +126,52 @@ class AiDetectorCommandTest extends TestCase
         // aby ďalší beh nezacyklil na tom istom zázname.
         $this->assertSame('<p>Pôvodný text.</p>', $event->body);
         $this->assertNotNull($event->body_rewritten_at);
+    }
+
+    /**
+     * Tento beh číta celý článok naraz, takže o organizátorovi vie viac než
+     * import — mesto z jeho payloadu je najlepší údaj o sídle kanála, aký
+     * máme. Dovtedy sa len uložilo do `meta` a nikto ho nepoužil: kanál
+     * ostal sedieť na obci odvodenej z (nesprávne trafeného) miesta konania.
+     */
+    #[Test]
+    public function it_gives_the_canal_the_seat_of_the_detected_organizer(): void
+    {
+        $nationwideId = Municipality::nationwideId();
+        $trnavaId = (int) Municipality::query()->where('slug', 'trnava')->value('id');
+
+        $canal = Canal::factory()->create([
+            'municipality_id' => $nationwideId,
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+
+        Event::factory()->create([
+            'canal_id' => $canal->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now(),
+            'orginal_source' => 'https://example.test/event',
+            'body_rewritten_at' => null,
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => null,
+                'event_payload' => [
+                    'organizer' => ['name' => 'Západoslovenské múzeum', 'city' => 'Trnava'],
+                ],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $this->assertSame($trnavaId, (int) $canal->fresh()->municipality_id);
     }
 
     #[Test]

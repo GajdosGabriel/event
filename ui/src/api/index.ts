@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { authToken, clearAuthToken } from './authToken'
 import { useToast } from '@/composables/useToast'
 import { currentLocale, t } from '@/i18n'
 
@@ -31,8 +32,7 @@ export function apiHeaders(): Record<string, string> {
   const xsrf = getCookie('XSRF-TOKEN')
   if (xsrf) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
 
-  const token = localStorage.getItem('auth_token')
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (authToken.value) headers['Authorization'] = `Bearer ${authToken.value}`
 
   return headers
 }
@@ -56,9 +56,8 @@ http.interceptors.request.use((config) => {
     config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
   }
 
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`
+  if (authToken.value) {
+    config.headers['Authorization'] = `Bearer ${authToken.value}`
   }
 
   return config
@@ -68,7 +67,7 @@ http.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token')
+      clearAuthToken()
     }
 
     // Rate limit z API. Bez tohto by prekročený limit vyzeral ako tichá chyba —

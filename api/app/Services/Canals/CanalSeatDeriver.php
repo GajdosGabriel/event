@@ -5,10 +5,13 @@ namespace App\Services\Canals;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Municipality;
+use App\Services\Geocoding\MunicipalityGeocodeResolver;
+use App\Support\PlaceholderNames;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Doplní importovanému kanálu obec podľa toho, kde sa jeho podujatia konajú.
+ * Doplní importovanému kanálu obec — buď z mesta organizátora prečítaného
+ * z článku, alebo (keď také nie je) podľa toho, kde sa jeho podujatia konajú.
  *
  * Import zakladá kanál skôr, než vie čokoľvek o mieste — `resolveOrCreate()`
  * dostane len názov organizátora a zdrojovú doménu, takže obec musí ostať na
@@ -16,13 +19,87 @@ use Illuminate\Support\Facades\DB;
  * obce nad organizátormi (Canal::scopeByMunicipality číta `municipality_id`
  * priamo z kanála) nemal čo vrátiť.
  *
- * Sídlo sa preto odvodzuje z miest jeho podujatí. Pravidlo je zámerne prísne:
+ * Prednosť má sídlo organizátora (`applyDetectedCity()`): „Západoslovenské
+ * múzeum v Trnave" je údaj o organizátorovi, kým miesto konania je údaj
+ * o jednom podujatí. Kým sa odvodzovalo výhradne z miest, stačilo, aby import
+ * trafil zlé miesto — a kanál dostal obec, ktorá v článku ani nebola (múzeum
+ * z Trnavy sedelo na Košiciach podľa rovnomenného kostola v inom meste).
+ *
+ * Odvodenie z miest (`sync()`) ostáva ako záloha. Pravidlo je zámerne prísne:
  * obec sa nastaví, len keď všetky podujatia kanála ukazujú na jednu jedinú.
  * Zberný kanál na zdroj (vyveska.sk má podujatia v 33 obciach) v „Celé
  * Slovensko" ostane — a to je preň správna odpoveď, nie chýbajúci údaj.
  */
 class CanalSeatDeriver
 {
+    public function __construct(
+        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver(),
+    ) {}
+
+    /**
+     * Sídlo z mesta organizátora, ako ho z článku prečítal regex alebo AI.
+     *
+     * Mesto prichádza v podobe, v akej stálo v texte — teda aj skloňované
+     * („v Trnave"). Preklad na obec z číselníka rieši `MunicipalityGeocodeResolver`:
+     * najprv číselník, potom orezanie koncovky a až nakoniec geokóder.
+     *
+     * @return bool  true, keď sa obec naozaj zmenila
+     */
+    public function applyDetectedCity(Canal $canal, ?string $city): bool
+    {
+        $municipalityId = $this->detectedSeat($canal, $city);
+
+        if ($municipalityId === null) {
+            return false;
+        }
+
+        $canal->forceFill(['municipality_id' => $municipalityId])->save();
+
+        return true;
+    }
+
+    /**
+     * Obec, ktorú by `applyDetectedCity()` zapísala — alebo null, keď by
+     * nezapísala nič. Oddelené preto, aby `app:backfill-canal-seats --dry-run`
+     * hlásil skutočný výsledok, nie len to, že nejaké mesto našiel.
+     */
+    public function detectedSeat(Canal $canal, ?string $city): ?int
+    {
+        $city = is_string($city) ? trim($city) : '';
+
+        // Zástupnú hodnotu ("null", "neuvedené") nemá zmysel prekladať na obec —
+        // v poslednom kroku by na ňu resolver minul dotaz do siete.
+        if ($city === '' || PlaceholderNames::matches($city)) {
+            return null;
+        }
+
+        if ($canal->registration_source !== RegistrationSource::IMPORT) {
+            return null;
+        }
+
+        // Právo zápisu sa overuje pred prekladom mesta: resolver siaha
+        // v poslednom kroku na Nominatim a pýtať sa siete na hodnotu, ktorú
+        // aj tak nesmieme zapísať, nemá zmysel.
+        if (! $this->isOverwritable($canal)) {
+            return null;
+        }
+
+        $resolved = $this->municipalityGeocoder->resolve($city);
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        $municipalityId = (int) $resolved['village_id'];
+
+        // Zberná hodnota nie je údaj o sídle — na ňu sa kanál neprepisuje.
+        if ($municipalityId === Municipality::nationwideId() || $municipalityId === (int) $canal->municipality_id) {
+            return null;
+        }
+
+        return $municipalityId;
+    }
+
     /**
      * @return bool  true, keď sa obec naozaj zmenila
      */
@@ -70,6 +147,27 @@ class CanalSeatDeriver
         $nationwideId = Municipality::nationwideId();
 
         return $nationwideId !== null && (int) $canal->municipality_id === $nationwideId;
+    }
+
+    /**
+     * Smie sa už vyplnená obec prepísať sídlom organizátora?
+     *
+     * Ručne zadanú obec neprepisujeme nikdy — platí to isté, čo pri `sync()`.
+     * Rozoznať ju bez stĺpca s pôvodom hodnoty sa dá jedine podľa toho, či
+     * kanál sedí presne na tom, čo by odvodenie z miest vyrobilo samo: zberné
+     * „Celé Slovensko" (tam ho postavil import), alebo obec jeho jediného
+     * miesta konania (tam ho postavil `sync()`). Čokoľvek iné vybral človek.
+     */
+    private function isOverwritable(Canal $canal): bool
+    {
+        $nationwideId = Municipality::nationwideId();
+        $current = (int) $canal->municipality_id;
+
+        if ($nationwideId !== null && $current === $nationwideId) {
+            return true;
+        }
+
+        return $current === $this->soleEventMunicipality($canal);
     }
 
     /**

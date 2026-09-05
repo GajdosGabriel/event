@@ -3,6 +3,7 @@
 namespace App\Services\Imports;
 
 use App\Services\OpenAI\ChatGPT;
+use App\Support\PlaceholderNames;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ class ImportedCanalNameResolver
      * @return array{
      *   name: string,
      *   detected_name: string|null,
+     *   detected_canal_city: string|null,
      *   source_origin: string,
      *   detected_venue_name: string|null,
      *   detected_venue_city: string|null,
@@ -49,6 +51,8 @@ class ImportedCanalNameResolver
         $detectedVenueCity   = $heuristicVenue['city'] ?? null;
         $detectedVenueStreet = null;
 
+        $detectedCanalCity = null;
+
         $aiStartAt = null;
         $aiEndAt   = null;
         $aiEmail   = null;
@@ -69,6 +73,11 @@ class ImportedCanalNameResolver
                 // Fill only what regex could not find — never override a found value
                 if ($detectedName === null) {
                     $detectedName = $this->resolveOrganizerFromAiData($aiData);
+                }
+
+                $organizerRaw = $aiData['organizer'] ?? null;
+                if (is_array($organizerRaw)) {
+                    $detectedCanalCity = $this->normalizeString($organizerRaw['city'] ?? null);
                 }
 
                 $venueRaw = $aiData['venue'] ?? null;
@@ -119,11 +128,20 @@ class ImportedCanalNameResolver
             }
         }
 
+        // Sídlo organizátora vie aj text sám („Západoslovenské múzeum v Trnave"),
+        // takže sa hľadá aj vtedy, keď AI nebeží alebo mesto nevrátila. Ide až
+        // za AI: názov organizátora, o ktorý sa vzor opiera, môže pochádzať
+        // práve z nej.
+        if ($detectedCanalCity === null && $detectedName !== null) {
+            $detectedCanalCity = $this->labelExtractor->extractOrganizerCity($text, $detectedName);
+        }
+
         $sourceOrigin = $this->extractOrigin($sourceUrl);
 
         return [
             'name'                  => $detectedName ?? $this->hostLabel($sourceUrl),
             'detected_name'         => $detectedName,
+            'detected_canal_city'   => $detectedCanalCity,
             'source_origin'         => $sourceOrigin,
             'detected_venue_name'   => $detectedVenueName,
             'detected_venue_city'   => $detectedVenueCity,
@@ -223,19 +241,6 @@ class ImportedCanalNameResolver
         'pripravuje', 'pripravujú', 'oznamuje', 'ponúka',
     ];
 
-    /**
-     * Zástupné hodnoty, ktoré model vracia namiesto vynechaného organizátora.
-     *
-     * JSON `null` sa zachytí už kontrolou `is_string()`, ale model občas
-     * pošle reťazec "null" — a ten prejde ako plnohodnotný názov. V produkcii
-     * takto vznikol kanál s menom aj slugom „null“ a popisom „null —
-     * organizátor podujatí“.
-     */
-    private const PLACEHOLDER_NAMES = [
-        'null', 'nil', 'none', 'n/a', 'na', 'undefined', 'unknown', 'false',
-        'neznamy', 'neznama', 'nezname', 'neuvedene', 'neuvedeny', 'bez organizatora',
-    ];
-
     private function sanitizeName(string $value): ?string
     {
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
@@ -246,7 +251,10 @@ class ImportedCanalNameResolver
             return null;
         }
 
-        if ($this->isPlaceholderName($value)) {
+        // Zástupné hodnoty ("null", "neuvedené") nie sú názov organizátora —
+        // zoznam žije v App\Support\PlaceholderNames, používa ho aj odvodenie
+        // sídla kanála.
+        if (PlaceholderNames::matches($value)) {
             return null;
         }
 
@@ -275,17 +283,6 @@ class ImportedCanalNameResolver
         }
 
         return $value;
-    }
-
-    /**
-     * Porovnáva sa bezdiakritická, malými písmenami písaná podoba bez
-     * interpunkcie, takže sadne aj „N/A“, „neznámy“ či „NULL.“.
-     */
-    private function isPlaceholderName(string $value): bool
-    {
-        $ascii = Str::of($value)->ascii()->lower()->replaceMatches('/[^a-z0-9\/]+/', ' ')->trim()->value();
-
-        return $ascii === '' || in_array($ascii, self::PLACEHOLDER_NAMES, true);
     }
 
     private function hostLabel(string $url): string
