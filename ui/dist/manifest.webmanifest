@@ -1,0 +1,30 @@
+{
+  "name": "Event — podujatia a vstupenky",
+  "short_name": "Event",
+  "description": "Portál podujatí s registráciou, vstupenkami a QR check-inom.",
+  "lang": "sk",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Moje lístky",
+      "short_name": "Lístky",
+      "url": "/moje-listky",
+      "description": "Vstupenky s QR kódom, aj bez e-mailu."
+    },
+    {
+      "name": "Podujatia",
+      "short_name": "Podujatia",
+      "url": "/podujatia"
+    }
+  ]
+}
