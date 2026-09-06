@@ -42,6 +42,24 @@ return [
             'synchronous' => null,
         ],
 
+        // Stará databáza projektu hlascirkvi — číta ju výhradne
+        // app:hlascirkvi-export. Bez vyplneného HLASCIRKVI_DB_DATABASE sa
+        // export sám ukončí, takže na produkcii ostáva spojenie nečinné.
+        'hlascirkvi' => [
+            'driver' => 'mysql',
+            'host' => env('HLASCIRKVI_DB_HOST', '127.0.0.1'),
+            'port' => env('HLASCIRKVI_DB_PORT', '3306'),
+            'database' => env('HLASCIRKVI_DB_DATABASE', ''),
+            'username' => env('HLASCIRKVI_DB_USERNAME', 'root'),
+            'password' => env('HLASCIRKVI_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

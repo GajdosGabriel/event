@@ -106,7 +106,7 @@ const basePath = computed(() =>
 
 /**
  * Vo verejnom rozsahu je zvolená obec segmentom cesty
- * (`/podujatia/mesto/{slug}`), nie query parametrom — filter tak má vlastnú
+ * (`/akcie/mesto/{slug}`), nie query parametrom — filter tak má vlastnú
  * indexovateľnú adresu. Dashboard a admin ostávajú na `?municipality={id}`,
  * ich zoznamy do vyhľadávača nepatria.
  */

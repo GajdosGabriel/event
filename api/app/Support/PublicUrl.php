@@ -16,17 +16,30 @@ use Illuminate\Support\Str;
  * každá z nich cestu skladala sama, raz by sa rozišli a vyhľadávač by
  * indexoval dve adresy toho istého obsahu.
  *
- * Tvar detailu je `{slug}-{id}`: slug je pre človeka a pre vyhľadávač, id je
- * jediná časť, ktorá sa naozaj routuje. Premenovanie podujatia tak nezhodí
- * staré odkazy — SPA aj prerender čítajú len číslo za poslednou pomlčkou.
+ * Detail podujatia má tvar `akcie/{id}/{slug}`, ostatné detaily `{slug}-{id}`.
+ * V oboch prípadoch routuje len id a slug je pre človeka a pre vyhľadávač, takže
+ * premenovanie záznamu nezhodí staré odkazy.
+ *
+ * Podujatia majú id vo vlastnom segmente preto, že ten istý tvar bude používať
+ * aj hlascirkvi.sk, keď začne podujatia brať z tejto databázy. Vedľajší zisk:
+ * pri `{slug}-{id}` sa id hľadá ako posledné číslo v segmente, takže ručne
+ * skrátená adresa `.../godzone-tour-2026` vyzerá ako podujatie číslo 2026.
+ * Oddelený segment túto zámenu vylučuje.
  *
  * Základ je `FRONTEND_URL`, nie `APP_URL`: verejné adresy patria SPA hostu,
  * API beží pod `/api` na tom istom origine (pozri [deploy/htaccess.md]).
  */
 final class PublicUrl
 {
-    /** Prvý segment detailu podujatia. */
-    public const EVENTS = 'podujatia';
+    /** Prvý segment podujatí. */
+    public const EVENTS = 'akcie';
+
+    /**
+     * Predchádzajúci prvý segment podujatí. Adresy `/podujatia/*` sú
+     * zaindexované a rozposlané, takže ich prerender aj SPA musia naďalej
+     * poznať a presmerovať — nikde sa už ale negenerujú.
+     */
+    public const LEGACY_EVENTS = 'podujatia';
 
     /** Prvý segment detailu miesta. */
     public const VENUES = 'miesta';
@@ -85,7 +98,11 @@ final class PublicUrl
 
     public static function eventPath(Event $event): string
     {
-        return self::EVENTS.'/'.self::segment($event->slug, $event->name, $event->id);
+        $slug = self::slug($event->slug, $event->name);
+
+        return $slug !== ''
+            ? self::EVENTS.'/'.$event->id.'/'.$slug
+            : self::EVENTS.'/'.$event->id;
     }
 
     public static function event(Event $event): string
@@ -211,9 +228,15 @@ final class PublicUrl
      */
     private static function segment(?string $slug, ?string $name, int|string $id): string
     {
-        $slug = trim((string) $slug) !== '' ? $slug : Str::slug((string) $name);
-        $slug = trim((string) $slug, '-');
+        $slug = self::slug($slug, $name);
 
         return $slug !== '' ? "{$slug}-{$id}" : (string) $id;
+    }
+
+    private static function slug(?string $slug, ?string $name): string
+    {
+        $slug = trim((string) $slug) !== '' ? $slug : Str::slug((string) $name);
+
+        return trim((string) $slug, '-');
     }
 }

@@ -490,7 +490,6 @@ import { fmtDateLong, daysUntil, weekdayLabel } from '@/utils/dateFormat'
 import { formatPriceOrFree } from '@/utils/money'
 import {
   absoluteUrl,
-  idFromRouteParam,
   publicEventPath,
   publicCanalPath,
   publicVenuePath,
@@ -863,7 +862,9 @@ async function load() {
   error.value = false
   notFound.value = false
   try {
-    const ev = await showPublicEvent(idFromRouteParam(route.params.slugId))
+    // Id je vlastný segment (`akcie/{id}/{slug}`), takže sa z adresy nemusí
+    // dolovať — slug za ním je len ozdoba a routa ho ani nevyžaduje.
+    const ev = await showPublicEvent(String(route.params.id))
 
     // Adresa sa zosúladí s kanonickou podobou — na detail sa dá doraziť aj
     // zo starého číselného odkazu alebo so zastaraným slugom po premenovaní.

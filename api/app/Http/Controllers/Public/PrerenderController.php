@@ -103,7 +103,9 @@ class PrerenderController extends Controller
         $first = $segments[0] ?? '';
 
         return match (true) {
-            $segments === [], $first === PublicUrl::EVENTS => $this->eventsBranch($segments, $jsonLd),
+            $segments === [],
+            $first === PublicUrl::EVENTS,
+            $first === PublicUrl::LEGACY_EVENTS => $this->eventsBranch($segments, $jsonLd),
             $first === PublicUrl::VENUES || $first === 'venues' => $this->venue($segments[1] ?? '', $jsonLd),
             $first === PublicUrl::CANALS || $first === 'canals' => $this->canal($segments[1] ?? '', $jsonLd),
             $first === 'events' => $this->event($segments[1] ?? '', $jsonLd),
@@ -112,9 +114,13 @@ class PrerenderController extends Controller
     }
 
     /**
-     * `/podujatia/*` nesie detail aj tri landing výpisy. Rozlišuje ich druhý
-     * segment: `mesto`/`tema`/`tento-vikend` sú výpisy, čokoľvek končiace na
-     * `-{id}` je detail.
+     * `/akcie/*` nesie detail aj štyri landing výpisy. Rozlišuje ich druhý
+     * segment: `mesto`/`tema`/`tento-vikend`/`archiv` sú výpisy, číslo je
+     * detail.
+     *
+     * Zaindexované adresy v starom tvare `/podujatia/{slug}-{id}` sem chodia
+     * tiež — crawler ich musí dostať vykreslené, nie na 404. Kanonický odkaz
+     * v odpovedi už ukazuje na nový tvar, takže sa index prepíše sám.
      */
     private function eventsBranch(array $segments, JsonLd $jsonLd): ?View
     {
@@ -193,7 +199,7 @@ class PrerenderController extends Controller
                 ? $this->upcomingEvents(fn (Builder $query) => $event->canal_id
                     ? $query->where('canal_id', $event->canal_id)
                     : $query->where('venue_id', $event->venue_id))->take(5)
-                : new Collection(),
+                : new Collection,
             'structuredData' => array_values(array_filter([
                 $jsonLd->event($event),
                 $jsonLd->faqPage($faq, PublicUrl::event($event)),
@@ -220,7 +226,7 @@ class PrerenderController extends Controller
         $board = $event->questionBoard()->first();
 
         if ($board === null || ! $board->show_questions) {
-            return new Collection();
+            return new Collection;
         }
 
         return $board->questions()

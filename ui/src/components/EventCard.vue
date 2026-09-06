@@ -95,7 +95,7 @@ const CARD_IMAGE_SIZES = '(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100v
 const props = defineProps<{
   id: number
   name: string
-  /** Slug do kanonickej adresy `/podujatia/{slug}-{id}`. */
+  /** Slug do kanonickej adresy `/akcie/{id}/{slug}`. */
   slug?: string | null
   imageUrl?: string | null
   /** Veľký variant; bez neho sa srcset nevykreslí a použije sa len `imageUrl`. */

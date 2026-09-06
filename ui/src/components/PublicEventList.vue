@@ -1,6 +1,6 @@
 <template>
   <!-- Verejný výpis podujatí. Používa ho homepage aj každá landing stránka
-       (`/podujatia`, `/podujatia/mesto/...`, `/podujatia/tema/...`), aby sa
+       (`/akcie`, `/akcie/mesto/...`, `/akcie/tema/...`), aby sa
        filtrovanie, stránkovanie a fasety nemuseli udržiavať dvakrát. -->
   <div>
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -239,9 +239,9 @@ import { distanceKm, formatDistance } from '@/utils/geo'
 const props = withDefaults(defineProps<{
   heading: string
   subheading: string
-  /** Obec z cesty (`/podujatia/mesto/{slug}`) — má prednosť pred `?municipality=`. */
+  /** Obec z cesty (`/akcie/mesto/{slug}`) — má prednosť pred `?municipality=`. */
   municipality?: string | number | null
-  /** Štítok z cesty (`/podujatia/tema/{slug}`) — má prednosť pred `?tags=`. */
+  /** Štítok z cesty (`/akcie/tema/{slug}`) — má prednosť pred `?tags=`. */
   tags?: string | null
   /** Pomenované časové okno; dnes jediné `weekend`. */
   range?: string | null

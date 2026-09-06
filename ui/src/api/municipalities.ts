@@ -34,7 +34,7 @@ export async function listPublicMunicipalities(): Promise<LookupOption[]> {
 }
 
 /**
- * Obec podľa slugu — landing stránka `/podujatia/mesto/{slug}` z nej berie
+ * Obec podľa slugu — landing stránka `/akcie/mesto/{slug}` z nej berie
  * čitateľný názov do nadpisu a `title`. Neznámy slug vracia 404.
  */
 export async function showPublicMunicipality(slug: string): Promise<{ id: number; name: string; slug: string }> {

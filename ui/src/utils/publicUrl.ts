@@ -1,15 +1,22 @@
 /**
  * Verejné adresy portálu — zrkadlo `App\Support\PublicUrl` na backende.
  *
- * Tvar `{slug}-{id}`: slug je pre človeka a pre vyhľadávač, routuje sa len id
- * za poslednou pomlčkou. Premenovanie podujatia tak nezhodí staré odkazy.
+ * Detail podujatia má tvar `akcie/{id}/{slug}`, ostatné detaily `{slug}-{id}`.
+ * V oboch prípadoch routuje len id a slug je pre človeka a pre vyhľadávač, takže
+ * premenovanie záznamu nezhodí staré odkazy.
+ *
+ * Podujatia majú id vo vlastnom segmente preto, že ten istý tvar bude používať
+ * aj hlascirkvi.sk, keď začne podujatia brať z tejto databázy.
  *
  * Obe strany musia dávať tú istú adresu — bot-render vrstva posiela crawlerovi
  * `canonical` a `sitemap.xml` z PHP verzie; keby SPA odkazovala inam, indexovala
  * by sa iná stránka, než na akú vedú odkazy v portáli.
  */
 
-export const PUBLIC_EVENTS = '/podujatia'
+export const PUBLIC_EVENTS = '/akcie'
+
+/** Predchádzajúci prefix podujatí. Už sa negeneruje, len presmerúva. */
+export const PUBLIC_EVENTS_LEGACY = '/podujatia'
 export const PUBLIC_VENUES = '/miesta'
 export const PUBLIC_CANALS = '/organizatori'
 
@@ -25,14 +32,20 @@ interface Sluggable {
   slug?: string | null
 }
 
+function slugOf(item: Sluggable): string {
+  return (item.slug ?? '').trim().replace(/^-+|-+$/g, '')
+}
+
 function segment(item: Sluggable): string {
-  const slug = (item.slug ?? '').trim().replace(/^-+|-+$/g, '')
+  const slug = slugOf(item)
 
   return slug ? `${slug}-${item.id}` : String(item.id)
 }
 
 export function publicEventPath(event: Sluggable): string {
-  return `${PUBLIC_EVENTS}/${segment(event)}`
+  const slug = slugOf(event)
+
+  return slug ? `${PUBLIC_EVENTS}/${event.id}/${slug}` : `${PUBLIC_EVENTS}/${event.id}`
 }
 
 export function publicVenuePath(venue: Sluggable): string {
