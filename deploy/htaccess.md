@@ -19,13 +19,23 @@ Predloha: [`ui/public/.htaccess`](../ui/public/.htaccess) — build ju kopíruje
 
 ## Postup
 
-1. Zálohuj existujúci `.htaccess` v docroote.
-2. Prenes obsah `ui/public/.htaccess`. Ak je v aktívnom súbore niečo navyše
-   (presmerovanie na HTTPS, hlavičky, `ErrorDocument`), **nechaj to** a doplň
-   len bloky 0, 1 a 2 **pred** SPA fallback. Blok 0 musí byť úplne prvý —
-   keby bol až za blokom crawlerov, staré adresy by sa botom vykresľovali
-   namiesto toho, aby ich 301 poslala na novú podobu.
-3. Over podľa sekcie nižšie.
+> **`ui/public/.htaccess` NIE JE produkčný súbor a nikdy sa nekopíruje celý.**
+>
+> Docroot subdomény je koreň repozitára, nie `ui/dist`. Aktívny `.htaccess`
+> tam preto navyše mapuje požiadavky do `ui/dist/` a `/api/` do
+> `api/public/` — a tieto pravidlá v šablóne **nie sú**, lebo tá sa píše z
+> pohľadu priečinka s buildom. Prepísaním aktívneho súboru šablónou zmizne
+> mapovanie na súbory a celá subdoména padne na `403` v koreni a `404`
+> všade inde. Aktívny súbor je mimo gitu, takže sa nedá obnoviť `git`-om.
+
+1. **Zálohuj** existujúci `.htaccess` v docroote. Bez zálohy sa nedá vrátiť.
+2. Otvor ho a **dopíš doň** chýbajúce bloky zo šablóny `ui/public/.htaccess`.
+   Nič existujúce nemaž — mapovanie do `ui/dist`, presmerovanie na HTTPS,
+   hlavičky ani `ErrorDocument` v šablóne nie sú a musia ostať.
+   Poradie: blok 0 (301 zo starých adries) úplne prvý, potom 1 (sitemap),
+   potom 2 (crawlery), a to všetko **pred** SPA fallbackom.
+3. Over podľa sekcie nižšie. Prvý test rob na `/` — musí vrátiť `200`,
+   nie `403`.
 
 ### Ak interný prepis na `/api/` nefunguje
 

@@ -1,8 +1,13 @@
 # SPA + dosah (Vue Router, bot-render, sitemap) — Apache.
 #
-# Build ho kopíruje do ui/dist/. Na produkcii ale routovanie rieši .htaccess
-# v docroote subdomény, ktorý je mimo gitu — po zmene tohto súboru ho treba
-# preniesť ručne. Postup a overenie: deploy/htaccess.md
+# POZOR: toto je ŠABLÓNA, nie produkčný súbor. Nikdy ju nekopíruj celú na
+# produkciu. Docroot subdomény je koreň repozitára, nie tento priečinok, takže
+# aktívny .htaccess tam navyše mapuje požiadavky do ui/dist/ a /api/ do
+# api/public/ — pravidlá, ktoré tu chýbajú. Prepísaním aktívneho súboru týmto
+# obsahom zmizne mapovanie na súbory a subdoména padne na 403 v koreni a 404
+# všade inde; aktívny súbor je mimo gitu, takže sa nedá obnoviť git-om.
+#
+# Do produkčného .htaccess sa dopisujú len bloky nižšie. Postup: deploy/htaccess.md
 #
 # Poradie pravidiel je podstatné: sitemap a crawler musia byť pred SPA
 # fallbackom, inak by ich prepísal na index.html.
