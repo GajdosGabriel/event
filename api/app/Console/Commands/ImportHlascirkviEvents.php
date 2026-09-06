@@ -87,7 +87,7 @@ class ImportHlascirkviEvents extends Command
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
 
-        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'date_unreliable' => 0];
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'no_date' => 0, 'failed' => 0, 'year_corrected' => 0];
         $canalsBefore = Canal::query()->count();
         $venuesBefore = Venue::query()->count();
 
@@ -118,8 +118,8 @@ class ImportHlascirkviEvents extends Command
             try {
                 $result = $this->importRow($row, $canalManager, $venueManager, $describer, $owner->id, $force);
                 $stats[$result['status']]++;
-                if ($result['date_unreliable']) {
-                    $stats['date_unreliable']++;
+                if ($result['year_corrected']) {
+                    $stats['year_corrected']++;
                 }
             } catch (Throwable $e) {
                 $stats['failed']++;
@@ -148,10 +148,10 @@ class ImportHlascirkviEvents extends Command
         }
 
         $this->table(
-            ['vytvorené', 'aktualizované', 'preskočené', 'chybné', 'nespoľahlivý dátum', 'nové kanály', 'nové miesta'],
+            ['vytvorené', 'aktualizované', 'preskočené', 'bez dátumu', 'chybné', 'opravený rok', 'nové kanály', 'nové miesta'],
             [[
-                $stats['created'], $stats['updated'], $stats['skipped'], $stats['failed'],
-                $stats['date_unreliable'], $newCanals, $newVenues,
+                $stats['created'], $stats['updated'], $stats['skipped'], $stats['no_date'],
+                $stats['failed'], $stats['year_corrected'], $newCanals, $newVenues,
             ]],
         );
 
@@ -160,7 +160,7 @@ class ImportHlascirkviEvents extends Command
 
     /**
      * @param  array<string, mixed>  $row
-     * @return array{status: string, date_unreliable: bool}
+     * @return array{status: string, year_corrected: bool}
      */
     private function importRow(
         array $row,
@@ -174,14 +174,20 @@ class ImportHlascirkviEvents extends Command
         $existing = Event::query()->where('orginal_source', $sourceUrl)->first();
 
         if ($existing instanceof Event && ! $force) {
-            return ['status' => 'skipped', 'date_unreliable' => false];
+            return ['status' => 'skipped', 'year_corrected' => false];
         }
 
         $canal = $this->resolveCanal($row, $canalManager);
         $venue = $this->resolveVenue($row, $canal, $venueManager, $describer);
 
         $createdAt = $this->toDate($row['created_at'] ?? null) ?? CarbonImmutable::now();
-        [$startAt, $endAt, $unreliable] = $this->resolveDates($row, $createdAt);
+        [$startAt, $endAt, $yearCorrected, $endEstimated] = $this->resolveDates($row, $createdAt);
+
+        // Podujatie bez začiatku nemá v archíve čo robiť: dátum sa nedá ani
+        // opraviť, ani odhadnúť, a vo výpise by viselo na dni vzniku článku.
+        if ($startAt === null) {
+            return ['status' => 'no_date', 'year_corrected' => false];
+        }
 
         $payload = [
             'name' => Str::limit((string) $row['title'], 250, ''),
@@ -207,7 +213,8 @@ class ImportHlascirkviEvents extends Command
                     'online_link' => $row['online_link'] ?? null,
                     'registration' => $row['registration'] ?? null,
                     'entry_fee' => $row['entry_fee'] ?? null,
-                    'date_unreliable' => $unreliable,
+                    'date_year_corrected' => $yearCorrected,
+                    'end_at_estimated' => $endEstimated,
                     'image_path' => $row['image_path'] ?? null,
                     'imported_at' => now()->toIso8601String(),
                 ],
@@ -232,7 +239,7 @@ class ImportHlascirkviEvents extends Command
 
         return [
             'status' => $existing instanceof Event ? 'updated' : 'created',
-            'date_unreliable' => $unreliable,
+            'year_corrected' => $yearCorrected,
         ];
     }
 
@@ -323,35 +330,60 @@ class ImportHlascirkviEvents extends Command
     }
 
     /**
-     * Scraper starého webu občas zachytil rok zo znenia článku — podujatie z
-     * roku 2022 tak má `start_at` v roku 1452. Dátum, ktorý sa výrazne
-     * rozchádza s dňom vzniku záznamu, sa preto nahradí dňom vzniku a označí
-     * v meta, aby sa dal neskôr dohľadať.
+     * Scraper starého webu občas zachytil rok zo znenia článku: podujatie z
+     * roku 2022 tak má `start_at` v roku 1452 a koniec až v roku 8330 — nad
+     * stropom MySQL TIMESTAMP-u (2038), na ktorom insert padne.
+     *
+     * Pokazený je však výlučne rok. Deň, mesiac aj čas sedia — v 133 takých
+     * podujatiach zo starej databázy dá prepis roka na rok vzniku záznamu
+     * odstup 0 až 160 dní, teda presne to, ako pozvánka vyzerá. Preto sa rok
+     * neháda ani sa dátum nezahadzuje: prepíše sa na rok vzniku, a keď by tým
+     * podujatie vyšlo pred vznikom článku, na rok nasledujúci (decembrová
+     * pozvánka na januárovú akciu — 8 prípadov).
+     *
+     * Koniec dostane rovnaký posun ako začiatok, takže viacdňovej akcii ostane
+     * jej trvanie aj hodiny.
      *
      * @param  array<string, mixed>  $row
-     * @return array{0: CarbonImmutable, 1: CarbonImmutable, 2: bool}
+     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable, 2: bool, 3: bool}
      */
     private function resolveDates(array $row, CarbonImmutable $createdAt): array
     {
         $startAt = $this->toDate($row['start_at'] ?? null);
         $endAt = $this->toDate($row['end_at'] ?? null);
-        $unreliable = false;
 
-        if ($startAt === null || $startAt->year < $createdAt->year - 1 || $startAt->year > $createdAt->year + 3) {
-            $startAt = $createdAt;
-            $unreliable = true;
+        // Bez začiatku sa nedá zachrániť nič — deň ani mesiac neexistujú.
+        // Volajúci taký riadok preskočí.
+        if ($startAt === null) {
+            return [null, null, false, false];
         }
 
-        // Rovnaká chyba scrapera zasiahla aj koniec podujatia, tam však vyšla
-        // roky dopredu (8330, 7119…) — nad strop MySQL TIMESTAMP-u (2038), na
-        // ktorom insert padol. Koniec vzdialenejší než rok od začiatku je vždy
-        // chyba čítania, nie podujatie; skutočné viacdňové akcie sú v rámci dní.
+        $yearCorrected = false;
+
+        if ($startAt->year < $createdAt->year - 1 || $startAt->year > $createdAt->year + 3) {
+            $corrected = $startAt->setYear($createdAt->year);
+
+            // Malý záporný odstup je bežný (pozvánka doplnená deň po začiatku),
+            // väčší znamená, že akcia patrí až do nasledujúceho roka.
+            if ($corrected->lessThan($createdAt->subDays(3))) {
+                $corrected = $corrected->addYear();
+            }
+
+            $shift = $corrected->year - $startAt->year;
+            $startAt = $corrected;
+            $endAt = $endAt?->addYears($shift);
+            $yearCorrected = true;
+        }
+
+        // Koniec skorší než začiatok alebo vzdialenejší než rok je chyba
+        // čítania, nie podujatie — skutočné viacdňové akcie trvajú dni.
+        $endEstimated = false;
         if ($endAt === null || $endAt->lessThan($startAt) || $endAt->greaterThan($startAt->addYear())) {
             $endAt = $this->avoidDstGap($startAt->addHours(2));
-            $unreliable = true;
+            $endEstimated = true;
         }
 
-        return [$startAt, $endAt, $unreliable];
+        return [$startAt, $endAt, $yearCorrected, $endEstimated];
     }
 
     /**

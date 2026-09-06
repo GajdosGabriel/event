@@ -75,16 +75,28 @@ obcou „Celé Slovensko“ idú na zdieľané záložné miesto. Miesta vznikaj
 
 **Dátumy.** Starý scraper občas prečítal rok zo znenia článku, takže podujatie
 z roku 2022 má `start_at` v roku 1452 a koniec v roku 8330 — nad stropom MySQL
-TIMESTAMP-u, na ktorom insert padne. Preto:
+TIMESTAMP-u, na ktorom insert padne.
 
-- `start_at` mimo okna `[rok vzniku − 1, rok vzniku + 3]` (alebo chýbajúci) sa
-  nahradí dňom vzniku záznamu,
+Pokazený je však výlučne **rok**. Deň, mesiac aj hodina sedia: po prepise roka
+na rok vzniku záznamu vyjde vo všetkých 133 takých podujatiach odstup 0 až 160
+dní od článku, teda presne to, ako pozvánka vyzerá. Preto sa dátum nezahadzuje
+ani nehádže na deň vzniku:
+
+- rok mimo okna `[rok vzniku − 1, rok vzniku + 3]` sa prepíše na rok vzniku; ak
+  by tým podujatie vyšlo viac než 3 dni pred článkom, na rok nasledujúci
+  (decembrová pozvánka na januárovú akciu — 8 prípadov),
+- koniec dostane **rovnaký posun rokov** ako začiatok, takže viacdňovej akcii
+  ostane trvanie aj hodiny (14. 2. 19:00 – 20. 2. 21:00 zostane šesťdňové),
 - koniec skorší než začiatok alebo vzdialenejší než rok od neho sa nahradí
   začiatkom + 2 h,
 - dopočítaný čas, ktorý padne do jarnej medzery posunu času (28. 3. 2021 o
   02:00 na Slovensku neexistuje), sa posunie o hodinu — inak ho MySQL odmietne.
 
-Každé takto opravené podujatie má `meta.import.date_unreliable = true`.
+Označuje sa to v `meta.import.date_year_corrected` a `meta.import.end_at_estimated`.
+
+Podujatie **bez akéhokoľvek začiatku** sa neimportuje — deň ani mesiac
+neexistujú, takže sa nedá ani opraviť, ani odhadnúť, a vo výpise by viselo na
+dni vzniku článku. Týka sa to 11 podujatí.
 
 ## 3. Import obrázkov
 
@@ -121,13 +133,15 @@ Import celého exportu do čistej databázy `event_import`:
 
 | | |
 |---|---|
-| vytvorené podujatia | 10 905 |
+| vytvorené podujatia | 10 894 |
 | preskočené | 958 (duplicitné zdrojové URL už v starej databáze) |
+| bez dátumu (neimportované) | 11 |
 | chybné | 0 |
-| nespoľahlivý dátum | 143 |
+| opravený rok | 131 |
 | kanály | 26 (3 zberné + 23 organizácií) |
 | miesta | 580, každé podujatie má miesto |
-| stav | 10 792 `archived`, 113 `published` |
+| stav | 10 785 `archived`, 109 `published` |
 | `created_at` | 2019-01-24 až 2026-09-05 (zachované) |
+| `start_at` | 2019-11-28 až 2028-06-20, žiadny mimo rozsahu |
 
 Opakovaný beh nevytvoril nič nové — všetkých 11 863 riadkov preskočil.

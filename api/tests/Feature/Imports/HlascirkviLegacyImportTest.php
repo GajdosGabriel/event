@@ -77,29 +77,71 @@ class HlascirkviLegacyImportTest extends TestCase
     }
 
     #[Test]
-    public function a_scraped_year_far_from_the_record_date_is_replaced_by_it(): void
+    public function only_the_year_is_rewritten_and_the_day_and_time_survive(): void
     {
-        // Starý scraper občas prečítal rok zo znenia článku: podujatie z roku
-        // 2022 tak má start_at v roku 1452 a koniec až v roku 8330, ktorý je
-        // nad stropom MySQL TIMESTAMP-u a insert by na ňom padol.
+        // Starý scraper prečítal rok zo znenia článku: podujatie z roku 2022 má
+        // start_at v roku 1452. Deň, mesiac aj hodina sú pritom správne, takže
+        // sa prepisuje výlučne rok.
         $this->writeRows([$this->row([
             'created_at' => '2022-03-08 09:00:00',
             'start_at' => '1452-03-10 18:00:00',
-            'end_at' => '8330-07-02 00:00:00',
+            'end_at' => '1452-03-10 20:00:00',
         ])]);
 
         $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
             ->assertSuccessful();
 
         $event = Event::query()->firstOrFail();
-        $this->assertSame('2022-03-08 09:00:00', $event->start_at->format('Y-m-d H:i:s'));
-        $this->assertSame('2022-03-08 11:00:00', $event->end_at->format('Y-m-d H:i:s'));
-        $this->assertTrue($event->meta['import']['date_unreliable']);
+        $this->assertSame('2022-03-10 18:00:00', $event->start_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2022-03-10 20:00:00', $event->end_at->format('Y-m-d H:i:s'));
+        $this->assertTrue($event->meta['import']['date_year_corrected']);
+        $this->assertFalse($event->meta['import']['end_at_estimated']);
     }
 
     #[Test]
-    public function a_missing_start_date_falls_back_to_the_record_date(): void
+    public function a_multi_day_event_keeps_its_span_when_the_year_is_corrected(): void
     {
+        // Koniec dostane rovnaký posun ako začiatok — inak by šesťdňová akcia
+        // po oprave roka skončila po dvoch hodinách.
+        $this->writeRows([$this->row([
+            'created_at' => '2022-02-08 09:00:00',
+            'start_at' => '2014-02-14 19:00:00',
+            'end_at' => '2014-02-20 21:00:00',
+        ])]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
+            ->assertSuccessful();
+
+        $event = Event::query()->firstOrFail();
+        $this->assertSame('2022-02-14 19:00:00', $event->start_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2022-02-20 21:00:00', $event->end_at->format('Y-m-d H:i:s'));
+    }
+
+    #[Test]
+    public function a_december_invitation_to_a_january_event_moves_to_the_next_year(): void
+    {
+        // Rok vzniku by podujatie posunul jedenásť mesiacov do minulosti,
+        // takže patrí až do nasledujúceho roka.
+        $this->writeRows([$this->row([
+            'created_at' => '2021-12-20 09:00:00',
+            'start_at' => '1999-01-15 18:00:00',
+            'end_at' => '1999-01-15 20:00:00',
+        ])]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
+            ->assertSuccessful();
+
+        $this->assertSame(
+            '2022-01-15 18:00:00',
+            Event::query()->firstOrFail()->start_at->format('Y-m-d H:i:s')
+        );
+    }
+
+    #[Test]
+    public function an_event_without_any_start_date_is_not_imported(): void
+    {
+        // Deň ani mesiac neexistujú, takže sa nedá nič opraviť — vo výpise by
+        // podujatie viselo na dni vzniku článku.
         $this->writeRows([$this->row([
             'created_at' => '2020-06-01 07:00:00',
             'start_at' => null,
@@ -109,9 +151,7 @@ class HlascirkviLegacyImportTest extends TestCase
         $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
             ->assertSuccessful();
 
-        $event = Event::query()->firstOrFail();
-        $this->assertSame('2020-06-01 07:00:00', $event->start_at->format('Y-m-d H:i:s'));
-        $this->assertTrue($event->meta['import']['date_unreliable']);
+        $this->assertSame(0, Event::query()->count());
     }
 
     #[Test]
