@@ -19,23 +19,28 @@ Predloha: [`ui/public/.htaccess`](../ui/public/.htaccess) — build ju kopíruje
 
 ## Postup
 
+Produkčný súbor je **[`.htaccess`](../.htaccess) v koreni repozitára** a je
+verzovaný, takže sa nasadzuje `git pull`-om. Ručne sa už neprenáša nič.
+
 > **`ui/public/.htaccess` NIE JE produkčný súbor a nikdy sa nekopíruje celý.**
 >
-> Docroot subdomény je koreň repozitára, nie `ui/dist`. Aktívny `.htaccess`
-> tam preto navyše mapuje požiadavky do `ui/dist/` a `/api/` do
-> `api/public/` — a tieto pravidlá v šablóne **nie sú**, lebo tá sa píše z
-> pohľadu priečinka s buildom. Prepísaním aktívneho súboru šablónou zmizne
-> mapovanie na súbory a celá subdoména padne na `403` v koreni a `404`
-> všade inde. Aktívny súbor je mimo gitu, takže sa nedá obnoviť `git`-om.
+> Docroot subdomény je koreň repozitára, nie `ui/dist`. Produkčný súbor preto
+> navyše mapuje požiadavky do `ui/dist/` a `/api/` do `api/public/` — a tieto
+> pravidlá v šablóne **nie sú**, lebo tá sa píše z pohľadu priečinka s
+> buildom. Prepísaním produkčného súboru šablónou zmizne mapovanie na súbory
+> a celá subdoména padne na `403` v koreni a `404` všade inde. Presne to sa
+> stalo 6. 9. 2026.
 
-1. **Zálohuj** existujúci `.htaccess` v docroote. Bez zálohy sa nedá vrátiť.
-2. Otvor ho a **dopíš doň** chýbajúce bloky zo šablóny `ui/public/.htaccess`.
-   Nič existujúce nemaž — mapovanie do `ui/dist`, presmerovanie na HTTPS,
-   hlavičky ani `ErrorDocument` v šablóne nie sú a musia ostať.
-   Poradie: blok 0 (301 zo starých adries) úplne prvý, potom 1 (sitemap),
-   potom 2 (crawlery), a to všetko **pred** SPA fallbackom.
+1. Zmenu urob v koreňovom `.htaccess` a commitni.
+2. Na produkcii `git pull`.
 3. Over podľa sekcie nižšie. Prvý test rob na `/` — musí vrátiť `200`,
    nie `403`.
+
+Ak v docroote ešte leží starý neverzovaný `.htaccess`, `git pull` na ňom
+zlyhá hláškou *„untracked working tree file '.htaccess' would be overwritten"*.
+Premenuj ho (`mv .htaccess .htaccess.zaloha`) a pull zopakuj — záloha sa
+zíde na porovnanie, či v ňom nebolo niečo navyše (hlavičky, `ErrorDocument`,
+presmerovanie na HTTPS).
 
 ### Ak interný prepis na `/api/` nefunguje
 

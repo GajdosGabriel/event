@@ -1,0 +1,86 @@
+# Produkčný .htaccess subdomény (event.hlascirkvi.sk).
+#
+# Docroot subdomény je KOREŇ REPOZITÁRA, nie ui/dist. Tento súbor preto robí
+# tri veci naraz:
+#   1. presmerovania a dosah — staré adresy, sitemap, crawlery,
+#   2. mapovanie backendu do api/public/ (Laravel front controller),
+#   3. servovanie SPA z ui/dist/ vrátane fallbacku na index.html.
+#
+# Do 6. 9. 2026 bol mimo gitu a prenášal sa ručne. Práve ručné prepísanie
+# šablónou ui/public/.htaccess zhodilo produkciu — zmizlo mapovanie do
+# ui/dist a subdoména vracala 403 v koreni a 404 všade inde. Preto je odteraz
+# verzovaný a nasadzuje sa `git pull`-om; ui/public/.htaccess ostáva len
+# šablónou pre priečinok s buildom a na produkciu sa nekopíruje.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # --- 0. staré adresy podujatí ---------------------------------------
+    # Podujatia sa presťahovali z /podujatia/{slug}-{id} na /akcie/{id}/{slug}.
+    # Staré adresy sú zaindexované a rozposlané v e-mailoch. Presmerovanie
+    # rieši aj Vue Router, ale ten beží až po načítaní JS a vyhľadávač z neho
+    # prenos hodnotenia nevyčíta — na to treba 301 tu.
+    #
+    # Najprv detail (končí na -{id}), až potom zvyšok, inak by všeobecné
+    # pravidlo pohltilo aj `mesto` a `tema`.
+    RewriteRule ^podujatia/(?:.*-)?([0-9]+)/?$ /akcie/$1 [R=301,L]
+    RewriteRule ^podujatia(/.*)?$ /akcie$1 [R=301,L]
+
+    # --- 1. sitemap.xml -------------------------------------------------
+    # Mapu generuje Laravel (cache 1 h). Na SPA hoste musí byť dostupná na
+    # koreňovej ceste — inak ju Search Console odmietne ako mimo rozsahu.
+    RewriteRule ^sitemap\.xml$ /api/sitemap.xml [L]
+
+    # --- 2. crawlery a náhľady odkazov ----------------------------------
+    # Facebook, Messenger, WhatsApp, LinkedIn ani vyhľadávače nespúšťajú JS.
+    # Dostanú serverom vykreslenú verziu tej istej stránky; ľudia idú do SPA.
+    #
+    # Podmienky: nikdy neprepisuj backend prefixy (inak vznikne slučka pri
+    # internom podrequeste) a nikdy statické súbory (og:image musí ostať
+    # obrázkom, nie HTML stránkou).
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|SkypeUriPreview|Applebot|Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|bingbot|YandexBot|DuckDuckBot|SeznamBot|redditbot|Pinterest|vkShare|Embedly|Quora\ Link\ Preview|W3C_Validator) [NC]
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
+    RewriteCond %{REQUEST_URI} !\.(js|mjs|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|map|txt|xml|pdf|webmanifest)$
+    RewriteRule ^(.*)$ /api/prerender?path=/$1 [QSA,L]
+
+    # --- 2b. widget pre cudzie weby -------------------------------------
+    # Značka pre hlavičky nižšie. `-` neprepisuje a bez `L` sa pokračuje
+    # ďalšími pravidlami — ide len o nastavenie premennej.
+    RewriteRule ^embed(/|$) - [E=EVENT_EMBED:1]
+
+    # --- 3. backend -----------------------------------------------------
+    # Skutočné súbory Laravelu (obrázky, lokálne úložisko) sa servujú priamo.
+    RewriteCond %{DOCUMENT_ROOT}/api/public/$1 -f
+    RewriteRule ^((?:storage|images)/.+)$ api/public/$1 [L]
+
+    # Všetko ostatné backendové ide cez front controller. REQUEST_URI ostáva
+    # pôvodné, takže Laravel naďalej vidí /api/… a routy sedia.
+    RewriteRule ^(api|sanctum|cron)(/|$) api/public/index.php [L,QSA]
+
+    # --- 4. SPA ---------------------------------------------------------
+    # Existujúci súbor buildu (assets, favicon, robots.txt, manifest).
+    RewriteCond %{DOCUMENT_ROOT}/ui/dist/$1 -f
+    RewriteRule ^(.+)$ ui/dist/$1 [L]
+
+    # Čokoľvek iné je cesta Vue Routera — obslúži ju index.html.
+    RewriteRule ^ ui/dist/index.html [L]
+</IfModule>
+
+# Výpis priečinkov v koreni repozitára by ukázal zdrojáky.
+Options -Indexes
+
+# Konfigurácia a metadáta projektu sa nesmú dať stiahnuť. Docroot je koreň
+# repozitára, takže bez tohto by boli na dosah.
+<FilesMatch "(^\.env|^\.env\..*|^composer\.(json|lock)$|^package(-lock)?\.json$|^artisan$|\.md$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Priečinky, ktoré na webe nemajú čo robiť.
+RedirectMatch 404 ^/(\.git|\.github|deploy|api/(app|bootstrap|config|database|routes|tests|vendor|storage/(app|framework|logs))|ui/(src|public|node_modules))(/|$)

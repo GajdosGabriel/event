@@ -61,9 +61,13 @@ Hosting nemá shell ani systémový cron — všetko sa spúšťa cez URL:
 Oba endpointy sú chránené tokenom z `CRON_SECRET`. Bez nastaveného cronu
 nefungujú importy, archivácia podujatí, expirácia vstupeniek ani fronta.
 
-Routovanie SPA rieši `.htaccess` v docroote subdomény, ktorý **nie je v gite** —
-verzovaná predloha je [`ui/public/.htaccess`](ui/public/.htaccess) a po jej zmene
-sa musí preniesť ručne. Sú v nej aj pravidlá pre `sitemap.xml` a pre crawlerov;
+Routovanie SPA rieši [`.htaccess`](.htaccess) v koreni repozitára — docroot
+subdomény je koreň repozitára, takže tento súbor je zároveň ten produkčný a
+nasadzuje sa `git pull`-om. [`ui/public/.htaccess`](ui/public/.htaccess) je len
+šablóna pre priečinok s buildom a na produkciu sa **nekopíruje**: chýba jej
+mapovanie do `ui/dist` a `api/public`, takže by subdoménu zhodila.
+
+V koreňovom súbore sú aj pravidlá pre `sitemap.xml` a pre crawlerov;
 bez nich zdieľané odkazy nemajú náhľad a portál sa neindexuje. Postup a overenie:
 [`deploy/htaccess.md`](deploy/htaccess.md). `FRONTEND_URL` v `api/.env` musí byť
 verejná adresa SPA hostu — skladajú sa z nej kanonické adresy a sitemap.
