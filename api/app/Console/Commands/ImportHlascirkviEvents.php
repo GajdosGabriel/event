@@ -7,6 +7,7 @@ use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\Venue;
+use App\Services\Imports\HlascirkviLegacyReader;
 use App\Services\Imports\HlascirkviSourceUrl;
 use App\Services\Imports\ImportedCanalManager;
 use App\Services\Imports\ImportedProfileDescriber;
@@ -15,20 +16,28 @@ use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use SplFileObject;
 use Throwable;
 
 /**
- * Nahrá archív podujatí zo starého projektu hlascirkvi (JSONL z
- * app:hlascirkvi-export) do nového dátového modelu. Obrázky rieši samostatný
- * app:hlascirkvi-import-images — sťahovanie 11 000 súborov je dlhá operácia,
- * ktorá sa musí dať opakovať bez toho, aby sa znovu prepisovali podujatia.
+ * Nahrá archív podujatí zo starého projektu hlascirkvi do nového dátového
+ * modelu. Číta buď priamo starú databázu, alebo JSONL z app:hlascirkvi-export.
+ *
+ * Beh je dávkový a nadväzujúci: `--max-seconds` ho ukončí a kurzor si zapamätá,
+ * kde skončil. Bez toho by sa import nedal spustiť na hostingu bez shellu, kde
+ * jediným spúšťačom je webcron s niekoľkosekundovým rozpočtom na požiadavku.
+ *
+ * Obrázky rieši samostatný app:hlascirkvi-import-images — sťahovanie 11 000
+ * súborov je dlhá operácia, ktorá sa musí dať opakovať bez toho, aby sa znovu
+ * prepisovali podujatia.
  */
 class ImportHlascirkviEvents extends Command
 {
+    private const CURSOR_KEY = 'hlascirkvi_import.last_legacy_id';
+
     /**
      * Organizácie, ktoré v starej databáze nie sú usporiadateľom, ale zdrojom
      * scrapera. Ich podujatia patria do zberného kanála pomenovaného po
@@ -41,9 +50,12 @@ class ImportHlascirkviEvents extends Command
     ];
 
     protected $signature = 'app:hlascirkvi-import
+        {--source= : "db" (stará databáza) alebo "file" (JSONL); predvolene db, keď je spojenie nastavené}
         {--file= : Cesta k JSONL súboru relatívne k storage/app}
-        {--limit=0 : Spracovať najviac N riadkov (0 = všetky)}
-        {--dry-run : Prejde celý súbor, ale zmeny na konci vráti späť}
+        {--limit=0 : Spracovať najviac N podujatí (0 = všetky)}
+        {--max-seconds=0 : Ukončiť beh po N sekundách (0 = bez limitu); pre webcron}
+        {--reset-cursor : Začať znovu od najstaršieho podujatia}
+        {--dry-run : Prejde dávku, ale zmeny na konci vráti späť}
         {--force : Prepíše aj podujatia, ktoré už z tohto zdroja existujú}';
 
     protected $description = 'Import archívu podujatí z hlascirkvi do nového modelu';
@@ -58,6 +70,7 @@ class ImportHlascirkviEvents extends Command
         ImportedCanalManager $canalManager,
         ImportedVenueManager $venueManager,
         ImportedProfileDescriber $describer,
+        HlascirkviLegacyReader $reader,
     ): int {
         // Pri 12 000 podujatiach by detekcia cez AI a geokóder znamenala
         // desaťtisíce volaní navyše — a nemá čo pridať, obec aj organizátor
@@ -67,9 +80,22 @@ class ImportHlascirkviEvents extends Command
             'services.imports.describe_with_ai' => false,
         ]);
 
-        $relative = (string) ($this->option('file') ?: config('services.imports.legacy.file'));
-        $path = storage_path('app/'.ltrim($relative, '/'));
-        if (! is_file($path)) {
+        // Výslovne zadaný súbor je sám o sebe voľbou zdroja — inak by ho pri
+        // nastavenom spojení na starú databázu ticho prebilo `db`.
+        $source = (string) ($this->option('source') ?: match (true) {
+            (bool) $this->option('file') => 'file',
+            $reader->isDatabaseAvailable() => 'db',
+            default => 'file',
+        });
+        $path = storage_path('app/'.ltrim((string) ($this->option('file') ?: config('services.imports.legacy.file')), '/'));
+
+        if ($source === 'db' && ! $reader->isDatabaseAvailable()) {
+            $this->error('HLASCIRKVI_DB_DATABASE nie je nastavené — buď doplň spojenie na starú databázu, alebo použi --source=file.');
+
+            return self::FAILURE;
+        }
+
+        if ($source === 'file' && ! is_file($path)) {
             $this->error("Súbor {$path} neexistuje — najprv spusti app:hlascirkvi-export.");
 
             return self::FAILURE;
@@ -84,8 +110,18 @@ class ImportHlascirkviEvents extends Command
         }
 
         $limit = (int) $this->option('limit');
+        $maxSeconds = (int) $this->option('max-seconds');
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
+
+        if ($this->option('reset-cursor')) {
+            $this->forgetCursor();
+        }
+
+        // Dry-run a --force musia vidieť aj to, čo je už nahraté, inak by
+        // kontrolný beh prešiel naprázdno a --force by nemal čo prepísať.
+        $cursor = ($dryRun || $force) ? 0 : $this->cursor();
+        $startedAt = microtime(true);
 
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'no_date' => 0, 'failed' => 0, 'year_corrected' => 0];
         $canalsBefore = Canal::query()->count();
@@ -99,22 +135,14 @@ class ImportHlascirkviEvents extends Command
             DB::beginTransaction();
         }
 
-        $handle = new SplFileObject($path, 'r');
+        $rows = $source === 'db'
+            ? $reader->fromDatabase($cursor, $limit > 0 ? $limit : null)
+            : $reader->fromFile($path, $cursor, $limit > 0 ? $limit : null);
+
         $processed = 0;
+        $lastId = $cursor;
 
-        while (! $handle->eof()) {
-            $line = trim((string) $handle->fgets());
-            if ($line === '') {
-                continue;
-            }
-
-            $row = json_decode($line, true);
-            if (! is_array($row)) {
-                $stats['failed']++;
-
-                continue;
-            }
-
+        foreach ($rows as $row) {
             try {
                 $result = $this->importRow($row, $canalManager, $venueManager, $describer, $owner->id, $force);
                 $stats[$result['status']]++;
@@ -130,11 +158,20 @@ class ImportHlascirkviEvents extends Command
                 $this->warn("Podujatie {$row['legacy_id']}: {$e->getMessage()}");
             }
 
+            // Kurzor sa posúva aj po chybnom riadku. Inak by jediné podujatie,
+            // ktoré sa nedá uložiť, zablokovalo každú ďalšiu dávku webcronu na
+            // tom istom mieste — chyba je v logu a beh musí ísť ďalej.
+            $lastId = (int) ($row['legacy_id'] ?? $lastId);
+
             $processed++;
             if ($processed % 500 === 0) {
                 $this->line("  … spracovaných {$processed}");
             }
             if ($limit > 0 && $processed >= $limit) {
+                break;
+            }
+            if ($maxSeconds > 0 && (microtime(true) - $startedAt) >= $maxSeconds) {
+                $this->line("  … časový limit {$maxSeconds}s, pokračuje sa v ďalšom behu");
                 break;
             }
         }
@@ -145,6 +182,12 @@ class ImportHlascirkviEvents extends Command
         if ($dryRun) {
             DB::rollBack();
             $this->warn('DRY RUN — všetky zmeny boli vrátené späť.');
+        } elseif (! $force) {
+            $this->rememberCursor($lastId);
+        }
+
+        if ($processed === 0) {
+            $this->info('Nič nové na spracovanie — archív je nahratý celý.');
         }
 
         $this->table(
@@ -156,6 +199,40 @@ class ImportHlascirkviEvents extends Command
         );
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Kde import naposledy skončil. Webcron má na jeden beh len sekundy, takže
+     * sa postupuje po dávkach a každá musí vedieť nadviazať.
+     *
+     * Hodnota žije v cache, ale cache maže aj po-deploy endpoint
+     * (`/api/artisan/run` volá `optimize:clear`). Preto sa pri prázdnej cache
+     * dopočíta z už nahratých podujatí — inak by import po každom nasadení
+     * začínal od nuly a zbytočne prechádzal celý archív odznova.
+     */
+    private function cursor(): int
+    {
+        $cached = Cache::get(self::CURSOR_KEY);
+        if (is_numeric($cached)) {
+            return (int) $cached;
+        }
+
+        $highest = Event::query()
+            ->where('meta->import->source', 'hlascirkvi_legacy')
+            // Nie `meta->>'$...'` — ten operátor MariaDB nepozná.
+            ->max(DB::raw("CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.import.legacy_event_id')) AS UNSIGNED)"));
+
+        return is_numeric($highest) ? (int) $highest : 0;
+    }
+
+    private function rememberCursor(int $legacyId): void
+    {
+        Cache::forever(self::CURSOR_KEY, $legacyId);
+    }
+
+    private function forgetCursor(): void
+    {
+        Cache::forget(self::CURSOR_KEY);
     }
 
     /**

@@ -97,6 +97,10 @@ return [
         'describe_with_ai' => (bool) env('IMPORTS_DESCRIBE_WITH_AI', env('IMPORTS_DETECT_CANAL_WITH_AI', false)),
         // Prenos archívu zo starého projektu hlascirkvi (app:hlascirkvi-*).
         'legacy' => [
+            // Zapína naplánované dávky prenosu archívu (routes/console.php).
+            // Je to jednorazová operácia, preto zostáva vypnutá a po dobehnutí
+            // sa vypne späť — bez nasadzovania kódu, len zmenou .env.
+            'enabled' => (bool) env('HLASCIRKVI_IMPORT_ENABLED', false),
             'hlascirkvi_base_url' => rtrim((string) env('HLASCIRKVI_BASE_URL', 'https://hlascirkvi.sk'), '/'),
             'file' => env('HLASCIRKVI_IMPORT_FILE', 'import/hlascirkvi-events.jsonl'),
             // Časové pásmo, v ktorom databáza prijíma hodnoty — rozhoduje o

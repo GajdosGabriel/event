@@ -160,9 +160,43 @@ class HlascirkviLegacyImportTest extends TestCase
         $this->writeRows([$this->row()]);
 
         $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])->assertSuccessful();
-        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])->assertSuccessful();
+
+        // Kurzor by druhý beh poslal rovno na koniec, takže by o duplicitách
+        // nič nepovedal — tu sa má overiť deduplikácia, nie preskočenie dávky.
+        $this->artisan('app:hlascirkvi-import', [
+            '--file' => $this->importFile,
+            '--reset-cursor' => true,
+        ])->assertSuccessful();
 
         $this->assertSame(1, Event::query()->count());
+    }
+
+    #[Test]
+    public function batches_pick_up_where_the_previous_run_stopped(): void
+    {
+        // Na hostingu bez shellu spúšťa import webcron, ktorý má na jednu
+        // požiadavku sekundy. Dávky preto musia nadväzovať, nie zakaždým
+        // prechádzať archív od začiatku.
+        $this->writeRows([
+            $this->row(['legacy_id' => 1]),
+            $this->row(['legacy_id' => 2]),
+            $this->row(['legacy_id' => 3]),
+        ]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile, '--limit' => 2])
+            ->assertSuccessful();
+        $this->assertSame(2, Event::query()->count());
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile, '--limit' => 2])
+            ->assertSuccessful();
+
+        $this->assertSame(3, Event::query()->count());
+        $this->assertSame(
+            [1, 2, 3],
+            Event::query()->orderBy('id')->get()
+                ->map(fn (Event $e) => $e->meta['import']['legacy_event_id'])
+                ->all()
+        );
     }
 
     #[Test]

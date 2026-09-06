@@ -1,22 +1,33 @@
 # Prenos archívu podujatí z hlascirkvi
 
-Starý projekt `hlascirkvi` má archív podujatí od januára 2019. Tri príkazy ho
+Starý projekt `hlascirkvi` má archív podujatí od januára 2019. Dva príkazy ho
 prenesú do nového modelu (kanál / miesto / súbory na S3) so zachovaním
 pôvodného `created_at`.
 
 ```
-[lokálne, stará DB]          [kdekoľvek, aj prod]           [kdekoľvek, aj prod]
-app:hlascirkvi-export  →  hlascirkvi-events.jsonl  →  app:hlascirkvi-import  →  app:hlascirkvi-import-images
+stará databáza hlascirkvi ──▶ app:hlascirkvi-import ──▶ app:hlascirkvi-import-images
+        (alebo JSONL z app:hlascirkvi-export, keď na ňu server nevidí)
 ```
 
 Obrázky sú zámerne druhý priebeh: podujatia sa nahrajú za minúty, sťahovanie
 11 000 súborov je dlhá a zlyhávajúca operácia, ktorá sa musí dať opakovať bez
 toho, aby sa znovu prepisovali podujatia.
 
-## 1. Export (len lokálne)
+Oba príkazy sú **dávkové a nadväzujúce**: `--max-seconds` beh ukončí a kurzor
+si zapamätá, kde skončil. Bez toho by sa import nedal spustiť na hostingu bez
+shellu, kde jediným spúšťačom je webcron s niekoľkosekundovým rozpočtom na
+požiadavku (viď [Nasadenie na produkciu](#nasadenie-na-produkciu)).
 
-Produkčný server na starú databázu nevidí, preto sa dáta vynesú do prenosného
-JSONL súboru. Do `.env` patrí spojenie na starú databázu:
+Kurzor žije v cache, ale cache maže aj po-deploy endpoint `/api/artisan/run`.
+Pri prázdnej cache sa preto dopočíta z už nahratých podujatí — po nasadení sa
+import nevracia na začiatok.
+
+## 1. Export do súboru (voliteľné)
+
+Potrebné len vtedy, keď server na starú databázu **nevidí**. Ak vidí, tento
+krok preskoč — import číta tie isté dáta priamo.
+
+Do `.env` patrí spojenie na starú databázu:
 
 ```
 HLASCIRKVI_DB_DATABASE=hlascirkvi
@@ -46,9 +57,14 @@ php artisan app:hlascirkvi-import --dry-run
 php artisan app:hlascirkvi-import
 ```
 
+Zdroj sa volí sám: keď je spojenie `hlascirkvi` nastavené, číta sa databáza,
+inak JSONL. Vynútiť sa dá cez `--source=db` / `--source=file`; zadanie
+`--file` samo znamená súbor.
+
 Príkaz je idempotentný a prerušiteľný — beží bez zastrešujúcej transakcie
 (tá je len nástrojom `--dry-run`), takže sa dá kedykoľvek spustiť znovu a už
-nahraté podujatia preskočí.
+nahraté podujatia preskočí. `--dry-run` a `--force` kurzor obchádzajú, aby
+kontrolný beh nezmizol v prázdnej dávke.
 
 ### Ako sa dáta mapujú
 
@@ -100,28 +116,61 @@ dni vzniku článku. Týka sa to 11 podujatí.
 
 ## 3. Import obrázkov
 
-Obrázky sa sťahujú z produkcie hlascirkvi.sk a ukladajú cez `FileManager`, teda
-aj s kontrolným súčtom, na disk z `FILESYSTEM_DISK` (S3 s prefixom `AWS_ROOT`) a
-s dogenerovaním variantov `_thumb` / `_large`.
+Obrázky sa sťahujú z hlascirkvi.sk a ukladajú cez `FileManager`, teda aj s
+kontrolným súčtom, na disk z `FILESYSTEM_DISK` (S3 s prefixom `AWS_ROOT`) a s
+dogenerovaním variantov `_thumb` / `_large`.
 
 ```bash
-php artisan app:hlascirkvi-import-images --limit=2000
+php artisan app:hlascirkvi-import-images
 ```
 
-Púšťa sa v dávkach, s bežiacim `queue:work` (varianty sú frontovaná úloha), a
-opakuje sa, kým hlási nové sťahovania — podujatia, ktoré obrázok už majú, sa
-preskočia. Na skúšku sa hodí `--disk=public`, aby test nepísal do zdieľaného
-S3 bucketu.
+Zdrojom nie je JSONL ani stará databáza — cestu k obrázku uložil import
+podujatí do `meta.import.image_path`, takže tento krok vystačí s vlastnou
+databázou a dá sa spustiť kedykoľvek neskôr. Chce to bežiaci `queue:work`,
+varianty sú frontovaná úloha.
+
+Kurzor sa posúva aj cez neúspešné sťahovania, aby jeden nedostupný súbor
+nezablokoval zvyšok. Na dobratie toho, čo zlyhalo, slúži záverečný beh
+`--reset-cursor` — podujatia, ktoré obrázok už majú, preskočí.
+
+Časť záznamov ukazuje na súbory, ktoré na starom webe medzičasom zmizli
+(HTTP 404). Zo 40 náhodných ciest bolo dostupných všetkých 40, takže ide o
+jednotlivé prípady — príkaz ich zaloguje a pokračuje ďalej.
+
+Na skúšku sa hodí `--disk=public`, aby test nepísal do zdieľaného S3 bucketu.
 
 ## Nasadenie na produkciu
 
-1. Lokálne `php artisan app:hlascirkvi-export`.
-2. Nahrať JSONL do `api/storage/app/import/` na produkcii.
-3. Nasadiť kód a spustiť migrácie (pribúda index na `events.orginal_source` —
-   import robí 12 000 vyhľadaní na tomto stĺpci).
-4. `php artisan app:hlascirkvi-import --dry-run`, skontrolovať súhrn.
-5. `php artisan app:hlascirkvi-import`.
-6. `php artisan app:hlascirkvi-import-images --limit=2000` v dávkach.
+Hosting **nemá shell ani systémový cron** (viď [README](../../README.md)),
+takže sa `php artisan …` nedá spustiť ručne. Import preto beží po dávkach cez
+webcron, ktorý už na produkcii volá `schedule:run` každú minútu.
+
+Naplánované úlohy sú v `routes/console.php` a existujú len vtedy, keď je
+zapnutý prepínač — zapnutie aj vypnutie je teda zmena `.env`, nie nasadenie
+kódu.
+
+1. Nasadiť kód (`git pull`) a spustiť migrácie. Pribúda index na
+   `events.orginal_source` — import naň robí 12 000 vyhľadaní.
+2. Do `api/.env` doplniť spojenie na starú databázu:
+   ```
+   HLASCIRKVI_DB_HOST=…
+   HLASCIRKVI_DB_DATABASE=…
+   HLASCIRKVI_DB_USERNAME=…
+   HLASCIRKVI_DB_PASSWORD=…
+   ```
+   Ak server na starú databázu nevidí, namiesto toho nahraj JSONL z kroku 1
+   do `api/storage/app/import/` a do `.env` nedávaj nič.
+3. Vyčistiť cache: `GET /api/artisan/run?token=<CRON_SECRET>`.
+4. Zapnúť prenos: `HLASCIRKVI_IMPORT_ENABLED=true`, znovu vyčistiť cache.
+5. Sledovať postup — počet podujatí rastie o ~2 500 za hodinu, obrázky
+   pomalšie. Priebeh je vidieť v logu a v databáze:
+   ```sql
+   SELECT COUNT(*) FROM events
+    WHERE JSON_EXTRACT(meta,'$.import.source') = 'hlascirkvi_legacy';
+   ```
+6. Keď import hlási „Nič nové na spracovanie", pustiť ešte jeden dobierací beh
+   obrázkov (`--reset-cursor`) a potom vrátiť `HLASCIRKVI_IMPORT_ENABLED=false`
+   plus vyčistiť cache. Spojenie na starú databázu už netreba.
 7. Voliteľne `app:ai-detector` (reálni organizátori) a `app:events-ai-tag`.
 
 Rollback: všetky prenesené podujatia majú `meta.import.source =
@@ -129,7 +178,9 @@ Rollback: všetky prenesené podujatia majú `meta.import.source =
 
 ## Overené na dočasnej databáze (6. 9. 2026)
 
-Import celého exportu do čistej databázy `event_import`:
+Prenos celého archívu do čistej databázy `event_import` — v 15 dávkach po 25 s
+čítaním priamo zo starej databázy, teda presne tak, ako to pobeží cez webcron.
+Výsledok je zhodný s jednorazovým behom zo súboru:
 
 | | |
 |---|---|
@@ -144,4 +195,7 @@ Import celého exportu do čistej databázy `event_import`:
 | `created_at` | 2019-01-24 až 2026-09-05 (zachované) |
 | `start_at` | 2019-11-28 až 2028-06-20, žiadny mimo rozsahu |
 
-Opakovaný beh nevytvoril nič nové — všetkých 11 863 riadkov preskočil.
+Opakovaný beh nevytvoril nič nové a ohlásil „Nič nové na spracovanie".
+
+Priepustnosť dávky bola ~750 podujatí za 20 s, čiže pri webcrone každú minútu
+je celý archív nahratý zhruba za 20 minút.
