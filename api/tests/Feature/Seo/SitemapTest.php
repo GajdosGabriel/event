@@ -51,6 +51,18 @@ class SitemapTest extends TestCase
     }
 
     #[Test]
+    public function sitemap_is_served_from_the_site_root_too(): void
+    {
+        // Search Console mapu na `/api/sitemap.xml` neprijme, musí byť na
+        // koreni hostu. Apache tam prepisuje front controller, ale Laravel
+        // smeruje podľa pôvodného REQUEST_URI, ktorý sa prepisom nemení —
+        // bez tejto routy vracal koreň 404.
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/xml; charset=utf-8');
+    }
+
+    #[Test]
     public function sitemap_is_valid_xml(): void
     {
         $response = $this->get('/api/sitemap.xml');

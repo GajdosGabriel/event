@@ -30,7 +30,11 @@
     # --- 1. sitemap.xml -------------------------------------------------
     # Mapu generuje Laravel (cache 1 h). Na SPA hoste musí byť dostupná na
     # koreňovej ceste — inak ju Search Console odmietne ako mimo rozsahu.
-    RewriteRule ^sitemap\.xml$ /api/sitemap.xml [L]
+    #
+    # Ide rovno na front controller, nie prepisom na /api/sitemap.xml: Laravel
+    # smeruje podľa pôvodného REQUEST_URI, ktorý interný prepis nemení, takže
+    # by hľadal routu `/sitemap.xml`. Tá preto existuje aj v routes/web.php.
+    RewriteRule ^sitemap\.xml$ api/public/index.php [L]
 
     # --- 2. crawlery a náhľady odkazov ----------------------------------
     # Facebook, Messenger, WhatsApp, LinkedIn ani vyhľadávače nespúšťajú JS.
@@ -42,7 +46,13 @@
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|SkypeUriPreview|Applebot|Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|bingbot|YandexBot|DuckDuckBot|SeznamBot|redditbot|Pinterest|vkShare|Embedly|Quora\ Link\ Preview|W3C_Validator) [NC]
     RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
     RewriteCond %{REQUEST_URI} !\.(js|mjs|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|map|txt|xml|pdf|webmanifest)$
-    RewriteRule ^(.*)$ /api/prerender?path=/$1 [QSA,L]
+    #
+    # Presmerovanie, nie interný prepis — možnosť (b) z deploy/htaccess.md.
+    # Interný prepis nemení REQUEST_URI, podľa ktorého Laravel smeruje, takže
+    # by crawler namiesto vykreslenej stránky dostal 404. Po presmerovaní je
+    # v adrese naozaj /api/prerender a routa sa trafí; späť na SPA adresu
+    # ukazujú `og:url` a `<link rel="canonical">` v odpovedi.
+    RewriteRule ^(.*)$ /api/prerender?path=/$1 [R=302,QSA,L]
 
     # --- 2b. widget pre cudzie weby -------------------------------------
     # Značka pre hlavičky nižšie. `-` neprepisuje a bez `L` sa pokračuje

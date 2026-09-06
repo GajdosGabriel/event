@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Public\SitemapController;
 use App\Support\CronHeartbeat;
 use App\Support\CronToken;
 use Illuminate\Http\Request;
@@ -7,6 +8,19 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 use Symfony\Component\Console\Output\BufferedOutput;
+
+/**
+ * Mapa stránok na koreni SPA hostu.
+ *
+ * Tá istá routa je aj pod `/api` (routes/api.php). Duplicita nie je omyl:
+ * Apache prepisuje `/sitemap.xml` na front controller, ale Laravel smeruje
+ * podľa pôvodného `REQUEST_URI`, ktorý interný prepis nemení — pod `/api`
+ * definovaná routa sa preto na koreňovú adresu nikdy netrafí a Search Console
+ * dostávala 404.
+ */
+Route::get('/sitemap.xml', SitemapController::class)
+    ->name('public.sitemap.root')
+    ->middleware('throttle:60,1');
 
 Route::get('/login', function () {
     return null;
