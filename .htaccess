@@ -82,7 +82,12 @@ Options -Indexes
 
 # Konfigurácia a metadáta projektu sa nesmú dať stiahnuť. Docroot je koreň
 # repozitára, takže bez tohto by boli na dosah.
-<FilesMatch "(^\.env|^\.env\..*|^composer\.(json|lock)$|^package(-lock)?\.json$|^artisan$|\.md$)">
+#
+# Súbor `artisan` tu zámerne NIE JE. Apache mapuje URL na súbory ešte pred
+# prepisom, takže `^artisan$` zamietlo aj endpoint /api/artisan/run — ten sa
+# k aplikácii vôbec nedostal a vracal 403. Chránený byť nemusí: prepis nižšie
+# posiela /api/… na front controller, takže skutočný súbor sa nikdy neservuje.
+<FilesMatch "(^\.env|^\.env\..+|^composer\.(json|lock)$|^package(-lock)?\.json$|\.md$)">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
