@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { idFromRouteParam, PUBLIC_EVENTS } from '@/utils/publicUrl'
 
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 const EventListPage = () => import('@/pages/events/EventListPage.vue')
@@ -28,34 +29,54 @@ const router = createRouter({
         // sú landing stránky s vlastným title a popisom — bez nich existoval
         // zoznam podujatí len ako homepage s query parametrami, ktorú nemá
         // vyhľadávač ako indexovať.
-        { path: 'podujatia', name: 'events-public-index', component: EventListPage },
-        { path: 'podujatia/tento-vikend', name: 'events-public-weekend', component: EventListPage, props: { variant: 'weekend' } },
+        { path: 'akcie', name: 'events-public-index', component: EventListPage },
+        { path: 'akcie/tento-vikend', name: 'events-public-weekend', component: EventListPage, props: { variant: 'weekend' } },
         // Archív. Skončené podujatia zmiznú z výpisu, ale ich detaily žijú
         // ďalej — bez tejto stránky by na ne z portálu neviedol žiadny odkaz
         // a vyhľadávač by ich časom vyhodil z indexu ako nedostupné.
-        { path: 'podujatia/archiv', name: 'events-public-archive', component: EventListPage, props: { variant: 'archive' } },
+        { path: 'akcie/archiv', name: 'events-public-archive', component: EventListPage, props: { variant: 'archive' } },
         {
-          path: 'podujatia/mesto/:slug',
+          path: 'akcie/mesto/:slug',
           name: 'events-public-municipality',
           component: EventListPage,
           props: (route) => ({ variant: 'municipality', slug: route.params.slug }),
         },
         {
-          path: 'podujatia/tema/:slug',
+          path: 'akcie/tema/:slug',
           name: 'events-public-tag',
           component: EventListPage,
           props: (route) => ({ variant: 'tag', slug: route.params.slug }),
         },
-        // `:slugId` je `{slug}-{id}`; routuje sa len id za poslednou pomlčkou,
-        // takže odkaz prežije premenovanie aj holé číslo zo starej adresy.
-        { path: 'podujatia/:slugId', name: 'event-public-show', component: () => import('@/pages/events/EventPublicShowPage.vue') },
+        // `akcie/{id}/{slug}`: routuje sa len id, slug je ozdoba pre človeka a
+        // pre vyhľadávač. Je nepovinný, aby fungovalo aj holé `/akcie/42`.
+        // Obmedzenie na číslice drží detail oddelený od landing segmentov
+        // (`mesto`, `tema`), takže sa nemôžu prekryť.
+        {
+          path: 'akcie/:id(\\d+)/:slug?',
+          name: 'event-public-show',
+          component: () => import('@/pages/events/EventPublicShowPage.vue'),
+        },
         { path: 'miesta/:slugId', name: 'venue-public-show', component: () => import('@/pages/venues/VenuePublicShowPage.vue') },
         { path: 'organizatori/:slugId', name: 'canal-public-show', component: () => import('@/pages/canals/CanalPublicShowPage.vue') },
+
+        // Pôvodný prefix podujatí `/podujatia/*`. Adresy sú zaindexované,
+        // rozposlané v e-mailoch a zdieľané, takže musia ostať funkčné.
+        // Detail mal tvar `{slug}-{id}`, preto sa z neho id vyberá rovnako
+        // ako predtým — číslom za poslednou pomlčkou.
+        { path: 'podujatia', redirect: PUBLIC_EVENTS },
+        { path: 'podujatia/tento-vikend', redirect: `${PUBLIC_EVENTS}/tento-vikend` },
+        { path: 'podujatia/archiv', redirect: `${PUBLIC_EVENTS}/archiv` },
+        { path: 'podujatia/mesto/:slug', redirect: (to) => `${PUBLIC_EVENTS}/mesto/${to.params.slug}` },
+        { path: 'podujatia/tema/:slug', redirect: (to) => `${PUBLIC_EVENTS}/tema/${to.params.slug}` },
+        {
+          path: 'podujatia/:slugId',
+          redirect: (to) => `${PUBLIC_EVENTS}/${idFromRouteParam(to.params.slugId)}`,
+        },
 
         // Pôvodné číselné adresy. Sú rozposlané v e-mailoch a zdieľané, takže
         // musia ostať funkčné; kanonickú podobu z nich urobí presmerovanie
         // (na produkcii navyše 301 v .htaccess — pozri deploy/htaccess.md).
-        { path: 'events/:id', redirect: (to) => `/podujatia/${to.params.id}` },
+        { path: 'events/:id', redirect: (to) => `${PUBLIC_EVENTS}/${to.params.id}` },
         { path: 'venues/:id', redirect: (to) => `/miesta/${to.params.id}` },
         { path: 'canals/:id', redirect: (to) => `/organizatori/${to.params.id}` },
         // „Nahrajte plagát, o všetko ostatné sa postaráme." Zámerne verejné —

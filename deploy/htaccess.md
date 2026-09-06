@@ -11,6 +11,7 @@ Predloha: [`ui/public/.htaccess`](../ui/public/.htaccess) — build ju kopíruje
 
 | Pravidlo | Účel |
 |---|---|
+| `^podujatia/… → /akcie/…` (301) | Podujatia sa presťahovali z `/podujatia/{slug}-{id}` na `/akcie/{id}/{slug}`. Staré adresy sú zaindexované a rozposlané v e-mailoch. Presmerovanie rieši aj Vue Router, ale ten beží až po načítaní JS a vyhľadávač z neho prenos hodnotenia nevyčíta — na to treba 301 tu |
 | `^sitemap\.xml$ → /api/sitemap.xml` | Mapa stránok musí byť na koreni SPA hostu, generuje ju Laravel |
 | `User-Agent crawlera → /api/prerender?path=…` | Facebook, Messenger, WhatsApp, LinkedIn a vyhľadávače nespúšťajú JS; dostanú serverom vykreslené HTML s OG tagmi a JSON-LD |
 
@@ -21,7 +22,9 @@ Predloha: [`ui/public/.htaccess`](../ui/public/.htaccess) — build ju kopíruje
 1. Zálohuj existujúci `.htaccess` v docroote.
 2. Prenes obsah `ui/public/.htaccess`. Ak je v aktívnom súbore niečo navyše
    (presmerovanie na HTTPS, hlavičky, `ErrorDocument`), **nechaj to** a doplň
-   len bloky 1 a 2 **pred** SPA fallback.
+   len bloky 0, 1 a 2 **pred** SPA fallback. Blok 0 musí byť úplne prvý —
+   keby bol až za blokom crawlerov, staré adresy by sa botom vykresľovali
+   namiesto toho, aby ich 301 poslala na novú podobu.
 3. Over podľa sekcie nižšie.
 
 ### Ak interný prepis na `/api/` nefunguje
@@ -45,11 +48,17 @@ Možnosť (b) je fallback: Facebook aj Google presmerovanie nasledujú a riadia 
 ## Overenie
 
 ```bash
-curl -A "facebookexternalhit/1.1" https://event.hlascirkvi.sk/podujatia/nazov-42 | head -40
+curl -A "facebookexternalhit/1.1" https://event.hlascirkvi.sk/akcie/42/nazov | head -40
 ```
 
 Odpoveď musí obsahovať `og:title`, `og:image` a `application/ld+json`
 **priamo v HTML**, nie až po JS.
+
+Stará adresa musí odpovedať `301` a `Location` na nový tvar:
+
+```bash
+curl -sI https://event.hlascirkvi.sk/podujatia/nazov-42 | head -3
+```
 
 ```bash
 curl -s https://event.hlascirkvi.sk/sitemap.xml | head -20

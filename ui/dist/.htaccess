@@ -11,6 +11,18 @@
     RewriteEngine On
     RewriteBase /
 
+    # --- 0. starý prefix podujatí ---------------------------------------
+    # Podujatia sa presťahovali z /podujatia/{slug}-{id} na /akcie/{id}/{slug}.
+    # Staré adresy sú zaindexované a rozposlané v e-mailoch, takže musia ostať
+    # funkčné. Rieši to aj Vue Router, ale ten beží až po načítaní JS a
+    # vyhľadávač z neho prenos hodnotenia nevyčíta — na to treba 301 tu.
+    #
+    # Poradie: najprv detail (končí na -{id}), až potom landing výpisy, inak by
+    # všeobecné pravidlo pohltilo aj `mesto` a `tema`. Slug sa zahadzuje, novú
+    # kanonickú podobu aj tak doplní presmerovanie na detaile.
+    RewriteRule ^podujatia/(?:.*-)?([0-9]+)/?$ /akcie/$1 [R=301,L]
+    RewriteRule ^podujatia(/.*)?$ /akcie$1 [R=301,L]
+
     # --- 1. sitemap.xml -------------------------------------------------
     # Mapu generuje Laravel (cache 1 h). Na SPA hoste musí byť dostupná na
     # koreňovej ceste — inak ju Search Console odmietne ako mimo rozsahu.

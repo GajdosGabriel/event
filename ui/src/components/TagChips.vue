@@ -108,7 +108,7 @@ const expanded = ref(false)
 
 /**
  * Aktívne slugy z URL. Jeden štítok má vlastnú landing adresu
- * (`/podujatia/tema/{slug}`), kombinácia viacerých ostáva v `?tags=` —
+ * (`/akcie/tema/{slug}`), kombinácia viacerých ostáva v `?tags=` —
  * kartézsky súčin štítkov by boli tisíce takmer prázdnych stránok.
  */
 const active = computed<string[]>(() => {
