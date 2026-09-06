@@ -89,10 +89,24 @@ class ImportHlascirkviEvents extends Command
         });
         $path = storage_path('app/'.ltrim((string) ($this->option('file') ?: config('services.imports.legacy.file')), '/'));
 
-        if ($source === 'db' && ! $reader->isDatabaseAvailable()) {
-            $this->error('HLASCIRKVI_DB_DATABASE nie je nastavené — buď doplň spojenie na starú databázu, alebo použi --source=file.');
+        if ($source === 'db') {
+            if (! $reader->isDatabaseAvailable()) {
+                $this->error('HLASCIRKVI_DB_DATABASE nie je nastavené — buď doplň spojenie na starú databázu, alebo použi --source=file.');
 
-            return self::FAILURE;
+                return self::FAILURE;
+            }
+
+            $connectionError = $reader->connectionError();
+            if ($connectionError !== null) {
+                $this->error('Na starú databázu sa nedá pripojiť. Skontroluj HLASCIRKVI_DB_HOST, '
+                    .'HLASCIRKVI_DB_DATABASE, HLASCIRKVI_DB_USERNAME a HLASCIRKVI_DB_PASSWORD.');
+                $this->line($connectionError);
+                Log::error('hlascirkvi import: spojenie na starú databázu zlyhalo', [
+                    'message' => $connectionError,
+                ]);
+
+                return self::FAILURE;
+            }
         }
 
         if ($source === 'file' && ! is_file($path)) {

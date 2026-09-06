@@ -151,15 +151,23 @@ kódu.
 
 1. Nasadiť kód (`git pull`) a spustiť migrácie. Pribúda index na
    `events.orginal_source` — import naň robí 12 000 vyhľadaní.
-2. Do `api/.env` doplniť spojenie na starú databázu:
+2. Do `api/.env` doplniť spojenie na starú databázu — presne týchto päť
+   riadkov, iné `HLASCIRKVI_DB_*` neexistujú (driver je v konfigurácii
+   napevno `mysql`, takže sa `..._CONNECTION` nenastavuje):
    ```
-   HLASCIRKVI_DB_HOST=…
-   HLASCIRKVI_DB_DATABASE=…
-   HLASCIRKVI_DB_USERNAME=…
-   HLASCIRKVI_DB_PASSWORD=…
+   HLASCIRKVI_DB_HOST=localhost
+   HLASCIRKVI_DB_PORT=3306
+   HLASCIRKVI_DB_DATABASE=nazov_starej_databazy
+   HLASCIRKVI_DB_USERNAME=pouzivatel
+   HLASCIRKVI_DB_PASSWORD=heslo
    ```
-   Ak server na starú databázu nevidí, namiesto toho nahraj JSONL z kroku 1
-   do `api/storage/app/import/` a do `.env` nedávaj nič.
+   `HLASCIRKVI_DB_HOST=localhost` platí, keď starý web beží na tom istom
+   serveri; inak sem patrí adresa databázového servera. Keď je spojenie zlé,
+   import to napíše do logu zrozumiteľnou vetou aj s dôvodom od MySQL —
+   nesype tam surovú výnimku.
+
+   Ak server na starú databázu nevidí vôbec, namiesto toho nahraj JSONL
+   z kroku 1 do `api/storage/app/import/` a do `.env` nedávaj nič.
 3. Vyčistiť cache: `GET /api/artisan/run?token=<CRON_SECRET>`.
 4. Zapnúť prenos: `HLASCIRKVI_IMPORT_ENABLED=true`, znovu vyčistiť cache.
 5. Sledovať postup — počet podujatí rastie o ~2 500 za hodinu, obrázky

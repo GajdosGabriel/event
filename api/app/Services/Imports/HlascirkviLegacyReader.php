@@ -24,6 +24,25 @@ class HlascirkviLegacyReader
     }
 
     /**
+     * Prečo sa na starú databázu nedá pripojiť, alebo null keď sa dá.
+     *
+     * Import na produkcii spúšťa webcron, takže nikto nevidí výstup príkazu.
+     * Bez tejto kontroly by sa do logu každú minútu sypala surová výnimka
+     * z PDO a nedalo by sa z nej poznať, či je problém v hesle, v adrese
+     * alebo v tom, že hosting spojenie von vôbec nepustí.
+     */
+    public function connectionError(): ?string
+    {
+        try {
+            DB::connection(self::CONNECTION)->getPdo();
+
+            return null;
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        }
+    }
+
+    /**
      * Podujatia zo starej databázy, zoradené podľa id.
      *
      * `$afterId` umožňuje pokračovať tam, kde predchádzajúca dávka skončila —
