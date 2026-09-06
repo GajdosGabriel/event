@@ -137,7 +137,10 @@ class ImportHlascirkviEvents extends Command
         $cursor = ($dryRun || $force) ? 0 : $this->cursor();
         $startedAt = microtime(true);
 
-        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'no_date' => 0, 'failed' => 0, 'year_corrected' => 0];
+        $stats = [
+            'created' => 0, 'updated' => 0, 'skipped' => 0, 'duplicate' => 0,
+            'no_date' => 0, 'failed' => 0, 'year_corrected' => 0,
+        ];
         $canalsBefore = Canal::query()->count();
         $venuesBefore = Venue::query()->count();
 
@@ -205,10 +208,10 @@ class ImportHlascirkviEvents extends Command
         }
 
         $this->table(
-            ['vytvorené', 'aktualizované', 'preskočené', 'bez dátumu', 'chybné', 'opravený rok', 'nové kanály', 'nové miesta'],
+            ['vytvorené', 'aktualizované', 'preskočené', 'duplicity', 'bez dátumu', 'chybné', 'opravený rok', 'nové kanály', 'nové miesta'],
             [[
-                $stats['created'], $stats['updated'], $stats['skipped'], $stats['no_date'],
-                $stats['failed'], $stats['year_corrected'], $newCanals, $newVenues,
+                $stats['created'], $stats['updated'], $stats['skipped'], $stats['duplicate'],
+                $stats['no_date'], $stats['failed'], $stats['year_corrected'], $newCanals, $newVenues,
             ]],
         );
 
@@ -269,7 +272,6 @@ class ImportHlascirkviEvents extends Command
         }
 
         $canal = $this->resolveCanal($row, $canalManager);
-        $venue = $this->resolveVenue($row, $canal, $venueManager, $describer);
 
         $createdAt = $this->toDate($row['created_at'] ?? null) ?? CarbonImmutable::now();
         [$startAt, $endAt, $yearCorrected, $endEstimated] = $this->resolveDates($row, $createdAt);
@@ -280,8 +282,35 @@ class ImportHlascirkviEvents extends Command
             return ['status' => 'no_date', 'year_corrected' => false];
         }
 
+        $name = Str::limit((string) $row['title'], 250, '');
+
+        // Tá istá akcia je v starej databáze aj viackrát pod rôznymi zdrojovými
+        // adresami — raz ako pôvodný článok, raz ako neskoršia pripomienka.
+        // Zhoda podľa URL ich nechytí, preto rovnaká záloha ako v nočnom
+        // importe: kanál + slug názvu + presný začiatok.
+        //
+        // Hľadá sa v rámci kanála. Naprieč kanálmi to robiť nemožno: „Adventná
+        // obnova" o 16:00 môže v ten istý deň prebiehať v dvoch farnostiach a
+        // zlé zlúčenie by jednu z nich zmazalo. Duplicita je v archíve len
+        // kozmetická chyba, stratené podujatie je strata dát.
+        if (! $existing instanceof Event) {
+            $existing = Event::query()
+                ->where('canal_id', $canal->id)
+                ->where('slug', Str::slug($name))
+                ->where('start_at', $startAt)
+                ->first();
+
+            if ($existing instanceof Event && ! $force) {
+                return ['status' => 'duplicate', 'year_corrected' => false];
+            }
+        }
+
+        // Miesto sa rieši až tu — pri duplicite by inak vzniklo miesto pre
+        // podujatie, ktoré sa aj tak zahodí.
+        $venue = $this->resolveVenue($row, $canal, $venueManager, $describer);
+
         $payload = [
-            'name' => Str::limit((string) $row['title'], 250, ''),
+            'name' => $name,
             'body' => (string) ($row['body'] ?? ''),
             'start_at' => $startAt,
             'end_at' => $endAt,

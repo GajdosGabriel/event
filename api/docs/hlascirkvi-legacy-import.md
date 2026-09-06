@@ -74,6 +74,19 @@ URL nemajú, tým sa doplní adresa detailu na starom webe
 Logika je v `App\Services\Imports\HlascirkviSourceUrl`, spoločná pre import
 podujatí aj obrázkov; keby sa rozišla, obrázky by sa nemali k čomu pripojiť.
 
+**Záloha na duplicity.** Tá istá akcia je v starej databáze aj viackrát pod
+rôznymi adresami — raz ako pôvodný článok, raz ako neskoršia pripomienka.
+Zhoda podľa URL ich nechytí, preto rovnaká záloha ako v nočnom importe:
+`canal_id` + slug názvu + presný začiatok. Slug porovnanie znesie aj rozdielne
+veľké písmená („Kurz BIBLIA A PENIAZE" = „Kurz Biblia a peniaze").
+
+Hľadá sa **v rámci kanála**. Naprieč kanálmi to robiť nemožno: „Adventná
+obnova" o 16:00 môže v ten istý deň prebiehať v dvoch farnostiach a zlé
+zlúčenie by jednu z nich zmazalo — duplicita je v archíve kozmetická chyba,
+stratené podujatie je strata dát. Zostane tak niekoľko dvojíc, kde tá istá
+akcia visí raz na zbernom kanáli a raz na rozpoznanom organizátorovi
+(pri septembrovom prenose štyri); tie sa dajú spojiť ručne.
+
 **Organizátor.** V starej databáze je pri 12 042 podujatiach ako „organizácia“
 uvedený len zdroj scrapera, nie usporiadateľ. TKKBS (101), ECAV (102) a Výveska
 (271) preto idú do zberných kanálov `tkkbs.sk`, `ecav.sk`, `vyveska.sk` — presne
@@ -192,14 +205,15 @@ Výsledok je zhodný s jednorazovým behom zo súboru:
 
 | | |
 |---|---|
-| vytvorené podujatia | 10 894 |
-| preskočené | 958 (duplicitné zdrojové URL už v starej databáze) |
+| vytvorené podujatia | 10 856 |
+| preskočené | 957 (duplicitná zdrojová URL) |
+| duplicity (rovnaký názov a čas v kanáli) | 39 |
 | bez dátumu (neimportované) | 11 |
 | chybné | 0 |
-| opravený rok | 131 |
+| opravený rok | 130 |
 | kanály | 26 (3 zberné + 23 organizácií) |
-| miesta | 580, každé podujatie má miesto |
-| stav | 10 785 `archived`, 109 `published` |
+| miesta | 576, každé podujatie má miesto |
+| stav | 10 748 `archived`, 108 `published` |
 | `created_at` | 2019-01-24 až 2026-09-05 (zachované) |
 | `start_at` | 2019-11-28 až 2028-06-20, žiadny mimo rozsahu |
 

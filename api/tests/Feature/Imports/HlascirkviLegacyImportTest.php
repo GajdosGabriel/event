@@ -200,6 +200,77 @@ class HlascirkviLegacyImportTest extends TestCase
     }
 
     #[Test]
+    public function the_same_event_under_two_source_urls_is_imported_once(): void
+    {
+        // Stará databáza tú istú akciu obsahuje aj viackrát — raz ako pôvodný
+        // článok, raz ako neskoršiu pripomienku s inou adresou. Zhoda podľa
+        // URL ich nechytí, musí zabrať záloha: kanál + názov + začiatok.
+        $this->writeRows([
+            $this->row([
+                'legacy_id' => 1,
+                'title' => 'Adventná obnova',
+                'orginal_source' => 'https://www.tkkbs.sk/view.php?cisloclanku=1',
+            ]),
+            $this->row([
+                'legacy_id' => 2,
+                'title' => 'Adventná obnova',
+                'orginal_source' => 'https://www.tkkbs.sk/view.php?cisloclanku=2',
+            ]),
+        ]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
+            ->assertSuccessful();
+
+        $this->assertSame(1, Event::query()->count());
+    }
+
+    #[Test]
+    public function a_differently_cased_title_counts_as_the_same_event(): void
+    {
+        // Slug sa porovnáva, nie názov — „Kurz BIBLIA A PENIAZE" a „Kurz
+        // Biblia a peniaze" je jedna akcia zapísaná dvakrát inak.
+        $this->writeRows([
+            $this->row(['legacy_id' => 1, 'title' => 'Kurz Biblia a peniaze', 'orginal_source' => 'https://a.sk/1']),
+            $this->row(['legacy_id' => 2, 'title' => 'Kurz BIBLIA A PENIAZE', 'orginal_source' => 'https://a.sk/2']),
+        ]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
+            ->assertSuccessful();
+
+        $this->assertSame(1, Event::query()->count());
+    }
+
+    #[Test]
+    public function the_same_title_under_two_organizers_stays_two_events(): void
+    {
+        // Zámerná hranica: „Adventná obnova" o 16:00 môže v ten istý deň
+        // prebiehať v dvoch farnostiach. Zlúčenie naprieč kanálmi by jednu
+        // z nich zmazalo, a stratené podujatie je horšie než duplicita.
+        $this->writeRows([
+            $this->row([
+                'legacy_id' => 1,
+                'title' => 'Adventná obnova',
+                'org_id' => 101,
+                'org_title' => 'TKKBS',
+                'orginal_source' => 'https://www.tkkbs.sk/view.php?cisloclanku=1',
+            ]),
+            $this->row([
+                'legacy_id' => 2,
+                'title' => 'Adventná obnova',
+                'org_id' => 102,
+                'org_title' => 'ECAV',
+                'orginal_source' => 'https://www.ecav.sk/clanok/2',
+            ]),
+        ]);
+
+        $this->artisan('app:hlascirkvi-import', ['--file' => $this->importFile])
+            ->assertSuccessful();
+
+        $this->assertSame(2, Event::query()->count());
+        $this->assertSame(2, Event::query()->distinct()->count('canal_id'));
+    }
+
+    #[Test]
     public function a_dry_run_leaves_the_database_untouched(): void
     {
         $this->writeRows([$this->row()]);
