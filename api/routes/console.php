@@ -130,22 +130,3 @@ $artisan('queue:work', [
     '--max-time' => 50,
     '--tries' => 3,
 ])->everyMinute()->withoutOverlapping();
-
-// Jednorazový prenos archívu z hlascirkvi. Hosting nemá shell, takže jediným
-// spúšťačom je webcron — príkazy preto bežia po dávkach s časovým stropom a
-// samy si pamätajú, kde skončili.
-//
-// Zapína sa `HLASCIRKVI_IMPORT_ENABLED=true` v .env, čiže bez nasadzovania
-// kódu; po dobehnutí sa rovnako vypne. Kým je vypnuté, tieto úlohy neexistujú.
-if ((bool) config('services.imports.legacy.enabled')) {
-    $artisan('app:hlascirkvi-import', ['--max-seconds' => 40])
-        ->everyMinute()
-        ->withoutOverlapping();
-
-    // Obrázky idú pomalšie a s menším stropom: každý znamená stiahnutie zo
-    // starého webu aj nahratie do S3, takže dva behy naraz by si len brali
-    // pásmo a predlžovali HTTP požiadavku webcronu.
-    $artisan('app:hlascirkvi-import-images', ['--max-seconds' => 40])
-        ->everyTwoMinutes()
-        ->withoutOverlapping();
-}
