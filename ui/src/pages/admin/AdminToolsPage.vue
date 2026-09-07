@@ -44,6 +44,23 @@
       <ToolOutput :output="outputs['ai-detector']" />
     </div>
 
+    <!-- Duplicitné podujatia -->
+    <div class="panel-card grid gap-3">
+      <div>
+        <h2 class="font-semibold text-slate-900">{{ t('admin.tools.duplicatesTitle') }}</h2>
+        <p class="text-sm text-slate-500">
+          {{ t('admin.tools.run') }} <code class="text-xs bg-slate-100 px-1 rounded">app:events-merge-duplicates</code> {{ t('admin.tools.duplicatesLead') }}
+        </p>
+      </div>
+      <FormField v-model="duplicatesApply" type="checkbox" :label="t('admin.tools.duplicatesApply')" />
+      <ToolRunButton
+        :label="duplicatesApply ? t('admin.tools.duplicatesMerge') : t('admin.tools.duplicatesRun')"
+        :running="running === 'merge-duplicates'"
+        @run="runTool('merge-duplicates')"
+      />
+      <ToolOutput :output="outputs['merge-duplicates']" />
+    </div>
+
     <!-- Archivovanie -->
     <div class="panel-card grid gap-3">
       <div>
@@ -73,7 +90,11 @@ const importPages = ref<number | null>(1)
 const importLimit = ref<number | null>(0)
 const importForce = ref(false)
 
-type ToolKey = 'import' | 'ai-detector' | 'archive'
+// Zlúčenie duplicít maže podujatie, takže je za zaškrtnutím — prvé kliknutie
+// bez neho len vypíše, čo by sa stalo.
+const duplicatesApply = ref(false)
+
+type ToolKey = 'import' | 'ai-detector' | 'archive' | 'merge-duplicates'
 const running = ref<ToolKey | null>(null)
 const outputs = ref<Record<string, string>>({})
 let pollTimer: ReturnType<typeof setTimeout> | undefined
@@ -119,6 +140,10 @@ async function runTool(tool: ToolKey) {
   try {
     if (tool === 'import') {
       await runImport()
+    } else if (tool === 'merge-duplicates') {
+      const res = await runAdminTool('merge-duplicates', { apply: duplicatesApply.value })
+      outputs.value[tool] = res.output || t('admin.tools.duplicatesNone')
+      toast.success(t('admin.tools.done'))
     } else {
       const res = await runAdminTool(tool === 'ai-detector' ? 'ai-detector' : 'archive-events')
       outputs.value[tool] = res.output || t('admin.tools.noOutput')

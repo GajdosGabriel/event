@@ -13,6 +13,7 @@ use App\Services\OpenAI\Detector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AiDetectorCommandTest extends TestCase
@@ -172,6 +173,190 @@ class AiDetectorCommandTest extends TestCase
         $this->artisan('app:ai-detector')->assertSuccessful();
 
         $this->assertSame($trnavaId, (int) $canal->fresh()->municipality_id);
+    }
+
+    /**
+     * Zberný kanál zdroja („vyveska.sk") nie je organizátor, ale odkladisko na
+     * podujatia, pri ktorých import nevedel prečítať, kto ich robí. Tento beh
+     * číta celý článok naraz, takže organizátora často pozná — a vtedy sa
+     * podujatie presunie k nemu.
+     */
+    #[Test]
+    public function it_moves_an_event_off_the_source_collection_canal_to_the_detected_organizer(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        User::factory()->create()->assignRole('super-admin');
+        config()->set('services.imports.describe_with_ai', false);
+
+        $collection = Canal::factory()->create([
+            'name' => 'vyveska.sk',
+            'slug' => 'vyveska-sk',
+            'website' => 'https://www.vyveska.sk',
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $collection->id]);
+        $venue = Venue::factory()->create(['canal_id' => $collection->id]);
+
+        $event = Event::factory()->create([
+            'canal_id' => $collection->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now(),
+            'orginal_source' => 'https://www.vyveska.sk/podujatie',
+            'body_rewritten_at' => null,
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => null,
+                'event_payload' => [
+                    'organizer' => ['name' => 'Farnosť Košice-Sever vás srdečne pozýva'],
+                ],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $event->refresh();
+        $target = Canal::query()->find($event->canal_id);
+
+        $this->assertNotSame($collection->id, $event->canal_id);
+        // Veta pozvánky nalepená za meno sa oreže rovnako ako pri importe.
+        $this->assertSame('Farnosť Košice-Sever', $target?->name);
+        $this->assertSame('https://www.vyveska.sk', $target?->website);
+    }
+
+    /**
+     * Kanál pomenovaný organizátorom je hotový údaj — ten sa neprepisuje ani
+     * vtedy, keď AI v článku vidí niekoho iného (napr. spoluorganizátora).
+     */
+    #[Test]
+    public function it_leaves_the_event_on_a_canal_that_already_names_an_organizer(): void
+    {
+        $canal = Canal::factory()->create([
+            'name' => 'Cirkevný zbor ECAV Bardejov',
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now(),
+            'orginal_source' => 'https://www.ecav.sk/podujatie',
+            'body_rewritten_at' => null,
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => null,
+                'event_payload' => ['organizer' => ['name' => 'Mesto Bardejov']],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $this->assertSame($canal->id, $event->fresh()->canal_id);
+    }
+
+    /**
+     * Druhý rad príkazu. Podujatia zo zberných kanálov majú popis dávno
+     * prepísaný, takže ich prvý claim (`body_rewritten_at IS NULL`) preskočí —
+     * bez tohto radu by na zbernom kanáli ostali visieť navždy.
+     */
+    #[Test]
+    public function it_rechecks_the_organizer_of_an_already_rewritten_collection_canal_event(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        User::factory()->create()->assignRole('super-admin');
+        config()->set('services.imports.describe_with_ai', false);
+
+        $collection = Canal::factory()->create([
+            'name' => 'tkkbs.sk',
+            'slug' => 'tkkbs-sk',
+            'website' => 'https://www.tkkbs.sk',
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $collection->id]);
+        $venue = Venue::factory()->create(['canal_id' => $collection->id]);
+
+        $event = Event::factory()->create([
+            'canal_id' => $collection->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now()->subMonth(),
+            'orginal_source' => 'https://www.tkkbs.sk/view.php?cisloclanku=1',
+            'body' => '<p>Prepísaný popis.</p>',
+            'body_rewritten_at' => now()->subMonth(),
+            'meta' => ['ai_detector' => ['processed_at' => now()->subMonth()->toIso8601String()]],
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => '<p>Druhýkrát prepísaný popis.</p>',
+                'event_payload' => ['organizer' => ['name' => 'Rehoľa menších bratov františkánov']],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $event->refresh();
+
+        $this->assertNotSame($collection->id, $event->canal_id);
+        // Hotový popis sa druhýkrát neprepisuje — copywriter už raz zbehol.
+        $this->assertSame('<p>Prepísaný popis.</p>', $event->body);
+        $this->assertNotNull($event->meta['ai_detector']['organizer_checked_at'] ?? null);
+    }
+
+    /**
+     * Rad sa musí vyčerpať: podujatie, ktorého sa už príkaz na organizátora
+     * pýtal, sa nesmie vrátiť do druhého claimu — inak by naň minul AI
+     * volanie každú minútu donekonečna.
+     */
+    #[Test]
+    public function it_does_not_recheck_a_collection_canal_event_twice(): void
+    {
+        $collection = Canal::factory()->create([
+            'name' => 'ecav.sk',
+            'slug' => 'ecav-sk',
+            'website' => 'https://www.ecav.sk',
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $collection->id]);
+        $venue = Venue::factory()->create(['canal_id' => $collection->id]);
+
+        Event::factory()->create([
+            'canal_id' => $collection->id,
+            'user_id' => $user->id,
+            'venue_id' => $venue->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now()->subMonth(),
+            'orginal_source' => 'https://www.ecav.sk/podujatie',
+            'body_rewritten_at' => now()->subMonth(),
+            'meta' => ['ai_detector' => ['organizer_checked_at' => now()->subDay()->toIso8601String()]],
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldNotReceive('detectFromUrl');
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')
+            ->expectsOutput('AiDetector: no eligible event found.')
+            ->assertSuccessful();
     }
 
     #[Test]

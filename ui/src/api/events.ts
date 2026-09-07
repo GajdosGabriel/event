@@ -265,7 +265,7 @@ export async function detectEventFromText(text: string): Promise<Record<string, 
 // Vylepšenie textu už nie je vecou podujatia — ten istý panel obsluhuje aj
 // miesto a kanál cez spoločný endpoint, viď `@/api/ai`.
 
-export async function runAdminTool(tool: 'ai-detector' | 'archive-events', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
+export async function runAdminTool(tool: 'ai-detector' | 'archive-events' | 'merge-duplicates', options?: Record<string, unknown>): Promise<{ success: boolean; output: string }> {
   const { data } = await http.post(`/admin/tools/${tool}`, options ?? {})
   return data as { success: boolean; output: string }
 }

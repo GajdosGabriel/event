@@ -3,10 +3,8 @@
 namespace App\Services\Imports;
 
 use App\Services\OpenAI\ChatGPT;
-use App\Support\PlaceholderNames;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class ImportedCanalNameResolver
 {
@@ -232,57 +230,10 @@ class ImportedCanalNameResolver
         return null;
     }
 
-    /** Za týmito slovami už nepokračuje názov organizátora, ale veta pozvánky. */
-    private const SENTENCE_MARKERS = [
-        'vás', 'vas', 'ťa', 'ta',
-        'srdečne', 'srdecne',
-        'pozýva', 'pozyva', 'pozývajú', 'pozyvaju', 'pozývame', 'pozyvame',
-        'organizuje', 'organizujú', 'usporiada', 'usporadúva',
-        'pripravuje', 'pripravujú', 'oznamuje', 'ponúka',
-    ];
-
+    /** Spoločné orezanie názvu — pozri App\Services\Imports\OrganizerName. */
     private function sanitizeName(string $value): ?string
     {
-        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
-        $value = $this->cutTrailingSentence($value);
-        $value = trim($value, " \t\n\r\0\x0B,.;:-/");
-
-        if ($value === '') {
-            return null;
-        }
-
-        // Zástupné hodnoty ("null", "neuvedené") nie sú názov organizátora —
-        // zoznam žije v App\Support\PlaceholderNames, používa ho aj odvodenie
-        // sídla kanála.
-        if (PlaceholderNames::matches($value)) {
-            return null;
-        }
-
-        // Názov organizátora nad 120 znakov je v praxi vždy zvyšok vety, nie
-        // názov — najdlhšie reálne názvy v dátach majú okolo 80 znakov.
-        return Str::limit($value, 120, '');
-    }
-
-    /**
-     * Odreže vetu pozvánky nalepenú za názov.
-     *
-     * Heuristiky zachytávajú aj text ako „Cirkevný zbor ECAV Liptovský Mikuláš
-     * vás srdečne pozývajú na uvedenie knihy…", z ktorého je názvom len prvá
-     * časť. Rez sa robí na hranici slova, takže názvy so slovom vnútri
-     * (napr. „Ponúkame n. o.") ostanú nedotknuté.
-     */
-    private function cutTrailingSentence(string $value): string
-    {
-        $pattern = '/\s+(' . implode('|', array_map('preg_quote', self::SENTENCE_MARKERS)) . ')\b.*$/iu';
-
-        $cut = preg_replace($pattern, '', $value);
-
-        // Rez, po ktorom by nezostalo nič zmysluplné, radšej neurobíme.
-        if (is_string($cut) && trim($cut) !== '') {
-            return $cut;
-        }
-
-        return $value;
+        return OrganizerName::sanitize($value);
     }
 
     private function hostLabel(string $url): string

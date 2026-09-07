@@ -291,23 +291,10 @@ class EventImportService
             && $event->venue_id !== null;
     }
 
-    /**
-     * Zdrojová URL je jednoznačný identifikátor článku, takže sa na ňu pýtame
-     * naprieč všetkými kanálmi. Kým bolo hľadanie zúžené na canal_id, stačilo,
-     * aby AI pri ďalšom behu určila organizátora inak (alebo aby medzitým
-     * vznikol duplicitný kanál), a ten istý článok sa naimportoval druhýkrát
-     * ako nový event.
-     */
+    /** Spoločné hľadanie podľa zdroja — pozri App\Services\Imports\EventSourceLookup. */
     private function findEventBySourceUrl(string $sourceUrl): ?Event
     {
-        if ($sourceUrl === '') {
-            return null;
-        }
-
-        return Event::query()
-            ->where('orginal_source', $sourceUrl)
-            ->orderBy('id')
-            ->first();
+        return EventSourceLookup::find($sourceUrl);
     }
 
     /**

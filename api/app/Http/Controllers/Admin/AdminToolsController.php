@@ -72,6 +72,32 @@ class AdminToolsController extends Controller
         return response()->json(['success' => true, 'output' => $output]);
     }
 
+    /**
+     * Duplicity naimportované dvakrát. Bez `apply` je to len výpis — mazanie
+     * dvojice, ktorú import z opatrnosti nechal tak, musí odklepnúť človek.
+     */
+    public function runMergeDuplicates(Request $request): JsonResponse
+    {
+        // Právo na mazanie stráži `permission:event.delete` na route —
+        // EventPolicy::delete() sa pýta na konkrétne podujatie (nezmaže sa
+        // zverejnené ani archivované), takže sem sa nehodí.
+        $this->authorize('viewAny', \App\Models\Event::class);
+
+        $validated = $request->validate([
+            'apply' => 'sometimes|boolean',
+        ]);
+
+        $options = ['--limit' => 50];
+
+        if ($validated['apply'] ?? false) {
+            $options['--apply'] = true;
+        }
+
+        Artisan::call('app:events-merge-duplicates', $options);
+
+        return response()->json(['success' => true, 'output' => Artisan::output()]);
+    }
+
     public function runArchiveEvents(): JsonResponse
     {
         $this->authorize('viewAny', \App\Models\Event::class);

@@ -681,6 +681,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->name('tools.ai-detector')
         ->middleware('throttle:ai');
     Route::post('tools/archive-events', [AdminToolsController::class, 'runArchiveEvents'])->name('tools.archive-events');
+    // Zlúčenie duplicít maže podujatie, preto vlastné právo — zvyšok nástrojov
+    // len prepisuje obsah.
+    Route::post('tools/merge-duplicates', [AdminToolsController::class, 'runMergeDuplicates'])
+        ->name('tools.merge-duplicates')
+        ->middleware('permission:event.delete');
 
     Route::apiResource('users', AdminUserController::class)
         ->only(['index', 'show'])
