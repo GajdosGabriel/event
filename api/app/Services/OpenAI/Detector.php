@@ -425,6 +425,7 @@ class Detector
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
+                'source_http_status' => $e instanceof WebPageFetchException ? $e->getCode() : null,
             ];
         }
     }

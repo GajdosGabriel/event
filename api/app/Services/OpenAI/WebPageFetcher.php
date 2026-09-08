@@ -36,7 +36,7 @@ class WebPageFetcher
         curl_close($ch);
 
         if ($httpCode !== 200 || $response === false) {
-            throw new \RuntimeException("HTTP chyba: {$httpCode}");
+            throw new WebPageFetchException("HTTP chyba: {$httpCode}", (int) $httpCode);
         }
 
         // Zdroj nemusí byť v UTF-8 (tkkbs.sk servíruje Windows-1250). Bez

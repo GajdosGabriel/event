@@ -21,6 +21,72 @@ class AiDetectorCommandTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function unavailable_sources_are_skipped_in_both_queues_and_other_events_can_proceed(): void
+    {
+        $collection = Canal::factory()->create([
+            'name' => 'vyveska.sk',
+            'slug' => 'vyveska-sk',
+            'website' => 'https://www.vyveska.sk',
+            'registration_source' => RegistrationSource::IMPORT->value,
+        ]);
+        $user = User::factory()->create(['canal_id' => $collection->id]);
+        $venue = Venue::factory()->create(['canal_id' => $collection->id]);
+        foreach ([404, 410] as $status) {
+            foreach ([null, now()->subDay()->startOfSecond()] as $rewrittenAt) {
+                $event = Event::factory()->create([
+                    'canal_id' => $collection->id,
+                    'user_id' => $user->id,
+                    'venue_id' => $venue->id,
+                    'published_at' => now(),
+                    'orginal_source' => 'https://example.test/missing',
+                    'body_rewritten_at' => $rewrittenAt,
+                    'meta' => ['import' => ['source' => 'external_source']],
+                ]);
+                $originalBody = $event->body;
+                $detector = Mockery::mock(Detector::class);
+                $detector->shouldReceive('detectFromUrl')->once()->andReturn([
+                    'success' => false, 'error' => 'HTTP chyba: '.$status, 'source_http_status' => $status,
+                ]);
+                $this->app->instance(Detector::class, $detector);
+                $this->artisan('app:ai-detector')->assertSuccessful();
+                $this->artisan('app:ai-detector')->expectsOutput('AiDetector: no eligible event found.')->assertSuccessful();
+                $event->refresh();
+                $this->assertSame($originalBody, $event->body);
+                $this->assertEquals($rewrittenAt, $event->body_rewritten_at);
+                $this->assertNotNull($event->meta['ai_detector']['skipped_at']);
+                $this->assertSame('external_source', $event->meta['import']['source']);
+            }
+        }
+    }
+
+    #[Test]
+    public function transient_failure_is_retried_after_an_hour_and_cleared_on_success(): void
+    {
+        $this->freezeTime();
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'published_at' => now(), 'orginal_source' => 'https://example.test/temporary',
+            'body_rewritten_at' => null,
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->twice()->andReturn(
+            ['success' => false, 'error' => 'HTTP chyba: 503', 'source_http_status' => 503],
+            ['success' => true, 'corrected_text' => null],
+        );
+        $this->app->instance(Detector::class, $detector);
+        $this->artisan('app:ai-detector')->assertFailed();
+        $this->artisan('app:ai-detector')->expectsOutput('AiDetector: no eligible event found.')->assertSuccessful();
+        $this->assertNull($event->fresh()->body_rewritten_at);
+        $this->travel(1)->hours();
+        $this->artisan('app:ai-detector')->assertSuccessful();
+        $this->assertNotNull($event->fresh()->body_rewritten_at);
+        $this->assertArrayNotHasKey('retry_at', $event->fresh()->meta['ai_detector']);
+    }
+
+    #[Test]
     public function it_rewrites_the_body_of_the_latest_imported_published_event(): void
     {
         $canal = Canal::factory()->create([

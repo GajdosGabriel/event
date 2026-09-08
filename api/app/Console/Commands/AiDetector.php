@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Canal;
 use App\Models\Event;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Imports\CollectionCanal;
@@ -47,6 +48,25 @@ class AiDetector extends Command
         $result = $detector->detectFromUrl((string) $event->orginal_source);
 
         if (! ($result['success'] ?? false)) {
+            $permanent = in_array($result['source_http_status'] ?? null, [404, 410], true);
+            $meta = is_array($event->meta) ? $event->meta : [];
+            $meta['ai_detector'] = array_merge($meta['ai_detector'] ?? [], [
+                'failed_at' => now()->toIso8601String(),
+                'source_url' => $event->orginal_source,
+                'error' => $result['error'] ?? 'Unknown detector error',
+                'source_http_status' => $result['source_http_status'] ?? null,
+                'skipped_at' => $permanent ? now()->toIso8601String() : null,
+                'retry_at' => $permanent ? null : now()->addHour()->toIso8601String(),
+            ]);
+            $event->update(['meta' => $meta]);
+
+            if ($permanent) {
+                Log::info('AiDetector skipped unavailable source.', ['event_id' => $event->id, ...$meta['ai_detector']]);
+                $this->info('AiDetector skipped event id ' . $event->id . ': source unavailable.');
+
+                return self::SUCCESS;
+            }
+
             Log::warning('AiDetector failed for event.', [
                 'event_id' => $event->id,
                 'source_url' => $event->orginal_source,
@@ -131,6 +151,7 @@ class AiDetector extends Command
     private function claimForRewrite(): ?Event
     {
         return Event::query()
+            ->where(fn (Builder $query) => $this->eligibleForAttempt($query))
             ->whereNotNull('published_at')
             ->whereNotNull('orginal_source')
             ->whereNull('body_rewritten_at')
@@ -156,12 +177,22 @@ class AiDetector extends Command
         }
 
         return Event::query()
+            ->where(fn (Builder $query) => $this->eligibleForAttempt($query))
             ->whereIn('canal_id', $canalIds)
             ->whereNotNull('orginal_source')
             ->whereNull('meta->ai_detector->organizer_checked_at')
             // Najbližšie termíny prvé — na nich záleží najviac, archív počká.
             ->orderByDesc('start_at')
             ->first();
+    }
+
+    private function eligibleForAttempt(Builder $query): void
+    {
+        $query->whereNull('meta->ai_detector->skipped_at')
+            ->where(function (Builder $query) {
+                $query->whereNull('meta->ai_detector->retry_at')
+                    ->orWhere('meta->ai_detector->retry_at', '<=', now()->toIso8601String());
+            });
     }
 
     private function pickString(mixed $value): ?string
