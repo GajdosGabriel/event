@@ -101,6 +101,7 @@ PRAVIDLÁ:
 - message píš v slovenčine, jednou vetou, ako radu človeku („Vo vete o programe chýba čiarka pred a to.").
 - quote je doslovný úryvok z textu (max 120 znakov), alebo prázdny reťazec pri výhrade k celku.
 - score je 0-100: 100 = bez výhrad, pod 60 = text potrebuje zásah.
+- summary je neprázdne stručné zhrnutie posudku v slovenčine. Aj pri texte bez výhrad uveď jednu vetu.
 - Vráť iba validný JSON bez ďalšieho textu.',
             ],
             [
@@ -118,7 +119,7 @@ PRAVIDLÁ:
     {
         return [
             'score' => 'required|integer|min:0|max:100',
-            'summary' => 'required|string',
+            'summary' => 'present|string',
             'issues' => 'present|array',
             'issues.*.severity' => 'required|string|in:'.implode(',', self::SEVERITIES),
             'issues.*.mode' => 'required|string|in:'.implode(',', self::MODES),

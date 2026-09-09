@@ -536,7 +536,13 @@ class ChatGPT
 
         return [
             'score' => (int) $data['score'],
-            'summary' => trim((string) $data['summary']),
+            // Schéma povoľuje prázdny reťazec. Zhrnutie vtedy zostavíme
+            // z výhrad, aby platný posudok nespúšťal ďalšie platené kontroly.
+            'summary' => trim($data['summary']) !== ''
+                ? trim($data['summary'])
+                : ($data['issues'] === []
+                    ? 'Text je bez výhrad.'
+                    : implode(' ', array_column($data['issues'], 'message'))),
             'issues' => $data['issues'],
         ];
     }
