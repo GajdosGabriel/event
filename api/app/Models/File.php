@@ -155,6 +155,16 @@ class File extends Model
 
     private function urlFor(?string $path): ?string
     {
+        $disk = (string) ($this->disk ?? config('filesystems.default', 'public'));
+        if ($path && $this->isImage() && $disk === 's3'
+            && app()->environment('local') && config('filesystems.local_image_prod_fallback')) {
+            $production = Storage::build(array_merge(config('filesystems.disks.s3'), [
+                'root' => config('filesystems.image_prod_root', 'prod'),
+            ]))->url($path);
+            // The fragment is not sent to S3. The UI uses it only if loading fails.
+            return $production.'#local-image-fallback='.rawurlencode($this->filesystem()->url($path));
+        }
+
         return $path ? $this->filesystem()->url($path) : null;
     }
 

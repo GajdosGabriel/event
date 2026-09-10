@@ -5,7 +5,9 @@ import router from './router'
 import App from './App.vue'
 import { initI18n } from './i18n'
 import './styles.css'
+import { installLocalImageFallback } from './localImageFallback'
 
+installLocalImageFallback()
 initI18n()
 
 const app = createApp(App)

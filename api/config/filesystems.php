@@ -33,6 +33,10 @@ return [
     |
     */
 
+    // Local image reads only; writes keep using disks.s3.root.
+    'local_image_prod_fallback' => env('LOCAL_IMAGE_PROD_FALLBACK', true),
+    'image_prod_root' => env('AWS_IMAGE_PROD_ROOT', 'prod'),
+
     'disks' => [
 
         'local' => [
