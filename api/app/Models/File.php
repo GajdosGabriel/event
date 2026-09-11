@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\FileType;
 use App\Casts\StringLength250;
+use App\Enums\FileType;
 use App\Models\Traits\HasCommonFilters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class File extends Model
 {
-    use SoftDeletes, HasCommonFilters;
+    use HasCommonFilters, SoftDeletes;
 
     protected $fillable = [
         'fileable_id',
@@ -56,9 +56,9 @@ class File extends Model
      * súbor v aplikácii používa, nie čo to je za formát.
      */
     protected const KIND_EXTENSIONS = [
-        'document'    => ['doc', 'docx', 'rtf', 'odt'],
+        'document' => ['doc', 'docx', 'rtf', 'odt'],
         'spreadsheet' => ['xls', 'xlsx', 'csv', 'ods'],
-        'archive'     => ['zip', 'rar', '7z', 'gz', 'tar'],
+        'archive' => ['zip', 'rar', '7z', 'gz', 'tar'],
     ];
 
     /** Druhy odvodené z prefixu MIME typu. */
@@ -74,7 +74,7 @@ class File extends Model
         }
 
         if (in_array($kind, self::KIND_MIME_PREFIXES, true)) {
-            return $query->where($this->qualifyColumn('mime_type'), 'like', $kind . '/%');
+            return $query->where($this->qualifyColumn('mime_type'), 'like', $kind.'/%');
         }
 
         if ($kind === 'pdf') {
@@ -92,7 +92,7 @@ class File extends Model
         if ($kind === 'other') {
             return $query->where(function (Builder $rest) {
                 foreach (self::KIND_MIME_PREFIXES as $prefix) {
-                    $rest->where($this->qualifyColumn('mime_type'), 'not like', $prefix . '/%');
+                    $rest->where($this->qualifyColumn('mime_type'), 'not like', $prefix.'/%');
                 }
 
                 $rest->where($this->qualifyColumn('mime_type'), '!=', 'application/pdf');
@@ -104,6 +104,7 @@ class File extends Model
 
         return $query;
     }
+
     public function fileable()
     {
         return $this->morphTo();
@@ -161,6 +162,7 @@ class File extends Model
             $production = Storage::build(array_merge(config('filesystems.disks.s3'), [
                 'root' => config('filesystems.image_prod_root', 'prod'),
             ]))->url($path);
+
             // The fragment is not sent to S3. The UI uses it only if loading fails.
             return $production.'#local-image-fallback='.rawurlencode($this->filesystem()->url($path));
         }
@@ -190,11 +192,11 @@ class File extends Model
 
         if (
             in_array($this->disk, ['local', 'public'], true)
-            && !empty($data['path'])
+            && ! empty($data['path'])
             && is_string($data['path'])
-            && !str_starts_with($data['path'], 'storage/')
+            && ! str_starts_with($data['path'], 'storage/')
         ) {
-            $data['path'] = 'storage/' . ltrim($data['path'], '/');
+            $data['path'] = 'storage/'.ltrim($data['path'], '/');
         }
 
         return $data;
