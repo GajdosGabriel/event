@@ -77,7 +77,7 @@ describe('AiAssistPanel', () => {
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('Fill in with AI')
-    expect(wrapper.text()).toContain('Ready to publish')
+    expect(wrapper.text()).toContain('Profile completion')
   })
 
   it('names what is still missing', async () => {
@@ -93,7 +93,7 @@ describe('AiAssistPanel', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Fill in with AI')
-    expect(wrapper.text()).not.toContain('Ready to publish')
+    expect(wrapper.text()).not.toContain('Profile completion')
   })
 
   it('counts the description as text, not markup', async () => {
