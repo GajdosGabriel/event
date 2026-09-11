@@ -6,13 +6,13 @@ class ContentExtractor
 {
     public function extract(string $html, string $baseUrl, string $contentId = 'content'): array
     {
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
-        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
 
         $element = $dom->getElementById($contentId);
-        if (!$element) {
+        if (! $element) {
             foreach (['content-body', 'content', 'main-content', 'main'] as $fallbackId) {
                 $element = $dom->getElementById($fallbackId);
                 if ($element) {
@@ -26,8 +26,8 @@ class ContentExtractor
             $element = $this->resolveFallbackElement($xpath, $baseUrl);
         }
 
-        if (!$element) {
-            throw new \RuntimeException('Element pre hlavny obsah sa nenasiel');
+        if (! $element) {
+            throw new ContentNotFoundException('Element pre hlavny obsah sa nenasiel');
         }
 
         $this->removeIgnoredNodes($element, $baseUrl);
@@ -116,7 +116,7 @@ class ContentExtractor
             $absoluteUrl = $this->toAbsoluteUrl($href, $baseUrl);
             $filename = basename((string) parse_url($absoluteUrl, PHP_URL_PATH));
             if ($filename === '') {
-                $filename = 'priloha_' . time() . '.pdf';
+                $filename = 'priloha_'.time().'.pdf';
             }
 
             $attachments[] = [
@@ -139,7 +139,7 @@ class ContentExtractor
         $parsed = parse_url($baseUrl);
         $scheme = $parsed['scheme'] ?? 'https';
         $host = $parsed['host'] ?? '';
-        $path = str_starts_with($href, '/') ? $href : '/' . $href;
+        $path = str_starts_with($href, '/') ? $href : '/'.$href;
 
         return "{$scheme}://{$host}{$path}";
     }
@@ -147,7 +147,7 @@ class ContentExtractor
     private function extractFileSizeFromText(string $text): ?string
     {
         if (preg_match('/(\d+[,.]?\d*)\s*(kB|MB|GB)/i', $text, $matches)) {
-            return $matches[1] . ' ' . $matches[2];
+            return $matches[1].' '.$matches[2];
         }
 
         return null;

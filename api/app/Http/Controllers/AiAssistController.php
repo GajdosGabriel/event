@@ -7,6 +7,7 @@ use App\Http\Requests\AiAssistRequest;
 use App\Models\ContentReview;
 use App\Services\Imports\HtmlBodyCleaner;
 use App\Services\OpenAI\ChatGPT;
+use App\Services\OpenAI\HtmlBodyFinisher;
 use App\Services\OpenAI\PromptProfile;
 use App\Services\Publishing\PublishReadiness;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +44,7 @@ class AiAssistController extends Controller
      * Návrh textu. `success: false` s vysvetlením namiesto 500 — panel je
      * pomôcka a jej výpadok nemá zhodiť rozpísaný formulár.
      */
-    public function assist(AiAssistRequest $request, ChatGPT $chatgpt, HtmlBodyCleaner $cleaner): JsonResponse
+    public function assist(AiAssistRequest $request, ChatGPT $chatgpt, HtmlBodyCleaner $cleaner, HtmlBodyFinisher $finisher): JsonResponse
     {
         $data = $request->validated();
         $kind = $data['kind'];
@@ -53,7 +54,7 @@ class AiAssistController extends Controller
         try {
             $result = $data['action'] === 'draft'
                 ? $this->draft($chatgpt, $cleaner, $kind, $data)
-                : $this->improve($chatgpt, $cleaner, $data);
+                : $this->improve($chatgpt, $finisher, $data);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()]);
         }
@@ -104,7 +105,7 @@ class AiAssistController extends Controller
      * @param  array<string, mixed>  $data
      * @return array{improved_text: string, changes_summary: string}
      */
-    private function improve(ChatGPT $chatgpt, HtmlBodyCleaner $cleaner, array $data): array
+    private function improve(ChatGPT $chatgpt, HtmlBodyFinisher $finisher, array $data): array
     {
         // `html` sa pridáva vždy: popis je HTML pole a návrh v holom texte by
         // sa po vložení rozsypal na jeden odsek.
@@ -113,7 +114,9 @@ class AiAssistController extends Controller
         $result = $chatgpt->extractTextEdit($data['text'], $modes);
 
         return [
-            'improved_text' => $cleaner->cleanHtmlString((string) $result['improved_text']),
+            // Keď editor aj tak vráti stenu textu, sadzba ju rozčlení až nad
+            // hotovým (upraveným, rozšíreným) výsledkom.
+            'improved_text' => $finisher->finish((string) $result['improved_text']),
             'changes_summary' => (string) $result['changes_summary'],
         ];
     }

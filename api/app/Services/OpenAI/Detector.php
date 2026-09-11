@@ -4,11 +4,11 @@ namespace App\Services\OpenAI;
 
 use App\Models\Canal;
 use App\Models\Venue;
+use App\Services\Geocoding\MunicipalityNameFinder;
+use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\VenueCoordinateResolver;
 use App\Services\Imports\ImportedNameMatcher;
-use App\Services\Geocoding\MunicipalityNameFinder;
-use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,15 +16,15 @@ use Illuminate\Support\Str;
 class Detector
 {
     public function __construct(
-        private readonly WebPageFetcher $fetcher = new WebPageFetcher(),
-        private readonly ContentExtractor $contentExtractor = new ContentExtractor(),
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
-        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver(),
-        private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher(),
-        private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader(),
-        private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor(),
-        private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder(),
+        private readonly WebPageFetcher $fetcher = new WebPageFetcher,
+        private readonly ContentExtractor $contentExtractor = new ContentExtractor,
+        private readonly ChatGPT $chatGPT = new ChatGPT,
+        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
+        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver,
+        private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher,
+        private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader,
+        private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor,
+        private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder,
         private readonly ?VenueCoordinateResolver $venueCoordinateResolver = null,
     ) {}
 
@@ -37,7 +37,6 @@ class Detector
         return $this->venueCoordinateResolver
             ?? new VenueCoordinateResolver($this->nominatimGeocoder, $this->chatGPT);
     }
-
 
     public function stiahniTextCurl(string $url): string
     {
@@ -104,7 +103,9 @@ class Detector
             try {
                 if (mb_strlen(trim($sourceText)) >= 50) {
                     $copywriter = $this->chatGPT->extractCopywriter($sourceText);
-                    $correctedText = $copywriter['event_body'] ?? null;
+                    $correctedText = is_string($copywriter['event_body'] ?? null) && trim($copywriter['event_body']) !== ''
+                        ? ($this->finisher()->finish($copywriter['event_body']) ?: null)
+                        : null;
                 }
             } catch (\Throwable $e) {
                 // Zlyhanie copywritera nie je fatálne — volajúci má fallback na
@@ -238,7 +239,7 @@ class Detector
             ->where(function ($query) use ($normalizedName, $slug) {
                 $query->where('slug', $slug)
                     ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%' . $normalizedName . '%');
+                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
             })
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);
@@ -263,7 +264,7 @@ class Detector
             ->where(function ($query) use ($normalizedName, $slug) {
                 $query->where('slug', $slug)
                     ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%' . $normalizedName . '%');
+                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
             })
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);
@@ -396,7 +397,20 @@ class Detector
 
         $body = $copywriter['event_body'] ?? null;
 
-        return is_string($body) && trim($body) !== '' ? trim($body) : null;
+        if (! is_string($body) || trim($body) === '') {
+            return null;
+        }
+
+        return $this->finisher()->finish($body) ?: null;
+    }
+
+    /**
+     * Nad tým istým ChatGPT ako zvyšok detektora — v testoch je to ten istý
+     * mock, takže sadzba nejde naslepo na OpenAI.
+     */
+    private function finisher(): HtmlBodyFinisher
+    {
+        return new HtmlBodyFinisher($this->chatGPT);
     }
 
     public function detectFromUrl(string $url): array
@@ -426,6 +440,7 @@ class Detector
                 'success' => false,
                 'error' => $e->getMessage(),
                 'source_http_status' => $e instanceof WebPageFetchException ? $e->getCode() : null,
+                'source_unreadable' => $e instanceof ContentNotFoundException,
             ];
         }
     }

@@ -5,7 +5,6 @@ namespace App\Services\OpenAI;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptContentReview, PromptCopywriter, PromptData, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
 
 class ChatGPT
 {
@@ -33,16 +32,48 @@ class ChatGPT
      */
     private const MIN_TEXT_LAYER_CHARS = 120;
 
+    /**
+     * Strop vstupu sadzby do HTML. Výstup je rovnako dlhý ako vstup plus tagy,
+     * takže nad touto hranicou by odpoveď narážala na limit tokenov.
+     */
+    private const MAX_FORMATTER_INPUT_CHARS = 12000;
+
     public function __construct(
-        private readonly PromptData $promptData = new PromptData(),
-        private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter(),
-        private readonly PromptVenue $promptVenue = new PromptVenue(),
-        private readonly PromptCanal $promptCanal = new PromptCanal(),
-        private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor(),
-        private readonly PromptProfile $promptProfile = new PromptProfile(),
-        private readonly PromptTags $promptTags = new PromptTags(),
-        private readonly PromptContentReview $promptContentReview = new PromptContentReview(),
+        private readonly PromptData $promptData = new PromptData,
+        private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter,
+        private readonly PromptVenue $promptVenue = new PromptVenue,
+        private readonly PromptCanal $promptCanal = new PromptCanal,
+        private readonly PromptTextEditor $promptTextEditor = new PromptTextEditor,
+        private readonly PromptProfile $promptProfile = new PromptProfile,
+        private readonly PromptTags $promptTags = new PromptTags,
+        private readonly PromptContentReview $promptContentReview = new PromptContentReview,
+        private readonly PromptHtmlFormatter $promptHtmlFormatter = new PromptHtmlFormatter,
     ) {}
+
+    /**
+     * Hotový (už prepísaný či rozšírený) text do HTML — bez zmeny obsahu.
+     * Volá sa len cez HtmlBodyFinisher, keď výsledku prepisu chýba štruktúra.
+     */
+    public function formatAsHtml(string $text): ?string
+    {
+        $text = $this->sanitizeUtf8($text);
+
+        if ($text === '' || mb_strlen($text) > self::MAX_FORMATTER_INPUT_CHARS) {
+            return null;
+        }
+
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptHtmlFormatter->prompt($text), $this->promptHtmlFormatter->jsonSchema());
+        $data = $this->decodeJson($content);
+
+        $validator = Validator::make($data, $this->promptHtmlFormatter->validator());
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
+        }
+
+        $html = trim((string) $data['html']);
+
+        return $html !== '' ? $html : null;
+    }
 
     /**
      * Obsahové štítky podujatia z pevného číselníka.
@@ -83,7 +114,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptTags->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         return [
@@ -106,7 +137,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptData->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         return $data;
@@ -168,7 +199,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptData->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         return $data;
@@ -248,7 +279,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptCopywriter->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         // zakomentováno, protože teraz chcem len čistý text
@@ -328,7 +359,7 @@ class ChatGPT
             }
 
             if (mb_strlen($current) + mb_strlen($block) + 2 <= $limit) {
-                $current .= "\n\n" . $block;
+                $current .= "\n\n".$block;
 
                 continue;
             }
@@ -375,7 +406,7 @@ class ChatGPT
                     $sentence = '';
                 }
 
-                $sentence = $sentence === '' ? $part : $sentence . ' ' . $part;
+                $sentence = $sentence === '' ? $part : $sentence.' '.$part;
 
                 while (mb_strlen($sentence) > $limit) {
                     $blocks[] = mb_substr($sentence, 0, $limit);
@@ -403,7 +434,7 @@ class ChatGPT
             $line = trim($line);
 
             if ($line !== '') {
-                $paragraphs[] = '<p>' . e($line) . '</p>';
+                $paragraphs[] = '<p>'.e($line).'</p>';
             }
         }
 
@@ -422,7 +453,7 @@ class ChatGPT
 
         $validator = Validator::make($data, $this->promptTextEditor->validator());
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatná štruktúra dát: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatná štruktúra dát: '.$validator->errors()->toJson());
         }
 
         return $data;
@@ -440,7 +471,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptVenue->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         return $data;
@@ -456,7 +487,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptCanal->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         $name = $data['canal_name'] ?? null;
@@ -488,7 +519,7 @@ class ChatGPT
         $validator = Validator::make($data, $this->promptProfile->validator());
 
         if ($validator->fails()) {
-            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
         }
 
         $description = $this->normalizeStringValue($data['description'] ?? null);
@@ -696,7 +727,7 @@ class ChatGPT
 
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $dom->loadHTML(
-            '<?xml encoding="utf-8" ?>' . $html,
+            '<?xml encoding="utf-8" ?>'.$html,
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
         );
 
@@ -778,7 +809,7 @@ class ChatGPT
 
     private function extractVenueLine(string $text): ?string
     {
-        if (!preg_match('/Miesto\s+konania\s*:\s*([^\n\r]+)/iu', $text, $match)) {
+        if (! preg_match('/Miesto\s+konania\s*:\s*([^\n\r]+)/iu', $text, $match)) {
             return null;
         }
 
@@ -801,14 +832,14 @@ class ChatGPT
         $response = Http::timeout($timeout)
             ->withToken($apiKey)
             ->post('https://api.openai.com/v1/chat/completions', [
-                'model'           => $model,
-                'temperature'     => $temperature,
+                'model' => $model,
+                'temperature' => $temperature,
                 'response_format' => $responseFormat ?? ['type' => 'json_object'],
-                'messages'        => $messages,
+                'messages' => $messages,
             ]);
 
-        if (!$response->successful()) {
-            throw new \RuntimeException('OpenAI API error: ' . $response->status() . ' ' . $response->body());
+        if (! $response->successful()) {
+            throw new \RuntimeException('OpenAI API error: '.$response->status().' '.$response->body());
         }
 
         $data = $response->json();
@@ -820,7 +851,7 @@ class ChatGPT
         // rozšíriť: pri dlhom dokumente je výstup dlhší než vstup.
         if (($data['choices'][0]['finish_reason'] ?? null) === 'length') {
             throw new \RuntimeException(
-                'Odpoved modelu bola useknuta na limite tokenov (model: ' . $model . ').'
+                'Odpoved modelu bola useknuta na limite tokenov (model: '.$model.').'
             );
         }
 
@@ -841,7 +872,7 @@ class ChatGPT
             }
         }
 
-        if (!is_string($content) || $content === '') {
+        if (! is_string($content) || $content === '') {
             throw new \RuntimeException('Prazdna odpoved od OpenAI');
         }
 
@@ -851,9 +882,10 @@ class ChatGPT
     private function decodeJson(string $content): array
     {
         $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            throw new \RuntimeException('Neplatny JSON: ' . json_last_error_msg());
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($data)) {
+            throw new \RuntimeException('Neplatny JSON: '.json_last_error_msg());
         }
+
         return $data;
     }
 
@@ -865,6 +897,7 @@ class ChatGPT
             }
 
             $json = json_encode($input, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+
             return $this->sanitizeUtf8($json === false ? '' : $json);
         }
 
@@ -887,7 +920,7 @@ class ChatGPT
             'UTF-8, Windows-1250, ISO-8859-2, ISO-8859-1, Windows-1252'
         );
 
-        if (!is_string($converted)) {
+        if (! is_string($converted)) {
             $converted = $value;
         }
 
@@ -919,7 +952,7 @@ class ChatGPT
         ];
 
         foreach ($stringFields as $field) {
-            if (!array_key_exists($field, $data)) {
+            if (! array_key_exists($field, $data)) {
                 continue;
             }
 
@@ -963,7 +996,7 @@ class ChatGPT
             return '';
         }
 
-        if (!preg_match('/\\\\u[0-9a-fA-F]{4}|\\\\[nrtf"\\\\\\/]/', $value)) {
+        if (! preg_match('/\\\\u[0-9a-fA-F]{4}|\\\\[nrtf"\\\\\\/]/', $value)) {
             return $value;
         }
 
@@ -972,6 +1005,7 @@ class ChatGPT
             static function (array $match): string {
                 $bytes = pack('H*', $match[1]);
                 $char = @mb_convert_encoding($bytes, 'UTF-8', 'UCS-2BE');
+
                 return is_string($char) ? $char : $match[0];
             },
             $value
