@@ -31,7 +31,7 @@ class HtmlBodyFinisher
 
     public function __construct(
         private readonly ChatGPT $chatGPT,
-        private readonly HtmlBodyCleaner $cleaner = new HtmlBodyCleaner(),
+        private readonly HtmlBodyCleaner $cleaner = new HtmlBodyCleaner,
     ) {}
 
     public function finish(string $text): string

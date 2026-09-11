@@ -4,13 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\Canal;
 use App\Models\Event;
-use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Log;
 use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Imports\CollectionCanal;
 use App\Services\Imports\EventOrganizerReassigner;
 use App\Services\OpenAI\Detector;
+use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class AiDetector extends Command
 {
@@ -75,7 +75,7 @@ class AiDetector extends Command
 
             if ($permanent) {
                 Log::info('AiDetector gave up on source.', ['event_id' => $event->id, ...$meta['ai_detector']]);
-                $this->info('AiDetector skipped event id ' . $event->id . ': ' . $meta['ai_detector']['error']);
+                $this->info('AiDetector skipped event id '.$event->id.': '.$meta['ai_detector']['error']);
 
                 return self::SUCCESS;
             }
@@ -86,7 +86,7 @@ class AiDetector extends Command
                 'error' => $result['error'] ?? 'Unknown detector error',
             ]);
 
-            $this->warn('AiDetector failed for event id ' . $event->id . '.');
+            $this->warn('AiDetector failed for event id '.$event->id.'.');
 
             return self::FAILURE;
         }
@@ -139,7 +139,7 @@ class AiDetector extends Command
         $movedTo = $reassigner->reassign($event, $organizerName);
 
         if ($movedTo instanceof Canal) {
-            $this->info('AiDetector: podujatie ' . $event->id . ' prešlo zo zberného kanála na „' . $movedTo->name . '" (' . $movedTo->id . ').');
+            $this->info('AiDetector: podujatie '.$event->id.' prešlo zo zberného kanála na „'.$movedTo->name.'" ('.$movedTo->id.').');
         }
 
         // Keď z článku vyjde mesto organizátora, je to najlepší údaj o sídle
@@ -150,10 +150,10 @@ class AiDetector extends Command
         $canal = $movedTo ?? $event->canal;
 
         if ($canal instanceof Canal && $seatDeriver->applyDetectedCity($canal, $this->pickString($organizerCity))) {
-            $this->info('AiDetector: kanál ' . $canal->id . ' dostal sídlo podľa organizátora (' . $this->pickString($organizerCity) . ').');
+            $this->info('AiDetector: kanál '.$canal->id.' dostal sídlo podľa organizátora ('.$this->pickString($organizerCity).').');
         }
 
-        $this->info('AiDetector processed event id ' . $event->id . '.');
+        $this->info('AiDetector processed event id '.$event->id.'.');
 
         return self::SUCCESS;
     }

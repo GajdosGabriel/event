@@ -4,11 +4,11 @@ namespace App\Services\OpenAI;
 
 use App\Models\Canal;
 use App\Models\Venue;
+use App\Services\Geocoding\MunicipalityNameFinder;
+use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\VenueCoordinateResolver;
 use App\Services\Imports\ImportedNameMatcher;
-use App\Services\Geocoding\MunicipalityNameFinder;
-use App\Services\Geocoding\MunicipalityResolver;
 use App\Services\Places\WikipediaPlaceEnricher;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,15 +16,15 @@ use Illuminate\Support\Str;
 class Detector
 {
     public function __construct(
-        private readonly WebPageFetcher $fetcher = new WebPageFetcher(),
-        private readonly ContentExtractor $contentExtractor = new ContentExtractor(),
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
-        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver(),
-        private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher(),
-        private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader(),
-        private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor(),
-        private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder(),
+        private readonly WebPageFetcher $fetcher = new WebPageFetcher,
+        private readonly ContentExtractor $contentExtractor = new ContentExtractor,
+        private readonly ChatGPT $chatGPT = new ChatGPT,
+        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
+        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver,
+        private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher,
+        private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader,
+        private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor,
+        private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder,
         private readonly ?VenueCoordinateResolver $venueCoordinateResolver = null,
     ) {}
 
@@ -37,7 +37,6 @@ class Detector
         return $this->venueCoordinateResolver
             ?? new VenueCoordinateResolver($this->nominatimGeocoder, $this->chatGPT);
     }
-
 
     public function stiahniTextCurl(string $url): string
     {
@@ -240,7 +239,7 @@ class Detector
             ->where(function ($query) use ($normalizedName, $slug) {
                 $query->where('slug', $slug)
                     ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%' . $normalizedName . '%');
+                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
             })
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);
@@ -265,7 +264,7 @@ class Detector
             ->where(function ($query) use ($normalizedName, $slug) {
                 $query->where('slug', $slug)
                     ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%' . $normalizedName . '%');
+                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
             })
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);

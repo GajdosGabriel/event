@@ -46,7 +46,7 @@ class HtmlBodyFinisherTest extends TestCase
 
         $html = '<h3 class="event-section-title">Program</h3><p>'.$this->flatText().'</p><ul class="event-list"><li class="event-list-item">Omša</li></ul>';
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish($html);
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish($html);
 
         $this->assertStringContainsString('<h3>Program</h3>', $result);
         $this->assertStringNotContainsString('class=', $result);
@@ -59,7 +59,7 @@ class HtmlBodyFinisherTest extends TestCase
         $text = $this->flatText();
         $this->fakeFormatter('<h3>Program</h3><p>'.$text.'</p><p><strong>Cena:</strong> 10 eur</p><script>x</script>');
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish('<p>'.$text.'</p>');
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish('<p>'.$text.'</p>');
 
         $this->assertStringContainsString('<h3>Program</h3>', $result);
         $this->assertStringContainsString('<strong>Cena:</strong>', $result);
@@ -73,7 +73,7 @@ class HtmlBodyFinisherTest extends TestCase
         $text = $this->flatText();
         $this->fakeFormatter('<p>'.$text.'</p><ul><li>Omša</li></ul>');
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish($text);
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish($text);
 
         $this->assertStringContainsString('<ul>', $result);
     }
@@ -83,7 +83,7 @@ class HtmlBodyFinisherTest extends TestCase
     {
         $this->fakeFormatter('<h3>Program</h3><p>Púť do Levoče.</p>');
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish('<p>'.$this->flatText().'</p>');
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish('<p>'.$this->flatText().'</p>');
 
         $this->assertSame('<p>'.$this->flatText().'</p>', $result);
     }
@@ -93,7 +93,7 @@ class HtmlBodyFinisherTest extends TestCase
     {
         Http::fake(['api.openai.com/*' => Http::response('boom', 500)]);
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish('<p>'.$this->flatText().'</p>');
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish('<p>'.$this->flatText().'</p>');
 
         $this->assertSame('<p>'.$this->flatText().'</p>', $result);
     }
@@ -103,7 +103,7 @@ class HtmlBodyFinisherTest extends TestCase
     {
         Http::fake();
 
-        $result = (new HtmlBodyFinisher(new ChatGPT()))->finish('<p>Krátka pozvánka na omšu.</p>');
+        $result = (new HtmlBodyFinisher(new ChatGPT))->finish('<p>Krátka pozvánka na omšu.</p>');
 
         $this->assertSame('<p>Krátka pozvánka na omšu.</p>', $result);
         Http::assertNothingSent();

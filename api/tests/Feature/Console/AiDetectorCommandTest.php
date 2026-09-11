@@ -209,7 +209,7 @@ class AiDetectorCommandTest extends TestCase
         $event->refresh();
 
         // Popis prepíše copywriter HTML — vykresľuje sa cez v-html.
-        $this->assertSame('<h3>Program</h3>' . "\n" . '<p>Púť sa začína <strong>o 9:00</strong>.</p>', $event->body);
+        $this->assertSame('<h3>Program</h3>'."\n".'<p>Púť sa začína <strong>o 9:00</strong>.</p>', $event->body);
         $this->assertNotNull($event->body_rewritten_at);
         // Pôvodný zoškrabaný text ostáva dostupný v meta.
         $this->assertSame('<p>Surový zoškrabaný text z importu.</p>', $event->meta['imported_raw_body'] ?? null);
