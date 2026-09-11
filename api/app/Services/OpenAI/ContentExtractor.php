@@ -27,7 +27,7 @@ class ContentExtractor
         }
 
         if (!$element) {
-            throw new \RuntimeException('Element pre hlavny obsah sa nenasiel');
+            throw new ContentNotFoundException('Element pre hlavny obsah sa nenasiel');
         }
 
         $this->removeIgnoredNodes($element, $baseUrl);

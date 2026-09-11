@@ -104,7 +104,9 @@ class Detector
             try {
                 if (mb_strlen(trim($sourceText)) >= 50) {
                     $copywriter = $this->chatGPT->extractCopywriter($sourceText);
-                    $correctedText = $copywriter['event_body'] ?? null;
+                    $correctedText = is_string($copywriter['event_body'] ?? null) && trim($copywriter['event_body']) !== ''
+                        ? ($this->finisher()->finish($copywriter['event_body']) ?: null)
+                        : null;
                 }
             } catch (\Throwable $e) {
                 // Zlyhanie copywritera nie je fatálne — volajúci má fallback na
@@ -396,7 +398,20 @@ class Detector
 
         $body = $copywriter['event_body'] ?? null;
 
-        return is_string($body) && trim($body) !== '' ? trim($body) : null;
+        if (! is_string($body) || trim($body) === '') {
+            return null;
+        }
+
+        return $this->finisher()->finish($body) ?: null;
+    }
+
+    /**
+     * Nad tým istým ChatGPT ako zvyšok detektora — v testoch je to ten istý
+     * mock, takže sadzba nejde naslepo na OpenAI.
+     */
+    private function finisher(): HtmlBodyFinisher
+    {
+        return new HtmlBodyFinisher($this->chatGPT);
     }
 
     public function detectFromUrl(string $url): array
@@ -426,6 +441,7 @@ class Detector
                 'success' => false,
                 'error' => $e->getMessage(),
                 'source_http_status' => $e instanceof WebPageFetchException ? $e->getCode() : null,
+                'source_unreadable' => $e instanceof ContentNotFoundException,
             ];
         }
     }

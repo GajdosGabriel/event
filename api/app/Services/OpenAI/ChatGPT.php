@@ -5,7 +5,7 @@ namespace App\Services\OpenAI;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use App\Services\OpenAI\{PromptCanal, PromptContentReview, PromptCopywriter, PromptData, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
+use App\Services\OpenAI\{PromptCanal, PromptContentReview, PromptCopywriter, PromptData, PromptHtmlFormatter, PromptProfile, PromptTags, PromptTextEditor, PromptVenue};
 
 class ChatGPT
 {
@@ -33,6 +33,12 @@ class ChatGPT
      */
     private const MIN_TEXT_LAYER_CHARS = 120;
 
+    /**
+     * Strop vstupu sadzby do HTML. Výstup je rovnako dlhý ako vstup plus tagy,
+     * takže nad touto hranicou by odpoveď narážala na limit tokenov.
+     */
+    private const MAX_FORMATTER_INPUT_CHARS = 12000;
+
     public function __construct(
         private readonly PromptData $promptData = new PromptData(),
         private readonly PromptCopywriter $promptCopywriter = new PromptCopywriter(),
@@ -42,7 +48,33 @@ class ChatGPT
         private readonly PromptProfile $promptProfile = new PromptProfile(),
         private readonly PromptTags $promptTags = new PromptTags(),
         private readonly PromptContentReview $promptContentReview = new PromptContentReview(),
+        private readonly PromptHtmlFormatter $promptHtmlFormatter = new PromptHtmlFormatter(),
     ) {}
+
+    /**
+     * Hotový (už prepísaný či rozšírený) text do HTML — bez zmeny obsahu.
+     * Volá sa len cez HtmlBodyFinisher, keď výsledku prepisu chýba štruktúra.
+     */
+    public function formatAsHtml(string $text): ?string
+    {
+        $text = $this->sanitizeUtf8($text);
+
+        if ($text === '' || mb_strlen($text) > self::MAX_FORMATTER_INPUT_CHARS) {
+            return null;
+        }
+
+        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptHtmlFormatter->prompt($text), $this->promptHtmlFormatter->jsonSchema());
+        $data = $this->decodeJson($content);
+
+        $validator = Validator::make($data, $this->promptHtmlFormatter->validator());
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: ' . $validator->errors()->toJson());
+        }
+
+        $html = trim((string) $data['html']);
+
+        return $html !== '' ? $html : null;
+    }
 
     /**
      * Obsahové štítky podujatia z pevného číselníka.

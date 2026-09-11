@@ -28,6 +28,8 @@ class AiDetector extends Command
      */
     protected $description = 'Detect and process AI content for events';
 
+    private const MAX_ATTEMPTS = 5;
+
     /**
      * Execute the console command.
      */
@@ -48,21 +50,32 @@ class AiDetector extends Command
         $result = $detector->detectFromUrl((string) $event->orginal_source);
 
         if (! ($result['success'] ?? false)) {
-            $permanent = in_array($result['source_http_status'] ?? null, [404, 410], true);
             $meta = is_array($event->meta) ? $event->meta : [];
+            $attempts = (int) ($meta['ai_detector']['attempts'] ?? 0) + 1;
+
+            // Natrvalo sa vzdávame, keď stránka neexistuje, keď v nej niet čo
+            // čítať (hlascirkvi.sk/akcie/… je JS aplikácia bez obsahu v HTML),
+            // alebo keď zlyhala priveľakrát — inak by sa to isté podujatie
+            // skúšalo každú hodinu donekonečna.
+            $permanent = in_array($result['source_http_status'] ?? null, [404, 410], true)
+                || ($result['source_unreadable'] ?? false)
+                || $attempts >= self::MAX_ATTEMPTS;
+
             $meta['ai_detector'] = array_merge($meta['ai_detector'] ?? [], [
                 'failed_at' => now()->toIso8601String(),
                 'source_url' => $event->orginal_source,
                 'error' => $result['error'] ?? 'Unknown detector error',
                 'source_http_status' => $result['source_http_status'] ?? null,
+                'attempts' => $attempts,
                 'skipped_at' => $permanent ? now()->toIso8601String() : null,
-                'retry_at' => $permanent ? null : now()->addHour()->toIso8601String(),
+                // 1, 2, 4, 8 hodín — prechodný výpadok zdroja sa tým prečká.
+                'retry_at' => $permanent ? null : now()->addHours(2 ** ($attempts - 1))->toIso8601String(),
             ]);
             $event->update(['meta' => $meta]);
 
             if ($permanent) {
-                Log::info('AiDetector skipped unavailable source.', ['event_id' => $event->id, ...$meta['ai_detector']]);
-                $this->info('AiDetector skipped event id ' . $event->id . ': source unavailable.');
+                Log::info('AiDetector gave up on source.', ['event_id' => $event->id, ...$meta['ai_detector']]);
+                $this->info('AiDetector skipped event id ' . $event->id . ': ' . $meta['ai_detector']['error']);
 
                 return self::SUCCESS;
             }

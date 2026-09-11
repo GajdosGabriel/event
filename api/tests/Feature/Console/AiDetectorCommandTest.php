@@ -86,6 +86,69 @@ class AiDetectorCommandTest extends TestCase
         $this->assertArrayNotHasKey('retry_at', $event->fresh()->meta['ai_detector']);
     }
 
+    /**
+     * hlascirkvi.sk/akcie/… je JS aplikácia — HTML nemá element s obsahom.
+     * Opakovanie to nezmení, takže sa podujatie preskočí hneď a beh neskončí
+     * chybou (predtým sa skúšalo každú hodinu donekonečna s exit kódom 1).
+     */
+    #[Test]
+    public function source_without_readable_content_is_skipped_at_once(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'published_at' => now(), 'orginal_source' => 'https://hlascirkvi.sk/akcie/9012/nazov',
+            'body_rewritten_at' => null,
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->once()->andReturn([
+            'success' => false, 'error' => 'Element pre hlavny obsah sa nenasiel',
+            'source_http_status' => null, 'source_unreadable' => true,
+        ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+        $this->travel(1)->days();
+        $this->artisan('app:ai-detector')->expectsOutput('AiDetector: no eligible event found.')->assertSuccessful();
+
+        $this->assertNotNull($event->fresh()->meta['ai_detector']['skipped_at']);
+        $this->assertNull($event->fresh()->body_rewritten_at);
+    }
+
+    #[Test]
+    public function repeated_transient_failures_back_off_and_give_up_after_five_attempts(): void
+    {
+        $this->freezeTime();
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'published_at' => now(), 'orginal_source' => 'https://example.test/flaky',
+            'body_rewritten_at' => null,
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->times(5)->andReturn(
+            ['success' => false, 'error' => 'HTTP chyba: 503', 'source_http_status' => 503],
+        );
+        $this->app->instance(Detector::class, $detector);
+
+        foreach ([1, 2, 4, 8] as $hours) {
+            $this->artisan('app:ai-detector')->assertFailed();
+            $this->assertEquals(now()->addHours($hours)->toIso8601String(), $event->fresh()->meta['ai_detector']['retry_at']);
+            $this->travel($hours)->hours();
+        }
+
+        // Piaty pokus je posledný — potom sa podujatie už nevráti.
+        $this->artisan('app:ai-detector')->assertSuccessful();
+        $this->assertSame(5, $event->fresh()->meta['ai_detector']['attempts']);
+        $this->assertNotNull($event->fresh()->meta['ai_detector']['skipped_at']);
+        $this->travel(1)->days();
+        $this->artisan('app:ai-detector')->expectsOutput('AiDetector: no eligible event found.')->assertSuccessful();
+    }
+
     #[Test]
     public function it_rewrites_the_body_of_the_latest_imported_published_event(): void
     {
