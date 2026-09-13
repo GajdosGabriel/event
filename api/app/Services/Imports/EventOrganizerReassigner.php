@@ -22,13 +22,13 @@ use App\Models\Event;
 class EventOrganizerReassigner
 {
     public function __construct(
-        private readonly ImportedCanalManager $canalManager = new ImportedCanalManager(),
+        private readonly ImportedCanalManager $canalManager = new ImportedCanalManager,
     ) {}
 
     /**
-     * @return Canal|null  cieľový kanál, keď sa podujatie naozaj presunulo
+     * @return Canal|null cieľový kanál, keď sa podujatie naozaj presunulo
      */
-    public function reassign(Event $event, ?string $organizerName): ?Canal
+    public function reassign(Event $event, ?string $organizerName, ?string $website = null): ?Canal
     {
         $canal = $event->canal;
 
@@ -42,7 +42,7 @@ class EventOrganizerReassigner
             return null;
         }
 
-        $target = $this->canalManager->resolveOrCreate($name, $name, $this->sourceOrigin($event, $canal));
+        $target = $this->canalManager->resolveOrCreate($name, $name, $this->sourceOrigin($event, $canal), $website);
 
         if ($target->id === $canal->id) {
             return null;
@@ -65,7 +65,7 @@ class EventOrganizerReassigner
         $host = (string) parse_url($url, PHP_URL_HOST);
 
         if ($host !== '') {
-            return $scheme . '://' . $host;
+            return $scheme.'://'.$host;
         }
 
         return (string) ($canal->website ?? '');

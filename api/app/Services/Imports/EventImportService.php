@@ -25,10 +25,10 @@ class EventImportService
         private readonly EventRepository $eventRepository,
         private readonly FileManager $fileManager,
         private readonly PdfConverterService $pdfConverter,
-        private readonly GoogleMapsLinkResolver $mapsLinkResolver = new GoogleMapsLinkResolver(),
-        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher(),
-    ) {
-    }
+        private readonly GoogleMapsLinkResolver $mapsLinkResolver = new GoogleMapsLinkResolver,
+        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher,
+        private readonly OrganizerWebsiteFinder $websiteFinder = new OrganizerWebsiteFinder,
+    ) {}
 
     /**
      * @return array{imported:int,updated:int,skipped:int,errors:int,processed:int}
@@ -82,25 +82,25 @@ class EventImportService
         $detail = $this->detailService->extract($articleUrl);
 
         // Convert any PDF attachments: extract text (for canal/venue/date detection) and page images
-        $pdfText    = '';
+        $pdfText = '';
         $pdfResults = []; // [['result' => PdfConvertResult, 'name' => string, 'source_url' => string]]
         foreach ((array) ($detail['attachments'] ?? []) as $attachment) {
-            $url  = is_string($attachment['url'] ?? null) ? trim((string) $attachment['url']) : '';
+            $url = is_string($attachment['url'] ?? null) ? trim((string) $attachment['url']) : '';
             $name = is_string($attachment['name'] ?? null) ? (string) $attachment['name'] : basename((string) parse_url($url, PHP_URL_PATH));
             $urlPath = strtolower((string) parse_url($url, PHP_URL_PATH));
-            if ($url === '' || !str_ends_with($urlPath, '.pdf')) {
+            if ($url === '' || ! str_ends_with($urlPath, '.pdf')) {
                 continue;
             }
             $result = $this->pdfConverter->convertFromUrl($url);
             if ($result === null || $result->fullText === '') {
                 continue;
             }
-            $pdfText .= "\n\n" . $result->fullText;
+            $pdfText .= "\n\n".$result->fullText;
             $pdfResults[] = ['result' => $result, 'name' => $name, 'source_url' => $url];
         }
 
-        $rawBodyText    = (string) ($detail['body_text'] ?? strip_tags((string) $detail['body']));
-        $enrichedBodyText = $pdfText !== '' ? $rawBodyText . $pdfText : $rawBodyText;
+        $rawBodyText = (string) ($detail['body_text'] ?? strip_tags((string) $detail['body']));
+        $enrichedBodyText = $pdfText !== '' ? $rawBodyText.$pdfText : $rawBodyText;
 
         // A date found without an explicit clock time (e.g. a "Sobota 4. júla
         // 2026:" heading in front of a multi-time program list) is only a
@@ -125,10 +125,24 @@ class EventImportService
         // neprepisuje. Presne takto vznikali kanály bez jediného podujatia.
         $existingEvent = $this->findEventBySourceUrl((string) ($detail['source_url'] ?? ''));
 
+        // Web organizátora sa hľadá len keď sa kanál naozaj rieši — existujúce
+        // podujatie si ho ponechá. Web zdroja (vyveska.sk) dostane výlučne
+        // zberný kanál, viď ImportedCanalManager.
+        $organizerWebsite = $existingEvent === null && $resolvedCanal['detected_name'] !== null
+            ? $this->websiteFinder->find(
+                $resolvedCanal['detected_name'],
+                (array) ($detail['links'] ?? []),
+                $enrichedBodyText,
+                $resolvedCanal['detected_canal_website'] ?? null,
+                (string) $detail['source_url'],
+            )
+            : null;
+
         $canal = $existingEvent?->canal ?? $this->canalManager->resolveOrCreate(
             $resolvedCanal['name'],
             $resolvedCanal['detected_name'],
             $resolvedCanal['source_origin'],
+            $organizerWebsite,
         );
 
         // A Google Maps pin in the article (e.g. "presne tu: https://maps.app.goo.gl/…")
@@ -162,17 +176,17 @@ class EventImportService
         // Enrich body with PDF text if existing body is very short
         if ($pdfText !== '' && mb_strlen(strip_tags($body)) < 300) {
             $safeText = htmlspecialchars(trim($pdfText), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $body = rtrim($body) . "\n<p>" . nl2br($safeText) . "</p>";
+            $body = rtrim($body)."\n<p>".nl2br($safeText).'</p>';
         }
 
         // Precise regex dates take priority. An imprecise (date-only) regex
         // match defers to the AI-confirmed time when available, falling back
         // to the original guess only if AI could not confirm it either.
         $regexStartAt = $startAtPrecise ? $detail['start_at'] : null;
-        $regexEndAt   = $startAtPrecise ? $detail['end_at'] : null;
+        $regexEndAt = $startAtPrecise ? $detail['end_at'] : null;
 
         $startAt = $regexStartAt ?? $resolvedCanal['ai_start_at'] ?? $detail['start_at'];
-        $endAt   = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
+        $endAt = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
         $payload = [
@@ -298,7 +312,7 @@ class EventImportService
     }
 
     /**
-     * @param array<string, mixed> $detail
+     * @param  array<string, mixed>  $detail
      */
     private function findExistingEvent(int $canalId, array $detail): ?Event
     {
@@ -322,7 +336,7 @@ class EventImportService
     }
 
     /**
-     * @param array<int, string> $links
+     * @param  array<int, string>  $links
      */
     private function resolveEventWebsite(array $links, string $sourceUrl): string
     {
@@ -345,7 +359,7 @@ class EventImportService
     }
 
     /**
-     * @param array<int, array{result: PdfConvertResult, name: string, source_url: string}> $pdfResults
+     * @param  array<int, array{result: PdfConvertResult, name: string, source_url: string}>  $pdfResults
      */
     private function syncPdfPageImages(Event $event, array $pdfResults): void
     {
@@ -370,7 +384,7 @@ class EventImportService
             // own preview through the same ImageVariantGenerator pipeline) — storing it
             // again here would duplicate the file. This only adds the per-page images.
             foreach ($result->pages as $page) {
-                $pageNumber   = (int) ($page['page'] ?? 1);
+                $pageNumber = (int) ($page['page'] ?? 1);
                 $uploadedFile = $this->pdfConverter->pageToUploadedFile($page, $name, $pageNumber);
                 if ($uploadedFile === null) {
                     continue;
@@ -385,9 +399,9 @@ class EventImportService
                         null,
                         false,
                         [
-                            'source'        => 'pdf_conversion',
+                            'source' => 'pdf_conversion',
                             'source_pdf_url' => $sourceUrl,
-                            'page'           => $pageNumber,
+                            'page' => $pageNumber,
                         ]
                     );
                 } finally {
@@ -398,7 +412,7 @@ class EventImportService
     }
 
     /**
-     * @param array<int, string> $imageUrls
+     * @param  array<int, string>  $imageUrls
      */
     private function syncImages(Event $event, array $imageUrls, string $articleUrl): void
     {
@@ -470,7 +484,7 @@ class EventImportService
     }
 
     /**
-     * @param array<int, array<string, mixed>> $attachments
+     * @param  array<int, array<string, mixed>>  $attachments
      */
     private function syncAttachments(Event $event, array $attachments, string $articleUrl): void
     {
@@ -502,6 +516,7 @@ class EventImportService
 
             if ($this->isImageAttachment($normalized)) {
                 $imageAttachments[] = $normalized;
+
                 continue;
             }
 
@@ -540,20 +555,20 @@ class EventImportService
     }
 
     /**
-     * @param array<string, mixed> $attachment
+     * @param  array<string, mixed>  $attachment
      */
     private function isImageAttachment(array $attachment): bool
     {
         $name = strtolower((string) ($attachment['name'] ?? ''));
         $url = strtolower((string) ($attachment['url'] ?? ''));
-        $haystack = $name . ' ' . $url;
+        $haystack = $name.' '.$url;
 
         return preg_match('/\.(jpg|jpeg|png|webp|gif)(\b|$)/i', $haystack) === 1;
     }
 
     /**
-     * @param array<int, array<string, mixed>> $linkItems
-     * @param array<int, array<string, mixed>> $attachments
+     * @param  array<int, array<string, mixed>>  $linkItems
+     * @param  array<int, array<string, mixed>>  $attachments
      */
     private function appendRelevantLinksToBody(string $body, array $linkItems, array $attachments): string
     {
@@ -576,7 +591,7 @@ class EventImportService
 
             $text = is_string($linkItem['text'] ?? null) ? trim((string) $linkItem['text']) : '';
             $label = $this->linkLabel($text, $url);
-            $key = mb_strtolower($label . '|' . $url);
+            $key = mb_strtolower($label.'|'.$url);
 
             $relevantLinks[$key] = ['label' => $label, 'url' => $url];
         }
@@ -587,12 +602,12 @@ class EventImportService
 
         $items = '';
         foreach ($relevantLinks as $link) {
-            $safeHref  = htmlspecialchars($link['url'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $safeHref = htmlspecialchars($link['url'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $safeLabel = htmlspecialchars($link['label'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $items    .= "<li><a href=\"{$safeHref}\">{$safeLabel}</a></li>\n";
+            $items .= "<li><a href=\"{$safeHref}\">{$safeLabel}</a></li>\n";
         }
 
-        return rtrim($body) . "\n<h2>Odkazy</h2>\n<ul>\n{$items}</ul>";
+        return rtrim($body)."\n<h2>Odkazy</h2>\n<ul>\n{$items}</ul>";
     }
 
     private function linkLabel(string $text, string $url): string

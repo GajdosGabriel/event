@@ -114,7 +114,7 @@ class EventDetailService
 			'start_at'                 => $startAt,
 			'end_at'                   => $endAt,
 			'start_at_precise'         => $startAtPrecise,
-			'registration_deadline_at' => null,
+			'registration_deadline_at' => $this->extractTkkbsRegistrationDeadline($bodyText),
 			'published_at_source'      => $this->extractTkkbsPublishedAt($bodyText),
 			'links'                    => $links,
 			'link_items'               => $linkItems,
@@ -552,6 +552,11 @@ class EventDetailService
 	 */
 	private function extractTkkbsDateRange(string $text): array
 	{
+		// Uzávierka prihlášok nie je termín podujatia. Oznam „Záujemcovia sa
+		// môžu prihlásiť do 15. septembra 2026." bez iného dátumu inak skončil
+		// ako podujatie 15. 9. (podujatia 10732, 10790).
+		$text = $this->withoutDeadlineDates($text);
+
 		// "DD. Month YYYY o HH:MM" — event date+time with Slovak preposition "o"
 		// e.g. "29. júna 2026 o 18:00" or "29. júna 2026 o 18.00"
 		if (preg_match(
@@ -575,6 +580,34 @@ class EventDetailService
 		[$startAt, $endAt] = $this->extractDateRangeFromText($text);
 
 		return [$startAt, $endAt, false];
+	}
+
+	private const TEXT_DATE = '(\d{1,2})\.\s*([[:alpha:]áäčďéíĺľňóôŕšťúýž]+)\s+(\d{4})';
+
+	/**
+	 * „prihlásiť sa do 15. septembra 2026", „Prihlášky do: 15. septembra 2026".
+	 */
+	private function extractTkkbsRegistrationDeadline(string $text): ?Carbon
+	{
+		if (! preg_match('/prihl[[:alpha:]áäčďéíĺľňóôŕšťúýž]*[^.\d]{0,40}?\bdo:?\s+' . self::TEXT_DATE . '/iu', $text, $matches)) {
+			return null;
+		}
+
+		$month = $this->slovakMonthToNumber($matches[2]);
+		if ($month === null) {
+			return null;
+		}
+
+		return $this->sourceDateTime((int) $matches[3], $month, (int) $matches[1], 23, 59, 59);
+	}
+
+	/**
+	 * Vyhodí dátumy uvedené ako hranica „do …", aby ich regex nevzal za začiatok.
+	 * Rozsah „od 13. do 15. marca 2026" ostáva — pred „do" je tam číslo dňa.
+	 */
+	private function withoutDeadlineDates(string $text): string
+	{
+		return preg_replace('/(?<!\d\.\s)\b(do:?\s+)' . self::TEXT_DATE . '(?:\s+o\s+\d{1,2}[:.]\d{2})?/iu', '$1…', $text) ?? $text;
 	}
 
 	/**

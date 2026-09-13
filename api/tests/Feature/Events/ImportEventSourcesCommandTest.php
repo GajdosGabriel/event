@@ -58,9 +58,10 @@ class ImportEventSourcesCommandTest extends TestCase
             ->expectsOutput('Event import summary -> processed: 1, imported: 1, updated: 0, skipped: 0, errors: 0')
             ->assertSuccessful();
 
-        $canal = Canal::query()->where('website', 'https://www.ecav.sk')->first();
+        $canal = Canal::query()->where('name', 'Modlitebné spoločenstvo ECAV')->first();
         $this->assertNotNull($canal);
-        $this->assertSame('Modlitebné spoločenstvo ECAV', $canal->name);
+        // Web zdroja ostáva zbernému kanálu, menovaný organizátor ho nededí.
+        $this->assertNull($canal->website);
 
         $this->assertDatabaseHas('canal_user', [
             'canal_id' => $canal->id,
@@ -101,7 +102,7 @@ class ImportEventSourcesCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(1, Event::query()->where('orginal_source', $detailUrl)->count());
-        $this->assertSame(1, Canal::query()->where('website', 'https://www.ecav.sk')->count());
+        $this->assertSame(1, Canal::query()->where('name', 'Modlitebné spoločenstvo ECAV')->count());
         $this->assertSame(1, Venue::query()
             ->whereHas('canals', fn ($query) => $query->where('canals.id', $canal->id))
             ->where('slug', 'cele-slovensko')
@@ -316,6 +317,41 @@ class ImportEventSourcesCommandTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_use_the_tkkbs_registration_deadline_as_the_event_start(): void
+    {
+        Storage::fake('public');
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('super-admin');
+
+        $listingUrl = 'https://www.tkkbs.sk/search.php?rstext=studium&rskde=tsl';
+        $detailUrl = 'https://www.tkkbs.sk/view.php?cisloclanku=20260618013';
+        $imageUrl = 'https://www.tkkbs.sk/galeria/images/1/2.jpg';
+        $title = 'Bohoslovecká fakulta UK otvára rozširujúce štúdium náboženskej výchovy';
+        $body = 'Bratislava 18. júna (TK KBS) Fakulta otvára na akademický rok 2026/2027 rozširujúce štúdium. Záujemcovia sa môžu prihlásiť do 15. septembra 2026.';
+
+        Http::fake(function ($request) use ($listingUrl, $detailUrl, $imageUrl, $title, $body) {
+            return match ($request->url()) {
+                $listingUrl => Http::response($this->tkkbsListingHtmlWithTitle($detailUrl, $title), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
+                $detailUrl => Http::response($this->tkkbsDetailHtmlWithContent($imageUrl, $title, $body), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
+                $imageUrl => Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']),
+                default => Http::response('', 404),
+            };
+        });
+
+        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1])
+            ->assertSuccessful();
+
+        $event = Event::query()->where('orginal_source', $detailUrl)->first();
+        $this->assertNotNull($event);
+        $this->assertNull($event->start_at);
+        $this->assertNull($event->end_at);
+        $this->assertSame('2026-09-15 21:59:59', $event->registration_deadline_at?->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame(ModelStatus::Draft, $event->status);
+    }
+
+    #[Test]
     public function it_imports_tkkbs_event_with_windows_1250_diacritics_correctly(): void
     {
         Storage::fake('public');
@@ -498,7 +534,7 @@ class ImportEventSourcesCommandTest extends TestCase
         // spolok") — podujatie ide pod jeho kanál, nie pod zberný "vyveska.sk".
         $canal = Canal::query()->where('name', 'Evanjelický spolok')->first();
         $this->assertNotNull($canal);
-        $this->assertSame('https://www.vyveska.sk', $canal->website);
+        $this->assertNull($canal->website);
 
         $event = Event::query()->where('orginal_source', $detailUrl)->first();
         $this->assertNotNull($event);

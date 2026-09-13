@@ -47,11 +47,12 @@ class PromptData
                         // 👇 TU IDE ORGANIZER
                         'organizer' => [
                             'type' => ['object', 'null'],
-                            'required' => ['name', 'street_and_number', 'city'],
+                            'required' => ['name', 'street_and_number', 'city', 'website'],
                             'properties' => [
                                 'name' => ['type' => ['string', 'null']],
                                 'street_and_number' => ['type' => ['string', 'null']],
                                 'city' => ['type' => ['string', 'null']],
+                                'website' => ['type' => ['string', 'null']],
                             ],
                             'additionalProperties' => false,
                         ],
@@ -120,7 +121,7 @@ PRAVIDLO PRE CHÝBAJÚCI ROK:
         return [
             [
                 'role' => 'system',
-                'content' => $dateContext . 'Si presný štruktúrovaný extrakčný asistent pre slovenské udalosti.
+                'content' => $dateContext.'Si presný štruktúrovaný extrakčný asistent pre slovenské udalosti.
 
 Tvojou úlohou je extrahovať informácie z textu do striktne validného JSON podľa zadanej schémy.
 
@@ -131,11 +132,14 @@ PRAVIDLÁ:
 - Venue je fyzické miesto, kde sa akcia koná (kostol, sála, katedrála, centrum…).
 - Ak je uvedený iba jeden subjekt a je zjavne miestom konania, vyplň venue a organizer nastav na null.
 - Ak je uvedený iba organizátor bez miesta, vyplň organizer a venue nastav na null.
+- organizer.website: web organizátora, LEN ak je v texte výslovne uvedený (napr. "www.mskw.sk"). Nikdy nevracaj web zdroja článku (vyveska.sk, tkkbs.sk, ecav.sk), Facebook ani adresu, ktorá v texte nie je. Inak null.
 
 DÁTUM A ČAS:
 - Vráť lokálny slovenský čas (Europe/Bratislava) vo formáte YYYY-MM-DD HH:MM:SS (24h). Nekonvertuj na UTC.
 - Pre start_at použi dátum/čas konania podujatia, NIE publikačný dátum článku.
 - V TK KBS textoch časť typu "Bratislava 25. júna (TK KBS)" je redakčná hlavička článku, nie termín podujatia.
+- Uzávierka prihlášok ("prihlásiť sa do 15. septembra", "prihlášky do", "uzávierka prihlášok") NIE JE termín podujatia — nikdy ju nedávaj do start_at ani end_at.
+- Ak text len oznamuje štúdium, kurz, školu alebo prihlasovanie a termín začiatku neuvádza, nastav start_at aj end_at na null.
 - Ak text obsahuje explicitný čas (napr. "o 17:45"), ten musí byť použitý v start_at.
 - Ak je uvedený iba dátum bez času (celý deň), nastav start_at na dátum 00:00:00 a end_at na dátum 23:59:59.
 - Ak je uvedený čas začiatku ale čas konca nie je explicitne uvedený, odhadni end_at podľa povahy akcie:
@@ -166,17 +170,17 @@ Vráť iba validný JSON bez komentárov.',
             [
                 'role' => 'user',
                 'content' => "Vstupny text:\n{$text}\n\n"
-                    . "Z tohto textu extrahuj JSON objekt s klucmi:\n"
-                    . "- title\n"
-                    . "- start_at (YYYY-MM-DD HH:MM:SS)\n"
-                    . "- end_at (YYYY-MM-DD HH:MM:SS)\n"
-                    . "- organizer: { name, street_and_number, city }\n"
-                    . "- venue: { name, street_and_number, city }\n"
-                    . "- email\n"
-                    . "- phone\n"
-                    . "- persons: zahrn kazdu fyzicku osobu z textu; aj bez kontaktu; description je rola alebo kontext; chybajuci email/telefon nastav na null\n"
-                    . ($withPosterText ? $this->posterTextInstruction() : '')
-                    . "Vrat iba validny JSON bez dalsieho textu.",
+                    ."Z tohto textu extrahuj JSON objekt s klucmi:\n"
+                    ."- title\n"
+                    ."- start_at (YYYY-MM-DD HH:MM:SS)\n"
+                    ."- end_at (YYYY-MM-DD HH:MM:SS)\n"
+                    ."- organizer: { name, street_and_number, city, website }\n"
+                    ."- venue: { name, street_and_number, city }\n"
+                    ."- email\n"
+                    ."- phone\n"
+                    ."- persons: zahrn kazdu fyzicku osobu z textu; aj bez kontaktu; description je rola alebo kontext; chybajuci email/telefon nastav na null\n"
+                    .($withPosterText ? $this->posterTextInstruction() : '')
+                    .'Vrat iba validny JSON bez dalsieho textu.',
             ],
         ];
     }
@@ -192,11 +196,11 @@ Vráť iba validný JSON bez komentárov.',
     private function posterTextInstruction(): string
     {
         return "- poster_text: DOSLOVNY prepis vsetkeho textu z prilozenych obrazkov plagatu.\n"
-            . "  * Prepisuj v poradi, v akom je text na plagate, riadok po riadku.\n"
-            . "  * Zachovaj cely program: kazdy datum, cas aj nazov bodu programu.\n"
-            . "  * Zachovaj mena, ceny, kontakty a poznamky pod ciarou.\n"
-            . "  * Riadky oddeluj znakom nového riadku, nic nesumarizuj a nic nedopisuj.\n"
-            . "  * Ak je vstupom iba text (ziadny obrazok), nastav poster_text na null.\n";
+            ."  * Prepisuj v poradi, v akom je text na plagate, riadok po riadku.\n"
+            ."  * Zachovaj cely program: kazdy datum, cas aj nazov bodu programu.\n"
+            ."  * Zachovaj mena, ceny, kontakty a poznamky pod ciarou.\n"
+            ."  * Riadky oddeluj znakom nového riadku, nic nesumarizuj a nic nedopisuj.\n"
+            ."  * Ak je vstupom iba text (ziadny obrazok), nastav poster_text na null.\n";
     }
 
     public function validator(): array

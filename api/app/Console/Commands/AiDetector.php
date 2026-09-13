@@ -3,13 +3,17 @@
 namespace App\Console\Commands;
 
 use App\Enums\ModelStatus;
+use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Imports\CollectionCanal;
 use App\Services\Imports\EventOrganizerReassigner;
+use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Imports\ImportedVenueManager;
+use App\Services\Imports\OrganizerName;
+use App\Services\Imports\OrganizerWebsiteFinder;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Console\Command;
@@ -43,6 +47,7 @@ class AiDetector extends Command
         EventOrganizerReassigner $reassigner,
         ImportedVenueManager $venueManager,
         EventDependencyPublisher $dependencyPublisher,
+        OrganizerWebsiteFinder $websiteFinder,
     ): int {
         $event = $this->claimForRewrite() ?? $this->claimForOrganizerCheck();
 
@@ -170,7 +175,18 @@ class AiDetector extends Command
         $organizer = $result['event_payload']['organizer'] ?? null;
         $organizerName = is_array($organizer) ? $this->pickString($organizer['name'] ?? null) : null;
 
-        $movedTo = $reassigner->reassign($event, $organizerName);
+        $organizerWebsite = $this->organizerWebsite($event, $organizerName, $organizer, $result, $websiteFinder);
+
+        $movedTo = $reassigner->reassign($event, $organizerName, $organizerWebsite);
+
+        // Importovaný organizátor bez webu ho dostane aj bez presunu — web zdroja
+        // mu migrácia zmazala a skutočný sa dá dohľadať až z celého článku.
+        $currentCanal = $event->canal;
+        if (! $movedTo instanceof Canal && $organizerWebsite !== null && $currentCanal instanceof Canal
+            && ! CollectionCanal::is($currentCanal) && blank($currentCanal->website)) {
+            $currentCanal->update(['website' => $organizerWebsite]);
+            $this->info('AiDetector: kanál '.$currentCanal->id.' dostal web '.$organizerWebsite.'.');
+        }
 
         if ($movedTo instanceof Canal) {
             $this->info('AiDetector: podujatie '.$event->id.' prešlo zo zberného kanála na „'.$movedTo->name.'" ('.$movedTo->id.').');
@@ -200,6 +216,38 @@ class AiDetector extends Command
         $this->info('AiDetector processed event id '.$event->id.'.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Web organizátora — hľadá sa len vtedy, keď ho kanál naozaj potrebuje:
+     * zberný kanál sa práve mení na organizátora, alebo importovaný organizátor
+     * s tým istým menom web ešte nemá. Inak by každý beh zbytočne volal Wikidata.
+     *
+     * @param  array<string, mixed>  $result
+     */
+    private function organizerWebsite(Event $event, ?string $organizerName, mixed $organizer, array $result, OrganizerWebsiteFinder $finder): ?string
+    {
+        $canal = $event->canal;
+
+        if ($organizerName === null || ! $canal instanceof Canal) {
+            return null;
+        }
+
+        $namedWithoutWebsite = $canal->registration_source === RegistrationSource::IMPORT
+            && blank($canal->website)
+            && ImportedNameMatcher::baseSlug((string) $canal->name) === ImportedNameMatcher::baseSlug((string) OrganizerName::sanitize($organizerName));
+
+        if (! CollectionCanal::is($canal) && ! $namedWithoutWebsite) {
+            return null;
+        }
+
+        return $finder->find(
+            $organizerName,
+            (array) ($result['links'] ?? []),
+            (string) ($result['extracted_text'] ?? ''),
+            is_array($organizer) ? $this->pickString($organizer['website'] ?? null) : null,
+            (string) $event->orginal_source,
+        );
     }
 
     /**

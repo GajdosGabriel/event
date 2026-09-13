@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Log;
 class ImportedCanalNameResolver
 {
     public function __construct(
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
-        private readonly EventTextLabelExtractor $labelExtractor = new EventTextLabelExtractor(),
+        private readonly ChatGPT $chatGPT = new ChatGPT,
+        private readonly EventTextLabelExtractor $labelExtractor = new EventTextLabelExtractor,
     ) {}
 
     /**
@@ -18,6 +18,7 @@ class ImportedCanalNameResolver
      *   name: string,
      *   detected_name: string|null,
      *   detected_canal_city: string|null,
+     *   detected_canal_website: string|null,
      *   source_origin: string,
      *   detected_venue_name: string|null,
      *   detected_venue_city: string|null,
@@ -31,7 +32,7 @@ class ImportedCanalNameResolver
     public function resolve(string $sourceUrl, string $title, string $text, bool $startAtFound = false, ?Carbon $referenceDate = null): array
     {
         $title = $this->normalizeEncoding($title);
-        $text  = $this->normalizeEncoding($text);
+        $text = $this->normalizeEncoding($text);
 
         // Priority 1: explicit label ("Organizátor:", "Usporiadateľ:", …) — source-agnostic
         // Priority 2: domain-specific heuristic patterns (ECAV, KBS, …)
@@ -44,17 +45,18 @@ class ImportedCanalNameResolver
         }
 
         // Heuristic venue extraction — source-agnostic, works without AI
-        $heuristicVenue      = $this->labelExtractor->extractVenue($text);
-        $detectedVenueName   = $heuristicVenue['name'] ?? null;
-        $detectedVenueCity   = $heuristicVenue['city'] ?? null;
+        $heuristicVenue = $this->labelExtractor->extractVenue($text);
+        $detectedVenueName = $heuristicVenue['name'] ?? null;
+        $detectedVenueCity = $heuristicVenue['city'] ?? null;
         $detectedVenueStreet = null;
 
         $detectedCanalCity = null;
+        $detectedCanalWebsite = null;
 
         $aiStartAt = null;
-        $aiEndAt   = null;
-        $aiEmail   = null;
-        $aiPhone   = null;
+        $aiEndAt = null;
+        $aiEmail = null;
+        $aiPhone = null;
 
         // AI activates only when regex left something missing. Neznáme mesto
         // sa počíta medzi chýbajúce: bez neho sa miesto nedá zaradiť k obci a
@@ -66,7 +68,7 @@ class ImportedCanalNameResolver
 
         if ((bool) config('services.imports.detect_canal_with_ai', false) && $somethingMissing) {
             try {
-                $aiData = $this->chatGPT->extractData($title . "\n\n" . $text, $referenceDate);
+                $aiData = $this->chatGPT->extractData($title."\n\n".$text, $referenceDate);
 
                 // Fill only what regex could not find — never override a found value
                 if ($detectedName === null) {
@@ -76,6 +78,8 @@ class ImportedCanalNameResolver
                 $organizerRaw = $aiData['organizer'] ?? null;
                 if (is_array($organizerRaw)) {
                     $detectedCanalCity = $this->normalizeString($organizerRaw['city'] ?? null);
+                    // Len návrh — OrganizerWebsiteFinder ho prijme, až keď doména v článku naozaj je.
+                    $detectedCanalWebsite = $this->normalizeString($organizerRaw['website'] ?? null);
                 }
 
                 $venueRaw = $aiData['venue'] ?? null;
@@ -112,7 +116,7 @@ class ImportedCanalNameResolver
                 // Dates — only used when start_at was not found by regex
                 if (! $startAtFound) {
                     $aiStartAt = $this->parseAiDateTime($aiData['start_at'] ?? null);
-                    $aiEndAt   = $this->parseAiDateTime($aiData['end_at'] ?? null);
+                    $aiEndAt = $this->parseAiDateTime($aiData['end_at'] ?? null);
                 }
 
                 $aiEmail = $this->normalizeString($aiData['email'] ?? null);
@@ -120,8 +124,8 @@ class ImportedCanalNameResolver
             } catch (\Throwable $e) {
                 Log::warning('ImportedCanalNameResolver: AI fallback failed, regex results preserved.', [
                     'source_url' => $sourceUrl,
-                    'title'      => $title,
-                    'error'      => $e->getMessage(),
+                    'title' => $title,
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -137,17 +141,18 @@ class ImportedCanalNameResolver
         $sourceOrigin = $this->extractOrigin($sourceUrl);
 
         return [
-            'name'                  => $detectedName ?? $this->hostLabel($sourceUrl),
-            'detected_name'         => $detectedName,
-            'detected_canal_city'   => $detectedCanalCity,
-            'source_origin'         => $sourceOrigin,
-            'detected_venue_name'   => $detectedVenueName,
-            'detected_venue_city'   => $detectedVenueCity,
+            'name' => $detectedName ?? $this->hostLabel($sourceUrl),
+            'detected_name' => $detectedName,
+            'detected_canal_city' => $detectedCanalCity,
+            'detected_canal_website' => $detectedCanalWebsite,
+            'source_origin' => $sourceOrigin,
+            'detected_venue_name' => $detectedVenueName,
+            'detected_venue_city' => $detectedVenueCity,
             'detected_venue_street' => $detectedVenueStreet,
-            'ai_start_at'           => $aiStartAt,
-            'ai_end_at'             => $aiEndAt,
-            'ai_email'              => $aiEmail,
-            'ai_phone'              => $aiPhone,
+            'ai_start_at' => $aiStartAt,
+            'ai_end_at' => $aiEndAt,
+            'ai_email' => $aiEmail,
+            'ai_phone' => $aiPhone,
         ];
     }
 
@@ -169,6 +174,7 @@ class ImportedCanalNameResolver
             return null;
         }
         $v = trim($value);
+
         return $v !== '' ? $v : null;
     }
 
@@ -247,9 +253,9 @@ class ImportedCanalNameResolver
     private function extractOrigin(string $url): string
     {
         $scheme = (string) (parse_url($url, PHP_URL_SCHEME) ?: 'https');
-        $host   = (string) parse_url($url, PHP_URL_HOST);
+        $host = (string) parse_url($url, PHP_URL_HOST);
 
-        return $host !== '' ? $scheme . '://' . $host : $url;
+        return $host !== '' ? $scheme.'://'.$host : $url;
     }
 
     private function normalizeEncoding(string $value): string
