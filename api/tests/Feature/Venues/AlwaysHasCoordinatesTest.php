@@ -5,6 +5,7 @@ namespace Tests\Feature\Venues;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
+use App\Models\User;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
 use App\Support\NationwideCoordinates;
@@ -95,8 +96,9 @@ class AlwaysHasCoordinatesTest extends TestCase
         $placeholder = Venue::factory()->create(['latitude' => null, 'longitude' => null]);
         $real = Venue::factory()->create(['latitude' => 48.745, 'longitude' => 19.46]);
 
-        $unknown = Event::factory()->create(['venue_id' => $placeholder->id]);
-        $near = Event::factory()->create(['venue_id' => $real->id]);
+        $userId = User::factory()->create()->id;
+        $unknown = Event::factory()->create(['venue_id' => $placeholder->id, 'user_id' => $userId]);
+        $near = Event::factory()->create(['venue_id' => $real->id, 'user_id' => $userId]);
 
         $ids = Event::query()
             ->whereIn('id', [$unknown->id, $near->id])
