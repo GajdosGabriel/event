@@ -27,10 +27,40 @@ class EventController extends Controller
         $this->eventRepository = $eventRepository;
     }
 
+    /** Strop bodov na mape — nad ním už treba zúžiť filter, nie ťahať všetko. */
+    private const MAP_LIMIT = 2000;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = max(1, min((int) $request->integer('per_page') ?: 15, 100));
-        $search = trim((string) $request->input('search', '')) ?: null;
+
+        $events = $this->eventRepository->publicIndexWithFilters($perPage, $this->filters($request));
+
+        return EventResource::collection($events);
+    }
+
+    /**
+     * Ten istý výber ako `index`, ale celý a len s tým, čo treba na mapu.
+     * Stránkovaný výpis by na mape ukázal jednu stranu.
+     */
+    public function map(Request $request): JsonResponse
+    {
+        $result = $this->eventRepository->publicMapPoints($this->filters($request), self::MAP_LIMIT);
+
+        return response()->json([
+            'data' => $result['points'],
+            'meta' => ['total' => $result['total'], 'limit' => self::MAP_LIMIT],
+        ]);
+    }
+
+    /**
+     * Filtre verejného výpisu z query — spoločné pre zoznam aj mapu, aby obe
+     * zobrazenia ukazovali presne ten istý výber.
+     *
+     * @return array<string, mixed>
+     */
+    private function filters(Request $request): array
+    {
         $list = $request->input('list');
         // `past` je archív — uplynulé podujatia od najnovšieho. Ich detaily
         // ostávajú verejné navždy (odkazy z Googlu a zo zdieľaní musia fungovať
@@ -40,9 +70,9 @@ class EventController extends Controller
         [$dateFrom, $dateTo] = $this->range($request);
         [$latitude, $longitude, $radiusKm] = $this->nearby($request);
 
-        $events = $this->eventRepository->publicIndexWithFilters($perPage, [
+        return [
             'municipality' => $this->municipalityId($request),
-            'search' => $search,
+            'search' => trim((string) $request->input('search', '')) ?: null,
             'list' => $list,
             'tags' => $this->tagSlugs($request),
             'date_from' => $dateFrom,
@@ -50,9 +80,7 @@ class EventController extends Controller
             'latitude' => $latitude,
             'longitude' => $longitude,
             'radius_km' => $radiusKm,
-        ]);
-
-        return EventResource::collection($events);
+        ];
     }
 
     /**

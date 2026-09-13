@@ -724,6 +724,10 @@ const sk = {
     list: {
       map: 'Mapa',
       mapMissing: '{n} podujatí nie je na mape — ich miesto nemá súradnice.',
+      mapTruncated: 'Ďalších {n} podujatí sa na mapu nezmestilo — zúžte výber filtrom.',
+      mapShown: 'Na mape: {n}',
+      mapMore: 'a ďalších {n}',
+      mapWhen: { all: 'Všetky', today: 'Dnes', week: 'Najbližší týždeň', month: 'Najbližší mesiac' },
       viewLabel: 'Zobrazenie zoznamu',
       agenda: 'Agenda',
       grid: 'Mriežka',

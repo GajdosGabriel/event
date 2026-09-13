@@ -15,4 +15,5 @@ interface EventRepository extends InterfaceRepository
     public function dashboardMunicipalityOverview(string $scope = 'all');
     public function adminMunicipalityOverview(string $scope = 'all');
     public function publicMunicipalityOverview(string $scope = 'all');
+    public function publicMapPoints(array $filters, int $limit): array;
 }

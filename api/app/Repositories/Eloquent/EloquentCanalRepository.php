@@ -14,6 +14,7 @@ use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
+use App\Support\NationwideCoordinates;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -194,7 +195,10 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
      */
     private function backfillCoordinates(Canal $canal): void
     {
-        if ($canal->latitude !== null && $canal->longitude !== null) {
+        // Zástupný stred Slovenska je chýbajúca poloha (AlwaysHasCoordinates);
+        // kanálu zo zberného „Celé Slovensko" však patrí právom.
+        if (! NationwideCoordinates::needsLookup($canal->latitude, $canal->longitude)
+            || (int) $canal->municipality_id === Municipality::nationwideId()) {
             return;
         }
 

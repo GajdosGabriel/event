@@ -3,8 +3,8 @@
 namespace App\Models\Traits;
 
 use App\Enums\ModelStatus;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
 
 trait HasCommonFilters
@@ -361,6 +361,12 @@ trait HasCommonFilters
         return $query->whereHas('venue', function (Builder $venue) use ($latitude, $longitude, $radiusKm, $latDelta, $lngDelta) {
             $venue->whereNotNull('latitude')
                 ->whereNotNull('longitude')
+                // Stred Slovenska nie je poloha, len zástupca neznámej
+                // (AlwaysHasCoordinates) — inak by celoslovenské podujatia
+                // „boli blízko" každému v okolí Banskej Bystrice.
+                ->whereNot(fn (Builder $placeholder) => $placeholder
+                    ->where('latitude', \App\Support\NationwideCoordinates::LATITUDE)
+                    ->where('longitude', \App\Support\NationwideCoordinates::LONGITUDE))
                 ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
                 ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
                 ->whereRaw(
@@ -417,12 +423,12 @@ trait HasCommonFilters
         $bindings = [];
 
         if ($primaryColumns !== []) {
-            $caseSegments[] = 'WHEN ' . $this->buildLikeConditionSql($primaryColumns) . ' THEN 0';
+            $caseSegments[] = 'WHEN '.$this->buildLikeConditionSql($primaryColumns).' THEN 0';
             array_push($bindings, ...array_fill(0, count($primaryColumns), $likeTerm));
         }
 
         if ($secondaryColumns !== []) {
-            $caseSegments[] = 'WHEN ' . $this->buildLikeConditionSql($secondaryColumns) . ' THEN 1';
+            $caseSegments[] = 'WHEN '.$this->buildLikeConditionSql($secondaryColumns).' THEN 1';
             array_push($bindings, ...array_fill(0, count($secondaryColumns), $likeTerm));
         }
 
@@ -431,7 +437,7 @@ trait HasCommonFilters
         }
 
         $query->reorder()->orderByRaw(
-            'CASE ' . implode(' ', $caseSegments) . ' ELSE 2 END',
+            'CASE '.implode(' ', $caseSegments).' ELSE 2 END',
             $bindings
         );
 
@@ -494,8 +500,8 @@ trait HasCommonFilters
             return false;
         }
 
-        return $this->hasCommonFulltextIndex($this->getTable() . '_search_primary_fulltext')
-            && $this->hasCommonFulltextIndex($this->getTable() . '_search_fulltext');
+        return $this->hasCommonFulltextIndex($this->getTable().'_search_primary_fulltext')
+            && $this->hasCommonFulltextIndex($this->getTable().'_search_fulltext');
     }
 
     /**
@@ -507,14 +513,14 @@ trait HasCommonFilters
     {
         // Každý token je povinný (`+`) a hľadá sa aj ako predpona (`*`), takže
         // „konc" nájde „koncert" a viacslovný dopyt funguje ako AND.
-        $expression = implode(' ', array_map(fn (string $token) => '+' . $token . '*', $tokens));
+        $expression = implode(' ', array_map(fn (string $token) => '+'.$token.'*', $tokens));
 
-        $query->whereRaw($this->matchSql($allColumns) . ' AGAINST (? IN BOOLEAN MODE)', [$expression]);
+        $query->whereRaw($this->matchSql($allColumns).' AGAINST (? IN BOOLEAN MODE)', [$expression]);
 
         $existingOrders = $query->getQuery()->orders ?? [];
 
         $query->reorder()->orderByRaw(
-            'CASE WHEN ' . $this->matchSql($primaryColumns) . ' AGAINST (? IN BOOLEAN MODE) THEN 0 ELSE 1 END',
+            'CASE WHEN '.$this->matchSql($primaryColumns).' AGAINST (? IN BOOLEAN MODE) THEN 0 ELSE 1 END',
             [$expression]
         );
 
@@ -526,16 +532,16 @@ trait HasCommonFilters
      */
     protected function matchSql(array $columns): string
     {
-        return 'MATCH (' . implode(', ', array_map(
+        return 'MATCH ('.implode(', ', array_map(
             fn (string $column) => $this->qualifyColumn($column),
             $columns
-        )) . ')';
+        )).')';
     }
 
     protected function hasCommonFulltextIndex(string $index): bool
     {
         $table = $this->getTable();
-        $cacheKey = $table . ':' . $index;
+        $cacheKey = $table.':'.$index;
 
         if (! array_key_exists($cacheKey, self::$commonFulltextIndexCache)) {
             $names = array_column($this->getConnection()->getSchemaBuilder()->getIndexes($table), 'name');
@@ -548,7 +554,7 @@ trait HasCommonFilters
     protected function buildLikeConditionSql(array $columns): string
     {
         return implode(' OR ', array_map(
-            fn (string $column) => $this->qualifyColumn($column) . ' LIKE ?',
+            fn (string $column) => $this->qualifyColumn($column).' LIKE ?',
             $columns
         ));
     }
@@ -556,7 +562,7 @@ trait HasCommonFilters
     protected function hasCommonFilterColumn(string $column): bool
     {
         $table = $this->getTable();
-        $cacheKey = $table . ':' . $column;
+        $cacheKey = $table.':'.$column;
 
         if (! array_key_exists($cacheKey, self::$commonFilterColumnCache)) {
             self::$commonFilterColumnCache[$cacheKey] = Schema::hasColumn($table, $column);

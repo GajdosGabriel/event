@@ -12,6 +12,7 @@ use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
+use App\Support\NationwideCoordinates;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +22,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
-        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver(),
+        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver,
     ) {
         parent::__construct();
     }
@@ -265,14 +266,21 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         $summary = ['processed' => 0, 'updated' => 0, 'skipped' => 0];
 
         $this->model()->withTrashed()
-            ->where(fn ($query) => $query->whereNull('latitude')->orWhereNull('longitude'))
+            // Zástupný stred Slovenska je chýbajúca poloha, nie nájdená —
+            // viď AlwaysHasCoordinates. Zberné „Celé Slovensko" ho má právom.
+            ->where(fn ($query) => $query->whereNull('latitude')->orWhereNull('longitude')
+                ->orWhere(fn ($query) => $query
+                    ->where('latitude', NationwideCoordinates::LATITUDE)
+                    ->where('longitude', NationwideCoordinates::LONGITUDE)))
+            ->when(Municipality::nationwideId(), fn ($query, $nationwideId) => $query
+                ->where(fn ($query) => $query->whereNull('village_id')->orWhere('village_id', '<>', $nationwideId)))
             ->orderBy('id')
             ->each(function (Venue $venue) use (&$summary, $onEach) {
                 $summary['processed']++;
 
                 $this->backfillCoordinates($venue);
 
-                $updated = $venue->latitude !== null && $venue->longitude !== null;
+                $updated = ! NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude);
                 $summary[$updated ? 'updated' : 'skipped']++;
 
                 if ($onEach !== null) {
@@ -290,7 +298,10 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
      */
     private function backfillCoordinates(Venue $venue): void
     {
-        if ($venue->latitude !== null && $venue->longitude !== null) {
+        // Model sa bez súradníc neuloží (AlwaysHasCoordinates), takže prázdne
+        // tu už nebývajú — chýbajúcu polohu zastupuje stred Slovenska.
+        if (! NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude)
+            || (int) $venue->village_id === Municipality::nationwideId()) {
             return;
         }
 

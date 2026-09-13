@@ -4,6 +4,35 @@ import type { EventItem, FilterParams, PaginatedResponse, MunicipalityOverviewIt
 
 type Scope = 'public' | 'dashboard' | 'admin'
 
+/** Podujatie ako bod na mape — len to, čo mapa ukáže, nie celý EventResource. */
+export interface EventMapPoint {
+  id: number
+  name: string
+  slug: string | null
+  startAt: string | null
+  endAt: string | null
+  dateRangeLabel: string | null
+  venue: { name: string | null; latitude: number | string | null; longitude: number | string | null } | null
+}
+
+/** Celý výsledok verejného filtra bez stránkovania (`GET /events/map`). */
+export async function indexEventMapPoints(params: FilterParams): Promise<{ data: EventMapPoint[]; total: number }> {
+  const { data } = await http.get('/events/map', { params })
+  const items = (data.data ?? []) as Record<string, unknown>[]
+  return {
+    data: items.map((raw) => ({
+      id: raw['id'] as number,
+      name: raw['name'] as string,
+      slug: (raw['slug'] as string) ?? null,
+      startAt: (raw['start_at'] as string) ?? null,
+      endAt: (raw['end_at'] as string) ?? null,
+      dateRangeLabel: (raw['date_range_label'] as string) ?? null,
+      venue: (raw['venue'] as EventMapPoint['venue']) ?? null,
+    })),
+    total: (data.meta?.total as number) ?? items.length,
+  }
+}
+
 function baseUrl(scope: Scope) {
   if (scope === 'public') return '/events'
   if (scope === 'admin') return '/admin/events'

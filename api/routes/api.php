@@ -115,6 +115,11 @@ Route::get('prerender', PrerenderController::class)
 Route::get('events/municipalities-overview', [PublicEventController::class, 'municipalitiesOverview'])
     ->name('public.events.municipalities.overview');
 
+// Celý výsledok verejného filtra ako body na mapu (bez stránkovania).
+Route::get('events/map', [PublicEventController::class, 'map'])
+    ->name('public.events.map')
+    ->middleware('throttle:60,1');
+
 // Číselník obsahových štítkov pre verejný filter (?tags=koncert,folklor).
 Route::get('tags', [PublicTagController::class, 'index'])->name('public.tags.index');
 

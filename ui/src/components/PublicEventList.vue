@@ -155,7 +155,7 @@
 
           <!-- Prázdny stav bez východiska bol slepá ulička; teraz vždy ponúka
                krok späť k širšiemu výberu. -->
-          <div v-else-if="events.length === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <div v-else-if="(view === 'map' ? mapPoints.length : events.length) === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center">
             <svg class="mx-auto mb-3 h-10 w-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" />
               <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M9 15h6" />
@@ -182,7 +182,7 @@
           </div>
 
           <template v-else>
-            <EventsMap v-if="view === 'map'" :events="events" />
+            <EventsMap v-if="view === 'map'" :events="mapPoints" :truncated="Math.max(0, total - mapPoints.length)" />
             <EventAgenda v-else-if="view === 'agenda'" :events="events" />
             <!-- Mriežka je o obrázkoch — obsahové štítky („Svätá omša“ a spol.)
                  sa tu neukazujú, na karte z nich boli dva riadky farby navyše.
@@ -205,7 +205,7 @@
             </div>
           </template>
 
-          <AppPaginator :current-page="page" :last-page="lastPage" @change="goToPage" />
+          <AppPaginator v-if="view !== 'map'" :current-page="page" :last-page="lastPage" @change="goToPage" />
         </div>
       </div>
 
@@ -220,7 +220,7 @@
 import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
-import { indexEvents } from '@/api/events'
+import { indexEventMapPoints, indexEvents, type EventMapPoint } from '@/api/events'
 import type { EventItem } from '@/types'
 import EventCard from '@/components/EventCard.vue'
 import EventAgenda from '@/components/EventAgenda.vue'
@@ -317,6 +317,8 @@ function distanceLabel(event: EventItem): string | null {
 }
 
 const events = ref<EventItem[]>([])
+/** Body pre mapu — celý výsledok filtra, nie strana zoznamu. */
+const mapPoints = ref<EventMapPoint[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const page = ref(1)
@@ -440,12 +442,25 @@ function syncQuery(p: number) {
   replaceQuery(query, p)
 }
 
+/**
+ * Poradie posledného dotazu. Prepnutie na mapu hneď po načítaní strany (alebo
+ * rýchle písanie do hľadania) pustí dva dotazy naraz — pomalšia staršia
+ * odpoveď nesmie prepísať novšiu.
+ */
+let requestSeq = 0
+
 async function fetchPage(p: number) {
   syncQuery(p)
+  const request = ++requestSeq
   loading.value = true
   error.value = null
+  // Mapa nestránkuje: ukazuje celý výsledok filtra z vlastného odľahčeného
+  // endpointu, inak by zobrazila len podujatia aktuálnej strany.
+  const forMap = view.value === 'map'
   try {
-    const params: Record<string, unknown> = { page: p, per_page: settings.value.publicEventsPerPage }
+    const params: Record<string, unknown> = forMap
+      ? {}
+      : { page: p, per_page: settings.value.publicEventsPerPage }
     // Archív ostáva archívom aj počas hľadania — inak by výraz zadaný nad
     // uplynulými podujatiami ticho preskočil na nadchádzajúce.
     params['list'] = props.list ?? (search.value.trim() ? 'all' : 'upcoming')
@@ -458,17 +473,31 @@ async function fetchPage(p: number) {
       params['longitude'] = nearby.value.longitude
       params['radius_km'] = nearby.value.radiusKm
     }
+    if (forMap) {
+      const res = await indexEventMapPoints(params)
+      if (request !== requestSeq) return
+      mapPoints.value = res.data
+      total.value = res.total
+      page.value = 1
+      lastPage.value = 1
+      return
+    }
+
     const res = await indexEvents('public', params)
+    if (request !== requestSeq) return
     events.value = res.data
     page.value = res.meta.current_page
     lastPage.value = res.meta.last_page
     total.value = res.meta.total ?? res.data.length
   } catch {
-    error.value = t('public.list.loadFailed')
+    if (request === requestSeq) error.value = t('public.list.loadFailed')
   } finally {
-    loading.value = false
+    if (request === requestSeq) loading.value = false
   }
 }
+
+// Mapa berie celý výsledok, zoznam po stranách — prepnutie znamená iný dotaz.
+watch(() => view.value === 'map', () => loadPage(1))
 
 // Iný filter je iný výsledok — tretia strana v ňom nemusí existovať.
 watch(() => [municipalityParam.value, tagsParam.value, props.range], () => loadPage(1))

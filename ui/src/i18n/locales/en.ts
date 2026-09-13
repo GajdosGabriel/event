@@ -674,6 +674,10 @@ const en: Messages = {
     list: {
       map: 'Map',
       mapMissing: '{n} events are not on the map — their venue has no coordinates.',
+      mapTruncated: '{n} more events did not fit on the map — narrow it down with a filter.',
+      mapShown: 'On the map: {n}',
+      mapMore: 'and {n} more',
+      mapWhen: { all: 'All', today: 'Today', week: 'Next 7 days', month: 'Next month' },
       viewLabel: 'List view',
       agenda: 'Agenda',
       grid: 'Grid',

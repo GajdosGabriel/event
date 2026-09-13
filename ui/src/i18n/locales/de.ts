@@ -674,6 +674,10 @@ const de: Messages = {
     list: {
       map: 'Karte',
       mapMissing: '{n} Veranstaltungen fehlen auf der Karte — ihr Ort hat keine Koordinaten.',
+      mapTruncated: 'Weitere {n} Veranstaltungen passen nicht auf die Karte — grenzen Sie mit einem Filter ein.',
+      mapShown: 'Auf der Karte: {n}',
+      mapMore: 'und {n} weitere',
+      mapWhen: { all: 'Alle', today: 'Heute', week: 'Nächste 7 Tage', month: 'Nächster Monat' },
       viewLabel: 'Listenansicht',
       agenda: 'Agenda',
       grid: 'Raster',

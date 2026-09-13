@@ -8,15 +8,16 @@ use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\Geocoding\MunicipalityGeocodeResolver;
 use App\Services\OpenAI\Detector;
+use App\Support\NationwideCoordinates;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class ImportedVenueManager
 {
     public function __construct(
-        private readonly Detector $detector = new Detector(),
-        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber(),
-        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver(),
+        private readonly Detector $detector = new Detector,
+        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber,
+        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver,
     ) {}
 
     public function resolveOrDetect(
@@ -96,6 +97,7 @@ class ImportedVenueManager
                         // importované miesto v dashboarde neupraví nikto okrem
                         // super-admina. Viď backfill_venue_owner_canal.
                         $venue->assignCanal($canal, isOwner: true);
+
                         return $venue;
                     }
                 } catch (\Throwable) {
@@ -127,19 +129,20 @@ class ImportedVenueManager
 
             $venue = Venue::create([
                 'village_id' => $municipality['village_id'],
-                'name'       => Str::limit($name, 250, ''),
-                'street'     => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
-                'postcode'   => $municipality['postcode'],
-                'body'       => $this->describer->forVenue($name, $municipality['city']),
-                'category'   => null,
-                'status'     => ModelStatus::Draft->value,
-                'country'    => 'Slovensko',
+                'name' => Str::limit($name, 250, ''),
+                'street' => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
+                'postcode' => $municipality['postcode'],
+                'body' => $this->describer->forVenue($name, $municipality['city']),
+                'category' => null,
+                'status' => ModelStatus::Draft->value,
+                'country' => 'Slovensko',
                 // Pin z článku má prednosť pred súradnicami z geokódera.
-                'latitude'   => $hasCoordinates ? $latitude : $municipality['latitude'],
-                'longitude'  => $hasCoordinates ? $longitude : $municipality['longitude'],
+                'latitude' => $hasCoordinates ? $latitude : $municipality['latitude'],
+                'longitude' => $hasCoordinates ? $longitude : $municipality['longitude'],
             ]);
             // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
             $venue->assignCanal($canal, isOwner: true);
+
             return $venue;
         }
 
@@ -151,9 +154,10 @@ class ImportedVenueManager
         $venue = $this->resolveFallbackVenue();
         // Zberné „Celé Slovensko" vlastníka nemá a mať nesmie: je spoločné pre
         // všetky importy a prvý náhodný kanál by ho dostal do rúk.
-        if (!$venue->activeCanals()->where('canals.id', $canal->id)->exists()) {
+        if (! $venue->activeCanals()->where('canals.id', $canal->id)->exists()) {
             $venue->assignCanal($canal, isOwner: false);
         }
+
         return $venue;
     }
 
@@ -207,7 +211,7 @@ class ImportedVenueManager
     private function municipalityName(int $villageId): ?string
     {
         return Cache::remember(
-            'imports:municipality_name:' . $villageId,
+            'imports:municipality_name:'.$villageId,
             now()->addDay(),
             fn (): ?string => Municipality::query()->find($villageId)?->fullname,
         );
@@ -235,11 +239,12 @@ class ImportedVenueManager
         ?float $longitude,
     ): Venue {
         // Ensure the venue is linked to this canal so the repository validation passes
-        if (!$existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
+        if (! $existing->activeCanals()->where('canals.id', $canal->id)->exists()) {
             $existing->assignCanal($canal, isOwner: false);
         }
         // Backfill coordinates from an event's map pin only when the venue has none.
-        if ($hasCoordinates && $existing->latitude === null && $existing->longitude === null) {
+        // Stred Slovenska je len zástupná poloha (AlwaysHasCoordinates) — pin z článku je presnejší.
+        if ($hasCoordinates && NationwideCoordinates::needsLookup($existing->latitude, $existing->longitude)) {
             $existing->update([
                 'latitude' => $latitude,
                 'longitude' => $longitude,
@@ -251,10 +256,10 @@ class ImportedVenueManager
     }
 
     /**
-     * @param int|null $villageId keď je známa obec, dovolí aj voľnejšiu zhodu
-     *                            na holom slugu — bez nej by sa zlúčil
-     *                            "Evanjelický kostol (Bratislava)" s
-     *                            "Evanjelický kostol (Liptovský Mikuláš)".
+     * @param  int|null  $villageId  keď je známa obec, dovolí aj voľnejšiu zhodu
+     *                               na holom slugu — bez nej by sa zlúčil
+     *                               "Evanjelický kostol (Bratislava)" s
+     *                               "Evanjelický kostol (Liptovský Mikuláš)".
      */
     private function findByName(string $name, ?int $villageId = null): ?Venue
     {
@@ -269,8 +274,8 @@ class ImportedVenueManager
             ->where($notFallback)
             ->where(function ($q) use ($name, $slug) {
                 $q->where('slug', $slug)
-                  ->orWhere('name', $name)
-                  ->orWhere('name', 'like', '%' . addslashes(Str::limit($name, 100, '')) . '%');
+                    ->orWhere('name', $name)
+                    ->orWhere('name', 'like', '%'.addslashes(Str::limit($name, 100, '')).'%');
             })
             // Keď je obec známa, zhoda mimo nej sa neberie. Názvy miest sa
             // opakujú po celom Slovensku a hľadanie bez tejto podmienky
@@ -305,4 +310,3 @@ class ImportedVenueManager
         );
     }
 }
-

@@ -15,6 +15,7 @@ use App\Services\Files\FileManager;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\Tags\EventAttributeDeriver;
+use App\Support\EventDateRange;
 use App\Support\EventTimeframe;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -438,6 +439,55 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             : $this->applyPublicTimeframe($this->publicIndexQuery(), $list);
 
         return $this->paginateFilteredQuery($query, $perPage, $filters);
+    }
+
+    /**
+     * Celý výsledok verejného filtra ako body na mapu — bez stránkovania.
+     *
+     * Stránkovaný výpis na to nestačí: ukázal by len jednu stranu a plné
+     * EventResource (prílohy, štítky, kanál, počty termínov) pri stovkách
+     * riadkov trvá desiatky sekúnd. Mape stačí názov, termín a poloha miesta.
+     *
+     * @return array{points: array<int, array<string, mixed>>, total: int}
+     */
+    public function publicMapPoints(array $filters, int $limit): array
+    {
+        $list = $filters['list'] ?? 'upcoming';
+
+        $query = $list === 'past'
+            ? $this->publicArchiveQuery()
+            : $this->applyPublicTimeframe($this->publicIndexQuery(), $list);
+
+        // Spoločný základ nesie eager loady a `withCount` pre kartu. Počet je
+        // poddotaz v SELECT-e s vlastnými väzbami — pri prepísaní stĺpcov treba
+        // zahodiť aj tie, inak by sa väzby posunuli do WHERE.
+        $query->setEagerLoads([]);
+        $query->getQuery()->columns = null;
+        $query->getQuery()->bindings['select'] = [];
+
+        $query->select(['events.id', 'events.name', 'events.slug', 'events.start_at', 'events.end_at', 'events.venue_id'])
+            ->with('venue:id,name,latitude,longitude')
+            ->applyCommonFilters($filters);
+
+        $total = (clone $query)->count();
+
+        $points = $query->limit($limit)->get()
+            ->map(fn (Event $event) => [
+                'id' => $event->id,
+                'name' => $event->name,
+                'slug' => $event->slug,
+                'start_at' => $event->start_at,
+                'end_at' => $event->end_at,
+                'date_range_label' => EventDateRange::label($event->start_at, $event->end_at),
+                'venue' => $event->venue ? [
+                    'name' => $event->venue->name,
+                    'latitude' => $event->venue->latitude,
+                    'longitude' => $event->venue->longitude,
+                ] : null,
+            ])
+            ->all();
+
+        return ['points' => $points, 'total' => $total];
     }
 
     /**

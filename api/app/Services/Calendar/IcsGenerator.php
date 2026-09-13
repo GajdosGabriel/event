@@ -401,7 +401,9 @@ final class IcsGenerator
     {
         $venue = $event->venue;
 
-        if ($venue === null || $venue->latitude === null || $venue->longitude === null) {
+        // Zástupný stred Slovenska (AlwaysHasCoordinates) nie je poloha podujatia —
+        // kalendár by podľa neho navigoval do stredu krajiny.
+        if ($venue === null || \App\Support\NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude)) {
             return null;
         }
 

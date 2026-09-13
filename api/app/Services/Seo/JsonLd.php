@@ -332,7 +332,10 @@ class JsonLd
      */
     private function geo(mixed $latitude, mixed $longitude): ?array
     {
-        if (! is_numeric($latitude) || ! is_numeric($longitude)) {
+        // Zástupný stred Slovenska (AlwaysHasCoordinates) by vyhľadávačom
+        // tvrdil polohu, ktorú nepoznáme — radšej žiadna.
+        if (\App\Support\NationwideCoordinates::needsLookup($latitude, $longitude)
+            || ! is_numeric($latitude) || ! is_numeric($longitude)) {
             return null;
         }
 

@@ -673,6 +673,10 @@ const cs: Messages = {
     list: {
       map: 'Mapa',
       mapMissing: '{n} akcí není na mapě — jejich místo nemá souřadnice.',
+      mapTruncated: 'Dalších {n} akcí se na mapu nevešlo — zužte výběr filtrem.',
+      mapShown: 'Na mapě: {n}',
+      mapMore: 'a dalších {n}',
+      mapWhen: { all: 'Všechny', today: 'Dnes', week: 'Nejbližší týden', month: 'Nejbližší měsíc' },
       viewLabel: 'Zobrazení seznamu',
       agenda: 'Agenda',
       grid: 'Mřížka',
