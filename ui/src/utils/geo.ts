@@ -7,6 +7,29 @@ export interface Point {
 }
 
 /**
+ * Súradnice miesta ako bod, alebo null, keď ich miesto nemá.
+ *
+ * Nestačí `Number(value)`: `Number(null)` je 0, takže miesto bez súradníc by
+ * skončilo na 0,0 — v Guinejskom zálive.
+ */
+export function pointOf(
+  place: { latitude?: number | string | null; longitude?: number | string | null } | null | undefined,
+): Point | null {
+  const latitude = toCoordinate(place?.latitude)
+  const longitude = toCoordinate(place?.longitude)
+
+  return latitude === null || longitude === null ? null : { latitude, longitude }
+}
+
+function toCoordinate(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null
+
+  const number = Number(value)
+
+  return Number.isFinite(number) ? number : null
+}
+
+/**
  * Vzdušná vzdialenosť dvoch bodov v kilometroch (haversine).
  *
  * Tá istá matematika beží aj v SQL pri filtri „v mojom okolí"

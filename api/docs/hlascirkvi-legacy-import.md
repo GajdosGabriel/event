@@ -50,7 +50,8 @@ organizátorov dohľadáva `app:ai-detector`.
 takže `village_id` sa prebral priamo. Cez názov to prekladať nešlo — 211 obcí
 má rovnaké meno. Podujatia s obcou „Celé Slovensko" majú zdieľané záložné
 miesto. Miesta vznikli na úrovni obce, bez súradníc; tie dopĺňa
-`app:venues-backfill-coordinates`.
+`app:backfill-venue-coordinates` (jednorazovo ich doplnila aj migrácia
+`2026_09_13_100000_backfill_venue_and_canal_coordinates`).
 
 **Dátumy.** Starý scraper občas prečítal rok zo znenia článku — podujatie
 z roku 2022 malo `start_at` v roku 1452 a koniec v roku 8330, čo je nad stropom

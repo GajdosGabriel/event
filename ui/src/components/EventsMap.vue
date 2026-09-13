@@ -18,6 +18,7 @@ import { useTemplateRef } from 'vue'
 import type { EventItem } from '@/types'
 import { t } from '@/i18n'
 import { publicEventPath } from '@/utils/publicUrl'
+import { pointOf } from '@/utils/geo'
 
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)['_getIconUrl']
 L.Icon.Default.mergeOptions({
@@ -34,10 +35,9 @@ let map: L.Map | null = null
 let markers: L.LayerGroup | null = null
 
 /** Podujatia s miestom, ktoré má súradnice — ostatné na mape byť nemôžu. */
-const located = computed(() => props.events.filter((event) => {
-  const lat = Number(event.venue?.latitude)
-  const lng = Number(event.venue?.longitude)
-  return Number.isFinite(lat) && Number.isFinite(lng)
+const located = computed(() => props.events.flatMap((event) => {
+  const point = pointOf(event.venue)
+  return point ? [{ event, point }] : []
 }))
 
 /**
@@ -74,13 +74,10 @@ function render() {
 
   const points: L.LatLngExpression[] = []
 
-  for (const event of located.value) {
-    const lat = Number(event.venue?.latitude)
-    const lng = Number(event.venue?.longitude)
+  for (const { event, point } of located.value) {
+    points.push([point.latitude, point.longitude])
 
-    points.push([lat, lng])
-
-    L.marker([lat, lng])
+    L.marker([point.latitude, point.longitude])
       .bindPopup(
         // Odkaz je obyčajný `<a>`, nie RouterLink: bublinu vykresľuje Leaflet
         // mimo Vue stromu, takže komponenty v nej nefungujú.

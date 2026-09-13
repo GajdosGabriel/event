@@ -236,7 +236,7 @@ import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { absoluteUrl, publicArchivePath, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { useI18n, localeTag } from '@/i18n'
-import { distanceKm, formatDistance } from '@/utils/geo'
+import { distanceKm, formatDistance, pointOf } from '@/utils/geo'
 
 const props = withDefaults(defineProps<{
   heading: string
@@ -310,12 +310,10 @@ function distanceLabel(event: EventItem): string | null {
   const origin = nearby.value
   if (!origin) return null
 
-  const latitude = Number(event.venue?.latitude)
-  const longitude = Number(event.venue?.longitude)
+  const point = pointOf(event.venue)
+  if (!point) return null
 
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
-
-  return formatDistance(distanceKm(origin, { latitude, longitude }), localeTag())
+  return formatDistance(distanceKm(origin, point), localeTag())
 }
 
 const events = ref<EventItem[]>([])
