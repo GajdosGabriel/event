@@ -30,7 +30,7 @@ class ContentExtractorTest extends TestCase
 </html>
 HTML;
 
-        $extractor = new ContentExtractor();
+        $extractor = new ContentExtractor;
 
         $result = $extractor->extract($html, 'https://www.tkkbs.sk/view.php?cisloclanku=20260409026');
 
@@ -39,5 +39,34 @@ HTML;
             $result['text']
         );
         $this->assertSame([], $result['attachments']);
+    }
+
+    #[Test]
+    public function it_drops_the_tkkbs_publication_header_with_the_rubric(): void
+    {
+        $html = <<<'HTML'
+<!DOCTYPE html>
+<html lang="sk">
+<body>
+    <center>
+        <table>
+            <tr>
+                <td class="stredblok">
+                    <span class="clanadpis">Vzdelávací kurz</span><br>
+                    <span class="malemodre">P:3, 06. 07. 2026 08:53, DOM</span><br><br>
+                    <span class="clatext">Bratislava 7. júla (TK KBS) Kurz sa koná v Bratislave.</span>
+                </td>
+            </tr>
+        </table>
+    </center>
+</body>
+</html>
+HTML;
+
+        $result = (new ContentExtractor)->extract($html, 'https://www.tkkbs.sk/view.php?cisloclanku=20260707001');
+
+        $this->assertSame('Vzdelávací kurz Bratislava 7. júla (TK KBS) Kurz sa koná v Bratislave.', $result['text']);
+        $this->assertStringNotContainsString('DOM', $result['text']);
+        $this->assertStringNotContainsString('08:53', $result['text']);
     }
 }

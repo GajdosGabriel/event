@@ -84,6 +84,14 @@ class ContentExtractor
         }
 
         $xpath = new \DOMXPath($document);
+
+        // Hlavička článku „P:3, 06. 07. 2026 08:53, DOM" je čas zverejnenia
+        // a skratka rubriky (DOM = Domáce). Copywriter z nej robil miesto aj
+        // termín podujatia: „uskutoční sa 6. júla o 08:53 v DOM Bratislava".
+        foreach ($xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' malemodre ')]", $element) ?: [] as $node) {
+            $node->parentNode?->removeChild($node);
+        }
+
         $nodes = $xpath->query('.//img[@src]', $element);
 
         foreach ($nodes ?: [] as $node) {

@@ -484,7 +484,8 @@ class AiDetectorCommandTest extends TestCase
         $this->assertNotSame($collection->id, $event->canal_id);
         // Veta pozvánky nalepená za meno sa oreže rovnako ako pri importe.
         $this->assertSame('Farnosť Košice-Sever', $target?->name);
-        $this->assertSame('https://www.vyveska.sk', $target?->website);
+        // Web zdroja ostáva zbernému kanálu, organizátor ho nededí.
+        $this->assertNull($target?->website);
     }
 
     /**

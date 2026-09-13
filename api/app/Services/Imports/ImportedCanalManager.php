@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 class ImportedCanalManager
 {
     public function __construct(
-        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber(),
+        private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber,
     ) {}
 
     public function resolveOrCreate(string $canalName, ?string $detectedName, string $sourceOrigin): Canal
@@ -24,6 +24,7 @@ class ImportedCanalManager
             $existing = $this->findByFuzzyName($detectedName);
             if ($existing instanceof Canal) {
                 $this->ensureSystemOwnership($existing);
+
                 return $existing->fresh();
             }
 
@@ -59,7 +60,10 @@ class ImportedCanalManager
                 $updates['name'] = $detectedName;
             }
 
-            if (empty($existing->website)) {
+            // Web zdroja patrí len zbernému kanálu. Menovanému organizátorovi
+            // by v kontakte svietila „www.vyveska.sk", hoci s ňou nemá nič
+            // spoločné — skutočný web organizátora import nepozná.
+            if ($detectedName === null && empty($existing->website)) {
                 $updates['website'] = $sourceOrigin;
             }
 
@@ -82,7 +86,7 @@ class ImportedCanalManager
             'body' => $this->describer->forCanal($detectedName ?? $canalName, $sourceOrigin),
             'published_at' => now(),
             'status' => ModelStatus::Published->value,
-            'website' => $sourceOrigin,
+            'website' => $detectedName === null ? $sourceOrigin : null,
             'registration_source' => RegistrationSource::IMPORT->value,
             // Importované kanály nikdy nie sú osobné — patria organizátorovi
             // (farnosť, mesto, klub), nie fyzickej osobe, ktorá sa registrovala.
@@ -148,8 +152,8 @@ class ImportedCanalManager
         $canal = Canal::query()
             ->where(function ($q) use ($name, $slug) {
                 $q->where('slug', $slug)
-                  ->orWhere('name', $name)
-                  ->orWhere('name', 'like', '%' . addslashes(Str::limit($name, 100, '')) . '%');
+                    ->orWhere('name', $name)
+                    ->orWhere('name', 'like', '%'.addslashes(Str::limit($name, 100, '')).'%');
             })
             ->orderByDesc('created_at')
             ->first();
