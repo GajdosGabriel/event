@@ -47,6 +47,10 @@ class AiDetectorCommandTest extends TestCase
                 $detector->shouldReceive('detectFromUrl')->once()->andReturn([
                     'success' => false, 'error' => 'HTTP chyba: '.$status, 'source_http_status' => $status,
                 ]);
+                // Ani z uloženého popisu sa nič nevytiahlo — až potom sa vzdáme.
+                $detector->shouldReceive('detectFromStoredText')->once()->andReturn([
+                    'success' => false, 'error' => 'Uložený popis je prikrátky na analýzu',
+                ]);
                 $this->app->instance(Detector::class, $detector);
                 $this->artisan('app:ai-detector')->assertSuccessful();
                 $this->artisan('app:ai-detector')->expectsOutput('AiDetector: no eligible event found.')->assertSuccessful();
@@ -57,6 +61,127 @@ class AiDetectorCommandTest extends TestCase
                 $this->assertSame('external_source', $event->meta['import']['source']);
             }
         }
+    }
+
+    /**
+     * vyveska.sk po skončení podujatia článok zmaže (404). Jeho text ale máme
+     * z importu, takže prepis a organizátor sa vybavia z neho.
+     */
+    #[Test]
+    public function deleted_source_falls_back_to_the_imported_text(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'published_at' => now(), 'orginal_source' => 'https://www.vyveska.sk/put-padova.html',
+            'body' => '<p>Aktuálny popis.</p>',
+            'body_rewritten_at' => null,
+            'meta' => ['imported_raw_body' => '<p>Púť do Padovy. Organizuje farnosť.</p>'],
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->once()->andReturn([
+            'success' => false, 'error' => 'HTTP chyba: 404', 'source_http_status' => 404,
+        ]);
+        $detector->shouldReceive('detectFromStoredText')->once()
+            ->with('<p>Púť do Padovy. Organizuje farnosť.</p>', $event->name)
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => '<h3>Púť</h3><p>Do Padovy.</p>',
+                'event_payload' => ['name' => 'Púť do Padovy'],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')
+            ->expectsOutput('AiDetector processed event id '.$event->id.'.')
+            ->assertSuccessful();
+
+        $event->refresh();
+        $this->assertStringContainsString('<h3>Púť</h3>', $event->body);
+        $this->assertNotNull($event->body_rewritten_at);
+        $this->assertTrue($event->meta['ai_detector']['from_stored_text']);
+        $this->assertSame('HTTP chyba: 404', $event->meta['ai_detector']['source_error']);
+        $this->assertArrayNotHasKey('skipped_at', $event->meta['ai_detector']);
+    }
+
+    /**
+     * Archív hlascirkvi.sk má stovky podujatí bez popisu. Názov stačí na to,
+     * aby AI dostala šancu prečítať z neho aspoň miesto.
+     */
+    #[Test]
+    public function event_without_body_falls_back_to_its_title(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'name' => 'Púť Medžugorie 2025', 'body' => '',
+            'published_at' => now(), 'orginal_source' => 'https://www.vyveska.sk/put-medzugorie-2025.html',
+            'body_rewritten_at' => null,
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->once()->andReturn([
+            'success' => false, 'error' => 'HTTP chyba: 404', 'source_http_status' => 404,
+        ]);
+        $detector->shouldReceive('detectFromStoredText')->once()
+            ->with('', 'Púť Medžugorie 2025')
+            ->andReturn(['success' => true, 'corrected_text' => null, 'event_payload' => ['venue' => ['name' => 'Medžugorie']]]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $event->refresh();
+        // Popis sa z názvu nevymýšľa.
+        $this->assertSame('', (string) $event->body);
+        $this->assertNotNull($event->body_rewritten_at);
+        $this->assertTrue($event->meta['ai_detector']['from_stored_text']);
+    }
+
+    /**
+     * Archív hlascirkvi.sk preniesol podujatia na zberné „Celé Slovensko".
+     * Miesto prečítané z textu ho nahradí; hotové miesto sa neprepisuje.
+     */
+    #[Test]
+    public function it_replaces_only_the_fallback_venue_with_the_detected_one(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $fallback = Venue::factory()->create(['canal_id' => $canal->id, 'category' => 'fallback', 'slug' => 'cele-slovensko']);
+        $existing = Venue::factory()->create(['canal_id' => $canal->id]);
+        $detected = Venue::factory()->create(['canal_id' => $canal->id, 'name' => 'Bazilika sv. Antona']);
+
+        $onFallback = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $fallback->id,
+            'status' => ModelStatus::Draft->value,
+            'published_at' => now(), 'orginal_source' => 'https://example.test/a', 'body_rewritten_at' => null,
+        ]);
+        $onExisting = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $existing->id,
+            'status' => ModelStatus::Draft->value,
+            'published_at' => now()->subDay(), 'orginal_source' => 'https://example.test/b', 'body_rewritten_at' => null,
+        ]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->twice()->andReturn([
+            'success' => true,
+            'corrected_text' => null,
+            'event_payload' => ['venue' => ['name' => 'Bazilika sv. Antona', 'city' => 'Padova']],
+        ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $venueManager = Mockery::mock(\App\Services\Imports\ImportedVenueManager::class);
+        $venueManager->shouldReceive('resolveOrDetect')->once()
+            ->with(Mockery::on(fn ($c) => $c->id === $canal->id), 'Bazilika sv. Antona', 'Padova', null)
+            ->andReturn($detected);
+        $this->app->instance(\App\Services\Imports\ImportedVenueManager::class, $venueManager);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $this->assertSame($detected->id, $onFallback->fresh()->venue_id);
+        $this->assertSame($existing->id, $onExisting->fresh()->venue_id);
     }
 
     #[Test]
@@ -106,6 +231,9 @@ class AiDetectorCommandTest extends TestCase
         $detector->shouldReceive('detectFromUrl')->once()->andReturn([
             'success' => false, 'error' => 'Element pre hlavny obsah sa nenasiel',
             'source_http_status' => null, 'source_unreadable' => true,
+        ]);
+        $detector->shouldReceive('detectFromStoredText')->once()->andReturn([
+            'success' => false, 'error' => 'Uložený popis je prikrátky na analýzu',
         ]);
         $this->app->instance(Detector::class, $detector);
 

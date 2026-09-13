@@ -305,4 +305,14 @@ return [
         'ignore'      => 'Falls Sie das Plakat nicht hochgeladen haben, ignorieren Sie diese E-Mail ruhig — ohne Bestätigung wird nirgends etwas veröffentlicht.',
     ],
 
+    // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
+    'openai_billing' => [
+        'subject'  => 'OpenAI: Guthaben aufgebraucht, KI-Funktionen ausgefallen',
+        'intro'    => 'OpenAI hat eine Anfrage abgelehnt, weil die Organisation kein Guthaben mehr hat oder das Abrechnungslimit erreicht ist.',
+        'response' => 'Antwort von OpenAI (HTTP :status, Code `:code`):',
+        'impact'   => 'Bis Guthaben aufgeladen wird, funktionieren die Erkennung importierter Veranstaltungen, der KI-Textassistent, die Verschlagwortung und die Inhaltsprüfung nicht.',
+        'action'   => 'Guthaben bei OpenAI aufladen',
+        'cooldown' => 'Die nächste Warnung senden wir frühestens in :hours h, auch wenn der Fehler bestehen bleibt.',
+    ],
+
 ];

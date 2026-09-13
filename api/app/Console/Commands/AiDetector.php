@@ -2,12 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Event;
+use App\Models\Venue;
 use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Imports\CollectionCanal;
 use App\Services\Imports\EventOrganizerReassigner;
+use App\Services\Imports\ImportedVenueManager;
 use App\Services\OpenAI\Detector;
+use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
@@ -33,8 +37,13 @@ class AiDetector extends Command
     /**
      * Execute the console command.
      */
-    public function handle(Detector $detector, CanalSeatDeriver $seatDeriver, EventOrganizerReassigner $reassigner): int
-    {
+    public function handle(
+        Detector $detector,
+        CanalSeatDeriver $seatDeriver,
+        EventOrganizerReassigner $reassigner,
+        ImportedVenueManager $venueManager,
+        EventDependencyPublisher $dependencyPublisher,
+    ): int {
         $event = $this->claimForRewrite() ?? $this->claimForOrganizerCheck();
 
         if (! $event instanceof Event) {
@@ -48,6 +57,28 @@ class AiDetector extends Command
         $rewritePass = $event->body_rewritten_at === null;
 
         $result = $detector->detectFromUrl((string) $event->orginal_source);
+        $sourceGone = null;
+
+        // Zdroj článok už nemá — typicky podujatia prenesené z archívu
+        // hlascirkvi.sk s odkazmi na vyveska.sk z roku 2024. Ich text ale máme
+        // v DB a AI ho spracuje rovnako, ako by ho stiahla. Bez toho by
+        // podujatie ostalo navždy s neprepísaným popisom, na zbernom kanáli
+        // a na zbernom mieste „Celé Slovensko".
+        if (! ($result['success'] ?? false) && $this->sourceIsGone($result)) {
+            $storedText = $this->pickString($event->meta['imported_raw_body'] ?? null)
+                ?? $this->pickString($event->body);
+            // Bez popisu ostáva názov — „Púť Medžugorie 2025" miesto prezradí.
+            $title = $this->pickString($event->name);
+
+            if ($storedText !== null || $title !== null) {
+                $fallback = $detector->detectFromStoredText((string) $storedText, $title);
+
+                if ($fallback['success'] ?? false) {
+                    $sourceGone = $result;
+                    $result = $fallback;
+                }
+            }
+        }
 
         if (! ($result['success'] ?? false)) {
             $meta = is_array($event->meta) ? $event->meta : [];
@@ -57,9 +88,7 @@ class AiDetector extends Command
             // čítať (hlascirkvi.sk/akcie/… je JS aplikácia bez obsahu v HTML),
             // alebo keď zlyhala priveľakrát — inak by sa to isté podujatie
             // skúšalo každú hodinu donekonečna.
-            $permanent = in_array($result['source_http_status'] ?? null, [404, 410], true)
-                || ($result['source_unreadable'] ?? false)
-                || $attempts >= self::MAX_ATTEMPTS;
+            $permanent = $this->sourceIsGone($result) || $attempts >= self::MAX_ATTEMPTS;
 
             $meta['ai_detector'] = array_merge($meta['ai_detector'] ?? [], [
                 'failed_at' => now()->toIso8601String(),
@@ -103,6 +132,11 @@ class AiDetector extends Command
             // aj keď z toho žiadny presun nevyšiel.
             'organizer_checked_at' => now()->toIso8601String(),
         ];
+
+        if ($sourceGone !== null) {
+            $meta['ai_detector']['from_stored_text'] = true;
+            $meta['ai_detector']['source_error'] = $sourceGone['error'] ?? null;
+        }
 
         // Podujatie je spracované (claim `body_rewritten_at IS NULL`), nech sa
         // ďalší beh posunie na staršie. Tvrdé zlyhania OpenAI sem nedôjdu —
@@ -148,6 +182,16 @@ class AiDetector extends Command
         // niekto zadal ručne.
         $organizerCity = $result['event_payload']['organizer']['city'] ?? null;
         $canal = $movedTo ?? $event->canal;
+
+        // Až po presune kanála — nové miesto má patriť organizátorovi, nie
+        // zbernému kanálu zdroja.
+        $venue = $canal instanceof Canal
+            ? $this->replaceFallbackVenue($event, $canal, $result['event_payload']['venue'] ?? null, $venueManager, $dependencyPublisher)
+            : null;
+
+        if ($venue instanceof Venue) {
+            $this->info('AiDetector: podujatie '.$event->id.' dostalo miesto „'.$venue->name.'" ('.$venue->id.').');
+        }
 
         if ($canal instanceof Canal && $seatDeriver->applyDetectedCity($canal, $this->pickString($organizerCity))) {
             $this->info('AiDetector: kanál '.$canal->id.' dostal sídlo podľa organizátora ('.$this->pickString($organizerCity).').');
@@ -206,6 +250,70 @@ class AiDetector extends Command
                 $query->whereNull('meta->ai_detector->retry_at')
                     ->orWhere('meta->ai_detector->retry_at', '<=', now()->toIso8601String());
             });
+    }
+
+    /**
+     * Nahradí zberné „Celé Slovensko" miestom, ktoré AI prečítala z textu.
+     *
+     * Archív hlascirkvi.sk preniesol tisíce podujatí bez miesta — import ich
+     * odložil na zberné miesto. Miesto zadané človekom alebo trafené importom
+     * sa neprepisuje: je to hotový údaj a AI nad krátkym textom sa môže mýliť.
+     * Hľadanie aj zakladanie ide cez ImportedVenueManager, takže platia tie
+     * isté pravidlá proti duplikátom ako pri importe.
+     */
+    private function replaceFallbackVenue(
+        Event $event,
+        Canal $canal,
+        mixed $detected,
+        ImportedVenueManager $venueManager,
+        EventDependencyPublisher $dependencyPublisher,
+    ): ?Venue {
+        $current = $event->venue;
+
+        if ($current instanceof Venue && $current->category !== 'fallback') {
+            return null;
+        }
+
+        if (! is_array($detected)) {
+            return null;
+        }
+
+        $name = $this->pickString($detected['name'] ?? null);
+        $city = $this->pickString($detected['city'] ?? null);
+
+        if ($name === null && $city === null) {
+            return null;
+        }
+
+        $venue = $venueManager->resolveOrDetect(
+            $canal,
+            $name,
+            $city,
+            $this->pickString($detected['street_and_number'] ?? null) ?? $this->pickString($detected['street'] ?? null),
+        );
+
+        if ($venue->category === 'fallback' || $venue->id === $current?->id) {
+            return null;
+        }
+
+        $event->forceFill(['venue_id' => $venue->id])->save();
+
+        // Import zakladá miesto ako koncept. Zverejnené podujatie nesmie
+        // odkazovať na rozrobený profil — rovnako ako v EventImportService.
+        if ($event->status === ModelStatus::Published) {
+            $dependencyPublisher->publishAll($event);
+        }
+
+        return $venue;
+    }
+
+    /**
+     * Stránka neexistuje alebo v nej niet čo čítať — opakovanie to nezmení.
+     */
+    private function sourceIsGone(array $result): bool
+    {
+        return in_array($result['source_http_status'] ?? null, [404, 410], true)
+            || ($result['source_unreadable'] ?? false);
     }
 
     private function pickString(mixed $value): ?string

@@ -184,6 +184,9 @@
           <template v-else>
             <EventsMap v-if="view === 'map'" :events="events" />
             <EventAgenda v-else-if="view === 'agenda'" :events="events" />
+            <!-- Mriežka je o obrázkoch — obsahové štítky („Svätá omša“ a spol.)
+                 sa tu neukazujú, na karte z nich boli dva riadky farby navyše.
+                 Filtrovať sa cez ne dá naďalej v TagChips nad výpisom. -->
             <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
               <EventCard
                 v-for="event in events"
@@ -196,7 +199,6 @@
                 :date-label="event.dateRangeLabel"
                 :canal-name="event.canalName"
                 :venue-name="event.venue?.name ?? null"
-                :tags="event.tags"
                 :series-upcoming-count="event.seriesUpcomingCount"
                 :distance-label="distanceLabel(event)"
               />

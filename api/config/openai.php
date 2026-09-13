@@ -46,4 +46,14 @@ return [
     */
 
     'request_timeout' => env('OPENAI_REQUEST_TIMEOUT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Billing Alert Cooldown
+    |--------------------------------------------------------------------------
+    |
+    | Keď OpenAI odmietne volanie pre kredit (insufficient_quota), dostanú
+    | super-admini e-mail — najviac raz za toľko hodín (App\Services\OpenAI\OpenAiBillingAlert).
+    */
+    'billing_alert_cooldown_hours' => env('OPENAI_BILLING_ALERT_COOLDOWN_HOURS', 6),
 ];

@@ -10,7 +10,6 @@ export interface AppSettings {
   canalsPerPage: number
   publicEventsPerPage: number
   publicEventsView: PublicEventsView
-  homeOngoingOpen: boolean
   /** Okruh pre „V mojom okolí" v kilometroch. Samotná poloha sa neukladá. */
   nearbyRadiusKm: number
 }
@@ -26,7 +25,6 @@ const DEFAULTS: AppSettings = {
   canalsPerPage: 25,
   publicEventsPerPage: 12,
   publicEventsView: 'agenda',
-  homeOngoingOpen: false,
   nearbyRadiusKm: 25,
 }
 

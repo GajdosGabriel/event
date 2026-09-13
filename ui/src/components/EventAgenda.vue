@@ -37,7 +37,9 @@
             class="mt-1 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
           >{{ event.canalName }}</span>
 
-          <p v-if="summary(event)" class="mt-1 text-sm leading-snug text-slate-500">{{ summary(event) }}</p>
+          <!-- Perex je na telefóne prvý na odstrel: v úzkom stĺpci z neho boli
+               tri-štyri riadky a zoznam sa tým roztiahol na dvojnásobok. -->
+          <p v-if="summary(event)" class="mt-1 hidden text-sm leading-snug text-slate-500 sm:block">{{ summary(event) }}</p>
         </div>
       </RouterLink>
     </section>

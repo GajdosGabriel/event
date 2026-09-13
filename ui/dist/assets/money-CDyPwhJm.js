@@ -1,0 +1,1 @@
+import{L as o,Q as t}from"./index-Dct_X5Yw.js";function a(r,e="EUR"){return new Intl.NumberFormat(o(),{style:"currency",currency:e??"EUR"}).format(r/100)}function f(r,e="EUR"){return r?a(r,e):t("common.free")}export{a,f};

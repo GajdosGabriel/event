@@ -418,23 +418,8 @@ class Detector
         try {
             $html = $this->stiahniTextCurl($url);
             $extracted = $this->extrahujContentBody($html, $url);
-            $extractedText = $extracted['text'] ?? '';
-            $eventPayload = $this->chatGPT->extractData($extractedText);
-            if (empty($eventPayload)) {
-                throw new \RuntimeException('AI vratilo prazdny payload');
-            }
 
-            return [
-                'success' => true,
-                'message' => 'Udalost analyzovana',
-                'event_payload' => $eventPayload,
-                // AI popis je HTML (odstavce, nadpisy, <strong>), nie zlepenec
-                // z extraktora — v UI sa vykresľuje cez v-html ako „AI verzia".
-                'corrected_text' => $this->rewriteAsHtml($extractedText),
-                'extracted_text' => $extractedText,
-                'attachments' => $extracted['attachments'] ?? [],
-                'links' => $this->extrahujLinkyZTextu($extractedText),
-            ];
+            return $this->analyzeText($extracted['text'] ?? '', $extracted['attachments'] ?? []);
         } catch (\Throwable $e) {
             return [
                 'success' => false,
@@ -443,6 +428,77 @@ class Detector
                 'source_unreadable' => $e instanceof ContentNotFoundException,
             ];
         }
+    }
+
+    /**
+     * To isté ako detectFromUrl(), ale nad popisom, ktorý už podujatie má.
+     *
+     * Zdroje staré články mažú (vyveska.sk vracia na minuloročné púte 404).
+     * Text z importu je ten istý článok, len zoškrabaný skôr — AI z neho
+     * vytiahne organizátora a copywriter ho prepíše rovnako dobre.
+     *
+     * Archív hlascirkvi.sk má stovky podujatí bez popisu, ktorým ostal len
+     * názov („Púť Medžugorie 2025"). Aj z neho AI prečíta miesto — ale len keď
+     * vie, že ide o názov; holý reťazec vráti s `venue: null`. Copywriter
+     * dostane výlučne popis, z názvu by si text podujatia vymyslel.
+     */
+    public function detectFromStoredText(string $html, ?string $title = null): array
+    {
+        try {
+            $body = $this->htmlToPlainText($html);
+            $title = trim((string) $title);
+
+            if ($body === '' && $title === '') {
+                throw new ContentNotFoundException('Podujatie nemá uložený popis ani názov');
+            }
+
+            $text = $title !== '' ? trim('Názov podujatia: '.$title."\n\n".$body) : $body;
+
+            return $this->analyzeText($text, copyText: $body);
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * @param  array<int, mixed>  $attachments
+     * @param  string|null  $copyText  text pre copywritera, keď sa líši od textu pre AI extrakciu
+     */
+    private function analyzeText(string $text, array $attachments = [], ?string $copyText = null): array
+    {
+        $eventPayload = $this->chatGPT->extractData($text);
+        if (empty($eventPayload)) {
+            throw new \RuntimeException('AI vratilo prazdny payload');
+        }
+
+        // Bez obce miesto nezaložíme — v článku býva v adrese alebo v názve.
+        $eventPayload = $this->fillMissingVenueCity($eventPayload);
+
+        return [
+            'success' => true,
+            'message' => 'Udalost analyzovana',
+            'event_payload' => $eventPayload,
+            // AI popis je HTML (odstavce, nadpisy, <strong>), nie zlepenec
+            // z extraktora — v UI sa vykresľuje cez v-html ako „AI verzia".
+            'corrected_text' => $this->rewriteAsHtml($copyText ?? $text),
+            'extracted_text' => $text,
+            'attachments' => $attachments,
+            'links' => $this->extrahujLinkyZTextu($text),
+        ];
+    }
+
+    private function htmlToPlainText(string $html): string
+    {
+        // Blokové značky na zlomy riadkov, inak sa odseky zlepia do jedného slova.
+        $text = preg_replace('/<(?:br|\/p|\/div|\/h[1-6]|\/li|\/tr)\b[^>]*>/i', "\n", $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[ \t\x{00A0}]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/\s*\n\s*/', "\n", $text) ?? $text;
+
+        return trim($text);
     }
 
     public function detectVenueDetails(string $name, string $city, ?string $country = null): array

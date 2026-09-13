@@ -305,4 +305,14 @@ return [
         'ignore'      => 'Pokud jste plakát nenahrávali vy, tento e-mail klidně ignorujte — bez potvrzení se nikde nic nezveřejní.',
     ],
 
+    // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
+    'openai_billing' => [
+        'subject'  => 'OpenAI: došel kredit, AI funkce nefungují',
+        'intro'    => 'OpenAI odmítlo požadavek, protože na účtu organizace není kredit nebo byl dosažen limit fakturace.',
+        'response' => 'Odpověď OpenAI (HTTP :status, kód `:code`):',
+        'impact'   => 'Dokud kredit nedobijete, nefunguje rozpoznávání importovaných akcí, AI asistent textů, štítkování ani kontrola obsahu.',
+        'action'   => 'Dobít kredit v OpenAI',
+        'cooldown' => 'Další upozornění pošleme nejdříve za :hours h, i když chyba přetrvává.',
+    ],
+
 ];

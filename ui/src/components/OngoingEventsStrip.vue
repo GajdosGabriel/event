@@ -35,26 +35,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { indexEvents } from '@/api/events'
 import type { EventItem } from '@/types'
 import { fmtDate } from '@/utils/dateFormat'
 import { publicEventPath } from '@/utils/publicUrl'
-import { useSettings } from '@/composables/useSettings'
 import { useI18n } from '@/i18n'
 
 const props = defineProps<{ municipality?: number | null }>()
 
 const { t } = useI18n()
 
-const { settings, save } = useSettings()
 const events = ref<EventItem[]>([])
 
-const open = computed(() => settings.value.homeOngoingOpen)
+// Pás nad výpisom začína vždy zbalený a rozbalenie sa zámerne nepamätá —
+// hlavný obsah homepage je zoznam podujatí, nie to, čo práve beží.
+const open = ref(false)
 
 function toggle() {
-  settings.value.homeOngoingOpen = !settings.value.homeOngoingOpen
-  save()
+  open.value = !open.value
 }
 
 async function load() {

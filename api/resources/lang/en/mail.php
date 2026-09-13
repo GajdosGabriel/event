@@ -305,4 +305,14 @@ return [
         'ignore'      => 'If you did not upload the poster, feel free to ignore this e-mail — nothing is published anywhere without confirmation.',
     ],
 
+    // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
+    'openai_billing' => [
+        'subject'  => 'OpenAI: out of credits, AI features are down',
+        'intro'    => 'OpenAI rejected a request because the organization has no credits left or has reached its billing limit.',
+        'response' => 'OpenAI response (HTTP :status, code `:code`):',
+        'impact'   => 'Until credits are added, import event detection, the AI text assistant, tagging and content review do not work.',
+        'action'   => 'Add credits in OpenAI',
+        'cooldown' => 'The next alert will be sent in :hours h at the earliest, even if the error persists.',
+    ],
+
 ];

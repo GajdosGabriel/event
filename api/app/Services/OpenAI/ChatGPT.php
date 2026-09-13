@@ -839,6 +839,9 @@ class ChatGPT
             ]);
 
         if (! $response->successful()) {
+            // Došlý kredit neopraví žiadny retry — musí o ňom vedieť človek.
+            app(OpenAiBillingAlert::class)->reportIfBillingError($response);
+
             throw new \RuntimeException('OpenAI API error: '.$response->status().' '.$response->body());
         }
 
