@@ -150,6 +150,28 @@ class ImportedCanalManagerTest extends TestCase
     }
 
     #[Test]
+    public function a_named_organizer_gets_only_the_website_that_was_found(): void
+    {
+        $manager = app(ImportedCanalManager::class);
+
+        $created = $manager->resolveOrCreate('Misijná škola Karola Wojtylu', 'Misijná škola Karola Wojtylu', 'https://www.vyveska.sk', 'https://www.mskw.sk');
+        $this->assertSame('https://www.mskw.sk', $created->website);
+
+        $existing = Canal::factory()->create(['name' => 'Farnosť Žilina', 'slug' => 'farnost-zilina', 'website' => null]);
+        $resolved = $manager->resolveOrCreate('Farnosť Žilina', 'Farnosť Žilina', 'https://www.vyveska.sk', 'https://www.farnostzilina.sk');
+        $this->assertSame($existing->id, $resolved->id);
+        $this->assertSame('https://www.farnostzilina.sk', $resolved->website);
+
+        // Web zadaný skôr (napr. ručne) sa neprepisuje.
+        $again = $manager->resolveOrCreate('Farnosť Žilina', 'Farnosť Žilina', 'https://www.vyveska.sk', 'https://iny.sk');
+        $this->assertSame('https://www.farnostzilina.sk', $again->website);
+
+        // Zberný kanál web organizátora ignoruje.
+        $collection = $manager->resolveOrCreate('vyveska.sk', null, 'https://www.vyveska.sk', 'https://www.mskw.sk');
+        $this->assertSame('https://www.vyveska.sk', $collection->website);
+    }
+
+    #[Test]
     public function the_source_collection_canal_keeps_the_source_website(): void
     {
         $resolved = app(ImportedCanalManager::class)->resolveOrCreate('vyveska.sk', null, 'https://www.vyveska.sk');

@@ -17,12 +17,20 @@ class ImportedCanalManager
         private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber,
     ) {}
 
-    public function resolveOrCreate(string $canalName, ?string $detectedName, string $sourceOrigin): Canal
+    /**
+     * @param  string|null  $website  web organizátora z OrganizerWebsiteFinder —
+     *                                zberný kanál ho ignoruje, dostane web zdroja
+     */
+    public function resolveOrCreate(string $canalName, ?string $detectedName, string $sourceOrigin, ?string $website = null): Canal
     {
         // Fuzzy name lookup: AI-detected organizer name matched against existing canals
         if ($detectedName !== null) {
             $existing = $this->findByFuzzyName($detectedName);
             if ($existing instanceof Canal) {
+                if ($website !== null && empty($existing->website)) {
+                    $existing->update(['website' => $website]);
+                }
+
                 $this->ensureSystemOwnership($existing);
 
                 return $existing->fresh();
@@ -62,9 +70,13 @@ class ImportedCanalManager
 
             // Web zdroja patrí len zbernému kanálu. Menovanému organizátorovi
             // by v kontakte svietila „www.vyveska.sk", hoci s ňou nemá nič
-            // spoločné — skutočný web organizátora import nepozná.
-            if ($detectedName === null && empty($existing->website)) {
-                $updates['website'] = $sourceOrigin;
+            // spoločné — dostane len web, ktorý sa naozaj dohľadal, alebo nič.
+            if (empty($existing->website)) {
+                $fill = $detectedName === null ? $sourceOrigin : $website;
+
+                if ($fill !== null) {
+                    $updates['website'] = $fill;
+                }
             }
 
             if ($updates !== []) {
@@ -86,7 +98,7 @@ class ImportedCanalManager
             'body' => $this->describer->forCanal($detectedName ?? $canalName, $sourceOrigin),
             'published_at' => now(),
             'status' => ModelStatus::Published->value,
-            'website' => $detectedName === null ? $sourceOrigin : null,
+            'website' => $detectedName === null ? $sourceOrigin : $website,
             'registration_source' => RegistrationSource::IMPORT->value,
             // Importované kanály nikdy nie sú osobné — patria organizátorovi
             // (farnosť, mesto, klub), nie fyzickej osobe, ktorá sa registrovala.
