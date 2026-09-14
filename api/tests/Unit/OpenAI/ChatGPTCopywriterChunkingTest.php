@@ -5,6 +5,7 @@ namespace Tests\Unit\OpenAI;
 use App\Services\OpenAI\ChatGPT;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -20,6 +21,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
         parent::setUp();
 
         config()->set('openai.api_key', 'test-key');
+        Sleep::fake();
     }
 
     /** Text, ktorý presiahne strop jedného volania (5 000 znakov). */
@@ -108,7 +110,8 @@ class ChatGPTCopywriterChunkingTest extends TestCase
             'api.openai.com/*' => function () use (&$call) {
                 $call++;
 
-                if ($call === 2) {
+                // Druhá časť zlyhá vo všetkých troch pokusoch (volania 2–4).
+                if ($call >= 2 && $call <= 4) {
                     return Http::response('nope', 500);
                 }
 

@@ -3,6 +3,8 @@
 namespace App\Services\OpenAI;
 
 use Carbon\Carbon;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
@@ -829,8 +831,19 @@ class ChatGPT
             throw new \RuntimeException('OpenAI API key is not configured.');
         }
 
+        // Prechodné výpadky OpenAI (5xx, 520 z Cloudflare, prerušené spojenie)
+        // zvyčajne o chvíľu prejdú. Bez opakovania z jedného takého výpadku
+        // ostalo importované podujatie bez prepisu na HTML. 4xx (kredit, zlý
+        // požiadavok) sa neopakuje — tam by ďalší pokus dopadol rovnako.
         $response = Http::timeout($timeout)
             ->withToken($apiKey)
+            ->retry(
+                3,
+                fn (int $attempt) => $attempt * 1000,
+                fn (\Throwable $e) => $e instanceof ConnectionException
+                    || ($e instanceof RequestException && $e->response->serverError()),
+                throw: false,
+            )
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $model,
                 'temperature' => $temperature,
