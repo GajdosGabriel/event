@@ -30,7 +30,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
         $parts = [];
 
         for ($i = 1; $i <= $paragraphs; $i++) {
-            $parts[] = "Bod programu {$i}. " . str_repeat("Podrobnosti k bodu {$i} programu pute. ", 20);
+            $parts[] = "Bod programu {$i}. ".str_repeat("Podrobnosti k bodu {$i} programu pute. ", 20);
         }
 
         return implode("\n\n", $parts);
@@ -64,7 +64,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
         $text = $this->longText();
         $this->assertGreaterThan(5000, mb_strlen($text));
 
-        $result = (new ChatGPT())->extractCopywriter($text);
+        $result = (new ChatGPT)->extractCopywriter($text);
 
         // Predtým tu letela výnimka „Text je na rozsirenie prilis dlhy".
         $this->assertStringContainsString('Prepis 1', $result['event_body']);
@@ -80,7 +80,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
         $text = $this->longText();
         $sent = [];
 
-        (new ChatGPT())->extractCopywriter($text);
+        (new ChatGPT)->extractCopywriter($text);
 
         Http::recorded(function (Request $request) use (&$sent) {
             $sent[] = $request->data()['messages'][1]['content'];
@@ -126,7 +126,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
             },
         ]);
 
-        $result = (new ChatGPT())->extractCopywriter($this->longText());
+        $result = (new ChatGPT)->extractCopywriter($this->longText());
 
         $this->assertStringContainsString('<p>Prepis</p>', $result['event_body']);
         // Neprepísaná časť ostáva v popise aspoň ako odstavce.
@@ -140,7 +140,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
 
-        (new ChatGPT())->extractCopywriter($this->longText());
+        (new ChatGPT)->extractCopywriter($this->longText());
     }
 
     #[Test]
@@ -148,7 +148,7 @@ class ChatGPTCopywriterChunkingTest extends TestCase
     {
         $this->fakeCopywriter();
 
-        (new ChatGPT())->extractCopywriter(str_repeat('Kratky popis podujatia. ', 20));
+        (new ChatGPT)->extractCopywriter(str_repeat('Kratky popis podujatia. ', 20));
 
         Http::assertSentCount(1);
     }
