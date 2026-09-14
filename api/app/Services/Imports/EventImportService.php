@@ -10,6 +10,7 @@ use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
 use App\Services\Publishing\EventDependencyPublisher;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -186,7 +187,7 @@ class EventImportService
         $regexEndAt = $startAtPrecise ? $detail['end_at'] : null;
 
         $startAt = $regexStartAt ?? $resolvedCanal['ai_start_at'] ?? $detail['start_at'];
-        $endAt = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? ($startAt !== null ? $startAt->copy()->addHours(2) : null);
+        $endAt = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? $this->fallbackEndAt($startAt);
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
         $payload = [
@@ -264,10 +265,9 @@ class EventImportService
         // Import zakladá miesta ako koncept (ImportedVenueManager), lebo pri
         // ich vzniku ešte nevie, či bude článok kompletný. Keď z neho vyjde
         // publikované podujatie, musí byť otvorený aj profil miesta a kanála —
-        // inak karta odkazuje na niečo, čo sa tvári ako rozrobené.
-        if ($event->status === ModelStatus::Published) {
-            $this->dependencyPublisher->publishAll($event);
-        }
+        // inak karta odkazuje na niečo, čo sa tvári ako rozrobené. Pri
+        // archivovanom podujatí ide nové miesto rovno do archívu.
+        $this->dependencyPublisher->settle($event);
 
         // Sídlo kanála: prednosť má mesto organizátora prečítané z článku,
         // odvodenie z miest podujatí je až záloha. Miesto konania je údaj
@@ -284,6 +284,25 @@ class EventImportService
         $this->syncPdfPageImages($event, $pdfResults);
 
         return $status;
+    }
+
+    /**
+     * Koniec, keď ho zdroj ani AI neuviedli. Začiatok o miestnej polnoci znamená,
+     * že článok mal len dátum bez času („uskutoční sa 16. septembra 2026") —
+     * dopočítané „+2 h" by na webe ukázalo vymyslený čas 00:00–02:00, preto ide
+     * o celý deň (00:00–23:59:59), ako ho ukladá editor aj AI extrakcia.
+     */
+    private function fallbackEndAt(?CarbonInterface $startAt): ?CarbonInterface
+    {
+        if ($startAt === null) {
+            return null;
+        }
+
+        $local = $startAt->copy()->setTimezone('Europe/Bratislava');
+
+        return $local->format('H:i:s') === '00:00:00'
+            ? $local->endOfDay()->startOfSecond()->utc()
+            : $startAt->copy()->addHours(2);
     }
 
     /**

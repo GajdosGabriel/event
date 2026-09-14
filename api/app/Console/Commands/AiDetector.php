@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Event;
@@ -347,10 +346,9 @@ class AiDetector extends Command
         $event->forceFill(['venue_id' => $venue->id])->save();
 
         // Import zakladá miesto ako koncept. Zverejnené podujatie nesmie
-        // odkazovať na rozrobený profil — rovnako ako v EventImportService.
-        if ($event->status === ModelStatus::Published) {
-            $dependencyPublisher->publishAll($event);
-        }
+        // odkazovať na rozrobený profil a archivované ho nesmie nechať visieť
+        // v konceptoch — rovnako ako v EventImportService.
+        $dependencyPublisher->settle($event);
 
         return $venue;
     }

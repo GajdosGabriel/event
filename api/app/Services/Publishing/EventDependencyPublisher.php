@@ -111,6 +111,52 @@ class EventDependencyPublisher
     }
 
     /**
+     * Dorovná stav miesta a kanála po systémovej zmene podujatia (import,
+     * AiDetector) — tam niet koho sa spýtať.
+     *
+     *  - publikované podujatie -> závislosti sa publikujú (publishAll),
+     *  - archivované podujatie -> koncept, ktorý pred sebou nemá žiadne
+     *    podujatie, ide do archívu.
+     *
+     * Druhý prípad je to isté pravidlo ako migrácia
+     * retire_draft_records_used_by_events: použitý záznam konceptom byť nesmie,
+     * ale keď sa na ňom už nič nekoná, patrí do archívu, nie medzi publikované.
+     * Bez neho AiDetector pri preraďovaní archívu hlascirkvi zakladal miesta,
+     * ktoré ostali konceptom navždy.
+     */
+    public function settle(Event $event): void
+    {
+        if ($event->status === ModelStatus::Published) {
+            $this->publishAll($event);
+
+            return;
+        }
+
+        if ($event->status === ModelStatus::Archived) {
+            $this->archiveDrafts($event);
+        }
+    }
+
+    private function archiveDrafts(Event $event): void
+    {
+        foreach ($this->resolve($event->venue_id, $event->canal_id) as $pair) {
+            /** @var Venue|Canal $model */
+            $model = $pair['model'];
+
+            if ($model->status !== ModelStatus::Draft) {
+                continue;
+            }
+
+            // Budúce podujatie (hoci ešte koncept) rozhodne samo, keď pôjde von.
+            if ($model->events()->where('start_at', '>=', now())->exists()) {
+                continue;
+            }
+
+            $model->forceFill(['status' => ModelStatus::Archived->value])->save();
+        }
+    }
+
+    /**
      * @return array<int, array{type: string, model: Model}>
      */
     private function resolve(?int $venueId, ?int $canalId): array

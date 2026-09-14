@@ -352,6 +352,41 @@ class ImportEventSourcesCommandTest extends TestCase
     }
 
     #[Test]
+    public function it_imports_a_tkkbs_date_without_time_as_an_all_day_event(): void
+    {
+        // Podujatie 10501: článok uvádza len dátum, čas nie. Predtým vzniklo
+        // 00:00–02:00 („+2 h"), správne je celý deň.
+        Storage::fake('public');
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('super-admin');
+
+        $listingUrl = 'https://www.tkkbs.sk/search.php?rstext=cena&rskde=tsl';
+        $detailUrl = 'https://www.tkkbs.sk/view.php?cisloclanku=20260512022';
+        $imageUrl = 'https://www.tkkbs.sk/galeria/images/1/3.jpg';
+        $title = 'Cena Freisinger Dialogpreis ocení budovanie mostov v strednej Európe';
+        $body = 'Nemecko 12. mája (TK KBS) Slávnostné odovzdávanie sa uskutoční 16. septembra 2026 v rámci kongresu Renovabis vo Freisingu.';
+
+        Http::fake(function ($request) use ($listingUrl, $detailUrl, $imageUrl, $title, $body) {
+            return match ($request->url()) {
+                $listingUrl => Http::response($this->tkkbsListingHtmlWithTitle($detailUrl, $title), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
+                $detailUrl => Http::response($this->tkkbsDetailHtmlWithContent($imageUrl, $title, $body), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
+                $imageUrl => Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']),
+                default => Http::response('', 404),
+            };
+        });
+
+        $this->artisan('app:import-event-sources', ['--url' => [$listingUrl], '--pages' => 1, '--limit' => 1])
+            ->assertSuccessful();
+
+        $event = Event::query()->where('orginal_source', $detailUrl)->first();
+        $this->assertNotNull($event);
+        $this->assertSame('2026-09-15 22:00:00', $event->start_at?->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-09-16 21:59:59', $event->end_at?->utc()->format('Y-m-d H:i:s'));
+    }
+
+    #[Test]
     public function it_imports_tkkbs_event_with_windows_1250_diacritics_correctly(): void
     {
         Storage::fake('public');
