@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Nasadenie na produkciu. Spúšťa ho GitHub Actions (job `deploy` v ci.yml)
-# po každom pushi na main, keď prejdú testy. Dá sa spustiť aj ručne na serveri.
+# Nasadenie na produkciu. Spúšťa sa ručne na serveri (Websupport mení SSH port,
+# automatické nasadenie z GitHub Actions preto nefunguje).
 #
-# UI sa na serveri nebuilduje — na to tu nie je dosť pamäte. Build robí
-# GitHub Actions a pred spustením skriptu ho nahrá do ui/dist.new.
+# ui/dist je commitnutý, takže sa tu nebuilduje — build treba spraviť pred pushom.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -11,18 +10,6 @@ cd "$(dirname "$0")/.."
 echo "==> git pull"
 git pull --ff-only origin main
 git log --oneline -1
-
-# Až po pulle: ui/dist bol kedysi verzovaný a pull, ktorý ho z gitu vyradil,
-# by zmazal aj práve nahraté súbory s rovnakým názvom.
-if [ -d ui/dist.new ]; then
-    echo "==> nový build UI"
-    rm -rf ui/dist.old
-    if [ -d ui/dist ]; then
-        mv ui/dist ui/dist.old
-    fi
-    mv ui/dist.new ui/dist
-    rm -rf ui/dist.old
-fi
 
 cd api
 

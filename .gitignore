@@ -6,9 +6,6 @@ vendor/
 # Frontend build output
 build/
 .vite/
-# UI builduje GitHub Actions a nahráva na server (viď deploy/deploy.sh)
-/ui/dist/
-/ui/dist.new/
 
 # Environment and local configuration
 .env
