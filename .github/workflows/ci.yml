@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Na main sa nič nerušíme: zrušený beh by mohol prerušiť nasadenie uprostred
+  # migrácií. Nové pushy počkajú, kým dobehne predchádzajúci.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   api:
@@ -143,3 +145,27 @@ jobs:
       # bola trvalo červená. Aktuálnosť dist je vec deploy postupu, nie CI.
       - name: Typová kontrola a build
         run: npm run build
+
+  # Nasadenie po každej zmene na main — priamy push aj merge PR (merge je tiež
+  # push na main). Pull requesty sa nenasadzujú. Beží len keď prejdú testy.
+  deploy:
+    name: Nasadenie na produkciu
+    needs: [api, ui]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Priprav SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo '[shell.r2.websupport.sk]:29727 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILvofctnNpmcfXIs7+ErytcD19+EG3Hfy6ss4TRueUfD' >> ~/.ssh/known_hosts
+
+      # Pull pred skriptom, aby sa vždy spustila jeho aktuálna verzia z main.
+      - name: Spusti deploy skript na serveri
+        run: |
+          ssh -i ~/.ssh/deploy_key -p 29727 uid1079389@shell.r2.websupport.sk \
+            'cd ~/hlascirkvi.sk/sub/event && git pull --ff-only origin main && bash deploy/deploy.sh'
