@@ -167,6 +167,10 @@ jobs:
     needs: [api, ui]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      # Websupport mení SSH port pri zapnutí konzoly — prepíše sa premennou
+      # repozitára SSH_PORT, bez úpravy workflowu.
+      SSH_PORT: ${{ vars.SSH_PORT || '27922' }}
 
     steps:
       - name: Stiahni build UI
@@ -182,16 +186,16 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo '[shell.r2.websupport.sk]:29727 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILvofctnNpmcfXIs7+ErytcD19+EG3Hfy6ss4TRueUfD' >> ~/.ssh/known_hosts
+          echo "[shell.r2.websupport.sk]:${SSH_PORT} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILvofctnNpmcfXIs7+ErytcD19+EG3Hfy6ss4TRueUfD" >> ~/.ssh/known_hosts
 
       # Vedľa živého buildu; prehodí ho až deploy.sh po git pull.
       - name: Nahraj build UI na server
         run: |
-          tar -C dist -czf - . | ssh -i ~/.ssh/deploy_key -p 29727 uid1079389@shell.r2.websupport.sk \
+          tar -C dist -czf - . | ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" uid1079389@shell.r2.websupport.sk \
             'rm -rf ~/hlascirkvi.sk/sub/event/ui/dist.new && mkdir -p ~/hlascirkvi.sk/sub/event/ui/dist.new && tar -xzf - -C ~/hlascirkvi.sk/sub/event/ui/dist.new'
 
       # Pull pred skriptom, aby sa vždy spustila jeho aktuálna verzia z main.
       - name: Spusti deploy skript na serveri
         run: |
-          ssh -i ~/.ssh/deploy_key -p 29727 uid1079389@shell.r2.websupport.sk \
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" uid1079389@shell.r2.websupport.sk \
             'cd ~/hlascirkvi.sk/sub/event && git pull --ff-only origin main && bash deploy/deploy.sh'
