@@ -28,7 +28,8 @@ class CheckinOfflineQueueTest extends EventSetupTest
     public function replayed_scan_records_the_time_it_was_scanned(): void
     {
         $admission = $this->admission();
-        $scannedAt = Carbon::now()->subMinutes(40);
+        // ISO 8601 payload aj databázový stĺpec ukladajú čas na celé sekundy.
+        $scannedAt = Carbon::now()->startOfSecond()->subMinutes(40);
 
         $response = $this->postJson('/api/dashboard/tickets/checkin', [
             'qr_token' => $admission->qr_token,
@@ -65,7 +66,7 @@ class CheckinOfflineQueueTest extends EventSetupTest
     public function sending_the_same_scan_twice_changes_nothing(): void
     {
         $admission = $this->admission();
-        $scannedAt = Carbon::now()->subMinutes(30);
+        $scannedAt = Carbon::now()->startOfSecond()->subMinutes(30);
 
         $payload = [
             'qr_token' => $admission->qr_token,

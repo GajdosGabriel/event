@@ -12,10 +12,10 @@ class DashboardUserShowTest extends UserSetupTest
     #[Test]
     public function user_can_read_his_own_profile(): void
     {
-        $response = $this->getJson('/api/dashboard/users/' . $this->user->id);
+        $response = $this->getJson('/api/dashboard/users/'.$this->user->id);
 
         $response->assertStatus(200);
-        $response->assertJsonPath('data.id', $this->user->id);
+        $response->assertJsonPath('id', $this->user->id);
     }
 
     /**
@@ -32,7 +32,7 @@ class DashboardUserShowTest extends UserSetupTest
             'canal_id' => Canal::factory()->create()->id,
         ]);
 
-        $response = $this->getJson('/api/dashboard/users/' . $foreignUser->id);
+        $response = $this->getJson('/api/dashboard/users/'.$foreignUser->id);
 
         $response->assertStatus(404);
     }

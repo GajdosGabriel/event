@@ -141,11 +141,12 @@ class EventFactory extends Factory
     public function past(): self
     {
         return $this->state(function (array $attributes) {
-            $startAt = $this->halfHourDate('-1 year', '+1 year');
+            $startAt = $this->halfHourDate('-1 year', '-1 day');
+            $start = Carbon::instance(clone $startAt);
 
             return [
                 'start_at' => $startAt,
-                'end_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
+                'end_at' => $this->faker->dateTimeBetween($start->copy()->addHour(), 'now'),
                 'published_at' => $this->faker->dateTimeBetween('-1 year', '-1 day'),
                 'registration_deadline_at' => $this->registrationDeadlineFor($startAt),
             ];
