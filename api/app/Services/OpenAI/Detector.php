@@ -217,11 +217,6 @@ class Detector
                 $venue['street_and_number'] = null;
             }
 
-            Log::info('Detector: obec doplnená z číselníka.', [
-                'source' => $source,
-                'city' => $city,
-            ]);
-
             break;
         }
 
