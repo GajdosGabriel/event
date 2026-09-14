@@ -144,7 +144,21 @@ jobs:
       # hash obsahu a ten sa medzi verziami Node/npm líši, takže by taká kontrola
       # bola trvalo červená. Aktuálnosť dist je vec deploy postupu, nie CI.
       - name: Typová kontrola a build
+        env:
+          # Vite berie VITE_* aj z prostredia; .env v repe nie je.
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
         run: npm run build
+
+      # Build pre deploy job. Na serveri sa nebuilduje — nie je tam dosť pamäte.
+      - name: Ulož build pre nasadenie
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: ui/dist
+          # Inak by vypadol ui/dist/.htaccess.
+          include-hidden-files: true
+          retention-days: 7
 
   # Nasadenie po každej zmene na main — priamy push aj merge PR (merge je tiež
   # push na main). Pull requesty sa nenasadzujú. Beží len keď prejdú testy.
@@ -155,6 +169,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Stiahni build UI
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist
+
       - name: Priprav SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -163,6 +183,12 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           echo '[shell.r2.websupport.sk]:29727 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILvofctnNpmcfXIs7+ErytcD19+EG3Hfy6ss4TRueUfD' >> ~/.ssh/known_hosts
+
+      # Vedľa živého buildu; prehodí ho až deploy.sh po git pull.
+      - name: Nahraj build UI na server
+        run: |
+          tar -C dist -czf - . | ssh -i ~/.ssh/deploy_key -p 29727 uid1079389@shell.r2.websupport.sk \
+            'rm -rf ~/hlascirkvi.sk/sub/event/ui/dist.new && mkdir -p ~/hlascirkvi.sk/sub/event/ui/dist.new && tar -xzf - -C ~/hlascirkvi.sk/sub/event/ui/dist.new'
 
       # Pull pred skriptom, aby sa vždy spustila jeho aktuálna verzia z main.
       - name: Spusti deploy skript na serveri
