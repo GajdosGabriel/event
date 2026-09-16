@@ -964,9 +964,14 @@ const en: Messages = {
       blocked: 'Blocked',
     },
     tickets: {
-      createHint: 'You can set up tickets and registration once the event exists, in the separate “Tickets” section.',
       manageHint: 'Ticket sales, ticket types, attendees and check-in are managed in a separate section.',
       manage: 'Manage tickets →',
+      freeRegistration: 'Free entry with registration',
+      freeRegistrationOff: 'Turn on if visitors should sign up in advance. Takes effect when you save.',
+      freeRegistrationOn: 'Visitors sign up for free and get a ticket.',
+      freeRegistrationCount: 'Registration is open — signed up: {n}.',
+      freeRegistrationFailed: 'The event was saved, but registration could not be set up.',
+      customHint: 'This event has its own ticket setup ({n} ticket types).',
     },
     venueModal: {
       title: 'New venue',

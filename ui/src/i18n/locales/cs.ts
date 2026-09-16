@@ -963,9 +963,14 @@ const cs: Messages = {
       blocked: 'Blokovaná',
     },
     tickets: {
-      createHint: 'Vstupenky a registraci nastavíte po vytvoření akce v samostatné sekci „Vstupenky“.',
       manageHint: 'Prodej vstupenek, typy vstupenek, přihlášené a check-in spravujete v samostatné sekci.',
       manage: 'Spravovat vstupenky →',
+      freeRegistration: 'Vstup za registraci (zdarma)',
+      freeRegistrationOff: 'Zapněte, pokud se návštěvníci mají předem přihlásit. Změna se projeví po uložení.',
+      freeRegistrationOn: 'Návštěvníci se na akci přihlásí zdarma a dostanou vstupenku.',
+      freeRegistrationCount: 'Registrace běží — přihlášených: {n}.',
+      freeRegistrationFailed: 'Akce se uložila, ale registraci se nepodařilo nastavit.',
+      customHint: 'Akce má vlastní nastavení vstupenek (typů: {n}).',
     },
     venueModal: {
       title: 'Nové místo konání',

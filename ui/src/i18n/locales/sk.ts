@@ -1025,9 +1025,14 @@ const sk = {
       blocked: 'Blokovaný',
     },
     tickets: {
-      createHint: 'Lístky a registráciu nastavíte po vytvorení eventu v samostatnej sekcii „Lístky“.',
       manageHint: 'Predaj lístkov, typy lístkov, prihlásení a check-in spravujete v samostatnej sekcii.',
       manage: 'Spravovať lístky →',
+      freeRegistration: 'Vstup za registráciu (zdarma)',
+      freeRegistrationOff: 'Zapnite, ak sa návštevníci majú vopred prihlásiť. Zmena sa prejaví po uložení.',
+      freeRegistrationOn: 'Návštevníci sa na event prihlásia zadarmo a dostanú lístok.',
+      freeRegistrationCount: 'Registrácia beží — prihlásených: {n}.',
+      freeRegistrationFailed: 'Event sa uložil, ale registráciu sa nepodarilo nastaviť.',
+      customHint: 'Event má vlastné nastavenie lístkov (typov: {n}).',
     },
     // Rýchle založenie miesta priamo nad formulárom eventu.
     venueModal: {

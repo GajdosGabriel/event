@@ -117,15 +117,37 @@
         <!-- Nastavenie vstupeniek žije len v dashboarde (route
              `admin-events-tickets` neexistuje) a je vecou vlastníka kanála,
              nie super-admina — v admin scope sa preto neponúka vôbec. -->
-        <div v-if="scope === 'dashboard'" class="edit-card">
-          <p class="field-legend">{{ t('events.sections.tickets') }}</p>
-          <p v-if="isCreate" class="text-sm text-slate-500">{{ t('events.tickets.createHint') }}</p>
-          <template v-else>
-            <p class="mb-3 text-sm text-slate-600">{{ t('events.tickets.manageHint') }}</p>
-            <RouterLink :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary">
-              {{ t('events.tickets.manage') }}
-            </RouterLink>
-          </template>
+        <div v-if="scope === 'dashboard'" class="edit-card grid gap-3">
+          <p class="field-legend mb-0">{{ t('events.sections.tickets') }}</p>
+          <!-- Najčastejší prípad — vstup zdarma za registráciu — sa zapína
+               priamo tu, bez odchodu do sekcie Lístky. Pod prepínačom je jeden
+               bezplatný typ lístka; kto má typov viac alebo platený, ten už
+               nastavuje v sekcii a prepínač by mu len zavádzal. -->
+          <label
+            v-if="!hasCustomTickets"
+            class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors"
+            :class="freeRegistration ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'"
+          >
+            <input v-model="freeRegistration" type="checkbox" class="peer sr-only" />
+            <span
+              class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2"
+              :class="freeRegistration ? 'bg-green-600' : 'bg-slate-300'"
+              aria-hidden="true"
+            >
+              <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+                :class="freeRegistration ? 'translate-x-5' : ''" />
+            </span>
+            <span class="grid gap-0.5">
+              <span class="text-sm font-semibold text-slate-900">{{ t('events.tickets.freeRegistration') }}</span>
+              <span class="text-xs text-slate-500">
+                {{ freeRegistrationHint }}
+              </span>
+            </span>
+          </label>
+          <p v-else class="text-sm text-slate-600">{{ t('events.tickets.customHint', { n: ticketTypes.length }) }}</p>
+          <RouterLink v-if="!isCreate" :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary justify-self-start">
+            {{ t('events.tickets.manage') }}
+          </RouterLink>
         </div>
 
         <!-- Publikovanie je posledné zámerne: je to posledné rozhodnutie nad
@@ -234,6 +256,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
+import { indexTicketTypes, createTicketType, updateTicketType } from '@/api/ticketTypes'
+import type { TicketTypeItem } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
@@ -385,6 +409,60 @@ watch(() => form.value.start_at, (startAt) => {
   form.value.end_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 })
 
+// ── Registrácia zdarma ────────────────────────────────────────────────
+// Prepínač je skratka za jeden bezplatný typ lístka. Ukladá sa spolu s
+// eventom (nie hneď pri kliknutí), aby Zrušiť vrátilo aj túto zmenu.
+const ticketTypes = ref<TicketTypeItem[]>([])
+const freeRegistration = ref(false)
+
+/** Jediný bezplatný lístok — len ten prepínač ovláda. */
+const freeTicketType = computed(() => {
+  const [only, ...rest] = ticketTypes.value
+  return only && !rest.length && only.kind === 'ticket' && !only.priceAmount ? only : null
+})
+
+/** Lístky nastavené v sekcii inak ako prepínačom (platené, viac typov, workshop). */
+const hasCustomTickets = computed(() => ticketTypes.value.length > 0 && !freeTicketType.value)
+
+const freeRegistrationHint = computed(() => {
+  if (!freeRegistration.value) return t('events.tickets.freeRegistrationOff')
+  const sold = freeTicketType.value?.soldCount ?? 0
+  return sold > 0
+    ? t('events.tickets.freeRegistrationCount', { n: sold })
+    : t('events.tickets.freeRegistrationOn')
+})
+
+async function loadTicketTypes(eventId: number) {
+  ticketTypes.value = await indexTicketTypes(eventId)
+  freeRegistration.value = Boolean(freeTicketType.value?.isActive)
+}
+
+/** Premietne prepínač do typov lístkov. Volá sa až po uložení eventu. */
+async function syncFreeRegistration(eventId: number) {
+  if (scope.value !== 'dashboard' || hasCustomTickets.value) return
+  const existing = freeTicketType.value
+  try {
+    if (!existing) {
+      if (!freeRegistration.value) return
+      await createTicketType(eventId, {
+        name: t('tickets.type.templates.free.name'),
+        kind: 'ticket',
+        price_amount: 0,
+        is_active: true,
+      })
+    } else if (existing.id && existing.isActive !== freeRegistration.value) {
+      // Vypnutie lístok len deaktivuje — prihlásení aj história ostávajú.
+      await updateTicketType(eventId, existing.id, { is_active: freeRegistration.value })
+    } else {
+      return
+    }
+    await loadTicketTypes(eventId)
+  } catch {
+    // Event je už uložený — zlyhanie lístka nesmie vyzerať ako neuložený formulár.
+    toast.error(t('events.tickets.freeRegistrationFailed'))
+  }
+}
+
 const venueModal = ref({
   show: false,
   saving: false,
@@ -468,6 +546,8 @@ onMounted(async () => {
         tag_ids: (ev.tags ?? []).filter((tag) => (tag.source ?? 'manual') === 'manual').map((tag) => tag.id),
       }
       applyWebsiteIssue(ev)
+      // Lístky sú doplnok — keď sa nenačítajú, editor musí ísť ďalej.
+      if (scope.value === 'dashboard') await loadTicketTypes(ev.id).catch(() => {})
     } catch { serverError.value = t('events.form.loadFailed') }
     finally { loadingData.value = false }
   }
@@ -506,10 +586,12 @@ async function submit() {
           await uploadFiles(fd)
         }
       }
+      await syncFreeRegistration(ev.id)
       toast.success(t('events.form.created'))
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
       await withDependencyConsent(p => updateEvent(Number(route.params.id), p, scope.value), payload)
+      await syncFreeRegistration(Number(route.params.id))
       toast.success(t('events.form.saved'))
     }
   } catch (e: unknown) {

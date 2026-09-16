@@ -964,9 +964,14 @@ const de: Messages = {
       blocked: 'Gesperrt',
     },
     tickets: {
-      createHint: 'Tickets und Anmeldung richten Sie nach dem Anlegen der Veranstaltung im eigenen Bereich „Tickets“ ein.',
       manageHint: 'Ticketverkauf, Ticketarten, Anmeldungen und Check-in verwalten Sie in einem eigenen Bereich.',
       manage: 'Tickets verwalten →',
+      freeRegistration: 'Eintritt mit Anmeldung (kostenlos)',
+      freeRegistrationOff: 'Einschalten, wenn sich Besucher vorab anmelden sollen. Wirkt nach dem Speichern.',
+      freeRegistrationOn: 'Besucher melden sich kostenlos an und erhalten ein Ticket.',
+      freeRegistrationCount: 'Anmeldung läuft — angemeldet: {n}.',
+      freeRegistrationFailed: 'Die Veranstaltung wurde gespeichert, die Anmeldung konnte aber nicht eingerichtet werden.',
+      customHint: 'Die Veranstaltung hat eigene Ticketeinstellungen (Ticketarten: {n}).',
     },
     venueModal: {
       title: 'Neuer Veranstaltungsort',
