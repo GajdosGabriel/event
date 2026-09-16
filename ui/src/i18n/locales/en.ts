@@ -930,7 +930,7 @@ const en: Messages = {
       contact: 'Contact',
       images: 'Images',
       publish: 'Publishing',
-      placement: 'Placement',
+      organizer: 'Organiser',
       imagesNote: 'Changes are saved immediately — no need to click Save.',
     },
     // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.

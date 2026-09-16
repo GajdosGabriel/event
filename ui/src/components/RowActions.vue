@@ -1,7 +1,7 @@
 <template>
   <div class="relative" ref="rootEl">
     <button
-      class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+      class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
       @click.stop="open = !open"
       aria-label="Akcie"
     >

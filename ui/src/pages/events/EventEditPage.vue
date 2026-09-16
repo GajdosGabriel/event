@@ -1,7 +1,11 @@
 <template>
   <div class="edit-shell">
-    <!-- Hlavička stránky. Odkaz na verejný detail je tu preto, aby sa dala
-         úprava hneď skontrolovať — pri vytváraní ešte nie je čo zobraziť. -->
+    <!-- Hlavička stránky. Odkaz vedie na verejnú podobu podujatia, aby sa dala
+         úprava hneď skontrolovať očami návštevníka — pri vytváraní ešte nie je
+         čo zobraziť. Otvára sa vedľa editora, nie namiesto neho: kto sa ide
+         pozrieť, sa vzápätí vracia k rozrobenému formuláru a `RouterLink` by
+         mu ho prepísal aj s neuloženými zmenami. Šípka za textom hovorí, že
+         odkaz odchádza z aplikácie — rovnako ako v `ActionButton`. -->
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
         <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('events.form.back') }}</RouterLink>
@@ -9,9 +13,10 @@
           {{ fileableId ? t('events.form.editTitle') : t('events.form.createTitle') }}
         </h1>
       </div>
-      <RouterLink v-if="fileableId" :to="`${prefix}/events/${fileableId}`" class="btn btn-secondary">
+      <a v-if="fileableId" :href="publicUrl" target="_blank" rel="noopener" class="btn btn-secondary no-underline">
         {{ t('events.form.view') }}
-      </RouterLink>
+        <AppIcon name="externalLink" class="h-4 w-4 shrink-0" />
+      </a>
     </div>
 
     <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
@@ -71,53 +76,16 @@
         </FormSection>
       </div>
 
-      <!-- ── Pravý panel: nastavenia. Drží sa pri skrolovaní, aby bolo
-             Uložiť vždy na dosah. ──────────────────────────────────────── -->
+      <!-- ── Pravý panel: nastavenia. Drží sa pri skrolovaní, aby sa dali
+             meniť aj pri dlhom popise. Poradie kariet kopíruje poradie
+             rozhodnutí: kto podujatie robí, ako vyzerá, čo stojí — a až
+             nakoniec Publikovanie s tlačidlom Uložiť. ─────────────────── -->
       <aside class="grid gap-4 xl:sticky xl:top-4 xl:self-start">
         <div class="edit-card grid gap-3">
-          <p class="field-legend mb-0">{{ t('events.sections.publish') }}</p>
-          <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
-               nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
-               a to iba dovtedy, kým naň nevisia vydané lístky. -->
-          <FormField
-            v-model="form.status"
-            type="select"
-            :label="t('events.fields.status')"
-            :error="errors.status"
-            :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
-          >
-            <option value="draft">{{ t('events.statuses.draft') }}</option>
-            <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
-            <option value="published">{{ t('events.statuses.published') }}</option>
-            <option value="archived">{{ t('events.statuses.archived') }}</option>
-          </FormField>
-          <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
-               stavoch ho backend aj tak zahodí, tak ho ani neukazujeme.
-               Minulosť sa zakazuje len pri zakladaní — pri úprave už
-               naplánovaného eventu by inak nešlo uložiť vôbec nič. -->
-          <FormField
-            v-if="form.status === 'scheduled'"
-            v-model="form.publish_at"
-            type="datetime"
-            :allow-past="!isCreate"
-            :label="t('events.fields.publishAt')"
-            required
-            :error="errors.publish_at"
-            :hint="t('events.fields.publishAtHint')"
-          />
-          <div class="mt-1 flex gap-2">
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              {{ saving ? t('events.form.saving') : t('events.form.save') }}
-            </button>
-            <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
-          </div>
-        </div>
-
-        <div class="edit-card grid gap-3">
-          <p class="field-legend mb-0">{{ t('events.sections.placement') }}</p>
+          <p class="field-legend mb-0">{{ t('events.sections.organizer') }}</p>
           <FormField v-model="form.canal_id" type="select" :label="t('events.fields.canal')" :error="errors.canal_id">
             <option v-if="!form.canal_id" :value="null" disabled>{{ t('events.fields.canalPlaceholder') }}</option>
-            <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+            <option v-for="c in canalOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
           </FormField>
           <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
             <template #default="{ value, invalid, update }">
@@ -158,6 +126,47 @@
               {{ t('events.tickets.manage') }}
             </RouterLink>
           </template>
+        </div>
+
+        <!-- Publikovanie je posledné zámerne: je to posledné rozhodnutie nad
+             podujatím a Uložiť pod ním uzatvára celý panel. -->
+        <div class="edit-card grid gap-3">
+          <p class="field-legend mb-0">{{ t('events.sections.publish') }}</p>
+          <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
+               nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
+               a to iba dovtedy, kým naň nevisia vydané lístky. -->
+          <FormField
+            v-model="form.status"
+            type="select"
+            :label="t('events.fields.status')"
+            :error="errors.status"
+            :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
+          >
+            <option value="draft">{{ t('events.statuses.draft') }}</option>
+            <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
+            <option value="published">{{ t('events.statuses.published') }}</option>
+            <option value="archived">{{ t('events.statuses.archived') }}</option>
+          </FormField>
+          <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
+               stavoch ho backend aj tak zahodí, tak ho ani neukazujeme.
+               Minulosť sa zakazuje len pri zakladaní — pri úprave už
+               naplánovaného eventu by inak nešlo uložiť vôbec nič. -->
+          <FormField
+            v-if="form.status === 'scheduled'"
+            v-model="form.publish_at"
+            type="datetime"
+            :allow-past="!isCreate"
+            :label="t('events.fields.publishAt')"
+            required
+            :error="errors.publish_at"
+            :hint="t('events.fields.publishAtHint')"
+          />
+          <div class="mt-1 flex gap-2">
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              {{ saving ? t('events.form.saving') : t('events.form.save') }}
+            </button>
+            <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
+          </div>
         </div>
       </aside>
     </form>
@@ -228,13 +237,15 @@ import { createVenue } from '@/api/venues'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
-import { useFormOptions } from '@/composables/useFormOptions'
+import { useFormOptions, type SelectOption } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
 import { errorBody, isCancelled, withDependencyConsent } from '@/utils/publishFlow'
+import { publicEventPath } from '@/utils/publicUrl'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import FormField from '@/components/FormField.vue'
 import FormSection from '@/components/FormSection.vue'
@@ -259,6 +270,11 @@ const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
 const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
+
+// Slug z detailu — je len ozdoba adresy, routuje sa id. Po práve založenom
+// evente ho ešte nemáme, `publicEventPath` vtedy dá holé `/akcie/{id}`.
+const eventSlug = ref<string | null>(null)
+const publicUrl = computed(() => fileableId.value ? publicEventPath({ id: fileableId.value, slug: eventSlug.value }) : '')
 
 const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
 
@@ -310,14 +326,40 @@ watch(canals, (list) => {
   }
 })
 
+// Kanál práve upravovaného eventu. `loadCanals()` ťahá len prvú stránku
+// (per_page 100) — v admin scope je kanálov aj tisíc, takže ten správny medzi
+// možnosťami často nie je vôbec. <select> potom nemá čo označiť a pole vyzerá
+// prázdne, hoci event kanál má. Doplníme ho teda z detailu eventu.
+const eventCanal = ref<SelectOption | null>(null)
+
+/** Miesto eventu aj s kanálom, do ktorého patrilo pri načítaní — viď `venuesForCanal`. */
+const eventVenue = ref<(SelectOption & { canalId: number | null }) | null>(null)
+
+const canalOptions = computed(() => {
+  const own = eventCanal.value
+  if (!own || canals.value.some(c => c.id === own.id)) return canals.value
+  return [own, ...canals.value]
+})
+
 // Only offer venues that actually belong to the selected canal — the backend
 // rejects an incompatible canal+venue pair (activeCanals, published pivot), so
 // showing the rest is misleading. This holds for admins too: even though they
 // can manage venues across all canals, an event's venue must live in the event's
 // canal. To use a venue from another canal, switch the canal or add a new venue.
 const venuesForCanal = computed(() => {
-  if (!form.value.canal_id) return venues.value
-  return venues.value.filter(v => v.canalIds.includes(form.value.canal_id as number))
+  const canalId = form.value.canal_id
+  const list = canalId
+    ? venues.value.filter(v => v.canalIds.includes(canalId))
+    : venues.value
+
+  // Miesto eventu chýba v zozname z rovnakého dôvodu ako jeho kanál (prvá
+  // stránka, 100 položiek). Držíme ho medzi možnosťami, ale len kým je zvolený
+  // pôvodný kanál eventu — po prepnutí kanála doň už nepatrí a kontrola nižšie
+  // ho má právom zhodiť.
+  const own = eventVenue.value
+  if (!own || own.canalId !== canalId || list.some(v => v.id === own.id)) return list
+
+  return [own, ...list]
 })
 
 watch(() => form.value.canal_id, () => {
@@ -406,6 +448,9 @@ onMounted(async () => {
     loadingData.value = true
     try {
       const ev = await showEvent(scope.value, Number(route.params.id))
+      eventSlug.value = ev.slug || null
+      eventCanal.value = ev.canalId ? { id: ev.canalId, name: ev.canalName } : null
+      eventVenue.value = ev.venue ? { id: ev.venue.id, name: ev.venue.name, canalId: ev.canalId } : null
       form.value = {
         name: ev.name,
         status: ev.status,
@@ -440,6 +485,7 @@ async function submit() {
     if (isCreate.value) {
       const ev = await withDependencyConsent(p => createEvent(p, scope.value), payload)
       savedId.value = ev.id
+      eventSlug.value = ev.slug || null
       const pending = picker.value?.files ?? []
       if (pending.length) {
         // PDFs are converted server-side into an image preview, so they upload as type

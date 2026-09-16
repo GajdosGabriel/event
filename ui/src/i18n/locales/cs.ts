@@ -929,7 +929,7 @@ const cs: Messages = {
       contact: 'Kontakt',
       images: 'Obrázky',
       publish: 'Publikování',
-      placement: 'Zařazení',
+      organizer: 'Pořadatel',
       imagesNote: 'Změny se ukládají okamžitě — není třeba klikat na Uložit.',
     },
     // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.

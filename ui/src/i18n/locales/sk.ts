@@ -991,7 +991,7 @@ const sk = {
       contact: 'Kontakt',
       images: 'Obrázky',
       publish: 'Publikovanie',
-      placement: 'Zaradenie',
+      organizer: 'Organizátor',
       imagesNote: 'Zmeny sa ukladajú okamžite — netreba klikať na Uložiť.',
     },
     // Zhrnutie v hlavičke zbalenej sekcie Kontakt, keď nie je vyplnený ani web, ani e-mail.
