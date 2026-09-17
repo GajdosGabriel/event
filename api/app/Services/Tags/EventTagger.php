@@ -41,8 +41,8 @@ class EventTagger
     private ?string $catalogVersion = null;
 
     public function __construct(
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
-        private readonly EventAttributeDeriver $attributeDeriver = new EventAttributeDeriver(),
+        private readonly ChatGPT $chatGPT = new ChatGPT,
+        private readonly EventAttributeDeriver $attributeDeriver = new EventAttributeDeriver,
     ) {}
 
     /**
@@ -63,7 +63,8 @@ class EventTagger
         }
 
         try {
-            $response = $this->chatGPT->extractTags($text, $catalog);
+            $response = app(\App\Services\OpenAI\AiUsageRecorder::class)
+                ->within($event, fn () => $this->chatGPT->extractTags($text, $catalog));
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
@@ -129,7 +130,7 @@ class EventTagger
     {
         $body = strip_tags((string) ($event->body ?? ''));
 
-        $text = trim((string) $event->name . "\n\n" . $body);
+        $text = trim((string) $event->name."\n\n".$body);
 
         return Str::limit(preg_replace('/\s+/u', ' ', $text) ?? $text, self::TEXT_LIMIT, '');
     }

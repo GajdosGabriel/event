@@ -851,7 +851,14 @@ class ChatGPT
                 'messages' => $messages,
             ]);
 
+        // Spotreba sa zapisuje pri každom volaní, aj neúspešnom — prehľad
+        // v administrácii (/admin/ai-spotreba) má ukázať aj chyby.
+        $recorder = app(AiUsageRecorder::class);
+        $feature = AiUsageRecorder::featureFromTrace();
+
         if (! $response->successful()) {
+            $recorder->record($feature, $model, null, false);
+
             // Došlý kredit neopraví žiadny retry — musí o ňom vedieť človek.
             app(OpenAiBillingAlert::class)->reportIfBillingError($response);
 
@@ -859,6 +866,13 @@ class ChatGPT
         }
 
         $data = $response->json();
+
+        $recorder->record(
+            $feature,
+            (string) ($data['model'] ?? $model),
+            is_array($data['usage'] ?? null) ? $data['usage'] : null,
+            ($data['choices'][0]['finish_reason'] ?? null) !== 'length',
+        );
 
         // Odpoveď useknutá na limite tokenov je nedokončený JSON. Bez tejto
         // kontroly z toho o dva riadky nižšie vypadlo len „Neplatny JSON:

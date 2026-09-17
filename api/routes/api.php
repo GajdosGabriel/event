@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityContro
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
+use App\Http\Controllers\Admin\AiUsageController as AdminAiUsageController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\AiAssistController;
@@ -609,6 +610,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     // Podklad na rozšírenie číselníka štítkov (číselník sám je v TagSeeder-i).
     Route::get('tag-suggestions', [AdminTagSuggestionController::class, 'index'])->name('tag-suggestions.index');
     Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
+    // Spotreba OpenAI — len prehľad, bez vypínača.
+    Route::get('ai-usage', [AdminAiUsageController::class, 'index'])->name('ai-usage.index');
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');

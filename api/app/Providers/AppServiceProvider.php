@@ -24,7 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Predmet volaní (within) platí len v rámci jednej požiadavky / úlohy.
+        $this->app->scoped(\App\Services\OpenAI\AiUsageRecorder::class);
     }
 
     /**

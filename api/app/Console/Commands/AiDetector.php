@@ -56,6 +56,9 @@ class AiDetector extends Command
             return self::SUCCESS;
         }
 
+        // Spotreba AI z tohto behu patrí podujatiu a jeho kanálu.
+        app(\App\Services\OpenAI\AiUsageRecorder::class)->setSubject($event);
+
         // Prvý beh nad podujatím prepisuje popis, ďalšie už len dohľadávajú
         // organizátora — hotový copywriter text sa druhýkrát neprepisuje.
         $rewritePass = $event->body_rewritten_at === null;

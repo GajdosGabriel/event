@@ -31,6 +31,7 @@ const links = computed(() => [
   { to: '/admin/venues', label: t('nav.venues') },
   { to: '/admin/municipalities', label: t('nav.municipalities') },
   { to: '/admin/navrhy-stitkov', label: t('nav.tagSuggestions') },
+  { to: '/admin/ai-spotreba', label: t('nav.aiUsage') },
   { to: '/admin/users', label: t('nav.users') },
   { to: '/admin/files', label: t('nav.files') },
   { to: '/admin/tools', label: t('nav.tools') },

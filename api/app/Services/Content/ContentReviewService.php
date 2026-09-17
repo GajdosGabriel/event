@@ -33,8 +33,7 @@ class ContentReviewService
     public function __construct(
         private readonly ChatGPT $chatGPT,
         private readonly PublishReadiness $readiness,
-    ) {
-    }
+    ) {}
 
     /**
      * Naplánuje kontrolu, ak na ňu záznam dozrel.
@@ -144,11 +143,14 @@ class ContentReviewService
         $body = (string) $model->getAttribute('body');
 
         try {
-            $result = $this->chatGPT->extractContentReview(
-                (string) $kind,
-                (string) $model->getAttribute('name'),
-                $body,
-                $this->contextFor($model),
+            $result = app(\App\Services\OpenAI\AiUsageRecorder::class)->within(
+                $model,
+                fn () => $this->chatGPT->extractContentReview(
+                    (string) $kind,
+                    (string) $model->getAttribute('name'),
+                    $body,
+                    $this->contextFor($model),
+                ),
             );
         } catch (\Throwable $e) {
             Log::warning('Kontrola obsahu zlyhala.', [
