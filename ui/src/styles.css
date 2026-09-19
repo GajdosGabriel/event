@@ -226,6 +226,69 @@
   .announcement-purple { @apply bg-fuchsia-700 text-slate-100; }
   .announcement-dark { @apply bg-slate-800 text-slate-100; }
 
+  /*
+   * Formátovaný text z editora (popis podujatia, kanála, miesta, oznamy).
+   * Triedy `prose` / `prose-sm` / `prose-slate` sú v šablónach aj v TipTap
+   * editore, ale plugin @tailwindcss/typography v projekte nie je — preflight
+   * by inak zrušil odrážky, nadpisy aj medzery medzi odstavcami. Farby
+   * zvýraznení idú cez `currentColor`, aby text sedel aj na farebnom pruhu
+   * oznamu.
+   */
+  .prose { @apply text-base leading-relaxed; overflow-wrap: break-word; }
+  .prose > :first-child { @apply mt-0; }
+  .prose > :last-child { @apply mb-0; }
+  .prose p { @apply my-3; }
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 { @apply font-semibold leading-snug text-slate-900; }
+  .prose h1 { @apply mt-8 mb-3 text-2xl; }
+  .prose h2 { @apply mt-7 mb-3 border-b border-slate-200 pb-1.5 text-xl; }
+  .prose h3 { @apply mt-6 mb-2 text-lg; }
+  .prose h4 { @apply mt-5 mb-2 text-base; }
+  /* Nadpis hneď za nadpisom nepotrebuje ďalšiu veľkú medzeru. */
+  .prose :is(h1, h2, h3, h4) + :is(h2, h3, h4) { @apply mt-3; }
+  .prose strong,
+  .prose b { @apply font-semibold text-slate-900; }
+  .prose a { @apply font-medium text-blue-700 underline decoration-blue-300 underline-offset-2 hover:decoration-blue-700; }
+  .prose ul,
+  .prose ol { @apply my-3 pl-6; }
+  .prose ul { @apply list-disc; }
+  .prose ol { @apply list-decimal; }
+  .prose ul ul { list-style-type: circle; }
+  .prose li { @apply my-1 pl-1; }
+  .prose li::marker { @apply text-slate-400; }
+  .prose ol > li::marker { @apply font-semibold text-slate-500; }
+  /* TipTap balí obsah položky do <p> — bez tohto by bol zoznam „nafúknutý". */
+  .prose li > p { @apply my-0; }
+  .prose li > :is(ul, ol) { @apply my-1; }
+  .prose blockquote { @apply my-4 rounded-r-lg border-l-4 border-slate-300 bg-slate-50 py-2 pr-4 pl-4 text-slate-600 italic; }
+  .prose blockquote > p { @apply my-1; }
+  .prose hr { @apply my-6 border-t border-slate-200; }
+  .prose code { @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.875em] text-slate-800; }
+  .prose pre { @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100; }
+  .prose pre code { @apply bg-transparent p-0 text-inherit; }
+  .prose img { @apply my-4 h-auto max-w-full rounded-lg; }
+  .prose table { @apply my-4 block w-full overflow-x-auto border-collapse text-sm; }
+  .prose th,
+  .prose td { @apply border border-slate-200 px-3 py-2 text-left align-top; }
+  .prose th { @apply bg-slate-50 font-semibold text-slate-900; }
+
+  /* Menšia varianta — editor, náhľady, oznamy. */
+  .prose-sm { @apply text-sm; }
+  .prose-sm p { @apply my-2; }
+  .prose-sm h1 { @apply mt-6 mb-2 text-xl; }
+  .prose-sm h2 { @apply mt-5 mb-2 text-lg; }
+  .prose-sm h3 { @apply mt-4 mb-1.5 text-base; }
+  .prose-sm h4 { @apply mt-3 mb-1 text-sm; }
+  .prose-sm :is(ul, ol) { @apply my-2 pl-5; }
+  .prose-sm li { @apply my-0.5; }
+
+  /* Na farebnom pruhu oznamu berie text farbu z pruhu. */
+  .announcement-body :is(h1, h2, h3, h4, strong, b, a) { color: inherit; }
+  .announcement-body li::marker { color: inherit; }
+  .announcement-body h2 { @apply border-current/30; }
+
   /* Widget na cudzom webe (`/embed/...`). Poznámka „načítavam / prázdne /
      nepodarilo sa" má rovnaký tvar vo všetkých embed stránkach. */
   .embed-note { @apply py-4 text-center text-sm text-slate-500; }

@@ -974,6 +974,14 @@ const de: Messages = {
       freeRegistrationFailed: 'Die Veranstaltung wurde gespeichert, die Anmeldung konnte aber nicht eingerichtet werden.',
       customHint: 'Die Veranstaltung hat eigene Ticketeinstellungen (Ticketarten: {n}).',
     },
+    questions: {
+      enable: 'Fragen aus dem Publikum (Q&A)',
+      off: 'Einschalten, wenn das Publikum per QR-Code oder auf der Veranstaltungsseite Fragen stellen soll. Wirkt nach dem Speichern.',
+      on: 'Besucher können Fragen senden — über die Folie mit QR-Code oder auf der Veranstaltungsseite.',
+      count: 'Fragen sind aktiviert — eingegangen: {n}.',
+      manage: 'Fragen verwalten →',
+      failed: 'Die Veranstaltung wurde gespeichert, die Fragen konnten aber nicht eingerichtet werden.',
+    },
     venueModal: {
       title: 'Neuer Veranstaltungsort',
       close: 'Schließen',

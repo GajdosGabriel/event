@@ -123,30 +123,26 @@
                priamo tu, bez odchodu do sekcie Lístky. Pod prepínačom je jeden
                bezplatný typ lístka; kto má typov viac alebo platený, ten už
                nastavuje v sekcii a prepínač by mu len zavádzal. -->
-          <label
+          <ToggleCard
             v-if="!hasCustomTickets"
-            class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors"
-            :class="freeRegistration ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'"
-          >
-            <input v-model="freeRegistration" type="checkbox" class="peer sr-only" />
-            <span
-              class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2"
-              :class="freeRegistration ? 'bg-green-600' : 'bg-slate-300'"
-              aria-hidden="true"
-            >
-              <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                :class="freeRegistration ? 'translate-x-5' : ''" />
-            </span>
-            <span class="grid gap-0.5">
-              <span class="text-sm font-semibold text-slate-900">{{ t('events.tickets.freeRegistration') }}</span>
-              <span class="text-xs text-slate-500">
-                {{ freeRegistrationHint }}
-              </span>
-            </span>
-          </label>
+            v-model="freeRegistration"
+            :label="t('events.tickets.freeRegistration')"
+            :hint="freeRegistrationHint"
+          />
           <p v-else class="text-sm text-slate-600">{{ t('events.tickets.customHint', { n: ticketTypes.length }) }}</p>
           <RouterLink v-if="!isCreate" :to="`/dashboard/events/${route.params.id}/tickets`" class="btn btn-secondary justify-self-start">
             {{ t('events.tickets.manage') }}
+          </RouterLink>
+          <!-- Otázky z publika (Q&A) — skratka za nástenku celého podujatia.
+               Ďalšie nastavenia nástenky, workshopy a snímka s QR kódom
+               ostávajú v sekcii Otázky. -->
+          <ToggleCard
+            v-model="questionsEnabled"
+            :label="t('events.questions.enable')"
+            :hint="questionsHint"
+          />
+          <RouterLink v-if="!isCreate && questionBoard" :to="`/dashboard/events/${route.params.id}/otazky`" class="btn btn-secondary justify-self-start">
+            {{ t('events.questions.manage') }}
           </RouterLink>
         </div>
 
@@ -257,6 +253,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { indexTicketTypes, createTicketType, updateTicketType } from '@/api/ticketTypes'
+import { indexQuestionBoards, createQuestionBoard, updateQuestionBoard, type QuestionBoardAdmin } from '@/api/questions'
 import type { TicketTypeItem } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
@@ -276,6 +273,7 @@ import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
+import ToggleCard from '@/components/ToggleCard.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -463,6 +461,43 @@ async function syncFreeRegistration(eventId: number) {
   }
 }
 
+// ── Otázky z publika ──────────────────────────────────────────────────
+// Prepínač je skratka za `is_open` nástenky podujatia. Nástenka sa zakladá
+// lenivo — až keď ju tu niekto prvýkrát zapne. Ukladá sa spolu s eventom.
+const questionBoard = ref<QuestionBoardAdmin | null>(null)
+const questionsEnabled = ref(false)
+
+const questionsHint = computed(() => {
+  if (!questionsEnabled.value) return t('events.questions.off')
+  const n = questionBoard.value?.questionsCount ?? 0
+  return n > 0 ? t('events.questions.count', { n }) : t('events.questions.on')
+})
+
+async function loadQuestionBoard(eventId: number) {
+  const slots = await indexQuestionBoards(eventId)
+  questionBoard.value = slots.find(s => s.targetType === 'event')?.board ?? null
+  questionsEnabled.value = Boolean(questionBoard.value?.isOpen)
+}
+
+/** Premietne prepínač do nástenky. Volá sa až po uložení eventu. */
+async function syncQuestionBoard(eventId: number) {
+  if (scope.value !== 'dashboard') return
+  const board = questionBoard.value
+  try {
+    if (!board) {
+      if (!questionsEnabled.value) return
+      // Nová nástenka je otvorená hneď od založenia.
+      questionBoard.value = await createQuestionBoard(eventId, 'event', eventId)
+    } else if (board.isOpen !== questionsEnabled.value) {
+      // Vypnutie nástenku len zavrie — otázky aj odpovede ostávajú.
+      questionBoard.value = await updateQuestionBoard(board.id, { is_open: questionsEnabled.value })
+    }
+  } catch {
+    // Event je už uložený — zlyhanie nástenky nesmie vyzerať ako neuložený formulár.
+    toast.error(t('events.questions.failed'))
+  }
+}
+
 const venueModal = ref({
   show: false,
   saving: false,
@@ -547,7 +582,12 @@ onMounted(async () => {
       }
       applyWebsiteIssue(ev)
       // Lístky sú doplnok — keď sa nenačítajú, editor musí ísť ďalej.
-      if (scope.value === 'dashboard') await loadTicketTypes(ev.id).catch(() => {})
+      if (scope.value === 'dashboard') {
+        await Promise.all([
+          loadTicketTypes(ev.id).catch(() => {}),
+          loadQuestionBoard(ev.id).catch(() => {}),
+        ])
+      }
     } catch { serverError.value = t('events.form.loadFailed') }
     finally { loadingData.value = false }
   }
@@ -587,11 +627,13 @@ async function submit() {
         }
       }
       await syncFreeRegistration(ev.id)
+      await syncQuestionBoard(ev.id)
       toast.success(t('events.form.created'))
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
       await withDependencyConsent(p => updateEvent(Number(route.params.id), p, scope.value), payload)
       await syncFreeRegistration(Number(route.params.id))
+      await syncQuestionBoard(Number(route.params.id))
       toast.success(t('events.form.saved'))
     }
   } catch (e: unknown) {

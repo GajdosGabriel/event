@@ -973,6 +973,14 @@ const cs: Messages = {
       freeRegistrationFailed: 'Akce se uložila, ale registraci se nepodařilo nastavit.',
       customHint: 'Akce má vlastní nastavení vstupenek (typů: {n}).',
     },
+    questions: {
+      enable: 'Otázky z publika (Q&A)',
+      off: 'Zapněte, pokud se má publikum ptát přes QR kód nebo na stránce akce. Změna se projeví po uložení.',
+      on: 'Návštěvníci mohou posílat otázky — ze snímku s QR kódem i z detailu akce.',
+      count: 'Otázky jsou zapnuté — přijatých: {n}.',
+      manage: 'Spravovat otázky →',
+      failed: 'Akce se uložila, ale otázky se nepodařilo nastavit.',
+    },
     venueModal: {
       title: 'Nové místo konání',
       close: 'Zavřít',

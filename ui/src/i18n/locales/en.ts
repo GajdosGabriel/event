@@ -974,6 +974,14 @@ const en: Messages = {
       freeRegistrationFailed: 'The event was saved, but registration could not be set up.',
       customHint: 'This event has its own ticket setup ({n} ticket types).',
     },
+    questions: {
+      enable: 'Audience questions (Q&A)',
+      off: 'Turn on if the audience should ask questions via a QR code or on the event page. Takes effect when you save.',
+      on: 'Visitors can send questions — from the QR code slide or the event page.',
+      count: 'Questions are on — received: {n}.',
+      manage: 'Manage questions →',
+      failed: 'The event was saved, but questions could not be set up.',
+    },
     venueModal: {
       title: 'New venue',
       close: 'Close',

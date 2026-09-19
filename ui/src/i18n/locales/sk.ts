@@ -1035,6 +1035,14 @@ const sk = {
       freeRegistrationFailed: 'Event sa uložil, ale registráciu sa nepodarilo nastaviť.',
       customHint: 'Event má vlastné nastavenie lístkov (typov: {n}).',
     },
+    questions: {
+      enable: 'Otázky z publika (Q&A)',
+      off: 'Zapnite, ak sa má publikum pýtať cez QR kód alebo na stránke eventu. Zmena sa prejaví po uložení.',
+      on: 'Návštevníci môžu posielať otázky — zo snímky s QR kódom aj z detailu eventu.',
+      count: 'Otázky sú zapnuté — prijatých: {n}.',
+      manage: 'Spravovať otázky →',
+      failed: 'Event sa uložil, ale otázky sa nepodarilo nastaviť.',
+    },
     // Rýchle založenie miesta priamo nad formulárom eventu.
     venueModal: {
       title: 'Nové miesto konania',
