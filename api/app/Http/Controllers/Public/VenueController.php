@@ -60,9 +60,12 @@ class VenueController extends Controller
         $events = Event::where('venue_id', $venue->id)
             ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->with('canal:id,name')
+            // Pozri Public\CanalController::events() — select + príznaky lístkov.
+            ->select(['id', 'name', 'slug', 'start_at', 'end_at', 'registration_deadline_at', 'status', 'canal_id'])
+            ->withTicketCtaFlags()
             ->orderByDesc('start_at')
             ->limit(100)
-            ->get(['id', 'name', 'slug', 'start_at', 'end_at', 'status', 'canal_id']);
+            ->get();
 
         return response()->json($events->map(fn ($ev) => [
             'id' => $ev->id,
@@ -77,6 +80,8 @@ class VenueController extends Controller
             'image_url' => $ev->thumb_image,
             // Pozri Public\CanalController::events() — dvojica pre srcset karty.
             'image_url_large' => $ev->primary_image['large'],
+            // Tlačidlo lístkov na karte — viď Event::ticketCta().
+            'ticket_cta' => $ev->ticketCta(),
         ]));
     }
 }

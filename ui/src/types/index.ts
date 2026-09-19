@@ -220,6 +220,8 @@ export interface EventItem {
   seriesOccurrences: SeriesOccurrence[]
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
+  /** „Kúpiť lístok" / „Rezervovať" na karte; null = lístok sa získať nedá. */
+  ticketCta: EventTicketCta | null
   workshopLockOnStart?: boolean
   /** Pripomienka účastníkom: hodiny pred začiatkom, null = neposielať. */
   reminderHoursBefore: number | null
@@ -276,6 +278,15 @@ export interface EventItem {
    * do odpovede dáva len organizátorovi a adminovi.
    */
   viewsCount: number | null
+}
+
+/**
+ * Tlačidlo lístkov na karte podujatia. Druh aj text posiela backend
+ * (Event::ticketCta(), lang events.ticket_cta) — front ho len vykreslí.
+ */
+export interface EventTicketCta {
+  kind: 'buy' | 'reserve'
+  label: string
 }
 
 /** Obsahový štítok podujatia. `group` je facet — viď TagGroup na backende. */

@@ -420,6 +420,7 @@
               :canal-name="item.canalName"
               :venue-name="item.venue?.name ?? null"
               :tags="item.tags"
+              :ticket-cta="item.ticketCta"
             />
           </div>
         </section>
@@ -871,7 +872,8 @@ async function load() {
     // `replace`, nie `push`: v histórii nemá vzniknúť krok navyše.
     const canonicalPath = publicEventPath(ev)
     if (route.path !== canonicalPath) {
-      router.replace(canonicalPath)
+      // Hash sa nesie ďalej — karta vo výpise odkazuje na `#registracia`.
+      router.replace({ path: canonicalPath, hash: route.hash })
     }
 
     // Typy lístkov (vrátane workshopov) načítame tu — používa ich sekcia
@@ -891,6 +893,13 @@ async function load() {
     error.value = true
   } finally {
     loading.value = false
+  }
+
+  // Tlačidlo lístkov na karte vedie na `#registracia`. Router tam scrollovať
+  // nevie — sekcia existuje až po zmiznutí načítavania, teda až teraz.
+  if (route.hash === '#registracia' && event.value?.ticketsEnabled) {
+    await nextTick()
+    scrollToRegistration()
   }
 }
 

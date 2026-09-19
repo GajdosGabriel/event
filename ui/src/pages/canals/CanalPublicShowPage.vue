@@ -65,6 +65,7 @@
                   :image-url-large="ev.imageUrlLarge"
                   :date-label="ev.startAt ? formatDate(ev.startAt) : null"
                   :canal-name="canal.name"
+                  :ticket-cta="ev.ticketCta"
                 />
               </div>
             </div>

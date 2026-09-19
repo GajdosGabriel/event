@@ -1,7 +1,7 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapNestedEventPermissions, type NestedEventPermissions } from './events'
-import type { VenueItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem, CoordinatesSource } from '@/types'
+import { mapNestedEventPermissions, mapTicketCta, type NestedEventPermissions } from './events'
+import type { VenueItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem, CoordinatesSource } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
 
@@ -124,6 +124,8 @@ export interface VenueEventItem {
   canalName: string | null
   imageUrl: string | null
   imageUrlLarge: string | null
+  /** „Kúpiť lístok" / „Rezervovať" na karte — viď Event::ticketCta(). */
+  ticketCta: EventTicketCta | null
   /** Čo s podujatím smie prihlásený používateľ; verejný výpis ich neposiela. */
   permissions?: NestedEventPermissions
 }
@@ -139,6 +141,7 @@ function mapVenueEvent(r: Record<string, unknown>): VenueEventItem {
     canalName: (r['canal_name'] as string) ?? null,
     imageUrl: (r['image_url'] as string) ?? null,
     imageUrlLarge: (r['image_url_large'] as string) ?? null,
+    ticketCta: mapTicketCta(r['ticket_cta']),
     permissions: mapNestedEventPermissions(r['permissions']),
   }
 }

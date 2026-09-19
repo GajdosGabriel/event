@@ -1,7 +1,7 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import { mapNestedEventPermissions, type NestedEventPermissions } from './events'
-import type { CanalItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
+import { mapNestedEventPermissions, mapTicketCta, type NestedEventPermissions } from './events'
+import type { CanalItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'dashboard' | 'admin'
 
@@ -58,6 +58,8 @@ export interface CanalEventItem {
   status: string
   imageUrl: string | null
   imageUrlLarge: string | null
+  /** „Kúpiť lístok" / „Rezervovať" na karte — viď Event::ticketCta(). */
+  ticketCta: EventTicketCta | null
   /** Čo s podujatím smie prihlásený používateľ; verejný výpis ich neposiela. */
   permissions?: NestedEventPermissions
 }
@@ -74,6 +76,7 @@ export async function listCanalEvents(scope: Scope | 'public', canalId: number):
     status: (r['status'] as string) ?? 'draft',
     imageUrl: (r['image_url'] as string) ?? null,
     imageUrlLarge: (r['image_url_large'] as string) ?? null,
+    ticketCta: mapTicketCta(r['ticket_cta']),
     permissions: mapNestedEventPermissions(r['permissions']),
   }))
 }

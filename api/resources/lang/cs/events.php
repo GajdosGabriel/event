@@ -9,4 +9,9 @@ return [
         'venue' => 'místo :name',
         'canal' => 'kanál :name',
     ],
+    // Tlačidlo lístkov na karte podujatia (Event::ticketCta()).
+    'ticket_cta' => [
+        'buy'     => 'Koupit vstupenku',
+        'reserve' => 'Rezervovat',
+    ],
 ];

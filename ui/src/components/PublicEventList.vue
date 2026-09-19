@@ -117,8 +117,6 @@
           <NearbyFilter @change="onNearbyChange" />
         </nav>
 
-        <TagChips :count="loading ? null : resultLabel" />
-
         <div>
           <!-- Kostra v tvare výsledku: text „Načítavam…" nechal plochu prázdnu
                a po dobehnutí obsah skočil o celú výšku zoznamu. -->
@@ -201,6 +199,7 @@
                 :venue-name="event.venue?.name ?? null"
                 :series-upcoming-count="event.seriesUpcomingCount"
                 :distance-label="distanceLabel(event)"
+                :ticket-cta="event.ticketCta"
               />
             </div>
           </template>
@@ -209,8 +208,9 @@
         </div>
       </div>
 
-      <aside>
+      <aside class="space-y-4">
         <MunicipalityAside scope="public" resource="events" />
+        <TagChips :count="loading ? null : resultLabel" />
       </aside>
     </div>
   </div>

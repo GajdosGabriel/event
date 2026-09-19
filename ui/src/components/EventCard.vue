@@ -3,19 +3,32 @@
        Vizuál zámerne kopíruje riadok v admine/dashboarde (IndexRow): obrázok navrchu,
        pod ním názov a badge pre dátum/kanál/miesto v rovnakých farbách. -->
   <div class="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-sm">
-    <RouterLink :to="link" class="block">
-      <img
-        v-if="imageUrl"
-        :src="imageUrl"
-        :srcset="srcset"
-        :sizes="srcset ? CARD_IMAGE_SIZES : undefined"
-        :alt="name"
-        loading="lazy"
-        decoding="async"
-        class="block h-40 w-full object-cover"
+    <div class="relative">
+      <RouterLink :to="link" class="block">
+        <img
+          v-if="imageUrl"
+          :src="imageUrl"
+          :srcset="srcset"
+          :sizes="srcset ? CARD_IMAGE_SIZES : undefined"
+          :alt="name"
+          loading="lazy"
+          decoding="async"
+          class="block h-40 w-full object-cover"
+        />
+        <div v-else class="block h-40 w-full bg-slate-100" />
+      </RouterLink>
+
+      <!-- Kúpiť / rezervovať lístok — vpravo hore cez obrázok, len keď to
+           backend ponúka (ticket_cta). Súrodenec odkazu, nie jeho dieťa:
+           <a> v <a> nie je platné HTML. -->
+      <EventTicketCta
+        v-if="ticketCta"
+        :cta="ticketCta"
+        :to="`${link}#registracia`"
+        :event-name="name"
+        class="absolute top-2 right-2 shadow-md ring-1 ring-white/40"
       />
-      <div v-else class="block h-40 w-full bg-slate-100" />
-    </RouterLink>
+    </div>
 
     <div class="flex min-w-0 flex-1 flex-col gap-1.5 p-3">
       <h3 class="text-[0.97rem] leading-tight">
@@ -79,7 +92,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TagItem } from '@/types'
+import type { EventTicketCta as TicketCta, TagItem } from '@/types'
+import EventTicketCta from '@/components/EventTicketCta.vue'
 import { publicEventPath } from '@/utils/publicUrl'
 import { plural } from '@/i18n'
 
@@ -111,6 +125,8 @@ const props = defineProps<{
   seriesUpcomingCount?: number | null
   /** Vzdialenosť od polohy návštevníka, už naformátovaná. */
   distanceLabel?: string | null
+  /** Tlačidlo „Kúpiť lístok" / „Rezervovať" vpravo hore; null = žiadne. */
+  ticketCta?: TicketCta | null
 }>()
 
 const link = computed(() => props.to ?? publicEventPath({ id: props.id, slug: props.slug }))

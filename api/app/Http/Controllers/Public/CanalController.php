@@ -74,9 +74,13 @@ class CanalController extends Controller
         $events = Event::where('canal_id', $canal->id)
             ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->with('canal')
+            // Explicitný select, nie get([...]) — withExists by si inak
+            // vynútil `events.*`. Uzávierku registrácie číta ticketCta().
+            ->select(['id', 'name', 'slug', 'start_at', 'end_at', 'registration_deadline_at', 'status', 'canal_id'])
+            ->withTicketCtaFlags()
             ->orderByDesc('start_at')
             ->limit(100)
-            ->get(['id', 'name', 'slug', 'start_at', 'end_at', 'status', 'canal_id']);
+            ->get();
 
         return response()->json($events->map(fn ($ev) => [
             'id' => $ev->id,
@@ -91,6 +95,8 @@ class CanalController extends Controller
             // Karta si z dvojice thumb/large poskladá srcset — na retina displeji
             // je 320px thumb na 160px vysokej karte viditeľne rozmazaný.
             'image_url_large' => $ev->primary_image['large'],
+            // Tlačidlo lístkov na karte — viď Event::ticketCta().
+            'ticket_cta' => $ev->ticketCta(),
         ]));
     }
 }

@@ -580,6 +580,8 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                 'files',
                 'tags',
             ])
+            // Tlačidlo „Kúpiť lístok" / „Rezervovať" na karte bez dotazu na riadok.
+            ->withTicketCtaFlags()
             // Odznak „a ďalších N termínov" na karte zbalenej série. Počíta sa
             // poddotazom, nie načítaním termínov — na kartu treba číslo, nie
             // zoznam.

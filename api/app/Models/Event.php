@@ -15,6 +15,8 @@ use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\InteractsAsQuestionBoard;
 use App\Models\Traits\SanitizesHtmlBody;
+use App\Support\EventTimeframe;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +57,9 @@ class Event extends Model implements HasQuestionBoard, Messageable
         'ai_tags_hash',
         'ai_tags_attempts',
         'body_rewritten_at',
+        // Pomocné príznaky z withTicketCtaFlags(); von ide z nich ticket_cta.
+        'has_active_ticket_types',
+        'has_paid_ticket_types',
     ];
 
     protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
@@ -246,6 +251,11 @@ class Event extends Model implements HasQuestionBoard, Messageable
      */
     public function getTicketsEnabledAttribute(): bool
     {
+        // Príznak z withTicketCtaFlags() — výpis sa tak nepýta na každý riadok.
+        if (array_key_exists('has_active_ticket_types', $this->attributes)) {
+            return (bool) $this->attributes['has_active_ticket_types'];
+        }
+
         if ($this->relationLoaded('ticketTypes')) {
             return $this->ticketTypes->contains(fn ($type) => (bool) $type->is_active);
         }
@@ -255,6 +265,60 @@ class Event extends Model implements HasQuestionBoard, Messageable
         }
 
         return $this->ticketTypes()->where('is_active', true)->exists();
+    }
+
+    /**
+     * Prilepí k dotazu dva exists-príznaky, z ktorých tickets_enabled
+     * a ticketCta() čítajú bez ďalšieho dotazu na riadok. Patrí do každého
+     * výpisu, ktorý na karte ukazuje tlačidlo lístkov.
+     */
+    public function scopeWithTicketCtaFlags(Builder $query): Builder
+    {
+        return $query->withExists([
+            'ticketTypes as has_active_ticket_types' => fn ($q) => $q->where('is_active', true),
+            'ticketTypes as has_paid_ticket_types' => fn ($q) => $q
+                ->where('is_active', true)
+                ->where('price_amount', '>', 0),
+        ]);
+    }
+
+    /**
+     * Tlačidlo „Kúpiť lístok" / „Rezervovať" na karte podujatia.
+     *
+     * Druh aj text drží backend (lang events.ticket_cta), front ho len
+     * vykreslí — ktorákoľvek stránka s kartou ho tak dostane zadarmo.
+     * Null, keď sa lístok získať nedá: bez aktívnych typov, po skončení
+     * podujatia alebo po uzávierke registrácie.
+     *
+     * @return array{kind: 'buy'|'reserve', label: string}|null
+     */
+    public function ticketCta(): ?array
+    {
+        if (! $this->tickets_enabled || EventTimeframe::hasEnded($this)) {
+            return null;
+        }
+
+        if ($this->registration_deadline_at !== null && $this->registration_deadline_at->isPast()) {
+            return null;
+        }
+
+        $kind = $this->hasPaidTicketTypes() ? 'buy' : 'reserve';
+
+        return ['kind' => $kind, 'label' => __('events.ticket_cta.' . $kind)];
+    }
+
+    /** Aspoň jeden aktívny typ lístka je platený — inak ide o rezerváciu zdarma. */
+    private function hasPaidTicketTypes(): bool
+    {
+        if (array_key_exists('has_paid_ticket_types', $this->attributes)) {
+            return (bool) $this->attributes['has_paid_ticket_types'];
+        }
+
+        if ($this->relationLoaded('ticketTypes')) {
+            return $this->ticketTypes->contains(fn ($type) => $type->is_active && $type->price_amount > 0);
+        }
+
+        return $this->ticketTypes()->where('is_active', true)->where('price_amount', '>', 0)->exists();
     }
 
     /**

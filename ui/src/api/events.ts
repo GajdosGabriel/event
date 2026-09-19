@@ -1,6 +1,6 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import type { EventItem, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
+import type { EventItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'public' | 'dashboard' | 'admin'
 
@@ -56,6 +56,17 @@ export function mapNestedEventPermissions(raw: unknown): NestedEventPermissions 
   return { view: Boolean(p['view']), update: Boolean(p['update']) }
 }
 
+/**
+ * `ticket_cta` z ktorejkoľvek odpovede s podujatím (výpis, kanál, miesto).
+ * Neznámy druh sa zahodí — karta radšej nič, než tlačidlo bez významu.
+ */
+export function mapTicketCta(raw: unknown): EventTicketCta | null {
+  if (!raw || typeof raw !== 'object') return null
+  const c = raw as Record<string, unknown>
+  if (c['kind'] !== 'buy' && c['kind'] !== 'reserve') return null
+  return { kind: c['kind'], label: String(c['label'] ?? '') }
+}
+
 function buildDateRangeLabel(startAt: string | null, endAt: string | null): string | null {
   if (!startAt) return null
   const fmt = (d: string) => new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
@@ -106,6 +117,7 @@ export function mapEvent(raw: Record<string, unknown>): EventItem {
     })),
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
     ticketsEnabled: Boolean(raw['tickets_enabled']),
+    ticketCta: mapTicketCta(raw['ticket_cta']),
     workshopLockOnStart: raw['workshop_lock_on_start'] === undefined ? true : Boolean(raw['workshop_lock_on_start']),
     reminderHoursBefore: (raw['reminder_hours_before'] as number) ?? null,
     reminderSentAt: (raw['reminder_sent_at'] as string) ?? null,

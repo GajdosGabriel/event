@@ -52,6 +52,8 @@ class EventResource extends JsonResource
         }
 
         $data['tickets_enabled'] = $this->tickets_enabled;
+        // Tlačidlo lístkov na karte — druh aj text z lang, viď Event::ticketCta().
+        $data['ticket_cta'] = $this->resource->ticketCta();
         $data['workshop_lock_on_start'] = (bool) $this->workshop_lock_on_start;
         $data['price_amount'] = $this->price_amount;
         $data['price_currency'] = $this->price_currency;
