@@ -66,6 +66,7 @@ const cs: Messages = {
     breadcrumb: 'Drobečková navigace',
     views: '{n} zobrazení veřejného detailu',
     tooManyRequests: 'Příliš mnoho požadavků. Zkuste to za chvíli znovu.',
+    requiredMissing: 'Vyplňte povinná pole.',
     removeConfirm: 'Opravdu smazat?',
     removed: 'Smazáno.',
     removeFailed: 'Mazání selhalo.',

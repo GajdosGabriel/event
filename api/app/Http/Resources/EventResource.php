@@ -143,7 +143,7 @@ class EventResource extends JsonResource
             'publish' => $user?->can('publish', $this->resource) ?? false,
             'unpublish' => $user?->can('unpublish', $this->resource) ?? false,
             // Kôš je súčasť práva, nie dopočet v menu — viď VenueResource.
-            'delete' => ! $isTrashed && !$isPublished && ($user?->can('delete', $this->resource) ?? false),
+            'delete' => ! $isTrashed && ! $isPublished && ($user?->can('delete', $this->resource) ?? false),
             'archive' => $isPublished && ($user?->can('archive', $this->resource) ?? false),
             // Stav sa pýta vopred, nech sa policy (a jej dotaz na lístky) nespúšťa
             // na každom riadku výpisu — odomykať je čo len archivovanému.

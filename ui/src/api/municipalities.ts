@@ -62,23 +62,14 @@ export async function showMunicipality(scope: MunicipalityScope, id: number): Pr
   return mapMunicipality((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function createMunicipality(
-  scope: MunicipalityScope,
-  payload: Record<string, unknown>,
-): Promise<MunicipalityItem> {
-  const { data } = await http.post(baseUrl(scope), payload)
-  return mapMunicipality((data.data ?? data) as Record<string, unknown>)
-}
+/*
+ * Zakladanie a úprava obce tu zámerne nie sú. `apiResource` na oboch scope
+ * síce routy `POST`/`PUT` registruje, ale ani jeden kontrolér nemá `store`
+ * ani `update` — volanie skončí chybou servera, nie validačnou hláškou.
+ * Obce sa plnia importom; keď zápis pribudne na API, patria funkcie sem.
+ */
 
-export async function updateMunicipality(
-  scope: MunicipalityScope,
-  id: number,
-  payload: Record<string, unknown>,
-): Promise<MunicipalityItem> {
-  const { data } = await http.put(`${baseUrl(scope)}/${id}`, payload)
-  return mapMunicipality((data.data ?? data) as Record<string, unknown>)
-}
-
+/** Maže len dashboard scope — Admin\MunicipalityController `destroy` nemá. */
 export async function deleteMunicipality(scope: MunicipalityScope, id: number): Promise<void> {
   await http.delete(`${baseUrl(scope)}/${id}`)
 }

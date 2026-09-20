@@ -14,8 +14,7 @@ use Illuminate\Http\Request;
 
 class VenueController extends Controller
 {
-    public function __construct(protected VenueRepository $venueRepository)
-    {}
+    public function __construct(protected VenueRepository $venueRepository) {}
 
     public function show($id, Request $request, ViewRecorder $viewRecorder)
     {
@@ -47,6 +46,7 @@ class VenueController extends Controller
     {
         $venue = Venue::findOrFail($id);
         $files = $venue->files()->orderBy('sort_order')->orderBy('id')->get();
+
         return response()->json(FileResource::collection($files));
     }
 

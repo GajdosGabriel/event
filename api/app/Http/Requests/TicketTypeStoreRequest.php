@@ -46,10 +46,17 @@ class TicketTypeStoreRequest extends FormRequest
     /**
      * Zvolený druh (kind + open_to_public) musí patriť medzi možnosti, ktoré
      * daný používateľ smie nastaviť — rovnaká policy ako vo výbere vo fronte.
+     *
+     * Navyše sa tu porovnáva rozsah na objednávku. Oba kusy logiky sú v
+     * `after()`, nie v `rules()`: obe polia sú `sometimes`, takže pri čiastočnej
+     * úprave (napr. len prepnutie `is_active`) v požiadavke vôbec nie sú
+     * a pravidlo `gte:min_per_order` by nemalo čo porovnať.
      */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $this->validateOrderRange($validator);
+
             if (! $this->filled('kind')) {
                 return;
             }
@@ -65,5 +72,21 @@ class TicketTypeStoreRequest extends FormRequest
                 $validator->errors()->add('kind', __('tickets.errors.kind_not_allowed'));
             }
         });
+    }
+
+    /**
+     * Horná hranica objednávky nesmie byť pod dolnou — taký typ by sa nedal
+     * objednať vôbec: stepper vo fronte by sa nedostal nad `max_per_order`
+     * a repozitár by každú objednávku zhodil na `min_per_order`.
+     */
+    private function validateOrderRange(Validator $validator): void
+    {
+        if (! $this->filled('min_per_order') || ! $this->filled('max_per_order')) {
+            return;
+        }
+
+        if ((int) $this->input('max_per_order') < (int) $this->input('min_per_order')) {
+            $validator->errors()->add('max_per_order', __('tickets.errors.max_below_min'));
+        }
     }
 }

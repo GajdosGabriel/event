@@ -45,8 +45,11 @@
           <legend class="field-legend">{{ t('venues.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <FormField v-model="form.name" :label="t('venues.fields.name')" required :error="errors.name" class="lg:col-span-2" />
-            <FormField v-model="form.canal_id" type="select" :label="t('venues.fields.canal')" :error="errors.canal_id">
-              <option :value="null">{{ t('venues.fields.canalPlaceholder') }}</option>
+            <!-- Kanál je na serveri povinný (`required_without:canal_ids`) —
+                 prázdna voľba preto nesmie ostať vyberateľná, inak to skončí
+                 chybou až po uložení. -->
+            <FormField v-model="form.canal_id" type="select" :label="t('venues.fields.canal')" required :error="errors.canal_id">
+              <option v-if="!form.canal_id" :value="null" disabled>{{ t('venues.fields.canalPlaceholder') }}</option>
               <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
             </FormField>
             <!-- Koncept = stiahnutie z výpisu. Miesto, ktoré používa podujatie,

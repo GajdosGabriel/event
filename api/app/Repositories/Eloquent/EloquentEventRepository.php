@@ -18,9 +18,9 @@ use App\Services\Tags\EventAttributeDeriver;
 use App\Support\EventDateRange;
 use App\Support\EventTimeframe;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -119,7 +119,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
 
             $copy->status = ModelStatus::Draft->value;
             $copy->user_id = $user->id;
-            $copy->name = $source->name . ' (kópia)';
+            $copy->name = $source->name.' (kópia)';
             // Duplikát je nové podujatie, nie ďalší termín — do série zdrojového
             // podujatia nepatrí. Termín pridáva EventSeriesManager.
             $copy->series_id = null;
@@ -415,10 +415,10 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             ->whereNotNull('events.venue_id')
             ->where(function ($q) {
                 $q->where('events.end_at', '>=', now())
-                  ->orWhere(function ($inner) {
-                      $inner->whereNull('events.end_at')
+                    ->orWhere(function ($inner) {
+                        $inner->whereNull('events.end_at')
                             ->where('events.start_at', '>=', now()->startOfDay());
-                  });
+                    });
             });
 
         if ($scope === 'planned') {

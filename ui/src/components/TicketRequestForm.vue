@@ -74,10 +74,10 @@
           </div>
         </div>
 
-        <button v-if="qty(type) === 0" type="button" :disabled="maxFor(type) === 0"
+        <button v-if="qty(type) === 0" type="button" :disabled="!orderable(type)"
           class="mt-2 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           @click="activate(type)">
-          {{ maxFor(type) === 0
+          {{ !orderable(type)
             ? t('tickets.request.soldOut')
             : type.priceAmount ? t('tickets.request.buy') : t('tickets.request.reserve') }}
         </button>
@@ -253,6 +253,21 @@ function maxFor(type: TicketTypeItem): number {
   return Math.max(0, Math.min(...caps))
 }
 
+/**
+ * Najmenší počet, ktorý sa dá objednať. Repozitár objednávku pod `min_per_order`
+ * zhodí (tickets.errors.min_per_order), takže stepper nesmie takú hodnotu vôbec
+ * ponúknuť — inak by „Rezervovať" pri type s minimom 2 vždy skončilo chybou.
+ * Ak zvyšná kapacita na minimum nestačí, typ sa objednať nedá vôbec.
+ */
+function minFor(type: TicketTypeItem): number {
+  return Math.max(1, type.minPerOrder ?? 1)
+}
+
+/** Dá sa tento typ ešte objednať? Kapacita musí stačiť aspoň na minimum. */
+function orderable(type: TicketTypeItem): boolean {
+  return maxFor(type) >= minFor(type)
+}
+
 function timeLabel(type: TicketTypeItem): string {
   return fmtDayTimeRange(type.startsAt, type.endsAt)
 }
@@ -287,10 +302,10 @@ const holderEmail = computed(() => (oneClick.value ? auth.email : form.holder_em
  * byť aktívny len jeden typ — výber iného ten predchádzajúci zruší.
  */
 function activate(type: TicketTypeItem) {
-  if (maxFor(type) <= 0) return
+  if (!orderable(type)) return
   for (const id of Object.keys(quantities)) delete quantities[Number(id)]
   for (const id of Object.keys(attendees)) delete attendees[Number(id)]
-  quantities[type.id!] = 1
+  quantities[type.id!] = minFor(type)
   error.value = null
 }
 
@@ -298,8 +313,22 @@ function inc(type: TicketTypeItem) {
   if (qty(type) < maxFor(type)) quantities[type.id!] = qty(type) + 1
 }
 
+/**
+ * Pod minimum sa neuberá po jednom — objednávka by ostala v počte, ktorý server
+ * odmietne. Krok pod minimum preto výber typu rovno zruší.
+ */
 function dec(type: TicketTypeItem) {
-  if (qty(type) > 0) quantities[type.id!] = qty(type) - 1
+  const current = qty(type)
+  if (current <= 0) return
+
+  const next = current - 1
+  if (next < minFor(type)) {
+    quantities[type.id!] = 0
+    delete attendees[type.id!]
+    return
+  }
+
+  quantities[type.id!] = next
 }
 
 /**

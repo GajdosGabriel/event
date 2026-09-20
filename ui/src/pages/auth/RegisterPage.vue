@@ -14,7 +14,7 @@
           <FormField v-model="form.display_name" :label="t('auth.register.name')" required />
           <FormField v-model="form.email" type="email" :label="t('auth.register.email')" required />
           <FormField v-model="form.password" type="password" :label="t('auth.register.password')" required autocomplete="new-password" />
-          <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" />
+          <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" :error="passwordError" />
 
           <TermsConsentField v-model="form.terms_accepted" :error="termsError" />
 
@@ -65,10 +65,21 @@ const loading = ref(false)
 // odpoveď preto priradíme priamo k poľu, nielen do hlavičky formulára.
 const termsError = ref<string | null>(null)
 
+// Nezhoda v potvrdení hesla patrí k druhému poľu, nie do hlavičky — rovnako
+// ako pri obnove hesla. Server ju odmietne tiež (`confirmed`), ale povedať to
+// ešte pred odoslaním je rýchlejšie a nezhodí rozpísaný formulár.
+const passwordError = ref<string | null>(null)
+
 async function submit() {
   validation.markValidated()
   error.value = null
   termsError.value = null
+  passwordError.value = null
+
+  if (form.value.password !== form.value.password_confirmation) {
+    passwordError.value = t('auth.reset.mismatch')
+    return
+  }
 
   if (!form.value.terms_accepted) {
     termsError.value = t('auth.register.termsRequired')
@@ -82,6 +93,7 @@ async function submit() {
   } catch (e: unknown) {
     const response = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response
     if (response?.data?.errors?.['terms_accepted']) termsError.value = t('auth.register.termsRequired')
+    passwordError.value = response?.data?.errors?.['password']?.[0] ?? null
     error.value = response?.data?.message ?? t('auth.register.failed')
   } finally {
     loading.value = false

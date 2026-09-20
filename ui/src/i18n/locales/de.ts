@@ -66,6 +66,7 @@ const de: Messages = {
     breadcrumb: 'Brotkrumen-Navigation',
     views: '{n} Aufrufe der öffentlichen Seite',
     tooManyRequests: 'Zu viele Anfragen. Bitte versuchen Sie es gleich noch einmal.',
+    requiredMissing: 'Füllen Sie die Pflichtfelder aus.',
     removeConfirm: 'Wirklich löschen?',
     removed: 'Gelöscht.',
     removeFailed: 'Löschen fehlgeschlagen.',

@@ -44,6 +44,7 @@ return [
         'sale_not_started' => 'Sales of the ticket “:name” have not started yet.',
         'sale_ended' => 'Sales of the ticket “:name” have already ended.',
         'min_per_order' => 'The minimum number of “:name” tickets per order is :count.',
+        'max_below_min' => 'The maximum per order must not be lower than the minimum per order.',
         'max_per_order' => 'The maximum number of “:name” tickets per order is :count.',
         'nothing_selected' => 'You have not selected any ticket.',
         'workshop_requires_ticket' => 'Only attendees registered for the event can sign up for workshops.',

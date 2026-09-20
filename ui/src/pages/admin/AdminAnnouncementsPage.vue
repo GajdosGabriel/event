@@ -76,23 +76,23 @@
         <p v-if="formError" class="mb-2 text-sm text-red-600">{{ formError }}</p>
 
         <div class="grid gap-3 md:grid-cols-2">
-          <FormField v-model="form.title" :label="t('admin.announcements.fieldTitle')" required />
+          <FormField v-model="form.title" :label="t('admin.announcements.fieldTitle')" required :error="errors['title']" />
 
-          <FormField v-model="form.placement" type="select" :label="t('admin.announcements.placement')" :options="options.placements" />
+          <FormField v-model="form.placement" type="select" :label="t('admin.announcements.placement')" :options="options.placements" :error="errors['placement']" />
 
-          <FormField :label="t('admin.announcements.body')" class="md:col-span-2">
+          <FormField :label="t('admin.announcements.body')" :error="errors['body']" class="md:col-span-2">
             <HtmlEditor v-model="form.body" :placeholder="t('admin.announcements.bodyPlaceholder')" min-height="6rem" />
           </FormField>
 
-          <FormField v-model="form.variant" type="select" :label="t('admin.announcements.variant')" :options="options.variants" />
+          <FormField v-model="form.variant" type="select" :label="t('admin.announcements.variant')" :options="options.variants" :error="errors['variant']" />
 
-          <FormField v-model="form.status" type="select" :label="t('admin.announcements.status')" :options="options.statuses" />
+          <FormField v-model="form.status" type="select" :label="t('admin.announcements.status')" :options="options.statuses" :error="errors['status']" />
 
-          <FormField v-model="form.published_from" type="datetime" :label="t('admin.announcements.publishedFrom')" allow-past />
+          <FormField v-model="form.published_from" type="datetime" :label="t('admin.announcements.publishedFrom')" allow-past :error="errors['published_from']" />
 
-          <FormField v-model="form.published_until" type="datetime" :label="t('admin.announcements.publishedUntil')" allow-past />
+          <FormField v-model="form.published_until" type="datetime" :label="t('admin.announcements.publishedUntil')" allow-past :error="errors['published_until']" />
 
-          <FormField v-model="form.sort_order" type="number" :label="t('admin.announcements.sortOrder')" min="0" />
+          <FormField v-model="form.sort_order" type="number" :label="t('admin.announcements.sortOrder')" min="0" :error="errors['sort_order']" />
         </div>
 
         <div class="mt-4 grid gap-1">
@@ -130,6 +130,7 @@ import RowActions from '@/components/RowActions.vue'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { fieldErrors } from '@/utils/formErrors'
 
 const toast = useToast()
 const validation = provideFormValidation()
@@ -140,6 +141,8 @@ const options = ref<AnnouncementFormOptions>({ statuses: [], placements: [], var
 const showForm = ref(false)
 const editingItem = ref<AnnouncementItem | null>(null)
 const formError = ref<string | null>(null)
+/** Validačné chyby zo servera, kľúčované názvom poľa. */
+const errors = ref<Record<string, string>>({})
 const saving = ref(false)
 
 /**
@@ -199,6 +202,7 @@ function openCreate() {
   editingItem.value = null
   form.value = emptyForm()
   formError.value = null
+  errors.value = {}
   validation.reset()
   showForm.value = true
 }
@@ -212,6 +216,7 @@ function openEdit(item: AnnouncementItem) {
     published_until: item.publishedUntil ?? '',
   }
   formError.value = null
+  errors.value = {}
   validation.reset()
   showForm.value = true
 }
@@ -223,6 +228,15 @@ function errorMessage(e: unknown) {
 async function save() {
   validation.markValidated()
   formError.value = null
+  errors.value = {}
+
+  // Modál nie je <form> a tlačidlo nie je submit, takže natívne `required`
+  // nič nezastaví — prázdny názov by skončil až chybou zo servera.
+  if (!form.value.title.trim()) {
+    formError.value = t('common.requiredMissing')
+    return
+  }
+
   saving.value = true
   try {
     const payload: AnnouncementPayload = {
@@ -244,6 +258,7 @@ async function save() {
     toast.success(t('admin.announcements.saved'))
     showForm.value = false
   } catch (e: unknown) {
+    errors.value = fieldErrors(e)
     formError.value = errorMessage(e)
   } finally {
     saving.value = false

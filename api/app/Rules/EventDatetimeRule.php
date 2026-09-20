@@ -30,7 +30,7 @@ class EventDatetimeRule implements ValidationRule
                         $startAt = Carbon::parse($startAtRaw);
 
                         if (!$datetime->gt($startAt)) {
-                            $fail('Pole :attribute musí byť neskoršie ako začiatok udalosti.');
+                            $fail(__('events.errors.end_after_start'));
                             return;
                         }
                     } catch (\Exception) {
@@ -42,10 +42,10 @@ class EventDatetimeRule implements ValidationRule
             // Datum v minulosti zakazujeme iba pre nepublikovane eventy.
             // Po publikovani je povolene upravit event aj na historicky termin.
             if (!$this->isPublishedEvent() && !$datetime->gt(now())) {
-                $fail('Pole :attribute musí byť dátum v budúcnosti.');
+                $fail(__('events.errors.datetime_future'));
             }
         } catch (\Exception) {
-            $fail('Pole :attribute musí byť platný dátum.');
+            $fail(__('events.errors.datetime_invalid'));
         }
     }
 

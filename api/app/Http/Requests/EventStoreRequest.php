@@ -4,9 +4,11 @@ namespace App\Http\Requests;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Models\Event;
 use App\Rules\EventDatetimeRule;
 use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class EventStoreRequest extends FormRequest
@@ -49,9 +51,7 @@ class EventStoreRequest extends FormRequest
             // preklopí ho príkaz app:events-publish-scheduled. Termín v minulosti
             // nemá zmysel: podujatie by vyšlo hneď pri najbližšom behu, čo je
             // „publikovať", nie „naplánovať".
-            'publish_at' => $this->input('status') === ModelStatus::Scheduled->value
-                ? ['required', 'date', 'after:now']
-                : ['nullable', 'date'],
+            'publish_at' => $this->publishAtRules(),
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => 'nullable|email|max:100',
             'phone' => 'nullable|string|max:20',
@@ -67,5 +67,60 @@ class EventStoreRequest extends FormRequest
             'file_disk' => ['sometimes', 'string', 'max:50'],
             'make_primary_file' => ['sometimes', 'boolean'],
         ];
+    }
+
+    /**
+     * Pravidlá pre `publish_at`.
+     *
+     * Budúcnosť sa vyžaduje len vtedy, keď sa termín naozaj nastavuje —
+     * pri zakladaní, alebo keď sa v úprave zmenil. Bez tejto výnimky by sa
+     * naplánované podujatie, ktorého termín medzitým prešiel (napr. kým ho
+     * `app:events-publish-scheduled` stihol preklopiť), nedalo uložiť vôbec:
+     * každé uloženie by spadlo na `after:now` pri hodnote, ktorú editor
+     * poslal späť nezmenenú.
+     *
+     * @return array<int, string>
+     */
+    private function publishAtRules(): array
+    {
+        if ($this->input('status') !== ModelStatus::Scheduled->value) {
+            return ['nullable', 'date'];
+        }
+
+        return $this->publishAtUnchanged()
+            ? ['required', 'date']
+            : ['required', 'date', 'after:now'];
+    }
+
+    /** Poslal klient ten istý termín, aký je už uložený? */
+    private function publishAtUnchanged(): bool
+    {
+        $event = $this->routeEvent();
+
+        if ($event?->publish_at === null) {
+            return false;
+        }
+
+        try {
+            // Na minúty, nie na sekundy: editor posiela hodnotu z
+            // `<input type="datetime-local">`, ktorý sekundy nemá — inak by
+            // sa nezmenený termín so sekundami tváril ako zmenený.
+            return $event->publish_at->copy()->startOfMinute()
+                ->eq(Carbon::parse($this->input('publish_at'))->startOfMinute());
+        } catch (\Exception) {
+            // Nepoužiteľný vstup necháme spadnúť na `date` vyššie.
+            return false;
+        }
+    }
+
+    private function routeEvent(): ?Event
+    {
+        $routeEvent = $this->route('event') ?? $this->route('id');
+
+        if ($routeEvent instanceof Event) {
+            return $routeEvent;
+        }
+
+        return $routeEvent === null ? null : Event::query()->find($routeEvent);
     }
 }

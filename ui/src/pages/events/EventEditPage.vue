@@ -51,13 +51,15 @@
 
         <div class="edit-card">
           <p class="field-legend">{{ t('events.sections.schedule') }}</p>
-          <!-- `allow-past` je tu podstatné: bez neho dá DateTimeInput na pole
-               `min="teraz"`, termín v minulosti je natívne neplatný a
-               prehliadač odoslanie formulára ticho zablokuje — event sa
-               jednoducho nedá uložiť a nie je vidieť prečo. -->
+          <!-- `allow-past` zrkadlí EventDatetimeRule na serveri: minulý termín
+               smie mať len publikované podujatie (tam sa dopisujú staršie
+               akcie), inde ho pravidlo odmietne. Keby tu bolo natvrdo `true`,
+               koncept s minulým termínom by prešiel formulárom a spadol až na
+               422; keby tu nebolo vôbec, publikované podujatie by sa pre
+               `min="teraz"` nedalo uložiť a nebolo by vidieť prečo. -->
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormField v-model="form.start_at" type="datetime" :allow-past="true" :label="t('events.fields.startAt')" :error="errors.start_at" />
-            <FormField v-model="form.end_at" type="datetime" :allow-past="true" :label="t('events.fields.endAt')" :error="errors.end_at" />
+            <FormField v-model="form.start_at" type="datetime" :allow-past="allowPastSchedule" :label="t('events.fields.startAt')" :error="errors.start_at" />
+            <FormField v-model="form.end_at" type="datetime" :allow-past="allowPastSchedule" :label="t('events.fields.endAt')" :error="errors.end_at" />
           </div>
         </div>
 
@@ -329,6 +331,20 @@ const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 const loadingData = ref(false)
 
+// Bolo podujatie už niekedy vonku? Server to berie zo vstupu (`status`) aj
+// z uloženého `published_at` — editor musí poznať oboje, inak by sa pri
+// publikovanom podujatí s minulým termínom rozchádzal s pravidlom.
+const publishedAt = ref<string | null>(null)
+
+/**
+ * Smie mať podujatie termín v minulosti? Presné zrkadlo
+ * App\Rules\EventDatetimeRule::isPublishedEvent() — minulosť patrí len tomu,
+ * čo je (alebo bolo) publikované.
+ */
+const allowPastSchedule = computed(() =>
+  form.value.status === 'published' || publishedAt.value !== null
+)
+
 // Zhrnutie zbaleného Kontaktu — nech je bez rozbalenia vidieť, či je vyplnený.
 const contactNote = computed(() => form.value.website || form.value.email || form.value.phone || t('events.contact.empty'))
 const hasContactError = computed(() => Boolean(errors.value.website || errors.value.email || errors.value.phone))
@@ -562,6 +578,7 @@ onMounted(async () => {
     try {
       const ev = await showEvent(scope.value, Number(route.params.id))
       eventSlug.value = ev.slug || null
+      publishedAt.value = ev.publishedAt ?? null
       eventCanal.value = ev.canalId ? { id: ev.canalId, name: ev.canalName } : null
       eventVenue.value = ev.venue ? { id: ev.venue.id, name: ev.venue.name, canalId: ev.canalId } : null
       form.value = {

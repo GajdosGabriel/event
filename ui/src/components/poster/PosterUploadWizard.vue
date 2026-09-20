@@ -230,6 +230,7 @@
           :label="t('poster.wizard.passwordConfirm')"
           required
           :validated="accountValidated"
+          :error="passwordError"
           autocomplete="new-password"
         />
 
@@ -339,6 +340,8 @@ let progressTimer: ReturnType<typeof setInterval> | undefined
 // neklikne „ďalej", jeho prázdne povinné polia nie sú červené.
 const validation = provideFormValidation()
 const accountValidated = ref(false)
+/** Nezhoda v potvrdení hesla — patrí k druhému poľu, nie do hlavičky kroku. */
+const passwordError = ref<string | null>(null)
 
 const isAuthenticated = computed(() => auth.isAuthenticated)
 const stepIndex = computed(() => ({ upload: 0, analyzing: 1, review: 2, account: 3, verify: 3, done: 3 }[step.value]))
@@ -578,6 +581,7 @@ async function finish() {
   accountValidated.value = true
   error.value = null
   info.value = null
+  passwordError.value = null
   busy.value = true
 
   try {
@@ -591,6 +595,13 @@ async function finish() {
       // poli nič nezastaví — súhlas treba overiť tu, ešte pred registráciou.
       if (account.mode === 'register' && !account.termsAccepted) {
         error.value = t('auth.register.termsRequired')
+        return
+      }
+
+      // Nezhodu v potvrdení hesla odmietne aj server (`confirmed`), ale tu
+      // sa to dá povedať skôr, než sa rozpracovaný plagát pošle na účet.
+      if (account.mode === 'register' && account.password !== account.passwordConfirmation) {
+        passwordError.value = t('auth.reset.mismatch')
         return
       }
 

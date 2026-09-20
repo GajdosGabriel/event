@@ -44,6 +44,7 @@ return [
         'sale_not_started' => 'Der Verkauf des Tickets „:name“ hat noch nicht begonnen.',
         'sale_ended' => 'Der Verkauf des Tickets „:name“ ist bereits beendet.',
         'min_per_order' => 'Die Mindestanzahl der Tickets „:name“ pro Bestellung ist :count.',
+        'max_below_min' => 'Das Maximum pro Bestellung darf nicht unter dem Minimum pro Bestellung liegen.',
         'max_per_order' => 'Die Höchstanzahl der Tickets „:name“ pro Bestellung ist :count.',
         'nothing_selected' => 'Sie haben kein Ticket ausgewählt.',
         'workshop_requires_ticket' => 'Für Workshops können sich nur Teilnehmende anmelden, die für die Veranstaltung registriert sind.',

@@ -76,6 +76,9 @@ const sk = {
     breadcrumb: 'Omrvinková navigácia',
     views: '{n} zobrazení verejného detailu',
     tooManyRequests: 'Priveľa požiadaviek. Skúste to o chvíľu znova.',
+    // Formulár sa neodoslal, lebo v ňom chýba niečo povinné. Ktoré pole to je,
+    // ukáže červený rámček — táto veta len vysvetľuje, prečo sa nič nestalo.
+    requiredMissing: 'Vyplňte povinné polia.',
     // Potvrdenia a hlášky po akciách v riadku výpisu
     removeConfirm: 'Naozaj zmazať?',
     removed: 'Zmazané.',

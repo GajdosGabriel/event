@@ -304,7 +304,7 @@ class Event extends Model implements HasQuestionBoard, Messageable
 
         $kind = $this->hasPaidTicketTypes() ? 'buy' : 'reserve';
 
-        return ['kind' => $kind, 'label' => __('events.ticket_cta.' . $kind)];
+        return ['kind' => $kind, 'label' => __('events.ticket_cta.'.$kind)];
     }
 
     /** Aspoň jeden aktívny typ lístka je platený — inak ide o rezerváciu zdarma. */

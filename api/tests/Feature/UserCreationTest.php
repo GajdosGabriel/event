@@ -79,6 +79,7 @@ class UserCreationTest extends TestCase
         $response = $this->postJson('/api/register', [
             'email' => 'novy@example.sk',
             'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'display_name' => 'Nový Používateľ',
             'registered_via' => 'local',
             'terms_accepted' => true,
@@ -115,6 +116,7 @@ class UserCreationTest extends TestCase
         $this->postJson('/api/register', [
             'email' => 'suhlas@example.sk',
             'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'display_name' => 'Súhlasiaci',
             'registered_via' => 'local',
             'terms_accepted' => true,
@@ -139,6 +141,28 @@ class UserCreationTest extends TestCase
             $user->terms_accepted_at->toDateTimeString(),
         );
         $this->assertSame('2026-08-14', $user->terms_version);
+    }
+
+    #[Test]
+    public function local_registration_is_rejected_when_the_password_confirmation_differs()
+    {
+        Notification::fake();
+
+        // Formulár pýta heslo dvakrát; bez `confirmed` by preklep v druhom poli
+        // ticho založil účet s heslom, ktoré si človek nepamätá.
+        $this->postJson('/api/register', [
+            'email' => 'preklep@example.sk',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password124!',
+            'display_name' => 'Preklep',
+            'registered_via' => 'local',
+            'terms_accepted' => true,
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertDatabaseMissing('pending_registrations', ['email' => 'preklep@example.sk']);
+        Notification::assertNothingSent();
     }
 
     #[Test]

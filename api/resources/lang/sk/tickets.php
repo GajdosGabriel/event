@@ -46,6 +46,7 @@ return [
         'sale_not_started' => 'Predaj lístka „:name“ ešte nezačal.',
         'sale_ended' => 'Predaj lístka „:name“ už skončil.',
         'min_per_order' => 'Minimálny počet lístkov „:name“ na objednávku je :count.',
+        'max_below_min' => 'Najviac na objednávku nesmie byť menej ako najmenej na objednávku.',
         'max_per_order' => 'Maximálny počet lístkov „:name“ na objednávku je :count.',
         'nothing_selected' => 'Nevybrali ste žiadny lístok.',
         'workshop_requires_ticket' => 'Na workshopy sa môžu prihlásiť len účastníci registrovaní na podujatie.',

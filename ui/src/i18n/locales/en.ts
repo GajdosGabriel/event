@@ -66,6 +66,7 @@ const en: Messages = {
     breadcrumb: 'Breadcrumb navigation',
     views: '{n} views of the public page',
     tooManyRequests: 'Too many requests. Please try again in a moment.',
+    requiredMissing: 'Fill in the required fields.',
     removeConfirm: 'Really delete?',
     removed: 'Deleted.',
     removeFailed: 'Deleting failed.',

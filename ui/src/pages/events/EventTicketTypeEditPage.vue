@@ -39,9 +39,9 @@
 
         <!-- Základné polia — vždy viditeľné -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <FormField v-model="form.name" :label="t('tickets.type.name')" required trim :placeholder="t('tickets.type.namePlaceholder')" class="sm:col-span-2" />
-          <FormField v-model="priceEuro" type="number" :label="t('tickets.type.price')" min="0" step="0.01" placeholder="0" />
-          <FormField v-model="form.capacity" type="number" :label="t('tickets.type.capacity')" min="1" :placeholder="t('tickets.type.capacityPlaceholder')" />
+          <FormField v-model="form.name" :label="t('tickets.type.name')" required trim :error="errors['name']" :placeholder="t('tickets.type.namePlaceholder')" class="sm:col-span-2" />
+          <FormField v-model="priceEuro" type="number" :label="t('tickets.type.price')" min="0" step="0.01" :error="errors['price_amount']" placeholder="0" />
+          <FormField v-model="form.capacity" type="number" :label="t('tickets.type.capacity')" min="1" :error="errors['capacity']" :placeholder="t('tickets.type.capacityPlaceholder')" />
           <FormField v-model="form.is_active" type="checkbox" :label="t('tickets.type.isActive')" class="sm:col-span-2" />
         </div>
 
@@ -56,16 +56,16 @@
         </button>
 
         <div v-show="showAdvanced" class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
-          <FormField v-model="kindOption" type="select" :label="t('tickets.type.kind')" :options="kindOptions" class="sm:col-span-2" />
-          <FormField v-model="form.description" :label="t('tickets.type.description')" trim :placeholder="t('tickets.type.descriptionPlaceholder')" class="sm:col-span-2" />
+          <FormField v-model="kindOption" type="select" :label="t('tickets.type.kind')" :options="kindOptions" :error="errors['kind']" class="sm:col-span-2" />
+          <FormField v-model="form.description" :label="t('tickets.type.description')" trim :error="errors['description']" :placeholder="t('tickets.type.descriptionPlaceholder')" class="sm:col-span-2" />
           <template v-if="form.kind === 'workshop'">
-            <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', t('tickets.type.workshopStart'))" />
-            <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', t('tickets.type.workshopEnd'))" />
+            <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', t('tickets.type.workshopStart'))" :error="errors['starts_at']" />
+            <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', t('tickets.type.workshopEnd'))" :error="errors['ends_at']" />
           </template>
-          <FormField v-model="form.min_per_order" type="number" :label="t('tickets.type.minPerOrder')" min="1" />
-          <FormField v-model="form.max_per_order" type="number" :label="t('tickets.type.maxPerOrder')" min="1" />
-          <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', t('tickets.type.saleFrom'))" />
-          <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', t('tickets.type.saleTo'))" />
+          <FormField v-model="form.min_per_order" type="number" :label="t('tickets.type.minPerOrder')" min="1" :error="errors['min_per_order']" />
+          <FormField v-model="form.max_per_order" type="number" :label="t('tickets.type.maxPerOrder')" min="1" :error="errors['max_per_order']" />
+          <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', t('tickets.type.saleFrom'))" :error="errors['sale_starts_at']" />
+          <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', t('tickets.type.saleTo'))" :error="errors['sale_ends_at']" />
           <FormField v-model="form.requires_attendee_name" type="checkbox" :label="t('tickets.type.requiresAttendeeName')" class="sm:col-span-2" />
         </div>
 
@@ -95,6 +95,7 @@ import {
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
+import { fieldErrors } from '@/utils/formErrors'
 import FormField from '@/components/FormField.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { SelectOption } from '@/types'
@@ -112,6 +113,8 @@ const loadError = ref<string | null>(null)
 const saving = ref(false)
 const error = ref<string | null>(null)
 const eventName = ref('')
+/** Validačné chyby zo servera, kľúčované názvom poľa. */
+const errors = ref<Record<string, string>>({})
 /** Cena v eurách; API pracuje s centmi, prevod je až v `save()`. */
 const priceEuro = ref<number | null>(null)
 
@@ -141,6 +144,12 @@ const form = reactive(emptyTypeForm())
 // Rozšírené polia sú pri vytváraní schované (jednoduchý štart), pri úprave
 // otvorené — kto edituje existujúci typ, chce vidieť všetko.
 const showAdvanced = ref(isEdit.value)
+
+/** Polia zo zabalenej sekcie — chyba v ktoromkoľvek z nich ju musí otvoriť. */
+const ADVANCED_FIELDS = [
+  'kind', 'description', 'starts_at', 'ends_at',
+  'min_per_order', 'max_per_order', 'sale_starts_at', 'sale_ends_at',
+]
 
 // ── Šablóny typov lístkov ───────────────────────────────────
 type TypeForm = ReturnType<typeof emptyTypeForm>
@@ -264,8 +273,17 @@ async function load() {
 
 async function save() {
   validation.markValidated()
-  saving.value = true
+  errors.value = {}
   error.value = null
+
+  // Stránka nie je <form> a tlačidlo nie je submit, takže natívne `required`
+  // nič nezastaví — prázdny názov by skončil až chybou zo servera.
+  if (!form.name.trim()) {
+    error.value = t('common.requiredMissing')
+    return
+  }
+
+  saving.value = true
   try {
     const payload: TicketTypePayload = {
       name: form.name,
@@ -292,6 +310,9 @@ async function save() {
     router.push({ name: 'dashboard-events-tickets', params: { id: eventId } })
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
+    errors.value = fieldErrors(e)
+    // Chyba v zabalených „Rozšírených nastaveniach" by ostala neviditeľná.
+    if (Object.keys(errors.value).some(key => ADVANCED_FIELDS.includes(key))) showAdvanced.value = true
     error.value = err.response?.data?.message ?? t('tickets.type.saveFailed')
   } finally {
     saving.value = false

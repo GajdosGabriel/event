@@ -23,7 +23,11 @@ class AuthRegisterRequest extends FormRequest
                 Rule::unique('users', 'email'),
                 Rule::unique('pending_registrations', 'email'),
             ],
-            'password' => 'required_if:registered_via,local|string|min:8',
+            // `confirmed` je tu z rovnakého dôvodu ako v PasswordResetRequest:
+            // registračný formulár pýta heslo dvakrát, a bez tohto pravidla by
+            // sa druhé pole nikde neporovnávalo — preklep by ticho založil účet
+            // s heslom, ktoré si človek nepamätá.
+            'password' => 'required_if:registered_via,local|string|min:8|confirmed',
             'registered_via' => 'sometimes|string|in:local,google,facebook',
             'display_name' => 'required_if:registered_via,local|string|max:255',
             // Súhlas s obchodnými podmienkami je podmienkou vzniku účtu, preto
