@@ -129,4 +129,20 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Denník udalostí (tabuľka system_logs)
+    |--------------------------------------------------------------------------
+    |
+    | Koľko dní sa záznamy držia. Bežných (info) je veľa — hlavne odoslané
+    | maily a prihlásenia; varovaní a chýb je málo a pri hľadaní príčiny sú
+    | najcennejšie, preto žijú dlhšie. Maže model:prune v noci.
+    |
+    */
+
+    'system_log' => [
+        'days' => (int) env('SYSTEM_LOG_DAYS', 31),
+        'error_days' => (int) env('SYSTEM_LOG_ERROR_DAYS', 90),
+    ],
+
 ];

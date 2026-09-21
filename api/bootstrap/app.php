@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\LogLastUserActivity;
+use App\Listeners\SystemLogSubscriber;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -11,6 +12,7 @@ use Illuminate\Support\Env;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 /*
  * Premenné z .env len do $_ENV/$_SERVER, nie do procesu cez putenv().
@@ -53,6 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api', 'api/*') || $request->expectsJson(),
         );
+
+        // Mail, ktorý neodišiel, patrí aj do denníka udalostí (admin → Denník),
+        // nielen do súborového logu. Hlásenie sa tým nezastaví.
+        $exceptions->report(function (TransportExceptionInterface $e) {
+            SystemLogSubscriber::mailFailed($e);
+        });
 
         // Model binding zlyhá ako ModelNotFoundException; navonok je to 404
         // s rovnakým tvarom ako ostatné chyby, nie „no query results for model".

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\SystemLogSubscriber;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
@@ -33,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Denník udalostí (admin → Denník): maily, zlyhané joby, prihlásenia, cron.
+        \Illuminate\Support\Facades\Event::subscribe(SystemLogSubscriber::class);
+
         User::observe(UserObserver::class);
         Canal::observe(CanalObserver::class);
         Event::observe(EventObserver::class);

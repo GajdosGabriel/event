@@ -5,25 +5,17 @@ description: "Use when: reviewing Laravel changes for bugs, regressions, securit
 
 # Laravel Code Review Risk First
 
-## Purpose
-Pouzi tento skill na review zmien v event-api so zameranim na rizika a regresie.
-
-## Review Order
+## Poradie priorít
 1. Correctness a behavioral regressions
-2. Security and authorization risks
-3. Data integrity and migration safety
-4. Performance and N+1 patterns
-5. Missing or weak tests
+2. Security a authorization (policy/ownership na write endpointoch, middleware + policy vrstvenie)
+3. Data integrity (migrácie up/down, backfill pred constraintom)
+4. Performance (N+1)
+5. Chýbajúce alebo slabé testy
 
-## Required Output Style
-- Najprv findings, zoradene podla severity
-- Pri kazdom findingu: problem, dopad, kde sa to deje, navrh opravy
-- Kratke summary az po findings
-- Ak nie su findings, povedz to explicitne a uved test gaps
+## Špecifiká projektu
+- Úplnosť FormRequest validácie, enum validácia a prechody statusov.
+- Stabilita API kontraktu — pri zmene payloadu skontroluj request/response atribúty a BC riziká.
 
-## Focus Areas For This Project
-- FormRequest validation completeness
-- Policy/ownership checks on write endpoints
-- Enum validation and status transitions
-- Migration up/down symmetry
-- API response contract stability
+## Výstup
+- Findings zoradené podľa severity: problém, dopad, `súbor:riadok`, návrh opravy.
+- Krátke summary až po findings. Ak nič vážne, povedz to a uveď test gaps.

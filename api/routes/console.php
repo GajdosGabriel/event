@@ -1,11 +1,14 @@
 <?php
 
+use App\Models\SystemLog;
+use App\Services\SystemLog\Recorder;
 use Carbon\Carbon;
 use Illuminate\Console\Scheduling\CallbackEvent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -53,6 +56,16 @@ $artisan = function (string $command, array $parameters = []): CallbackEvent {
                 'parameters' => $parameters,
                 'exit_code' => $exitCode,
             ]);
+
+            Recorder::error('scheduler', 'failed', $command.' skončil s kódom '.$exitCode,
+                status: 'failed',
+                context: [
+                    'command' => $command,
+                    'parameters' => $parameters,
+                    'exit_code' => $exitCode,
+                    'output' => Str::limit(trim(Artisan::output()), 1500),
+                ],
+            );
         }
     })->name($name);
 };
@@ -87,6 +100,10 @@ $artisan('app:content-reviews-run')->everyTenMinutes()->withoutOverlapping(15);
 $artisan('app:views-prune')->dailyAt('03:20');
 // Plagáty nahraté bez účtu, ktoré si nikto neprivlastnil — aj so súbormi.
 $artisan('app:poster-drafts-prune')->dailyAt('03:40');
+// Denník udalostí (admin → Denník) je krátka pamäť: info po mesiaci, chyby
+// po troch (config/logging.php → system_log). Maže po dávkach.
+// Reťazec, nie pole — $artisan() z parametrov skladá meno úlohy.
+$artisan('model:prune', ['--model' => SystemLog::class])->dailyAt('03:25');
 // Každý zdroj má vlastný beh s vlastným časom. Kým išli všetky v jednom
 // príkaze za sebou, posledný z nich hladoval: 27. 7. 2026 zjedli ecav.sk a
 // tkkbs.sk 13 minút a na vyveska.sk sa už nedostalo — hosting nemá shell,

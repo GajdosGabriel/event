@@ -10,6 +10,7 @@ use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
 use App\Services\Publishing\EventDependencyPublisher;
+use App\Services\SystemLog\Recorder;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -64,6 +65,19 @@ class EventImportService
                 $summary['processed']++;
             }
         }
+
+        Recorder::record('import', 'finished', sprintf(
+            '%s — nové %d, aktualizované %d, preskočené %d, chyby %d',
+            parse_url($listingUrl, PHP_URL_HOST) ?: $listingUrl,
+            $summary['imported'],
+            $summary['updated'],
+            $summary['skipped'],
+            $summary['errors'],
+        ),
+            level: $summary['errors'] > 0 ? 'warning' : 'info',
+            status: $summary['errors'] > 0 && $summary['errors'] === $summary['processed'] ? 'failed' : 'ok',
+            context: ['url' => $listingUrl, 'force' => $force ?: null] + $summary,
+        );
 
         return $summary;
     }

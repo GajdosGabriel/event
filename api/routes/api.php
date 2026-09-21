@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\FileController as AdminFileController;
 use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
+use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
@@ -619,6 +620,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
     // Spotreba OpenAI — len prehľad, bez vypínača.
     Route::get('ai-usage', [AdminAiUsageController::class, 'index'])->name('ai-usage.index');
+    // Denník udalostí — maily, prihlásenia, importy, cron. Len čítanie.
+    Route::get('system-logs', [AdminSystemLogController::class, 'index'])->name('system-logs.index');
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');

@@ -210,6 +210,8 @@ const router = createRouter({
         { path: 'navrhy-stitkov', name: 'admin-tag-suggestions', component: () => import('@/pages/admin/AdminTagSuggestionsPage.vue') },
         // Spotreba OpenAI (len prehľad). Slovenská cesta ako `oznamy`.
         { path: 'ai-spotreba', name: 'admin-ai-usage', component: () => import('@/pages/admin/AdminAiUsagePage.vue') },
+        // Denník udalostí — maily, prihlásenia, importy, cron.
+        { path: 'dennik', name: 'admin-system-logs', component: () => import('@/pages/admin/AdminSystemLogsPage.vue') },
         // Oznamy a bannery verejného layoutu. Slovenská cesta zámerne — rovnako
         // ako `spravy` v dashboarde.
         { path: 'oznamy', name: 'admin-announcements', component: () => import('@/pages/admin/AdminAnnouncementsPage.vue') },

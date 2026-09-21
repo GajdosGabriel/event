@@ -31,10 +31,16 @@
             </span>
           </div>
         </div>
-        <!-- Detail je na čítanie; meniť sa dá vo formulári. -->
-        <RouterLink :to="`/admin/users/${userId}/edit`" class="btn btn-primary shrink-0">
-          {{ t('admin.user.edit') }}
-        </RouterLink>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          <!-- Maily, prihlásenia a ďalšie udalosti tohto človeka. -->
+          <RouterLink :to="{ path: '/admin/dennik', query: { user_id: String(userId) } }" class="btn btn-secondary">
+            {{ t('nav.systemLog') }}
+          </RouterLink>
+          <!-- Detail je na čítanie; meniť sa dá vo formulári. -->
+          <RouterLink :to="`/admin/users/${userId}/edit`" class="btn btn-primary">
+            {{ t('admin.user.edit') }}
+          </RouterLink>
+        </div>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">

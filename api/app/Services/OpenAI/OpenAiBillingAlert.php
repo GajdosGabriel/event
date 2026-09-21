@@ -2,7 +2,9 @@
 
 namespace App\Services\OpenAI;
 
+use App\Listeners\SystemLogSubscriber;
 use App\Models\User;
+use App\Services\SystemLog\Recorder;
 use App\Notifications\OpenAiBillingIssue;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -53,6 +55,11 @@ class OpenAiBillingAlert
             return;
         }
 
+        Recorder::error('openai', 'billing', 'OpenAI odmieta volania pre kredit alebo fakturáciu',
+            status: 'failed',
+            context: ['status' => $response->status(), 'code' => $code !== '' ? $code : $type, 'error' => (string) ($error['message'] ?? '')],
+        );
+
         // Upozornenie nesmie zmeniť chybu, ktorú volajúci dostane od ChatGPT.
         try {
             $recipients = User::query()
@@ -73,6 +80,8 @@ class OpenAiBillingAlert
                 cooldownHours: $cooldownHours,
             ));
         } catch (\Throwable $e) {
+            // Výnimka sa tu nehlási ďalej, preto ju do denníka zapíšeme sami.
+            SystemLogSubscriber::mailFailed($e);
             Log::error('OpenAI billing alert could not be sent: '.$e->getMessage());
         }
     }

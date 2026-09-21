@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Services\SystemLog\Recorder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -38,6 +39,14 @@ class CronHeartbeat
                 ->throw();
         } catch (Throwable $e) {
             Log::warning('Cron heartbeat ping zlyhal.', ['exception' => $e->getMessage()]);
+
+            // Webcron beží každú minútu — do denníka stačí raz za hodinu.
+            if (Recorder::onceIn(60, 'cron-heartbeat-failed')) {
+                Recorder::warning('scheduler', 'heartbeat_failed', 'Ping watchdogu zlyhal',
+                    status: 'failed',
+                    context: Recorder::exception($e),
+                );
+            }
         }
     }
 }
