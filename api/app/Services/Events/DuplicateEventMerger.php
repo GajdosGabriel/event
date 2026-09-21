@@ -141,7 +141,11 @@ class DuplicateEventMerger
         $counts = [
             'objednávka' => Ticket::query()->where('event_id', $event->id)->count(),
             'vstupenka' => Admission::query()->where('event_id', $event->id)->count(),
-            'typ lístka' => TicketType::query()->where('event_id', $event->id)->count(),
+            // Automatickú rezerváciu zdarma má každé podujatie — to nie je
+            // stopa po organizátorovi (DefaultReservation). Vstupenky na ňu
+            // by zachytil riadok vyššie.
+            'typ lístka' => TicketType::query()->where('event_id', $event->id)->get()
+                ->reject(fn (TicketType $type) => $type->isAutoDefault())->count(),
             'odber' => Subscription::query()
                 ->where('subscribable_type', Event::class)
                 ->where('subscribable_id', $event->id)

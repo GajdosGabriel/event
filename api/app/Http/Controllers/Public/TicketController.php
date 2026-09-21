@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\AttendeeRegistrar;
+use App\Services\Tickets\EventSignup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
 
@@ -25,7 +26,7 @@ class TicketController extends Controller
     {
         $event = Event::query()->findOrFail($eventId);
 
-        if (! $event->tickets_enabled) {
+        if (! $event->isReservable()) {
             abort(422, __('tickets.errors.registration_disabled'));
         }
 
@@ -51,6 +52,10 @@ class TicketController extends Controller
         app(AttendeeRegistrar::class)->registerAndNotify($ticket);
 
         Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket->fresh(['event', 'admissions.ticketType'])));
+
+        // Organizátor a super-admini sa o prihlásení dozvedia pri každej
+        // objednávke — aj z formulára, nielen z tlačidla „Rezervovať".
+        app(EventSignup::class)->notifyAboutOrder($ticket);
 
         return response()->json(new TicketResource($ticket), 201);
     }

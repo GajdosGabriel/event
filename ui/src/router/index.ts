@@ -25,6 +25,8 @@ const router = createRouter({
         { path: 'obnova-hesla/:token', name: 'password-reset', component: () => import('@/pages/auth/ResetPasswordPage.vue') },
         { path: 'verify-email', name: 'verify-email', component: () => import('@/pages/auth/VerifyEmailPage.vue') },
         { path: 'verify-email/:token', name: 'verify-email-link', component: () => import('@/pages/auth/VerifyEmailLinkPage.vue') },
+        // „Prihlásiť sa" na akciu z hlascirkvi.sk — rezervácia jedným klikom.
+        { path: 'prihlasenie/:id(\\d+)', name: 'event-signup', component: () => import('@/pages/events/EventSignupPage.vue') },
         // Verejný katalóg. Statické segmenty (`tento-vikend`, `mesto`, `tema`)
         // sú landing stránky s vlastným title a popisom — bez nich existoval
         // zoznam podujatí len ako homepage s query parametrami, ktorú nemá

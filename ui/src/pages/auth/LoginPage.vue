@@ -30,7 +30,7 @@
       <small>
         <RouterLink :to="forgotLink">{{ t('auth.login.forgotLink') }}</RouterLink>
       </small>
-      <small>{{ t('auth.login.noAccount') }} <RouterLink to="/register">{{ t('auth.login.registerLink') }}</RouterLink></small>
+      <small>{{ t('auth.login.noAccount') }} <RouterLink :to="{ name: 'register', query: eventId ? { event: eventId } : undefined }">{{ t('auth.login.registerLink') }}</RouterLink></small>
     </div>
   </div>
 </template>
@@ -62,7 +62,12 @@ const forgotLink = computed(() => ({
   query: form.value.email ? { email: form.value.email } : undefined,
 }))
 
+// `?event=<id>` — prišiel z „Prihlásiť sa" pri akcii; po prihlásení ho
+// vrátime na rezerváciu (/prihlasenie/:id).
+const eventId = typeof route.query.event === 'string' && /^\d+$/.test(route.query.event) ? route.query.event : null
+
 function redirectTarget() {
+  if (eventId) return `/prihlasenie/${eventId}`
   return typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
 }
 

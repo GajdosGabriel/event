@@ -18,6 +18,7 @@ use App\Notifications\WorkshopWaitlisted;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\AttendeeConfirmation;
+use App\Services\Tickets\DefaultReservation;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -54,6 +55,14 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             }
 
             $items = $this->normalizeItems($lockedEvent, $properties);
+
+            // Virtuálny typ z verejného formulára podujatia bez lístkov —
+            // skutočný typ sa založí až teraz, pri prvej rezervácii.
+            foreach ($items as $i => $item) {
+                if ((int) ($item['ticket_type_id'] ?? -1) === DefaultReservation::VIRTUAL_ID) {
+                    $items[$i]['ticket_type_id'] = app(DefaultReservation::class)->resolve($lockedEvent)?->id;
+                }
+            }
 
             $totalSeats = 0;
             $mainSeats = 0;
@@ -693,16 +702,12 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             ->orderBy('id')
             ->first();
 
-        // Podujatie má povolené lístky, ale zatiaľ nemá nakonfigurovaný žiadny
-        // typ – vytvoríme predvolený z ceny podujatia (spätná kompatibilita so
-        // starým „len quantity" payloadom).
+        // Podujatie bez lístkov („len quantity" payload) — rezervácia zdarma,
+        // typ sa založí teraz (DefaultReservation).
+        $type ??= app(DefaultReservation::class)->resolve($event);
+
         if (! $type) {
-            $type = $event->ticketTypes()->create([
-                'name' => 'Vstupenka',
-                'price_amount' => $event->price_amount,
-                'price_currency' => $event->price_currency ?? 'EUR',
-                'is_active' => true,
-            ]);
+            abort(422, __('tickets.errors.type_unavailable'));
         }
 
         return [[

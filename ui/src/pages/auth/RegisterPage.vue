@@ -4,9 +4,13 @@
       <h1>{{ t('auth.register.title') }}</h1>
       <p>{{ t('auth.register.lead') }}</p>
 
+      <div v-if="eventId && !success" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+        {{ t('eventSignup.registerBanner', { event: eventLabel }) }}
+      </div>
+
       <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</div>
       <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-        {{ t('auth.register.sent') }}
+        {{ eventId ? t('eventSignup.sent', { event: eventLabel }) : t('auth.register.sent') }}
       </div>
 
       <template v-if="!success">
@@ -29,15 +33,16 @@
         </div>
       </template>
 
-      <small>{{ t('auth.register.hasAccount') }} <RouterLink to="/login">{{ t('auth.register.loginLink') }}</RouterLink></small>
+      <small>{{ t('auth.register.hasAccount') }} <RouterLink :to="{ name: 'login', query: eventId ? { event: eventId } : undefined }">{{ t('auth.register.loginLink') }}</RouterLink></small>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { register } from '@/api/auth'
+import { showPublicEvent } from '@/api/events'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -56,6 +61,26 @@ const validation = provideFormValidation()
 const prefillEmail = typeof route.query.email === 'string' ? route.query.email : ''
 
 const form = ref({ display_name: '', email: prefillEmail, password: '', password_confirmation: '', terms_accepted: false })
+
+// „Prihlásiť sa" pri akcii (hlascirkvi.sk) sem posiela `?event=<id>`. Nový účet
+// si akciu zapamätá a miesto sa rezervuje po overení e-mailu; kto je už
+// prihlásený, ide rovno na rezerváciu jedným klikom.
+const eventId = typeof route.query.event === 'string' && /^\d+$/.test(route.query.event) ? route.query.event : null
+const eventName = ref<string | null>(null)
+const eventLabel = computed(() => (eventName.value ? `„${eventName.value}"` : t('eventSignup.eventFallback')))
+
+onMounted(async () => {
+  if (!eventId) return
+  if (auth.isAuthenticated) {
+    router.replace({ name: 'event-signup', params: { id: eventId } })
+    return
+  }
+  try {
+    eventName.value = (await showPublicEvent(eventId)).name ?? null
+  } catch {
+    // Názov je len na ozdobu hlášky — bez neho sa registrácia nezastaví.
+  }
+})
 const error = ref<string | null>(null)
 const success = ref(false)
 const loading = ref(false)
@@ -88,7 +113,7 @@ async function submit() {
 
   loading.value = true
   try {
-    await register(form.value)
+    await register(eventId ? { ...form.value, event_id: Number(eventId) } : form.value)
     success.value = true
   } catch (e: unknown) {
     const response = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response
@@ -114,7 +139,8 @@ async function onGoogleCredential(credential: string) {
   loading.value = true
   try {
     await auth.socialLogin('register', 'google', { id_token: credential, terms_accepted: true })
-    router.push('/dashboard')
+    // Google e-mail overil — na akciu sa hlási hneď.
+    router.push(eventId ? { name: 'event-signup', params: { id: eventId } } : '/dashboard')
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('auth.register.failed')
   } finally {

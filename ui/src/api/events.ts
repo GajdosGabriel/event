@@ -117,6 +117,7 @@ export function mapEvent(raw: Record<string, unknown>): EventItem {
     })),
     registrationDeadlineAt: (raw['registration_deadline_at'] as string) ?? null,
     ticketsEnabled: Boolean(raw['tickets_enabled']),
+    reservable: Boolean(raw['reservable'] ?? raw['tickets_enabled']),
     ticketCta: mapTicketCta(raw['ticket_cta']),
     workshopLockOnStart: raw['workshop_lock_on_start'] === undefined ? true : Boolean(raw['workshop_lock_on_start']),
     reminderHoursBefore: (raw['reminder_hours_before'] as number) ?? null,

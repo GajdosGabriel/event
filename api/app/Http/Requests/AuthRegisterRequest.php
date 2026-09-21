@@ -34,6 +34,9 @@ class AuthRegisterRequest extends FormRequest
             // `accepted` (musí prísť true/1/"on"), nie obyčajný boolean —
             // hodnota false alebo chýbajúce pole registráciu zastaví.
             'terms_accepted' => 'accepted',
+            // Registrácia z tlačidla „Prihlásiť sa" pri podujatí — miesto sa
+            // rezervuje po overení e-mailu. Neznáme či uzavreté id sa ignoruje.
+            'event_id' => 'sometimes|nullable|integer',
         ];
     }
 
@@ -44,4 +47,3 @@ class AuthRegisterRequest extends FormRequest
         ];
     }
 }
-

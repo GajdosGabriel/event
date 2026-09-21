@@ -60,9 +60,10 @@ class Event extends Model implements HasQuestionBoard, Messageable
         // Pomocné príznaky z withTicketCtaFlags(); von ide z nich ticket_cta.
         'has_active_ticket_types',
         'has_paid_ticket_types',
+        'has_any_ticket_types',
     ];
 
-    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled'];
+    protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'owner', 'canal', 'venue', 'municipality', 'files', 'tickets_enabled', 'reservable'];
 
     protected $casts = [
         'name' => StringLength250::class,
@@ -268,7 +269,42 @@ class Event extends Model implements HasQuestionBoard, Messageable
     }
 
     /**
-     * Prilepí k dotazu dva exists-príznaky, z ktorých tickets_enabled
+     * Organizátor lístky nenastavil vôbec (ani vypnuté, ani zmazané) →
+     * podujatie ponúka rezerváciu miesta zdarma. Typ lístka sa pritom
+     * nezakladá — vznikne až pri prvej rezervácii (DefaultReservation),
+     * aby sme nezakladali riadky pre podujatia, na ktoré sa nikto nehlási.
+     */
+    public function usesDefaultReservation(): bool
+    {
+        if (array_key_exists('has_any_ticket_types', $this->attributes)) {
+            return ! $this->attributes['has_any_ticket_types'];
+        }
+
+        if ($this->relationLoaded('ticketTypes') && $this->ticketTypes->isNotEmpty()) {
+            return false;
+        }
+
+        if ($this->id === null) {
+            return false;
+        }
+
+        return ! $this->ticketTypes()->withTrashed()->exists();
+    }
+
+    /** Dá sa na podujatie rezervovať — nastavené lístky alebo predvolená rezervácia zdarma. */
+    public function isReservable(): bool
+    {
+        return $this->tickets_enabled || $this->usesDefaultReservation();
+    }
+
+    /** `reservable` v odpovedi — front podľa neho ukáže sekciu rezervácie. */
+    public function getReservableAttribute(): bool
+    {
+        return $this->isReservable();
+    }
+
+    /**
+     * Prilepí k dotazu exists-príznaky, z ktorých tickets_enabled
      * a ticketCta() čítajú bez ďalšieho dotazu na riadok. Patrí do každého
      * výpisu, ktorý na karte ukazuje tlačidlo lístkov.
      */
@@ -279,6 +315,7 @@ class Event extends Model implements HasQuestionBoard, Messageable
             'ticketTypes as has_paid_ticket_types' => fn ($q) => $q
                 ->where('is_active', true)
                 ->where('price_amount', '>', 0),
+            'ticketTypes as has_any_ticket_types' => fn ($q) => $q->withTrashed(),
         ]);
     }
 
@@ -287,14 +324,15 @@ class Event extends Model implements HasQuestionBoard, Messageable
      *
      * Druh aj text drží backend (lang events.ticket_cta), front ho len
      * vykreslí — ktorákoľvek stránka s kartou ho tak dostane zadarmo.
-     * Null, keď sa lístok získať nedá: bez aktívnych typov, po skončení
-     * podujatia alebo po uzávierke registrácie.
+     * Null, keď sa lístok získať nedá: organizátor lístky vypol, po skončení
+     * podujatia alebo po uzávierke registrácie. Podujatie bez lístkov má
+     * „Rezervovať" (usesDefaultReservation).
      *
      * @return array{kind: 'buy'|'reserve', label: string}|null
      */
     public function ticketCta(): ?array
     {
-        if (! $this->tickets_enabled || EventTimeframe::hasEnded($this)) {
+        if (! $this->isReservable() || EventTimeframe::hasEnded($this)) {
             return null;
         }
 

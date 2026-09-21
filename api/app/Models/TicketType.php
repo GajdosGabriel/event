@@ -6,8 +6,10 @@ use App\Contracts\HasQuestionBoard;
 use App\Enums\AdmissionStatus;
 use App\Enums\TicketTypeKind;
 use App\Models\Traits\InteractsAsQuestionBoard;
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
+use App\Services\Tickets\DefaultReservation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TicketType extends Model implements HasQuestionBoard
 {
@@ -33,6 +35,18 @@ class TicketType extends Model implements HasQuestionBoard
     ];
 
     protected $appends = ['sold_count', 'remaining_capacity', 'on_sale'];
+
+    protected static function booted(): void
+    {
+        // Vlastný typ lístka nahrádza automatickú rezerváciu zdarma.
+        static::created(fn (self $type) => app(DefaultReservation::class)->retireFor($type));
+    }
+
+    /** Automatická rezervácia zdarma (DefaultReservation), nie typ od organizátora. */
+    public function isAutoDefault(): bool
+    {
+        return (bool) ($this->meta[DefaultReservation::META_KEY] ?? false);
+    }
 
     public function event()
     {

@@ -483,6 +483,32 @@ const sk = {
       PL: 'Poľsko',
     },
   },
+  // „Prihlásiť sa" na akciu z hlascirkvi.sk — stránka /prihlasenie/:id,
+  // registrácia s ?event= a výsledok po overení e-mailu.
+  eventSignup: {
+    title: 'Prihlásenie na akciu',
+    loading: 'Prihlasujem vás na akciu…',
+    eventFallback: 'túto akciu',
+    guestLead: 'Na akciu {event} sa prihlásite s účtom na portáli. Miesto vám rezervujeme hneď po prihlásení.',
+    login: 'Mám účet — prihlásiť sa',
+    register: 'Vytvoriť účet',
+    registerBanner: 'Rezervujete si miesto na akcii {event}. Najprv si vytvorte účet — po overení e-mailu vám pošleme odkaz na rezerváciu.',
+    sent: 'Na váš e-mail sme poslali overovací odkaz. Po overení vám pošleme e-mail, cez ktorý si rezervujete miesto na akcii {event}.',
+    reservedTitle: 'Miesto je rezervované',
+    reservedLead: 'Na akciu {event} máte rezervované miesto. Vstupenku s QR kódom sme vám poslali e-mailom a organizátor dostal správu.',
+    alreadyTitle: 'Už ste prihlásený',
+    alreadyLead: 'Na akciu {event} už máte rezerváciu.',
+    interestTitle: 'Záujem zaznamenaný',
+    interestLead: 'Na akciu {event} organizátor rezervácie zatiaľ neprijíma alebo je plno, preto sme vstupenku nevystavili. Váš záujem sme mu odovzdali.',
+    closedTitle: 'Prihlasovanie je uzavreté',
+    closedLead: 'Na akciu {event} sa už prihlásiť nedá.',
+    showTicket: 'Zobraziť vstupenku',
+    myTickets: 'Moje lístky',
+    backToEvent: 'Späť na akciu',
+    failed: 'Prihlásenie na akciu sa nepodarilo. Skúste to znova.',
+    verifiedLead: 'Teraz si môžete rezervovať miesto na akcii {event}. Odkaz sme vám poslali aj e-mailom.',
+    reserveNow: 'Rezervovať miesto',
+  },
   // Prihlásenie, registrácia a overenie e-mailu. Hlášky zo servera (napr.
   // „účet je blokovaný") chodia už preložené — tu sú len záložné vety.
   auth: {

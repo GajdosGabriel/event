@@ -12,6 +12,7 @@ use App\Models\PendingProfile;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Notifications\PendingRegistrationVerification;
+use App\Services\Tickets\EventSignup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -24,7 +25,7 @@ class AuthController extends Controller
     public function loginForm()
     {
         return response()->json([
-            'login Page' => 'Prihlasovanie je povolené'
+            'login Page' => 'Prihlasovanie je povolené',
         ]);
     }
 
@@ -39,9 +40,9 @@ class AuthController extends Controller
             ], 409);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Invalid login details'
+                'message' => 'Invalid login details',
             ], 401);
         }
 
@@ -68,10 +69,15 @@ class AuthController extends Controller
 
             $ttlHours = (int) config('registration.verification_ttl_hours', 48);
 
+            // Registrácia z tlačidla „Prihlásiť sa" pri podujatí — miesto sa
+            // rezervuje až po overení e-mailu (verifyRegistrationToken).
+            $event = app(EventSignup::class)->findOpenEvent($request->input('event_id'));
+
             PendingRegistration::create([
                 'email' => $request->input('email'),
                 'password' => Hash::make($request->input('password')),
                 'display_name' => $request->input('display_name'),
+                'event_id' => $event?->id,
                 'registered_via' => $registeredVia,
                 'verification_token' => $hashedToken,
                 'expires_at' => now()->addHours($ttlHours),
@@ -79,10 +85,11 @@ class AuthController extends Controller
             ]);
 
             Notification::route('mail', $request->input('email'))
-                ->notify(new PendingRegistrationVerification($rawToken, $ttlHours));
+                ->notify(new PendingRegistrationVerification($rawToken, $ttlHours, $event?->name));
 
             return response()->json([
                 'message' => 'Registration created. Please verify your email.',
+                'event' => $event ? ['id' => $event->id, 'name' => $event->name] : null,
             ], 201);
         }
 
@@ -156,7 +163,7 @@ class AuthController extends Controller
         $displayName = trim((string) ($payload['name'] ?? ''));
         if ($displayName === '') {
             $displayName = trim(
-                trim((string) ($payload['given_name'] ?? '')) . ' ' . trim((string) ($payload['family_name'] ?? ''))
+                trim((string) ($payload['given_name'] ?? '')).' '.trim((string) ($payload['family_name'] ?? ''))
             );
         }
 
@@ -182,7 +189,7 @@ class AuthController extends Controller
         }
 
         $accessToken = $request->input('access_token');
-        $appAccessToken = $facebookAppId . '|' . $facebookAppSecret;
+        $appAccessToken = $facebookAppId.'|'.$facebookAppSecret;
 
         $debugResponse = Http::timeout(8)
             ->acceptJson()
@@ -281,7 +288,7 @@ class AuthController extends Controller
 
     protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', string $avatarUrl = '', bool $termsAccepted = false)
     {
-        $normalizedProviderId = $provider . ':' . $providerId;
+        $normalizedProviderId = $provider.':'.$providerId;
 
         $user = User::where('provider_id', $normalizedProviderId)
             ->orWhere('provider_id', $providerId)
@@ -407,17 +414,25 @@ class AuthController extends Controller
             'expires_at' => now()->addHours($ttlHours),
         ])->save();
 
+        $event = app(EventSignup::class)->findOpenEvent($pending->event_id);
+
         Notification::route('mail', $email)
-            ->notify(new PendingRegistrationVerification($rawToken, $ttlHours));
+            ->notify(new PendingRegistrationVerification($rawToken, $ttlHours, $event?->name));
 
         return response()->json([
             'message' => 'Verification email resent.',
         ], 200);
     }
 
-    public function verifyRegistrationLink(string $token)
+    public function verifyRegistrationLink(Request $request, string $token)
     {
         $response = $this->verifyRegistrationToken($token);
+
+        // Stránka /verify-email/{token} vo fronte chce JSON (aj s výsledkom
+        // rezervácie); holý text ostáva pre odkazy zo starších e-mailov.
+        if ($request->expectsJson()) {
+            return $response;
+        }
 
         $status = $response->getStatusCode();
         $message = match ($status) {
@@ -442,11 +457,13 @@ class AuthController extends Controller
 
         if ($pending->expires_at && now()->greaterThan($pending->expires_at)) {
             $pending->delete();
+
             return response()->json(['message' => 'Token expired'], 410);
         }
 
         if (User::where('email', $pending->email)->exists()) {
             $pending->delete();
+
             return response()->json(['message' => 'User already exists'], 409);
         }
 
@@ -469,12 +486,36 @@ class AuthController extends Controller
 
         $this->assignSuperAdminIfFirstUser($user);
 
+        $eventId = $pending->event_id;
+
         $pending->delete();
 
         return response()->json([
             'message' => 'Email verified successfully.',
             'user' => $user,
+            'reserve_event' => $this->inviteToReserve($user, $eventId),
         ], 200);
+    }
+
+    /**
+     * Registrácia z tlačidla „Rezervovať": po overení e-mailu pošle pozvanie
+     * rezervovať si miesto (EventSignup). Samotnú rezerváciu robí človek sám
+     * po prihlásení na /prihlasenie/{id}. Vráti podujatie pre stránku overenia.
+     *
+     * @return array{id: int, name: ?string}|null
+     */
+    protected function inviteToReserve(User $user, mixed $eventId): ?array
+    {
+        $signup = app(EventSignup::class);
+        $event = $signup->findOpenEvent($eventId);
+
+        if (! $event) {
+            return null;
+        }
+
+        $signup->inviteAfterVerification($event, $user);
+
+        return ['id' => $event->id, 'name' => $event->name];
     }
 
     /**
@@ -517,7 +558,7 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
     }
 }

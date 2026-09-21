@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\DefaultReservation;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TicketTypeController extends Controller
@@ -31,6 +32,12 @@ class TicketTypeController extends Controller
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
+
+        // Organizátor lístky nenastavil → formulár dostane neuložený typ
+        // „Rezervácia miesta" (id 0); skutočný vznikne až pri objednávke.
+        if ($types->isEmpty() && $event->usesDefaultReservation()) {
+            $types->push(app(DefaultReservation::class)->virtual($event));
+        }
 
         // Má prihlásený návštevník platnú vstupenku? (odomkne workshopy v UI,
         // autoritatívne to stráži issueForEvent)

@@ -270,7 +270,7 @@
             </section>
 
             <!-- Lístok / registrácia -->
-            <section v-if="event.ticketsEnabled" id="registracia" class="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+            <section v-if="event.reservable" id="registracia" class="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
@@ -601,7 +601,7 @@ const deadlineCountdown = computed(() => {
 
 // Lišta má zmysel len tam, kde sa dá niečo urobiť: registrácia je zapnutá
 // a návštevník ešte prihlásený nie je.
-const showMobileCta = computed(() => Boolean(event.value?.ticketsEnabled) && !viewerRegistered.value)
+const showMobileCta = computed(() => Boolean(event.value?.reservable) && !viewerRegistered.value)
 
 /**
  * Podujatie, ktoré sa ešte len chystá. Bez termínu to nevieme posúdiť, takže
@@ -897,7 +897,7 @@ async function load() {
 
   // Tlačidlo lístkov na karte vedie na `#registracia`. Router tam scrollovať
   // nevie — sekcia existuje až po zmiznutí načítavania, teda až teraz.
-  if (route.hash === '#registracia' && event.value?.ticketsEnabled) {
+  if (route.hash === '#registracia' && event.value?.reservable) {
     await nextTick()
     scrollToRegistration()
   }

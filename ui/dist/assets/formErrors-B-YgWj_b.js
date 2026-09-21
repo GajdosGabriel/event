@@ -1,0 +1,1 @@
+function f(r){var s,n;const e=(n=(s=r==null?void 0:r.response)==null?void 0:s.data)==null?void 0:n.errors;return e?Object.fromEntries(Object.entries(e).map(([t,o])=>[t,o[0]]).filter(([,t])=>typeof t=="string")):{}}export{f};

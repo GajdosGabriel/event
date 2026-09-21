@@ -27,8 +27,7 @@ class CanalInviter
 
     public function __construct(
         private CanalMembership $membership,
-    ) {
-    }
+    ) {}
 
     public function invite(Canal $canal, string $email, CanalRole $role, User $inviter): CanalInvitation
     {
@@ -59,6 +58,40 @@ class CanalInviter
         $this->notify($invitation);
 
         return $invitation;
+    }
+
+    /**
+     * Pozvánka na prevzatie kanála, ktorý nikto nespravuje (importovaný),
+     * pre kontaktnú adresu organizátora. Posiela ju systém, nie člen tímu,
+     * a e-mail k nej skladá volajúci (EventSignup) — tu sa nič neposiela.
+     *
+     * Na rozdiel od invite() nevybavenú pozvánku na tú istú adresu nezruší,
+     * len jej predĺži platnosť: e-mail chodí pri každom prihlásení na akciu
+     * a odkaz zo staršieho e-mailu musí fungovať aj naďalej.
+     */
+    public function ensureOwnerInvitation(Canal $canal, string $email): CanalInvitation
+    {
+        $email = mb_strtolower(trim($email));
+
+        $invitation = $canal->invitations()
+            ->pending()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('role', CanalRole::Owner->value)
+            ->latest('id')
+            ->first();
+
+        if ($invitation) {
+            $invitation->forceFill(['expires_at' => now()->addDays(self::TTL_DAYS)])->save();
+
+            return $invitation;
+        }
+
+        return $canal->invitations()->create([
+            'email' => $email,
+            'role' => CanalRole::Owner->value,
+            'invited_by_user_id' => null,
+            'expires_at' => now()->addDays(self::TTL_DAYS),
+        ]);
     }
 
     /** Znovu pošle e-mail k nevybavenej pozvánke a predĺži jej platnosť. */

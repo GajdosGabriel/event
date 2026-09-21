@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminToolsController;
+use App\Http\Controllers\Admin\AiUsageController as AdminAiUsageController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CanalController as AdminCanalController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -10,14 +11,11 @@ use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityContro
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
-use App\Http\Controllers\Admin\AiUsageController as AdminAiUsageController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\AiAssistController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\Me\SubscriptionController as MeSubscriptionController;
-use App\Http\Controllers\Me\TicketController as MeTicketController;
 use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
@@ -35,6 +33,8 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Me\SubscriptionController as MeSubscriptionController;
+use App\Http\Controllers\Me\TicketController as MeTicketController;
 use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
 use App\Http\Controllers\Public\AnnouncementController as PublicAnnouncementController;
 use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpController;
@@ -44,6 +44,7 @@ use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitati
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\Public\EventQuestionController as PublicEventQuestionController;
+use App\Http\Controllers\Public\EventSignupController as PublicEventSignupController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
 use App\Http\Controllers\Public\MunicipalityController as PublicMunicipalityController;
 use App\Http\Controllers\Public\PosterController as PublicPosterController;
@@ -210,6 +211,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Samoobslužné zrušenie vlastnej registrácie na podujatie.
     Route::delete('events/{event}/registration', [PublicTicketController::class, 'cancelOwn'])
         ->name('public.events.registration.destroy');
+
+    // „Prihlásiť sa" z hlascirkvi.sk — rezervácia zdarma alebo záujem,
+    // s e-mailom organizátorovi (EventSignup). Posiela e-maily, preto limit.
+    Route::post('events/{event}/signup', [PublicEventSignupController::class, 'store'])
+        ->name('public.events.signup.store')
+        ->middleware('throttle:public-write');
 });
 // Potvrdenie účasti účastníkom z e-mailu (chránené tokenom, bez prihlásenia).
 Route::get('rsvp/{token}', [PublicAttendeeRsvpController::class, 'show'])->name('public.rsvp.show');

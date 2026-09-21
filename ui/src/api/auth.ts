@@ -96,9 +96,14 @@ export async function setActiveCanal(canalId: number): Promise<AuthIdentity | nu
   return unwrapIdentity(data)
 }
 
-export async function verifyRegistrationLink(token: string): Promise<{ message: string }> {
+/**
+ * Overenie e-mailu z odkazu. Ak sa človek registráciou hlásil na podujatie,
+ * backend vráti v `reserve_event` to podujatie (a pošle e-mail s pozvaním
+ * na rezerváciu) — stránka ponúkne tlačidlo „Rezervovať miesto".
+ */
+export async function verifyRegistrationLink(token: string): Promise<{ message: string; reserveEvent: { id: number; name: string | null } | null }> {
   const { data } = await http.get(`/register/verify/${token}`)
-  return data as { message: string }
+  return { message: data?.message, reserveEvent: data?.reserve_event ?? null }
 }
 
 export interface SocialLoginResult {

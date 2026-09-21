@@ -7,7 +7,15 @@
         <div class="mb-4 text-4xl">✓</div>
         <h1 class="mb-2 text-xl font-semibold text-slate-900">{{ t('auth.verifyLink.successTitle') }}</h1>
         <p class="mb-6 text-sm text-slate-600">{{ message }}</p>
-        <RouterLink to="/login" class="btn btn-primary">{{ t('auth.verifyLink.login') }}</RouterLink>
+        <!-- Registrácia z „Rezervovať" pri akcii — teraz si miesto rezervuje
+             (po prihlásení jedným klikom na /prihlasenie/:id). -->
+        <template v-if="reserveEvent">
+          <p class="mb-4 rounded-lg bg-green-50 p-3 text-left text-sm text-green-900">
+            {{ t('eventSignup.verifiedLead', { event: reserveEvent.name ? `„${reserveEvent.name}"` : t('eventSignup.eventFallback') }) }}
+          </p>
+          <RouterLink :to="{ name: 'event-signup', params: { id: reserveEvent.id } }" class="btn btn-primary">{{ t('eventSignup.reserveNow') }}</RouterLink>
+        </template>
+        <RouterLink v-else to="/login" class="btn btn-primary">{{ t('auth.verifyLink.login') }}</RouterLink>
       </template>
 
       <template v-else>
@@ -29,17 +37,18 @@ import { t } from '@/i18n'
 const route = useRoute()
 const status = ref<'loading' | 'success' | 'error'>('loading')
 const message = ref('')
+const reserveEvent = ref<{ id: number; name: string | null } | null>(null)
 
 onMounted(async () => {
   const token = route.params.token as string
   try {
     const res = await verifyRegistrationLink(token)
-    message.value = res.message ?? t('auth.verifyLink.successFallback')
+    // API odpovedá po anglicky — návštevníkovi ukážeme preloženú vetu.
+    message.value = t('auth.verifyLink.successFallback')
+    reserveEvent.value = res.reserveEvent
     status.value = 'success'
-  } catch (e: unknown) {
-    message.value =
-      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-      t('auth.verifyLink.failedFallback')
+  } catch {
+    message.value = t('auth.verifyLink.failedFallback')
     status.value = 'error'
   }
 })

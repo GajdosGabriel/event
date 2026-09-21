@@ -174,6 +174,8 @@ export interface RegisterPayload {
   password_confirmation?: string
   /** Súhlas s obchodnými podmienkami — bez neho API registráciu odmietne. */
   terms_accepted: boolean
+  /** Podujatie, na ktoré sa registráciou prihlasuje — miesto sa rezervuje po overení e-mailu. */
+  event_id?: number
 }
 
 /**
@@ -220,6 +222,8 @@ export interface EventItem {
   seriesOccurrences: SeriesOccurrence[]
   registrationDeadlineAt: string | null
   ticketsEnabled: boolean
+  /** Dá sa rezervovať — nastavené lístky alebo predvolená rezervácia zdarma (Event::isReservable). */
+  reservable: boolean
   /** „Kúpiť lístok" / „Rezervovať" na karte; null = lístok sa získať nedá. */
   ticketCta: EventTicketCta | null
   workshopLockOnStart?: boolean

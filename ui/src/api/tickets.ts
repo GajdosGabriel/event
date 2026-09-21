@@ -265,3 +265,21 @@ export async function emailAttendees(
   const { data } = await http.post(`/dashboard/events/${eventId}/attendees/email`, payload)
   return Number(data.recipients ?? 0)
 }
+
+export type EventSignupStatus = 'reserved' | 'already_registered' | 'interest' | 'closed'
+
+/** Výsledok „Prihlásiť sa" na podujatie (EventSignup na backende). */
+export interface EventSignupResult {
+  status: EventSignupStatus
+  event: { id: number; name: string | null }
+  ticket_uuid: string | null
+}
+
+/**
+ * Prihlásenie prihláseného používateľa na podujatie jedným klikom — rezervácia
+ * zdarma, pri platenej akcii len záujem. Organizátora upovedomí backend.
+ */
+export async function signupForEvent(eventId: number): Promise<EventSignupResult> {
+  const { data } = await http.post(`/events/${eventId}/signup`, {})
+  return (data.data ?? data) as EventSignupResult
+}
