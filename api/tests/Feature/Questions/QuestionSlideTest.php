@@ -222,6 +222,10 @@ class QuestionSlideTest extends EventSetupTest
         $board = $this->publishedBoard();
         $this->attachPrimaryImage($board);
 
+        gc_collect_cycles();
+        $memoryBeforeRender = memory_get_usage(true);
+        memory_reset_peak_usage();
+
         $response = $this->get("/api/q/{$board->token}/slide.png");
         $response->assertOk();
 
@@ -229,9 +233,12 @@ class QuestionSlideTest extends EventSetupTest
         $this->assertSame(1920, $width);
         $this->assertSame(1080, $height);
 
-        // Poistka proti „a čo keby sme čítali originál namiesto varianty large" —
-        // fotka 4000×3000 by v pamäti zabrala takmer 50 MB.
-        $this->assertLessThan(160 * 1024 * 1024, memory_get_peak_usage(true));
+        // Meriame iba nárast počas renderovania. Absolútny peak celého PHPUnit
+        // procesu zahŕňa aj veľké dátové migrácie a závisí od poradia testov.
+        // Načítanie originálu 4000×3000 namiesto varianty large by samo pridalo
+        // takmer 50 MB, preto musí render zostať bezpečne pod touto hranicou.
+        $renderPeak = memory_get_peak_usage(true) - $memoryBeforeRender;
+        $this->assertLessThan(40 * 1024 * 1024, $renderPeak);
     }
 
     #[Test]
@@ -258,7 +265,7 @@ class QuestionSlideTest extends EventSetupTest
         $tmp = tempnam(sys_get_temp_dir(), 'pptxtest');
         file_put_contents($tmp, $response->getContent());
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $this->assertTrue($zip->open($tmp) === true);
 
         $required = [
@@ -290,7 +297,7 @@ class QuestionSlideTest extends EventSetupTest
         preg_match('/r:embed="(rId\d+)"/', $slide, $matches);
         $rels = (string) $zip->getFromName('ppt/slides/_rels/slide1.xml.rels');
         $this->assertMatchesRegularExpression(
-            '/Id="' . preg_quote($matches[1], '/') . '"[^>]*Target="\.\.\/media\/image1\.png"/',
+            '/Id="'.preg_quote($matches[1], '/').'"[^>]*Target="\.\.\/media\/image1\.png"/',
             $rels,
         );
 
@@ -312,7 +319,7 @@ class QuestionSlideTest extends EventSetupTest
         $tmp = tempnam(sys_get_temp_dir(), 'pptxtest');
         file_put_contents($tmp, $response->getContent());
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($tmp);
         $this->assertNotFalse(simplexml_load_string((string) $zip->getFromName('ppt/slides/slide1.xml')));
         $this->assertNotFalse(simplexml_load_string((string) $zip->getFromName('docProps/core.xml')));

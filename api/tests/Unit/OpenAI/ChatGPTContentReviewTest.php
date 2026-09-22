@@ -3,18 +3,21 @@
 namespace Tests\Unit\OpenAI;
 
 use App\Services\OpenAI\ChatGPT;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ChatGPTContentReviewTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[DataProvider('summaries')]
     public function test_summary_is_preserved_or_derived_from_the_verdict(string $summary, array $issues, string $expected): void
     {
         $this->fakeReview(['score' => 90, 'summary' => $summary, 'issues' => $issues]);
 
-        $result = (new ChatGPT())->extractContentReview('canal', 'Organizátor', 'Popis organizátora.');
+        $result = (new ChatGPT)->extractContentReview('canal', 'Organizátor', 'Popis organizátora.');
 
         $this->assertSame($expected, $result['summary']);
         $this->assertSame($issues, $result['issues']);
@@ -42,7 +45,7 @@ class ChatGPTContentReviewTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('summary');
 
-        (new ChatGPT())->extractContentReview('canal', 'Organizátor', 'Popis organizátora.');
+        (new ChatGPT)->extractContentReview('canal', 'Organizátor', 'Popis organizátora.');
     }
 
     public static function invalidSummaries(): array

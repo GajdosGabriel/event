@@ -3,6 +3,7 @@
 namespace Tests\Unit\OpenAI;
 
 use App\Services\OpenAI\ChatGPT;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
@@ -16,6 +17,8 @@ use Tests\TestCase;
  */
 class ChatGPTCopywriterChunkingTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();

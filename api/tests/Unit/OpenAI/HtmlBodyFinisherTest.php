@@ -4,6 +4,7 @@ namespace Tests\Unit\OpenAI;
 
 use App\Services\OpenAI\ChatGPT;
 use App\Services\OpenAI\HtmlBodyFinisher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -14,6 +15,8 @@ use Tests\TestCase;
  */
 class HtmlBodyFinisherTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
