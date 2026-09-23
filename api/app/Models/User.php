@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use App\Enums\CanalIdentityMode;
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
+use App\Support\EmailMask;
 
 class User extends Authenticatable
 {
@@ -370,7 +371,7 @@ class User extends Authenticatable
      *
      * Účet sám meno nedrží — nesie ho osobný kanál založený pri registrácii,
      * prípadne ešte nespracovaný PendingProfile. Adresa je až posledná záchrana
-     * a aj tak len jej časť pred zavináčom, nikdy nie celá.
+     * a aj tak len maskovaná časť pred zavináčom (viď maskedEmail()).
      */
     public function displayName(): string
     {
@@ -384,9 +385,19 @@ class User extends Authenticatable
             return $name;
         }
 
-        $local = trim(Str::before((string) $this->email, '@'));
+        $local = trim(Str::before((string) $this->maskedEmail(), '@'));
 
         return $local !== '' ? $local : 'Používateľ #' . $this->id;
+    }
+
+    /**
+     * E-mail v tvare, ktorý smie ísť k cudziemu používateľovi („g•••o@gmail.com“).
+     * Zámerne nie cez $appends — `email` ostáva v $hidden a nič sa nemá
+     * serializovať samo; kde treba, pošle sa to explicitne.
+     */
+    public function maskedEmail(): ?string
+    {
+        return EmailMask::mask($this->email);
     }
 
     public function events()

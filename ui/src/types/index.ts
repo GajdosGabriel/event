@@ -147,6 +147,8 @@ export interface AuthIdentity {
   display_name: string
   /** Vlastný e-mail prihláseného návštevníka — cudzie e-maily API neposiela. */
   email?: string | null
+  /** Maskovaný e-mail („g•••o@gmail.com“) — posiela sa pri každom účte. */
+  email_masked?: string | null
   canal_id: number | null
   canal: string
   roles?: string[]

@@ -87,9 +87,9 @@ class DashboardCanalTeamController extends Controller
     }
 
     /**
-     * Zoznam členov + nevybavených pozvánok. E-mail vidí len ten, kto tím
-     * spravuje — adresu do pozvánky sám zadal. Ostatným členom sa cudzie
-     * adresy nezobrazujú.
+     * Zoznam členov + nevybavených pozvánok. Celý e-mail člena vidí len on
+     * sám, ostatní (aj správca) maskovaný — plné adresy sú len v admine.
+     * Pozvánky nesú adresu, ktorú správca sám zadal, tie idú celé.
      */
     private function teamPayload(Canal $canal): array
     {
@@ -104,7 +104,7 @@ class DashboardCanalTeamController extends Controller
             return [
                 'id' => $member->id,
                 'name' => $member->displayName(),
-                'email' => ($canManage || $isSelf) ? $member->email : null,
+                'email' => $isSelf ? $member->email : $member->maskedEmail(),
                 'role' => $role->value,
                 'role_label' => $role->label(),
                 'is_owner' => (bool) $member->pivot->is_owner,

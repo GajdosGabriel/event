@@ -44,7 +44,11 @@ class UserResource extends JsonResource
 
         return [
             'id'           => $this->id,
-            'display_name' => $activeCanal?->name ?? $this->email,
+            // Nikdy nie surový e-mail — používateľ bez kanála by ho inak ukázal
+            // každému, kto ho vidí vo výpise (členovia spoločného kanála).
+            'display_name' => $activeCanal?->name ?? $this->resource->displayName(),
+            // Na rozlíšenie účtov; celú adresu vidí len on sám a admin (nižšie).
+            'email_masked' => $this->resource->maskedEmail(),
             'roles'        => $globalRoles,
             'canals'       => $canals,
             'canal_context' => [

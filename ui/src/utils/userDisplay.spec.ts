@@ -15,6 +15,10 @@ describe('displayName', () => {
     expect(displayName({ email: 'jana@test.sk' })).toBe('jana@test.sk')
   })
 
+  it('pri cudzom účte použije maskovaný e-mail', () => {
+    expect(displayName({ email_masked: 'j•••a@test.sk' })).toBe('j•••a@test.sk')
+  })
+
   it('má zrozumiteľný fallback', () => {
     expect(displayName({})).toBe('Neznámy')
   })

@@ -72,13 +72,29 @@ class CanalTeamTest extends TestCase
             ])
             ->assertStatus(403);
 
-        // Zoznam tímu člen vidieť smie, cudzie adresy v ňom však nie.
+        // Zoznam tímu člen vidieť smie, cudzie adresy v ňom však len maskované.
         $this->actingAs($editor, 'sanctum')
             ->getJson($this->teamUrl())
             ->assertOk()
             ->assertJsonPath('meta.permissions.manage', false)
             ->assertJsonPath('data.invitations', [])
-            ->assertJsonPath('data.members.0.email', null);
+            ->assertDontSee('owner@divadlo.test')
+            ->assertJsonFragment(['email' => 'o•••r@divadlo.test'])
+            ->assertJsonFragment(['email' => 'editor@divadlo.test']);
+    }
+
+    #[Test]
+    public function team_manager_sees_member_emails_only_masked(): void
+    {
+        $this->member('dramaturg@divadlo.test', CanalRole::Editor);
+
+        $this->actingAs($this->owner, 'sanctum')
+            ->getJson($this->teamUrl())
+            ->assertOk()
+            ->assertJsonPath('meta.permissions.manage', true)
+            ->assertDontSee('dramaturg@divadlo.test')
+            ->assertJsonFragment(['email' => 'd•••g@divadlo.test'])
+            ->assertJsonFragment(['email' => 'owner@divadlo.test']);
     }
 
     #[Test]
