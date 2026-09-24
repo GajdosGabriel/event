@@ -2367,6 +2367,7 @@ const sk = {
   filters: {
     search: 'Hľadať…',
     searchHint: 'Stlač / pre vyhľadávanie',
+    clearSearch: 'Zrušiť hľadanie',
     // Naposledy hľadané výrazy pod poľom — držia sa len v prehliadači.
     history: {
       label: 'Naposledy hľadané',

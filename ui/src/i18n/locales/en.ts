@@ -2245,6 +2245,7 @@ const en: Messages = {
   filters: {
     search: 'Search…',
     searchHint: 'Press / to search',
+    clearSearch: 'Clear search',
     history: {
       label: 'Recent searches',
       remove: 'Remove from history',

@@ -20,10 +20,6 @@
     <!-- Filtre -->
     <form class="panel-card flex flex-wrap items-end gap-3 text-sm" @submit.prevent="apply()">
       <label class="grid gap-1">
-        <span class="text-xs text-slate-500">{{ t('systemLog.filter.search') }}</span>
-        <input v-model.trim="filters.search" type="search" class="form-input h-9 w-auto" :placeholder="t('systemLog.filter.searchPlaceholder')">
-      </label>
-      <label class="grid gap-1">
         <span class="text-xs text-slate-500">{{ t('systemLog.filter.channel') }}</span>
         <select v-model="filters.channel" class="form-input h-9 w-auto" @change="apply()">
           <option value="">{{ t('systemLog.filter.all') }}</option>
@@ -63,6 +59,11 @@
       <button v-if="anyFilter" type="button" class="text-xs text-slate-500 underline" @click="reset()">
         {{ t('systemLog.filter.reset') }}
       </button>
+
+      <div class="ml-auto flex">
+        <SearchField v-model="filters.search" :placeholder="t('systemLog.filter.searchPlaceholder')"
+          :label="t('systemLog.filter.search')" size="sm" history-key="admin-system-logs" @search="apply()" />
+      </div>
     </form>
 
     <p v-if="loading && !page" class="text-slate-600">{{ t('systemLog.loading') }}</p>
@@ -123,6 +124,7 @@ import {
   type SystemLogParams,
   type SystemLogStatus,
 } from '@/api/systemLogs'
+import SearchField from '@/components/SearchField.vue'
 import { useToast } from '@/composables/useToast'
 import { localeTag, useI18n } from '@/i18n'
 

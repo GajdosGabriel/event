@@ -14,56 +14,14 @@
              jedného riadku s prepínačom pohľadu; po kliknutí sa roztiahne na
              plnú šírku. Stav zostáva v adrese (`?q=`) — výsledok sa dá poslať
              aj založiť a tlačidlo „späť" ho nezahodí. -->
-        <div class="relative h-9 min-w-0" :class="searchOpen ? 'flex-1 sm:w-64 sm:flex-none' : 'w-9'">
-          <button
-            v-if="!searchOpen"
-            type="button"
-            :aria-label="t('filters.events.searchLabel')"
-            :aria-expanded="false"
-            aria-controls="event-search"
-            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
-            @click="openSearch"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
-            </svg>
-          </button>
-
-          <template v-else>
-            <label for="event-search" class="sr-only">{{ t('filters.events.searchLabel') }}</label>
-            <svg
-              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="M21 21l-4.3-4.3" stroke-linecap="round" />
-            </svg>
-            <input
-              id="event-search"
-              ref="searchInput"
-              v-model="search"
-              type="search"
-              :placeholder="t('filters.events.search')"
-              autocomplete="off"
-              class="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-800 outline-none transition-colors focus:border-blue-500"
-              @input="onSearchInput"
-              @keydown.esc="onSearchEscape"
-              @blur="collapseSearch"
-            />
-            <button
-              v-if="search"
-              type="button"
-              :aria-label="t('filters.events.clearSearch')"
-              class="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-              @click="clearSearch"
-            >
-              <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
-            </button>
-          </template>
-        </div>
+        <SearchField
+          v-model="search"
+          :placeholder="t('filters.events.search')"
+          :label="t('filters.events.searchLabel')"
+          size="sm"
+          history-key="public-events"
+          @search="loadPage(1)"
+        />
 
         <!-- Prepínač zobrazenia je ten istý prvok ako karty v dashboarde,
              takže aj rovnako vyzerá — `.nav-tab.active` v styles.css. -->
@@ -217,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { indexEventMapPoints, indexEvents, type EventMapPoint } from '@/api/events'
@@ -229,6 +187,7 @@ import AppPaginator from '@/components/AppPaginator.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
 import NearbyFilter, { type NearbySelection } from '@/components/NearbyFilter.vue'
+import SearchField from '@/components/SearchField.vue'
 // Mapa ťahá Leaflet aj jeho CSS — načíta sa až keď si ju niekto zapne, inak
 // by vyrástol balík každej verejnej stránky vrátane homepage.
 const EventsMap = defineAsyncComponent(() => import('@/components/EventsMap.vue'))
@@ -326,12 +285,8 @@ const lastPage = ref(1)
 const total = ref(0)
 const listTop = ref<HTMLElement | null>(null)
 
-const searchInput = ref<HTMLInputElement | null>(null)
 /** Hľadaný výraz žije v adrese (`?q=`), aby sa dal zdieľať a prežil „späť". */
 const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
-/** Zbalené na ikonu; s výrazom v adrese sa otvára rovno rozbalené. */
-const searchOpen = ref(Boolean(search.value))
-let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 /** Stránkovanie drží v adrese `?page=` — bez neho „späť" vracalo na prvú stranu. */
 const { pageFromQuery, load: loadPage, goToPage: pushPage, replaceQuery } = usePageQuery(fetchPage)
@@ -390,38 +345,10 @@ useHead(computed(() => {
   }
 }))
 
-function openSearch() {
-  searchOpen.value = true
-  // Až po prekreslení — pole ešte v DOM nie je, keď sa tlačidlo klikne.
-  void nextTick(() => searchInput.value?.focus())
-}
-
-/** Prázdne pole sa po opustení zbalí; s výrazom by sa stratil kontext filtra. */
-function collapseSearch() {
-  if (!search.value.trim()) searchOpen.value = false
-}
-
 function clearSearch() {
-  if (search.value) {
-    search.value = ''
-    clearTimeout(searchTimer)
-    void loadPage(1)
-  }
-  searchInput.value?.focus()
-}
-
-/** Esc najprv zruší výraz, druhé stlačenie zbalí pole späť na ikonu. */
-function onSearchEscape() {
-  if (search.value) {
-    clearSearch()
-    return
-  }
-  searchOpen.value = false
-}
-
-function onSearchInput() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => void loadPage(1), 400)
+  if (!search.value) return
+  search.value = ''
+  void loadPage(1)
 }
 
 /** Po prestránkovaní sa vracia pohľad na začiatok zoznamu, nie doprostred. */
@@ -511,5 +438,4 @@ watch(() => route.query.q, (value) => {
 })
 
 onMounted(() => loadPage(pageFromQuery()))
-onBeforeUnmount(() => clearTimeout(searchTimer))
 </script>

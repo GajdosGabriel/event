@@ -6,13 +6,14 @@
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <input v-model="search" type="search" :placeholder="t('filters.messages.search')"
-        class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        @input="onSearch" />
       <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
         <input v-model="onlyUnread" type="checkbox" class="accent-teal-600" @change="load(1)" />
         {{ t('filters.messages.onlyUnread') }}
       </label>
+      <div class="ml-auto flex">
+        <SearchField v-model="search" :placeholder="t('filters.messages.search')" size="sm"
+          history-key="dashboard-messages" :debounce="300" @search="load(1)" />
+      </div>
     </div>
 
     <p v-if="loading" class="text-slate-500">{{ t('messages.loading') }}</p>
@@ -111,6 +112,7 @@ import {
 } from '@/api/messages'
 import { useToast } from '@/composables/useToast'
 import FormField from '@/components/FormField.vue'
+import SearchField from '@/components/SearchField.vue'
 import type { PaginatedResponse } from '@/types'
 import { currentLocale, useI18n } from '@/i18n'
 
@@ -129,8 +131,6 @@ const page = ref(1)
 const replyBody = ref('')
 const replyError = ref<string | null>(null)
 const replying = ref(false)
-
-let searchTimeout: ReturnType<typeof setTimeout> | undefined
 
 function targetLabel(type: MessageTargetType | null): string {
   return type ? t(`messages.targets.${type}`) : t('messages.targets.record')
@@ -172,11 +172,6 @@ async function load(targetPage = 1) {
   } finally {
     loading.value = false
   }
-}
-
-function onSearch() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => load(1), 300)
 }
 
 async function open(message: MessageItem) {

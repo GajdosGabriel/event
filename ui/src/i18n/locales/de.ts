@@ -2245,6 +2245,7 @@ const de: Messages = {
   filters: {
     search: 'Suchen…',
     searchHint: '/ drücken, um zu suchen',
+    clearSearch: 'Suche löschen',
     history: {
       label: 'Zuletzt gesucht',
       remove: 'Aus dem Verlauf entfernen',

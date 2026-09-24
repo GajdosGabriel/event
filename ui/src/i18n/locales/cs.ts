@@ -2244,6 +2244,7 @@ const cs: Messages = {
   filters: {
     search: 'Hledat…',
     searchHint: 'Stiskni / pro vyhledávání',
+    clearSearch: 'Zrušit hledání',
     history: {
       label: 'Naposledy hledané',
       remove: 'Odebrat z historie',
