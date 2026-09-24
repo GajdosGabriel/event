@@ -55,7 +55,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     {
         Gate::authorize('viewAny', $this->entity);
 
-        $query = empty($filters['search'])
+        $query = !empty($filters['for_select']) || empty($filters['search'])
             ? $this->dashboardIndexQuery()
             : $this->latestFirst($this->model()->withTrashed());
 

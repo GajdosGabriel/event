@@ -1,6 +1,28 @@
 import type { Messages } from './sk'
 
 const en: Messages = {
+  roadmap: {
+  "retry": "Try again",
+  "more": "Load more",
+  "similar": "Similar records already exist",
+  "merge": "Merge into…",
+  "mergeConfirm": "Merge {source} into {target}? Target content will be preserved. Restoring the source from trash will not undo transferred links.",
+  "merged": "Records merged.",
+  "clear": "Clear filters",
+  "empty": "There are no records yet.",
+  "upcoming": "Upcoming events",
+  "drafts": "Drafts in progress",
+  "unread": "Unread messages",
+  "onboarding": "Get started",
+  "canal": "Create a channel",
+  "venue": "Add a venue",
+  "event": "Create your first event",
+  "all": "View all",
+  "registrations": "Registrations: {count}",
+  "readiness": "Readiness: {count}%",
+  "none": "No records",
+  "target": "Target record"
+},
   lang: {
     label: 'Language',
     sk: 'Slovenčina',

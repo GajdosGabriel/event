@@ -92,16 +92,14 @@
       </section>
     </div>
 
-    <div v-if="meta && meta.last_page > 1" class="mt-4 flex items-center gap-2">
-      <button type="button" class="action-btn" :disabled="page <= 1" @click="load(page - 1)">{{ t('messages.prev') }}</button>
-      <span class="text-sm text-slate-500">{{ page }} / {{ meta.last_page }}</span>
-      <button type="button" class="action-btn" :disabled="page >= meta.last_page" @click="load(page + 1)">{{ t('messages.next') }}</button>
-    </div>
+    <AppPaginator v-if="meta" :current-page="page" :last-page="meta.last_page" @change="load" />
   </div>
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   indexMessages,
   showMessage,
@@ -126,7 +124,7 @@ const activeId = ref<number | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const search = ref('')
-const onlyUnread = ref(false)
+const onlyUnread = ref(useRoute().query.unread === '1')
 const page = ref(1)
 const replyBody = ref('')
 const replyError = ref<string | null>(null)

@@ -52,6 +52,14 @@ class Venue extends Model implements Messageable
         $this->attributes['slug'] = Str::slug($value);
     }
 
+    /** Filter on the active pivot before pagination, including remote form selections. */
+    public function scopeByCanal($query, ?int $canalId)
+    {
+        return $canalId === null ? $query : $query->whereHas('canals', fn ($q) => $q
+            ->where('canals.id', $canalId)
+            ->where('canal_venue.status', ModelStatus::Published->value));
+    }
+
     public function municipality()
     {
         return $this->belongsTo(Municipality::class, 'village_id');

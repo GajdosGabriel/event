@@ -296,7 +296,11 @@ Route::middleware('auth:sanctum')->prefix('me')->name('me.')->group(function () 
 });
 
 Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
+    Route::get('{resource}/similar', \App\Http\Controllers\ResourceSimilarityController::class)
+        ->whereIn('resource', ['canals', 'venues', 'organizations'])->name('resources.similar')->middleware('throttle:60,1');
+
     Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
+    Route::get('next-actions', \App\Http\Controllers\Dashboard\DashboardNextActionsController::class)->name('next-actions');
     Route::get('municipalities/all', [DashboardMunicipalityController::class, 'all']);
 
     // Poloha z rozpísanej adresy — spoločné pre editor miesta aj kanála. Bez
@@ -610,6 +614,11 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
 })->middleware('auth:sanctum');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
+    Route::get('{resource}/similar', \App\Http\Controllers\ResourceSimilarityController::class)
+        ->whereIn('resource', ['canals', 'venues', 'organizations'])->name('resources.similar')->middleware('throttle:60,1');
+    Route::post('{resource}/{id}/merge', \App\Http\Controllers\Admin\ResourceMergeController::class)
+        ->whereIn('resource', ['canals', 'venues'])->whereNumber('id')->name('resources.merge');
+
     Route::get('/', [AdminDashboardController::class, 'index'])->name('home');
     Route::get('municipalities/all', [AdminMunicipalityController::class, 'all']);
     Route::post('geocode', GeocodeController::class)

@@ -8,6 +8,7 @@
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
+        <SimilarRecords :scope="scope" resource="canals" :name="form.name" :exclude-id="route.params.id ? Number(route.params.id) : null" :municipality="address.municipalityId" />
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('canals.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -79,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import SimilarRecords from '@/components/SimilarRecords.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'

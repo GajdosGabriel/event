@@ -1,6 +1,28 @@
 import type { Messages } from './sk'
 
 const de: Messages = {
+  roadmap: {
+  "retry": "Erneut versuchen",
+  "more": "Weitere laden",
+  "similar": "Ähnliche Einträge sind bereits vorhanden",
+  "merge": "Zusammenführen mit…",
+  "mergeConfirm": "{source} mit {target} zusammenführen? Der Inhalt des Ziels bleibt erhalten. Die Wiederherstellung der Quelle macht die übertragenen Verknüpfungen nicht rückgängig.",
+  "merged": "Einträge zusammengeführt.",
+  "clear": "Filter zurücksetzen",
+  "empty": "Noch keine Einträge vorhanden.",
+  "upcoming": "Bevorstehende Veranstaltungen",
+  "drafts": "Entwürfe",
+  "unread": "Ungelesene Nachrichten",
+  "onboarding": "Erste Schritte",
+  "canal": "Kanal erstellen",
+  "venue": "Ort hinzufügen",
+  "event": "Erste Veranstaltung erstellen",
+  "all": "Alle anzeigen",
+  "registrations": "Anmeldungen: {count}",
+  "readiness": "Vollständigkeit: {count} %",
+  "none": "Keine Einträge",
+  "target": "Zieleintrag"
+},
   lang: {
     label: 'Sprache',
     sk: 'Slovenčina',

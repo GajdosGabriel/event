@@ -1,6 +1,28 @@
 import type { Messages } from './sk'
 
 const cs: Messages = {
+  roadmap: {
+  "retry": "Zkusit znovu",
+  "more": "Načíst další",
+  "similar": "Podobné záznamy již existují",
+  "merge": "Sloučit do…",
+  "mergeConfirm": "Sloučit {source} do {target}? Obsah cíle zůstane zachován. Obnovení zdroje z koše nevrátí přesunuté vazby.",
+  "merged": "Záznamy byly sloučeny.",
+  "clear": "Zrušit filtry",
+  "empty": "Zatím zde nejsou žádné záznamy.",
+  "upcoming": "Nejbližší akce",
+  "drafts": "Rozpracované koncepty",
+  "unread": "Nepřečtené zprávy",
+  "onboarding": "Začněte těmito kroky",
+  "canal": "Vytvořte kanál",
+  "venue": "Přidejte místo",
+  "event": "Vytvořte první akci",
+  "all": "Zobrazit vše",
+  "registrations": "Registrace: {count}",
+  "readiness": "Připravenost: {count} %",
+  "none": "Žádné záznamy",
+  "target": "Cílový záznam"
+},
   lang: {
     label: 'Jazyk',
     sk: 'Slovenčina',

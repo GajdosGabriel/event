@@ -18,6 +18,7 @@
       </div>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
+        <SimilarRecords :scope="scope" resource="organizations" :name="form.title" :municipality="form.village_id" :exclude-id="route.params.id ? Number(route.params.id) : null"  />
         <!-- Typ subjektu rozhoduje, čo sa vôbec pýtame – preto je prvý.
              Binárna voľba nepotrebuje vlastnú sekciu: „Som“ a obe možnosti
              sa zmestia na jeden riadok a čítajú sa ako veta. -->
@@ -261,6 +262,7 @@
 </template>
 
 <script setup lang="ts">
+import SimilarRecords from '@/components/SimilarRecords.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {

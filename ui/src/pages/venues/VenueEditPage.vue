@@ -41,6 +41,7 @@
       </div>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
+        <SimilarRecords :scope="scope" resource="venues" :name="form.name" :exclude-id="route.params.id ? Number(route.params.id) : null" :municipality="address.municipalityId" />
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('venues.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -48,10 +49,11 @@
             <!-- Kanál je na serveri povinný (`required_without:canal_ids`) —
                  prázdna voľba preto nesmie ostať vyberateľná, inak to skončí
                  chybou až po uložení. -->
-            <FormField v-model="form.canal_id" type="select" :label="t('venues.fields.canal')" required :error="errors.canal_id">
-              <option v-if="!form.canal_id" :value="null" disabled>{{ t('venues.fields.canalPlaceholder') }}</option>
-              <option v-for="c in canalOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </FormField>
+            <FormField v-model="form.canal_id" :label="t('venues.fields.canal')" required :error="errors.canal_id">
+            <template #default="{ value, invalid, update }">
+              <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @update:model-value="update" />
+            </template>
+          </FormField>
             <!-- Koncept = stiahnutie z výpisu. Miesto, ktoré používa podujatie,
                  sa stiahnuť nesmie — voľba zošedne a povie prečo, nech to
                  nekončí až chybou po uložení. -->
@@ -115,6 +117,8 @@
 </template>
 
 <script setup lang="ts">
+import SimilarRecords from '@/components/SimilarRecords.vue'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'

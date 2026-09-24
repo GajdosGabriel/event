@@ -105,16 +105,13 @@
         <li v-if="page.data.length === 0" class="py-4 text-slate-500">{{ t('systemLog.empty') }}</li>
       </ul>
 
-      <div v-if="page.meta.lastPage > 1" class="mt-4 flex items-center justify-center gap-3 text-sm">
-        <button class="btn btn-sm btn-secondary" :disabled="page.meta.currentPage <= 1 || loading" @click="go(page.meta.currentPage - 1)">‹</button>
-        <span class="text-slate-600">{{ page.meta.currentPage }} / {{ page.meta.lastPage }}</span>
-        <button class="btn btn-sm btn-secondary" :disabled="page.meta.currentPage >= page.meta.lastPage || loading" @click="go(page.meta.currentPage + 1)">›</button>
-      </div>
+      <AppPaginator  :current-page="page.meta.currentPage" :last-page="page.meta.lastPage" @change="go" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {

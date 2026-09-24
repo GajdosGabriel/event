@@ -16,11 +16,13 @@
       </nav>
     </div>
 
+    <DashboardNextActions />
     <StatsOverview scope="dashboard" />
   </div>
 </template>
 
 <script setup lang="ts">
+import DashboardNextActions from '@/components/DashboardNextActions.vue'
 import StatsOverview from '@/components/stats/StatsOverview.vue'
 import { useI18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'

@@ -3,7 +3,7 @@
     <div class="index-head">
       <div class="head-actions">
         <h1 class="text-2xl font-semibold text-slate-900">{{ cfg.title }}</h1>
-        <RouterLink :to="`${prefix}/create`" class="btn btn-primary">+ {{ cfg.createLabel }}</RouterLink>
+        <RouterLink v-if="canCreate" :to="`${prefix}/create`" class="btn btn-primary">+ {{ cfg.createLabel }}</RouterLink>
       </div>
       <ResourceFilterBar
         v-model:search="search"
@@ -24,9 +24,9 @@
     </div>
 
     <p v-if="loading" class="index-status">{{ t('common.loading') }}</p>
-    <p v-else-if="error" class="index-status-error">{{ error }}</p>
+    <p v-if="error" class="index-status-error" role="alert">{{ error }} <button type="button" @click="load(requestedPage)">{{ t('roadmap.retry') }}</button></p>
 
-    <ul v-else class="index-list">
+    <ul class="index-list" :class="{ 'opacity-50': loading }" :aria-busy="loading">
       <li v-for="item in items" :key="item.id" class="index-list-entry">
         <IndexRow
           :title="item.name"
@@ -90,7 +90,11 @@
           </template>
         </IndexRow>
       </li>
-      <li v-if="!loading && items.length === 0" class="p-4 text-slate-500">{{ cfg.emptyLabel }}</li>
+      <li v-if="!loading && !error && items.length === 0" class="grid gap-2 p-4 text-slate-500">
+        <p>{{ hasFilters ? t('filters.noResults') : cfg.emptyLabel }}</p>
+        <button v-if="hasFilters" type="button" class="btn btn-secondary justify-self-start" @click="clearFilters">{{ t('roadmap.clear') }}</button>
+        <RouterLink v-else-if="canCreate" :to="`${prefix}/create`" class="btn btn-primary justify-self-start">{{ cfg.createLabel }}</RouterLink>
+      </li>
     </ul>
 
     <AppPaginator :current-page="page" :last-page="lastPage" @change="goToPage" />
@@ -99,7 +103,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import http from '@/api/index'
 import IndexRow from '@/components/IndexRow.vue'
 import EventRowDetail from '@/components/EventRowDetail.vue'
@@ -120,6 +124,7 @@ const props = defineProps<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const { settings } = useSettings()
 const { t } = useI18n()
 
@@ -277,6 +282,17 @@ function mapItem(raw: Record<string, unknown>): ResourceItem {
 // ── State ───────────────────────────────────────────────────────────────────
 
 const items = ref<ResourceItem[]>([])
+const canCreate = ref(false)
+const requestedPage = ref(1)
+let requestVersion = 0
+const hasFilters = computed(() => Boolean(search.value || statusFilter.value || phaseFilter.value || dateFrom.value || dateTo.value || canalFilter.value || route.query.municipality))
+async function clearFilters() {
+  search.value = ''; statusFilter.value = ''; phaseFilter.value = ''
+  dateFrom.value = ''; dateTo.value = ''; canalFilter.value = null
+  sortFilter.value = 'newest'
+  await router.replace({ query: {} })
+  load(1)
+}
 const loading = ref(false)
 const error = ref<string | null>(null)
 const page = ref(1)
@@ -379,6 +395,8 @@ const { pageFromQuery, load, goToPage, replaceQuery } = usePageQuery(fetchPage)
 const apiBase = computed(() => `/${scope.value}/${cfg.value.apiSlug}`)
 
 async function fetchPage(p: number) {
+  const version = ++requestVersion
+  requestedPage.value = p
   loading.value = true
   error.value = null
   try {
@@ -397,6 +415,8 @@ async function fetchPage(p: number) {
     if (route.query.municipality) params['municipality'] = route.query.municipality
     syncQuery(p)
     const { data } = await http.get(apiBase.value, { params })
+    if (version !== requestVersion) return
+    canCreate.value = data.meta?.permissions?.create === true
     const list: Record<string, unknown>[] = data.data ?? data
     items.value = list.map(mapItem)
     page.value = data.meta?.current_page ?? 1
@@ -408,9 +428,9 @@ async function fetchPage(p: number) {
       apiStatusOptions.value = allowed
     }
   } catch {
-    error.value = cfg.value.loadFailed
+    if (version === requestVersion) error.value = cfg.value.loadFailed
   } finally {
-    loading.value = false
+    if (version === requestVersion) loading.value = false
   }
 }
 
@@ -421,7 +441,11 @@ function setCanalFilter(item: ResourceItem) {
 }
 
 // Reload when resource prop changes (router reuse)
-watch(() => props.resource, () => {
+watch(() => [props.resource, scope.value], () => {
+  ++requestVersion
+  items.value = []
+  canCreate.value = false
+  lastPage.value = 1
   search.value = ''
   statusFilter.value = ''
   phaseFilter.value = ''

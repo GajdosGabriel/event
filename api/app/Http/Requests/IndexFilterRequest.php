@@ -11,6 +11,7 @@ class IndexFilterRequest extends FormRequest
         'unpublished',
         'blocked',
         'deleted',
+        'for_select',
     ];
 
     public function authorize(): bool
@@ -49,6 +50,7 @@ class IndexFilterRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'for_select' => ['nullable', 'boolean'],
             'status' => ['nullable', 'in:draft,pending_review,rejected,scheduled,published,archived,blocked'],
             'search' => ['nullable', 'string', 'max:250'],
             'published' => ['nullable', 'boolean'],
@@ -70,6 +72,7 @@ class IndexFilterRequest extends FormRequest
     public function getFilters(): array
     {
         return [
+            'for_select' => $this->boolean('for_select'),
             'status' => $this->input('status'),
             'search' => $this->getSearchFilter(),
             'published' => $this->getPublishedFilter(),

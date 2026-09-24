@@ -187,11 +187,7 @@
           </table>
         </div>
 
-        <div v-if="meta && meta.last_page > 1" class="mt-4 flex items-center gap-2">
-          <button type="button" class="action-btn" :disabled="page <= 1" @click="changePage(page - 1)">{{ t('tickets.attendees.prev') }}</button>
-          <span class="text-sm text-slate-500">{{ page }} / {{ meta.last_page }}</span>
-          <button type="button" class="action-btn" :disabled="page >= meta.last_page" @click="changePage(page + 1)">{{ t('tickets.attendees.next') }}</button>
-        </div>
+        <AppPaginator v-if="meta" :current-page="page" :last-page="meta.last_page" @change="changePage" />
       </div>
 
       <!-- Bočný panel: prehľad pri vchode a doplnkové nastavenia podujatia —
@@ -210,6 +206,7 @@
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { computed, ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {

@@ -1,6 +1,28 @@
 // Referenčný slovník. Ostatné jazyky sú typované proti nemu (Messages),
 // takže chýbajúci alebo preklepnutý kľúč spadne už na typecheck.
 const sk = {
+  roadmap: {
+  "retry": "Skúsiť znova",
+  "more": "Načítať ďalšie",
+  "similar": "Podobné záznamy už existujú",
+  "merge": "Zlúčiť do…",
+  "mergeConfirm": "Zlúčiť {source} do {target}? Obsah cieľa zostane zachovaný. Obnovenie zdroja z koša nevráti presunuté väzby.",
+  "merged": "Záznamy boli zlúčené.",
+  "clear": "Zrušiť filtre",
+  "empty": "Zatiaľ tu nie sú žiadne záznamy.",
+  "upcoming": "Najbližšie akcie",
+  "drafts": "Rozpracované koncepty",
+  "unread": "Neprečítané správy",
+  "onboarding": "Začnite týmito krokmi",
+  "canal": "Vytvorte kanál",
+  "venue": "Pridajte miesto",
+  "event": "Vytvorte prvú akciu",
+  "all": "Zobraziť všetky",
+  "registrations": "Registrácie: {count}",
+  "readiness": "Pripravenosť: {count} %",
+  "none": "Žiadne záznamy",
+  "target": "Cieľový záznam"
+},
   // Názvy jazykov sú zámerne v danom jazyku (endonymá) — v prepínači tak
   // svoj jazyk nájde aj ten, kto práve pozerá na cudzí.
   lang: {

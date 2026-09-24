@@ -85,9 +85,10 @@
       <aside class="grid gap-4 xl:sticky xl:top-4 xl:self-start">
         <div class="edit-card grid gap-3">
           <p class="field-legend mb-0">{{ t('events.sections.organizer') }}</p>
-          <FormField v-model="form.canal_id" type="select" :label="t('events.fields.canal')" :error="errors.canal_id">
-            <option v-if="!form.canal_id" :value="null" disabled>{{ t('events.fields.canalPlaceholder') }}</option>
-            <option v-for="c in canalOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
+          <FormField v-model="form.canal_id" :label="t('events.fields.canal')" :error="errors.canal_id">
+            <template #default="{ value, invalid, update }">
+              <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @update:model-value="update" />
+            </template>
           </FormField>
           <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
             <template #default="{ value, invalid, update }">
@@ -95,6 +96,8 @@
                 <SearchableSelect
                   :model-value="value ?? null"
                   :options="venuesForCanal"
+                  :source="`/${scope}/venues`"
+                  :params="{ canal_id: form.canal_id, for_select: true }"
                   :placeholder="t('events.fields.venuePlaceholder')"
                   :invalid="invalid"
                   @update:model-value="update"
@@ -300,7 +303,7 @@ const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
 const eventSlug = ref<string | null>(null)
 const publicUrl = computed(() => fileableId.value ? publicEventPath({ id: fileableId.value, slug: eventSlug.value }) : '')
 
-const { canals, venues, municipalities, loadCanals, loadVenues, loadMunicipalities } = useFormOptions(scope.value)
+const { canals, venues, municipalities, loadCanals, loadMunicipalities } = useFormOptions(scope.value)
 
 const validation = provideFormValidation()
 
@@ -365,7 +368,7 @@ watch(canals, (list) => {
 })
 
 // Kanál práve upravovaného eventu. `loadCanals()` ťahá len prvú stránku
-// (per_page 100) — v admin scope je kanálov aj tisíc, takže ten správny medzi
+// (per_page 20) — v admin scope je kanálov aj tisíc, takže ten správny medzi
 // možnosťami často nie je vôbec. <select> potom nemá čo označiť a pole vyzerá
 // prázdne, hoci event kanál má. Doplníme ho teda z detailu eventu.
 const eventCanal = ref<SelectOption | null>(null)
@@ -391,7 +394,7 @@ const venuesForCanal = computed(() => {
     : venues.value
 
   // Miesto eventu chýba v zozname z rovnakého dôvodu ako jeho kanál (prvá
-  // stránka, 100 položiek). Držíme ho medzi možnosťami, ale len kým je zvolený
+  // stránka, 20 položiek). Držíme ho medzi možnosťami, ale len kým je zvolený
   // pôvodný kanál eventu — po prepnutí kanála doň už nepatrí a kontrola nižšie
   // ho má právom zhodiť.
   const own = eventVenue.value
@@ -400,16 +403,11 @@ const venuesForCanal = computed(() => {
   return [own, ...list]
 })
 
-watch(() => form.value.canal_id, () => {
-  // Skip while venues haven't loaded yet — avoids clobbering a valid venue_id
-  // restored from an existing event before loadVenues() has resolved.
-  if (!venues.value.length) return
-  if (form.value.venue_id && !venuesForCanal.value.some(v => v.id === form.value.venue_id)) {
-    form.value.venue_id = null
-    // Bez upozornenia by človek uložil event bez miesta a nevedel by o tom —
-    // pole je v bočnom paneli a zmena kanála ho zhodí ticho.
-    toast.info(t('events.fields.venueReset'))
-  }
+watch(() => form.value.canal_id, (id, previous) => {
+  if (loadingData.value || id === previous || !form.value.venue_id) return
+  if (eventVenue.value?.id === form.value.venue_id && eventVenue.value.canalId === id) return
+  form.value.venue_id = null
+  toast.info(t('events.fields.venueReset'))
 })
 
 watch(() => form.value.start_at, (startAt) => {
@@ -571,7 +569,7 @@ const readinessValues = computed(() => ({
 
 onMounted(async () => {
   loadCanals()
-  loadVenues()
+
   loadMunicipalities()
   if (!isCreate.value) {
     loadingData.value = true

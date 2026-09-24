@@ -41,13 +41,16 @@
       class="row-menu-item"
       @click="restore"
     >{{ t('common.restore') }}</button>
+    <button v-if="scope === 'admin' && resource !== 'event' && canUpdate && !canRestore" class="row-menu-item" @click="mergeOpen = true">{{ t('roadmap.merge') }}</button>
   </RowActions>
+  <ResourceMergeDialog v-if="mergeOpen && resource !== 'event'" :resource="resource" :source="item" @close="mergeOpen = false" @merged="mergeOpen = false; emit('removed')" />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import http from '@/api/index'
+import ResourceMergeDialog from '@/components/ResourceMergeDialog.vue'
 import RowActions from '@/components/RowActions.vue'
 import { useToast } from '@/composables/useToast'
 import { isCancelled, publishRequest, serverMessage } from '@/utils/publishFlow'
@@ -57,6 +60,7 @@ import type { ModelPermissions } from '@/types'
 /** Toľko zo záznamu, koľko menu potrebuje — výpis aj detail to majú. */
 interface ActionsMenuItem {
   id: number
+  name?: string
   permissions?: ModelPermissions
 }
 
@@ -76,6 +80,7 @@ const props = withDefaults(defineProps<{
  */
 const emit = defineEmits<{ changed: []; removed: [] }>()
 
+const mergeOpen = ref(false)
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()

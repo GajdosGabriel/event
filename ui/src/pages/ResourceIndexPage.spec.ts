@@ -83,3 +83,31 @@ describe('ResourceIndexPage — stránkovanie v adrese', () => {
     expect(router.currentRoute.value.query['page']).toBeUndefined()
   })
 })
+
+// Regression coverage for refresh and empty-state behavior.
+describe('ResourceIndexPage — refresh', () => {
+  beforeEach(() => { get.mockReset() })
+  it('retains rows during refresh and after a failure, then offers retry', async () => {
+    get.mockResolvedValueOnce({ data: { data: [{ id: 1, name: 'Existing event' }], meta: { current_page: 1, last_page: 2 } } })
+    const { wrapper } = await mountAt('/dashboard/events')
+    let reject!: (reason: Error) => void
+    get.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    await wrapper.findAll('.page-btn')[1]!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Existing event')
+    expect(wrapper.get('.index-list').classes()).toContain('opacity-50')
+    reject(new Error('offline')); await flushPromises()
+    expect(wrapper.text()).toContain('Existing event')
+    expect(wrapper.find('[role="alert"] button').exists()).toBe(true)
+    wrapper.unmount()
+  })
+  it('clears active filters instead of offering an unauthorized create action', async () => {
+    get.mockResolvedValue({ data: { data: [], meta: { current_page: 1, last_page: 1, permissions: { create: false } } } })
+    const { wrapper, router } = await mountAt('/dashboard/events?q=missing')
+    expect(wrapper.find('a[href="/dashboard/events/create"]').exists()).toBe(false)
+    await wrapper.get('.index-list button').trigger('click'); await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({})
+    expect(lastParams().search).toBeUndefined()
+    wrapper.unmount()
+  })
+})

@@ -27,7 +27,7 @@ export function useFormOptions(scope: 'dashboard' | 'admin') {
 
   async function loadCanals() {
     try {
-      const { data } = await http.get(`/${scope}/canals`, { params: { per_page: 100 } })
+      const { data } = await http.get(`/${scope}/canals`, { params: { per_page: 20 } })
       canals.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
         id: r['id'] as number,
         name: r['name'] as string,
@@ -37,7 +37,7 @@ export function useFormOptions(scope: 'dashboard' | 'admin') {
 
   async function loadVenues() {
     try {
-      const { data } = await http.get(`/${scope}/venues`, { params: { per_page: 100 } })
+      const { data } = await http.get(`/${scope}/venues`, { params: { per_page: 20 } })
       venues.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
         id: r['id'] as number,
         name: r['name'] as string,
