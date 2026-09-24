@@ -94,8 +94,10 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         // Množina prístupných miest sa nemení: VenuePolicy::view() vyžaduje
         // presne tú istú podmienku ako dashboardIndexQuery(), takže ide len
         // o zmenu stavového kódu.
+        // Kanály idú s ním: editor miesta z nich berie názov vlastného kanála,
+        // keď nie je na prvej stránke zoznamu kanálov (viď VenueEditPage).
         $venue = $this->dashboardIndexQuery()
-            ->with('municipality')
+            ->with(['municipality', 'canals'])
             ->where('venues.id', $id)
             ->firstOrFail();
 

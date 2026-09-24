@@ -50,7 +50,7 @@
                  chybou až po uložení. -->
             <FormField v-model="form.canal_id" type="select" :label="t('venues.fields.canal')" required :error="errors.canal_id">
               <option v-if="!form.canal_id" :value="null" disabled>{{ t('venues.fields.canalPlaceholder') }}</option>
-              <option v-for="c in canals" :key="c.id" :value="c.id">{{ c.name }}</option>
+              <option v-for="c in canalOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
             </FormField>
             <!-- Koncept = stiahnutie z výpisu. Miesto, ktoré používa podujatie,
                  sa stiahnuť nesmie — voľba zošedne a povie prečo, nech to
@@ -123,7 +123,7 @@ import type { CoordinatesSource } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
-import { useFormOptions } from '@/composables/useFormOptions'
+import { useFormOptions, type SelectOption } from '@/composables/useFormOptions'
 import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
@@ -215,6 +215,16 @@ watch(canals, (list) => {
   }
 })
 
+// Kanál práve upravovaného miesta. `loadCanals()` ťahá len prvú stránku
+// kanálov — keď v nej chýba, select by ostal prázdny, hoci miesto kanál má.
+const venueCanal = ref<SelectOption | null>(null)
+
+const canalOptions = computed(() => {
+  const own = venueCanal.value
+  if (!own || canals.value.some(c => c.id === own.id)) return canals.value
+  return [own, ...canals.value]
+})
+
 const detectOpen = ref(false)
 const detecting = ref(false)
 const detectError = ref<string | null>(null)
@@ -290,6 +300,8 @@ onMounted(async () => {
         body: v.body ?? '',
         status: v.status,
       }
+      const own = v.canalsList.find(c => c.id === v.canalId)
+      venueCanal.value = own ? { id: own.id, name: own.name } : null
       unpublishBlockedReason.value = v.unpublishBlockedReason
       address.value = addressFrom(v)
       applyWebsiteIssue(v)
