@@ -8,6 +8,7 @@
       :heading="t('public.home.heading')"
       :subheading="t('public.home.subheading')"
       heading-level="h1"
+      :show-ticket-cta="false"
     />
   </div>
 </template>

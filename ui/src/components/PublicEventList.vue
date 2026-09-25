@@ -139,7 +139,7 @@
 
           <template v-else>
             <EventsMap v-if="view === 'map'" :events="mapPoints" :truncated="Math.max(0, total - mapPoints.length)" />
-            <EventAgenda v-else-if="view === 'agenda'" :events="events" />
+            <EventAgenda v-else-if="view === 'agenda'" :events="events" :show-ticket-cta="showTicketCta" />
             <!-- Mriežka je o obrázkoch — obsahové štítky („Svätá omša“ a spol.)
                  sa tu neukazujú, na karte z nich boli dva riadky farby navyše.
                  Filtrovať sa cez ne dá naďalej v TagChips nad výpisom. -->
@@ -157,7 +157,7 @@
                 :venue-name="event.venue?.name ?? null"
                 :series-upcoming-count="event.seriesUpcomingCount"
                 :distance-label="distanceLabel(event)"
-                :ticket-cta="event.ticketCta"
+                :ticket-cta="showTicketCta ? event.ticketCta : null"
               />
             </div>
           </template>
@@ -200,6 +200,7 @@ import { distanceKm, formatDistance, pointOf } from '@/utils/geo'
 const props = withDefaults(defineProps<{
   heading: string
   subheading: string
+  showTicketCta?: boolean
   /** Obec z cesty (`/akcie/mesto/{slug}`) — má prednosť pred `?municipality=`. */
   municipality?: string | number | null
   /** Štítok z cesty (`/akcie/tema/{slug}`) — má prednosť pred `?tags=`. */
@@ -222,6 +223,7 @@ const props = withDefaults(defineProps<{
   range: null,
   list: null,
   headingLevel: 'h1',
+  showTicketCta: true,
 })
 
 const route = useRoute()

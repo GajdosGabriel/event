@@ -37,7 +37,7 @@
 
             <!-- Kúpiť / rezervovať lístok — vpravo hore, nad roztiahnutým odkazom. -->
             <EventTicketCta
-              v-if="event.ticketCta"
+              v-if="showTicketCta && event.ticketCta"
               :cta="event.ticketCta"
               :to="`${publicEventPath(event)}#registracia`"
               :event-name="event.name"
@@ -72,7 +72,9 @@ import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
 
-const props = defineProps<{ events: EventItem[] }>()
+const props = withDefaults(defineProps<{ events: EventItem[]; showTicketCta?: boolean }>(), {
+  showTicketCta: true,
+})
 
 const NO_DATE_KEY = 'no-date'
 
