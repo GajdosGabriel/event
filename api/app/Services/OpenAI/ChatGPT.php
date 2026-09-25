@@ -64,7 +64,7 @@ class ChatGPT
             return null;
         }
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptHtmlFormatter->prompt($text), $this->promptHtmlFormatter->jsonSchema());
+        $content = $this->chatComplete(0, $this->promptHtmlFormatter->prompt($text), $this->promptHtmlFormatter->jsonSchema());
         $data = $this->decodeJson($content);
 
         $validator = Validator::make($data, $this->promptHtmlFormatter->validator());
@@ -103,7 +103,6 @@ class ChatGPT
         }
 
         $content = $this->chatComplete(
-            'gpt-4o-mini',
             0,
             $this->promptTags->prompt($this->sanitizeUtf8($text), $catalog),
             $this->promptTags->jsonSchema($allowedSlugs),
@@ -130,7 +129,7 @@ class ChatGPT
         $text = $this->normalizeInput($input);
         $referenceDate ??= Carbon::now(config('app.timezone', 'Europe/Bratislava'));
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptData->prompt($text, $referenceDate), $this->promptData->jsonSchema());
+        $content = $this->chatComplete(0, $this->promptData->prompt($text, $referenceDate), $this->promptData->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyEventDateTimeFallbackFromText($data, $text);
@@ -186,7 +185,6 @@ class ChatGPT
         // Vision je pomalšie než textové volanie — plagát na výšku v „high"
         // detaile sa rozpadá na desiatky dlaždíc. 60 s default by tu padalo.
         $content = $this->chatComplete(
-            'gpt-4o-mini',
             0,
             $this->attachImages($messages, $imageDataUrls),
             $this->promptData->jsonSchema($withPosterText),
@@ -274,7 +272,7 @@ class ChatGPT
      */
     private function copywriteChunk(string $text, bool $partial = false): array
     {
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCopywriter->prompt($text, $partial), $this->promptCopywriter->jsonSchema());
+        $content = $this->chatComplete(0, $this->promptCopywriter->prompt($text, $partial), $this->promptCopywriter->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
 
@@ -445,7 +443,7 @@ class ChatGPT
 
     public function extractTextEdit(string $text, array $modes): array
     {
-        $content = $this->chatComplete('gpt-4o-mini', 0.3, $this->promptTextEditor->prompt($text, $modes), $this->promptTextEditor->jsonSchema());
+        $content = $this->chatComplete(0.3, $this->promptTextEditor->prompt($text, $modes), $this->promptTextEditor->jsonSchema());
         $data = $this->decodeJson($content);
 
         // Safety net: some responses use "text" instead of the requested "improved_text" key.
@@ -465,7 +463,7 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptVenue->prompt($text), $this->promptVenue->jsonSchema());
+        $content = $this->chatComplete(0, $this->promptVenue->prompt($text), $this->promptVenue->jsonSchema());
         $data = $this->decodeJson($content);
         $data = $this->normalizeResponseData($data);
         $data = $this->applyVenueFallbackFromText($data, $text);
@@ -483,7 +481,7 @@ class ChatGPT
     {
         $text = $this->normalizeInput($input);
 
-        $content = $this->chatComplete('gpt-4o-mini', 0, $this->promptCanal->prompt($text), $this->promptCanal->jsonSchema());
+        $content = $this->chatComplete(0, $this->promptCanal->prompt($text), $this->promptCanal->jsonSchema());
         $data = $this->decodeJson($content);
 
         $validator = Validator::make($data, $this->promptCanal->validator());
@@ -510,7 +508,6 @@ class ChatGPT
     public function extractProfileDescription(string $kind, string $name, ?string $context = null): ?string
     {
         $content = $this->chatComplete(
-            'gpt-4o-mini',
             0.2,
             $this->promptProfile->prompt($kind, $name, $context),
             $this->promptProfile->jsonSchema(),
@@ -546,7 +543,6 @@ class ChatGPT
     public function extractContentReview(string $kind, string $name, string $body, array $context = []): array
     {
         $content = $this->chatComplete(
-            (string) config('content_review.model', 'gpt-4o-mini'),
             0,
             $this->promptContentReview->prompt($kind, $this->sanitizeUtf8($name), $this->sanitizeUtf8($body), $context),
             $this->promptContentReview->jsonSchema(),
@@ -824,8 +820,9 @@ class ChatGPT
      * Direct HTTP call to OpenAI Chat Completions — bypasses the SDK's CreateResponse which
      * breaks when OpenAI routes certain requests to the new Responses API format.
      */
-    private function chatComplete(string $model, float $temperature, array $messages, ?array $responseFormat = null, int $timeout = 60): string
+    private function chatComplete(float $temperature, array $messages, ?array $responseFormat = null, int $timeout = 60): string
     {
+        $model = (string) config('openai.reply_model');
         $apiKey = config('openai.api_key', '');
         if ($apiKey === '') {
             throw new \RuntimeException('OpenAI API key is not configured.');
@@ -846,7 +843,7 @@ class ChatGPT
             )
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $model,
-                'temperature' => $temperature,
+                ...(str_starts_with($model, 'gpt-6-luna') ? [] : ['temperature' => $temperature]),
                 'response_format' => $responseFormat ?? ['type' => 'json_object'],
                 'messages' => $messages,
             ]);

@@ -103,10 +103,4 @@ return [
      */
     'notice_cooldown_days' => (int) env('CONTENT_REVIEW_NOTICE_COOLDOWN_DAYS', 14),
 
-    /*
-     * Model. Kontrola je čítanie s porozumením nad jedným krátkym textom,
-     * nie tvorba — `gpt-4o-mini` na ňu stačí a beží na nej celý zvyšok
-     * integrácie (viď App\Services\OpenAI\ChatGPT).
-     */
-    'model' => env('CONTENT_REVIEW_MODEL', 'gpt-4o-mini'),
 ];
