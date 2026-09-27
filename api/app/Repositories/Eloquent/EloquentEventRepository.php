@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Models\Canal;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
@@ -74,17 +75,18 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $filePayload = $this->extractFilePayload($properties);
         $tagIds = $this->extractTagIds($properties);
 
-        $canal = $user->canal
-            ?? $user->canals()->wherePivot('status', ModelStatus::Published->value)->first()
-            ?? $user->canals()->first();
+        // Honor the organizer chosen in the form; authorization is checked
+        // for this exact canal, not merely for the user's active one.
+        $canal = isset($properties['canal_id'])
+            ? Canal::query()->findOrFail((int) $properties['canal_id'])
+            : ($user->canal
+                ?? $user->canals()->wherePivot('status', ModelStatus::Published->value)->first()
+                ?? $user->canals()->first());
 
         if (! $canal) {
             abort(422, 'Active canal not found for this user.');
         }
 
-        // EventPolicy::create() vie len to, či používateľ smie zakladať podujatia
-        // niekde. Podujatie však vzniká v jeho práve aktívnom kanáli, a v tom
-        // môže mať slabšiu rolu (brigádnik na vstupe) než vo vlastnom.
         abort_unless($user->canInCanal((int) $canal->id, 'event.create'), 403);
 
         $this->normalizeLocationPayload($properties, (int) $canal->id);

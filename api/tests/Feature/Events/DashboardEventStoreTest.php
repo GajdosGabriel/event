@@ -117,4 +117,31 @@ class DashboardEventStoreTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
     }
+
+    #[Test]
+    public function selected_organizer_is_used_instead_of_active_organizer(): void
+    {
+        $canal = \App\Models\Canal::factory()->active()->create();
+        $this->user->canals()->attach($canal->id, [
+            'role' => 'editor', 'is_owner' => false, 'status' => 'published',
+        ]);
+        $this->user->forgetCanalRoles();
+        $this->postJson('/api/dashboard/events', [
+            'name' => 'Selected organizer event', 'canal_id' => $canal->id, 'status' => 'draft',
+        ])->assertCreated()->assertJsonPath('canal_id', $canal->id);
+    }
+
+    #[Test]
+    public function selected_organizer_requires_event_creation_permission(): void
+    {
+        $canal = \App\Models\Canal::factory()->active()->create();
+        $payload = ['name' => 'Forbidden organizer event', 'canal_id' => $canal->id, 'status' => 'draft'];
+        $this->postJson('/api/dashboard/events', $payload)->assertForbidden();
+        $this->user->canals()->attach($canal->id, [
+            'role' => 'checkin', 'is_owner' => false, 'status' => 'published',
+        ]);
+        $this->user->forgetCanalRoles();
+        $this->postJson('/api/dashboard/events', $payload)->assertForbidden();
+        $this->assertDatabaseMissing('events', ['name' => $payload['name']]);
+    }
 }

@@ -51,7 +51,7 @@ const route = useRoute()
 
 const validation = provideFormValidation()
 
-const form = ref({ email: '', password: '' })
+const form = ref({ email: typeof route.query.email === 'string' ? route.query.email : '', password: '' })
 const error = ref<string | null>(null)
 const loading = ref(false)
 
@@ -79,7 +79,12 @@ async function submit() {
     await auth.login(form.value.email, form.value.password)
     router.push(redirectTarget())
   } catch (e: unknown) {
-    error.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('auth.login.failed')
+    const data = (e as { response?: { data?: { message?: string; code?: string } } })?.response?.data
+    if (data?.code === 'email_not_verified') {
+      await router.push({ name: 'verify-email', query: { ...route.query, email: form.value.email.trim().toLowerCase() } })
+      return
+    }
+    error.value = data?.message ?? t('auth.login.failed')
   } finally {
     loading.value = false
   }

@@ -42,9 +42,10 @@ export async function login(payload: LoginPayload): Promise<AuthIdentity> {
   return identity
 }
 
-export async function register(payload: RegisterPayload): Promise<void> {
+export async function register(payload: RegisterPayload): Promise<{ already_pending?: boolean }> {
   await csrf()
-  await http.post('/register', payload)
+  const { data } = await http.post('/register', payload)
+  return data
 }
 
 export async function logout(): Promise<void> {

@@ -11,6 +11,7 @@
       <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</div>
       <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
         {{ eventId ? t('eventSignup.sent', { event: eventLabel }) : t('auth.register.sent') }}
+        <RouterLink class="block mt-2 underline" :to="{ name: 'verify-email', query: { ...route.query, email: form.email.trim().toLowerCase() } }">{{ t('auth.verify.resend') }}</RouterLink>
       </div>
 
       <template v-if="!success">
@@ -113,7 +114,11 @@ async function submit() {
 
   loading.value = true
   try {
-    await register(eventId ? { ...form.value, event_id: Number(eventId) } : form.value)
+    const result = await register(eventId ? { ...form.value, event_id: Number(eventId) } : form.value)
+    if (result?.already_pending) {
+      await router.push({ name: 'verify-email', query: { ...route.query, email: form.value.email.trim().toLowerCase() } })
+      return
+    }
     success.value = true
   } catch (e: unknown) {
     const response = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response

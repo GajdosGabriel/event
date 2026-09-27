@@ -19,17 +19,28 @@
       </a>
     </div>
 
+    <nav v-if="guided" ref="stepNavigation" class="mb-5 grid grid-cols-3 gap-2" :aria-label="t('events.form.createTitle')">
+      <button v-for="(label, index) in stepLabels" :key="index" type="button"
+        class="rounded-xl border px-3 py-3 text-left text-sm font-semibold"
+        :class="step === index + 1 ? 'border-teal-700 bg-teal-50 text-teal-900' : 'border-slate-200 bg-white text-slate-600'"
+        :aria-current="step === index + 1 ? 'step' : undefined" :disabled="saving" @click="goToStep(index + 1)">
+        <span class="block text-xs text-slate-500">{{ index + 1 }} / 3</span>{{ label }}
+      </button>
+    </nav>
     <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
-    <p v-if="serverError" ref="errorBanner" class="mb-4 text-red-600">{{ serverError }}</p>
+    <p v-if="serverError" ref="errorBanner" role="alert" class="mb-4 text-red-600">{{ serverError }}</p>
 
     <!--
       Obsah vľavo, nastavenia v lepkavom paneli vpravo. Celá mriežka je vnútri
       jedného <form>: tlačidlo Uložiť síce sedí v paneli, ale odosiela natívne
       a prehliadač zvaliduje povinné polia z oboch stĺpcov naraz.
     -->
-    <form v-if="!loadingData" class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]" @submit.prevent="submit">
+    <form v-if="!loadingData" :novalidate="guided" class="grid items-start gap-5"
+      :class="guided ? 'mx-auto w-full max-w-3xl' : 'xl:grid-cols-[minmax(0,1fr)_360px]'"
+      @submit.prevent="guided ? (step < 3 ? goToStep(step + 1) : saveGuided('publish')) : submit()">
+      <fieldset :disabled="saving" class="contents">
       <!-- ── Ľavý stĺpec: to, čo sa píše ──────────────────────────────── -->
-      <div class="grid gap-5">
+      <div v-show="!guided || step === 1" class="grid gap-5">
         <div class="edit-card grid gap-4">
           <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" />
 
@@ -45,7 +56,7 @@
             ukazovateľ pripravenosti, poznámky z kontroly po zverejnení alebo
             samotnú AI (viď AiAssistPanel.vue).
           -->
-          <AiAssistPanel v-model="form.body" kind="event" :scope="scope" :values="readinessValues"
+          <AiAssistPanel v-if="!guided" v-model="form.body" kind="event" :scope="scope" :values="readinessValues"
             :name="form.name" :record-id="fileableId" />
         </div>
 
@@ -65,7 +76,7 @@
 
         <!-- Kontakt sa pri bežnej úprave neotvára, tak je zbalený. Chyba zo
              servera ho otvorí za človeka — inak by ostala neviditeľná. -->
-        <FormSection :title="t('events.sections.contact')" :note="contactNote" :force-open="hasContactError">
+        <FormSection v-if="!guided" :title="t('events.sections.contact')" :note="contactNote" :force-open="hasContactError">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website">
               <template #footer>
@@ -82,15 +93,30 @@
              meniť aj pri dlhom popise. Poradie kariet kopíruje poradie
              rozhodnutí: kto podujatie robí, ako vyzerá, čo stojí — a až
              nakoniec Publikovanie s tlačidlom Uložiť. ─────────────────── -->
-      <aside class="grid gap-4 xl:sticky xl:top-4 xl:self-start">
-        <div class="edit-card grid gap-3">
-          <p class="field-legend mb-0">{{ t('events.sections.organizer') }}</p>
-          <FormField v-model="form.canal_id" :label="t('events.fields.canal')" :error="errors.canal_id">
+      <aside v-show="!guided || step !== 1" class="grid gap-4" :class="{ 'xl:sticky xl:top-4 xl:self-start': !guided }">
+        <div v-show="!guided || step === 2" class="edit-card grid gap-3">
+          <p class="field-legend mb-0">{{ guided ? t('eventJourney.place') : t('events.sections.organizer') }}</p>
+          <p v-if="guided && organizersLoading" role="status">{{ t('common.loading') }}</p>
+          <p v-if="guided && organizersFailed" role="alert">{{ t('eventJourney.loadFailed') }} <button type="button" class="underline" @click="loadOrganizers">{{ t('roadmap.retry') }}</button></p>
+          <div v-if="guided && !organizersLoading && !organizersFailed && !canalOptions.length && !form.canal_id" class="grid gap-3 rounded-xl bg-slate-50 p-4">
+            <p class="font-semibold">{{ t('eventJourney.publishAs') }}</p>
+            <p class="text-sm text-slate-600">{{ t('eventJourney.organizerHint') }}</p>
+            <FormField v-model="organizer.name" :label="t('eventJourney.organizerName')" :error="organizer.errors.name" />
+            <FormField v-model="organizer.municipality_id" :label="t('eventJourney.organizerTown')" :error="organizer.errors.municipality_id">
+              <template #default="{ value, update, invalid }">
+                <SearchableSelect :model-value="value ?? null" :options="municipalities" :invalid="invalid" @update:model-value="update" />
+              </template>
+            </FormField>
+            <p v-if="organizer.error" role="alert" class="text-sm text-red-600">{{ organizer.error }}</p>
+            <button type="button" class="btn btn-secondary justify-self-start" :disabled="organizer.saving" @click="saveOrganizer">{{ organizer.saving ? t('events.form.saving') : t('eventJourney.addOrganizer') }}</button>
+          </div>
+          <p v-if="guided && canalOptions.length === 1 && form.canal_id === canalOptions[0]?.id" class="text-sm text-slate-600">{{ t('eventJourney.organizer') }}: <strong>{{ canalOptions[0]?.name }}</strong></p>
+          <FormField v-if="!guided || canalOptions.length > 1 || (canalOptions.length === 1 && form.canal_id !== canalOptions[0]?.id) || (form.canal_id && !canalOptions.length) || errors.canal_id" v-model="form.canal_id" :label="guided ? t('eventJourney.publishAs') : t('events.fields.canal')" :error="errors.canal_id">
             <template #default="{ value, invalid, update }">
-              <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @update:model-value="update" />
+              <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @selected="selectedOrganizer = $event" @update:model-value="update" />
             </template>
           </FormField>
-          <FormField v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
+          <FormField v-if="!guided || form.canal_id" v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
             <template #default="{ value, invalid, update }">
               <div class="grid gap-2">
                 <SearchableSelect
@@ -98,6 +124,7 @@
                   :options="venuesForCanal"
                   :source="`/${scope}/venues`"
                   :params="{ canal_id: form.canal_id, for_select: true }"
+                  @selected="selectedPlace = $event"
                   :placeholder="t('events.fields.venuePlaceholder')"
                   :invalid="invalid"
                   @update:model-value="update"
@@ -110,19 +137,40 @@
           </FormField>
         </div>
 
-        <div class="edit-card">
+        <section v-if="guided && step === 3" class="edit-card grid gap-3" aria-live="polite">
+          <h2 class="field-legend">{{ t('eventJourney.preview') }}</h2>
+          <h3 class="text-2xl font-semibold">{{ form.name }}</h3>
+          <dl class="grid gap-2 text-sm">
+            <div><dt class="text-slate-500">{{ t('events.sections.schedule') }}</dt><dd>{{ fmtRowDateRange(form.start_at, form.end_at) || t('eventJourney.missing') }}</dd></div>
+            <div><dt class="text-slate-500">{{ t('events.fields.venue') }}</dt><dd>{{ placeName || t('eventJourney.missing') }}</dd></div>
+            <div><dt class="text-slate-500">{{ t('eventJourney.organizer') }}</dt><dd>{{ organizerName || t('eventJourney.missing') }}</dd></div>
+          </dl>
+          <p class="whitespace-pre-line text-slate-600">{{ descriptionPreview }}</p>
+          <p v-if="missingFields.length" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{{ t('eventJourney.missingHint', { fields: missingFields.join(', ') }) }}</p>
+        </section>
+
+        <div v-show="!guided || step === 3" class="edit-card">
           <p class="field-legend">{{ t('events.sections.images') }}</p>
           <ImageManager v-if="fileableId" ref="imageManager" fileable-type="event" :fileable-id="fileableId" />
           <ImagePicker v-else ref="picker" />
           <!-- Obrázky sa neukladajú s formulárom, ale hneď pri každej zmene —
                z rozloženia to poznať nie je, tak to treba povedať. -->
-          <p class="mt-3 text-xs text-slate-500">{{ t('events.sections.imagesNote') }}</p>
+          <p v-if="fileableId" class="mt-3 text-xs text-slate-500">{{ t('events.sections.imagesNote') }}</p>
         </div>
 
         <!-- Nastavenie vstupeniek žije len v dashboarde (route
              `admin-events-tickets` neexistuje) a je vecou vlastníka kanála,
              nie super-admina — v admin scope sa preto neponúka vôbec. -->
-        <div v-if="scope === 'dashboard'" class="edit-card grid gap-3">
+        <FormSection v-if="scope === 'dashboard'" v-show="!guided || step === 3" :title="t('eventJourney.more')" :default-open="!guided" :force-open="hasContactError || Boolean(errors.publish_at)">
+          <div class="grid gap-3">
+          <template v-if="guided">
+            <AiAssistPanel v-model="form.body" kind="event" :scope="scope" :values="readinessValues" :name="form.name" :record-id="fileableId" />
+            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website" />
+            <FormField v-model="form.email" type="email" :label="t('events.fields.email')" :error="errors.email" />
+            <FormField v-model="form.phone" type="tel" :label="t('events.fields.phone')" :error="errors.phone" />
+            <ToggleCard v-model="schedulePublication" :label="t('eventJourney.schedule')" />
+            <FormField v-if="schedulePublication" v-model="form.publish_at" type="datetime" :allow-past="false" :label="t('events.fields.publishAt')" :error="errors.publish_at" />
+          </template>
           <p class="field-legend mb-0">{{ t('events.sections.tickets') }}</p>
           <!-- Najčastejší prípad — vstup zdarma za registráciu — sa zapína
                priamo tu, bez odchodu do sekcie Lístky. Pod prepínačom je jeden
@@ -149,11 +197,12 @@
           <RouterLink v-if="!isCreate && questionBoard" :to="`/dashboard/events/${route.params.id}/otazky`" class="btn btn-secondary justify-self-start">
             {{ t('events.questions.manage') }}
           </RouterLink>
-        </div>
+          </div>
+        </FormSection>
 
         <!-- Publikovanie je posledné zámerne: je to posledné rozhodnutie nad
              podujatím a Uložiť pod ním uzatvára celý panel. -->
-        <div class="edit-card grid gap-3">
+        <div v-if="!guided" class="edit-card grid gap-3">
           <p class="field-legend mb-0">{{ t('events.sections.publish') }}</p>
           <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
                nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
@@ -191,7 +240,15 @@
             <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
           </div>
         </div>
+
       </aside>
+      <div v-if="guided" class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <button v-if="step > 1" type="button" class="btn btn-secondary" @click="goToStep(step - 1)">{{ t('eventJourney.back') }}</button>
+        <button type="button" class="btn btn-secondary" :disabled="saving || organizer.saving" @click="saveGuided('draft')">{{ saving ? t('events.form.saving') : t('eventJourney.saveDraft') }}</button>
+        <button v-if="step < 3" type="button" class="btn btn-primary ml-auto" :disabled="organizer.saving" @click="goToStep(step + 1)">{{ t('eventJourney.next') }}</button>
+        <button v-else type="submit" class="btn btn-primary ml-auto" :disabled="saving || organizer.saving">{{ saving ? t('events.form.saving') : schedulePublication ? t('eventJourney.scheduleEvent') : t('eventJourney.publish') }}</button>
+      </div>
+      </fieldset>
     </form>
 
     <!-- Štítky sa v editore nezobrazujú: prideľuje ich `app:events-ai-tag`
@@ -253,7 +310,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
@@ -278,6 +335,9 @@ import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
+import { createCanal } from '@/api/canals'
+import http from '@/api/index'
+import { fmtRowDateRange } from '@/utils/dateFormat'
 import ToggleCard from '@/components/ToggleCard.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -291,6 +351,17 @@ const auth = useAuthStore()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const isCreate = computed(() => !route.params.id)
+const guided = computed(() => isCreate.value && scope.value === 'dashboard')
+const step = ref(1)
+const stepNavigation = ref<HTMLElement | null>(null)
+watch(step, async () => {
+  await nextTick()
+  const activeStep = stepNavigation.value?.querySelector<HTMLButtonElement>('[aria-current="step"]')
+  activeStep?.focus({ preventScroll: true })
+  stepNavigation.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+})
+const schedulePublication = ref(false)
+const stepLabels = computed(() => [t('eventJourney.basics'), t('eventJourney.place'), t('eventJourney.review')])
 const indexRoute = computed(() => `${prefix.value}/events`)
 
 const savedId = ref<number | null>(null)
@@ -362,7 +433,7 @@ watch(() => auth.canalId, (id) => {
 // úplne ľubovoľný kanál platformy.
 watch(canals, (list) => {
   if (!isCreate.value) return
-  if (list.length > 0 && form.value.canal_id === null) {
+  if (list.length === 1 && form.value.canal_id === null) {
     form.value.canal_id = list[0].id
   }
 })
@@ -542,6 +613,7 @@ async function saveNewVenue() {
     // endpoint vyžaduje vlastníctvo cez kanál a admin na ňom skončil na 403.
     const created = await createVenue(payload, scope.value)
     venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
+    selectedPlace.value = { id: created.id, name: created.name }
     form.value.venue_id = created.id
     venueModal.value.show = false
     toast.success(t('events.venueModal.created'))
@@ -568,7 +640,8 @@ const readinessValues = computed(() => ({
 }))
 
 onMounted(async () => {
-  loadCanals()
+  if (guided.value) await loadOrganizers()
+  else loadCanals()
 
   loadMunicipalities()
   if (!isCreate.value) {
@@ -609,6 +682,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  if (saving.value) return
   validation.markValidated()
   errors.value = {}
   serverError.value = null
@@ -658,7 +732,95 @@ async function submit() {
     const resp = errorBody(e)
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? t('events.form.saveFailed')
+    if (guided.value) {
+      if (errors.value.name || errors.value.body || errors.value.start_at || errors.value.end_at) step.value = 1
+      else if (errors.value.canal_id || errors.value.venue_id) step.value = 2
+      else step.value = 3
+    }
     await scrollToError(errorBanner)
   } finally { saving.value = false }
 }
+
+const selectedOrganizer = ref<SelectOption | null>(auth.canalId ? { id: auth.canalId, name: auth.canalName } : null)
+const selectedPlace = ref<SelectOption | null>(null)
+const organizerName = computed(() => canalOptions.value.find(c => c.id === form.value.canal_id)?.name || (selectedOrganizer.value?.id === form.value.canal_id ? selectedOrganizer.value.name : ''))
+const placeName = computed(() => venuesForCanal.value.find(v => v.id === form.value.venue_id)?.name || (selectedPlace.value?.id === form.value.venue_id ? selectedPlace.value.name : ''))
+const descriptionPreview = computed(() => {
+  const doc = new DOMParser().parseFromString(form.value.body, 'text/html')
+  return doc.body.textContent?.trim() || ''
+})
+const missingFields = computed(() => [
+  !form.value.name.trim() && t('events.fields.name'),
+  !form.value.start_at && t('events.fields.startAt'),
+  !form.value.canal_id && t('eventJourney.organizer'),
+  !form.value.venue_id && t('events.fields.venue'),
+].filter((value): value is string => Boolean(value)))
+
+function goToStep(next: number) {
+  if (saving.value || organizer.value.saving) return
+  if (next > step.value && !form.value.name.trim()) {
+    errors.value.name = t('eventJourney.nameRequired')
+    serverError.value = errors.value.name
+    step.value = 1
+    scrollToError(errorBanner)
+    return
+  }
+  errors.value.name = ''
+  step.value = next
+  serverError.value = null
+}
+
+async function saveGuided(action: 'draft' | 'publish') {
+  if (saving.value || organizer.value.saving) return
+  if (!form.value.name.trim()) {
+    errors.value.name = t('eventJourney.nameRequired')
+    serverError.value = errors.value.name
+    step.value = 1
+    await scrollToError(errorBanner)
+    return
+  }
+  if (!form.value.canal_id) {
+    step.value = 2
+    serverError.value = t('eventJourney.chooseOrganizer')
+    await scrollToError(errorBanner)
+    return
+  }
+  if (action === 'publish' && missingFields.value.length) {
+    serverError.value = t('eventJourney.missingHint', { fields: missingFields.value.join(', ') })
+    await scrollToError(errorBanner)
+    return
+  }
+  form.value.status = action === 'draft' ? 'draft' : schedulePublication.value ? 'scheduled' : 'published'
+  await submit()
+}
+
+const organizersLoading = ref(true)
+const organizersFailed = ref(false)
+const organizer = ref({ name: '', municipality_id: null as number | null, saving: false, error: '', errors: {} as Record<string, string> })
+async function loadOrganizers() {
+  organizersLoading.value = true
+  organizersFailed.value = false
+  try {
+    const { data } = await http.get('/dashboard/canals', { params: { per_page: 20 } })
+    canals.value = (data.data ?? data).map((c: SelectOption) => ({ id: c.id, name: c.name }))
+  } catch { organizersFailed.value = true }
+  finally { organizersLoading.value = false }
+}
+async function saveOrganizer() {
+  if (organizer.value.saving) return
+  organizer.value.saving = true
+  organizer.value.error = ''
+  organizer.value.errors = {}
+  try {
+    const created = await createCanal({ name: organizer.value.name, municipality_id: organizer.value.municipality_id, identity_mode: 'organization', status: 'draft' }, scope.value)
+    canals.value.push({ id: created.id, name: created.name })
+    form.value.canal_id = created.id
+    toast.success(t('eventJourney.organizerSaved'))
+  } catch (e: unknown) {
+    const response = errorBody(e)
+    if (response?.errors) organizer.value.errors = Object.fromEntries(Object.entries(response.errors).map(([key, values]) => [key, values[0]]))
+    organizer.value.error = response?.message ?? t('common.actionFailed')
+  } finally { organizer.value.saving = false }
+}
+
 </script>

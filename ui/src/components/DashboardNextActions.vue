@@ -3,13 +3,9 @@
     <p v-if="loading">{{ t('common.loading') }}</p>
     <p v-if="error" role="alert">{{ t('common.actionFailed') }} <button type="button" @click="load">{{ t('roadmap.retry') }}</button></p>
     <template v-if="data">
-      <section v-if="data.checklist.some(step => !step.done)" class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 text-lg">{{ t('roadmap.onboarding') }}</h2>
-        <ol class="flex flex-wrap gap-4"><li v-for="step in data.checklist" :key="step.kind">
-          <span v-if="step.done">✓ {{ t(`roadmap.${step.kind}`) }}</span>
-          <RouterLink v-else-if="step.can_create" :to="`/dashboard/${step.kind}s/create`">{{ t(`roadmap.${step.kind}`) }}</RouterLink>
-          <span v-else>{{ t(`roadmap.${step.kind}`) }}</span>
-        </li></ol>
+      <section v-if="!data.upcoming.length && !data.drafts.length" class="rounded-xl border border-teal-200 bg-teal-50 p-5">
+        <h2 class="mb-2 text-lg">{{ t('eventJourney.welcome') }}</h2>
+        <p class="text-slate-600">{{ t('eventJourney.intro') }}</p>
       </section>
       <div class="grid gap-4 md:grid-cols-2">
         <section class="rounded-xl border border-slate-200 bg-white p-4">
@@ -34,7 +30,7 @@
           <RouterLink to="/dashboard/events?status=draft" class="mt-3 inline-block">{{ t('roadmap.all') }}</RouterLink>
         </section>
       </div>
-      <RouterLink to="/dashboard/messages?unread=1" class="rounded-xl border border-slate-200 bg-white p-4">{{ t('roadmap.unread') }}: {{ data.unread }}</RouterLink>
+      <RouterLink v-if="data.unread" to="/dashboard/spravy?unread=1" class="rounded-xl border border-slate-200 bg-white p-4">{{ t('roadmap.unread') }}: {{ data.unread }}</RouterLink>
     </template>
   </div>
 </template>

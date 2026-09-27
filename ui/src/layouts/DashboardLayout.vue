@@ -14,6 +14,12 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span class="nav-label">{{ t('nav.events') }}</span>
         </RouterLink>
+        <details class="management-nav" :open="managementActive">
+          <summary class="aside-link cursor-pointer" :title="t('eventJourney.manage')">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <span class="nav-label">{{ t('eventJourney.manage') }}</span>
+          </summary>
+          <div class="management-links">
         <RouterLink to="/dashboard/canals" class="aside-link" :class="{ active: inSection('/dashboard/canals') }" :title="collapsed ? t('nav.canals') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
           <span class="nav-label">{{ t('nav.canals') }}</span>
@@ -30,6 +36,8 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           <span class="nav-label">{{ t('nav.files') }}</span>
         </RouterLink>
+          </div>
+        </details>
         <RouterLink to="/dashboard/spravy" class="aside-link" :class="{ active: inSection('/dashboard/spravy') }" :title="collapsed ? t('nav.messages') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           <span class="nav-label">{{ t('nav.messages') }}</span>
@@ -121,6 +129,8 @@ function inSection(prefix: string): boolean {
   return route.path === prefix || route.path.startsWith(prefix + '/')
 }
 
+const managementActive = computed(() => ['canals', 'venues', 'organizations', 'files'].some(section => inSection(`/dashboard/${section}`)))
+
 const MUN_RESOURCES = ['events', 'canals', 'venues']
 const munResource = computed(() => {
   const segs = route.path.split('/').filter(Boolean)
@@ -163,6 +173,9 @@ const munResource = computed(() => {
 .brand-copy strong { @apply block truncate text-sm leading-tight text-white; }
 .brand-copy small { @apply mt-0.5 block text-xs text-teal-100/70; }
 
+.management-links { padding-left: 0.5rem; }
+.management-nav summary { list-style: none; }
+.management-nav summary::-webkit-details-marker { display: none; }
 .aside-nav { @apply mt-3 flex flex-col gap-0.5; }
 .nav-icon { @apply h-5 w-5 shrink-0; }
 .nav-label { @apply overflow-hidden whitespace-nowrap transition-all duration-200; }
@@ -212,6 +225,11 @@ const munResource = computed(() => {
   .aside-brand,
   .toggle-btn { @apply hidden; }
   .aside-nav { @apply mt-0 flex-1 flex-row justify-around gap-0.5; }
+  .aside { overflow: visible; }
+  .management-nav { @apply relative flex-1; }
+  .management-links { @apply absolute bottom-full right-0 mb-2 w-52 rounded-xl bg-teal-950 p-2 shadow-xl; }
+  .management-links .aside-link { @apply flex-row justify-start px-3 py-3 text-sm; }
+  .management-links .nav-label { @apply w-auto text-sm opacity-100; }
   .aside-link { @apply flex-1 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[0.62rem] font-medium; }
   .nav-label { @apply w-auto text-[0.62rem] leading-none opacity-100; }
   /* Keep footer/content clear of the fixed bar */

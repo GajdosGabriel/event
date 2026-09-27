@@ -14,13 +14,14 @@
         </button>
       </form>
 
-      <small><RouterLink to="/login">{{ t('auth.verify.backToLogin') }}</RouterLink></small>
+      <small><RouterLink :to="{ path: '/login', query: { ...route.query, email } }">{{ t('auth.verify.backToLogin') }}</RouterLink></small>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { resendVerification } from '@/api/auth'
 import { t } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -28,7 +29,8 @@ import FormField from '@/components/FormField.vue'
 
 const validation = provideFormValidation()
 
-const email = ref('')
+const route = useRoute()
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const message = ref<string | null>(null)
 const error = ref<string | null>(null)
 const loading = ref(false)

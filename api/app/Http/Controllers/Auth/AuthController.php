@@ -33,7 +33,11 @@ class AuthController extends Controller
     {
         $email = $request->input('email');
 
-        if (PendingRegistration::where('email', $email)->exists()) {
+        $pending = User::where('email', $email)->exists() ? null : PendingRegistration::where('email', $email)->first();
+        if ($pending && Hash::check($request->input('password'), $pending->password)) {
+            if (! $pending->expires_at?->isFuture()) {
+                $this->sendPendingConfirmation($pending);
+            }
             return response()->json([
                 'message' => 'Email not verified',
                 'code' => 'email_not_verified',
@@ -64,6 +68,14 @@ class AuthController extends Controller
         $consent = $this->termsConsent();
 
         if ($registeredVia === 'local') {
+            $existing = PendingRegistration::where('email', $request->input('email'))->first();
+            if ($existing && $existing->expires_at?->isFuture()) {
+                return response()->json([
+                    'message' => 'Registration awaits email confirmation. Original details are unchanged.',
+                    'already_pending' => true,
+                    'verification_required' => true,
+                ], 201);
+            }
             $rawToken = Str::random(64);
             $hashedToken = hash('sha256', $rawToken);
 
@@ -73,8 +85,7 @@ class AuthController extends Controller
             // rezervuje až po overení e-mailu (verifyRegistrationToken).
             $event = app(EventSignup::class)->findOpenEvent($request->input('event_id'));
 
-            PendingRegistration::create([
-                'email' => $request->input('email'),
+            $pending = PendingRegistration::updateOrCreate(['email' => $request->input('email')], [
                 'password' => Hash::make($request->input('password')),
                 'display_name' => $request->input('display_name'),
                 'event_id' => $event?->id,
@@ -84,8 +95,7 @@ class AuthController extends Controller
                 ...$consent,
             ]);
 
-            Notification::route('mail', $request->input('email'))
-                ->notify(new PendingRegistrationVerification($rawToken, $ttlHours, $event?->name));
+            $this->sendPendingConfirmation($pending);
 
             return response()->json([
                 'message' => 'Registration created. Please verify your email.',
@@ -386,42 +396,38 @@ class AuthController extends Controller
             'email' => 'required|email',
         ]);
 
-        $email = $validated['email'];
-
-        $user = User::where('email', $email)->first();
-        if ($user) {
-            return response()->json([
-                'message' => 'User already exists',
-                'code' => $user->email_verified_at ? 'already_verified' : 'user_exists',
-            ], 409);
+        $email = mb_strtolower(trim($validated['email']));
+        if (! User::where('email', $email)->exists()) {
+            $pending = PendingRegistration::where('email', $email)->first();
+            if ($pending) {
+                $this->sendPendingConfirmation($pending);
+            }
         }
 
-        $pending = PendingRegistration::where('email', $email)->first();
-        if (! $pending) {
-            return response()->json([
-                'message' => 'Pending registration not found',
-                'code' => 'pending_not_found',
-            ], 404);
+        // Same response for unknown addresses and exhausted per-address limits.
+        return response()->json(['message' => 'If verification is pending and sending is allowed, an email has been sent.']);
+    }
+
+    protected function sendPendingConfirmation(PendingRegistration $pending): bool
+    {
+        $key = 'registration-mail:'.hash('sha256', $pending->email);
+        $limiter = app(\Illuminate\Cache\RateLimiter::class);
+        if ($limiter->tooManyAttempts($key.':cooldown', 1) || $limiter->tooManyAttempts($key, 5)) {
+            return false;
         }
-
-        $rawToken = Str::random(64);
-        $hashedToken = hash('sha256', $rawToken);
-
         $ttlHours = (int) config('registration.verification_ttl_hours', 48);
-
+        $limiter->hit($key.':cooldown', 120);
+        $limiter->hit($key, $ttlHours * 3600);
+        $rawToken = Str::random(64);
         $pending->forceFill([
-            'verification_token' => $hashedToken,
+            'verification_token' => hash('sha256', $rawToken),
             'expires_at' => now()->addHours($ttlHours),
         ])->save();
-
         $event = app(EventSignup::class)->findOpenEvent($pending->event_id);
-
-        Notification::route('mail', $email)
+        Notification::route('mail', $pending->email)
             ->notify(new PendingRegistrationVerification($rawToken, $ttlHours, $event?->name));
 
-        return response()->json([
-            'message' => 'Verification email resent.',
-        ], 200);
+        return true;
     }
 
     public function verifyRegistrationLink(Request $request, string $token)

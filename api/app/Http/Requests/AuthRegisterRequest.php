@@ -12,6 +12,13 @@ class AuthRegisterRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -21,7 +28,6 @@ class AuthRegisterRequest extends FormRequest
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
-                Rule::unique('pending_registrations', 'email'),
             ],
             // `confirmed` je tu z rovnakého dôvodu ako v PasswordResetRequest:
             // registračný formulár pýta heslo dvakrát, a bez tohto pravidla by
