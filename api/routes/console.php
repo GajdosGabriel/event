@@ -95,6 +95,8 @@ $artisan('app:attribute-checks-run')->everyFiveMinutes()->withoutOverlapping(10)
 // nespěchá — samotné plánovanie už má po zverejnení odklad (viď
 // config/content_review.php), aby e-mail neodišiel skôr, než človek dopíše.
 $artisan('app:content-reviews-run')->everyTenMinutes()->withoutOverlapping(15);
+// Kontakty a presná poloha po dvojhodinovom odstupe, v krátkej dávke pre webcron.
+$artisan('app:profiles-enrich')->everyFifteenMinutes()->withoutOverlapping(5);
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 $artisan('app:views-prune')->dailyAt('03:20');

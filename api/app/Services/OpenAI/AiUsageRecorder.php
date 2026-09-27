@@ -71,7 +71,7 @@ class AiUsageRecorder
      *
      * @param  array<string, mixed>|null  $usage  pole `usage` z odpovede OpenAI
      */
-    public function record(string $feature, string $model, ?array $usage, bool $success = true): void
+    public function record(string $feature, string $model, ?array $usage, bool $success = true, float $extraCostUsd = 0): void
     {
         try {
             $prompt = (int) ($usage['prompt_tokens'] ?? 0);
@@ -83,7 +83,7 @@ class AiUsageRecorder
                 'model' => $model,
                 'prompt_tokens' => $prompt,
                 'completion_tokens' => $completion,
-                'cost_usd' => AiUsage::price($model, $prompt, $completion),
+                'cost_usd' => AiUsage::price($model, $prompt, $completion) + max(0, $extraCostUsd),
                 'success' => $success,
                 'user_id' => auth()->id(),
                 'canal_id' => $this->canalId(),

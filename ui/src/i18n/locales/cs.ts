@@ -1987,6 +1987,7 @@ const cs: Messages = {
       venue_detection: 'Detekce místa',
       canal_name: 'Název pořadatele',
       profile_description: 'Popis kanálu / místa',
+      profile_enrichment: 'Doplnění profilů a polohy',
       content_review: 'Kontrola obsahu',
       other: 'Jiné',
     },

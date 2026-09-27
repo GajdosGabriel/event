@@ -1988,6 +1988,7 @@ const de: Messages = {
       venue_detection: 'Ortserkennung',
       canal_name: 'Name des Veranstalters',
       profile_description: 'Kanal-/Ortsbeschreibung',
+      profile_enrichment: 'Profil- und Standortergänzung',
       content_review: 'Inhaltsprüfung',
       other: 'Sonstiges',
     },

@@ -1988,6 +1988,7 @@ const en: Messages = {
       venue_detection: 'Venue detection',
       canal_name: 'Organizer name',
       profile_description: 'Channel / venue description',
+      profile_enrichment: 'Profile and location completion',
       content_review: 'Content review',
       other: 'Other',
     },

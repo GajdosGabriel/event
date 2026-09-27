@@ -2093,6 +2093,7 @@ const sk = {
       venue_detection: 'Detekcia miesta',
       canal_name: 'Názov organizátora',
       profile_description: 'Popis kanála / miesta',
+      profile_enrichment: 'Doplnenie profilov a polohy',
       content_review: 'Kontrola obsahu',
       other: 'Iné',
     },
