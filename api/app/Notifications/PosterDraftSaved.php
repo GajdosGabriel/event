@@ -32,7 +32,12 @@ class PosterDraftSaved extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.poster_draft.subject'), 'link' => '/nahrat-plagat/'.$this->draftId.'?token='.urlencode($this->token)];
     }
 
     public function toMail(object $notifiable): MailMessage

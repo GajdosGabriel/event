@@ -30,7 +30,12 @@ class EventSignupAdminNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.event_signup_admin.subject', ['event' => $this->event->name]), 'link' => '/admin/events/'.$this->event->id];
     }
 
     public function toMail(object $notifiable): MailMessage

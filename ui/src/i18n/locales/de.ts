@@ -1,6 +1,24 @@
 import type { Messages } from './sk'
 
 const de: Messages = {
+  notifications: {
+    title: "Benachrichtigungen",
+    unread: "Benachrichtigungen: {count} ungelesen",
+    readAll: "Alle als gelesen markieren",
+    read: "Als gelesen markieren",
+    unreadAction: "Als ungelesen markieren",
+    delete: "Benachrichtigung löschen",
+    older: "Ältere anzeigen",
+    deleteRead: "Gelesene löschen",
+    deleteAll: "Alle löschen",
+    confirmDeleteRead: "Alle gelesenen Benachrichtigungen löschen?",
+    confirmDeleteAll: "Alle Benachrichtigungen löschen?",
+    empty: "Keine Benachrichtigungen",
+    loading: "Wird geladen…",
+    retry: "Erneut versuchen",
+    loadError: "Benachrichtigungen konnten nicht geladen werden.",
+    saveError: "Die Änderung konnte nicht gespeichert werden.",
+  },
   eventJourney: {
     chooseOrganizer: "Wählen Sie zuerst einen Veranstalter aus oder fügen Sie einen hinzu. Danach können Sie speichern.",
     "add": "Veranstaltung hinzufügen",

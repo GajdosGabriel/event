@@ -26,7 +26,12 @@ class MessageReceived extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.message_received.subject', ['label' => $this->targetLabel(), 'name' => $this->message->loadMissing('messageable')->messageable?->name ?? '']), 'link' => '/dashboard/spravy'];
     }
 
     public function toMail(object $notifiable): MailMessage

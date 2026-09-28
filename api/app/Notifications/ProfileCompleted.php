@@ -15,7 +15,12 @@ class ProfileCompleted extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => 'Doplnili sme profil '.$this->subject->name, 'link' => \App\Support\DashboardUrl::edit($this->subject)];
     }
 
     public function toMail(object $notifiable): MailMessage

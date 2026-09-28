@@ -73,6 +73,7 @@
         <RouterLink to="/admin" class="brand">{{ t('nav.admin') }}</RouterLink>
         <nav class="header-nav">
           <LangSwitcher variant="amber" />
+          <NotificationBell />
           <UserDropdown variant="amber" logout-to="login" />
         </nav>
       </header>
@@ -105,6 +106,7 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import { useI18n } from '@/i18n'

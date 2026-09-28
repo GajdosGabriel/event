@@ -23,7 +23,12 @@ class CanalInvitationSent extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.canal_invitation.subject', ['canal' => $this->invitation->loadMissing('canal')->canal?->name]), 'link' => '/pozvanka/'.$this->invitation->token];
     }
 
     public function toMail(object $notifiable): MailMessage

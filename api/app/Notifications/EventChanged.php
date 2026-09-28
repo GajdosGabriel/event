@@ -40,7 +40,12 @@ class EventChanged extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __($this->cancelled ? 'mail.event_changed.subject_cancelled' : 'mail.event_changed.subject', ['event' => $this->event->name]), 'link' => \App\Support\PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage

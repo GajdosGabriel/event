@@ -32,7 +32,12 @@ class EventAnnouncement extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => $this->subject, 'link' => \App\Support\PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage

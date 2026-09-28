@@ -32,7 +32,12 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.subscription_confirmed.subject', ['event' => $this->event->name]), 'link' => \App\Support\PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage

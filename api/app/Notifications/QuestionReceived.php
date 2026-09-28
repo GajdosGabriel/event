@@ -39,7 +39,12 @@ class QuestionReceived extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.question_received.'.$this->textKey().'.subject', ['event' => $this->event->name]), 'link' => $this->boardUrl()];
     }
 
     public function toMail(object $notifiable): MailMessage

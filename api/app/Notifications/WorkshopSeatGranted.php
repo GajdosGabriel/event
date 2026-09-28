@@ -25,7 +25,12 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.workshop_seat_granted.subject', ['workshop' => $this->admission->loadMissing('ticketType')->ticketType?->name]), 'link' => '/rsvp/'.$this->admission->confirmation_token];
     }
 
     public function toMail(object $notifiable): MailMessage

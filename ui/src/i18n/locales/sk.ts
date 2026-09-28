@@ -1,6 +1,24 @@
 // Referenčný slovník. Ostatné jazyky sú typované proti nemu (Messages),
 // takže chýbajúci alebo preklepnutý kľúč spadne už na typecheck.
 const sk = {
+  notifications: {
+    title: "Upozornenia",
+    unread: "Upozornenia: {count} neprečítaných",
+    readAll: "Označiť prečítané",
+    read: "Označiť ako prečítané",
+    unreadAction: "Označiť ako neprečítané",
+    delete: "Zmazať upozornenie",
+    older: "Zobraziť staršie",
+    deleteRead: "Zmazať prečítané",
+    deleteAll: "Zmazať všetky",
+    confirmDeleteRead: "Zmazať všetky prečítané upozornenia?",
+    confirmDeleteAll: "Zmazať všetky upozornenia?",
+    empty: "Žiadne upozornenia",
+    loading: "Načítavam…",
+    retry: "Skúsiť znova",
+    loadError: "Upozornenia sa nepodarilo načítať.",
+    saveError: "Zmenu sa nepodarilo uložiť.",
+  },
   eventJourney: {
     chooseOrganizer: "Najprv vyberte alebo pridajte organizátora. Potom môžete podujatie uložiť.",
     "add": "Pridať podujatie",

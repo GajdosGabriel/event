@@ -58,6 +58,7 @@
         <RouterLink to="/dashboard" class="brand">{{ t('nav.dashboard') }}</RouterLink>
         <nav class="header-nav">
           <LangSwitcher variant="teal" />
+          <NotificationBell />
           <UserDropdown variant="teal" logout-to="login" />
         </nav>
       </header>
@@ -91,6 +92,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { unreadMessageCount } from '@/api/messages'
 import UserDropdown from '@/components/UserDropdown.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import { useI18n } from '@/i18n'

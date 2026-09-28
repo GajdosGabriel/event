@@ -1,6 +1,24 @@
 import type { Messages } from './sk'
 
 const en: Messages = {
+  notifications: {
+    title: "Notifications",
+    unread: "Notifications: {count} unread",
+    readAll: "Mark all read",
+    read: "Mark as read",
+    unreadAction: "Mark as unread",
+    delete: "Delete notification",
+    older: "Show older",
+    deleteRead: "Delete read",
+    deleteAll: "Delete all",
+    confirmDeleteRead: "Delete all read notifications?",
+    confirmDeleteAll: "Delete all notifications?",
+    empty: "No notifications",
+    loading: "Loading…",
+    retry: "Try again",
+    loadError: "Could not load notifications.",
+    saveError: "Could not save the change.",
+  },
   eventJourney: {
     chooseOrganizer: "Select or add an organizer first. Then you can save the event.",
     "add": "Add event",

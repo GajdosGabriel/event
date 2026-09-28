@@ -8,7 +8,7 @@
          sa odkazy schovajú pod tlačidlo menu — inak by sa buď zalomili do
          druhého riadku, alebo by sa na ne nezmestilo nič okrem loga. -->
     <header class="relative z-40 bg-slate-900 text-white">
-      <div class="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+      <div class="mx-auto flex w-full max-w-[1300px] items-center justify-between gap-3 px-4 py-3">
         <div class="flex min-w-0 items-center gap-6">
           <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
           <nav class="hidden items-center gap-5 md:flex">
@@ -27,6 +27,7 @@
 
         <nav class="flex items-center gap-2 sm:gap-3">
           <LangSwitcher />
+          <NotificationBell />
           <!-- Kým nevieme, kto je prihlásený, nevykresľuje sa ani menu s
                prázdnym menom, ani tlačidlá na prihlásenie — len zástupné
                miesto rovnakej šírky. Inak hlavička po načítaní identity
@@ -124,6 +125,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 import AnnouncementBar from '@/components/AnnouncementBar.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'

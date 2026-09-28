@@ -25,7 +25,12 @@ class OpenAiBillingIssue extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.openai_billing.subject'), 'link' => '/admin/ai-spotreba'];
     }
 
     public function toMail(object $notifiable): MailMessage

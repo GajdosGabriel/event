@@ -23,7 +23,12 @@ class EventReservationInvite extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.event_reservation_invite.subject', ['event' => $this->event->name]), 'link' => '/prihlasenie/'.$this->event->id];
     }
 
     public function toMail(object $notifiable): MailMessage

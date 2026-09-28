@@ -72,6 +72,14 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return new UserResource($request->user());
 });
 
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Me\NotificationController::class, 'index']);
+    Route::get('/count', [\App\Http\Controllers\Me\NotificationController::class, 'count']);
+    Route::post('/read', [\App\Http\Controllers\Me\NotificationController::class, 'markRead']);
+    Route::post('/unread', [\App\Http\Controllers\Me\NotificationController::class, 'markUnread']);
+    Route::delete('/', [\App\Http\Controllers\Me\NotificationController::class, 'destroy']);
+});
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/login-form', [AuthController::class, 'loginForm'])->name('auth.loginForm');

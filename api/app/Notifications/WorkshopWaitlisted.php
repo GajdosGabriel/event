@@ -21,7 +21,12 @@ class WorkshopWaitlisted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.workshop_waitlisted.subject', ['workshop' => $this->admission->loadMissing('ticketType')->ticketType?->name]), 'link' => '/events/'.$this->admission->event_id];
     }
 
     public function toMail(object $notifiable): MailMessage

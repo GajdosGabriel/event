@@ -34,7 +34,12 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        return ['message' => __('mail.event_signup_organizer.subject', ['event' => $this->event->name]), 'link' => '/dashboard/events/'.$this->event->id.'/attendees'];
     }
 
     public function toMail(object $notifiable): MailMessage

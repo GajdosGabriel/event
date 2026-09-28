@@ -31,7 +31,17 @@ class QuestionAnswered extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+    }
+
+    public function toBell(object $notifiable): array
+    {
+        $event = $this->question->loadMissing('board')->board?->event();
+
+        return [
+            'message' => __('mail.question_answered.subject', ['event' => $event?->name ?? '']),
+            'link' => $event ? PublicUrl::event($event) : null,
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

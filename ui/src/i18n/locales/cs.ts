@@ -1,6 +1,24 @@
 import type { Messages } from './sk'
 
 const cs: Messages = {
+  notifications: {
+    title: "Upozornění",
+    unread: "Upozornění: {count} nepřečtených",
+    readAll: "Označit přečtené",
+    read: "Označit jako přečtené",
+    unreadAction: "Označit jako nepřečtené",
+    delete: "Smazat upozornění",
+    older: "Zobrazit starší",
+    deleteRead: "Smazat přečtené",
+    deleteAll: "Smazat všechny",
+    confirmDeleteRead: "Smazat všechna přečtená upozornění?",
+    confirmDeleteAll: "Smazat všechna upozornění?",
+    empty: "Žádná upozornění",
+    loading: "Načítám…",
+    retry: "Zkusit znovu",
+    loadError: "Upozornění se nepodařilo načíst.",
+    saveError: "Změnu se nepodařilo uložit.",
+  },
   eventJourney: {
     chooseOrganizer: "Nejprve vyberte nebo přidejte pořadatele. Potom můžete událost uložit.",
     "add": "Přidat událost",
