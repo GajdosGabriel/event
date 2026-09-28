@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Public;
 
 use App\Contracts\Messageable;
+use App\Enums\CanalNotificationTopic;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MessageStoreRequest;
 use App\Models\Message;
 use App\Notifications\MessageReceived;
+use App\Services\Canals\CanalRecipients;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
@@ -21,6 +23,10 @@ use Illuminate\Support\Facades\Notification;
  */
 class MessageController extends Controller
 {
+    public function __construct(
+        private CanalRecipients $recipients,
+    ) {}
+
     public function store(MessageStoreRequest $request): JsonResponse
     {
         // Odosielateľ: len prihlásený (401) a overený, neblokovaný účet (403).
@@ -58,8 +64,16 @@ class MessageController extends Controller
             'body' => $data['body'],
         ]);
 
-        Notification::route('mail', $recipient->email)
-            ->notify(new MessageReceived($message, $senderName, (string) $sender->email));
+        $notice = new MessageReceived($message, $senderName, (string) $sender->email);
+        $canal = $this->recipients->canalOf($target);
+
+        // Správa v inboxe patrí príjemcovi vždy; e-mail len ak si ho nevypol.
+        // Ďalší členovia tímu so zapnutými správami dostanú upozornenie.
+        if ($this->recipients->mayNotify($canal, $recipient, CanalNotificationTopic::Messages, $notice, $target)) {
+            Notification::route('mail', $recipient->email)->notify($notice);
+        }
+
+        $this->recipients->fanOut($canal, CanalNotificationTopic::Messages, $notice, [$recipient, $sender], $target);
 
         return response()->json(['status' => 'ok'], 201);
     }

@@ -2,6 +2,8 @@
 
 namespace App\Services\Content;
 
+use App\Enums\CanalNotificationTopic;
+use App\Services\Canals\CanalRecipients;
 use App\Enums\ModelStatus;
 use App\Models\ContentReview;
 use App\Notifications\ContentReviewNotice;
@@ -214,7 +216,15 @@ class ContentReviewService
             return;
         }
 
-        $recipient->notify(new ContentReviewNotice($review, $model, $issues));
+        $notice = new ContentReviewNotice($review, $model, $issues);
+        $recipients = app(CanalRecipients::class);
+        $canal = $recipients->canalOf($model);
+
+        if ($recipients->mayNotify($canal, $recipient, CanalNotificationTopic::Reviews, $notice, $model)) {
+            $recipient->notify($notice);
+        }
+
+        $recipients->fanOut($canal, CanalNotificationTopic::Reviews, $notice, [$recipient], $model);
 
         $review->forceFill(['notified_at' => now()])->save();
     }

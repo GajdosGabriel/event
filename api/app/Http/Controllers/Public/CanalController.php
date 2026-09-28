@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Repositories\Contracts\CanalRepository;
+use App\Services\Canals\CanalClaims;
+use App\Services\Canals\CanalContactVerifier;
 use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +27,19 @@ class CanalController extends Controller
         return response()->json($this->canalRepository->publicIndex());
     }
 
+    /**
+     * Odkaz z e-mailu po zmene kontaktu (CanalContactVerifier). Podpis overil
+     * `signed` middleware; výsledok sa ukáže na verejnej stránke kanála.
+     */
+    public function verifyContact(Request $request, Canal $canal, CanalContactVerifier $verifier)
+    {
+        $ok = $verifier->verify($canal, (string) $request->query('email'));
+
+        return redirect()->away(
+            rtrim((string) config('app.frontend_url'), '/') . '/organizatori/' . $canal->id . '?kontakt=' . ($ok ? 'overeny' : 'neplatny'),
+        );
+    }
+
     public function show($id, Request $request, ViewRecorder $viewRecorder)
     {
         $canal = $this->canalRepository->publicShow($id);
@@ -39,6 +54,14 @@ class CanalController extends Controller
         // Kontaktovateľné len ak má kanál aktívneho majiteľa (self/admin
         // registrácia, overený e-mail) a návštevník ním nie je sám.
         $data['contactable'] = $canal->isContactableBy(auth('sanctum')->user());
+
+        // „Spravujete tento kanál?" — len pri kanáli, ktorý nikto nespravuje
+        // a nie je zberný. `claim_contact` = dá sa overiť cez kontaktnú adresu.
+        $claims = app(CanalClaims::class);
+        $data['claimable'] = $claims->isClaimable($canal);
+        $data['claim_contact'] = $data['claimable'] && $claims->contactOf($canal) !== null;
+        // Kontaktnú adresu a stav správy UI nepotrebuje — nesú ich tieto príznaky.
+        unset($data['claimed_by_user_id']);
 
         // Obec a (publikované) miesta pre verejný detail – rovnaký tvar ako
         // v CanalResource, aby ich front vedel zobraziť.

@@ -109,6 +109,12 @@ const router = createRouter({
         // Pozvánka do tímu kanála z e-mailu. Zámerne bez requiresAuth — detail
         // ukáže aj neprihlásenému, prijatie si prihlásenie vypýta samo.
         { path: 'pozvanka/:token', name: 'canal-invitation', component: () => import('@/pages/canals/CanalInvitationPage.vue') },
+        // Prevzatie kanála z e-mailu: posúdenie žiadosti kontaktnou schránkou
+        // a námietka proti prevzatiu. Bez prihlásenia — autorizuje token.
+        // Po odhlásení nevyžiadaných e-mailov (EmailUnsubscribeController).
+        { path: 'odhlasenie', name: 'unsubscribed', component: () => import('@/pages/UnsubscribedPage.vue') },
+        { path: 'prevzatie/namietka/:token', name: 'canal-claim-contest', component: () => import('@/pages/canals/CanalClaimPage.vue'), props: { mode: 'contest' } },
+        { path: 'prevzatie/:token', name: 'canal-claim-confirm', component: () => import('@/pages/canals/CanalClaimPage.vue'), props: { mode: 'confirm' } },
         // Právne dokumenty. Adresy sú súčasťou súhlasu pri registrácii a chodia
         // v pätičke e-mailov, takže sa nesmú meniť — pri zmene znenia sa mení
         // len obsah a verzia (ui/src/content/legal), nie URL.
@@ -208,6 +214,7 @@ const router = createRouter({
         // Výrazy, ktoré AI chýbali v číselníku štítkov. Slovenská cesta
         // zámerne — rovnako ako `oznamy` nižšie.
         { path: 'navrhy-stitkov', name: 'admin-tag-suggestions', component: () => import('@/pages/admin/AdminTagSuggestionsPage.vue') },
+        { path: 'prevzatia', name: 'admin-canal-claims', component: () => import('@/pages/admin/AdminCanalClaimsPage.vue') },
         // Spotreba OpenAI (len prehľad). Slovenská cesta ako `oznamy`.
         { path: 'ai-spotreba', name: 'admin-ai-usage', component: () => import('@/pages/admin/AdminAiUsagePage.vue') },
         // Denník udalostí — maily, prihlásenia, importy, cron.

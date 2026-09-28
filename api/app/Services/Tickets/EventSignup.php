@@ -3,12 +3,13 @@
 namespace App\Services\Tickets;
 
 use App\Enums\AdmissionStatus;
+use App\Enums\CanalNotificationTopic;
 use App\Enums\ModelStatus;
-use App\Enums\RegistrationSource;
 use App\Enums\TicketStatus;
 use App\Enums\TicketTypeKind;
 use App\Models\Admission;
 use App\Models\Canal;
+use App\Models\EmailSuppression;
 use App\Models\Event;
 use App\Models\Ticket;
 use App\Models\TicketType;
@@ -20,6 +21,8 @@ use App\Notifications\EventSignupOrganizerNotice;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Canals\CanalInviter;
+use App\Services\Canals\CanalRecipients;
+use App\Services\Imports\CollectionCanal;
 use App\Support\EventTimeframe;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +61,7 @@ class EventSignup
         private AttendeeRegistrar $attendees,
         private CanalInviter $inviter,
         private DefaultReservation $defaultReservation,
+        private CanalRecipients $recipients,
     ) {}
 
     /** Verejne viditeľné podujatie, na ktoré sa dá hlásiť, inak null. */
@@ -231,14 +235,29 @@ class EventSignup
         $owners = $this->managingOwners($canal);
 
         if ($owners->isNotEmpty()) {
-            $this->safely(fn () => Notification::send($owners, $notice()));
+            // Vlastníci ako doteraz, okrem tých, čo si prihlášky vypli; ďalší
+            // prihlásení členovia tímu dostanú kópiu (CanalRecipients::fanOut).
+            $recipients = $owners
+                ->filter(fn (User $owner) => $this->recipients->mayNotify($canal, $owner, CanalNotificationTopic::Signups, $notice(), $event))
+                ->values();
 
-            return ['channel' => 'owner', 'email' => $owners->pluck('email')->implode(', ')];
+            if ($recipients->isNotEmpty()) {
+                $this->safely(fn () => Notification::send($recipients, $notice()));
+            }
+
+            $this->safely(fn () => $this->recipients->fanOut($canal, CanalNotificationTopic::Signups, $notice(), $owners, $event));
+
+            return $recipients->isEmpty()
+                ? ['channel' => 'none', 'email' => null]
+                : ['channel' => 'owner', 'email' => $recipients->pluck('email')->implode(', ')];
         }
 
         $contact = $this->contactEmail($event, $canal);
 
-        if (! $canal || $contact === null) {
+        // Zberný kanál sa prevziať nedá (CanalStewardship) — pozvánka na jeho
+        // prevzatie by ponúkla organizátorovi jednej akcie aj všetky cudzie.
+        // Kontakt, ktorý si nevyžiadané e-maily odhlásil, ponuku prevzatia nedostane.
+        if (! $canal || $contact === null || CollectionCanal::is($canal) || EmailSuppression::has($contact)) {
             return ['channel' => 'none', 'email' => null];
         }
 
@@ -259,14 +278,15 @@ class EventSignup
     }
 
     /**
-     * Vlastníci kanála, za ktorým reálne niekto stojí. Importovaný kanál má
-     * nanajvýš technického vlastníka (importéra) — toho neoslovujeme.
+     * Vlastníci kanála, za ktorým reálne niekto stojí (Canal::isManaged).
+     * Neprevzatý importovaný kanál má nanajvýš technického vlastníka
+     * (importéra) — toho neoslovujeme.
      *
      * @return Collection<int, User>
      */
     private function managingOwners(?Canal $canal): Collection
     {
-        if (! $canal || ! in_array($canal->registration_source, [RegistrationSource::SELF, RegistrationSource::ADMIN], true)) {
+        if (! $canal || ! $canal->isManaged()) {
             return collect();
         }
 

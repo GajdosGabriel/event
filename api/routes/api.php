@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationContro
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
+use App\Http\Controllers\Admin\CanalClaimController as AdminCanalClaimController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\AiAssistController;
@@ -41,6 +42,8 @@ use App\Http\Controllers\Public\AnnouncementController as PublicAnnouncementCont
 use App\Http\Controllers\Public\AttendeeRsvpController as PublicAttendeeRsvpController;
 use App\Http\Controllers\Public\BrokenLinkReportController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
+use App\Http\Controllers\Public\CanalClaimController as PublicCanalClaimController;
+use App\Http\Controllers\Public\EmailUnsubscribeController as PublicEmailUnsubscribeController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
@@ -279,6 +282,27 @@ Route::post('invitations/{token}/accept', [PublicCanalInvitationController::clas
     ->name('public.invitations.accept')
     ->middleware(['auth:sanctum', 'throttle:public-write']);
 
+// Odhlásenie nevyžiadaných e-mailov (oslovenie po akcii) jedným klikom.
+Route::match(['get', 'post'], 'email/unsubscribe', PublicEmailUnsubscribeController::class)
+    ->name('public.email.unsubscribe')
+    ->middleware(['signed', 'throttle:public-write']);
+
+// Prevzatie kanála (CanalClaims). Žiadosť podáva prihlásený používateľ;
+// potvrdenie a námietku autorizuje token z e-mailu, prihlásenie netreba.
+Route::post('canals/{canal}/claims', [PublicCanalClaimController::class, 'store'])
+    ->name('public.canal-claims.store')
+    ->middleware(['auth:sanctum', 'throttle:public-write']);
+Route::get('canal-claims/contest/{token}', [PublicCanalClaimController::class, 'contestShow'])
+    ->name('public.canal-claims.contest.show');
+Route::post('canal-claims/contest/{token}', [PublicCanalClaimController::class, 'contest'])
+    ->name('public.canal-claims.contest')
+    ->middleware('throttle:public-write');
+Route::get('canal-claims/{token}', [PublicCanalClaimController::class, 'show'])
+    ->name('public.canal-claims.show');
+Route::post('canal-claims/{token}/confirm', [PublicCanalClaimController::class, 'confirm'])
+    ->name('public.canal-claims.confirm')
+    ->middleware('throttle:public-write');
+
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('admissions/{uuid}/qr', [PublicAdmissionQrController::class, 'show'])->name('public.admissions.qr');
@@ -287,6 +311,9 @@ Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
 
 Route::get('canals/{id}/events', [PublicCanalController::class, 'events'])->name('public.canals.events');
+Route::get('canals/{canal}/contact/verify', [PublicCanalController::class, 'verifyContact'])
+    ->name('public.canals.contact.verify')
+    ->middleware(['signed', 'throttle:public-write']);
 
 Route::apiResources([
     'events' => PublicEventController::class,
@@ -355,6 +382,8 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('throttle:messages');
     Route::delete('canals/{canal}/team/invitations/{invitation}', [DashboardCanalTeamController::class, 'destroyInvitation'])
         ->name('canals.team.invitations.destroy');
+    Route::put('canals/{canal}/team/{user}/notifications', [DashboardCanalTeamController::class, 'updateNotifications'])
+        ->name('canals.team.notifications');
     Route::put('canals/{canal}/team/{user}', [DashboardCanalTeamController::class, 'updateRole'])
         ->name('canals.team.update');
     Route::delete('canals/{canal}/team/{user}', [DashboardCanalTeamController::class, 'destroy'])
@@ -633,6 +662,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->name('geocode')
         ->middleware('throttle:60,1');
     // Podklad na rozšírenie číselníka štítkov (číselník sám je v TagSeeder-i).
+    Route::get('canal-claims', [AdminCanalClaimController::class, 'index'])->name('canal-claims.index');
+    Route::post('canal-claims/{claim}/approve', [AdminCanalClaimController::class, 'approve'])->name('canal-claims.approve');
+    Route::post('canal-claims/{claim}/reject', [AdminCanalClaimController::class, 'reject'])->name('canal-claims.reject');
+    Route::post('canal-claims/{claim}/resolve', [AdminCanalClaimController::class, 'resolve'])->name('canal-claims.resolve');
     Route::get('tag-suggestions', [AdminTagSuggestionController::class, 'index'])->name('tag-suggestions.index');
     Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
     // Spotreba OpenAI — len prehľad, bez vypínača.

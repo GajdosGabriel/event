@@ -73,7 +73,8 @@ class CanalSeatDeriver
             return null;
         }
 
-        if ($canal->registration_source !== RegistrationSource::IMPORT) {
+        // Prevzatý kanál už spravuje organizátor — obec si nastaví sám.
+        if ($canal->registration_source !== RegistrationSource::IMPORT || $canal->isClaimed()) {
             return null;
         }
 
@@ -140,7 +141,7 @@ class CanalSeatDeriver
      */
     private function isDerivable(Canal $canal): bool
     {
-        if ($canal->registration_source !== RegistrationSource::IMPORT) {
+        if ($canal->registration_source !== RegistrationSource::IMPORT || $canal->isClaimed()) {
             return false;
         }
 

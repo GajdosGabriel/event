@@ -10,6 +10,8 @@ use App\Models\Municipality;
 use App\Models\User;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\CanalRepository;
+use App\Services\Canals\CanalAuditor;
+use App\Services\Canals\CanalContactVerifier;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
@@ -161,6 +163,8 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         $user->forgetCanalRoles();
 
+        app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'canal_created']);
+
         $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
 
@@ -180,7 +184,14 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         // zámok odpublikovania musí stáť v oboch cestách. Viď UnpublishGuard.
         (new UnpublishGuard)->assert($canal, $properties['status'] ?? null);
 
+        $oldEmail = $canal->email;
+
         $canal->update($properties);
+
+        // Nový kontakt treba overiť a pôvodný upozorniť (CanalContactVerifier).
+        if ($canal->wasChanged('email')) {
+            app(CanalContactVerifier::class)->changed($canal, $oldEmail);
+        }
 
         $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);

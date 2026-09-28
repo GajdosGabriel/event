@@ -6,6 +6,7 @@ use App\Casts\StringLength250;
 use App\Casts\Website;
 use App\Contracts\Messageable;
 use App\Enums\CanalIdentityMode;
+use App\Enums\CanalNotificationTopic;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Traits\AlwaysHasCoordinates;
@@ -17,6 +18,7 @@ use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\ProtectsReferencedRecords;
 use App\Models\Traits\SanitizesHtmlBody;
+use App\Services\Canals\CanalRecipients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -57,6 +59,7 @@ class Canal extends Model implements Messageable
         'status' => ModelStatus::class,
         'registration_source' => \App\Enums\RegistrationSource::class,
         'identity_mode' => CanalIdentityMode::class,
+        'claimed_at' => 'datetime',
     ];
 
     public function setNameAttribute($value)
@@ -111,24 +114,58 @@ class Canal extends Model implements Messageable
         return $this->hasMany(CanalInvitation::class);
     }
 
-    /**
-     * Správu kanálu dostane jeho vlastník — ale len pri kanáloch, za ktorými
-     * reálne niekto stojí (registrácia self/admin). Importované a systémové
-     * kanály nemajú koho osloviť → nekontaktovateľné, aj keby mali priradeného
-     * technického vlastníka (importéra), ktorý za cudzí obsah nevie odpovedať.
-     */
-    public function messageRecipient(): ?User
+    /** Kto kanál prevzal (viď CanalStewardship). */
+    public function claimedBy()
     {
-        $managed = in_array($this->registration_source, [
+        return $this->belongsTo(User::class, 'claimed_by_user_id');
+    }
+
+    /**
+     * Stojí za kanálom reálny človek? Registrovaný kanál (self/admin) vždy,
+     * importovaný alebo systémový až potom, čo ho niekto prevzal. Pôvod
+     * (`registration_source`) sa prevzatím nemení — rozhoduje táto metóda.
+     */
+    public function isManaged(): bool
+    {
+        return $this->isClaimed() || in_array($this->registration_source, [
             RegistrationSource::SELF,
             RegistrationSource::ADMIN,
         ], true);
+    }
 
-        if (! $managed) {
+    /** Importovaný/systémový kanál, ktorý prevzal organizátor. */
+    public function isClaimed(): bool
+    {
+        return $this->claimed_at !== null;
+    }
+
+    /**
+     * Správu kanálu dostane hlavný adresát témy „správy" (CanalRecipients) —
+     * predvolene vlastník. Len pri kanáloch, za ktorými reálne niekto stojí
+     * (isManaged): nespravované kanály nemajú koho osloviť → nekontaktovateľné,
+     * aj keby mali technického vlastníka (importéra), ktorý za cudzí obsah
+     * nevie odpovedať.
+     */
+    public function messageRecipient(): ?User
+    {
+        if (! $this->isManaged()) {
             return null;
         }
 
-        return $this->owners->first(fn (User $owner) => $owner->canReceiveMessages());
+        return app(CanalRecipients::class)->primary($this, CanalNotificationTopic::Messages);
+    }
+
+    /**
+     * Komu ísť s kontrolou obsahu, atribútov a doplneným profilom — hlavný
+     * adresát témy „kontroly", nie správ (prepisuje HasCheckedAttributes).
+     */
+    public function attributeIssueRecipient(): ?User
+    {
+        if (! $this->isManaged()) {
+            return null;
+        }
+
+        return app(CanalRecipients::class)->primary($this, CanalNotificationTopic::Reviews);
     }
 
     public function events()

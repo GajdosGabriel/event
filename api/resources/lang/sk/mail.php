@@ -123,6 +123,85 @@ return [
         'ignore' => 'Ak ste pozvánku nečakali, stačí tento e-mail ignorovať.',
     ],
 
+    // App\Notifications\CanalOwnershipChanged — zmena vlastníctva kanála.
+    'canal_ownership' => [
+        'claimed' => [
+            'subject' => 'Kanál :canal má nového správcu',
+            'member' => 'Prevzali ste kanál **„:canal"**. Odteraz vám budú chodiť prihlášky a správy od návštevníkov.',
+            'owners' => 'Kanál **„:canal"** prevzal účet **:member**.',
+            'contact' => 'Kanál **„:canal"**, pri ktorom je uvedená táto adresa, prevzal účet **:member**.',
+        ],
+        'owner_added' => [
+            'subject' => 'Nový vlastník kanála :canal',
+            'member' => 'Stali ste sa vlastníkom kanála **„:canal"**.',
+            'owners' => 'Vlastníkom kanála **„:canal"** sa stal účet **:member**.',
+        ],
+        'owner_removed' => [
+            'subject' => 'Zmena vlastníka kanála :canal',
+            'member' => 'Už nie ste vlastníkom kanála **„:canal"**.',
+            'owners' => 'Účet **:member** už nie je vlastníkom kanála **„:canal"**.',
+        ],
+        'action' => 'Otvoriť kanál',
+        'not_you' => 'Ak o tom neviete, odpovedzte na tento e-mail a zmenu preveríme.',
+        'contest' => 'Ak s prevzatím nesúhlasíte, môžete ho do :date napadnúť.',
+        'contest_action' => 'Nesúhlasím s prevzatím',
+    ],
+
+    // App\Notifications\CanalOutreachNotice — oslovenie organizátora po akcii.
+    'canal_outreach' => [
+        'subject' => 'Vašu akciu :event si pozreli ľudia na :site',
+        'intro' => 'Akciu **„:event"** (:date) sme zverejnili na portáli :site.',
+        'views' => '{0} Zatiaľ si ju nikto nepozrel.|{1} Pozrel si ju **1** človek.|[2,4] Pozreli si ju **:visitors** ľudia (:views zobrazení).|[5,*] Pozrelo si ju **:visitors** ľudí (:views zobrazení).',
+        'signups' => '{1} Prihlásil sa **1** účastník.|[2,4] Prihlásili sa **:signups** účastníci.|[5,*] Prihlásilo sa **:signups** účastníkov.',
+        'offer' => 'Profil **„:canal"** vznikol automaticky z verejných zdrojov. Ak ho prevezmete, môžete zadarmo zverejňovať ďalšie akcie, upravovať údaje a dostávať prihlášky aj správy od návštevníkov.',
+        'action' => 'Prevziať profil',
+        'why' => 'Píšeme vám, lebo vaša adresa je uvedená pri akcii alebo profile organizátora. Viac vás nebudeme obťažovať, kým o to neprejavíte záujem.',
+        'unsubscribe' => 'Nechcete od nás takéto e-maily? [Odhlásiť sa](:url).',
+    ],
+
+    // App\Notifications\CanalContactNotice — zmena kontaktného e-mailu kanála.
+    'canal_contact' => [
+        'verify' => [
+            'subject' => 'Overte kontakt kanála :canal',
+            'intro' => 'Adresa **:email** bola nastavená ako kontaktný e-mail kanála **„:canal"**. Potvrďte, že patrí kanálu.',
+            'action' => 'Potvrdiť adresu',
+            'ignore' => 'Ak ste o zmenu nežiadali, e-mail ignorujte.',
+        ],
+        'changed' => [
+            'subject' => 'Kontakt kanála :canal bol zmenený',
+            'intro' => 'Kontaktný e-mail kanála **„:canal"** bol zmenený z tejto adresy na **:email**.',
+        ],
+    ],
+
+    // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
+    'canal_claim' => [
+        'message' => 'Správa: „:message"',
+        'verify' => [
+            'subject' => 'Žiadosť o správu kanála :canal',
+            'intro' => 'Účet **:member** žiada o správu kanála **„:canal"**, pri ktorom je uvedená táto adresa. Ak ho poznáte a súhlasíte, potvrďte to.',
+            'action' => 'Posúdiť žiadosť',
+            'ignore' => 'Ak žiadateľa nepoznáte, e-mail ignorujte — žiadosť vyprší :date.',
+        ],
+        'requested' => [
+            'subject' => 'Žiadosť o prevzatie kanála :canal',
+            'intro' => 'Účet **:name** (:member) žiada o prevzatie kanála **„:canal"**. Žiadosť čaká na posúdenie.',
+            'action' => 'Otvoriť žiadosti',
+        ],
+        'rejected' => [
+            'subject' => 'Žiadosť o kanál :canal nebola schválená',
+            'intro' => 'Vašu žiadosť o správu kanála **„:canal"** sme neschválili.',
+        ],
+        'contested' => [
+            'subject' => 'Prevzatie kanála :canal bolo napadnuté',
+            'intro' => 'Kontaktná adresa kanála **„:canal"** nesúhlasí s jeho prevzatím účtom **:name** (:member).',
+            'action' => 'Otvoriť žiadosti',
+        ],
+        'reverted' => [
+            'subject' => 'Správa kanála :canal bola zrušená',
+            'intro' => 'Po preverení sme vaše prevzatie kanála **„:canal"** zrušili.',
+        ],
+    ],
+
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
         'subject' => 'Váš lístok na :event',

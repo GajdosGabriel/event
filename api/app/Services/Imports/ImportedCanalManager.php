@@ -9,6 +9,7 @@ use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Municipality;
 use App\Models\User;
+use App\Services\Canals\CanalAuditor;
 use Illuminate\Support\Str;
 
 class ImportedCanalManager
@@ -27,6 +28,12 @@ class ImportedCanalManager
         if ($detectedName !== null) {
             $existing = $this->findByFuzzyName($detectedName);
             if ($existing instanceof Canal) {
+                // Prevzatý kanál spravuje organizátor — import doň len
+                // priraďuje podujatia, dáta ani vlastníka nemení.
+                if ($existing->isClaimed()) {
+                    return $existing;
+                }
+
                 if ($website !== null && empty($existing->website)) {
                     $existing->update(['website' => $website]);
                 }
@@ -59,6 +66,10 @@ class ImportedCanalManager
             $existing = Canal::query()
                 ->where('slug', Str::slug($canalName))
                 ->first();
+        }
+
+        if ($existing?->isClaimed()) {
+            return $existing;
         }
 
         if ($existing) {
@@ -132,7 +143,7 @@ class ImportedCanalManager
         // Bez nej ostal pivot na DB defaulte `editor` — a editor nemá
         // `canal.update` ani `canal.team`, takže vlastník importovaného kanála
         // ho v dashboarde nevedel ani upraviť, ani spravovať jeho tím.
-        $superAdmin->canals()->syncWithoutDetaching([
+        $changes = $superAdmin->canals()->syncWithoutDetaching([
             $canal->id => [
                 'is_owner' => true,
                 'role' => CanalRole::Owner->value,
@@ -152,6 +163,10 @@ class ImportedCanalManager
         // Práva sa kešujú na používateľa — bez zabudnutia by v tej istej
         // požiadavke ostala platiť rola spred priradenia.
         $superAdmin->forgetCanalRoles();
+
+        if ($changes['attached'] !== []) {
+            app(CanalAuditor::class)->memberChanged($canal, $superAdmin, null, CanalRole::Owner, notify: false, context: ['reason' => 'import_technical_owner']);
+        }
 
         if ($superAdmin->canal_id === null) {
             $superAdmin->forceFill(['canal_id' => $canal->id])->save();

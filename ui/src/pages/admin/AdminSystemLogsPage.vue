@@ -131,7 +131,7 @@ const route = useRoute()
 const router = useRouter()
 
 const levels: SystemLogLevel[] = ['info', 'warning', 'error']
-const statuses: SystemLogStatus[] = ['sent', 'failed', 'skipped', 'ok']
+const statuses: SystemLogStatus[] = ['sent', 'simulated', 'failed', 'skipped', 'ok']
 
 const levelClass: Record<SystemLogLevel, string> = {
   info: 'bg-slate-100 text-slate-700',
@@ -141,6 +141,7 @@ const levelClass: Record<SystemLogLevel, string> = {
 
 const statusClass: Record<SystemLogStatus, string> = {
   sent: 'bg-green-100 text-green-800',
+  simulated: 'bg-sky-100 text-sky-800',
   ok: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-700',
   skipped: 'bg-amber-100 text-amber-800',

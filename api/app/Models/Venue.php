@@ -102,6 +102,18 @@ class Venue extends Model implements Messageable
         return null;
     }
 
+    /** Kontroly miesta idú adresátovi témy „kontroly" jeho vlastníckeho kanála. */
+    public function attributeIssueRecipient(): ?User
+    {
+        foreach ($this->ownerCanals()->get() as $canal) {
+            if ($recipient = $canal->attributeIssueRecipient()) {
+                return $recipient;
+            }
+        }
+
+        return null;
+    }
+
     public function events()
     {
         return $this->hasMany(Event::class);

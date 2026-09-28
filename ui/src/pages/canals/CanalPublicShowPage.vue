@@ -22,6 +22,10 @@
       </div>
 
       <template v-else-if="canal">
+        <p v-if="contactResult" class="mb-4 rounded-lg p-3 text-sm"
+          :class="contactResult === 'overeny' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'">
+          {{ contactResult === 'overeny' ? t('public.canal.contactVerified') : t('public.canal.contactInvalid') }}
+        </p>
         <div v-if="!canal.imageUrl" class="mb-6">
           <RouterLink to="/" class="mb-3 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
           <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">{{ canal.name }}</h1>
@@ -107,6 +111,8 @@
                 :class="{ 'mt-3': canal.phone || canal.website }" />
             </div>
 
+            <CanalClaimBox v-if="canal.claimable" :canal-id="canal.id" :claim-contact="Boolean(canal.claimContact)" />
+
             <div v-if="canal.municipality" class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.canal.activeIn') }}</div>
               <p class="text-sm text-slate-700">{{ canal.municipality.name }}</p>
@@ -130,6 +136,7 @@ import { useHead } from '@vueuse/head'
 import { showCanalPublic, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import ContactButton from '@/components/ContactButton.vue'
+import CanalClaimBox from '@/components/CanalClaimBox.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
@@ -138,6 +145,11 @@ import { useI18n, localeTag } from '@/i18n'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+// Výsledok odkazu na overenie kontaktu (CanalContactVerifier). Odloží sa hneď —
+// presmerovanie na slugovú adresu nižšie query zahodí.
+const contactResult = route.query.kontakt === 'overeny' || route.query.kontakt === 'neplatny'
+  ? route.query.kontakt
+  : null
 const canal = ref<CanalItem | null>(null)
 const loading = ref(false)
 const error = ref(false)

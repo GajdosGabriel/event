@@ -2,6 +2,8 @@
 
 namespace App\Services\Attributes;
 
+use App\Enums\CanalNotificationTopic;
+use App\Services\Canals\CanalRecipients;
 use App\Contracts\AttributeProbe;
 use App\Enums\AttributeCheckStatus;
 use App\Models\AttributeCheck;
@@ -327,7 +329,15 @@ class AttributeCheckService
             return;
         }
 
-        $recipient->notify(new AttributeIssueNotice($check, $model));
+        $notice = new AttributeIssueNotice($check, $model);
+        $recipients = app(CanalRecipients::class);
+        $canal = $recipients->canalOf($model);
+
+        if ($recipients->mayNotify($canal, $recipient, CanalNotificationTopic::Reviews, $notice, $model)) {
+            $recipient->notify($notice);
+        }
+
+        $recipients->fanOut($canal, CanalNotificationTopic::Reviews, $notice, [$recipient], $model);
 
         $check->forceFill(['notified_at' => now()])->save();
     }

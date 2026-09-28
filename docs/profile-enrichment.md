@@ -10,7 +10,7 @@ AI nedodáva GPS. `ProfileCoordinates` využíva existujúci Nominatim geokóder
 
 Pred uložením sa profil znovu načíta pod zámkom. Nové používateľské hodnoty majú prednosť; zmena identity alebo adresy počas vyhľadávania odloží zápis. Audit `profile_enrichments` drží zmeny, zdroje, stav pokusov a e-mailu. Zhrnutie a odkazy sú aj v administrátorskom denníku (`profiles.enriched`), spotreba v AI prehľade. Zdrojové kontakty sa nepoužijú ako príjemcovia správ.
 
-Používateľskému vlastníkovi ide jeden e-mail až po skutočnom doplnení, s prehľadom a odkazom na úpravu. Príjemca sa určuje existujúcimi pravidlami `messageRecipient()`; technickému vlastníkovi importovaného kanála e-mail neodíde. Chyba e-mailu nespúšťa platené vyhľadávanie znova; e-mail má najviac tri pokusy po hodine. Vyhľadávanie má najviac tri pokusy s odstupom šesť hodín. Úspešná kontrola bez výsledku sa neopakuje automaticky.
+Používateľskému vlastníkovi ide jeden e-mail až po skutočnom doplnení, s prehľadom a odkazom na úpravu. Príjemca sa určuje cez `attributeIssueRecipient()` (téma „kontroly“ v nastaveniach tímu, viď canal-ownership.md); technickému vlastníkovi importovaného kanála e-mail neodíde. Chyba e-mailu nespúšťa platené vyhľadávanie znova; e-mail má najviac tri pokusy po hodine. Vyhľadávanie má najviac tri pokusy s odstupom šesť hodín. Úspešná kontrola bez výsledku sa neopakuje automaticky.
 
 Nastavenia: `PROFILE_ENRICHMENT_ENABLED` (predvolene true), `PROFILE_ENRICHMENT_MONTHLY_LIMIT_USD` (predvolene 1 USD; 0 bez limitu), `PROFILE_ENRICHMENT_MODEL` (gpt-4.1-mini), `PROFILE_ENRICHMENT_SEARCH_COST_USD` (odhad poplatku 0.01 USD za nástroj). Limit sa týka tejto funkcie a kontroluje sa pred volaním; posledné volanie ho môže prekročiť. Používa existujúci `OPENAI_API_KEY`.
 

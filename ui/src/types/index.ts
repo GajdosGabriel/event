@@ -357,6 +357,10 @@ export interface CanalItem {
   membersList: { id: number; name: string; isOwner: boolean }[]
   /** Má cieľ vlastníka s e-mailom? (riadi tlačidlo „Poslať správu") */
   contactable?: boolean
+  /** Nikto ho nespravuje a nie je zberný — ponúknuť „Spravujete tento kanál?" */
+  claimable?: boolean
+  /** Dá sa prevzatie overiť cez kontaktný e-mail kanála? */
+  claimContact?: boolean
 }
 
 // Venue

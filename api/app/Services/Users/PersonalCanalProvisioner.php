@@ -9,6 +9,7 @@ use App\Enums\RegistrationSource;
 use App\Jobs\ImportSocialAvatarJob;
 use App\Models\Canal;
 use App\Models\User;
+use App\Services\Canals\CanalAuditor;
 use Illuminate\Support\Str;
 
 /**
@@ -54,6 +55,8 @@ class PersonalCanalProvisioner
         ]);
 
         $user->forgetCanalRoles();
+
+        app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'personal_canal']);
 
         $user->canal_id = $canal->id;
         $user->save();

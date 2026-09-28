@@ -18,7 +18,7 @@ class SystemLog extends Model
 
     public const LEVELS = ['info', 'warning', 'error'];
 
-    public const STATUSES = ['sent', 'failed', 'skipped', 'ok'];
+    public const STATUSES = ['sent', 'simulated', 'failed', 'skipped', 'ok'];
 
     protected $fillable = [
         'level', 'channel', 'event', 'status', 'message', 'recipient',

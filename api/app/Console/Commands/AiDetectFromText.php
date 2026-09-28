@@ -137,7 +137,7 @@ class AiDetectFromText extends Command
 
     private function ensureSystemOwnership(User $systemOwner, Canal $canal): void
     {
-        $systemOwner->canals()->syncWithoutDetaching([
+        $changes = $systemOwner->canals()->syncWithoutDetaching([
             $canal->id => [
                 'is_owner' => true,
                 'status' => ModelStatus::Published->value,
@@ -154,6 +154,10 @@ class AiDetectFromText extends Command
 
         if ((int) ($systemOwner->canal_id ?? 0) !== (int) $canal->id) {
             $systemOwner->forceFill(['canal_id' => $canal->id])->save();
+        }
+
+        if ($changes['attached'] !== []) {
+            app(\App\Services\Canals\CanalAuditor::class)->memberChanged($canal, $systemOwner, null, \App\Enums\CanalRole::Owner, notify: false, context: ['reason' => 'import_technical_owner']);
         }
     }
 

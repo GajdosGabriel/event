@@ -2,9 +2,11 @@
 
 namespace App\Services\Questions;
 
+use App\Enums\CanalNotificationTopic;
 use App\Models\Event;
 use App\Models\Question;
 use App\Notifications\QuestionReceived;
+use App\Services\Canals\CanalRecipients;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -27,18 +29,25 @@ use Illuminate\Support\Facades\Notification;
  */
 class QuestionAlert
 {
+    public function __construct(
+        private CanalRecipients $recipients,
+    ) {}
+
     public function notify(Question $question, Event $event): void
     {
         $recipient = $event->questionBoardRecipient();
+        $notice = new QuestionReceived($question, $event);
+        $canal = $this->recipients->canalOf($event);
 
         // Príjemcu sa nájsť nemusí (podujatie bez použiteľného účtu). Otázka aj
         // tak vznikla — v dashboarde ju uvidí ten, kto sa naň pozrie; e-mail je
         // nadstavba, nie podmienka.
-        if ($recipient === null) {
-            return;
+        if ($recipient !== null
+            && $this->recipients->mayNotify($canal, $recipient, CanalNotificationTopic::Questions, $notice, $event)) {
+            Notification::route('mail', $recipient->email)->notify($notice);
         }
 
-        Notification::route('mail', $recipient->email)
-            ->notify(new QuestionReceived($question, $event));
+        // Ďalší členovia tímu, ktorí majú otázky zapnuté.
+        $this->recipients->fanOut($canal, CanalNotificationTopic::Questions, $notice, [$recipient], $event);
     }
 }

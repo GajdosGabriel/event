@@ -14,6 +14,8 @@ export interface CanalTeamMember {
   isOwner: boolean
   isSelf: boolean
   joinedAt: string | null
+  /** Zapnuté témy notifikácií — len pre seba a pre toho, kto tím spravuje. */
+  notifications: Record<string, boolean> | null
 }
 
 export interface CanalTeamInvitation {
@@ -30,6 +32,7 @@ export interface CanalTeam {
   members: CanalTeamMember[]
   invitations: CanalTeamInvitation[]
   roles: SelectOption[]
+  notificationTopics: SelectOption[]
   canManage: boolean
 }
 
@@ -48,6 +51,7 @@ function mapTeam(payload: Record<string, unknown>): CanalTeam {
       isOwner: Boolean(m['is_owner']),
       isSelf: Boolean(m['is_self']),
       joinedAt: (m['joined_at'] as string) ?? null,
+      notifications: (m['notifications'] as Record<string, boolean>) ?? null,
     })),
     invitations: ((data['invitations'] as Record<string, unknown>[]) ?? []).map(i => ({
       id: i['id'] as number,
@@ -59,6 +63,7 @@ function mapTeam(payload: Record<string, unknown>): CanalTeam {
       createdAt: (i['created_at'] as string) ?? null,
     })),
     roles: (meta['roles'] as SelectOption[]) ?? [],
+    notificationTopics: (meta['notification_topics'] as SelectOption[]) ?? [],
     canManage: Boolean(permissions['manage']),
   }
 }
@@ -92,6 +97,11 @@ export async function updateCanalMemberRole(canalId: number, userId: number, rol
   return mapTeam(data)
 }
 
+export async function updateCanalMemberNotification(canalId: number, userId: number, topic: string, enabled: boolean): Promise<CanalTeam> {
+  const { data } = await http.put(`${teamUrl(canalId)}/${userId}/notifications`, { topic, enabled })
+  return mapTeam(data)
+}
+
 export async function removeCanalMember(canalId: number, userId: number): Promise<CanalTeam> {
   const { data } = await http.delete(`${teamUrl(canalId)}/${userId}`)
   return mapTeam(data)
@@ -110,6 +120,8 @@ export interface CanalInvitationDetail {
   status: InvitationStatus
   /** Sedí adresa prihláseného účtu s adresou pozvánky? */
   emailMatches: boolean
+  /** Pozvánka na prevzatie od systému — prijať ju smie ktorýkoľvek účet. */
+  anyAccount: boolean
 }
 
 function mapInvitation(payload: Record<string, unknown>): CanalInvitationDetail {
@@ -126,6 +138,7 @@ function mapInvitation(payload: Record<string, unknown>): CanalInvitationDetail 
     expiresAt: (data['expires_at'] as string) ?? null,
     status: (data['status'] as InvitationStatus) ?? 'pending',
     emailMatches: Boolean(data['email_matches']),
+    anyAccount: Boolean(data['any_account']),
   }
 }
 

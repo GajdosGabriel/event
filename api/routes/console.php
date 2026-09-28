@@ -97,6 +97,9 @@ $artisan('app:attribute-checks-run')->everyFiveMinutes()->withoutOverlapping(10)
 $artisan('app:content-reviews-run')->everyTenMinutes()->withoutOverlapping(15);
 // Kontakty a presná poloha po dvojhodinovom odstupe, v krátkej dávke pre webcron.
 $artisan('app:profiles-enrich')->everyFifteenMinutes()->withoutOverlapping(5);
+// Oslovenie organizátorov po akcii — dopoludnia, aby e-mail neprišiel v noci.
+// Kým platí CANAL_OUTREACH_MAIL_SIMULATE, ide len do denníka.
+$artisan('app:canal-outreach')->dailyAt('10:15')->withoutOverlapping(30);
 // Riadky zobrazení slúžia len na dedup a časové štatistiky; trvalý počet je
 // v stĺpci views_count, takže mazanie starých riadkov oň nepripraví.
 $artisan('app:views-prune')->dailyAt('03:20');

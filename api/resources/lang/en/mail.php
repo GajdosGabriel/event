@@ -119,6 +119,85 @@ return [
         'ignore' => 'If you were not expecting this invitation, simply ignore this e-mail.',
     ],
 
+    // App\Notifications\CanalOwnershipChanged — zmena vlastníctva kanála.
+    'canal_ownership' => [
+        'claimed' => [
+            'subject' => 'Channel :canal has a new manager',
+            'member' => 'You have taken over the channel **":canal"**. From now on you will receive sign-ups and messages from visitors.',
+            'owners' => 'The channel **":canal"** was taken over by the account **:member**.',
+            'contact' => 'The channel **":canal"**, which lists this address, was taken over by the account **:member**.',
+        ],
+        'owner_added' => [
+            'subject' => 'New owner of channel :canal',
+            'member' => 'You are now an owner of the channel **":canal"**.',
+            'owners' => 'The account **:member** is now an owner of the channel **":canal"**.',
+        ],
+        'owner_removed' => [
+            'subject' => 'Owner change in channel :canal',
+            'member' => 'You are no longer an owner of the channel **":canal"**.',
+            'owners' => 'The account **:member** is no longer an owner of the channel **":canal"**.',
+        ],
+        'action' => 'Open channel',
+        'not_you' => 'If you do not know about this, reply to this email and we will look into it.',
+        'contest' => 'If you do not agree with the takeover, you can contest it until :date.',
+        'contest_action' => 'I do not agree',
+    ],
+
+    // App\Notifications\CanalOutreachNotice — oslovenie organizátora po akcii.
+    'canal_outreach' => [
+        'subject' => 'People viewed your event :event on :site',
+        'intro' => 'We published your event **":event"** (:date) on :site.',
+        'views' => '{0} Nobody has viewed it yet.|{1} **1** person viewed it.|[2,*] **:visitors** people viewed it (:views views).',
+        'signups' => '{1} **1** participant signed up.|[2,*] **:signups** participants signed up.',
+        'offer' => 'The profile **":canal"** was created automatically from public sources. If you take it over, you can publish further events for free, edit the details and receive sign-ups and messages from visitors.',
+        'action' => 'Take over the profile',
+        'why' => 'We are writing because your address is listed with the event or the organizer profile. We will not contact you again unless you show interest.',
+        'unsubscribe' => 'Do not want emails like this? [Unsubscribe](:url).',
+    ],
+
+    // App\Notifications\CanalContactNotice — zmena kontaktného e-mailu kanála.
+    'canal_contact' => [
+        'verify' => [
+            'subject' => 'Verify the contact of channel :canal',
+            'intro' => 'The address **:email** was set as the contact email of the channel **":canal"**. Please confirm it belongs to the channel.',
+            'action' => 'Confirm address',
+            'ignore' => 'If you did not request this change, ignore this email.',
+        ],
+        'changed' => [
+            'subject' => 'Contact of channel :canal was changed',
+            'intro' => 'The contact email of the channel **":canal"** was changed from this address to **:email**.',
+        ],
+    ],
+
+    // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
+    'canal_claim' => [
+        'message' => 'Message: ":message"',
+        'verify' => [
+            'subject' => 'Request to manage channel :canal',
+            'intro' => 'The account **:member** asks to manage the channel **":canal"**, which lists this address. If you know them and agree, please confirm.',
+            'action' => 'Review request',
+            'ignore' => 'If you do not know the requester, ignore this email — the request expires on :date.',
+        ],
+        'requested' => [
+            'subject' => 'Request to take over channel :canal',
+            'intro' => 'The account **:name** (:member) asks to take over the channel **":canal"**. The request awaits review.',
+            'action' => 'Open requests',
+        ],
+        'rejected' => [
+            'subject' => 'Your request for channel :canal was not approved',
+            'intro' => 'We did not approve your request to manage the channel **":canal"**.',
+        ],
+        'contested' => [
+            'subject' => 'Takeover of channel :canal was contested',
+            'intro' => 'The contact address of the channel **":canal"** disagrees with its takeover by **:name** (:member).',
+            'action' => 'Open requests',
+        ],
+        'reverted' => [
+            'subject' => 'Management of channel :canal was cancelled',
+            'intro' => 'After review we cancelled your takeover of the channel **":canal"**.',
+        ],
+    ],
+
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
         'subject' => 'Your ticket for :event',

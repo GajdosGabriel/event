@@ -3,6 +3,7 @@
 // Hlášky správy tímu kanála (App\Services\Canals\*, DashboardCanalTeamController).
 return [
     'last_owner' => 'A canal must have at least one owner.',
+    'collection_not_claimable' => 'This canal collects events from various organizers and cannot be taken over.',
     'already_member' => 'This user is already on the canal team.',
     'already_accepted' => 'The invitation has already been accepted.',
     'invitation_invalid' => 'The invitation is invalid or has expired.',

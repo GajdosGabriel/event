@@ -33,6 +33,14 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="IMPORTS_DETECT_CANAL_WITH_AI" value="false"/>
+        <!-- Simulácia nových e-mailov kanála (config/canals.php) je v testoch
+             vždy zapnutá — lokálny .env ju smie vypnúť, testy nie. Test, ktorý
+             ostré posielanie overuje, si ju vypne sám cez config(). -->
+        <env name="CANAL_OWNERSHIP_MAIL_SIMULATE" value="true"/>
+        <env name="CANAL_TEAM_NOTIFICATIONS_SIMULATE" value="true"/>
+        <env name="CANAL_CLAIM_MAIL_SIMULATE" value="true"/>
+        <env name="CANAL_CONTACT_MAIL_SIMULATE" value="true"/>
+        <env name="CANAL_OUTREACH_MAIL_SIMULATE" value="true"/>
         <!-- Odstup medzi dotazmi na Nominatim je zdvorilost voci verejnej sluzbe;
              v testoch chodi geokoder cez Http::fake, takze by len spomaloval. -->
         <env name="NOMINATIM_MIN_INTERVAL" value="0"/>

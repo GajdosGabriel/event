@@ -119,6 +119,85 @@ return [
         'ignore' => 'Falls Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail einfach.',
     ],
 
+    // App\Notifications\CanalOwnershipChanged — zmena vlastníctva kanála.
+    'canal_ownership' => [
+        'claimed' => [
+            'subject' => 'Der Kanal :canal hat einen neuen Verwalter',
+            'member' => 'Sie haben den Kanal **„:canal"** übernommen. Ab jetzt erhalten Sie Anmeldungen und Nachrichten von Besuchern.',
+            'owners' => 'Der Kanal **„:canal"** wurde vom Konto **:member** übernommen.',
+            'contact' => 'Der Kanal **„:canal"**, bei dem diese Adresse angegeben ist, wurde vom Konto **:member** übernommen.',
+        ],
+        'owner_added' => [
+            'subject' => 'Neuer Eigentümer des Kanals :canal',
+            'member' => 'Sie sind jetzt Eigentümer des Kanals **„:canal"**.',
+            'owners' => 'Das Konto **:member** ist jetzt Eigentümer des Kanals **„:canal"**.',
+        ],
+        'owner_removed' => [
+            'subject' => 'Eigentümerwechsel im Kanal :canal',
+            'member' => 'Sie sind nicht mehr Eigentümer des Kanals **„:canal"**.',
+            'owners' => 'Das Konto **:member** ist nicht mehr Eigentümer des Kanals **„:canal"**.',
+        ],
+        'action' => 'Kanal öffnen',
+        'not_you' => 'Wenn Sie davon nichts wissen, antworten Sie auf diese E-Mail und wir prüfen die Änderung.',
+        'contest' => 'Wenn Sie mit der Übernahme nicht einverstanden sind, können Sie bis :date widersprechen.',
+        'contest_action' => 'Ich widerspreche',
+    ],
+
+    // App\Notifications\CanalOutreachNotice — oslovenie organizátora po akcii.
+    'canal_outreach' => [
+        'subject' => 'Menschen haben Ihre Veranstaltung :event auf :site angesehen',
+        'intro' => 'Wir haben Ihre Veranstaltung **„:event"** (:date) auf :site veröffentlicht.',
+        'views' => '{0} Bisher hat sie niemand angesehen.|{1} **1** Person hat sie angesehen.|[2,*] **:visitors** Personen haben sie angesehen (:views Aufrufe).',
+        'signups' => '{1} **1** Teilnehmer hat sich angemeldet.|[2,*] **:signups** Teilnehmer haben sich angemeldet.',
+        'offer' => 'Das Profil **„:canal"** entstand automatisch aus öffentlichen Quellen. Wenn Sie es übernehmen, können Sie weitere Veranstaltungen kostenlos veröffentlichen, die Angaben bearbeiten und Anmeldungen sowie Nachrichten erhalten.',
+        'action' => 'Profil übernehmen',
+        'why' => 'Wir schreiben Ihnen, weil Ihre Adresse bei der Veranstaltung oder dem Veranstalterprofil angegeben ist. Wir melden uns nicht erneut, solange Sie kein Interesse zeigen.',
+        'unsubscribe' => 'Keine solchen E-Mails mehr? [Abmelden](:url).',
+    ],
+
+    // App\Notifications\CanalContactNotice — zmena kontaktného e-mailu kanála.
+    'canal_contact' => [
+        'verify' => [
+            'subject' => 'Kontakt des Kanals :canal bestätigen',
+            'intro' => 'Die Adresse **:email** wurde als Kontakt-E-Mail des Kanals **„:canal"** eingetragen. Bitte bestätigen Sie, dass sie zum Kanal gehört.',
+            'action' => 'Adresse bestätigen',
+            'ignore' => 'Wenn Sie diese Änderung nicht angefordert haben, ignorieren Sie diese E-Mail.',
+        ],
+        'changed' => [
+            'subject' => 'Kontakt des Kanals :canal wurde geändert',
+            'intro' => 'Die Kontakt-E-Mail des Kanals **„:canal"** wurde von dieser Adresse auf **:email** geändert.',
+        ],
+    ],
+
+    // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
+    'canal_claim' => [
+        'message' => 'Nachricht: „:message"',
+        'verify' => [
+            'subject' => 'Anfrage zur Verwaltung des Kanals :canal',
+            'intro' => 'Das Konto **:member** möchte den Kanal **„:canal"** verwalten, bei dem diese Adresse angegeben ist. Wenn Sie es kennen und einverstanden sind, bestätigen Sie bitte.',
+            'action' => 'Anfrage prüfen',
+            'ignore' => 'Wenn Sie den Antragsteller nicht kennen, ignorieren Sie diese E-Mail — die Anfrage läuft am :date ab.',
+        ],
+        'requested' => [
+            'subject' => 'Antrag auf Übernahme des Kanals :canal',
+            'intro' => 'Das Konto **:name** (:member) beantragt die Übernahme des Kanals **„:canal"**. Der Antrag wartet auf Prüfung.',
+            'action' => 'Anträge öffnen',
+        ],
+        'rejected' => [
+            'subject' => 'Ihr Antrag für den Kanal :canal wurde nicht genehmigt',
+            'intro' => 'Ihren Antrag auf Verwaltung des Kanals **„:canal"** haben wir nicht genehmigt.',
+        ],
+        'contested' => [
+            'subject' => 'Übernahme des Kanals :canal wurde angefochten',
+            'intro' => 'Die Kontaktadresse des Kanals **„:canal"** ist mit der Übernahme durch **:name** (:member) nicht einverstanden.',
+            'action' => 'Anträge öffnen',
+        ],
+        'reverted' => [
+            'subject' => 'Verwaltung des Kanals :canal aufgehoben',
+            'intro' => 'Nach Prüfung haben wir Ihre Übernahme des Kanals **„:canal"** aufgehoben.',
+        ],
+    ],
+
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
         'subject' => 'Ihr Ticket für :event',

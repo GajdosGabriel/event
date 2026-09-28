@@ -40,6 +40,22 @@
             @click="remove(m)">
             {{ t('team.remove') }}
           </button>
+
+          <!-- Čo člen dostáva e-mailom. Svoje si prepne každý, cudzie len
+               správca tímu (a len v úprave, nie v detaile kanála). -->
+          <div v-if="m.notifications" class="flex w-full flex-wrap items-center gap-1.5 pl-9">
+            <span class="text-xs text-slate-500">{{ t('team.notifications.label') }}</span>
+            <button v-for="topic in team.notificationTopics" :key="topic.value" type="button"
+              :disabled="busy || !canEditNotifications(m)"
+              :aria-pressed="m.notifications[topic.value] ? 'true' : 'false'"
+              class="rounded-full border px-2 py-0.5 text-xs font-medium disabled:cursor-default"
+              :class="m.notifications[topic.value]
+                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : 'border-slate-200 bg-white text-slate-400 line-through'"
+              @click="toggleNotification(m, String(topic.value))">
+              {{ topic.label }}
+            </button>
+          </div>
         </li>
       </ul>
 
@@ -90,7 +106,7 @@
           </FormField>
           <button type="submit" :disabled="busy"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-            {{ busy ? t('team.inviting') : t('team.invite') }}
+            {{ inviting ? t('team.inviting') : t('team.invite') }}
           </button>
         </div>
         <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
@@ -120,6 +136,7 @@ import {
   inviteCanalMember,
   updateCanalMemberRole,
   removeCanalMember,
+  updateCanalMemberNotification,
   resendCanalInvitation,
   cancelCanalInvitation,
   type CanalRole,
@@ -148,6 +165,8 @@ const team = ref<CanalTeam | null>(null)
 const loading = ref(false)
 const loadError = ref(false)
 const busy = ref(false)
+/** „Odosielam…" patrí len pozvánke, nie každej akcii panela. */
+const inviting = ref(false)
 const error = ref<string | null>(null)
 const inviteEmail = ref('')
 const inviteRole = ref<CanalRole>('editor')
@@ -206,10 +225,12 @@ async function run(action: () => Promise<CanalTeam>, successMessage?: string) {
 async function invite() {
   validation.markValidated()
 
+  inviting.value = true
   const ok = await run(
     () => inviteCanalMember(props.canalId, inviteEmail.value, inviteRole.value),
     t('team.invited'),
   )
+  inviting.value = false
 
   // Po odoslaní je pole zámerne zase „nevalidované" — prázdne políčko pre
   // ďalšiu pozvánku nie je chyba.
@@ -223,6 +244,17 @@ async function changeRole(member: CanalTeamMember, role: CanalRole) {
   await run(() => updateCanalMemberRole(props.canalId, member.id, role), t('team.roleChanged'))
   // Pri neúspechu vrátime <select> na stav zo servera.
   if (error.value) team.value = await fetchCanalTeam(props.canalId)
+}
+
+/** Svoje nastavenia vždy, cudzie len pri správe tímu. */
+function canEditNotifications(member: CanalTeamMember): boolean {
+  return member.isSelf || canManage.value
+}
+
+async function toggleNotification(member: CanalTeamMember, topic: string) {
+  if (!canEditNotifications(member) || !member.notifications) return
+  const enabled = !member.notifications[topic]
+  await run(() => updateCanalMemberNotification(props.canalId, member.id, topic, enabled), t('team.notifications.saved'))
 }
 
 async function remove(member: CanalTeamMember) {

@@ -27,6 +27,8 @@ class CanalInviter
 
     public function __construct(
         private CanalMembership $membership,
+        private CanalClaims $claims,
+        private CanalAuditor $auditor,
     ) {}
 
     public function invite(Canal $canal, string $email, CanalRole $role, User $inviter): CanalInvitation
@@ -56,6 +58,7 @@ class CanalInviter
         ]);
 
         $this->notify($invitation);
+        $this->auditor->invitation($invitation, 'sent');
 
         return $invitation;
     }
@@ -86,12 +89,16 @@ class CanalInviter
             return $invitation;
         }
 
-        return $canal->invitations()->create([
+        $invitation = $canal->invitations()->create([
             'email' => $email,
             'role' => CanalRole::Owner->value,
             'invited_by_user_id' => null,
             'expires_at' => now()->addDays(self::TTL_DAYS),
         ]);
+
+        $this->auditor->invitation($invitation, 'claim_created');
+
+        return $invitation;
     }
 
     /** Znovu pošle e-mail k nevybavenej pozvánke a predĺži jej platnosť. */
@@ -102,6 +109,7 @@ class CanalInviter
         $invitation->forceFill(['expires_at' => now()->addDays(self::TTL_DAYS)])->save();
 
         $this->notify($invitation);
+        $this->auditor->invitation($invitation, 'resent');
 
         return $invitation;
     }
@@ -111,31 +119,60 @@ class CanalInviter
         $this->assertPending($invitation);
 
         $invitation->forceFill(['revoked_at' => now()])->save();
+
+        $this->auditor->invitation($invitation, 'revoked');
+    }
+
+    /**
+     * Pozvánka na prevzatie od systému (ensureOwnerInvitation) na kanál, ktorý
+     * nikto nespravuje. Token prišiel na kontaktnú adresu organizátora a to je
+     * dôkaz — prijať ju smie ktorýkoľvek prihlásený účet (napr. osobný e-mail
+     * predsedu, keď pozvánka prišla na info@). Kontaktná adresa sa o prevzatí
+     * dozvie a môže ho napadnúť (CanalClaims).
+     */
+    public function isClaimInvitation(CanalInvitation $invitation, ?Canal $canal = null): bool
+    {
+        $canal ??= $invitation->canal()->first();
+
+        return $invitation->invited_by_user_id === null
+            && $invitation->role->isOwner()
+            && $canal !== null
+            && ! $canal->isManaged();
     }
 
     /**
      * Prijatie pozvánky prihláseným účtom. Adresa účtu sa musí zhodovať s tou,
      * na ktorú pozvánka prišla — inak by preposlaný odkaz pustil do kanála
-     * kohokoľvek.
+     * kohokoľvek. Výnimkou je pozvánka systému na prevzatie (isClaimInvitation).
      */
     public function accept(CanalInvitation $invitation, User $user): Canal
     {
         $this->assertPending($invitation);
 
-        if (mb_strtolower((string) $user->email) !== mb_strtolower((string) $invitation->email)) {
+        $canal = $invitation->canal()->firstOrFail();
+
+        if (! $this->isClaimInvitation($invitation, $canal)
+            && mb_strtolower((string) $user->email) !== mb_strtolower((string) $invitation->email)) {
             throw ValidationException::withMessages([
                 'email' => __('canal_team.email_mismatch', ['email' => $invitation->email]),
             ]);
         }
 
-        $canal = $invitation->canal()->firstOrFail();
-
-        $this->membership->attach($canal, $user, $invitation->role);
+        // Vlastník nespravovaného (importovaného) kanála ho tým preberá —
+        // nie je len ďalší člen vedľa technického vlastníka z importu.
+        // Cez CanalClaims, aby prevzatie malo doklad a lehotu na námietku.
+        if ($invitation->role->isOwner() && ! $canal->isManaged()) {
+            $canal = $this->claims->recordInvitation($invitation, $user);
+        } else {
+            $this->membership->attach($canal, $user, $invitation->role);
+        }
 
         $invitation->forceFill([
             'accepted_at' => now(),
             'accepted_by_user_id' => $user->id,
         ])->save();
+
+        $this->auditor->invitation($invitation, 'accepted', $user);
 
         return $canal;
     }

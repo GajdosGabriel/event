@@ -2,6 +2,8 @@
 
 namespace App\Services\Profiles;
 
+use App\Enums\CanalNotificationTopic;
+use App\Services\Canals\CanalRecipients;
 use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Models\AiUsage;
@@ -129,7 +131,7 @@ class ProfileEnricher
                     if ($changes !== []) {
                         $current->forceFill($changes)->save();
                     }
-                    $recipient = $changes !== [] ? $current->messageRecipient() : null;
+                    $recipient = $changes !== [] ? $current->attributeIssueRecipient() : null;
                     $audit->update([
                         'completed_at' => now(), 'last_error' => null,
                         'changes' => $changes, 'evidence' => $evidence, 'recipient_id' => $recipient?->id,
@@ -157,7 +159,7 @@ class ProfileEnricher
             || $audit->notification_retry_at?->isFuture() || $audit->notification_attempts >= 3) {
             return;
         }
-        $recipient = $subject->messageRecipient();
+        $recipient = $subject->attributeIssueRecipient();
         if (! $recipient || (int) $recipient->id !== (int) $audit->recipient_id) {
             $audit->update(['notification_completed_at' => now()]);
 
@@ -165,7 +167,15 @@ class ProfileEnricher
         }
         $audit->update(['notification_attempts' => $audit->notification_attempts + 1, 'notification_retry_at' => now()->addHour()]);
         try {
-            $recipient->notify(new ProfileCompleted($subject, $audit->changes));
+            $notice = new ProfileCompleted($subject, $audit->changes);
+            $recipients = app(CanalRecipients::class);
+            $canal = $recipients->canalOf($subject);
+
+            if ($recipients->mayNotify($canal, $recipient, CanalNotificationTopic::Reviews, $notice, $subject)) {
+                $recipient->notify($notice);
+            }
+
+            $recipients->fanOut($canal, CanalNotificationTopic::Reviews, $notice, [$recipient], $subject);
             $audit->update(['notified_at' => now(), 'notification_completed_at' => now()]);
         } catch (Throwable $e) {
             Recorder::warning('profiles', 'notification_failed', 'E-mail o doplnení profilu sa nepodarilo odoslať.', subject: $subject,

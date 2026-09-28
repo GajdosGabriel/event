@@ -43,6 +43,8 @@ class CanalInvitationController extends Controller
                 'status' => $this->status($invitation),
                 'email_matches' => $user !== null
                     && mb_strtolower((string) $user->email) === mb_strtolower((string) $invitation->email),
+                // Pozvánka na prevzatie od systému — prijať ju smie ktorýkoľvek účet.
+                'any_account' => $this->inviter->isClaimInvitation($invitation),
             ],
         ]);
     }

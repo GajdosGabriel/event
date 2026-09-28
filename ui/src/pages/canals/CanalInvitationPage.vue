@@ -69,7 +69,9 @@
       </div>
 
       <!-- Prihlásený inou adresou -->
-      <div v-else-if="!invitation.emailMatches" class="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
+      <!-- Pozvánka na prevzatie od systému prijme ktorýkoľvek účet
+           (token prišiel na kontaktnú adresu kanála). -->
+      <div v-else-if="!invitation.emailMatches && !invitation.anyAccount" class="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
         <p class="font-semibold">{{ t('invitation.otherAccountTitle') }}</p>
         <p class="mt-1">
           {{ t('invitation.otherAccountLeadBefore') }} <strong>{{ invitation.email }}</strong>.
@@ -79,6 +81,9 @@
 
       <!-- Prihlásený správnou adresou -->
       <div v-else class="mt-5">
+        <p v-if="invitation.anyAccount && !invitation.emailMatches" class="mb-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+          {{ t('invitation.anyAccountNote', { email: invitation.email }) }}
+        </p>
         <p v-if="error" class="mb-2 text-sm text-red-600">{{ error }}</p>
         <button type="button" :disabled="busy"
           class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"

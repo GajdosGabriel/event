@@ -3,6 +3,7 @@
 // Hlášky správy tímu kanála (App\Services\Canals\*, DashboardCanalTeamController).
 return [
     'last_owner' => 'Kanál musí mít alespoň jednoho vlastníka.',
+    'collection_not_claimable' => 'Tento kanál sdružuje akce různých pořadatelů a nelze ho převzít.',
     'already_member' => 'Tento uživatel už v týmu kanálu je.',
     'already_accepted' => 'Pozvánka už byla přijata.',
     'invitation_invalid' => 'Pozvánka je neplatná nebo jí vypršela platnost.',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\CanalNotificationTopic;
 use App\Enums\CanalRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CanalInviteRequest;
@@ -11,8 +12,10 @@ use App\Models\CanalInvitation;
 use App\Models\User;
 use App\Services\Canals\CanalInviter;
 use App\Services\Canals\CanalMembership;
+use App\Services\Canals\CanalRecipients;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Tím kanála: kto v ňom je, s akou rolou, a kto je pozvaný.
@@ -25,6 +28,7 @@ class DashboardCanalTeamController extends Controller
     public function __construct(
         private CanalMembership $membership,
         private CanalInviter $inviter,
+        private CanalRecipients $recipients,
     ) {
     }
 
@@ -51,6 +55,30 @@ class DashboardCanalTeamController extends Controller
         $this->assertMember($canal, $user);
 
         $this->membership->changeRole($canal, $user, $request->role());
+
+        return response()->json($this->teamPayload($canal));
+    }
+
+    /**
+     * Zapne/vypne členovi tému notifikácií. Svoje si nastaví každý člen,
+     * cudzie len ten, kto tím spravuje.
+     */
+    public function updateNotifications(Request $request, Canal $canal, User $user): JsonResponse
+    {
+        $this->assertMember($canal, $user);
+
+        if ((int) $request->user()->id === (int) $user->id) {
+            $this->authorize('viewTeam', $canal);
+        } else {
+            $this->authorize('manageTeam', $canal);
+        }
+
+        $data = $request->validate([
+            'topic' => ['required', 'string', Rule::enum(CanalNotificationTopic::class)],
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $this->recipients->set($canal, $user, CanalNotificationTopic::from($data['topic']), (bool) $data['enabled']);
 
         return response()->json($this->teamPayload($canal));
     }
@@ -97,7 +125,9 @@ class DashboardCanalTeamController extends Controller
         $authUser = $request->user();
         $canManage = $authUser?->can('manageTeam', $canal) ?? false;
 
-        $members = $canal->users()->get()->map(function (User $member) use ($authUser, $canManage) {
+        $notifications = $this->recipients->matrix($canal);
+
+        $members = $canal->users()->get()->map(function (User $member) use ($authUser, $canManage, $notifications) {
             $role = CanalRole::tryFrom((string) $member->pivot->role) ?? CanalRole::Editor;
             $isSelf = (int) $member->id === (int) $authUser?->id;
 
@@ -110,6 +140,8 @@ class DashboardCanalTeamController extends Controller
                 'is_owner' => (bool) $member->pivot->is_owner,
                 'is_self' => $isSelf,
                 'joined_at' => $member->pivot->created_at,
+                // Nastavenia vidí a mení člen sám a ten, kto tím spravuje.
+                'notifications' => $isSelf || $canManage ? ($notifications[$member->id] ?? null) : null,
             ];
         })->values();
 
@@ -132,6 +164,7 @@ class DashboardCanalTeamController extends Controller
             ],
             'meta' => [
                 'roles' => CanalRole::options(),
+                'notification_topics' => CanalNotificationTopic::options(),
                 'permissions' => [
                     'manage' => $canManage,
                 ],

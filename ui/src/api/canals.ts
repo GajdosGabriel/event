@@ -46,6 +46,8 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     venuesList: ((raw['venues_list'] as Record<string,unknown>[]) ?? []).map(v => ({ id: v['id'] as number, name: v['name'] as string, isOwner: v['is_owner'] as boolean })),
     membersList: ((raw['members_list'] as Record<string,unknown>[]) ?? []).map(u => ({ id: u['id'] as number, name: u['name'] as string, isOwner: u['is_owner'] as boolean })),
     contactable: Boolean(raw['contactable']),
+    claimable: Boolean(raw['claimable']),
+    claimContact: Boolean(raw['claim_contact']),
   }
 }
 
