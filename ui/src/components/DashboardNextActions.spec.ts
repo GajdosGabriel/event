@@ -15,7 +15,7 @@ describe('dashboard next actions', () => {
     expect(w.findAll('progress')).toHaveLength(2)
     expect(w.get('progress').attributes('value')).toBe('100')
     expect(w.find('ol').exists()).toBe(false)
-    expect(w.get('a[href="/dashboard/messages?unread=1"]').text()).toContain('3')
+    expect(w.get('a[href="/dashboard/spravy?unread=1"]').text()).toContain('3')
     w.unmount()
   })
   it('offers retry when the new endpoint fails', async () => {
