@@ -53,6 +53,11 @@ class TicketController extends Controller
 
         Notification::route('mail', $ticket->holder_email)->notify(new TicketIssued($ticket->fresh(['event', 'admissions.ticketType'])));
 
+        // Prihlásený objednal na iný e-mail — vstupenku nájde aspoň vo zvončeku.
+        if ($user && mb_strtolower(trim((string) $ticket->holder_email)) !== mb_strtolower((string) $user->email)) {
+            $user->notify(new TicketIssued($ticket, bellOnly: true));
+        }
+
         // Organizátor a super-admini sa o prihlásení dozvedia pri každej
         // objednávke — aj z formulára, nielen z tlačidla „Rezervovať".
         app(EventSignup::class)->notifyAboutOrder($ticket);
@@ -72,6 +77,13 @@ class TicketController extends Controller
         $event = Event::query()->findOrFail($eventId);
 
         $this->ticketRepository->cancelOwnRegistration($event, $user);
+
+        // Zrušenie je už uložené — chyba pri upozornení nesmie vrátiť 500.
+        try {
+            app(EventSignup::class)->notifyAboutCancellation($event, $user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json(['status' => 'ok']);
     }

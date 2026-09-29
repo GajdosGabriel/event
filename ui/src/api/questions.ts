@@ -338,6 +338,11 @@ export type QuestionPhase = 'before' | 'live' | 'after'
 export interface EventQuestionsView {
   /** false = podujatie nástenku nemá; sekcia sa vôbec nevykreslí. */
   available: boolean
+  /**
+   * Podujatie importovaného kanála s overenou adresou: nástenka nie je, otázka
+   * ide organizátorovi e-mailom (len prihlásený) a nikde sa nezobrazí.
+   */
+  relay: boolean
   phase: QuestionPhase
   open: boolean
   moderation: boolean
@@ -366,6 +371,7 @@ export async function showEventQuestions(eventId: number): Promise<EventQuestion
 
   return {
     available: Boolean(raw['available']),
+    relay: Boolean(raw['relay']),
     phase: (raw['phase'] as QuestionPhase) ?? 'before',
     open: Boolean(raw['open']),
     moderation: Boolean(raw['moderation']),
@@ -414,10 +420,10 @@ export async function askEventQuestion(
   const { data } = await http.post(`/events/${eventId}/questions`, payload)
 
   return {
-    id: data.id as number,
+    id: (data.id as number) ?? 0,
     pending: Boolean(data.pending),
     notify: Boolean(data.notify),
-    visibility: (data.visibility as QuestionVisibility) ?? 'public',
+    visibility: (data.visibility as QuestionVisibility) ?? (data.relayed ? 'private' : 'public'),
     question: data.question ? mapQuestion(data.question as Record<string, unknown>) : null,
   }
 }

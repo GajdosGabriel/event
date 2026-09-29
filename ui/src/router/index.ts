@@ -185,6 +185,9 @@ const router = createRouter({
         // Inbox prijatých správ. Slovenská cesta zámerne — odkazuje naň e-mail
         // s odpoveďou aj dlaždica „Neprečítané správy" v štatistikách.
         { path: 'spravy', name: 'dashboard-messages', component: () => import('@/pages/dashboard/DashboardMessagesPage.vue') },
+        // Podpora — záložka Správ. Na `/:id` smeruje zvonček aj e-mail s odpoveďou.
+        { path: 'spravy/podpora', name: 'dashboard-support', component: () => import('@/pages/dashboard/DashboardSupportPage.vue') },
+        { path: 'spravy/podpora/:id(\\d+)', name: 'dashboard-support-ticket', component: () => import('@/pages/dashboard/DashboardSupportPage.vue') },
       ],
     },
 
@@ -215,10 +218,15 @@ const router = createRouter({
         // zámerne — rovnako ako `oznamy` nižšie.
         { path: 'navrhy-stitkov', name: 'admin-tag-suggestions', component: () => import('@/pages/admin/AdminTagSuggestionsPage.vue') },
         { path: 'prevzatia', name: 'admin-canal-claims', component: () => import('@/pages/admin/AdminCanalClaimsPage.vue') },
+        { path: 'podpora', name: 'admin-support', component: () => import('@/pages/admin/AdminSupportPage.vue') },
+        { path: 'podpora/:id(\\d+)', name: 'admin-support-ticket', component: () => import('@/pages/admin/AdminSupportPage.vue') },
         // Spotreba OpenAI (len prehľad). Slovenská cesta ako `oznamy`.
         { path: 'ai-spotreba', name: 'admin-ai-usage', component: () => import('@/pages/admin/AdminAiUsagePage.vue') },
         // Denník udalostí — maily, prihlásenia, importy, cron.
         { path: 'dennik', name: 'admin-system-logs', component: () => import('@/pages/admin/AdminSystemLogsPage.vue') },
+        // Všetky vstupenky/rezervácie a otázky z publika naprieč podujatiami.
+        { path: 'vstupenky', name: 'admin-tickets', component: () => import('@/pages/admin/AdminTicketsPage.vue') },
+        { path: 'otazky', name: 'admin-questions', component: () => import('@/pages/admin/AdminQuestionsPage.vue') },
         // Oznamy a bannery verejného layoutu. Slovenská cesta zámerne — rovnako
         // ako `spravy` v dashboarde.
         { path: 'oznamy', name: 'admin-announcements', component: () => import('@/pages/admin/AdminAnnouncementsPage.vue') },

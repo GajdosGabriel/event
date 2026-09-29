@@ -18,16 +18,21 @@ class TicketIssued extends Notification implements ShouldQueue
     /**
      * @param  bool  $restored  Objednávka bola obnovená po zrušení — mení sa len
      *                          úvod e-mailu, vstupenky a QR kódy sú rovnaké.
+     * @param  bool  $bellOnly  Len do zvončeka — objednávateľovi, ktorý objednal
+     *                          na iný e-mail (vstupenka mu e-mailom nechodí).
      */
     public function __construct(
         protected Ticket $ticket,
         protected bool $restored = false,
+        protected bool $bellOnly = false,
     ) {
     }
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return $this->bellOnly
+            ? [\App\Notifications\Channels\BellChannel::class]
+            : [\App\Notifications\Channels\BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array

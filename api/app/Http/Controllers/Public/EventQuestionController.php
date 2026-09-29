@@ -12,6 +12,7 @@ use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Questions\QuestionAlert;
 use App\Services\Questions\QuestionDraft;
+use App\Services\Questions\QuestionRelay;
 use App\Services\Questions\QuestionSubmitter;
 use App\Support\SubmissionTicket;
 use Illuminate\Database\Eloquent\Collection;
@@ -51,6 +52,7 @@ class EventQuestionController extends Controller
         protected EventRepository $eventRepository,
         private QuestionSubmitter $submitter,
         private QuestionAlert $organizerAlert,
+        private QuestionRelay $relay,
     ) {
     }
 
@@ -60,6 +62,16 @@ class EventQuestionController extends Controller
         $board = $this->boardFor($model);
 
         if ($board === null) {
+            // Importovaný kanál s overenou adresou: nástenku nemá, ale otázku mu
+            // vieme doručiť e-mailom (QuestionRelay). Bez verejného zoznamu.
+            if ($this->relay->addressFor($model) !== null) {
+                return response()->json([
+                    'available' => true,
+                    'relay' => true,
+                    'ticket' => SubmissionTicket::issue('question:event:' . $model->id),
+                ]);
+            }
+
             // Nie 404: „toto podujatie nástenku nemá" je legitímna odpoveď a UI
             // podľa nej sekciu jednoducho nevykreslí.
             return response()->json(['available' => false]);
@@ -95,7 +107,7 @@ class EventQuestionController extends Controller
         $board = $this->boardFor($model);
 
         if ($board === null) {
-            abort(422, __('questions.errors.closed'));
+            return $this->relayToOrganizer($request, $model);
         }
 
         $this->guardPrivate($request, $model);
@@ -123,6 +135,32 @@ class EventQuestionController extends Controller
             // „zverejnená" — front ju do zoznamu nemá čo dopisovať.
             'question' => $question->isPubliclyVisible() ? new QuestionResource($question) : null,
         ], 201);
+    }
+
+    /**
+     * Otázka na podujatie bez nástenky: doručí sa e-mailom organizátorovi
+     * importovaného kanála (QuestionRelay). Ako proti spamu, tak proti
+     * zneužitiu cudzej schránky smie len prihlásený s overeným účtom.
+     */
+    private function relayToOrganizer(QuestionStoreRequest $request, Event $event): JsonResponse
+    {
+        if ($this->relay->addressFor($event) === null) {
+            abort(422, __('questions.errors.closed'));
+        }
+
+        $sender = auth('sanctum')->user();
+
+        if (! $sender) {
+            abort(401, __('messages.errors.login_required'));
+        }
+
+        if (! $sender->canSendMessages()) {
+            abort(403, __('messages.errors.verified_required'));
+        }
+
+        $this->relay->forward($event, $sender, $request->questionBody());
+
+        return response()->json(['relayed' => true, 'notify' => true], 201);
     }
 
     /**

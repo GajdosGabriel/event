@@ -5,6 +5,8 @@
       <p class="text-sm text-slate-500">{{ t('messages.lead') }}</p>
     </div>
 
+    <MessagesTabs active="inbox" :inbox-unread="counts.inbox" :support-unread="counts.support" />
+
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
         <input v-model="onlyUnread" type="checkbox" class="accent-teal-600" @change="load(1)" />
@@ -18,9 +20,10 @@
 
     <p v-if="loading" class="text-slate-500">{{ t('messages.loading') }}</p>
     <p v-else-if="error" class="text-red-600">{{ error }}</p>
-    <p v-else-if="!messages.length" class="text-slate-400">
-      {{ onlyUnread ? t('messages.emptyUnread') : t('messages.empty') }}
-    </p>
+    <div v-else-if="!messages.length" class="rounded-2xl border border-dashed border-slate-200 p-6 text-slate-400">
+      <p>{{ onlyUnread ? t('messages.emptyUnread') : t('messages.empty') }}</p>
+      <RouterLink to="/dashboard/spravy/podpora" class="mt-2 inline-block text-sm text-blue-700">{{ t('messages.helpCta') }} →</RouterLink>
+    </div>
 
     <div v-else class="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <!-- Zoznam vlákien -->
@@ -100,8 +103,10 @@
 import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import MessagesTabs from '@/components/support/MessagesTabs.vue'
 import {
   indexMessages,
+  unreadCounts,
   showMessage,
   markMessageRead,
   replyToMessage,
@@ -129,6 +134,15 @@ const page = ref(1)
 const replyBody = ref('')
 const replyError = ref<string | null>(null)
 const replying = ref(false)
+const counts = ref({ inbox: 0, support: 0 })
+
+async function refreshCounts() {
+  try {
+    counts.value = await unreadCounts()
+  } catch {
+    /* odznaky nie sú kritické */
+  }
+}
 
 function targetLabel(type: MessageTargetType | null): string {
   return type ? t(`messages.targets.${type}`) : t('messages.targets.record')
@@ -182,6 +196,7 @@ async function open(message: MessageItem) {
   // Otvorenie označí správu na backende za prečítanú; zoznam to musí odzrkadliť
   // aj bez opätovného načítania celej stránky.
   message.readAt = message.readAt ?? new Date().toISOString()
+  refreshCounts()
 }
 
 async function toggleRead(message: MessageItem) {
@@ -190,6 +205,7 @@ async function toggleRead(message: MessageItem) {
   const row = messages.value.find((m) => m.id === message.id)
   if (row) row.readAt = updated.readAt
   if (onlyUnread.value) await load(page.value)
+  refreshCounts()
 }
 
 async function sendReply() {
@@ -209,7 +225,7 @@ async function sendReply() {
   }
 }
 
-onMounted(() => load(1))
+onMounted(() => Promise.all([load(1), refreshCounts()]))
 </script>
 
 <style scoped>

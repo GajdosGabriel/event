@@ -14,10 +14,12 @@ use App\Models\Event;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Notifications\EventCancellationOrganizerNotice;
 use App\Notifications\EventInterestRecorded;
 use App\Notifications\EventReservationInvite;
 use App\Notifications\EventSignupAdminNotice;
 use App\Notifications\EventSignupOrganizerNotice;
+use App\Notifications\RegistrationCancelled;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Canals\CanalInviter;
@@ -128,6 +130,36 @@ class EventSignup
         } catch (Throwable $e) {
             report($e);
         }
+    }
+
+    /**
+     * Účastník si rezerváciu sám zrušil: jemu potvrdenie (e-mail + zvonček),
+     * tímu spravovaného kanála správa o uvoľnenom mieste. Neprevzatý importovaný
+     * kanál nič nedostane — ponuka prevzatia patrí k prihláške, nie k odhláške.
+     */
+    public function notifyAboutCancellation(Event $event, User $user): void
+    {
+        $this->safely(fn () => $user->notify(new RegistrationCancelled($event)));
+
+        $canal = $event->canal()->first();
+        $owners = $this->managingOwners($canal);
+
+        if ($owners->isEmpty()) {
+            return;
+        }
+
+        $notice = new EventCancellationOrganizerNotice($event, $user->displayName(), $this->registeredCount($event));
+
+        $recipients = $owners
+            ->filter(fn (User $owner) => $owner->isNot($user)
+                && $this->recipients->mayNotify($canal, $owner, CanalNotificationTopic::Signups, $notice, $event))
+            ->values();
+
+        if ($recipients->isNotEmpty()) {
+            $this->safely(fn () => Notification::send($recipients, $notice));
+        }
+
+        $this->safely(fn () => $this->recipients->fanOut($canal, CanalNotificationTopic::Signups, $notice, $owners->push($user), $event));
     }
 
     private function isOpen(Event $event): bool

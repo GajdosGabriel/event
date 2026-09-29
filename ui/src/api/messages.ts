@@ -85,7 +85,14 @@ export async function replyToMessage(id: number, body: string): Promise<MessageI
   return mapMessage((data.data ?? data) as Record<string, unknown>)
 }
 
-export async function unreadMessageCount(): Promise<number> {
+/** Neprečítané správy a nepozreté odpovede podpory — každé zvlášť pre záložky. */
+export async function unreadCounts(): Promise<{ inbox: number; support: number }> {
   const { data } = await http.get('/dashboard/messages/unread-count')
-  return Number(data.unread ?? 0)
+  return { inbox: Number(data.unread ?? 0), support: Number(data.support ?? 0) }
+}
+
+/** Súčet pre odznak Správ v menu. */
+export async function unreadMessageCount(): Promise<number> {
+  const { inbox, support } = await unreadCounts()
+  return inbox + support
 }

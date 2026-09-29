@@ -27,6 +27,8 @@ return [
     'errors' => [
         'closed' => 'Für diese Veranstaltung können derzeit keine Fragen gestellt werden.',
         'duplicate' => 'Diese Frage haben Sie gerade schon gesendet.',
+        'relay_unavailable' => 'Die Frage kann dem Veranstalter gerade nicht gesendet werden.',
+        'relay_limit' => 'Zu viele Fragen. Bitte versuchen Sie es später erneut.',
         'too_fast' => 'Das Formular wurde zu schnell abgeschickt. Bitte versuchen Sie es erneut.',
         'votes_disabled' => 'Das Abstimmen über Fragen ist auf dieser Pinnwand deaktiviert.',
         'not_votable' => 'Über diese Frage kann nicht abgestimmt werden.',

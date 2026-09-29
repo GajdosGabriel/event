@@ -1,5 +1,49 @@
 <template>
-  <section v-if="visible" class="rounded-2xl border border-slate-200 bg-white p-6">
+  <!-- Importovaný kanál s overenou adresou: otázka ide organizátorovi e-mailom.
+       Bez verejného zoznamu — nástenka tu nie je a nemal by ju kto moderovať. -->
+  <section v-if="view?.relay" class="rounded-2xl border border-slate-200 bg-white p-6">
+    <h2 class="mb-1 text-base font-semibold text-slate-800">{{ t('public.questions.relay.title') }}</h2>
+    <p class="mb-4 text-sm text-slate-500">{{ t('public.questions.relay.lead') }}</p>
+
+    <div v-if="relaySent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
+      <p class="font-semibold">{{ t('public.questions.relay.sentTitle') }}</p>
+      <p>{{ t('public.questions.relay.sentLead') }}</p>
+    </div>
+
+    <RouterLink
+      v-else-if="!signedIn"
+      :to="{ name: 'login', query: { redirect: route.fullPath } }"
+      class="inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+    >{{ t('public.questions.relay.loginToAsk') }}</RouterLink>
+
+    <form v-else class="space-y-3" @submit.prevent="submit">
+      <FormField
+        v-model="body"
+        type="textarea"
+        :label="t('public.questions.yourQuestion')"
+        required
+        trim
+        rows="3"
+        maxlength="500"
+        :placeholder="t('public.questions.placeholder')"
+      />
+      <p class="text-xs text-slate-500">{{ t('public.questions.relay.emailShared') }}</p>
+      <div class="absolute left-[-9999px]" aria-hidden="true">
+        <label>
+          Website
+          <input v-model="website" type="text" tabindex="-1" autocomplete="off" />
+        </label>
+      </div>
+      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+      <button
+        type="submit"
+        :disabled="submitting"
+        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+      >{{ submitting ? t('public.questions.submitting') : t('public.questions.relay.submit') }}</button>
+    </form>
+  </section>
+
+  <section v-else-if="visible" class="rounded-2xl border border-slate-200 bg-white p-6">
     <div class="mb-1 flex items-center gap-2">
       <svg class="h-4 w-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -152,6 +196,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   showEventQuestions,
   askEventQuestion,
@@ -169,6 +214,7 @@ const props = defineProps<{ eventId: number }>()
 
 const validation = provideFormValidation()
 const auth = useAuthStore()
+const route = useRoute()
 
 /**
  * Prihlásený nevypĺňa meno ani adresu — obe vieme z účtu a doplní ich server.
@@ -192,6 +238,8 @@ const website = ref('')
 const visibility = ref<QuestionVisibility>('public')
 /** Čím bolo to, čo práve odišlo — potvrdenie hovorí o ňom, nie o aktuálnej voľbe. */
 const sentPrivate = ref(false)
+/** Otázka odišla e-mailom organizátorovi (relay) — iné potvrdenie než pri nástenke. */
+const relaySent = ref(false)
 
 /**
  * Prázdna sekcia je horšia než žiadna. Nástenka sa zakladá lenivo, takže väčšina
@@ -314,6 +362,13 @@ async function submit() {
     // server ju v odpovedi ani neposiela.
     if (result.question) {
       questions.value = [...questions.value, result.question]
+    }
+
+    if (view.value?.relay) {
+      relaySent.value = true
+      body.value = ''
+      validation.reset()
+      return
     }
 
     pending.value = result.pending

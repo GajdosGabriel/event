@@ -7,11 +7,7 @@
       </div>
 
       <nav class="flex flex-wrap gap-2">
-        <RouterLink to="/dashboard/events/create" class="btn btn-primary">+ {{ t('eventJourney.add') }}</RouterLink>
-        <RouterLink to="/dashboard/events" class="btn btn-secondary">{{ t('nav.events') }}</RouterLink>
-        <RouterLink v-if="auth.isSuperAdmin" to="/admin" class="btn btn-sm border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100">
-          {{ t('nav.admin') }}
-        </RouterLink>
+        <RouterLink to="/dashboard/events/create" class="btn btn-primary inline-flex items-center"><svg class="mr-1 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ t('eventJourney.add') }}</RouterLink>
       </nav>
     </div>
 

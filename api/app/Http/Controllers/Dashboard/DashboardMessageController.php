@@ -69,6 +69,8 @@ class DashboardMessageController extends Controller
                 ->inboxOf((int) $request->user()->id)
                 ->whereNull('read_at')
                 ->count(),
+            // Nepozreté odpovede podpory — odznak Správ ich zahŕňa tiež.
+            'support' => DashboardSupportController::unreadFor($request->user()),
         ]);
     }
 

@@ -334,6 +334,25 @@ return [
         'action' => 'Open the question board',
     ],
 
+    // App\Notifications\QuestionRelayed — a visitor's question about an event of an unmanaged channel.
+    'question_relayed' => [
+        'organizer' => [
+            'subject' => 'Question about :event',
+            'intro' => 'A visitor of :site is asking about the event **“:event”** by **:canal**:',
+            'reply' => 'Reply directly to this e-mail — :name (:email) will receive your answer.',
+            'offer' => 'The profile **“:canal”** was created automatically from public sources. If you claim it, you will receive questions from people interested in your event, can answer them and publish further events for free.',
+            'action' => 'Claim the profile',
+            'why' => 'We are writing because your address is listed on the organiser profile. We send you nothing else unless you show interest.',
+            'unsubscribe' => 'Do not want these e-mails, or this address is not yours? [Unsubscribe](:url).',
+        ],
+        'admin' => [
+            'subject' => 'Question for the organiser: :event',
+            'intro' => ':name (:email) is asking about the event **“:event”** of channel **:canal**:',
+            'sent_to' => 'The question was forwarded to the channel’s verified address: :email.',
+            'action' => 'Open the event',
+        ],
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject' => 'We will keep you posted: :event',
@@ -443,6 +462,20 @@ return [
         'intro' => 'Thank you for signing up for **":event"**. The organiser does not accept reservations yet or the event is full, so we are not issuing a ticket.',
         'next' => 'We have passed your interest on to the organiser. Details about admission are on the event page.',
         'action' => 'View event',
+    ],
+
+    // App\Notifications\RegistrationCancelled — účastníkovi po zrušení vlastnej rezervácie.
+    'registration_cancelled' => [
+        'subject' => 'Your reservation for :event is cancelled',
+        'intro' => 'Your reservation for **":event"** has been cancelled. The ticket and its QR code are no longer valid.',
+        'next' => 'If you change your mind, you can reserve again while seats are available.',
+        'action' => 'View event',
+    ],
+
+    // App\Notifications\EventCancellationOrganizerNotice — organizátorovi, keď sa miesto uvoľní.
+    'event_cancellation_organizer' => [
+        'subject' => 'Cancelled reservation for :event',
+        'intro' => '**:name** cancelled their reservation for your event **":event"**. A seat has been freed.',
     ],
 
 ];

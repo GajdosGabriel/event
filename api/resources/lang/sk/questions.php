@@ -31,6 +31,8 @@ return [
     'errors' => [
         'closed' => 'Otázky na toto podujatie sa práve nedajú pridávať.',
         'duplicate' => 'Túto otázku ste práve poslali.',
+        'relay_unavailable' => 'Organizátorovi sa teraz otázka nedá poslať.',
+        'relay_limit' => 'Príliš veľa otázok. Skúste to neskôr.',
         'too_fast' => 'Formulár sa odoslal príliš rýchlo. Skúste to prosím znova.',
         'votes_disabled' => 'Hlasovanie za otázky je na tejto nástenke vypnuté.',
         'not_votable' => 'Za túto otázku sa hlasovať nedá.',

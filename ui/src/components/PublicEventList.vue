@@ -224,7 +224,7 @@ const props = withDefaults(defineProps<{
   range: null,
   list: null,
   headingLevel: 'h1',
-  showTicketCta: true,
+  showTicketCta: false,
 })
 
 const route = useRoute()
@@ -294,11 +294,20 @@ const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
 /** Stránkovanie drží v adrese `?page=` — bez neho „späť" vracalo na prvú stranu. */
 const { pageFromQuery, load: loadPage, goToPage: pushPage, replaceQuery } = usePageQuery(fetchPage)
 
+/**
+ * „Všetky" vedie späť na homepage, ak človek prišiel z nej (alebo na nej je) —
+ * inak by po „tento víkend" z `/` skončil na `/akcie`.
+ */
+const allPath = computed(() => {
+  const cameFromHome = route.fullPath !== '/' && window.history.state?.back === '/'
+  return route.path === '/' || cameFromHome ? '/' : PUBLIC_EVENTS
+})
+
 const shortcuts = computed(() => [
   {
     label: t('filters.events.all'),
     emoji: '📅',
-    to: PUBLIC_EVENTS,
+    to: allPath.value,
     active: !props.range && !props.list && !props.tags && !props.municipality,
   },
   {

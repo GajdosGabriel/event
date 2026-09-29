@@ -36,7 +36,7 @@
     </div>
 
     <div class="flex justify-start md:justify-center">
-      <span class="index-row-status" :class="{ 'status-live': statusValue === 'published' }">{{ status }}</span>
+      <span v-if="statusValue === 'draft'" class="index-row-status status-draft">{{ status }}</span>
     </div>
 
     <div class="index-row-actions">

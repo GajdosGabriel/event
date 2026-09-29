@@ -30,9 +30,22 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           <span class="nav-label">{{ t('nav.municipalities') }}</span>
         </RouterLink>
+        <RouterLink to="/admin/vstupenky" class="aside-link" :class="{ active: inSection('/admin/vstupenky') }" :title="collapsed ? t('nav.tickets') : undefined">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+          <span class="nav-label">{{ t('nav.tickets') }}</span>
+        </RouterLink>
+        <RouterLink to="/admin/otazky" class="aside-link" :class="{ active: inSection('/admin/otazky') }" :title="collapsed ? t('nav.questions') : undefined">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="nav-label">{{ t('nav.questions') }}</span>
+        </RouterLink>
         <RouterLink to="/admin/oznamy" class="aside-link" :class="{ active: inSection('/admin/oznamy') }" :title="collapsed ? t('nav.announcements') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11v2a1 1 0 001 1h2l4 4V6L6 10H4a1 1 0 00-1 1zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg>
           <span class="nav-label">{{ t('nav.announcements') }}</span>
+        </RouterLink>
+        <RouterLink to="/admin/podpora" class="aside-link" :class="{ active: inSection('/admin/podpora') }" :title="collapsed ? t('nav.support') : undefined">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span class="nav-label">{{ t('nav.support') }}</span>
+          <span v-if="supportOpen > 0" class="nav-badge">{{ supportOpen > 99 ? '99+' : supportOpen }}</span>
         </RouterLink>
         <RouterLink to="/admin/users" class="aside-link" :class="{ active: inSection('/admin/users') }" :title="collapsed ? t('nav.users') : undefined">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -102,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserDropdown from '@/components/UserDropdown.vue'
@@ -110,10 +123,26 @@ import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import { useI18n } from '@/i18n'
+import { supportSummary } from '@/api/support'
 
 const auth = useAuthStore()
 const route = useRoute()
 const { t } = useI18n()
+
+// Odznak Podpory: vlákna, ktoré čakajú na odpoveď. Obnovuje sa pri prechode
+// medzi stránkami — rovnako ako odznak Správ v dashboarde, bez pollingu.
+const supportOpen = ref(0)
+
+async function refreshSupport() {
+  try {
+    supportOpen.value = (await supportSummary()).inbox ?? 0
+  } catch {
+    supportOpen.value = 0
+  }
+}
+
+onMounted(refreshSupport)
+watch(() => route.path, refreshSupport)
 
 const STORAGE_KEY = 'admin-sidebar-collapsed'
 const collapsed = ref(localStorage.getItem(STORAGE_KEY) === '1')
@@ -179,6 +208,11 @@ const munResource = computed(() => {
   @apply flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-semibold text-amber-50/80 no-underline hover:bg-amber-200/12 hover:text-white overflow-hidden;
 }
 .aside-link.active { @apply bg-amber-300 text-amber-950; }
+.nav-badge {
+  @apply ml-auto shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white;
+}
+/* V zbalenom paneli nie je miesto na číslo — ostane len bodka pri ikone. */
+.collapsed .nav-badge { @apply ml-0 size-2 p-0 text-transparent; }
 
 /* Toggle button */
 .toggle-btn {

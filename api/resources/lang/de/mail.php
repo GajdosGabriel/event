@@ -334,6 +334,25 @@ return [
         'action' => 'Fragen-Pinnwand öffnen',
     ],
 
+    // App\Notifications\QuestionRelayed — Frage eines Besuchers zu einer Veranstaltung eines Kanals ohne Betreuer.
+    'question_relayed' => [
+        'organizer' => [
+            'subject' => 'Frage zu :event',
+            'intro' => 'Ein Besucher von :site fragt zur Veranstaltung **„:event"** von **:canal**:',
+            'reply' => 'Antworten Sie direkt auf diese E-Mail — :name (:email) erhält Ihre Antwort.',
+            'offer' => 'Das Profil **„:canal"** wurde automatisch aus öffentlichen Quellen erstellt. Wenn Sie es übernehmen, erhalten Sie Fragen von Menschen, die sich für Ihre Veranstaltung interessieren, können diese beantworten und weitere Veranstaltungen kostenlos veröffentlichen.',
+            'action' => 'Profil übernehmen',
+            'why' => 'Wir schreiben Ihnen, weil Ihre Adresse im Veranstalterprofil angegeben ist. Andere E-Mails senden wir Ihnen ohne Ihr Interesse nicht.',
+            'unsubscribe' => 'Sie möchten solche E-Mails nicht oder diese Adresse gehört Ihnen nicht? [Abmelden](:url).',
+        ],
+        'admin' => [
+            'subject' => 'Frage an den Veranstalter: :event',
+            'intro' => ':name (:email) fragt zur Veranstaltung **„:event"** des Kanals **:canal**:',
+            'sent_to' => 'Die Frage wurde an die verifizierte Adresse des Kanals weitergeleitet: :email.',
+            'action' => 'Veranstaltung öffnen',
+        ],
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject' => 'Wir halten Sie auf dem Laufenden: :event',
@@ -440,6 +459,20 @@ return [
         'intro' => 'Danke für Ihre Anmeldung zu **„:event"**. Der Veranstalter nimmt noch keine Reservierungen an oder es ist voll, daher stellen wir kein Ticket aus.',
         'next' => 'Ihr Interesse haben wir an den Veranstalter weitergegeben. Details zum Einlass finden Sie bei der Veranstaltung.',
         'action' => 'Veranstaltung anzeigen',
+    ],
+
+    // App\Notifications\RegistrationCancelled — účastníkovi po zrušení vlastnej rezervácie.
+    'registration_cancelled' => [
+        'subject' => 'Reservierung für :event storniert',
+        'intro' => 'Ihre Reservierung für **„:event"** wurde storniert. Das Ticket und sein QR-Code sind nicht mehr gültig.',
+        'next' => 'Wenn Sie es sich anders überlegen, können Sie erneut reservieren, solange Plätze frei sind.',
+        'action' => 'Veranstaltung anzeigen',
+    ],
+
+    // App\Notifications\EventCancellationOrganizerNotice — organizátorovi, keď sa miesto uvoľní.
+    'event_cancellation_organizer' => [
+        'subject' => 'Stornierte Reservierung für :event',
+        'intro' => '**:name** hat die Reservierung für Ihre Veranstaltung **„:event"** storniert. Ein Platz ist frei geworden.',
     ],
 
 ];

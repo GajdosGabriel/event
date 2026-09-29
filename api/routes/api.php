@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityContro
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Admin\QuestionController as AdminQuestionController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
 use App\Http\Controllers\Admin\CanalClaimController as AdminCanalClaimController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -25,6 +27,7 @@ use App\Http\Controllers\Dashboard\DashboardEventController;
 use App\Http\Controllers\Dashboard\DashboardFileController;
 use App\Http\Controllers\Dashboard\DashboardHomeController;
 use App\Http\Controllers\Dashboard\DashboardMessageController;
+use App\Http\Controllers\Dashboard\DashboardSupportController;
 use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
 use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardQuestionController;
@@ -579,6 +582,20 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->name('messages.reply')
         ->middleware('throttle:messages');
 
+    // Podpora (Správy → Podpora). Vlastné vlákna vidí každý prihlásený,
+    // schránku všetkých (`all=1`) len super-admin — rieši controller.
+    Route::get('support/tickets', [DashboardSupportController::class, 'index'])->name('support.index');
+    Route::get('support/summary', [DashboardSupportController::class, 'summary'])->name('support.summary');
+    Route::post('support/tickets', [DashboardSupportController::class, 'store'])
+        ->name('support.store')
+        ->middleware('throttle:support');
+    Route::get('support/tickets/{supportTicket}', [DashboardSupportController::class, 'show'])->name('support.show');
+    Route::post('support/tickets/{supportTicket}/messages', [DashboardSupportController::class, 'reply'])
+        ->name('support.reply')
+        ->middleware('throttle:support');
+    Route::patch('support/tickets/{supportTicket}', [DashboardSupportController::class, 'updateStatus'])
+        ->name('support.status');
+
     Route::apiResource('municipalities', DashboardMunicipalityController::class);
 
     Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
@@ -672,6 +689,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('ai-usage', [AdminAiUsageController::class, 'index'])->name('ai-usage.index');
     // Denník udalostí — maily, prihlásenia, importy, cron. Len čítanie.
     Route::get('system-logs', [AdminSystemLogController::class, 'index'])->name('system-logs.index');
+    // Všetky vstupenky/rezervácie a otázky z publika naprieč podujatiami. Len čítanie.
+    Route::get('tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
+    Route::get('questions', [AdminQuestionController::class, 'index'])->name('questions.index');
     Route::get('canals/municipalities-overview', [AdminCanalController::class, 'municipalitiesOverview'])
         ->name('canals.municipalities.overview')
         ->middleware('permission:canal.view');

@@ -11,11 +11,14 @@ use App\Models\Event;
 use App\Models\PendingRegistration;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Notifications\Channels\BellChannel;
+use App\Notifications\EventCancellationOrganizerNotice;
 use App\Notifications\EventInterestRecorded;
 use App\Notifications\EventReservationInvite;
 use App\Notifications\EventSignupAdminNotice;
 use App\Notifications\EventSignupOrganizerNotice;
 use App\Notifications\PendingRegistrationVerification;
+use App\Notifications\RegistrationCancelled;
 use App\Notifications\TicketIssued;
 use App\Services\Tickets\DefaultReservation;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -281,5 +284,100 @@ class EventSignupTest extends TestCase
         ])->assertCreated()->assertJsonPath('event', null);
 
         $this->assertNull(PendingRegistration::where('email', 'draft@example.sk')->value('event_id'));
+    }
+
+    private function managedEvent(): array
+    {
+        $owner = User::factory()->create();
+        $canal = $owner->canals()->firstOrFail();
+        $canal->forceFill(['registration_source' => RegistrationSource::SELF->value])->save();
+
+        $event = Event::factory()->future()->create([
+            'canal_id' => $canal->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now()->subDay(),
+            'registration_deadline_at' => null,
+        ]);
+
+        return [$owner, $event];
+    }
+
+    #[Test]
+    public function reservation_confirmation_lands_in_the_bell_of_a_verified_user(): void
+    {
+        [, $event] = $this->managedEvent();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+
+        $item = $user->notifications()->where('type', TicketIssued::class)->sole();
+        $this->assertStringContainsString($event->name, $item->data['message']);
+        $this->assertStringStartsWith('/tickets/', $item->data['link']);
+    }
+
+    #[Test]
+    public function orderer_buying_for_another_email_gets_the_ticket_in_the_bell_only(): void
+    {
+        Notification::fake();
+        [, $event] = $this->managedEvent();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/tickets", [
+            'holder_name' => 'Mama',
+            'holder_email' => 'mama@example.sk',
+            'quantity' => 1,
+        ])->assertCreated();
+
+        Notification::assertSentOnDemand(TicketIssued::class, fn ($n, $channels, $notifiable) => $notifiable->routes['mail'] === 'mama@example.sk');
+        Notification::assertSentTo($user, TicketIssued::class, fn ($n, array $channels) => $channels === [BellChannel::class]);
+    }
+
+    #[Test]
+    public function orderer_buying_for_themselves_gets_no_extra_bell_notification(): void
+    {
+        Notification::fake();
+        [, $event] = $this->managedEvent();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/tickets", [
+            'holder_name' => 'Ja',
+            'holder_email' => mb_strtoupper($user->email),
+            'quantity' => 1,
+        ])->assertCreated();
+
+        Notification::assertNotSentTo($user, TicketIssued::class);
+    }
+
+    #[Test]
+    public function cancelling_own_reservation_confirms_it_to_the_attendee_and_tells_the_organizer(): void
+    {
+        [$owner, $event] = $this->managedEvent();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+
+        Notification::fake();
+        $this->actingAs($user, 'sanctum')->deleteJson("/api/events/{$event->id}/registration")->assertOk();
+
+        Notification::assertSentTo($user, RegistrationCancelled::class, fn ($n, array $channels) => in_array('mail', $channels, true)
+            && in_array(BellChannel::class, $channels, true));
+        Notification::assertSentTo($owner, EventCancellationOrganizerNotice::class);
+        Notification::assertNotSentTo($user, EventCancellationOrganizerNotice::class);
+    }
+
+    #[Test]
+    public function cancellation_on_an_unclaimed_imported_canal_does_not_email_the_contact(): void
+    {
+        $event = $this->importedEvent();
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+
+        Notification::fake();
+        $this->actingAs($user, 'sanctum')->deleteJson("/api/events/{$event->id}/registration")->assertOk();
+
+        Notification::assertSentTo($user, RegistrationCancelled::class);
+        Notification::assertNotSentTo($this->admin, EventCancellationOrganizerNotice::class);
+        Notification::assertSentOnDemandTimes(EventCancellationOrganizerNotice::class, 0);
     }
 }

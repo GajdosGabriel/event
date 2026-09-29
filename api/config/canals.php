@@ -23,6 +23,12 @@ return [
     // simulácie overiť súlad s § 116 zákona č. 452/2021 Z. z.
     'simulate_outreach_mail' => (bool) env('CANAL_OUTREACH_MAIL_SIMULATE', true),
 
+    // Otázky návštevníkov preposielané organizátorom importovaných kanálov
+    // (QuestionRelay). Ide o nevyžiadaný e-mail na verejnú adresu — pred
+    // vypnutím simulácie overiť súlad s § 116 zákona č. 452/2021 Z. z.
+    // Kópia adminom odchádza vždy.
+    'simulate_question_relay_mail' => (bool) env('CANAL_QUESTION_RELAY_MAIL_SIMULATE', true),
+
     'outreach' => [
         // Akcia skončila aspoň pred `after_days` a najviac pred `window_days` dňami.
         'after_days' => (int) env('CANAL_OUTREACH_AFTER_DAYS', 1),

@@ -334,6 +334,25 @@ return [
         'action' => 'Otevřít nástěnku otázek',
     ],
 
+    // App\Notifications\QuestionRelayed — dotaz návštěvníka na akci kanálu bez správce.
+    'question_relayed' => [
+        'organizer' => [
+            'subject' => 'Dotaz k akci :event',
+            'intro' => 'Návštěvník portálu :site se ptá na akci **„:event"** organizátora **:canal**:',
+            'reply' => 'Odpovězte přímo na tento e-mail — odpověď dostane :name (:email).',
+            'offer' => 'Profil **„:canal"** vznikl automaticky z veřejných zdrojů. Pokud jej převezmete, budete dostávat dotazy lidí, kteří mají zájem o vaši akci, můžete jim odpovídat a zdarma zveřejňovat další akce.',
+            'action' => 'Převzít profil',
+            'why' => 'Píšeme vám, protože vaše adresa je uvedena u profilu organizátora. Jiné e-maily vám bez vašeho zájmu neposíláme.',
+            'unsubscribe' => 'Nechcete od nás takové e-maily, nebo vám tato adresa nepatří? [Odhlásit se](:url).',
+        ],
+        'admin' => [
+            'subject' => 'Dotaz pro organizátora: :event',
+            'intro' => ':name (:email) se ptá na akci **„:event"** kanálu **:canal**:',
+            'sent_to' => 'Dotaz byl přeposlán na ověřenou adresu kanálu: :email.',
+            'action' => 'Otevřít akci',
+        ],
+    ],
+
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
     'subscription_confirmed' => [
         'subject' => 'Budeme vás informovat: :event',
@@ -440,6 +459,20 @@ return [
         'intro' => 'Děkujeme za přihlášení na akci **„:event"**. Organizátor rezervace míst zatím neumožňuje nebo je už plno, proto vám vstupenku nevystavujeme.',
         'next' => 'Váš zájem jsme předali organizátorovi. Podrobnosti o vstupu najdete u akce.',
         'action' => 'Zobrazit akci',
+    ],
+
+    // App\Notifications\RegistrationCancelled — účastníkovi po zrušení vlastnej rezervácie.
+    'registration_cancelled' => [
+        'subject' => 'Rezervace na :event je zrušena',
+        'intro' => 'Vaši rezervaci na akci **„:event"** jsme zrušili. Vstupenka a její QR kód už neplatí.',
+        'next' => 'Pokud si to rozmyslíte, místo si můžete znovu rezervovat, dokud je volné.',
+        'action' => 'Zobrazit akci',
+    ],
+
+    // App\Notifications\EventCancellationOrganizerNotice — organizátorovi, keď sa miesto uvoľní.
+    'event_cancellation_organizer' => [
+        'subject' => 'Zrušená rezervace na akci :event',
+        'intro' => '**:name** zrušil(a) rezervaci na vaši akci **„:event"**. Místo se uvolnilo.',
     ],
 
 ];

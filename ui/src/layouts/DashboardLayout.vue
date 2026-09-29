@@ -57,6 +57,10 @@
       <header class="header">
         <RouterLink to="/dashboard" class="brand">{{ t('nav.dashboard') }}</RouterLink>
         <nav class="header-nav">
+          <RouterLink :to="helpLink" class="help-link" :title="t('messages.helpCta')">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="hidden sm:inline">{{ t('nav.help') }}</span>
+          </RouterLink>
           <LangSwitcher variant="teal" />
           <NotificationBell />
           <UserDropdown variant="teal" logout-to="login" />
@@ -116,6 +120,12 @@ async function refreshUnread() {
 onMounted(refreshUnread)
 watch(() => route.path, refreshUnread)
 
+// „Pomoc" otvorí nový dotaz podpore a pribalí stránku, z ktorej človek prišiel.
+const helpLink = computed(() => ({
+  path: '/dashboard/spravy/podpora',
+  query: { new: '1', ...(inSection('/dashboard/spravy') ? {} : { from: route.fullPath }) },
+}))
+
 const STORAGE_KEY = 'dashboard-sidebar-collapsed'
 const collapsed = ref(localStorage.getItem(STORAGE_KEY) === '1')
 
@@ -159,6 +169,7 @@ const munResource = computed(() => {
 }
 .brand { @apply font-bold tracking-wide text-white no-underline; }
 .header-nav { @apply ml-auto flex items-center gap-3; }
+.help-link { @apply inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-teal-50/85 no-underline hover:bg-white/10 hover:text-white; }
 
 /* Aside */
 .aside {

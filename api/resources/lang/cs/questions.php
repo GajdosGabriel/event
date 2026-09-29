@@ -27,6 +27,8 @@ return [
     'errors' => [
         'closed' => 'Otázky k této akci teď nelze přidávat.',
         'duplicate' => 'Tuto otázku jste právě poslali.',
+        'relay_unavailable' => 'Organizátorovi se dotaz teď nedá poslat.',
+        'relay_limit' => 'Příliš mnoho dotazů. Zkuste to později.',
         'too_fast' => 'Formulář se odeslal příliš rychle. Zkuste to prosím znovu.',
         'votes_disabled' => 'Hlasování o otázkách je na této nástěnce vypnuté.',
         'not_votable' => 'Pro tuto otázku nelze hlasovat.',

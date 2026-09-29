@@ -10,9 +10,13 @@
       <div class="grid gap-4 md:grid-cols-2">
         <section class="rounded-xl border border-slate-200 bg-white p-4">
           <h2 class="mb-3 text-lg">{{ t('roadmap.upcoming') }}</h2>
-          <ul class="grid gap-3"><li v-for="event in data.upcoming" :key="event.id">
-            <RouterLink :to="`/dashboard/events/${event.id}`">{{ event.name }}</RouterLink>
-            <p class="text-sm text-slate-500">{{ fmtDate(event.start_at) }} · {{ t('roadmap.registrations', { count: event.registrations }) }}</p>
+          <ul class="grid gap-3"><li v-for="event in data.upcoming" :key="event.id" class="flex items-center gap-3">
+            <img v-if="event.image_url" :src="event.image_url" alt="" class="size-14 shrink-0 rounded-lg object-cover" loading="lazy" />
+            <div v-else class="size-14 shrink-0 rounded-lg bg-slate-100" aria-hidden="true"></div>
+            <div class="min-w-0">
+              <RouterLink :to="`/dashboard/events/${event.id}`">{{ event.name }}</RouterLink>
+              <p class="text-sm text-slate-500">{{ fmtDate(event.start_at) }} · {{ t('roadmap.registrations', { count: event.registrations }) }}</p>
+            </div>
           </li></ul>
           <p v-if="!data.upcoming.length">{{ t('roadmap.none') }}</p>
           <RouterLink to="/dashboard/events?phase=next7d&status=published&sort=upcoming" class="mt-3 inline-block">{{ t('roadmap.all') }}</RouterLink>
@@ -42,7 +46,7 @@ import { evaluateReadiness } from '@/utils/publishReadiness'
 import { fmtDate } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 interface NextActions {
-  upcoming: { id: number; name: string; start_at: string; registrations: number }[]
+  upcoming: { id: number; name: string; image_url: string | null; start_at: string; registrations: number }[]
   drafts: { id: number; name: string; can_edit: boolean; values: Record<string, unknown> }[]
   unread: number
   checklist: { kind: 'canal' | 'venue' | 'event'; done: boolean; can_create: boolean }[]

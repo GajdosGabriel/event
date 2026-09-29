@@ -27,6 +27,8 @@ return [
     'errors' => [
         'closed' => 'Questions for this event cannot be submitted right now.',
         'duplicate' => 'You have just sent this question.',
+        'relay_unavailable' => 'The question cannot be sent to the organiser right now.',
+        'relay_limit' => 'Too many questions. Please try again later.',
         'too_fast' => 'The form was submitted too quickly. Please try again.',
         'votes_disabled' => 'Voting is turned off on this board.',
         'not_votable' => 'This question cannot be voted on.',

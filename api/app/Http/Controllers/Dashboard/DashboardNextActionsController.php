@@ -17,10 +17,10 @@ class DashboardNextActionsController extends Controller
         $events = Event::query()->whereIn('canal_id', $ids);
         $now = now();
         $upcoming = $user->can('event.view') ? (clone $events)->where('status', 'published')
-            ->where('start_at', '>=', $now)->where('start_at', '<', $now->copy()->addDays(7))
+            ->where('start_at', '>=', $now)->where('start_at', '<', $now->copy()->addDays(7))->with('files')
             ->withCount(['admissions as registrations' => fn ($q) => $q->where('ticket_admissions.status', AdmissionStatus::Valid->value)])
             ->orderBy('start_at')->orderBy('id')->limit(5)->get()
-            ->map(fn ($event) => ['id' => $event->id, 'name' => $event->name, 'start_at' => $event->start_at?->toIso8601String(), 'registrations' => (int) $event->registrations]) : [];
+            ->map(fn ($event) => ['id' => $event->id, 'name' => $event->name, 'image_url' => $event->thumb_image, 'start_at' => $event->start_at?->toIso8601String(), 'registrations' => (int) $event->registrations]) : [];
         $drafts = $user->can('event.view') ? (clone $events)->where('status', 'draft')->with('files')
             ->orderByDesc('updated_at')->orderByDesc('id')->limit(5)->get()
             ->map(fn ($event) => [

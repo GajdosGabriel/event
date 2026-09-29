@@ -3,7 +3,7 @@
     <div class="index-head">
       <div class="head-actions">
         <h1 class="text-2xl font-semibold text-slate-900">{{ cfg.title }}</h1>
-        <RouterLink v-if="canCreate" :to="`${prefix}/create`" class="btn btn-primary">+ {{ cfg.createLabel }}</RouterLink>
+        <RouterLink v-if="canCreate" :to="`${prefix}/create`" class="btn btn-primary inline-flex items-center"><svg class="mr-1 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ cfg.createLabel }}</RouterLink>
       </div>
       <ResourceFilterBar
         v-model:search="search"

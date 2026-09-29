@@ -117,6 +117,15 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->tooManyRequests('Priveľa odoslaných správ. Skúste to neskôr.')),
         ]);
 
+        // Podpora: vlákno je rozhovor, takže voľnejšie než „Poslať správu" —
+        // ale nie bez stropu, píše sa do schránky administrátorov.
+        RateLimiter::for('support', fn (Request $request) => [
+            Limit::perMinute(6)->by($this->identify($request))
+                ->response($this->tooManyRequests('Priveľa správ podpore za sebou. Skúste to o chvíľu znova.')),
+            Limit::perHour(40)->by($this->identify($request))
+                ->response($this->tooManyRequests('Priveľa správ podpore. Skúste to neskôr.')),
+        ]);
+
         // Otázky z publika: píše ich anonym bez účtu, takže limiter je jediné
         // sito nad rámec tokenu v adrese. Kľúč je IP — v sále je celá miestnosť
         // za jednou NATovanou adresou, preto je minútový strop voľnejší
