@@ -1,0 +1,1 @@
+import{M as o,R as t}from"./index-jA2nt2VU.js";function a(r,e="EUR"){return new Intl.NumberFormat(o(),{style:"currency",currency:e??"EUR"}).format(r/100)}function f(r,e="EUR"){return r?a(r,e):t("common.free")}export{a,f};

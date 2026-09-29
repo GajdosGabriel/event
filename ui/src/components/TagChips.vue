@@ -3,17 +3,18 @@
        Stav drží URL (?tags=koncert,folklor), nie komponent — rovnako ako obecný
        facet v MunicipalityAside. Odkaz sa tak dá zdieľať aj založiť. -->
   <div v-if="groups.length || count" class="rounded-xl border border-slate-200 bg-white p-3">
-    <div v-if="count || active.length" class="flex flex-wrap items-center justify-between gap-2">
-      <!-- Počet výsledkov stál pod kartou vo vlastnom riadku; vedľa štítkov
-           povie to isté a ušetrí výšku, ktorej je na telefóne najmenej. -->
-      <p v-if="count" class="text-sm text-slate-500" role="status" aria-live="polite">{{ count }}</p>
-      <span v-else></span>
+    <!-- Hlavička: nadpis „Čo hľadáte" vľavo, počet výsledkov vpravo v tom
+         istom riadku — vlastný riadok pre počet by len zaberal výšku. -->
+    <div class="flex items-baseline justify-between gap-2">
+      <p class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+        {{ groups.length ? t('filters.tags.lookingFor') : '' }}
+      </p>
+      <p v-if="count" class="shrink-0 text-sm text-slate-500" role="status" aria-live="polite">{{ count }}</p>
+    </div>
 
-      <!-- Prepínač je posledný, aby ikona so slovom „Štítky" stála úplne
-           vpravo; zvolené štítky sa vypisujú pred ním. -->
-      <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
-        <!-- Zvolené štítky sú vidno aj keď je panel zbalený, inak by používateľ
-             nevedel, prečo je výsledkov málo. -->
+    <!-- Zvolené štítky sú vidno aj pri zbalených skupinách, inak by používateľ
+         nevedel, prečo je výsledkov málo. -->
+    <div v-if="active.length" class="mt-2 flex flex-wrap items-center gap-2">
         <RouterLink
           v-for="tag in activeTags"
           :key="tag.slug"
@@ -32,18 +33,12 @@
           :to="basePath"
           class="text-xs text-slate-500 no-underline hover:text-slate-800 hover:underline"
         >{{ t('filters.tags.clearAll') }}</RouterLink>
-      </div>
     </div>
 
-    <!-- Rovnaké usporiadanie ako bočný panel na hlascirkvi.sk: nadpis
-         „Čo hľadáte" a pod ním skupiny, každá zbalená zvlášť. Otvorená ostáva
-         len tá, v ktorej je aktívny filter — celý zoznam by zabral pol obrazovky. -->
+    <!-- Rovnaké usporiadanie ako bočný panel na hlascirkvi.sk: skupiny pod
+         nadpisom, každá zbalená zvlášť. Otvorená ostáva len tá, v ktorej je
+         aktívny filter — celý zoznam by zabral pol obrazovky. -->
     <template v-if="groups.length">
-      <p
-        class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
-        :class="{ 'mt-3 border-t border-slate-100 pt-3': count || active.length }"
-      >{{ t('filters.tags.lookingFor') }}</p>
-
       <div class="mt-1 divide-y divide-slate-100">
         <details
           v-for="group in groups"
