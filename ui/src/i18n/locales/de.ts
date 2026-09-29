@@ -2498,6 +2498,7 @@ const de: Messages = {
     tags: {
       title: 'Schlagwörter',
       clearAll: 'Alle zurücksetzen',
+      lookingFor: 'Was suchen Sie',
     },
   },
 }

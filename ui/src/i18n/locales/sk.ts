@@ -2634,6 +2634,7 @@ const sk = {
     tags: {
       title: 'Štítky',
       clearAll: 'Zrušiť všetky',
+      lookingFor: 'Čo hľadáte',
     },
   },
 }

@@ -2498,6 +2498,7 @@ const en: Messages = {
     tags: {
       title: 'Tags',
       clearAll: 'Clear all',
+      lookingFor: 'What are you looking for',
     },
   },
 }

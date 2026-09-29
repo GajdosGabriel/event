@@ -2497,6 +2497,7 @@ const cs: Messages = {
     tags: {
       title: 'Štítky',
       clearAll: 'Zrušit všechny',
+      lookingFor: 'Co hledáte',
     },
   },
 }

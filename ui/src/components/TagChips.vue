@@ -3,7 +3,7 @@
        Stav drží URL (?tags=koncert,folklor), nie komponent — rovnako ako obecný
        facet v MunicipalityAside. Odkaz sa tak dá zdieľať aj založiť. -->
   <div v-if="groups.length || count" class="rounded-xl border border-slate-200 bg-white p-3">
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <div v-if="count || active.length" class="flex flex-wrap items-center justify-between gap-2">
       <!-- Počet výsledkov stál pod kartou vo vlastnom riadku; vedľa štítkov
            povie to isté a ušetrí výšku, ktorej je na telefóne najmenej. -->
       <p v-if="count" class="text-sm text-slate-500" role="status" aria-live="polite">{{ count }}</p>
@@ -32,52 +32,52 @@
           :to="basePath"
           class="text-xs text-slate-500 no-underline hover:text-slate-800 hover:underline"
         >{{ t('filters.tags.clearAll') }}</RouterLink>
+      </div>
+    </div>
 
-        <button
-          v-if="groups.length"
-          type="button"
-          class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-slate-600 transition-colors hover:bg-slate-50"
-          @click="expanded = !expanded"
+    <!-- Rovnaké usporiadanie ako bočný panel na hlascirkvi.sk: nadpis
+         „Čo hľadáte" a pod ním skupiny, každá zbalená zvlášť. Otvorená ostáva
+         len tá, v ktorej je aktívny filter — celý zoznam by zabral pol obrazovky. -->
+    <template v-if="groups.length">
+      <p
+        class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
+        :class="{ 'mt-3 border-t border-slate-100 pt-3': count || active.length }"
+      >{{ t('filters.tags.lookingFor') }}</p>
+
+      <div class="mt-1 divide-y divide-slate-100">
+        <details
+          v-for="group in groups"
+          :key="group.group"
+          class="group py-0.5"
+          :open="groupIsActive(group)"
         >
-          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M3 4h18M6 12h12M10 20h4" stroke-linecap="round" />
-          </svg>
-          {{ t('filters.tags.title') }}
-          <span
-            v-if="active.length"
-            class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[0.65rem] font-medium text-white"
-          >{{ active.length }}</span>
-          <svg
-            class="h-3 w-3 shrink-0 transition-transform"
-            :class="{ 'rotate-180': expanded }"
-            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-          >
-            <path d="M6 9l6 6 6-6" stroke-linecap="round" />
-          </svg>
-        </button>
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs tracking-wider text-slate-500 uppercase transition-colors hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+            <span>{{ group.label }}</span>
+            <svg
+              class="h-3 w-3 shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path d="M6 9l6 6 6-6" stroke-linecap="round" />
+            </svg>
+          </summary>
+          <div class="flex flex-wrap gap-1.5 px-2 pt-1.5 pb-2">
+            <RouterLink
+              v-for="tag in group.tags"
+              :key="tag.slug"
+              :to="linkFor(tag.slug)"
+              class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs no-underline transition-colors"
+              :class="isActive(tag.slug)
+                ? 'border-slate-900 bg-slate-900 font-medium text-white'
+                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-white'"
+            >
+              <span v-if="tag.emoji">{{ tag.emoji }}</span>
+              {{ tag.name }}
+              <span :class="isActive(tag.slug) ? 'text-slate-300' : 'text-slate-400'">{{ tag.eventsCount }}</span>
+            </RouterLink>
+          </div>
+        </details>
       </div>
-    </div>
-
-    <div v-if="expanded" class="mt-3 space-y-3 border-t border-slate-100 pt-3">
-      <div v-for="group in groups" :key="group.group">
-        <p class="mb-1.5 text-xs font-medium text-slate-400 uppercase">{{ group.label }}</p>
-        <div class="flex flex-wrap gap-1.5">
-          <RouterLink
-            v-for="tag in group.tags"
-            :key="tag.slug"
-            :to="linkFor(tag.slug)"
-            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs no-underline transition-colors"
-            :class="isActive(tag.slug)
-              ? 'bg-slate-900 font-medium text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-          >
-            <span v-if="tag.emoji">{{ tag.emoji }}</span>
-            {{ tag.name }}
-            <span :class="isActive(tag.slug) ? 'text-slate-300' : 'text-slate-400'">{{ tag.eventsCount }}</span>
-          </RouterLink>
-        </div>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -104,7 +104,6 @@ const basePath = computed(() =>
 )
 
 const groups = ref<TagGroupItem[]>([])
-const expanded = ref(false)
 
 /**
  * Aktívne slugy z URL. Jeden štítok má vlastnú landing adresu
@@ -129,6 +128,10 @@ const activeTags = computed(() =>
 
 function isActive(slug: string) {
   return active.value.includes(slug)
+}
+
+function groupIsActive(group: TagGroupItem) {
+  return group.tags.some((tag) => isActive(tag.slug))
 }
 
 /**
@@ -165,8 +168,5 @@ onMounted(async () => {
   } catch {
     groups.value = []
   }
-
-  // Keď už filter beží z URL, panel otvor — používateľ vidí, kde je.
-  expanded.value = active.value.length > 0
 })
 </script>
