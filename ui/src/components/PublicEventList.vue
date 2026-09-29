@@ -3,10 +3,10 @@
        (`/akcie`, `/akcie/mesto/...`, `/akcie/tema/...`), aby sa
        filtrovanie, stránkovanie a fasety nemuseli udržiavať dvakrát. -->
   <div>
-    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
-        <component :is="headingLevel" class="mb-1 text-2xl text-slate-900">{{ heading }}</component>
-        <p class="text-slate-500">{{ subheading }}</p>
+        <component :is="headingLevel" class="mb-1 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">{{ heading }}</component>
+        <p class="text-base text-slate-500">{{ subheading }}</p>
       </div>
 
       <div class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
@@ -79,17 +79,17 @@
           <!-- Kostra v tvare výsledku: text „Načítavam…" nechal plochu prázdnu
                a po dobehnutí obsah skočil o celú výšku zoznamu. -->
           <div v-if="loading" class="animate-pulse space-y-2" aria-hidden="true">
-            <div v-if="view === 'grid'" class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
-              <div v-for="n in 6" :key="n" class="overflow-hidden rounded-lg border border-slate-200">
-                <div class="h-40 w-full bg-slate-200" />
-                <div class="space-y-2 p-3">
+            <div v-if="view === 'grid'" class="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
+              <div v-for="n in 6" :key="n" class="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-900/5">
+                <div class="aspect-[4/3] w-full bg-slate-200" />
+                <div class="space-y-2 p-4">
                   <div class="h-4 w-4/5 rounded bg-slate-200" />
                   <div class="h-3 w-1/2 rounded bg-slate-100" />
                 </div>
               </div>
             </div>
-            <div v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <div v-for="n in 5" :key="n" class="flex gap-4 border-b border-dotted border-slate-200 px-4 py-3 last:border-b-0">
+            <div v-else class="space-y-3">
+              <div v-for="n in 5" :key="n" class="flex gap-4 rounded-2xl bg-white p-3 ring-1 ring-slate-900/5">
                 <div class="h-24 w-24 shrink-0 rounded-lg bg-slate-200 sm:h-28 sm:w-28" />
                 <div class="min-w-0 flex-1 space-y-2 py-1">
                   <div class="h-4 w-3/5 rounded bg-slate-200" />
@@ -111,7 +111,7 @@
 
           <!-- Prázdny stav bez východiska bol slepá ulička; teraz vždy ponúka
                krok späť k širšiemu výberu. -->
-          <div v-else-if="(view === 'map' ? mapPoints.length : events.length) === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <div v-else-if="(view === 'map' ? mapPoints.length : events.length) === 0" class="rounded-2xl bg-white p-10 text-center ring-1 ring-slate-900/5">
             <svg class="mx-auto mb-3 h-10 w-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" />
               <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18M9 15h6" />
@@ -143,7 +143,7 @@
             <!-- Mriežka je o obrázkoch — obsahové štítky („Svätá omša“ a spol.)
                  sa tu neukazujú, na karte z nich boli dva riadky farby navyše.
                  Filtrovať sa cez ne dá naďalej v TagChips nad výpisom. -->
-            <div v-else class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 md:grid-cols-3">
+            <div v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
               <EventCard
                 v-for="event in events"
                 :key="event.id"
@@ -153,6 +153,7 @@
                 :image-url="event.imageUrl"
                 :image-url-large="event.imageUrlLarge"
                 :date-label="event.dateRangeLabel"
+                :start-at="event.startAt"
                 :canal-name="event.canalName"
                 :venue-name="event.venue?.name ?? null"
                 :series-upcoming-count="event.seriesUpcomingCount"

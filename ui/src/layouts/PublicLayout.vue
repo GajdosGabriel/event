@@ -1,7 +1,7 @@
 <template>
   <!-- Flex, nie pevná mriežka riadkov: pásy s oznamami sa nevykreslia, keď
        žiadny aktívny oznam nie je, a počet riadkov by tak nesedel. -->
-  <div class="flex min-h-screen flex-col bg-slate-100">
+  <div class="flex min-h-screen flex-col bg-slate-50">
     <AnnouncementBar placement="top" />
 
     <!-- Hlavná navigácia. Na širokej obrazovke stojí celá v riadku, na telefóne
@@ -10,7 +10,7 @@
     <header class="relative z-40 bg-slate-900 text-white">
       <div class="mx-auto flex w-full max-w-[1300px] items-center justify-between gap-3 px-4 py-3">
         <div class="flex min-w-0 items-center gap-6">
-          <RouterLink to="/" class="font-bold text-white no-underline">Event</RouterLink>
+          <RouterLink to="/" class="text-lg font-extrabold tracking-tight text-white no-underline">Event<span class="text-rose-500">.</span></RouterLink>
           <nav class="hidden items-center gap-5 md:flex">
             <RouterLink
               v-for="link in mainLinks"
@@ -106,7 +106,7 @@
 
     <!-- Odkazy na právne dokumenty musia byť dostupné z každej stránky, nielen
          z registrácie — spotrebiteľ si ich má vedieť nájsť kedykoľvek. -->
-    <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
+    <footer class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-6 text-sm text-slate-500">
       <span>© {{ new Date().getFullYear() }} Event</span>
       <nav class="flex flex-wrap gap-4">
         <!-- Archív. Skončené podujatia zmiznú z výpisov, ale ich stránky žijú

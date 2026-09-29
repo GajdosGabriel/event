@@ -45,6 +45,19 @@ export function fmtTime(d: string): string {
   return new Date(d).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })
 }
 
+/**
+ * Kalendárny lístok na karte a v hlavičke detailu: „29" nad „sep". Skratky sú
+ * z Intl bez bodky, aby sa zmestili do úzkeho stĺpca.
+ */
+export function dateTile(d: string): { day: string; month: string; weekday: string } {
+  const date = new Date(d)
+  return {
+    day: String(date.getDate()),
+    month: date.toLocaleDateString(localeTag(), { month: 'short' }).replace('.', ''),
+    weekday: date.toLocaleDateString(localeTag(), { weekday: 'short' }).replace('.', ''),
+  }
+}
+
 /** „22. júla 2026" — dlhý tvar do textových viet (uzávierka registrácie). */
 export function fmtDateLong(d: string): string {
   return new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
