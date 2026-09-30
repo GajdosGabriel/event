@@ -1,0 +1,1 @@
+import{N as o,S as t}from"./index-DTAjrpTH.js";function a(r,e="EUR"){return new Intl.NumberFormat(o(),{style:"currency",currency:e??"EUR"}).format(r/100)}function f(r,e="EUR"){return r?a(r,e):t("common.free")}export{a,f};

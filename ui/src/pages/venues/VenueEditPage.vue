@@ -78,9 +78,9 @@
     </div>
 
     <div class="edit-card grid gap-6">
-      <AddressMapField v-model="address" />
-
       <RecordImages ref="images" kind="venues" fileable-type="venue" :fileable-id="fileableId" />
+
+      <AddressMapField v-model="address" />
     </div>
   </div>
 </template>
