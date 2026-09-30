@@ -17,10 +17,20 @@
         :sort-options="sortOptions"
         :show-date-range="resource === 'event'"
         :canal-filter="canalFilter"
+        :extra-active="withoutOwner ? 1 : 0"
         :history-key="`${scope}-${resource}`"
         @change="load(1)"
         @clear-canal="canalFilter = null"
-      />
+        @reset="withoutOwner = false"
+      >
+        <!-- Miesta bez správcu — zoznam na ručné priradenie (len admin). -->
+        <template v-if="canFilterWithoutOwner" #filters>
+          <label class="flex h-10 items-center gap-2 text-sm text-slate-600">
+            <input v-model="withoutOwner" type="checkbox" class="form-checkbox" @change="load(1)" />
+            {{ t('venues.filters.withoutOwner') }}
+          </label>
+        </template>
+      </ResourceFilterBar>
     </div>
 
     <p v-if="loading" class="index-status">{{ t('common.loading') }}</p>
@@ -304,6 +314,8 @@ const sortFilter = ref('newest')
 const dateFrom = ref('')
 const dateTo = ref('')
 const canalFilter = ref<{ id: number; name: string } | null>(null)
+const withoutOwner = ref(false)
+const canFilterWithoutOwner = computed(() => props.resource === 'venue' && scope.value === 'admin')
 const apiStatusOptions = ref<FilterOption[]>([])
 
 /**
@@ -355,6 +367,7 @@ function filtersToQuery(): Record<string, string> {
   if (sortFilter.value && sortFilter.value !== 'newest') q['sort'] = sortFilter.value
   if (dateFrom.value) q['from'] = dateFrom.value
   if (dateTo.value) q['to'] = dateTo.value
+  if (withoutOwner.value && canFilterWithoutOwner.value) q['without_owner'] = '1'
   if (canalFilter.value) {
     q['canal_id'] = String(canalFilter.value.id)
     q['canal_name'] = canalFilter.value.name
@@ -370,6 +383,7 @@ function filtersFromQuery() {
   sortFilter.value = typeof q.sort === 'string' ? q.sort : 'newest'
   dateFrom.value = typeof q.from === 'string' ? q.from : ''
   dateTo.value = typeof q.to === 'string' ? q.to : ''
+  withoutOwner.value = q.without_owner === '1'
   // Staré odkazy s ?deleted=1 nech ďalej fungujú.
   if (q.deleted === '1') statusFilter.value = DELETED_STATUS
   canalFilter.value = typeof q.canal_id === 'string' && Number(q.canal_id) > 0
@@ -412,6 +426,7 @@ async function fetchPage(p: number) {
     if (dateFrom.value) params['date_from'] = dateFrom.value
     if (dateTo.value) params['date_to'] = dateTo.value
     if (canalFilter.value) params['canal_id'] = canalFilter.value.id
+    if (withoutOwner.value && canFilterWithoutOwner.value) params['without_owner'] = 1
     if (route.query.municipality) params['municipality'] = route.query.municipality
     syncQuery(p)
     const { data } = await http.get(apiBase.value, { params })

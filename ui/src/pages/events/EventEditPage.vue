@@ -6,18 +6,13 @@
          pozrieť, sa vzápätí vracia k rozrobenému formuláru a `RouterLink` by
          mu ho prepísal aj s neuloženými zmenami. Šípka za textom hovorí, že
          odkaz odchádza z aplikácie — rovnako ako v `ActionButton`. -->
-    <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('events.form.back') }}</RouterLink>
-        <h1 class="my-2 text-2xl text-slate-900">
-          {{ fileableId ? t('events.form.editTitle') : t('events.form.createTitle') }}
-        </h1>
-      </div>
+    <EditPageHeader class="mb-4" :back-to="indexRoute" :back-label="t('events.form.back')" kind="event" :scope="scope" :values="readinessValues"
+      :title="fileableId ? t('events.form.editTitle') : t('events.form.createTitle')">
       <a v-if="fileableId" :href="publicUrl" target="_blank" rel="noopener" class="btn btn-secondary no-underline">
         {{ t('events.form.view') }}
         <AppIcon name="externalLink" class="h-4 w-4 shrink-0" />
       </a>
-    </div>
+    </EditPageHeader>
 
     <nav v-if="guided" ref="stepNavigation" class="mb-5 grid grid-cols-3 gap-2" :aria-label="t('events.form.createTitle')">
       <button v-for="(label, index) in stepLabels" :key="index" type="button"
@@ -335,6 +330,7 @@ import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
 import ContactListField from '@/components/ContactListField.vue'
+import EditPageHeader from '@/components/EditPageHeader.vue'
 import FormField from '@/components/FormField.vue'
 import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'

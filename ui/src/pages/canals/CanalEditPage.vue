@@ -1,13 +1,8 @@
 <template>
   <div class="edit-shell">
     <div class="edit-card">
-      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('canals.form.back') }}</RouterLink>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h1 class="my-2 text-2xl text-slate-900">
-          {{ savedId || !isCreate ? t('canals.form.editTitle') : t('canals.form.createTitle') }}
-        </h1>
-        <ReadinessBadge kind="canal" :scope="scope" :values="readinessValues" />
-      </div>
+      <EditPageHeader :back-to="indexRoute" :back-label="t('canals.form.back')" kind="canal" :scope="scope" :values="readinessValues"
+        :title="savedId || !isCreate ? t('canals.form.editTitle') : t('canals.form.createTitle')" />
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
@@ -19,58 +14,25 @@
             <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
             <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
             <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
-            <!-- Koncept = stiahnutie z výpisu. Kanál, na ktorý odkazuje
-                 podujatie, sa stiahnuť nesmie — voľba zošedne a povie prečo,
-                 nech to nekončí až chybou po uložení. -->
-            <FormField v-model="form.status" type="select" :label="t('canals.fields.status')" :error="errors.status"
-              :hint="unpublishBlockedReason ?? undefined">
-              <option value="draft" :disabled="Boolean(unpublishBlockedReason)">{{ t('canals.statuses.draft') }}</option>
-              <option value="published">{{ t('canals.statuses.published') }}</option>
-              <option value="archived">{{ t('canals.statuses.archived') }}</option>
-            </FormField>
-            <FormField :label="t('canals.fields.description')" :error="errors.body" class="lg:col-span-2">
-              <HtmlEditor v-model="form.body" min-height="130px" />
-            </FormField>
-
-            <!--
-              Pomocník s textom — ten istý komponent ako v podujatí a mieste.
-              Panel si sám rozhodne, čo z neho ukázať (viď AiAssistPanel.vue).
-            -->
-            <AiAssistPanel v-model="form.body" kind="canal" :scope="scope" :values="readinessValues"
-              :name="form.name" :context="aiContext" :record-id="fileableId" hide-readiness class="lg:col-span-2" />
+            <RecordStatusField v-model="form.status" kind="canals" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
+            <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
+            <DescriptionField v-model="form.body" :label="t('canals.fields.description')" :error="errors.body" min-height="130px"
+              kind="canal" :scope="scope" :values="readinessValues" :name="form.name" :context="aiContext"
+              :record-id="fileableId" class="lg:col-span-2" />
           </div>
         </fieldset>
 
         <AddressFieldset ref="addressFields" v-model="address" :scope="scope" :errors="errors" municipality-key="municipality_id" />
 
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('canals.sections.contact') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.email" type="email" :label="t('canals.fields.email')" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" :label="t('canals.fields.phone')" :error="errors.phone" />
-            <FormField v-model="form.website" type="url" :label="t('canals.fields.website')" :error="errors.website">
-              <template #footer>
-                <AttributeIssueHint :issue="websiteIssue" :label="t('canals.fields.websiteIssueLabel')" />
-              </template>
-            </FormField>
-          </div>
-        </fieldset>
+        <ContactFieldset v-model:email="form.email" v-model:phone="form.phone" v-model:website="form.website"
+          kind="canals" :errors="errors" :website-issue="websiteIssue" />
 
-        <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary" :disabled="saving">
-            {{ saving ? t('canals.form.saving') : t('canals.form.save') }}
-          </button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('canals.form.cancel') }}</RouterLink>
-        </div>
+        <RecordFormActions kind="canals" :saving="saving" :cancel-to="indexRoute" />
       </form>
     </div>
 
     <div class="edit-card grid gap-6">
-      <div>
-        <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('canals.sections.images') }}</h2>
-        <ImageManager v-if="fileableId" ref="imageManager" fileable-type="canal" :fileable-id="fileableId" />
-        <ImagePicker v-else ref="picker" />
-      </div>
+      <RecordImages ref="images" kind="canals" fileable-type="canal" :fileable-id="fileableId" />
 
       <!-- Tím sa spravuje tu, kde sa upravuje kanál — detail naň už len
            odkazuje. V admine nie: tam sa používatelia riešia inde. Nový kanál
@@ -95,16 +57,16 @@ import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
-import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
-import ReadinessBadge from '@/components/ai/ReadinessBadge.vue'
+import DescriptionField from '@/components/ai/DescriptionField.vue'
+import EditPageHeader from '@/components/EditPageHeader.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
-import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
+import ContactFieldset from '@/components/ContactFieldset.vue'
+import RecordFormActions from '@/components/RecordFormActions.vue'
+import RecordImages from '@/components/RecordImages.vue'
+import RecordStatusField from '@/components/RecordStatusField.vue'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import FormField from '@/components/FormField.vue'
-import ImageManager from '@/components/ImageManager.vue'
-import ImagePicker from '@/components/ImagePicker.vue'
-import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
@@ -117,7 +79,6 @@ const indexRoute = computed(() => `${prefix.value}/canals`)
 
 const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
-const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const { canalIdentityModes, loadCanalIdentityModes } = useFormOptions(scope.value)
 
@@ -142,7 +103,7 @@ const form = ref({
 // PSČ z číselníka a polohy, ktorá ide za adresou.
 const address = ref(emptyAddress())
 const addressFields = ref<InstanceType<typeof AddressFieldset> | null>(null)
-const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
+const images = ref<InstanceType<typeof RecordImages> | null>(null)
 
 /**
  * Hodnoty pre ukazovateľ pripravenosti pod menami z `config/content_review.php`
@@ -151,7 +112,7 @@ const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
 const readinessValues = computed(() => ({
   ...form.value,
   municipality_id: address.value.municipalityId,
-  image: fileableId.value ? (imageManager.value?.imageCount ?? 0) > 0 : (picker.value?.files.length ?? 0) > 0,
+  image: images.value?.hasImages ?? false,
 }))
 
 /** Obec ako kontext pre AI — bez nej model o polohe radšej nepíše. */
@@ -216,7 +177,7 @@ async function submit() {
     if (isCreate.value) {
       const c = await createCanal(payload(), scope.value)
       savedId.value = c.id
-      const pending = picker.value?.files ?? []
+      const pending = images.value?.pendingFiles ?? []
       if (pending.length) {
         const fd = new FormData()
         fd.append('fileable_type', 'canal')

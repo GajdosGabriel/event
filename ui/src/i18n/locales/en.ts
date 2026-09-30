@@ -877,6 +877,7 @@ const en: Messages = {
       address: 'Address',
       capacity: 'Capacity',
       capacityValue: '{n} people',
+      manager: 'Managed by',
       category: 'Type',
       seoDescription: 'Events at the venue {name}.',
     },
@@ -1145,6 +1146,9 @@ const en: Messages = {
     },
   },
   venues: {
+    filters: {
+      withoutOwner: 'No manager',
+    },
     index: {
       title: 'Venues',
       create: 'New venue',
@@ -1187,6 +1191,9 @@ const en: Messages = {
     fields: {
       name: 'Name',
       canal: 'Channel',
+      ownerCanal: 'Venue manager',
+      ownerCanalHint: 'The channel allowed to edit the venue. Channels whose events take place here are linked automatically — renting is handled on the event, not here.',
+      ownerCanalNone: 'No manager (managed by admin)',
       canalPlaceholder: '— select a channel —',
       status: 'Status',
       category: 'Category',

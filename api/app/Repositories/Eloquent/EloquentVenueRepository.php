@@ -66,7 +66,14 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     {
         Gate::authorize('viewAny', $this->entity);
 
-        return $this->paginateFilteredQuery($this->withRowContext($this->adminIndexQuery()), $perPage, $filters);
+        $query = $this->withRowContext($this->adminIndexQuery());
+
+        // Miesta, o ktoré sa nikto nestará — zoznam na ručné priradenie správcu.
+        if (! empty($filters['without_owner'])) {
+            $query->whereDoesntHave('ownerCanals');
+        }
+
+        return $this->paginateFilteredQuery($query, $perPage, $filters);
     }
 
     /**
@@ -131,11 +138,16 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function create(array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $ownerCanalId = $this->extractOwnerCanalId($properties);
         $canalIds = $this->extractCanalIds($properties);
+
+        if ($ownerCanalId !== null && $ownerCanalId !== false) {
+            $canalIds = array_values(array_unique([$ownerCanalId, ...$canalIds]));
+        }
 
         /** @var Venue $venue */
         $venue = parent::create($properties);
-        $venue->syncCanalAssignments($canalIds, true);
+        $venue->syncCanalAssignments($canalIds, true, $ownerCanalId ?: null);
 
         $this->backfillCoordinates($venue);
         $this->syncVenueFiles($venue, $filePayload);
@@ -146,6 +158,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function update($id, array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $ownerCanalId = $this->extractOwnerCanalId($properties);
         $canalIds = $this->extractCanalIds($properties, false);
 
         $venue = $this->model()->withTrashed()->findOrFail($id);
@@ -156,7 +169,11 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
         $venue->update($properties);
 
-        if ($canalIds !== null) {
+        // Formulár posiela len správcu: mení sa vlastníctvo, väzby „používa"
+        // (kanály, ktorých podujatia sa tu konajú) ostávajú nedotknuté.
+        if ($ownerCanalId !== false) {
+            $venue->assignOwner($ownerCanalId);
+        } elseif ($canalIds !== null) {
             $currentOwnerCanalId = $venue->ownerCanals()->value('canals.id');
             $ownerCanalId = in_array((int) $currentOwnerCanalId, $canalIds, true)
                 ? (int) $currentOwnerCanalId
@@ -217,6 +234,22 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         }
 
         return $venue->canals()->detach($detachCanalIds);
+    }
+
+    /**
+     * `owner_canal_id`: `false` = kľúč neprišiel (nič sa nemení), `null` =
+     * správca sa odoberá, číslo = nový správca.
+     */
+    private function extractOwnerCanalId(array &$properties): int|false|null
+    {
+        if (! array_key_exists('owner_canal_id', $properties)) {
+            return false;
+        }
+
+        $value = $properties['owner_canal_id'];
+        unset($properties['owner_canal_id']);
+
+        return $value === null || $value === '' ? null : (int) $value;
     }
 
     private function extractCanalIds(array &$properties, bool $required = true): ?array

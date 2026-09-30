@@ -397,6 +397,10 @@ export interface AddressModel {
 export interface VenueItem {
   id: number
   canalId: number | null
+  /** Správca miesta (canal_venue.is_owner) — `null`, keď ho nemá a spravuje ho admin. */
+  ownerCanalId: number | null
+  /** Verejný profil správcu miesta — len na verejnej stránke, inak `null`. */
+  manager: { id: number; name: string; slug: string } | null
   villageId: number | null
   name: string
   slug: string

@@ -77,15 +77,8 @@ describe('AiAssistPanel', () => {
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('Fill in with AI')
-    expect(wrapper.text()).toContain('Profile completion')
-  })
-
-  it('names what is still missing', async () => {
-    const wrapper = mountPanel({ values: { name: '', body: LONG_BODY } })
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('name')
-    expect(wrapper.text()).toContain('contact')
+    // Ukazovateľ pripravenosti panel nekreslí — je v hlavičke (ReadinessBadge).
+    expect(wrapper.text()).not.toContain('Profile completion')
   })
 
   it('appears once everything is filled in', async () => {

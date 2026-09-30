@@ -33,6 +33,7 @@ class OrganizerName
 
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
         $value = self::cutTrailingSentence($value);
+        $value = self::primaryOrganizer($value);
         $value = trim($value, " \t\n\r\0\x0B,.;:-/");
 
         if ($value === '') {
@@ -65,6 +66,39 @@ class OrganizerName
         $value = rtrim($value, '/');
 
         return (bool) preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)+$/', $value);
+    }
+
+    /** Právne formy, ktoré sú súčasťou názvu, nie ďalší subjekt v zozname. */
+    private const LEGAL_FORM = '/^(o\.?\s?z\.?|n\.?\s?o\.?|s\.?\s?r\.?\s?o\.?|spol\.\s?s\s?r\.?\s?o\.?|a\.?\s?s\.?|v\.?\s?v\.?\s?i\.?)(?=[\s,.]|$)/iu';
+
+    /**
+     * Zo zoznamu spoluorganizátorov nechá len hlavného (prvého).
+     *
+     * Text pozvánky často vymenúva partnerov („Múzeum obetí komunizmu, Ústav
+     * pamäti národa, OZ samizdat.sk a Dom Quo Vadis"). Kanál je jeden
+     * organizátor, takže zlepený zoznam by z neho spravil kanál s troma-štyrmi
+     * menami. Delí sa len čiarkou (spojka „a" býva aj súčasťou jedného názvu)
+     * a slovami „v spolupráci s" / „spolu s"; právne formy („…, o. z.")
+     * ostávajú súčasťou názvu.
+     */
+    private static function primaryOrganizer(string $value): string
+    {
+        $parts = preg_split('/\s+(?:v\s+spolupráci\s+s|spolu\s+s)\s+/iu', $value, 2);
+        $head = trim($parts[0] ?? '');
+        $value = $head !== '' ? $head : $value;
+
+        $segments = preg_split('/,\s+/u', $value) ?: [$value];
+        $primary = $segments[0];
+
+        foreach (array_slice($segments, 1) as $segment) {
+            if (! preg_match(self::LEGAL_FORM, $segment)) {
+                break;
+            }
+
+            $primary .= ', '.$segment;
+        }
+
+        return trim($primary) !== '' ? $primary : $value;
     }
 
     /**

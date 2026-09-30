@@ -102,6 +102,12 @@
                   <dt class="text-xs text-slate-400 uppercase tracking-wide">{{ t('public.venue.capacity') }}</dt>
                   <dd class="text-slate-700">{{ t('public.venue.capacityValue', { n: venue.capacity }) }}</dd>
                 </div>
+                <div v-if="venue.manager">
+                  <dt class="text-xs text-slate-400 uppercase tracking-wide">{{ t('public.venue.manager') }}</dt>
+                  <dd>
+                    <RouterLink :to="publicCanalPath(venue.manager)" class="text-blue-600 hover:underline">{{ venue.manager.name }}</RouterLink>
+                  </dd>
+                </div>
                 <div v-if="venue.category">
                   <dt class="text-xs text-slate-400 uppercase tracking-wide">{{ t('public.venue.category') }}</dt>
                   <dd class="text-slate-700">{{ venue.category }}</dd>
@@ -145,7 +151,7 @@ import ImageGallery from '@/components/ImageGallery.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
-import { absoluteUrl, idFromRouteParam, publicVenuePath } from '@/utils/publicUrl'
+import { absoluteUrl, idFromRouteParam, publicCanalPath, publicVenuePath } from '@/utils/publicUrl'
 import { useI18n, localeTag } from '@/i18n'
 
 const { t } = useI18n()

@@ -37,6 +37,13 @@ class VenueController extends Controller
             : null;
         // Kontaktovateľné len ak má miesto vlastnícky kanál s aktívnym majiteľom
         // (a návštevník ním nie je sám).
+        // Kto miesto spravuje — odkaz na profil, aby sa kontakt dal nájsť aj
+        // mimo tlačidla. Len verejný kanál, za ktorým stojí reálny človek:
+        // nespravovaný import by sľuboval kontakt, ktorý neexistuje.
+        $manager = $venue->ownerCanals()->first();
+        $data['manager'] = $manager !== null && $manager->status === ModelStatus::Published && $manager->isManaged()
+            ? ['id' => $manager->id, 'name' => $manager->name, 'slug' => $manager->slug]
+            : null;
         $data['contactable'] = $venue->isContactableBy(auth('sanctum')->user());
 
         return response()->json($data);

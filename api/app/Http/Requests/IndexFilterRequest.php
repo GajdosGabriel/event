@@ -12,6 +12,7 @@ class IndexFilterRequest extends FormRequest
         'blocked',
         'deleted',
         'for_select',
+        'without_owner',
     ];
 
     public function authorize(): bool
@@ -57,6 +58,7 @@ class IndexFilterRequest extends FormRequest
             'unpublished' => ['nullable', 'boolean'],
             'blocked' => ['nullable', 'boolean'],
             'deleted' => ['nullable', 'boolean'],
+            'without_owner' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'municipality' => ['nullable', 'integer', 'min:1'],
             'canal_id' => ['nullable', 'integer', 'min:1'],
@@ -78,6 +80,7 @@ class IndexFilterRequest extends FormRequest
             'published' => $this->getPublishedFilter(),
             'blocked' => $this->getBooleanFilter('blocked'),
             'deleted' => $this->getBooleanFilter('deleted'),
+            'without_owner' => $this->getBooleanFilter('without_owner'),
             'per_page' => $this->input('per_page', 15),
             'municipality' => $this->input('municipality') ? (int) $this->input('municipality') : null,
             'canal_id' => $this->input('canal_id') ? (int) $this->input('canal_id') : null,

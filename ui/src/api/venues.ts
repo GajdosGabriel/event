@@ -22,10 +22,18 @@ function mapMunicipality(raw: unknown): VenueItem['municipality'] {
   return { id: m['id'] as number, name }
 }
 
+/** Správca miesta z `canals_list` — kanál s `is_owner`, inak null. */
+function ownerCanalIdOf(list: unknown): number | null {
+  const owner = (Array.isArray(list) ? list : []).find((c: Record<string, unknown>) => c['is_owner'])
+  return owner ? (owner['id'] as number) : null
+}
+
 function mapVenue(raw: Record<string, unknown>): VenueItem {
   return {
     id: raw['id'] as number,
     canalId: (raw['canal_id'] as number) ?? null,
+    ownerCanalId: ownerCanalIdOf(raw['canals_list']),
+    manager: (raw['manager'] as VenueItem['manager']) ?? null,
     villageId: (raw['village_id'] as number) ?? null,
     name: raw['name'] as string,
     slug: (raw['slug'] as string) ?? '',

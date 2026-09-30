@@ -170,6 +170,27 @@ class Venue extends Model implements Messageable
         ]);
     }
 
+    /**
+     * Nastaví (alebo zruší) správcu miesta — kanál, ktorý smie miesto upravovať.
+     *
+     * Ostatné väzby ostávajú: kanál, ktorého podujatia sa na mieste konajú
+     * (alebo predošlý správca), je stále „používateľ" miesta, len ho už
+     * nespravuje. Prenájom sa tak deje na podujatí, nie na mieste. `null`
+     * správcu odoberie — miesto potom spravuje len admin.
+     */
+    public function assignOwner(?int $canalId): void
+    {
+        $this->canals()
+            ->newPivotStatement()
+            ->where('venue_id', $this->id)
+            ->where('is_owner', true)
+            ->update(['is_owner' => false, 'updated_at' => now()]);
+
+        if ($canalId !== null) {
+            $this->assignCanal($canalId, true);
+        }
+    }
+
     public function syncCanalAssignments(array $canalIds, bool $markFirstAsOwner = false, ?int $ownerCanalId = null): void
     {
         $canalIds = collect($canalIds)

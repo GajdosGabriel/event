@@ -933,6 +933,7 @@ const sk = {
       address: 'Adresa',
       capacity: 'Kapacita',
       capacityValue: '{n} osôb',
+      manager: 'Spravuje',
       category: 'Typ',
       seoDescription: 'Podujatia na mieste {name}.',
     },
@@ -1217,6 +1218,9 @@ const sk = {
     },
   },
   venues: {
+    filters: {
+      withoutOwner: 'Bez správcu',
+    },
     index: {
       title: 'Miesta',
       create: 'Nové miesto',
@@ -1260,6 +1264,9 @@ const sk = {
     fields: {
       name: 'Názov',
       canal: 'Kanál',
+      ownerCanal: 'Správca miesta',
+      ownerCanalHint: 'Kanál, ktorý smie miesto upravovať. Kanály, ktorých podujatia sa tu konajú, sa nastavujú samy — prenájom sa rieši na podujatí, nie tu.',
+      ownerCanalNone: 'Bez správcu (spravuje admin)',
       canalPlaceholder: '— vyberte kanál —',
       status: 'Stav',
       category: 'Kategória',

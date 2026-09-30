@@ -30,6 +30,24 @@ class PublicVenueShowTest extends EventSetupTest
         $response->assertJsonPath('municipality.name', $name);
     }
 
+    #[Test]
+    public function public_venue_detail_links_a_managed_owner_canal_only(): void
+    {
+        $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create();
+        $this->canalPrimary->update(['registration_source' => 'self', 'status' => 'published']);
+
+        $this->getJson("/api/venues/{$venue->id}")
+            ->assertOk()
+            ->assertJsonPath('manager.id', $this->canalPrimary->id)
+            ->assertJsonPath('manager.slug', $this->canalPrimary->fresh()->slug)
+            ->assertJsonMissingPath('manager.email');
+
+        // Nespravovaný import by sľuboval kontakt, ktorý neexistuje.
+        $this->canalPrimary->update(['registration_source' => 'import', 'claimed_at' => null]);
+
+        $this->getJson("/api/venues/{$venue->id}")->assertOk()->assertJsonPath('manager', null);
+    }
+
     private function createMunicipality(string $name): int
     {
         return (int) DB::table('municipalities')->insertGetId([

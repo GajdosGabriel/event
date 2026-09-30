@@ -1,10 +1,8 @@
 <template>
   <div class="edit-shell">
     <div class="edit-card">
-      <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('venues.form.back') }}</RouterLink>
-      <h1 class="my-2 text-2xl text-slate-900">
-        {{ fileableId ? t('venues.form.editTitle') : t('venues.form.createTitle') }}
-      </h1>
+      <EditPageHeader :back-to="indexRoute" :back-label="t('venues.form.back')" kind="venue" :scope="scope" :values="readinessValues"
+        :title="fileableId ? t('venues.form.editTitle') : t('venues.form.createTitle')" />
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <!-- AI Detect panel -->
@@ -46,72 +44,43 @@
           <legend class="field-legend">{{ t('venues.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <FormField v-model="form.name" :label="t('venues.fields.name')" required :error="errors.name" class="lg:col-span-2" />
-            <!-- Kanál je na serveri povinný (`required_without:canal_ids`) —
-                 prázdna voľba preto nesmie ostať vyberateľná, inak to skončí
-                 chybou až po uložení. -->
-            <FormField v-model="form.canal_id" :label="t('venues.fields.canal')" required :error="errors.canal_id">
-            <template #default="{ value, invalid, update }">
-              <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @update:model-value="update" />
-            </template>
-          </FormField>
-            <!-- Koncept = stiahnutie z výpisu. Miesto, ktoré používa podujatie,
-                 sa stiahnuť nesmie — voľba zošedne a povie prečo, nech to
-                 nekončí až chybou po uložení. -->
-            <FormField v-model="form.status" type="select" :label="t('venues.fields.status')" :error="errors.status"
-              :hint="unpublishBlockedReason ?? undefined">
-              <option value="draft" :disabled="Boolean(unpublishBlockedReason)">{{ t('venues.statuses.draft') }}</option>
-              <option value="published">{{ t('venues.statuses.published') }}</option>
-              <option value="archived">{{ t('venues.statuses.archived') }}</option>
+            <!-- Správca miesta = kanál, ktorý smie miesto upravovať (canal_venue.is_owner).
+                 Nie je to nájomca: kanály, ktorých podujatia sa tu konajú, sa
+                 pripájajú samy. V dashboarde ostáva povinný (bez neho by si
+                 používateľ miesto založil a stratil k nemu prístup), admin
+                 ho môže nechať prázdny — miesto potom spravuje on. -->
+            <FormField v-model="form.owner_canal_id" :label="t('venues.fields.ownerCanal')" :required="scope !== 'admin'"
+              :hint="t('venues.fields.ownerCanalHint')" :error="errors.owner_canal_id ?? errors.canal_id" class="lg:col-span-2">
+              <template #default="{ value, invalid, update }">
+                <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @update:model-value="update" />
+                <button v-if="scope === 'admin' && value" type="button" class="mt-1 text-sm text-blue-700" @click="update(null)">
+                  {{ t('venues.fields.ownerCanalNone') }}
+                </button>
+              </template>
             </FormField>
+            <RecordStatusField v-model="form.status" kind="venues" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
             <FormField v-model="form.category" :label="t('venues.fields.category')" :error="errors.category" :placeholder="t('venues.fields.categoryPlaceholder')" />
             <FormField v-model="form.capacity" type="number" :label="t('venues.fields.capacity')" min="0" :error="errors.capacity" />
-            <FormField :label="t('venues.fields.description')" :error="errors.body" class="lg:col-span-2">
-              <HtmlEditor v-model="form.body" min-height="130px" />
-            </FormField>
-
-            <!--
-              Pomocník s textom — ten istý komponent ako v podujatí a kanáli.
-              Panel si sám rozhodne, čo z neho ukázať (viď AiAssistPanel.vue).
-              Nad ním ostáva „AI detekcia": tá vypĺňa polia z názvu a obce,
-              kým tento pracuje s hotovým popisom.
-            -->
-            <AiAssistPanel v-model="form.body" kind="venue" :scope="scope" :values="readinessValues"
-              :name="form.name" :context="aiContext" :record-id="fileableId" class="lg:col-span-2" />
+            <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
+            <DescriptionField v-model="form.body" :label="t('venues.fields.description')" :error="errors.body" min-height="130px"
+              kind="venue" :scope="scope" :values="readinessValues" :name="form.name" :context="aiContext"
+              :record-id="fileableId" class="lg:col-span-2" />
           </div>
         </fieldset>
 
         <AddressFieldset ref="addressFields" v-model="address" :scope="scope" :errors="errors" municipality-key="village_id" />
 
-        <fieldset class="field-group">
-          <legend class="field-legend">{{ t('venues.sections.contact') }}</legend>
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.website" type="url" :label="t('venues.fields.website')" :error="errors.website">
-              <template #footer>
-                <AttributeIssueHint :issue="websiteIssue" :label="t('venues.fields.websiteIssueLabel')" />
-              </template>
-            </FormField>
-            <FormField v-model="form.email" type="email" :label="t('venues.fields.email')" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" :label="t('venues.fields.phone')" :error="errors.phone" />
-          </div>
-        </fieldset>
+        <ContactFieldset v-model:email="form.email" v-model:phone="form.phone" v-model:website="form.website"
+          kind="venues" :errors="errors" :website-issue="websiteIssue" />
 
-        <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary" :disabled="saving">
-            {{ saving ? t('venues.form.saving') : t('venues.form.save') }}
-          </button>
-          <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('venues.form.cancel') }}</RouterLink>
-        </div>
+        <RecordFormActions kind="venues" :saving="saving" :cancel-to="indexRoute" />
       </form>
     </div>
 
     <div class="edit-card grid gap-6">
       <AddressMapField v-model="address" />
 
-      <div>
-        <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('venues.sections.images') }}</h2>
-        <ImageManager v-if="fileableId" ref="imageManager" fileable-type="venue" :fileable-id="fileableId" />
-        <ImagePicker v-else ref="picker" />
-      </div>
+      <RecordImages ref="images" kind="venues" fileable-type="venue" :fileable-id="fileableId" />
     </div>
   </div>
 </template>
@@ -132,14 +101,15 @@ import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
-import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
+import DescriptionField from '@/components/ai/DescriptionField.vue'
+import EditPageHeader from '@/components/EditPageHeader.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
-import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
+import ContactFieldset from '@/components/ContactFieldset.vue'
+import RecordFormActions from '@/components/RecordFormActions.vue'
+import RecordImages from '@/components/RecordImages.vue'
+import RecordStatusField from '@/components/RecordStatusField.vue'
 import FormField from '@/components/FormField.vue'
-import ImageManager from '@/components/ImageManager.vue'
-import ImagePicker from '@/components/ImagePicker.vue'
-import HtmlEditor from '@/components/HtmlEditor.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute(); const router = useRouter(); const toast = useToast()
@@ -150,7 +120,6 @@ const indexRoute = computed(() => `${prefix.value}/venues`)
 
 const savedId = ref<number | null>(null)
 const fileableId = computed(() => route.params.id ? Number(route.params.id) : savedId.value)
-const picker = ref<InstanceType<typeof ImagePicker> | null>(null)
 
 const auth = useAuthStore()
 const { canals, loadCanals } = useFormOptions(scope.value)
@@ -159,7 +128,7 @@ const validation = provideFormValidation()
 
 const form = ref({
   name: '',
-  canal_id: null as number | null,
+  owner_canal_id: null as number | null,
   capacity: null as number | null,
   category: '',
   website: '',
@@ -173,7 +142,7 @@ const form = ref({
 // číselníka a geokódera. Rovnaký kus formulára má aj editor kanála.
 const address = ref(emptyAddress())
 const addressFields = ref<InstanceType<typeof AddressFieldset> | null>(null)
-const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
+const images = ref<InstanceType<typeof RecordImages> | null>(null)
 
 /**
  * Hodnoty pre ukazovateľ pripravenosti pod menami z `config/content_review.php`.
@@ -184,7 +153,7 @@ const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
 const readinessValues = computed(() => ({
   ...form.value,
   municipality_id: address.value.municipalityId,
-  image: fileableId.value ? (imageManager.value?.imageCount ?? 0) > 0 : (picker.value?.files.length ?? 0) > 0,
+  image: images.value?.hasImages ?? false,
 }))
 
 /** Obec ako kontext pre AI — bez nej model o polohe radšej nepíše. */
@@ -210,12 +179,12 @@ const unpublishBlockedReason = ref<string | null>(null)
 // Rovnaká predvoľba ako v editore eventu — organizátor s jedným kanálom ho
 // nemá čo vyberať ručne.
 watch(() => auth.canalId, (id) => {
-  if (isCreate.value && id && !form.value.canal_id) form.value.canal_id = id
+  if (isCreate.value && scope.value !== 'admin' && id && !form.value.owner_canal_id) form.value.owner_canal_id = id
 }, { immediate: true })
 
 watch(canals, (list) => {
-  if (isCreate.value && list.length > 0 && form.value.canal_id === null) {
-    form.value.canal_id = list[0].id
+  if (isCreate.value && scope.value !== 'admin' && list.length > 0 && form.value.owner_canal_id === null) {
+    form.value.owner_canal_id = list[0].id
   }
 })
 
@@ -295,7 +264,7 @@ onMounted(async () => {
       const v = await showVenue(scope.value, Number(route.params.id))
       form.value = {
         name: v.name,
-        canal_id: v.canalId ?? null,
+        owner_canal_id: v.ownerCanalId,
         capacity: v.capacity ?? null,
         category: v.category ?? '',
         website: v.website ?? '',
@@ -304,7 +273,7 @@ onMounted(async () => {
         body: v.body ?? '',
         status: v.status,
       }
-      const own = v.canalsList.find(c => c.id === v.canalId)
+      const own = v.canalsList.find(c => c.id === v.ownerCanalId)
       venueCanal.value = own ? { id: own.id, name: own.name } : null
       unpublishBlockedReason.value = v.unpublishBlockedReason
       address.value = addressFrom(v)
@@ -324,7 +293,7 @@ async function submit() {
     if (isCreate.value) {
       const v = await createVenue(payload(), scope.value)
       savedId.value = v.id
-      const pending = picker.value?.files ?? []
+      const pending = images.value?.pendingFiles ?? []
       if (pending.length) {
         const fd = new FormData()
         fd.append('fileable_type', 'venue')

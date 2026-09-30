@@ -876,6 +876,7 @@ const cs: Messages = {
       address: 'Adresa',
       capacity: 'Kapacita',
       capacityValue: '{n} osob',
+      manager: 'Spravuje',
       category: 'Typ',
       seoDescription: 'Akce na místě {name}.',
     },
@@ -1144,6 +1145,9 @@ const cs: Messages = {
     },
   },
   venues: {
+    filters: {
+      withoutOwner: 'Bez správce',
+    },
     index: {
       title: 'Místa',
       create: 'Nové místo',
@@ -1186,6 +1190,9 @@ const cs: Messages = {
     fields: {
       name: 'Název',
       canal: 'Kanál',
+      ownerCanal: 'Správce místa',
+      ownerCanalHint: 'Kanál, který smí místo upravovat. Kanály, jejichž akce se tu konají, se nastavují samy — pronájem se řeší na akci, ne tady.',
+      ownerCanalNone: 'Bez správce (spravuje admin)',
       canalPlaceholder: '— vyberte kanál —',
       status: 'Stav',
       category: 'Kategorie',

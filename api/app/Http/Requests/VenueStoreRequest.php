@@ -25,8 +25,14 @@ class VenueStoreRequest extends FormRequest
             'value'
         );
 
+        // Správca miesta je voliteľný — miesto môže byť v správe admina alebo
+        // (neskôr) samotného vlastníka. Povinný ostáva pre používateľa
+        // dashboardu, inak by si miesto vytvoril a vzápätí k nemu stratil prístup.
+        $isAdmin = (bool) $this->user()?->hasRole('super-admin');
+
         return [
-            'canal_id' => ['required_without:canal_ids', 'integer', 'exists:canals,id'],
+            'canal_id' => [$isAdmin ? 'nullable' : 'required_without_all:canal_ids,owner_canal_id', 'integer', 'exists:canals,id'],
+            'owner_canal_id' => ['nullable', 'integer', 'exists:canals,id'],
             'canal_ids' => ['sometimes', 'array', 'min:1'],
             'canal_ids.*' => ['integer', 'exists:canals,id'],
             'village_id' => 'required|integer|exists:municipalities,id',
@@ -68,6 +74,10 @@ class VenueStoreRequest extends FormRequest
             }
 
             $canalIds = collect($this->input('canal_ids', []));
+
+            if ($this->filled('owner_canal_id')) {
+                $canalIds->push($this->input('owner_canal_id'));
+            }
 
             if ($canalIds->isEmpty() && $this->filled('canal_id')) {
                 $canalIds = collect([$this->input('canal_id')]);

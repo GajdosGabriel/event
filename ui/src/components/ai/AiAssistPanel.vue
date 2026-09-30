@@ -43,29 +43,6 @@
       </div>
     </div>
 
-    <!-- ── 2. Ukazovateľ pripravenosti ───────────────────────────────── -->
-    <div v-if="!hideReadiness && readiness.loaded.value && !readiness.ready.value && readiness.total.value > 0"
-      class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p class="text-sm font-semibold text-slate-700">{{ t('ai.readiness.title') }}</p>
-        <span class="text-xs text-slate-500">
-          {{ t('ai.readiness.progress', { done: readiness.satisfied.value, total: readiness.total.value }) }}
-        </span>
-      </div>
-
-      <!-- Ukazovateľ je dekorácia nad zoznamom nižšie, preto je pre čítačku
-           skrytý — číslo aj zoznam sú v texte. -->
-      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
-        <div class="h-full rounded-full bg-emerald-500 transition-all" :style="{ width: readiness.percent.value + '%' }" />
-      </div>
-
-      <p class="mt-2 text-sm text-slate-600">
-        {{ t('ai.readiness.missing') }}
-        <span class="text-slate-800">{{ missingLabels }}</span>
-      </p>
-      <p class="mt-1 text-xs text-slate-500">{{ t('ai.readiness.hint') }}</p>
-    </div>
-
     <!-- ── 3. AI pomocník ────────────────────────────────────────────── -->
     <div v-if="readiness.ready.value" class="rounded-xl border border-violet-200 bg-violet-50 p-3">
       <button type="button" class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-violet-700"
@@ -145,7 +122,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { t, type MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { usePublishReadiness } from '@/composables/usePublishReadiness'
 import {
@@ -181,8 +158,6 @@ const props = defineProps<{
   context?: string
   /** Id uloženého záznamu. Bez neho sa posudok nemá čím vypýtať. */
   recordId?: number | null
-  /** Ukazovateľ pripravenosti zobrazuje stránka sama (viď ReadinessBadge). */
-  hideReadiness?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
@@ -204,17 +179,6 @@ const review = ref<ContentReviewResult | null>(null)
 const reviewDismissed = ref(false)
 
 const readiness = usePublishReadiness(props.scope, props.kind, () => props.values)
-
-/**
- * Zoznam chýbajúceho v ľudskej reči, oddelený čiarkami.
- *
- * Kľúč prichádza z konfigurácie na serveri, takže je to `string` — preklad si
- * ho musí pretypovať. Keď v `ai.readiness.keys` chýba, `t()` vráti samotný
- * kľúč a v UI je to hneď vidieť (viď i18n/index.ts).
- */
-const missingLabels = computed(() =>
-  readiness.missing.value.map(key => t(`ai.readiness.keys.${key}` as MessageKey)).join(', '),
-)
 
 /**
  * Text, ktorý stál vo formulári pri načítaní — teda ten, ku ktorému posudok

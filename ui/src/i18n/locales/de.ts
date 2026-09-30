@@ -877,6 +877,7 @@ const de: Messages = {
       address: 'Adresse',
       capacity: 'Kapazität',
       capacityValue: '{n} Personen',
+      manager: 'Verwaltet von',
       category: 'Typ',
       seoDescription: 'Veranstaltungen am Ort {name}.',
     },
@@ -1145,6 +1146,9 @@ const de: Messages = {
     },
   },
   venues: {
+    filters: {
+      withoutOwner: 'Ohne Verwalter',
+    },
     index: {
       title: 'Orte',
       create: 'Neuer Ort',
@@ -1187,6 +1191,9 @@ const de: Messages = {
     fields: {
       name: 'Name',
       canal: 'Kanal',
+      ownerCanal: 'Verwalter des Orts',
+      ownerCanalHint: 'Der Kanal, der den Ort bearbeiten darf. Kanäle, deren Veranstaltungen hier stattfinden, werden automatisch verknüpft — die Vermietung erfolgt bei der Veranstaltung, nicht hier.',
+      ownerCanalNone: 'Ohne Verwalter (Admin verwaltet)',
       canalPlaceholder: '— Kanal wählen —',
       status: 'Status',
       category: 'Kategorie',
