@@ -41,13 +41,13 @@ use Illuminate\Support\Str;
 class PosterDraftMaterializer
 {
     public function __construct(
-        private readonly ImportedVenueManager $venueManager = new ImportedVenueManager(),
-        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver(),
-        private readonly CanalMembership $membership = new CanalMembership(),
-        private readonly HtmlBodyCleaner $cleaner = new HtmlBodyCleaner(),
-        private readonly PdfConverterService $pdfConverter = new PdfConverterService(),
+        private readonly ImportedVenueManager $venueManager = new ImportedVenueManager,
+        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver,
+        private readonly CanalMembership $membership = new CanalMembership,
+        private readonly HtmlBodyCleaner $cleaner = new HtmlBodyCleaner,
+        private readonly PdfConverterService $pdfConverter = new PdfConverterService,
         private readonly ?FileManager $fileManager = null,
-        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher(),
+        private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher,
     ) {}
 
     public function materialize(PosterDraft $draft, User $user): Event
@@ -197,7 +197,7 @@ class PosterDraftMaterializer
         $name = $this->stringOrNull($draft->overrides['organizer']['name'] ?? null)
             ?? $this->stringOrNull($payload['organizer']['name'] ?? null)
             ?? $this->stringOrNull($payload['venue']['name'] ?? null)
-            ?? 'Podujatia ' . Str::before((string) $user->email, '@');
+            ?? 'Podujatia '.Str::before((string) $user->email, '@');
 
         $city = $this->stringOrNull($payload['organizer']['city'] ?? null)
             ?? $this->stringOrNull($payload['venue']['city'] ?? null);

@@ -83,7 +83,7 @@ class EventPublishRequest extends FormRequest
             'registration_deadline_at' => ['nullable', 'date', 'before_or_equal:start_at'],
             'canal_id' => ['required', 'integer', 'exists:canals,id'],
             'venue_id' => ['required', 'integer', 'exists:venues,id'],
-            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'email' => ['nullable', 'email', 'max:100'],
             'phone' => ['nullable', 'string', 'max:30'],
             'additional_emails' => ['nullable', 'array', 'max:10'],

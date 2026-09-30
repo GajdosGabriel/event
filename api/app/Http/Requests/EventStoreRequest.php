@@ -52,7 +52,7 @@ class EventStoreRequest extends FormRequest
             // nemá zmysel: podujatie by vyšlo hneď pri najbližšom behu, čo je
             // „publikovať", nie „naplánovať".
             'publish_at' => $this->publishAtRules(),
-            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'email' => 'nullable|email|max:100',
             'phone' => 'nullable|string|max:30',
             'additional_emails' => ['nullable', 'array', 'max:10'],

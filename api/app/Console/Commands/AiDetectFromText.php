@@ -52,7 +52,7 @@ class AiDetectFromText extends Command
 
         if (! ($result['success'] ?? false)) {
             $this->newLine();
-            $this->error('Detekcia zlyhala: ' . ($result['error'] ?? 'Neznáma chyba'));
+            $this->error('Detekcia zlyhala: '.($result['error'] ?? 'Neznáma chyba'));
 
             return self::FAILURE;
         }
@@ -237,7 +237,7 @@ class AiDetectFromText extends Command
 
         $canal = Canal::query()
             ->where('name', $name)
-            ->orWhere('name', 'like', '%' . $name . '%')
+            ->orWhere('name', 'like', '%'.$name.'%')
             ->orderByDesc('created_at')
             ->first();
 

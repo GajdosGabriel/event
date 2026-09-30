@@ -194,7 +194,7 @@ class EventSeriesManager
     public function siblings(Event $event): Collection
     {
         if ($event->series_id === null) {
-            return new Collection();
+            return new Collection;
         }
 
         return Event::query()
