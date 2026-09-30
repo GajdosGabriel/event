@@ -49,6 +49,7 @@ export interface SystemLogParams {
   search?: string
   recipient?: string
   user_id?: number
+  canal_id?: number
   date_from?: string
   date_to?: string
   page?: number

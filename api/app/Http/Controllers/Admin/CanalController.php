@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Models\Canal;
+use App\Models\SystemLog;
 
 class CanalController extends Controller
 {
@@ -97,6 +98,38 @@ class CanalController extends Controller
                 'update' => $user->can('update', $ev),
             ],
         ]));
+    }
+
+    /**
+     * História kanála z denníka udalostí: zmeny tímu a vlastníctva, žiadosti
+     * o prevzatie, importy aj maily, čo šli na jeho kontaktnú adresu.
+     * Len čítanie — celý denník je v Admin\SystemLogController.
+     */
+    public function history(string $id): JsonResponse
+    {
+        $canal = $this->canalRepository->adminShow($id);
+        $this->authorize('view', $canal);
+
+        $email = trim((string) $canal->email);
+
+        $logs = SystemLog::query()
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('subject_type', $canal->getMorphClass())->where('subject_id', $canal->id))
+                ->when($email !== '', fn ($q) => $q->orWhere('recipient', $email)))
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
+
+        return response()->json(['data' => $logs->map(fn (SystemLog $log) => [
+            'id' => $log->id,
+            'createdAt' => $log->created_at?->toIso8601String(),
+            'level' => $log->level,
+            'channel' => $log->channel,
+            'event' => $log->event,
+            'status' => $log->status,
+            'message' => $log->message,
+            'recipient' => $log->recipient,
+        ])->values()]);
     }
 
     public function store(CanalStoreRequest $request): JsonResponse

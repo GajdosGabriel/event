@@ -36,7 +36,7 @@
           <tbody>
             <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0">
               <td class="py-2 pr-4">
-                <span class="font-medium text-slate-900">{{ item.label }}</span>
+                <span class="cell-name font-medium text-slate-900" :title="item.label">{{ item.label }}</span>
                 <span class="ml-2 text-xs text-slate-400">{{ item.slug }}</span>
               </td>
               <!-- Počet výskytov je jediné poradie, ktoré tu dáva zmysel:
@@ -63,16 +63,13 @@
         </table>
       </div>
 
-      <div v-if="meta.last_page > 1" class="mt-4 flex items-center gap-2">
-        <button class="btn btn-secondary" :disabled="meta.current_page <= 1" @click="loadPage(meta.current_page - 1)">‹</button>
-        <span class="text-sm text-slate-600">{{ meta.current_page }} / {{ meta.last_page }}</span>
-        <button class="btn btn-secondary" :disabled="meta.current_page >= meta.last_page" @click="loadPage(meta.current_page + 1)">›</button>
-      </div>
+      <AppPaginator :current-page="meta.current_page" :last-page="meta.last_page" @change="loadPage" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
 import { indexTagSuggestions, resolveTagSuggestion } from '@/api/tagSuggestions'
 import type { TagSuggestionFilter, TagSuggestionItem, TagSuggestionResolution } from '@/api/tagSuggestions'

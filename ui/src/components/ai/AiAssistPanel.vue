@@ -44,7 +44,7 @@
     </div>
 
     <!-- ── 2. Ukazovateľ pripravenosti ───────────────────────────────── -->
-    <div v-if="readiness.loaded.value && !readiness.ready.value && readiness.total.value > 0"
+    <div v-if="!hideReadiness && readiness.loaded.value && !readiness.ready.value && readiness.total.value > 0"
       class="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="text-sm font-semibold text-slate-700">{{ t('ai.readiness.title') }}</p>
@@ -181,6 +181,8 @@ const props = defineProps<{
   context?: string
   /** Id uloženého záznamu. Bez neho sa posudok nemá čím vypýtať. */
   recordId?: number | null
+  /** Ukazovateľ pripravenosti zobrazuje stránka sama (viď ReadinessBadge). */
+  hideReadiness?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [string] }>()

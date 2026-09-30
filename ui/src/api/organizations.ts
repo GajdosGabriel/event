@@ -63,8 +63,8 @@ function mapCanals(raw: unknown): OrganizationCanal[] {
   }))
 }
 
-export async function listOrganizations(scope: Scope): Promise<PaginatedResponse<OrganizationItem>> {
-  const { data } = await http.get(base(scope))
+export async function listOrganizations(scope: Scope, page = 1): Promise<PaginatedResponse<OrganizationItem>> {
+  const { data } = await http.get(base(scope), { params: { page } })
   const items = (data.data ?? data) as Record<string, unknown>[]
   return { data: items.map(mapOrg), meta: data.meta ?? { current_page: 1, last_page: 1, per_page: 15, total: items.length } }
 }

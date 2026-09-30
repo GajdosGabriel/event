@@ -135,10 +135,8 @@
       </ul>
 
       <!-- Pagination -->
-      <div v-if="lastPage > 1" class="flex items-center justify-center gap-2 border-t border-slate-100 py-3">
-        <button class="btn btn-secondary btn-sm" :disabled="currentPage <= 1" @click="load(currentPage - 1)">←</button>
-        <span class="text-sm text-slate-600">{{ currentPage }} / {{ lastPage }}</span>
-        <button class="btn btn-secondary btn-sm" :disabled="currentPage >= lastPage" @click="load(currentPage + 1)">→</button>
+      <div v-if="lastPage > 1" class="border-t border-slate-100 pb-3">
+        <AppPaginator :current-page="currentPage" :last-page="lastPage" @change="load" />
       </div>
     </div>
 
@@ -157,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { listAdminFiles, listDashboardFiles, deleteFile, forceDeleteFile, restoreFile, type FileItem } from '@/api/files'

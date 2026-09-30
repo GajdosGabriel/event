@@ -24,7 +24,7 @@
           <tbody>
             <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0 align-top">
               <td class="py-2 pr-4">
-                <div class="font-medium text-slate-900">{{ item.title }}</div>
+                <div class="cell-name font-medium text-slate-900" :title="item.title">{{ item.title }}</div>
                 <div class="text-slate-500">{{ plainBody(item.body) || '—' }}</div>
               </td>
               <td class="py-2 pr-4 text-slate-600">
@@ -61,11 +61,7 @@
         </table>
       </div>
 
-      <div v-if="meta.last_page > 1" class="mt-4 flex items-center gap-2">
-        <button class="btn btn-secondary" :disabled="meta.current_page <= 1" @click="loadPage(meta.current_page - 1)">‹</button>
-        <span class="text-sm text-slate-600">{{ meta.current_page }} / {{ meta.last_page }}</span>
-        <button class="btn btn-secondary" :disabled="meta.current_page >= meta.last_page" @click="loadPage(meta.current_page + 1)">›</button>
-      </div>
+      <AppPaginator :current-page="meta.current_page" :last-page="meta.last_page" @change="loadPage" />
     </div>
 
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
@@ -115,6 +111,7 @@
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
 import {
   indexAnnouncements,

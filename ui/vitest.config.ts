@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
+    setupFiles: ['./vitest.setup.ts'],
     // Formátovacie helpery používajú toLocaleDateString('sk-SK'), takže výsledok
     // závisí od časovej zóny stroja. Bez fixnej zóny by testy prechádzali
     // lokálne a padali v CI (ktoré beží v UTC).

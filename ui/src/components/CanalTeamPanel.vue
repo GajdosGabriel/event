@@ -22,7 +22,10 @@
                ho identifikuje. Adresa je vidieť len dovtedy, kým je z člena ešte
                len pozvánka (zoznam nižšie) — tam meno zatiaľ neexistuje. -->
           <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">
-            {{ m.name }}
+            <!-- Na detaile vedie meno rovno do správy tímu (rola, notifikácie, odobratie). -->
+            <RouterLink v-if="readonly && team.canManage && manageTo" :to="manageTo"
+              class="text-slate-900 no-underline hover:text-blue-700 hover:underline">{{ m.name }}</RouterLink>
+            <template v-else>{{ m.name }}</template>
             <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">{{ t('team.self') }}</span>
           </span>
 

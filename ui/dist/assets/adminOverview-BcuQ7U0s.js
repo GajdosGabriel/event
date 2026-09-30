@@ -1,0 +1,1 @@
+import{y as a}from"./index-D-PDVJtu.js";function e(n){return Object.fromEntries(Object.entries(n).filter(([,t])=>t!==void 0&&t!==""))}async function s(n={}){const{data:t}=await a.get("/admin/tickets",{params:e(n)});return t}async function r(n={}){const{data:t}=await a.get("/admin/questions",{params:e(n)});return t}export{r as a,s as f};

@@ -1,5 +1,6 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
+import type { SystemLogEntry } from './systemLogs'
 import { mapNestedEventPermissions, mapTicketCta, type NestedEventPermissions } from './events'
 import type { CanalItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
@@ -21,6 +22,7 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     titlePrefix: (raw['title_prefix'] as string) ?? null,
     titleSuffix: (raw['title_suffix'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
+    emailVerifiedAt: (raw['email_verified_at'] as string) ?? null,
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     phone: (raw['phone'] as string) ?? null,
     body: (raw['body'] as string) ?? null,
@@ -133,4 +135,12 @@ export async function canalsMunicipalitiesOverview(scope: Scope): Promise<Munici
   const url = `/${scope === 'admin' ? 'admin' : 'dashboard'}/canals/municipalities-overview`
   const { data } = await http.get(url)
   return (data.data ?? data) as MunicipalityOverviewItem[]
+}
+
+export type CanalHistoryEntry = Pick<SystemLogEntry, 'id' | 'createdAt' | 'level' | 'channel' | 'event' | 'status' | 'message' | 'recipient'>
+
+/** Posledné záznamy z denníka o kanáli — len admin (Admin\CanalController::history). */
+export async function listCanalHistory(canalId: number): Promise<CanalHistoryEntry[]> {
+  const { data } = await http.get(`/admin/canals/${canalId}/history`)
+  return data.data as CanalHistoryEntry[]
 }

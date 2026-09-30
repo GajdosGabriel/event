@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Canal;
 use App\Models\SystemLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +28,7 @@ class SystemLogController extends Controller
             'search' => ['nullable', 'string', 'max:191'],
             'recipient' => ['nullable', 'string', 'max:191'],
             'user_id' => ['nullable', 'integer'],
+            'canal_id' => ['nullable', 'integer'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -89,6 +91,14 @@ class SystemLogController extends Controller
                 $q->where(fn ($q) => $q
                     ->where('user_id', $userId)
                     ->when($email, fn ($q) => $q->orWhere('recipient', $email)));
+            })
+            // Všetko o jednom kanáli — to isté, čo ukazuje „História" na
+            // detaile kanála (Admin\CanalController::history).
+            ->when($filters['canal_id'] ?? null, function ($q, $canalId) {
+                $email = trim((string) Canal::withTrashed()->whereKey($canalId)->value('email'));
+                $q->where(fn ($q) => $q
+                    ->where(fn ($q) => $q->where('subject_type', (new Canal)->getMorphClass())->where('subject_id', $canalId))
+                    ->when($email !== '', fn ($q) => $q->orWhere('recipient', $email)));
             });
     }
 

@@ -100,7 +100,7 @@
                   <span v-if="!row.success" class="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">{{ t('aiUsage.error') }}</span>
                 </td>
                 <td class="py-2 pr-4 text-slate-600">
-                  <RouterLink v-if="row.canal" :to="`/admin/canals/${row.canal.id}`" class="underline">{{ row.canal.name }}</RouterLink>
+                  <RouterLink v-if="row.canal" :to="`/admin/canals/${row.canal.id}`" class="cell-name underline" :title="row.canal.name">{{ row.canal.name }}</RouterLink>
                   <span v-if="row.canal && row.user"> · </span>
                   <span v-if="row.user">{{ row.user.name }}</span>
                   <span v-if="!row.canal && !row.user" class="text-slate-400">{{ sourceLabel(row.source) }}</span>

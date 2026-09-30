@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
+use App\Models\Canal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -102,6 +103,9 @@ class UserResource extends JsonResource
                 'blocked_until'     => $this->blocked_until,
                 'blocked_reason'    => $this->blocked_reason,
                 'canals_count'      => $canals->count(),
+                // Kontakt pre správu portálu: účet má len prihlasovací e-mail,
+                // telefón a web sú pri kanáloch — osobnom a tých, čo vlastní.
+                'contacts'          => $this->adminContacts(),
                 'last_login_at'     => $this->last_login_at,
                 'last_activity'     => $this->last_activity,
                 'created_at'        => $this->created_at,
@@ -109,5 +113,49 @@ class UserResource extends JsonResource
                 'deleted_at'        => $this->deleted_at,
             ]),
         ];
+    }
+
+    /**
+     * Osobný kanál + prvých pár vlastnených s vyplneným kontaktom. Import
+     * vie jednému účtu pripísať stovky kanálov — tie sa len spočítajú.
+     *
+     * @return array{items: list<array<string, mixed>>, more: int}
+     */
+    private function adminContacts(int $limit = 5): array
+    {
+        $personalId = (int) $this->canal_id;
+        $hasContact = fn ($q) => $q->where(fn ($q) => $q
+            ->whereNotNull('email')->where('email', '!=', '')
+            ->orWhere(fn ($q) => $q->whereNotNull('phone')->where('phone', '!=', ''))
+            ->orWhere(fn ($q) => $q->whereNotNull('website')->where('website', '!=', '')));
+
+        $owned = Canal::query()
+            ->whereIn('id', $this->ownedCanals()->select('canals.id'))
+            ->when($personalId, fn ($q) => $q->where('id', '!=', $personalId))
+            ->tap($hasContact);
+
+        $total = (clone $owned)->count();
+        $canals = $owned->orderBy('id')->limit($limit)
+            ->get(['id', 'name', 'email', 'email_verified_at', 'phone', 'website']);
+
+        $personal = $personalId
+            ? Canal::query()->whereKey($personalId)->tap($hasContact)
+                ->first(['id', 'name', 'email', 'email_verified_at', 'phone', 'website'])
+            : null;
+        if ($personal) {
+            $canals->prepend($personal);
+        }
+
+        $items = $canals->map(fn (Canal $c) => [
+                'canal_id' => $c->id,
+                'canal_name' => $c->name,
+                'personal' => $c->id === (int) $this->canal_id,
+                'email' => $c->email,
+                'email_verified' => $c->email_verified_at !== null,
+                'phone' => $c->phone,
+                'website' => $c->website,
+            ])->values()->all();
+
+        return ['items' => $items, 'more' => max(0, $total - $limit)];
     }
 }

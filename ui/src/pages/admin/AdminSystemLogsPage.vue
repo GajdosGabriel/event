@@ -56,6 +56,9 @@
       <button v-if="filters.user_id" type="button" class="btn btn-sm btn-secondary" @click="clear('user_id')">
         {{ t('systemLog.filter.user', { id: filters.user_id }) }} ✕
       </button>
+      <button v-if="filters.canal_id" type="button" class="btn btn-sm btn-secondary" @click="clear('canal_id')">
+        {{ t('systemLog.filter.canal', { id: filters.canal_id }) }} ✕
+      </button>
       <button v-if="anyFilter" type="button" class="text-xs text-slate-500 underline" @click="reset()">
         {{ t('systemLog.filter.reset') }}
       </button>
@@ -148,7 +151,7 @@ const statusClass: Record<SystemLogStatus, string> = {
 }
 
 type FilterKey = Exclude<keyof SystemLogParams, 'page'>
-const filterKeys: FilterKey[] = ['search', 'channel', 'level', 'status', 'recipient', 'user_id', 'date_from', 'date_to']
+const filterKeys: FilterKey[] = ['search', 'channel', 'level', 'status', 'recipient', 'user_id', 'canal_id', 'date_from', 'date_to']
 
 // Filtre žijú v adrese, aby sa dal výber poslať odkazom (napr. z detailu používateľa).
 const filters = reactive<Record<FilterKey, string>>(
@@ -172,6 +175,7 @@ async function load() {
     const params: SystemLogParams = {
       ...(Object.fromEntries(filterKeys.map(key => [key, filters[key] || undefined])) as SystemLogParams),
       user_id: filters.user_id ? Number(filters.user_id) : undefined,
+      canal_id: filters.canal_id ? Number(filters.canal_id) : undefined,
       page: Number(route.query.page) || undefined,
     }
     page.value = await fetchSystemLogs(params)

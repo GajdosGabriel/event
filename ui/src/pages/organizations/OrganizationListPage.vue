@@ -14,7 +14,7 @@
       <ul class="grid gap-2">
         <li v-for="org in orgs" :key="org.id"
           class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 p-3">
-          <span class="flex-1 min-w-40 font-medium text-slate-900">{{ org.title }}</span>
+          <span class="min-w-40 flex-1 truncate font-medium text-slate-900" :title="org.title">{{ org.title }}</span>
 
           <span class="text-xs text-slate-500">{{ statusLabel('organizations', org.status) }}</span>
 
@@ -40,6 +40,7 @@
         </li>
         <li v-if="orgs.length === 0" class="text-slate-500">{{ t('organizations.list.empty') }}</li>
       </ul>
+      <AppPaginator :current-page="page" :last-page="lastPage" @change="load" />
     </div>
   </div>
 </template>
@@ -49,6 +50,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listOrganizations, deleteOrganization } from '@/api/organizations'
 import RowActions from '@/components/RowActions.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
 import type { OrganizationItem } from '@/types'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'
@@ -63,15 +65,21 @@ const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const orgs = ref<OrganizationItem[]>([])
 const loading = ref(true)
 const loadError = ref<string | null>(null)
+const page = ref(1)
+const lastPage = ref(1)
 
 /** Firma bez kanála nemá za koho fakturovať — preto to nie je len číslo. */
 function canalsLabel(count: number) {
   return count === 0 ? t('organizations.list.noCanal') : plural('organizations.counts.canals', count)
 }
 
-onMounted(async () => {
+async function load(next = 1) {
+  loading.value = true
   try {
-    orgs.value = (await listOrganizations(scope.value)).data
+    const res = await listOrganizations(scope.value, next)
+    orgs.value = res.data
+    page.value = res.meta.current_page
+    lastPage.value = res.meta.last_page
   } catch {
     // Bez hlášky by zlyhané načítanie vyzeralo ako prázdny zoznam, čo je
     // nerozoznateľné od skutočne prázdneho stavu.
@@ -79,7 +87,9 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => load())
 
 async function remove(id: number) {
   if (!confirm(t('organizations.list.removeConfirm'))) return

@@ -28,7 +28,7 @@
       <div v-else class="panel-card">
         <ul class="grid gap-2">
           <li v-for="org in orgs" :key="org.id" class="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
-            <span class="flex-1 font-medium text-slate-900">{{ org.title }}</span>
+            <span class="min-w-0 flex-1 truncate font-medium text-slate-900" :title="org.title">{{ org.title }}</span>
             <span v-if="org.accountUuid" class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{{ t('admin.settings.inAccount') }}</span>
             <span class="text-xs text-slate-500">{{ statusLabel('organizations', org.status) }}</span>
             <!-- Úprava vrátane fakturačných údajov je na vlastnej stránke;
@@ -40,6 +40,7 @@
           </li>
           <li v-if="orgs.length === 0" class="text-slate-500">{{ t('admin.settings.orgsEmpty') }}</li>
         </ul>
+        <AppPaginator :current-page="orgPage" :last-page="orgLastPage" @change="loadOrgs" />
       </div>
     </section>
   </div>
@@ -54,6 +55,7 @@ import { useToast } from '@/composables/useToast'
 import { useSettings, PER_PAGE_OPTIONS } from '@/composables/useSettings'
 import FormField from '@/components/FormField.vue'
 import RowActions from '@/components/RowActions.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
 import { statusLabel } from '@/utils/statusLabel'
 
 const perPageOptions = PER_PAGE_OPTIONS.map(n => ({ value: n, label: t('admin.settings.perPage', { n }) }))
@@ -87,15 +89,24 @@ function resetSettings() {
 // Organizations
 const orgs = ref<OrganizationItem[]>([])
 const loading = ref(false)
+const orgPage = ref(1)
+const orgLastPage = ref(1)
 
-onMounted(async () => {
+async function loadOrgs(page = 1) {
   loading.value = true
   // Bez ohlásenia chyby by zlyhané načítanie vyzeralo ako prázdny zoznam
   // („Žiadne organizácie."), čo je nerozoznateľné od skutočne prázdneho stavu.
-  try { orgs.value = (await listOrganizations('admin')).data }
+  try {
+    const res = await listOrganizations('admin', page)
+    orgs.value = res.data
+    orgPage.value = res.meta.current_page
+    orgLastPage.value = res.meta.last_page
+  }
   catch { toast.error(t('admin.settings.orgsLoadFailed')) }
   finally { loading.value = false }
-})
+}
+
+onMounted(() => loadOrgs())
 
 async function remove(id: number) {
   if (!confirm(t('admin.settings.removeConfirm'))) return

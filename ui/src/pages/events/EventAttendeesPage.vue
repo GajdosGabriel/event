@@ -108,7 +108,7 @@
                     {{ expanded === ticket.id ? '▾' : '▸' }}
                     <span class="tabular-nums">{{ ticket.id }}</span>
                   </td>
-                  <td class="px-4 py-3 font-medium text-slate-900">{{ surnameFirst(ticket.holderName) }}</td>
+                  <td class="px-4 py-3 font-medium text-slate-900"><span class="cell-name" :title="surnameFirst(ticket.holderName)">{{ surnameFirst(ticket.holderName) }}</span></td>
                   <td class="px-4 py-3 text-slate-600">{{ ticket.admissionsTotal }}</td>
                   <td class="px-4 py-3">
                     <span class="rounded-full px-2 py-0.5 text-xs font-medium"

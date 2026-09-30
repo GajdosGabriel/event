@@ -17,9 +17,15 @@ export async function updateUserRoles(userId: number, roles: string[], scope: AC
   await http.put(`/${scope}/users/${userId}/roles`, { roles })
 }
 
+// Výpis používateľov filtruje a triedi na klientovi, preto potrebuje všetky
+// záznamy — API ich však stránkuje. Stiahnu sa po stránkach so 100 záznamami.
 export async function listUsers(scope: ACScope = 'dashboard'): Promise<Record<string, unknown>[]> {
-  const { data } = await http.get(`/${scope}/users`)
-  return (data.data ?? data) as Record<string, unknown>[]
+  const users: Record<string, unknown>[] = []
+  for (let page = 1; ; page++) {
+    const { data } = await http.get(`/${scope}/users`, { params: { page, per_page: 100 } })
+    users.push(...((data.data ?? data) as Record<string, unknown>[]))
+    if (!Array.isArray(data.data) || page >= Number(data.meta?.last_page ?? 1)) return users
+  }
 }
 
 export async function showUser(userId: number, scope: ACScope = 'dashboard'): Promise<Record<string, unknown>> {

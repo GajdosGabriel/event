@@ -101,7 +101,7 @@
             <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
             <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('events.index.empty') }}</p>
             <ul v-else class="grid gap-1.5">
-              <li v-for="ev in events" :key="ev.id"
+              <li v-for="ev in eventsPage.items.value" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="w-2 h-2 rounded-full shrink-0"
                   :class="ev.status === 'published' ? 'bg-green-500' : ev.status === 'archived' ? 'bg-slate-400' : 'bg-amber-400'" />
@@ -124,6 +124,7 @@
                 </div>
               </li>
             </ul>
+            <AppPaginator :current-page="eventsPage.page.value" :last-page="eventsPage.lastPage.value" @change="eventsPage.setPage" />
           </div>
         </div>
 
@@ -199,6 +200,8 @@ import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { publicVenuePath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
@@ -218,6 +221,7 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<VenueEventItem[]>([])
 const eventsLoading = ref(false)
+const eventsPage = useClientPagination(events, 10)
 
 const hasCoordinates = computed(() => venue.value?.latitude != null && venue.value?.longitude != null)
 

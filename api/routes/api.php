@@ -596,7 +596,10 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::patch('support/tickets/{supportTicket}', [DashboardSupportController::class, 'updateStatus'])
         ->name('support.status');
 
-    Route::apiResource('municipalities', DashboardMunicipalityController::class);
+    // Controller nemá store/update — celý apiResource by ich zaregistroval
+    // a volanie by skončilo 500 namiesto 404.
+    Route::apiResource('municipalities', DashboardMunicipalityController::class)
+        ->only(['index', 'show', 'destroy']);
 
     Route::post('venues/detect', [DashboardVenueController::class, 'detect'])
         ->name('venues.detect')
@@ -665,7 +668,7 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('roles', [DashboardRoleController::class, 'roles'])->name('roles.index');
     Route::get('permissions', [DashboardRoleController::class, 'permissions'])->name('permissions.index');
     Route::put('users/{user}/roles', [DashboardRoleController::class, 'syncUserRoles'])->name('users.roles.sync');
-})->middleware('auth:sanctum');
+});
 
 Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
     Route::get('{resource}/similar', \App\Http\Controllers\ResourceSimilarityController::class)
@@ -724,6 +727,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->middleware('permission:canal.delete');
     Route::get('canals/{canal}/events', [AdminCanalController::class, 'events'])
         ->name('canals.events')
+        ->middleware('permission:canal.view');
+    Route::get('canals/{canal}/history', [AdminCanalController::class, 'history'])
+        ->name('canals.history')
         ->middleware('permission:canal.view');
 
     Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
@@ -820,7 +826,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         Route::put('users/{user}/roles', [AdminRoleController::class, 'syncUserRoles'])->name('users.roles.sync');
     });
 
-    Route::apiResource('municipalities', AdminMunicipalityController::class);
+    // Controller má len index/show (a `all` vyššie) — ostatné akcie neexistujú.
+    Route::apiResource('municipalities', AdminMunicipalityController::class)
+        ->only(['index', 'show']);
 
     // Oznamy a bannery verejného layoutu — celá skupina je za `role:super-admin`.
     Route::apiResource('announcements', AdminAnnouncementController::class);
@@ -853,10 +861,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
         ->name('venues.publish')
         ->middleware('permission:venue.update');
     Route::post('venues/{venue}/restore', [AdminVenueController::class, 'restore'])
-        ->name('venues.restore');
+        ->name('venues.restore')
+        ->middleware('permission:venue.delete');
     Route::get('venues/{venue}/events', [AdminVenueController::class, 'events'])
         ->name('venues.events')
-        ->middleware('permission:venue.delete');
+        ->middleware('permission:venue.view');
 });
 
 // Webhooky z Accountu. Autentizáciu rieši HMAC podpis v hlavičke, nie session —

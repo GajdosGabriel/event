@@ -327,6 +327,8 @@ export interface CanalItem {
   titlePrefix: string | null
   titleSuffix: string | null
   email: string | null
+  /** Kedy vlastník potvrdil kontaktný e-mail; `null` = neoverený. */
+  emailVerifiedAt: string | null
   /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
   attributeIssues: AttributeIssues | null
   phone: string | null

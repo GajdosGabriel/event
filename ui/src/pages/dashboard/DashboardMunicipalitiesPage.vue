@@ -29,7 +29,7 @@
           <tbody>
             <tr v-for="item in items" :key="item.id" class="border-b border-slate-100 last:border-0">
               <td class="py-2 pr-4 text-slate-400">{{ item.id }}</td>
-              <td class="py-2 pr-4 font-medium text-slate-900">{{ item.name }}</td>
+              <td class="py-2 pr-4 font-medium text-slate-900"><span class="cell-name" :title="item.name">{{ item.name }}</span></td>
               <td class="py-2 pr-4 text-slate-600">{{ item.shortname ?? '—' }}</td>
               <td class="py-2 pr-4 text-slate-600">{{ item.zip ?? '—' }}</td>
               <td class="py-2">
@@ -45,16 +45,13 @@
         </table>
       </div>
 
-      <div v-if="meta.last_page > 1" class="mt-4 flex items-center gap-2">
-        <button class="btn btn-secondary" :disabled="meta.current_page <= 1" @click="loadPage(meta.current_page - 1)">‹</button>
-        <span class="text-sm text-slate-600">{{ meta.current_page }} / {{ meta.last_page }}</span>
-        <button class="btn btn-secondary" :disabled="meta.current_page >= meta.last_page" @click="loadPage(meta.current_page + 1)">›</button>
-      </div>
+      <AppPaginator :current-page="meta.current_page" :last-page="meta.last_page" @change="loadPage" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
 import { indexMunicipalities, deleteMunicipality } from '@/api/municipalities'
 import type { MunicipalityItem } from '@/types'

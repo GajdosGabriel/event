@@ -49,7 +49,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id as number"
+            <tr v-for="user in pagedUsers" :key="user.id as number"
               class="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70"
               :class="{ 'bg-red-50/40': user.deleted_at }">
               <!-- User identity -->
@@ -60,8 +60,8 @@
                     {{ initials(displayName(user)) }}
                   </span>
                   <div class="min-w-0">
-                    <div class="truncate font-medium text-slate-900 group-hover:text-blue-600">{{ displayName(user) }}</div>
-                    <div class="truncate text-xs text-slate-500">{{ user.email || '—' }}</div>
+                    <div class="cell-name font-medium text-slate-900 group-hover:text-blue-600" :title="displayName(user)">{{ displayName(user) }}</div>
+                    <div class="cell-name text-xs text-slate-500" :title="(user.email as string) || undefined">{{ user.email || '—' }}</div>
                   </div>
                 </RouterLink>
               </td>
@@ -141,11 +141,12 @@
       </div>
     </div>
 
+    <AppPaginator v-if="!loading && !error" :current-page="page" :last-page="lastPage" @change="setPage" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { listUsers, getRoles, restoreUser, deleteUser } from '@/api/access-control'
 import type { AccessRole } from '@/types'
 import { useToast } from '@/composables/useToast'
@@ -157,6 +158,8 @@ import {
 } from '@/utils/userDisplay'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import RowActions from '@/components/RowActions.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { useI18n } from '@/i18n'
 
 const SCOPE = 'admin' as const
@@ -212,6 +215,10 @@ const filteredUsers = computed(() => {
     return dir * (ts(b.created_at) - ts(a.created_at))
   })
 })
+
+const { page, lastPage, items: pagedUsers, setPage } = useClientPagination(filteredUsers, 25)
+// Nový filter = nový zoznam; ostať na 3. stránke starého nemá zmysel.
+watch([search, statusFilter, roleFilter, sort], () => setPage(1))
 
 function ts(value: unknown): number {
   if (!value) return 0

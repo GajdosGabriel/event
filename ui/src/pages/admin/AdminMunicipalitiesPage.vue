@@ -37,16 +37,13 @@
         </table>
       </div>
 
-      <div v-if="meta.last_page > 1" class="mt-4 flex items-center gap-2">
-        <button class="btn btn-secondary" :disabled="meta.current_page <= 1" @click="loadPage(meta.current_page - 1)">‹</button>
-        <span class="text-sm text-slate-600">{{ meta.current_page }} / {{ meta.last_page }}</span>
-        <button class="btn btn-secondary" :disabled="meta.current_page >= meta.last_page" @click="loadPage(meta.current_page + 1)">›</button>
-      </div>
+      <AppPaginator :current-page="meta.current_page" :last-page="meta.last_page" @change="loadPage" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppPaginator from '@/components/AppPaginator.vue'
 import { ref, onMounted } from 'vue'
 import { indexMunicipalities } from '@/api/municipalities'
 import type { MunicipalityItem } from '@/types'

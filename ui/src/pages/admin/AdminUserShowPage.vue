@@ -16,7 +16,7 @@
         </span>
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
-            <h1 class="truncate text-2xl font-semibold text-slate-900">{{ displayName(user) }}</h1>
+            <h1 class="min-w-0 max-w-full truncate text-2xl font-semibold text-slate-900" :title="displayName(user)">{{ displayName(user) }}</h1>
             <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset"
               :class="statusOf(user).cls">
               <span class="h-1.5 w-1.5 rounded-full" :class="statusOf(user).dot"></span>
@@ -45,7 +45,7 @@
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <!-- Left column -->
-        <div class="grid gap-4">
+        <div class="grid min-w-0 grid-cols-1 gap-4">
           <!-- Overview -->
           <section class="panel-card">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.overview') }}</h2>
@@ -116,11 +116,11 @@
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
               {{ t('admin.user.canals') }} <span class="text-slate-400">({{ canals.length }})</span>
             </h2>
-            <ul v-if="canals.length" class="grid gap-2">
-              <li v-for="c in canals" :key="c.id">
+            <ul v-if="canals.length" class="grid grid-cols-1 gap-2">
+              <li v-for="c in pagedCanals" :key="c.id">
                 <RouterLink :to="`/admin/canals/${c.id}`"
                   class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors hover:bg-slate-50">
-                  <span class="min-w-0 truncate font-medium text-slate-800">
+                  <span class="min-w-0 truncate font-medium text-slate-800" :title="c.name">
                     {{ c.name }}
                     <span v-if="Number(user.canal_id) === c.id" class="ml-1 text-xs font-normal text-slate-400">
                       ({{ t('admin.user.personalCanal') }})
@@ -132,11 +132,52 @@
               </li>
             </ul>
             <p v-else class="text-sm text-slate-400">{{ t('admin.user.canalsEmpty') }}</p>
+            <AppPaginator :current-page="canalPage" :last-page="canalLastPage" @change="setCanalPage" />
           </section>
         </div>
 
         <!-- Right column: prehľad prístupu. Meniť sa dá vo formulári „Upraviť". -->
         <div class="grid content-start gap-4">
+          <!-- Kontakt: prihlasovací e-mail + telefón/web z kanálov, ktoré vlastní. -->
+          <section class="panel-card">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.contact') }}</h2>
+            <dl class="grid gap-3 text-sm">
+              <div>
+                <dt class="text-xs text-slate-400">{{ t('admin.user.contactLogin') }}</dt>
+                <dd class="flex flex-wrap items-center gap-1.5">
+                  <a v-if="user.email" :href="`mailto:${user.email}`" class="break-all text-blue-700">{{ user.email }}</a>
+                  <span v-else>—</span>
+                  <span v-if="user.email" class="rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="user.email_verified ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'">
+                    {{ user.email_verified ? t('canals.show.emailVerified') : t('canals.show.emailUnverified') }}
+                  </span>
+                </dd>
+              </div>
+
+              <div v-for="c in contacts" :key="c.canal_id" class="border-t border-slate-100 pt-3">
+                <dt class="mb-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                  <RouterLink :to="`/admin/canals/${c.canal_id}`" class="font-medium text-slate-700 no-underline hover:text-blue-700 hover:underline">
+                    {{ c.canal_name }}
+                  </RouterLink>
+                  <span>· {{ c.personal ? t('admin.user.personalCanal') : t('admin.user.contactOwned') }}</span>
+                </dt>
+                <dd class="grid gap-1">
+                  <span v-if="c.email" class="flex flex-wrap items-center gap-1.5">
+                    ✉ <a :href="`mailto:${c.email}`" class="break-all text-blue-700">{{ c.email }}</a>
+                    <span class="rounded-full px-2 py-0.5 text-xs font-medium"
+                      :class="c.email_verified ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'">
+                      {{ c.email_verified ? t('canals.show.emailVerified') : t('canals.show.emailUnverified') }}
+                    </span>
+                  </span>
+                  <span v-if="c.phone">☎ <a :href="`tel:${c.phone}`" class="text-blue-700">{{ c.phone }}</a></span>
+                  <span v-if="c.website">🌐 <a :href="c.website" target="_blank" rel="noopener" class="break-all text-blue-700">{{ c.website }}</a></span>
+                </dd>
+              </div>
+              <p v-if="!contacts.length" class="text-xs text-slate-400">{{ t('admin.user.contactEmpty') }}</p>
+              <p v-if="contactsMore" class="text-xs text-slate-400">{{ t('admin.user.contactMore', { n: contactsMore }) }}</p>
+            </dl>
+          </section>
+
           <section class="panel-card">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ t('admin.user.roles') }}</h2>
             <div v-if="roleNames.length" class="flex flex-wrap gap-1">
@@ -183,6 +224,8 @@ import {
   statusOf, providerMeta, relTime, fullDate,
 } from '@/utils/userDisplay'
 import { statusLabel } from '@/utils/statusLabel'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 
 const SCOPE = 'admin' as const
 
@@ -195,7 +238,23 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 
 const roleNames = computed(() => (user.value?.roles as string[]) ?? [])
+
+interface UserContact {
+  canal_id: number
+  canal_name: string
+  personal: boolean
+  email: string | null
+  email_verified: boolean
+  phone: string | null
+  website: string | null
+}
+const contactData = computed(() => user.value?.contacts as { items: UserContact[]; more: number } | undefined)
+const contacts = computed(() => contactData.value?.items ?? [])
+const contactsMore = computed(() => contactData.value?.more ?? 0)
 const canals = computed(() => (user.value?.canals as { id: number; name: string; slug: string; status: string }[]) ?? [])
+const {
+  page: canalPage, lastPage: canalLastPage, items: pagedCanals, setPage: setCanalPage,
+} = useClientPagination(canals, 10)
 
 onMounted(async () => {
   try {

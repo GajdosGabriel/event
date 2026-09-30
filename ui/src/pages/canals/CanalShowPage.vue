@@ -76,16 +76,17 @@
           <div v-if="canal.venuesList.length" class="show-card">
             <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('venues.index.title') }}</h2>
             <ul class="grid gap-1.5">
-              <li v-for="v in canal.venuesList" :key="v.id"
+              <li v-for="v in venuesPage.items.value" :key="v.id"
                 class="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span v-if="v.isOwner" class="shrink-0 text-xs font-semibold text-teal-600">{{ t('common.owner') }}</span>
                 <RouterLink :to="`${prefix}/venues/${v.id}`"
-                  class="flex-1 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                  class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700" :title="v.name">
                   {{ v.name }}
                 </RouterLink>
                 <RouterLink :to="`${prefix}/venues/${v.id}`" class="action-btn shrink-0">{{ t('common.detail') }}</RouterLink>
               </li>
             </ul>
+            <AppPaginator :current-page="venuesPage.page.value" :last-page="venuesPage.lastPage.value" @change="venuesPage.setPage" />
           </div>
 
           <!-- Tím kanála (len v dashboarde — admin spravuje používateľov inde).
@@ -110,12 +111,12 @@
             <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
             <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('events.index.empty') }}</p>
             <ul v-else class="grid gap-1.5">
-              <li v-for="ev in events" :key="ev.id"
+              <li v-for="ev in eventsPage.items.value" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="h-2 w-2 shrink-0 rounded-full"
                   :class="ev.status === 'published' ? 'bg-green-500' : ev.status === 'archived' ? 'bg-slate-400' : 'bg-amber-400'" />
                 <RouterLink :to="`${prefix}/events/${ev.id}`"
-                  class="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                  class="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700" :title="ev.name">
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ formatDate(ev.startAt) }}</span>
@@ -128,6 +129,7 @@
                 </div>
               </li>
             </ul>
+            <AppPaginator :current-page="eventsPage.page.value" :last-page="eventsPage.lastPage.value" @change="eventsPage.setPage" />
           </div>
         </div>
 
@@ -156,7 +158,8 @@
               </dd>
             </div>
 
-            <!-- Kontakt -->
+            <!-- Kontakt — adminovi ho ukazuje samostatný modul nižšie. -->
+            <template v-if="scope !== 'admin'">
             <div v-if="canal.phone" class="detail-card">
               <dt>{{ t('common.phone') }}</dt>
               <dd><a :href="`tel:${canal.phone}`" class="text-blue-700">{{ canal.phone }}</a></dd>
@@ -165,17 +168,19 @@
               <dt>{{ t('common.website') }}</dt>
               <dd><a :href="canal.website" target="_blank" class="break-all text-blue-700">{{ canal.website }}</a></dd>
             </div>
+            </template>
 
             <!-- Členovia sú v dashboarde v paneli „Tím kanála"; tu už len pre admina. -->
             <div v-if="scope === 'admin' && canal.membersList.length" class="detail-card">
               <dt>{{ t('canals.show.members') }}</dt>
               <dd class="mt-1 grid gap-1">
-                <span v-for="m in canal.membersList" :key="m.id"
-                  class="flex items-center gap-1.5 text-sm text-slate-700">
+                <span v-for="m in membersPage.items.value" :key="m.id"
+                  class="flex min-w-0 items-center gap-1.5 text-sm text-slate-700">
                   <span v-if="m.isOwner" class="text-xs font-semibold text-teal-600">{{ t('common.owner') }}</span>
-                  {{ m.name }}
+                  <RouterLink :to="`/admin/users/${m.id}`" class="min-w-0 truncate text-blue-700 no-underline hover:underline" :title="m.name">{{ m.name }}</RouterLink>
                 </span>
               </dd>
+              <AppPaginator :current-page="membersPage.page.value" :last-page="membersPage.lastPage.value" @change="membersPage.setPage" />
             </div>
 
             <!-- Stav a technické dátumy (publikované/vytvorené/upravené) tu
@@ -186,6 +191,58 @@
               <dd>{{ formatDate(canal.deletedAt) }}</dd>
             </div>
           </dl>
+
+          <!-- Kontakt pre správu portálu: e-mail kanála je inak neverejný,
+               admin ho potrebuje pri riešení prevzatia či sťažností. -->
+          <div v-if="scope === 'admin'" class="show-card">
+            <h2 class="mb-3 text-base font-semibold text-slate-800">{{ t('canals.show.contact') }}</h2>
+            <p v-if="!canal.email && !canal.phone && !canal.website" class="text-sm text-slate-400">{{ t('canals.show.contactEmpty') }}</p>
+            <dl v-else class="grid gap-3">
+              <div v-if="canal.email" class="detail-card">
+                <dt>{{ t('canals.show.email') }}</dt>
+                <dd class="flex flex-wrap items-center gap-1.5">
+                  <a :href="`mailto:${canal.email}`" class="break-all text-blue-700">{{ canal.email }}</a>
+                  <span class="rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="canal.emailVerifiedAt ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'"
+                    :title="canal.emailVerifiedAt ? formatDate(canal.emailVerifiedAt) : ''">
+                    {{ canal.emailVerifiedAt ? t('canals.show.emailVerified') : t('canals.show.emailUnverified') }}
+                  </span>
+                </dd>
+              </div>
+              <div v-if="canal.phone" class="detail-card">
+                <dt>{{ t('common.phone') }}</dt>
+                <dd><a :href="`tel:${canal.phone}`" class="text-blue-700">{{ canal.phone }}</a></dd>
+              </div>
+              <div v-if="canal.website" class="detail-card">
+                <dt>{{ t('common.website') }}</dt>
+                <dd><a :href="canal.website" target="_blank" class="break-all text-blue-700">{{ canal.website }}</a></dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- História z denníka udalostí (tím, prevzatia, maily na kontakt). -->
+          <div v-if="scope === 'admin'" class="show-card">
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <h2 class="text-base font-semibold text-slate-800">{{ t('canals.show.history') }}</h2>
+              <RouterLink :to="{ path: '/admin/dennik', query: { canal_id: String(canal.id) } }" class="text-xs text-blue-600 hover:underline">
+                {{ t('canals.show.historyAll') }}
+              </RouterLink>
+            </div>
+            <p v-if="historyLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
+            <p v-else-if="!history.length" class="text-sm text-slate-400">{{ t('canals.show.historyEmpty') }}</p>
+            <ol v-else class="grid gap-2">
+              <li v-for="h in historyPage.items.value" :key="h.id" class="border-l-2 pl-3"
+                :class="h.level === 'error' ? 'border-red-400' : h.level === 'warning' ? 'border-amber-400' : 'border-slate-200'">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                  <span class="font-medium text-slate-700">{{ h.event }}</span>
+                  <span v-if="h.status">· {{ t(`systemLog.status.${h.status}`) }}</span>
+                  <span class="ml-auto" :title="h.createdAt ?? ''">{{ formatDateTime(h.createdAt) }}</span>
+                </div>
+                <p v-if="h.message" class="break-words text-sm text-slate-800">{{ h.message }}</p>
+              </li>
+            </ol>
+            <AppPaginator v-if="!historyLoading" :current-page="historyPage.page.value" :last-page="historyPage.lastPage.value" @change="historyPage.setPage" />
+          </div>
 
           <div v-if="canal.contactable" class="mt-4">
             <ContactButton target-type="canal" :target-id="canal.id" :target-name="canal.name" />
@@ -199,14 +256,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
+import { showCanal, listCanalEvents, listCanalHistory, type CanalEventItem, type CanalHistoryEntry } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import EmbedSnippetPanel from '@/components/EmbedSnippetPanel.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
-import { fmtDate } from '@/utils/dateFormat'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
+import { fmtDate, fmtTime } from '@/utils/dateFormat'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
 
@@ -224,9 +283,33 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
+const history = ref<CanalHistoryEntry[]>([])
+const historyLoading = ref(false)
+
+// Detail ukazuje zoznamy po stránkach; stránkovač sa zobrazí, len keď ich je viac.
+const venuesPage = useClientPagination(computed(() => canal.value?.venuesList ?? []), 10)
+const eventsPage = useClientPagination(events, 10)
+const membersPage = useClientPagination(computed(() => canal.value?.membersList ?? []), 10)
+const historyPage = useClientPagination(history, 10)
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')
+}
+
+function formatDateTime(d: string | null) {
+  return d ? `${fmtDate(d)} ${fmtTime(d)}` : '—'
+}
+
+/** Denník je len pre admina; chyba histórie nesmie zhodiť detail. */
+async function loadHistory(id: number) {
+  historyLoading.value = true
+  try {
+    history.value = await listCanalHistory(id)
+  } catch {
+    history.value = []
+  } finally {
+    historyLoading.value = false
+  }
 }
 
 /** Po akcii z menu (publikovanie, obnova) — stav aj práva prídu nanovo. */
@@ -244,6 +327,7 @@ onMounted(async () => {
   try {
     canal.value = await showCanal(scope.value, id)
     document.title = canal.value.name
+    if (scope.value === 'admin') void loadHistory(id)
 
     eventsLoading.value = true
     const [filesRes, eventsRes] = await Promise.allSettled([

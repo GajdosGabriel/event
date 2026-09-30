@@ -2,9 +2,12 @@
   <div class="edit-shell">
     <div class="edit-card">
       <RouterLink :to="indexRoute" class="text-sm text-blue-700 no-underline">{{ t('canals.form.back') }}</RouterLink>
-      <h1 class="my-2 text-2xl text-slate-900">
-        {{ savedId || !isCreate ? t('canals.form.editTitle') : t('canals.form.createTitle') }}
-      </h1>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h1 class="my-2 text-2xl text-slate-900">
+          {{ savedId || !isCreate ? t('canals.form.editTitle') : t('canals.form.createTitle') }}
+        </h1>
+        <ReadinessBadge kind="canal" :scope="scope" :values="readinessValues" />
+      </div>
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
@@ -34,7 +37,7 @@
               Panel si sám rozhodne, čo z neho ukázať (viď AiAssistPanel.vue).
             -->
             <AiAssistPanel v-model="form.body" kind="canal" :scope="scope" :values="readinessValues"
-              :name="form.name" :context="aiContext" :record-id="fileableId" class="lg:col-span-2" />
+              :name="form.name" :context="aiContext" :record-id="fileableId" hide-readiness class="lg:col-span-2" />
           </div>
         </fieldset>
 
@@ -63,8 +66,6 @@
     </div>
 
     <div class="edit-card grid gap-6">
-      <AddressMapField v-model="address" />
-
       <div>
         <h2 class="mb-4 text-lg font-semibold text-slate-800">{{ t('canals.sections.images') }}</h2>
         <ImageManager v-if="fileableId" ref="imageManager" fileable-type="canal" :fileable-id="fileableId" />
@@ -75,6 +76,8 @@
            odkazuje. V admine nie: tam sa používatelia riešia inde. Nový kanál
            ešte nemá komu poslať pozvánku, preto až po uložení. -->
       <CanalTeamPanel v-if="scope === 'dashboard' && fileableId" :canal-id="fileableId" />
+
+      <AddressMapField v-model="address" />
     </div>
   </div>
 </template>
@@ -93,6 +96,7 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { scrollToError } from '@/utils/scrollToError'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
+import ReadinessBadge from '@/components/ai/ReadinessBadge.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'

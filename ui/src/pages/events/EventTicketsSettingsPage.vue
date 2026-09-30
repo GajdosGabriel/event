@@ -38,7 +38,7 @@
             <tbody class="divide-y divide-slate-100">
               <tr v-for="type in types" :key="type.id">
                 <td class="px-4 py-3 font-medium text-slate-900">
-                  {{ type.name }}
+                  <span class="cell-name" :title="type.name">{{ type.name }}</span>
                   <span v-if="type.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
                     {{ t('tickets.settings.workshop') }}<template v-if="type.openToPublic"> · {{ t('tickets.settings.workshopOpen') }}</template>
                   </span>
