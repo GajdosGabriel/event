@@ -215,7 +215,7 @@ class EventImportService
             'website' => $this->resolveEventWebsite((array) $detail['links'], (string) $detail['source_url']),
             'orginal_source' => (string) $detail['source_url'],
             'email' => $resolvedCanal['ai_email'] ?? null,
-            'phone' => $resolvedCanal['ai_phone'] ?? null,
+            'phone' => $this->firstPhone($resolvedCanal['ai_phone'] ?? null),
             'venue_id' => $venue->id,
             'canal_id' => $canal->id,
             'user_id' => $systemOwner->id,
@@ -306,6 +306,21 @@ class EventImportService
      * dopočítané „+2 h" by na webe ukázalo vymyslený čas 00:00–02:00, preto ide
      * o celý deň (00:00–23:59:59), ako ho ukladá editor aj AI extrakcia.
      */
+    /**
+     * Stĺpec `phone` má 20 znakov, no AI môže vrátiť viac čísel oddelených
+     * čiarkou / bodkočiarkou / "alebo". Ukladá sa iba prvé.
+     */
+    private function firstPhone(?string $phone): ?string
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        $first = trim((string) preg_split('/\s*(?:,|;|\/|\balebo\b|\bor\b)\s*/iu', $phone, 2)[0]);
+
+        return $first === '' ? null : Str::limit($first, 20, '');
+    }
+
     private function fallbackEndAt(?CarbonInterface $startAt): ?CarbonInterface
     {
         if ($startAt === null) {
