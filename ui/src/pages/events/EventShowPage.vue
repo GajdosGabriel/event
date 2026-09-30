@@ -227,10 +227,18 @@
           </dl>
 
           <!-- Kontakt -->
-          <dl v-if="event.phone || event.website" class="show-card grid gap-3">
+          <dl v-if="event.phone || event.email || event.website" class="show-card grid gap-3">
             <div v-if="event.phone" class="detail-card">
               <dt>{{ t('common.phone') }}</dt>
-              <dd><a :href="`tel:${event.phone}`" class="text-blue-700">{{ event.phone }}</a></dd>
+              <dd class="grid gap-0.5">
+                <a v-for="phone in [event.phone, ...event.additionalPhones]" :key="phone" :href="`tel:${phone}`" class="text-blue-700">{{ phone }}</a>
+              </dd>
+            </div>
+            <div v-if="event.email" class="detail-card">
+              <dt>{{ t('common.email') }}</dt>
+              <dd class="grid gap-0.5">
+                <a v-for="email in [event.email, ...event.additionalEmails]" :key="email" :href="`mailto:${email}`" class="text-blue-700">{{ email }}</a>
+              </dd>
             </div>
             <div v-if="event.website" class="detail-card">
               <dt>{{ t('events.show.websiteLabel') }}</dt>

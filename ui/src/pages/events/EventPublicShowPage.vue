@@ -437,8 +437,8 @@
                 {{ t('public.event.contact') }}
               </h2>
               <div class="space-y-2 text-sm">
-                <a v-if="event.phone" :href="`tel:${event.phone}`" class="flex items-center gap-2 text-slate-700 hover:text-blue-600">
-                  {{ event.phone }}
+                <a v-for="phone in [event.phone, ...event.additionalPhones].filter(Boolean)" :key="phone!" :href="`tel:${phone}`" class="flex items-center gap-2 text-slate-700 hover:text-blue-600">
+                  {{ phone }}
                 </a>
                 <ExternalLink v-if="event.website" :href="event.website" target="event" :target-id="event.id"
                   class="flex items-center gap-2 truncate text-blue-600 hover:underline" />

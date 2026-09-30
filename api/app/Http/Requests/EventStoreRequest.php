@@ -54,7 +54,11 @@ class EventStoreRequest extends FormRequest
             'publish_at' => $this->publishAtRules(),
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => 'nullable|email|max:100',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:30',
+            'additional_emails' => ['nullable', 'array', 'max:10'],
+            'additional_emails.*' => ['required', 'email', 'max:100', 'distinct:ignore_case'],
+            'additional_phones' => ['nullable', 'array', 'max:10'],
+            'additional_phones.*' => ['required', 'string', 'max:30', 'distinct'],
             'price_amount' => ['nullable', 'integer', 'min:0'],
             'price_currency' => ['sometimes', 'string', 'size:3'],
             // Chýbajúci kľúč znamená „štítkov sa nedotýkaj", prázdne pole

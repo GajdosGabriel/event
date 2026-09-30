@@ -83,8 +83,10 @@
                 <AttributeIssueHint :issue="websiteIssue" :label="t('events.fields.websiteIssueLabel')" />
               </template>
             </FormField>
-            <FormField v-model="form.email" type="email" :label="t('events.fields.email')" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" :label="t('events.fields.phone')" :error="errors.phone" />
+            <ContactListField v-model:primary="form.email" v-model:additional="form.additional_emails" type="email"
+              :label="t('events.fields.email')" :add-label="t('common.contactList.addEmail')" :error="contactError('email', 'additional_emails')" />
+            <ContactListField v-model:primary="form.phone" v-model:additional="form.additional_phones" type="tel"
+              :label="t('events.fields.phone')" :add-label="t('common.contactList.addPhone')" :error="contactError('phone', 'additional_phones')" />
           </div>
         </FormSection>
       </div>
@@ -166,8 +168,10 @@
           <template v-if="guided">
             <AiAssistPanel v-model="form.body" kind="event" :scope="scope" :values="readinessValues" :name="form.name" :record-id="fileableId" />
             <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website" />
-            <FormField v-model="form.email" type="email" :label="t('events.fields.email')" :error="errors.email" />
-            <FormField v-model="form.phone" type="tel" :label="t('events.fields.phone')" :error="errors.phone" />
+            <ContactListField v-model:primary="form.email" v-model:additional="form.additional_emails" type="email"
+              :label="t('events.fields.email')" :add-label="t('common.contactList.addEmail')" :error="contactError('email', 'additional_emails')" />
+            <ContactListField v-model:primary="form.phone" v-model:additional="form.additional_phones" type="tel"
+              :label="t('events.fields.phone')" :add-label="t('common.contactList.addPhone')" :error="contactError('phone', 'additional_phones')" />
             <ToggleCard v-model="schedulePublication" :label="t('eventJourney.schedule')" />
             <FormField v-if="schedulePublication" v-model="form.publish_at" type="datetime" :allow-past="false" :label="t('events.fields.publishAt')" :error="errors.publish_at" />
           </template>
@@ -330,6 +334,7 @@ import { publicEventPath } from '@/utils/publicUrl'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AttributeIssueHint from '@/components/AttributeIssueHint.vue'
+import ContactListField from '@/components/ContactListField.vue'
 import FormField from '@/components/FormField.vue'
 import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'
@@ -389,6 +394,8 @@ const form = ref({
   website: '',
   email: '',
   phone: '',
+  additional_emails: [] as string[],
+  additional_phones: [] as string[],
   body: '',
   // Len ručne zvolené štítky — tie od AI a odvodené z dát spravuje backend
   // a prepočítava ich, takže do formulára nepatria.
@@ -421,7 +428,16 @@ const allowPastSchedule = computed(() =>
 
 // Zhrnutie zbaleného Kontaktu — nech je bez rozbalenia vidieť, či je vyplnený.
 const contactNote = computed(() => form.value.website || form.value.email || form.value.phone || t('events.contact.empty'))
-const hasContactError = computed(() => Boolean(errors.value.website || errors.value.email || errors.value.phone))
+// Chyba k primárnemu poľu, alebo k ľubovoľnému riadku zoznamu (`additional_emails.0`).
+function contactError(primaryKey: string, additionalKey: string): string | undefined {
+  const key = Object.keys(errors.value).find(k => k === primaryKey || k === additionalKey || k.startsWith(`${additionalKey}.`))
+  return key ? errors.value[key] : undefined
+}
+const hasContactError = computed(() => Boolean(
+  errors.value.website
+  || contactError('email', 'additional_emails')
+  || contactError('phone', 'additional_phones'),
+))
 
 watch(() => auth.canalId, (id) => {
   if (id && !form.value.canal_id) form.value.canal_id = id
@@ -663,6 +679,8 @@ onMounted(async () => {
         website: ev.website ?? '',
         email: ev.email ?? '',
         phone: ev.phone ?? '',
+        additional_emails: [...ev.additionalEmails],
+        additional_phones: [...ev.additionalPhones],
         body: ev.body ?? '',
         // Ručné štítky sa naďalej posielajú späť nezmenené — editor ich len
         // neukazuje, mazať ich pri uložení by bola tichá strata dát.
@@ -690,7 +708,13 @@ async function submit() {
   try {
     // Prázdny reťazec z <input type="datetime-local"> by prešiel ako neplatný
     // dátum — backend chce buď termín, alebo null.
-    const payload = { ...form.value, publish_at: form.value.publish_at || null }
+    const payload = {
+      ...form.value,
+      publish_at: form.value.publish_at || null,
+      // Prázdne riadky zo zoznamu kontaktov by neprešli validáciou.
+      additional_emails: form.value.additional_emails.map(v => v.trim()).filter(Boolean),
+      additional_phones: form.value.additional_phones.map(v => v.trim()).filter(Boolean),
+    }
     if (isCreate.value) {
       const ev = await withDependencyConsent(p => createEvent(p, scope.value), payload)
       savedId.value = ev.id

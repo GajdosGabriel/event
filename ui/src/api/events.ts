@@ -141,6 +141,8 @@ export function mapEvent(raw: Record<string, unknown>): EventItem {
     uploadedFiles: (raw['uploaded_files'] as EventItem['uploadedFiles']) ?? [],
     phone: (raw['phone'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
+    additionalEmails: (raw['additional_emails'] as string[] | null) ?? [],
+    additionalPhones: (raw['additional_phones'] as string[] | null) ?? [],
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     contactable: Boolean(raw['contactable']),
     // Len verejný detail; vo výpisoch odkazy nie sú a tlačidlo sa nekreslí.

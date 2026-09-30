@@ -18,6 +18,7 @@ use App\Services\Imports\HtmlBodyCleaner;
 use App\Services\Imports\ImportedVenueManager;
 use App\Services\Imports\PdfConverterService;
 use App\Services\Publishing\EventDependencyPublisher;
+use App\Support\ContactList;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -98,8 +99,7 @@ class PosterDraftMaterializer
                 'published_at' => $isComplete ? now() : null,
                 // Orezanie na dĺžku stĺpcov: hodnoty z AI nie sú validované
                 // formulárom a dlhší reťazec by zápis zhodil.
-                'email' => $this->limited($payload['email'] ?? null, 100),
-                'phone' => $this->limited($payload['phone'] ?? null, 20),
+                ...ContactList::fromPayload($payload),
                 'venue_id' => $venue->id,
                 'canal_id' => $canal->id,
                 'user_id' => $user->id,
@@ -427,13 +427,6 @@ class PosterDraftMaterializer
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    private function limited(mixed $value, int $length): ?string
-    {
-        $value = $this->stringOrNull($value);
-
-        return $value === null ? null : Str::limit($value, $length, '');
     }
 
     private function stringOrNull(mixed $value): ?string

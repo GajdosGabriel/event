@@ -79,6 +79,8 @@ class Event extends Model implements HasQuestionBoard, Messageable
         'workshop_lock_on_start' => 'boolean',
         'price_amount' => 'integer',
         'meta' => 'array',
+        'additional_emails' => 'array',
+        'additional_phones' => 'array',
     ];
 
     public function setNameAttribute($value)

@@ -20,7 +20,9 @@ class PromptData
             'organizer',
             'venue',
             'email',
+            'emails',
             'phone',
+            'phones',
             'persons',
         ];
 
@@ -71,6 +73,8 @@ class PromptData
 
                         'email' => ['type' => ['string', 'null']],
                         'phone' => ['type' => ['string', 'null']],
+                        'emails' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'phones' => ['type' => 'array', 'items' => ['type' => 'string']],
 
                         'persons' => [
                             'type' => 'array',
@@ -176,8 +180,10 @@ Vráť iba validný JSON bez komentárov.',
                     ."- end_at (YYYY-MM-DD HH:MM:SS)\n"
                     ."- organizer: { name, street_and_number, city, website }\n"
                     ."- venue: { name, street_and_number, city }\n"
-                    ."- email\n"
-                    ."- phone\n"
+                    ."- email: JEDEN hlavny kontaktny e-mail (na prihlasenie / informacie k podujatiu), inak null; nikdy viac adries v jednom retazci\n"
+                    ."- emails: pole VSETKYCH e-mailov z textu, hlavny (rovnaky ako email) na prvom mieste; ziadny -> []\n"
+                    ."- phone: JEDNO hlavne telefonne cislo (prednost ma kontakt na prihlasenie / informacie pred ustrednou), inak null; nikdy viac cisel v jednom retazci\n"
+                    ."- phones: pole VSETKYCH telefonnych cisel z textu, hlavne (rovnake ako phone) na prvom mieste; kazde cislo samostatne; ziadne -> []\n"
                     ."- persons: zahrn kazdu fyzicku osobu z textu; aj bez kontaktu; description je rola alebo kontext; chybajuci email/telefon nastav na null\n"
                     .($withPosterText ? $this->posterTextInstruction() : '')
                     .'Vrat iba validny JSON bez dalsieho textu.',
@@ -213,6 +219,10 @@ Vráť iba validný JSON bez komentárov.',
             'venue' => 'sometimes|nullable|array',
             'email' => 'sometimes|nullable|string',
             'phone' => 'sometimes|nullable|string',
+            'emails' => 'sometimes|array',
+            'emails.*' => 'nullable|string',
+            'phones' => 'sometimes|array',
+            'phones.*' => 'nullable|string',
             'persons' => 'sometimes|array',
             'poster_text' => 'sometimes|nullable|string',
         ];

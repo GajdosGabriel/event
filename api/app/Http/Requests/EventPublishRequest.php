@@ -62,6 +62,8 @@ class EventPublishRequest extends FormRequest
             'website' => $event->website,
             'email' => $event->email,
             'phone' => $event->phone,
+            'additional_emails' => $event->additional_emails,
+            'additional_phones' => $event->additional_phones,
         ]);
     }
 
@@ -83,7 +85,11 @@ class EventPublishRequest extends FormRequest
             'venue_id' => ['required', 'integer', 'exists:venues,id'],
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'email' => ['nullable', 'email', 'max:100'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'additional_emails' => ['nullable', 'array', 'max:10'],
+            'additional_emails.*' => ['required', 'email', 'max:100'],
+            'additional_phones' => ['nullable', 'array', 'max:10'],
+            'additional_phones.*' => ['required', 'string', 'max:30'],
         ];
     }
 }

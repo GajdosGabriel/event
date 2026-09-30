@@ -3,6 +3,7 @@
 namespace App\Services\Imports;
 
 use App\Services\OpenAI\ChatGPT;
+use App\Support\ContactList;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -27,6 +28,8 @@ class ImportedCanalNameResolver
      *   ai_end_at: Carbon|null,
      *   ai_email: string|null,
      *   ai_phone: string|null,
+     *   ai_additional_emails: list<string>,
+     *   ai_additional_phones: list<string>,
      * }
      */
     public function resolve(string $sourceUrl, string $title, string $text, bool $startAtFound = false, ?Carbon $referenceDate = null): array
@@ -57,6 +60,8 @@ class ImportedCanalNameResolver
         $aiEndAt = null;
         $aiEmail = null;
         $aiPhone = null;
+        $aiAdditionalEmails = [];
+        $aiAdditionalPhones = [];
 
         // AI activates only when regex left something missing. Neznáme mesto
         // sa počíta medzi chýbajúce: bez neho sa miesto nedá zaradiť k obci a
@@ -119,8 +124,11 @@ class ImportedCanalNameResolver
                     $aiEndAt = $this->parseAiDateTime($aiData['end_at'] ?? null);
                 }
 
-                $aiEmail = $this->normalizeString($aiData['email'] ?? null);
-                $aiPhone = $this->normalizeString($aiData['phone'] ?? null);
+                $contacts = ContactList::fromPayload($aiData);
+                $aiEmail = $contacts['email'];
+                $aiPhone = $contacts['phone'];
+                $aiAdditionalEmails = $contacts['additional_emails'];
+                $aiAdditionalPhones = $contacts['additional_phones'];
             } catch (\Throwable $e) {
                 Log::warning('ImportedCanalNameResolver: AI fallback failed, regex results preserved.', [
                     'source_url' => $sourceUrl,
@@ -153,6 +161,8 @@ class ImportedCanalNameResolver
             'ai_end_at' => $aiEndAt,
             'ai_email' => $aiEmail,
             'ai_phone' => $aiPhone,
+            'ai_additional_emails' => $aiAdditionalEmails,
+            'ai_additional_phones' => $aiAdditionalPhones,
         ];
     }
 

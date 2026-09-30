@@ -258,6 +258,9 @@ export interface EventItem {
   ticketTypeLabels: Record<string, string>
   phone: string | null
   email: string | null
+  /** Ďalšie kontakty; primárny je vždy v `email` / `phone`. */
+  additionalEmails: string[]
+  additionalPhones: string[]
   /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
   attributeIssues: AttributeIssues | null
   /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */

@@ -41,6 +41,8 @@ class EventSeriesManager
         'website',
         'email',
         'phone',
+        'additional_emails',
+        'additional_phones',
         // Adresa je na mieste, nie na podujatí — `events` súradnice ani ulicu
         // nemá. Prepisom `venue_id` sa preto presunie celá adresa naraz.
         'venue_id',

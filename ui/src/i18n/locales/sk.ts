@@ -170,6 +170,14 @@ const sk = {
     // Polia, ktoré má detail eventu, kanála aj miesta rovnaké
     contact: 'Kontakt',
     phone: 'Telefón',
+    email: 'E-mail',
+    contactList: {
+      addEmail: 'Pridať ďalší e-mail',
+      addPhone: 'Pridať ďalšie číslo',
+      primary: 'Primárny',
+      makePrimary: 'Nastaviť ako primárny',
+      remove: 'Odstrániť',
+    },
     website: 'Web',
     web: 'web ↗',
     address: 'Adresa',

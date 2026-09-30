@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\OpenAI\Detector;
+use App\Support\ContactList;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -108,14 +109,17 @@ class AiDetectFromText extends Command
             ];
 
             $rewritten = $this->pickString($result['corrected_text'] ?? null);
+            $contacts = ContactList::fromPayload((array) $eventPayload);
 
             $event->update([
                 ...($rewritten !== null ? ['body' => $rewritten, 'body_rewritten_at' => now()] : []),
                 'name' => $this->pickString($eventPayload['title'] ?? null, $event->name) ?? $event->name,
                 'start_at' => $startAt,
                 'end_at' => $endAt,
-                'email' => $this->pickString($eventPayload['email'] ?? null, $event->email),
-                'phone' => $this->pickString($eventPayload['phone'] ?? null, $event->phone),
+                'email' => $contacts['email'] ?? $event->email,
+                'phone' => $contacts['phone'] ?? $event->phone,
+                'additional_emails' => $contacts['email'] !== null ? $contacts['additional_emails'] : $event->additional_emails,
+                'additional_phones' => $contacts['phone'] !== null ? $contacts['additional_phones'] : $event->additional_phones,
                 'canal_id' => $canal->id,
                 'venue_id' => $venue?->id ?? $event->venue_id,
                 'user_id' => $systemOwner->id,
