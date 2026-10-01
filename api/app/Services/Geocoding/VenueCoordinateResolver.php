@@ -3,6 +3,7 @@
 namespace App\Services\Geocoding;
 
 use App\Services\OpenAI\ChatGPT;
+use App\Support\OnlineVenue;
 
 /**
  * Rebrik zdrojov GPS suradnic miesta, od najpresnejsieho po najhrubsi.
@@ -58,6 +59,10 @@ class VenueCoordinateResolver
         ?float $aiLng = null,
         bool $askAi = false,
     ): array {
+        if (OnlineVenue::matches($name)) {
+            return $this->result(null, null, null);
+        }
+
         $centre = null;
         $municipality = function () use (&$centre, $city, $country): array {
             return $centre ??= $this->safely(

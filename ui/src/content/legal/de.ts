@@ -19,7 +19,7 @@ const de: LegalDocuments = {
       {
         heading: 'Art. 2 — Begriffsbestimmungen',
         paragraphs: [
-          '2.1 Portal — die unter {site} erreichbare Webanwendung, die Informationen über kulturelle, gesellschaftliche, sportliche und sonstige Veranstaltungen sowie damit verbundene Dienste veröffentlicht.',
+          '2.1 Portal — die Webanwendung {site}, die Informationen über kulturelle, gesellschaftliche, sportliche und sonstige Veranstaltungen sowie damit verbundene Dienste veröffentlicht.',
           '2.2 Nutzer — eine natürliche oder juristische Person, die das Portal nutzt, auch ohne Registrierung.',
           '2.3 Registrierter Nutzer — ein Nutzer mit einem Konto auf dem Portal.',
           '2.4 Veranstalter — ein registrierter Nutzer, der auf dem Portal Veranstaltungen veröffentlicht oder darüber Tickets anbietet.',
@@ -161,6 +161,7 @@ const de: LegalDocuments = {
         paragraphs: [
           'Kontodaten — für die Dauer des Kontos und danach höchstens 1 Jahr ab Löschung, wegen möglicher Ansprüche aus der Nutzung des Portals.',
           'Nicht bestätigte Registrierung — längstens bis zum Ablauf des Bestätigungslinks (48 Stunden), danach automatische Löschung.',
+          'Nicht abgeschlossener Poster-Upload — die hochgeladene Datei und die daraus gelesenen Angaben werden höchstens 7 Tage aufbewahrt und danach automatisch gelöscht, wenn Sie die Veranstaltung nicht fertigstellen und veröffentlichen.',
           'Einwilligungsnachweis — für die Dauer des Kontos und 1 Jahr nach dessen Löschung, gemeinsam mit den Kontodaten.',
           'Veröffentlichte Veranstaltungsinhalte — können auch nach Löschung des Kontos im Archiv des Portals verbleiben, in der Regel ohne Kontaktdaten natürlicher Personen.',
           'Ticketdaten und Buchhaltungsbelege — 10 Jahre, soweit steuer- und buchhaltungsrechtlich erforderlich.',

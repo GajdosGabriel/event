@@ -422,21 +422,14 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         return $query->get();
     }
 
-    public function publicMunicipalityOverview(string $scope = 'all'): Collection
+    public function publicMunicipalityOverview(string $scope = 'all', array $filters = []): Collection
     {
         $scope = in_array($scope, ['all', 'planned'], true) ? $scope : 'all';
 
         $query = $this->model()->newQuery()
             ->join('venues', 'venues.id', '=', 'events.venue_id')
-            ->where('events.status', ModelStatus::Published->value)
             ->whereNotNull('events.venue_id')
-            ->where(function ($q) {
-                $q->where('events.end_at', '>=', now())
-                    ->orWhere(function ($inner) {
-                        $inner->whereNull('events.end_at')
-                            ->where('events.start_at', '>=', now()->startOfDay());
-                    });
-            });
+            ->whereIn('events.id', $this->publicFacetQuery($filters));
 
         if ($scope === 'planned') {
             $query->where('events.start_at', '>=', now());
@@ -445,6 +438,32 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         return $this->municipalityOverviewQuery
             ->apply($query, 'venues.village_id', 'events.id')
             ->get();
+    }
+
+    /**
+     * Id podujatí, ktoré návštevník práve vidí vo verejnom výpise (obdobie,
+     * séria zbalená na najbližší termín, štítky, hľadanie…). Slúži bočným
+     * prehľadom, aby ich počty sedeli so zobrazeným zoznamom; facet si svoj
+     * vlastný filter z `$filters` vyhadzuje sám.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Event>
+     */
+    public function publicFacetQuery(array $filters = []): Builder
+    {
+        $list = $filters['list'] ?? 'upcoming';
+        $base = $this->model()->newQuery();
+
+        $query = $list === 'past'
+            ? EventTimeframe::past($base)->whereIn('status', ModelStatus::publiclyReadableValues())
+            : $this->applyPublicTimeframe(
+                $this->collapseSeries(
+                    EventTimeframe::upcoming($base)->where('status', ModelStatus::Published->value)
+                ),
+                $list,
+            );
+
+        return $query->applyCommonFilters($filters)->reorder()->select('events.id');
     }
 
     public function publicIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator

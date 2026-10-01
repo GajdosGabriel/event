@@ -19,7 +19,7 @@ const en: LegalDocuments = {
       {
         heading: 'Art. 2 — Definitions',
         paragraphs: [
-          '2.1 Portal — the web application available at {site} publishing information about cultural, social, sporting and other events, and related services.',
+          '2.1 Portal — the {site} web application publishing information about cultural, social, sporting and other events, and related services.',
           '2.2 User — a natural or legal person using the Portal, including without registration.',
           '2.3 Registered User — a User with an account on the Portal.',
           '2.4 Organiser — a Registered User who publishes events on the Portal or offers tickets through it.',
@@ -161,6 +161,7 @@ const en: LegalDocuments = {
         paragraphs: [
           'Account data — for as long as the account exists and then for up to 1 year after deletion, for any claims arising from use of the Portal.',
           'Unverified registration — at most until the verification link expires (48 hours), after which it is deleted automatically.',
+          'Unfinished poster upload — the uploaded file and the details read from it are kept for at most 7 days and then deleted automatically if you do not complete and publish the event.',
           'Consent record — for the lifetime of the account and 1 year after its deletion, together with the account data.',
           'Published event content — may remain in the Portal’s archive even after the account is deleted, as a rule without contact details of natural persons.',
           'Ticket data and accounting records — 10 years, where required by tax and accounting legislation.',

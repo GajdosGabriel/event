@@ -168,8 +168,8 @@
       </div>
 
       <aside class="space-y-4">
-        <MunicipalityAside scope="public" resource="events" />
-        <TagChips :count="loading ? null : resultLabel" />
+        <MunicipalityAside scope="public" resource="events" :params="facetParams" />
+        <TagChips :count="loading ? null : resultLabel" :params="facetParams" />
       </aside>
     </div>
   </div>
@@ -288,6 +288,12 @@ const lastPage = ref(1)
 const total = ref(0)
 const listTop = ref<HTMLElement | null>(null)
 
+/**
+ * Filtre poslednej požiadavky na výpis — bočné panely z nich rátajú počty.
+ * `null` = výpis sa ešte nenačítal, panely počkajú, nech nesvietia zlé čísla.
+ */
+const facetParams = ref<Record<string, unknown> | null>(null)
+
 /** Hľadaný výraz žije v adrese (`?q=`), aby sa dal zdieľať a prežil „späť". */
 const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
 
@@ -397,9 +403,7 @@ async function fetchPage(p: number) {
   // endpointu, inak by zobrazila len podujatia aktuálnej strany.
   const forMap = view.value === 'map'
   try {
-    const params: Record<string, unknown> = forMap
-      ? {}
-      : { page: p, per_page: settings.value.publicEventsPerPage }
+    const params: Record<string, unknown> = {}
     // Archív ostáva archívom aj počas hľadania — inak by výraz zadaný nad
     // uplynulými podujatiami ticho preskočil na nadchádzajúce.
     params['list'] = props.list ?? (search.value.trim() ? 'all' : 'upcoming')
@@ -411,6 +415,12 @@ async function fetchPage(p: number) {
       params['latitude'] = nearby.value.latitude
       params['longitude'] = nearby.value.longitude
       params['radius_km'] = nearby.value.radiusKm
+    }
+    // Bočné počty (obce, štítky) sa rátajú z rovnakého výberu ako výpis.
+    facetParams.value = { ...params }
+    if (!forMap) {
+      params['page'] = p
+      params['per_page'] = settings.value.publicEventsPerPage
     }
     if (forMap) {
       const res = await indexEventMapPoints(params)

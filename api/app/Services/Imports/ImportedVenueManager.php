@@ -8,6 +8,7 @@ use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\Geocoding\MunicipalityGeocodeResolver;
 use App\Services\OpenAI\Detector;
+use App\Support\ImportedText;
 use App\Support\NationwideCoordinates;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -30,6 +31,9 @@ class ImportedVenueManager
     ): Venue {
         $hasCoordinates = $latitude !== null && $longitude !== null;
         $venueName = $this->trimmedOrNull($venueName);
+        if ($venueName !== null) {
+            $venueName = ImportedText::venueName($venueName);
+        }
         $venueCity = $this->trimmedOrNull($venueCity);
 
         if ($venueName !== null) {
@@ -54,6 +58,9 @@ class ImportedVenueManager
                         $payload = array_merge($detected['venue_store_payload'], [
                             'status' => ModelStatus::Draft->value,
                         ]);
+                        if (is_string($payload['name'] ?? null)) {
+                            $payload['name'] = ImportedText::venueName($payload['name']);
+                        }
                         // Wikipedia popis je presnejší; keď ho enrichment nenašiel, dopíše ho AI.
                         if (blank($payload['body'] ?? null)) {
                             $payload['body'] = $this->describer->forVenue(

@@ -73,6 +73,11 @@ const { t } = useI18n()
 const props = defineProps<{
   scope: 'dashboard' | 'admin' | 'public'
   resource: string
+  /**
+   * Filtre aktuálneho výpisu (verejný rozsah) — počty sa rátajú z rovnakého
+   * výberu. `null` = výpis sa ešte načítava, `undefined` = bez filtrov.
+   */
+  params?: Record<string, unknown> | null
 }>()
 
 interface MunItem {
@@ -172,12 +177,14 @@ function linkFor(item: MunItem) {
 }
 
 async function load() {
+  // Verejný panel počká na filtre výpisu, nech nezabliká čísla z iného výberu.
+  if (props.params === null) return
   loading.value = true
   try {
     const apiPath = props.scope === 'public'
       ? `/${props.resource}/municipalities-overview`
       : `/${props.scope}/${props.resource}/municipalities-overview`
-    const { data } = await http.get(apiPath)
+    const { data } = await http.get(apiPath, { params: props.params ?? undefined })
     items.value = ((data.data ?? data) as Record<string, unknown>[]).map(r => ({
       municipalityId: r['municipality_id'] as number,
       municipalityName: (r['municipality_name'] ?? r['municipality_shortname']) as string,
@@ -195,7 +202,7 @@ async function load() {
 }
 
 watch(active, openActiveRegion)
-watch(() => [props.scope, props.resource], load)
+watch(() => [props.scope, props.resource, JSON.stringify(props.params ?? null)], load)
 onMounted(load)
 </script>
 

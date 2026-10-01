@@ -16,6 +16,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useHead } from '@vueuse/head'
 import PosterUploadWizard from '@/components/poster/PosterUploadWizard.vue'
 import { t } from '@/i18n'
+
+// Bez vlastného titulku by karta ostala na predvolenom z index.html.
+useHead(computed(() => ({ title: `${t('poster.page.title')} | Event` })))
 </script>

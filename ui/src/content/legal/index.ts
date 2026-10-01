@@ -33,11 +33,11 @@ export const LEGAL_EFFECTIVE_FROM = '14. 8. 2026'
  * DOPLNIŤ pred spustením do prevádzky.
  */
 export const operator = {
-  site: 'vyveska.sk',
+  site: 'Event',
   name: '[DOPLNIŤ: obchodné meno prevádzkovateľa]',
   address: '[DOPLNIŤ: sídlo — ulica, PSČ, obec]',
   ico: '[DOPLNIŤ: IČO]',
-  dic: '[DOPLNIŤ: DIČ / IČ DPH alebo „neplatiteľ DPH"]',
+  dic: '[DOPLNIŤ: DIČ / IČ DPH alebo „neplatiteľ DPH“]',
   registration: '[DOPLNIŤ: zápis v OR SR, oddiel a vložka / číslo živnostenského registra]',
   email: '[DOPLNIŤ: kontaktný e-mail]',
   phone: '[DOPLNIŤ: telefón]',

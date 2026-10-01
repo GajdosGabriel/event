@@ -7,12 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\EventResource;
 use App\Http\Resources\FileResource;
 use App\Models\Event;
-use App\Models\Municipality;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Calendar\IcsGenerator;
 use App\Services\Views\ViewRecorder;
 use App\Support\EventDateRange;
-use App\Support\EventTimeframe;
+use App\Support\PublicEventFilters;
 use App\Support\PublicUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,119 +60,7 @@ class EventController extends Controller
      */
     private function filters(Request $request): array
     {
-        $list = $request->input('list');
-        // `past` je archív — uplynulé podujatia od najnovšieho. Ich detaily
-        // ostávajú verejné navždy (odkazy z Googlu a zo zdieľaní musia fungovať
-        // aj o rok), takže potrebujú aj výpis, z ktorého sa na ne dá dostať.
-        $list = in_array($list, ['upcoming', 'ongoing', 'all', 'past'], true) ? $list : 'upcoming';
-
-        [$dateFrom, $dateTo] = $this->range($request);
-        [$latitude, $longitude, $radiusKm] = $this->nearby($request);
-
-        return [
-            'municipality' => $this->municipalityId($request),
-            'search' => trim((string) $request->input('search', '')) ?: null,
-            'list' => $list,
-            'tags' => $this->tagSlugs($request),
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo,
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'radius_km' => $radiusKm,
-        ];
-    }
-
-    /**
-     * „V mojom okolí" — bod z prehliadača a okruh v kilometroch.
-     *
-     * Všetky tri hodnoty musia dávať zmysel spolu, inak sa filter ticho vypne
-     * a vráti sa bežný výpis. Neplatná poloha nie je dôvod na chybu: prichádza
-     * z `navigator.geolocation`, teda z prostredia, ktoré nemáme pod kontrolou,
-     * a prázdny zoznam s hláškou 422 by vyzeral ako porucha portálu.
-     *
-     * Okruh je zhora obmedzený — nad 200 km už „okolie" nie je filter, ale celá
-     * krajina, a databáze by zostalo len počítanie funkcie nad všetkým.
-     *
-     * @return array{0: ?float, 1: ?float, 2: ?float}
-     */
-    private function nearby(Request $request): array
-    {
-        if (! $request->filled(['latitude', 'longitude', 'radius_km'])) {
-            return [null, null, null];
-        }
-
-        $latitude = (float) $request->input('latitude');
-        $longitude = (float) $request->input('longitude');
-        $radiusKm = (float) $request->input('radius_km');
-
-        $valid = $latitude >= -90 && $latitude <= 90
-            && $longitude >= -180 && $longitude <= 180
-            && $radiusKm > 0;
-
-        if (! $valid) {
-            return [null, null, null];
-        }
-
-        return [$latitude, $longitude, min($radiusKm, 200.0)];
-    }
-
-    /**
-     * Obec chodí ako id (dashboardové filtre) alebo ako slug (landing stránka
-     * `/podujatia/mesto/{slug}`). Neznámy slug zámerne nekončí 422, ale
-     * prázdnym výsledkom — rovnako ako pri štítkoch je to pre zastaralý odkaz
-     * správnejšie správanie než chyba.
-     */
-    private function municipalityId(Request $request): ?int
-    {
-        $raw = trim((string) $request->input('municipality', ''));
-
-        if ($raw === '') {
-            return null;
-        }
-
-        if (ctype_digit($raw)) {
-            return (int) $raw;
-        }
-
-        return Municipality::query()->where('slug', $raw)->value('id');
-    }
-
-    /**
-     * Pomenované časové okno pre landing stránky. Dnes jediné: `weekend`.
-     * Výpočet drží [EventTimeframe], aby SPA aj bot-render vrstva ukazovali
-     * ten istý zoznam.
-     *
-     * @return array{0: ?string, 1: ?string}
-     */
-    private function range(Request $request): array
-    {
-        if ($request->input('range') !== 'weekend') {
-            return [null, null];
-        }
-
-        [$from, $to] = EventTimeframe::thisWeekend();
-
-        return [$from->toDateString(), $to->toDateString()];
-    }
-
-    /**
-     * Štítky chodia ako ?tags=koncert,folklor. Slugy sa nevalidujú proti
-     * číselníku — neznámy slug jednoducho nič nenájde, čo je pre filter
-     * správnejšie než 422 pri zastaralom odkaze.
-     *
-     * @return array<int, string>|null
-     */
-    private function tagSlugs(Request $request): ?array
-    {
-        $raw = $request->input('tags');
-        $raw = is_array($raw) ? $raw : explode(',', (string) $raw);
-
-        $slugs = array_values(array_filter(
-            array_map(static fn ($slug) => trim((string) $slug), $raw),
-            static fn (string $slug) => $slug !== '',
-        ));
-
-        return $slugs !== [] ? array_slice(array_unique($slugs), 0, 10) : null;
+        return PublicEventFilters::fromRequest($request);
     }
 
     public function show($id, Request $request, ViewRecorder $viewRecorder, IcsGenerator $calendar)
@@ -256,8 +143,13 @@ class EventController extends Controller
             'scope' => ['nullable', 'in:all,planned'],
         ])['scope'] ?? 'all';
 
+        // Počty obcí sa rátajú z rovnakého výberu ako výpis (obdobie, štítky,
+        // hľadanie…) — bez vlastného filtra obce, inak by ostatné obce zmizli.
+        $filters = PublicEventFilters::fromRequest($request);
+        $filters['municipality'] = null;
+
         return response()->json([
-            'data' => $this->eventRepository->publicMunicipalityOverview($scope),
+            'data' => $this->eventRepository->publicMunicipalityOverview($scope, $filters),
             'meta' => ['scope' => $scope],
         ]);
     }

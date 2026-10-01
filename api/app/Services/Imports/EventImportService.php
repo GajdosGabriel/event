@@ -11,6 +11,7 @@ use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\SystemLog\Recorder;
+use App\Support\ImportedText;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -205,7 +206,7 @@ class EventImportService
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
         $payload = [
-            'name' => Str::limit((string) $detail['title'], 250, ''),
+            'name' => Str::limit(ImportedText::fixAbbreviationSpacing((string) $detail['title']), 250, ''),
             'body' => $body,
             'start_at' => $startAt,
             'end_at' => $endAt,

@@ -3,6 +3,7 @@
 namespace App\Services\Geocoding;
 
 use App\Services\OpenAI\ChatGPT;
+use App\Support\OnlineVenue;
 
 /**
  * Fail-safe doplnenie GPS suradnic miesta alebo kanalu pri ukladani.
@@ -41,7 +42,7 @@ class PlaceCoordinateResolver
         $city = $this->clean($city);
         $country = $this->clean($country);
 
-        if ($name === null && $city === null) {
+        if (($name === null && $city === null) || OnlineVenue::matches($name)) {
             return ['latitude' => null, 'longitude' => null, 'source' => null];
         }
 

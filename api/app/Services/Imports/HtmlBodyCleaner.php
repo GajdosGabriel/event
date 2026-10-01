@@ -2,6 +2,7 @@
 
 namespace App\Services\Imports;
 
+use App\Support\ImportedText;
 use DOMDocument;
 use DOMNode;
 use DOMXPath;
@@ -388,6 +389,6 @@ class HtmlBodyCleaner
         // Collapse runs of blank lines to a single newline
         $html = preg_replace('/\n{3,}/', "\n\n", $html) ?? $html;
 
-        return trim($html);
+        return trim(ImportedText::fixAbbreviationSpacing(ImportedText::stripNewsroomCodes($html)));
     }
 }

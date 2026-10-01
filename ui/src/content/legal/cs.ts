@@ -19,7 +19,7 @@ const cs: LegalDocuments = {
       {
         heading: 'Čl. 2 — Vymezení pojmů',
         paragraphs: [
-          '2.1 Portál — webová aplikace dostupná na adrese {site}, která zveřejňuje informace o kulturních, společenských, sportovních a jiných akcích a související služby.',
+          '2.1 Portál — webová aplikace {site}, která zveřejňuje informace o kulturních, společenských, sportovních a jiných akcích a související služby.',
           '2.2 Uživatel — fyzická nebo právnická osoba, která Portál používá, i bez registrace.',
           '2.3 Registrovaný uživatel — Uživatel, který má na Portálu vytvořený účet.',
           '2.4 Pořadatel — Registrovaný uživatel, který na Portálu zveřejňuje akce, případně přes Portál nabízí vstupenky.',
@@ -46,7 +46,7 @@ const cs: LegalDocuments = {
           '4.2 Vložením Obsahu uděluje Uživatel Provozovateli bezúplatnou, nevýhradní a územně neomezenou licenci k jeho zobrazování, rozmnožování, úpravě velikosti a šíření v rozsahu potřebném pro provoz a propagaci Portálu včetně náhledů ve vyhledávačích a na sociálních sítích, a to po dobu zveřejnění Obsahu na Portálu.',
           '4.3 Uživatel prohlašuje, že je oprávněn takovou licenci udělit a že Obsah neporušuje práva třetích osob, zejména autorská práva, práva na ochranu osobnosti a práva k ochranným známkám.',
           '4.4 Zakázán je Obsah, který je v rozporu s právním řádem Slovenské republiky nebo s dobrými mravy, zejména nenávistný, hanlivý, klamavý, zásadně nesouvisející s akcemi, propagující násilí nebo nevhodný pro nezletilé.',
-          '4.5 Provozovatel je oprávněn Obsah porušující tyto podmínky nezveřejnit, upravit jeho zařazení do kategorií nebo jej odstranit. O odstranění Uživatele informuje; Uživatel může proti tomu podat námitku na {email}.',
+          '4.5 Provozovatel je oprávněn Obsah porušující tyto podmínky nezveřejnit, upravit jeho zařazení do kategorií nebo jej odstranit. O odstranění Obsahu informuje Uživatele; Uživatel může proti tomu podat námitku na {email}.',
           '4.6 Provozovatel není povinen Obsah předem kontrolovat. Na oznámení o protiprávním Obsahu doručené na {email} reaguje bez zbytečného odkladu.',
         ],
       },
@@ -161,6 +161,7 @@ const cs: LegalDocuments = {
         paragraphs: [
           'Údaje účtu — po dobu jeho trvání a následně nejvýše 1 rok od zrušení účtu, kvůli případným nárokům z používání Portálu.',
           'Neověřená registrace — nejdéle do uplynutí platnosti ověřovacího odkazu (48 hodin), poté se automaticky vymaže.',
+          'Nedokončené nahrání plakátu — nahraný soubor a z něj přečtené údaje se uchovávají nejdéle 7 dní, poté se automaticky vymažou, pokud akci nedokončíte a nezveřejníte.',
           'Doklad o souhlasu s podmínkami — po dobu trvání účtu a 1 rok po jeho zrušení, spolu s údaji účtu.',
           'Zveřejněný obsah o akcích — i po zrušení účtu může zůstat v archivu Portálu, zpravidla bez kontaktních údajů na fyzické osoby.',
           'Údaje o vstupenkách a účetní doklady — 10 let, vyžadují-li to daňové a účetní předpisy.',

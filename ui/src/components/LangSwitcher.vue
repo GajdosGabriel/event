@@ -24,7 +24,7 @@
       <ul
         v-if="open"
         role="listbox"
-        class="absolute right-0 top-full z-50 mt-2 w-40 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        class="absolute right-0 top-full z-50 mt-2 w-max min-w-40 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
       >
         <li v-for="code in locales" :key="code">
           <button
@@ -37,7 +37,7 @@
           >
             <span class="flex min-w-0 items-center gap-2">
               <LocaleFlag :code="code" />
-              <span class="truncate">{{ t(`lang.${code}` as MessageKey) }}</span>
+              <span class="whitespace-nowrap">{{ t(`lang.${code}` as MessageKey) }}</span>
             </span>
             <svg
               v-if="code === locale"

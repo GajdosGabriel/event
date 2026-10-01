@@ -21,7 +21,7 @@
           :to="linkFor(tag.slug)"
           class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white no-underline transition-opacity hover:opacity-80"
         >
-          <span v-if="tag.emoji">{{ tag.emoji }}</span>
+          <span aria-hidden="true">{{ tag.emoji || FALLBACK_EMOJI }}</span>
           {{ tagLabel(tag) }}
           <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
             <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -65,7 +65,7 @@
                 ? 'border-slate-900 bg-slate-900 font-medium text-white'
                 : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-white'"
             >
-              <span v-if="tag.emoji">{{ tag.emoji }}</span>
+              <span aria-hidden="true">{{ tag.emoji || FALLBACK_EMOJI }}</span>
               {{ tagLabel(tag) }}
               <span :class="isActive(tag.slug) ? 'text-slate-300' : 'text-slate-400'">{{ tag.eventsCount }}</span>
             </RouterLink>
@@ -78,17 +78,24 @@
 
 <script setup lang="ts">
 import { tagLabel } from '@/utils/tagLabel'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { indexTags } from '@/api/tags'
 import type { TagGroupItem } from '@/types'
 import { PUBLIC_EVENTS, publicTagPath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'
 
-/** Popis počtu výsledkov zo zoznamu — karta ho len zobrazí, nepočíta ho. */
-defineProps<{ count?: string | null }>()
+/** Štítok bez ikony (ručne založený) by v rade čipov trčal — dostane všeobecnú. */
+const FALLBACK_EMOJI = '🏷️'
 
-const { t } = useI18n()
+/** Popis počtu výsledkov zo zoznamu — karta ho len zobrazí, nepočíta ho. */
+const props = defineProps<{
+  count?: string | null
+  /** Filtre aktuálneho výpisu — počty štítkov sa rátajú z rovnakého výberu. `null` = výpis sa ešte načítava. */
+  params?: Record<string, unknown> | null
+}>()
+
+const { t, locale } = useI18n()
 const route = useRoute()
 
 /**
@@ -157,12 +164,22 @@ function linkFor(slug: string) {
   return { path: basePath.value, query: { ...query, tags: next.join(',') } }
 }
 
-onMounted(async () => {
+let requestSeq = 0
+
+async function load() {
+  // Počká na filtre výpisu, nech nezabliká čísla z iného výberu.
+  if (props.params === null) return
+  const request = ++requestSeq
   try {
     // Štítky bez podujatí by len zavádzali — filter by vrátil prázdno.
-    groups.value = (await indexTags({ onlyUsed: true })).filter((group) => group.tags.length > 0)
+    const loaded = await indexTags({ onlyUsed: true, filters: props.params ?? undefined })
+    if (request === requestSeq) groups.value = loaded.filter((group) => group.tags.length > 0)
   } catch {
-    groups.value = []
+    if (request === requestSeq) groups.value = []
   }
-})
+}
+
+// Názvy skupín prekladá backend podľa jazyka — po jeho prepnutí treba dotiahnuť nové.
+watch(() => [locale.value, JSON.stringify(props.params ?? null)], load)
+onMounted(load)
 </script>

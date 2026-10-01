@@ -22,7 +22,7 @@ class TagSeeder extends Seeder
     /**
      * @var array<string, array<int, array{0: string, 1: string, 2: string}>> facet => [[slug, názov, emoji], …]
      */
-    private const TAGS = [
+    public const TAGS = [
         TagGroup::Format->value => [
             ['koncert', 'Koncert', '🎤'],
             ['divadlo', 'Divadlo', '🎭'],

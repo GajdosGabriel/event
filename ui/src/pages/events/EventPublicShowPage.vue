@@ -693,8 +693,9 @@ const deadlineCountdown = computed(() => {
 })
 
 // Lišta má zmysel len tam, kde sa dá niečo urobiť: registrácia je zapnutá
-// a návštevník ešte prihlásený nie je.
-const showMobileCta = computed(() => Boolean(event.value?.reservable) && !viewerRegistered.value)
+// a návštevník ešte prihlásený nie je. Skončené podujatie registráciu nemá
+// (formulár v paneli hlási „registrácia nie je možná"), lišta ju teda neponúka.
+const showMobileCta = computed(() => Boolean(event.value?.reservable) && !viewerRegistered.value && !hasEnded.value)
 
 /**
  * Podujatie, ktoré sa ešte len chystá. Bez termínu to nevieme posúdiť, takže
@@ -807,13 +808,23 @@ const venueOpeningHours = computed(() => {
 })
 
 // Use event's own coords first, fall back to venue coords
+// Zástupný stred Slovenska (NationwideCoordinates) je „poloha neznáma" — online
+// podujatie ani zberné „Celé Slovensko" nemajú čo ukazovať na mape.
+const isPlaceholderCoords = (lat: number, lng: number) =>
+  Math.abs(lat - 48.7411522) < 1e-6 && Math.abs(lng - 19.4528646) < 1e-6
+
 const mapCoords = computed(() => {
   const ev = event.value
   if (!ev) return null
-  if (ev.latitude && ev.longitude) return { lat: +ev.latitude, lng: +ev.longitude }
-  const vLat = ev.venue?.latitude ? parseFloat(ev.venue.latitude) : null
-  const vLng = ev.venue?.longitude ? parseFloat(ev.venue.longitude) : null
-  if (vLat && vLng) return { lat: vLat, lng: vLng }
+  const candidates = [
+    [ev.latitude, ev.longitude],
+    [ev.venue?.latitude, ev.venue?.longitude],
+  ]
+  for (const [rawLat, rawLng] of candidates) {
+    const lat = rawLat ? parseFloat(String(rawLat)) : NaN
+    const lng = rawLng ? parseFloat(String(rawLng)) : NaN
+    if (lat && lng && !isPlaceholderCoords(lat, lng)) return { lat, lng }
+  }
   return null
 })
 

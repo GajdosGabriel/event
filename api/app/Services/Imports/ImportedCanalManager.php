@@ -178,11 +178,9 @@ class ImportedCanalManager
         $slug = Str::slug($name);
         $canal = Canal::query()
             ->where(function ($q) use ($name, $slug) {
-                $q->where('slug', $slug)
-                    ->orWhere('name', $name)
-                    ->orWhere('name', 'like', '%'.addslashes(Str::limit($name, 100, '')).'%');
+                $q->where('slug', $slug)->orWhere('name', $name);
             })
-            ->orderByDesc('created_at')
+            ->orderBy('id')
             ->first();
 
         if ($canal instanceof Canal) {
@@ -194,7 +192,24 @@ class ImportedCanalManager
         // → "… žien (SEŽ)" — je dlhší ten nový a zhoda zlyhá, takže vznikne
         // druhý kanál pre tú istú organizáciu. Porovnanie holých slugov to
         // podchytí v oboch smeroch (aj "ACN – Pomoc" vs "ACN .- Pomoc").
-        return ImportedNameMatcher::firstByBaseName(Canal::query(), $name);
+        $canal = ImportedNameMatcher::firstByBaseName(Canal::query(), $name);
+
+        if ($canal instanceof Canal) {
+            return $canal;
+        }
+
+        // Voľné "obsahuje" je až posledná záchrana a nesmie rozhodovať o
+        // krátkych názvoch: „Dom Quo Vadis" je obsiahnutý v názvoch ako
+        // „Múzeum obetí komunizmu, ÚPN a Dom Quo Vadis", takže podujatia Domu
+        // Quo Vadis končili pod cudzím organizátorom.
+        if (mb_strlen($name) < 25) {
+            return null;
+        }
+
+        return Canal::query()
+            ->where('name', 'like', '%'.addslashes(Str::limit($name, 100, '')).'%')
+            ->orderBy('id')
+            ->first();
     }
 
     private function shouldUpgradeName(string $currentName, string $detectedName, string $sourceOrigin): bool
