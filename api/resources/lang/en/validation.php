@@ -180,8 +180,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'publish_at' => [
+            'after' => 'The publish date must be in the future.',
+            'required' => 'Enter when the event should be published.',
         ],
     ],
 
@@ -203,6 +204,12 @@ return [
     'ai_draft_summary' => 'A draft description from publicly known information. Please read it through and correct anything that is wrong.',
 
     'attributes' => [
+        'price_amount' => 'price',
+        'min_per_order' => 'minimum per order',
+        'max_per_order' => 'maximum per order',
+        'capacity' => 'capacity',
+        'latitude' => 'latitude',
+        'longitude' => 'longitude',
         // Authentication
         'email'              => 'e-mail',
         'password'           => 'password',

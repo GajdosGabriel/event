@@ -4,6 +4,7 @@ namespace App\Services\Events;
 
 use App\Models\Admission;
 use App\Models\Event;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -17,6 +18,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AttendeeCsv
 {
     private const DELIMITER = ';';
+
+    /** Časy sú v DB v UTC; v exporte majú byť rovnaké ako v UI. */
+    private const DISPLAY_TIMEZONE = 'Europe/Bratislava';
 
     private const HEADER = [
         'Objednávka',
@@ -74,11 +78,20 @@ class AttendeeCsv
             (string) $admission->ticketType?->name,
             $admission->status?->label() ?? '',
             $admission->confirmation_status?->label() ?? '',
-            $admission->checked_in_at?->format('d.m.Y H:i') ?? '',
+            $this->dateTime($admission->checked_in_at),
             $this->price($ticket?->price_amount, $ticket?->price_currency),
             $ticket?->payment_status?->label() ?? '',
-            $admission->created_at?->format('d.m.Y H:i') ?? '',
+            $this->dateTime($admission->created_at),
         ];
+    }
+
+    private function dateTime(?\DateTimeInterface $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        return Carbon::instance($value)->setTimezone(self::DISPLAY_TIMEZONE)->format('d.m.Y H:i');
     }
 
     /** Ceny sú v centoch; desatinná čiarka je to, čo slovenský Excel čaká. */

@@ -164,8 +164,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'publish_at' => [
+            'after' => 'Termín zveřejnění musí být v budoucnosti.',
+            'required' => 'Vyplňte, kdy se má událost zveřejnit.',
         ],
     ],
 
@@ -182,6 +183,12 @@ return [
     'ai_draft_summary' => 'Návrh popisu z veřejně známých informací. Projděte si jej, prosím, a opravte, co nesedí.',
 
     'attributes' => [
+        'price_amount' => 'cena',
+        'min_per_order' => 'nejméně na objednávku',
+        'max_per_order' => 'nejvíce na objednávku',
+        'capacity' => 'kapacita',
+        'latitude' => 'zeměpisná šířka',
+        'longitude' => 'zeměpisná délka',
         // Autentifikácia
         'email'              => 'e-mail',
         'password'           => 'heslo',

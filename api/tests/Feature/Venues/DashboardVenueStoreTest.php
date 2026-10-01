@@ -26,6 +26,27 @@ class DashboardVenueStoreTest extends EventSetupTest
         ];
     }
 
+#[Test]
+    public function store_rejects_out_of_range_coordinates_and_capacity(): void
+    {
+        foreach ([
+            ['latitude', -500], ['latitude', 91], ['longitude', 181], ['longitude', -181],
+            ['capacity', -1], ['capacity', 1000001],
+        ] as [$field, $value]) {
+            $this->postJson('/api/dashboard/venues', array_merge($this->validPayload(), [$field => $value]))
+                ->assertStatus(422)
+                ->assertJsonValidationErrors([$field]);
+        }
+    }
+
+    #[Test]
+    public function store_accepts_boundary_coordinates_and_null_capacity(): void
+    {
+        $this->postJson('/api/dashboard/venues', array_merge($this->validPayload(), [
+            'latitude' => -90, 'longitude' => 180, 'capacity' => null,
+        ]))->assertStatus(201);
+    }
+
     #[Test]
     public function store_allows_only_required_fields(): void
     {
@@ -171,7 +192,9 @@ class DashboardVenueStoreTest extends EventSetupTest
     #[Test]
     public function store_records_where_automatically_resolved_coordinates_came_from(): void
     {
+        // Bez ulice nie je čo geokódovať ako adresu — ide sa cez názov budovy.
         $payload = $this->validPayload();
+        unset($payload['street'], $payload['postcode']);
         $municipality = DB::table('municipalities')->where('id', $payload['village_id'])->first();
 
         Http::fake([
@@ -196,6 +219,39 @@ class DashboardVenueStoreTest extends EventSetupTest
             'name' => $payload['name'],
             'coordinates_source' => 'venue',
         ]);
+    }
+
+    #[Test]
+    public function store_prefers_the_typed_address_over_a_building_name_lookup(): void
+    {
+        $payload = $this->validPayload();
+        $municipality = DB::table('municipalities')->where('id', $payload['village_id'])->first();
+
+        Http::fake([
+            '*nominatim*' => Http::response([
+                [
+                    'name' => $payload['name'],
+                    'lat' => '48.1485965',
+                    'lon' => '17.1077477',
+                    'address' => [
+                        'road' => 'Main Street',
+                        'house_number' => '1',
+                        'city' => $municipality->shortname,
+                        'country' => 'Slovensko',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $this->postJson('/api/dashboard/venues', $payload)->assertStatus(201);
+
+        $this->assertDatabaseHas('venues', [
+            'name' => $payload['name'],
+            'coordinates_source' => 'address',
+        ]);
+
+        // Jeden štruktúrovaný dotaz namiesto desiatok dotazov podľa názvu.
+        Http::assertSentCount(1);
     }
 
     #[Test]

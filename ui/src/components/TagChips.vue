@@ -22,7 +22,7 @@
           class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white no-underline transition-opacity hover:opacity-80"
         >
           <span v-if="tag.emoji">{{ tag.emoji }}</span>
-          {{ tag.name }}
+          {{ tagLabel(tag) }}
           <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
             <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
           </svg>
@@ -66,7 +66,7 @@
                 : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-white'"
             >
               <span v-if="tag.emoji">{{ tag.emoji }}</span>
-              {{ tag.name }}
+              {{ tagLabel(tag) }}
               <span :class="isActive(tag.slug) ? 'text-slate-300' : 'text-slate-400'">{{ tag.eventsCount }}</span>
             </RouterLink>
           </div>
@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { tagLabel } from '@/utils/tagLabel'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { indexTags } from '@/api/tags'

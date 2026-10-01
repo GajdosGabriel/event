@@ -63,10 +63,20 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * Verejné prihlasovacie endpointy. 401 tu znamená „zlé údaje“, nie „vypršala
+ * relácia“ — nesmie zmazať platný token, ktorý už v prehliadači je.
+ */
+const PUBLIC_AUTH_PATH = /^\/?(login|register|password)(\/|$)/
+
+export function isPublicAuthRequest(url: string | undefined): boolean {
+  return PUBLIC_AUTH_PATH.test((url ?? '').replace(/^\/api(?=\/)/, ''))
+}
+
 http.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isPublicAuthRequest(error.config?.url)) {
       clearAuthToken()
     }
 

@@ -17,6 +17,7 @@ const loadMunicipalities = vi.fn()
 vi.mock('@/composables/useFormOptions', () => ({
   useFormOptions: () => ({
     municipalities: ref(MUNICIPALITIES),
+    placeMunicipalities: ref(MUNICIPALITIES),
     canals: ref([]),
     venues: ref([]),
     canalIdentityModes: ref([]),

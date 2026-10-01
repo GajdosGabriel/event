@@ -30,6 +30,26 @@ class ScheduledPublishingTest extends EventSetupTest
     }
 
     #[Test]
+    public function schedule_date_errors_are_readable(): void
+    {
+        $this->futureEvent->update(['status' => ModelStatus::Draft->value, 'published_at' => null]);
+
+        $past = $this->putJson("/api/dashboard/events/{$this->futureEvent->id}", $this->payload([
+            'status' => ModelStatus::Scheduled->value,
+            'publish_at' => now()->subDay()->toDateTimeString(),
+        ]), ["X-Locale" => "sk"]);
+        $past->assertStatus(422);
+        $this->assertSame('Termín zverejnenia musí byť v budúcnosti.', $past->json('errors.publish_at.0'));
+
+        $empty = $this->putJson("/api/dashboard/events/{$this->futureEvent->id}", $this->payload([
+            'status' => ModelStatus::Scheduled->value,
+            'publish_at' => null,
+        ]), ["X-Locale" => "sk"]);
+        $empty->assertStatus(422);
+        $this->assertSame('Vyplňte, kedy sa má podujatie zverejniť.', $empty->json('errors.publish_at.0'));
+    }
+
+    #[Test]
     public function event_can_be_scheduled_for_a_future_publish_date(): void
     {
         $this->futureEvent->update(['status' => ModelStatus::Draft->value, 'published_at' => null]);
@@ -38,7 +58,8 @@ class ScheduledPublishingTest extends EventSetupTest
 
         $response = $this->putJson("/api/dashboard/events/{$this->futureEvent->id}", $this->payload([
             'status' => ModelStatus::Scheduled->value,
-            'publish_at' => $publishAt->toDateTimeString(),
+            // Formulár posiela hodiny organizátora (Bratislava), v DB je UTC.
+            'publish_at' => $publishAt->copy()->setTimezone('Europe/Bratislava')->toDateTimeString(),
         ]));
 
         $response->assertStatus(200);

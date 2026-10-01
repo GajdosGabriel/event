@@ -45,6 +45,22 @@ class PlaceCoordinateResolver
             return ['latitude' => null, 'longitude' => null, 'source' => null];
         }
 
+        // Adresa, ktorú človek zadal (ulica + obec, prípadne PSČ), ide prvá:
+        // overuje sa voči obci a stojí jeden dotaz. Zhoda podľa názvu budovy
+        // („Kultúrny dom“) sa v OSM opakuje po celom Slovensku a hľadá sa cez
+        // desiatky dotazov s povinným odstupom — pri ukladaní miesta to bolo
+        // ~7 s čakania na odpoveď.
+        $street = $this->clean($street);
+        $postcode = $this->clean($postcode);
+
+        if ($street !== null && $city !== null) {
+            $address = $this->lookupAddress($street, $postcode, $city, $country);
+
+            if ($address['latitude'] !== null && $address['longitude'] !== null) {
+                return ['latitude' => $address['latitude'], 'longitude' => $address['longitude'], 'source' => 'address'];
+            }
+        }
+
         // Zhoda budovy je prvy stupen rebrika. Kontrolu nazvu, ktoru robi
         // detekcia, tu neaplikujeme -- nazov v DB uz je ten spravny a
         // porovnavat ho nie je s cim.
@@ -54,12 +70,24 @@ class PlaceCoordinateResolver
             venueLat: $venue['latitude'],
             venueLng: $venue['longitude'],
             name: $name ?? $city,
-            street: $this->clean($street),
-            postcode: $this->clean($postcode),
+            street: $street,
+            postcode: $postcode,
             city: $city,
             country: $country,
             askAi: true,
         );
+    }
+
+    /**
+     * @return array{latitude: float|null, longitude: float|null}
+     */
+    private function lookupAddress(string $street, ?string $postcode, string $city, ?string $country): array
+    {
+        try {
+            return $this->venueCoordinateResolver->lookupAddress($street, $postcode, $city, $country);
+        } catch (Throwable) {
+            return ['latitude' => null, 'longitude' => null];
+        }
     }
 
     /**

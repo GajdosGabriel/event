@@ -180,7 +180,12 @@ watch(() => [props.modelValue, props.source] as const, async ([id, source]) => {
   if (!id || !source || selectedOpt.value) return
   try {
     const { data } = await http.get(`${source}/${id}`)
-    if (props.modelValue === id && props.source === source) chosen.value = data.data ?? data
+    if (props.modelValue === id && props.source === source) {
+      chosen.value = data.data ?? data
+      // Predvolená hodnota nevznikla výberom, ale rodič ju aj tak potrebuje
+      // pomenovať (napr. súhrn pred zverejnením) — dá sa to len odtiaľto.
+      emit('selected', chosen.value as Option)
+    }
   } catch { /* Keep the ID visible when the saved label is unavailable. */ }
 }, { immediate: true })
 

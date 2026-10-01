@@ -164,8 +164,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'publish_at' => [
+            'after' => 'Der Veröffentlichungstermin muss in der Zukunft liegen.',
+            'required' => 'Geben Sie an, wann die Veranstaltung veröffentlicht werden soll.',
         ],
     ],
 
@@ -182,6 +183,12 @@ return [
     'ai_draft_summary' => 'Ein Beschreibungsentwurf aus öffentlich bekannten Informationen. Bitte lesen Sie ihn durch und korrigieren Sie, was nicht stimmt.',
 
     'attributes' => [
+        'price_amount' => 'Der Preis',
+        'min_per_order' => 'Die Mindestmenge pro Bestellung',
+        'max_per_order' => 'Die Höchstmenge pro Bestellung',
+        'capacity' => 'Die Kapazität',
+        'latitude' => 'Der Breitengrad',
+        'longitude' => 'Der Längengrad',
         // Autentifikácia
         'email'              => 'Die E-Mail-Adresse',
         'password'           => 'Das Passwort',

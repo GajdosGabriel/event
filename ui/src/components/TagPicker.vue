@@ -23,7 +23,7 @@
             @click="toggle(tag.id)"
           >
             <span v-if="tag.emoji">{{ tag.emoji }}</span>
-            {{ tag.name }}
+            {{ tagLabel(tag) }}
           </button>
         </div>
       </div>
@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { tagLabel } from '@/utils/tagLabel'
 import { ref, computed, onMounted } from 'vue'
 import { indexTags } from '@/api/tags'
 import { t } from '@/i18n'

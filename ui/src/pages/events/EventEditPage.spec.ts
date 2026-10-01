@@ -87,6 +87,32 @@ describe('guided event creation', () => {
     w.unmount()
   })
 
+  it('shows a message specific to the end field when it precedes a past start', async () => {
+    const w = await openForm()
+    await name(w)
+    const field = (label: string) => w.findAllComponents({ name: 'FormField' }).find(f => f.props('label') === label)!
+    field(t('events.fields.startAt')).vm.$emit('update:modelValue', '2020-05-01T18:00')
+    field(t('events.fields.endAt')).vm.$emit('update:modelValue', '2020-05-01T16:00')
+    await flushPromises()
+    await click(w, t('eventJourney.next'))
+    expect(field(t('events.fields.startAt')).props('error')).toBe(t('eventJourney.startInPast'))
+    expect(field(t('events.fields.endAt')).props('error')).toBe(t('eventJourney.endBeforeStart'))
+    w.unmount()
+  })
+
+  it('shows the chosen organizer in the review and links back to fill in a missing place', async () => {
+    const w = await openForm()
+    await name(w)
+    await click(w, t('eventJourney.next'))
+    await click(w, t('eventJourney.next'))
+    const preview = w.get('section[aria-live="polite"]')
+    expect(preview.text()).toContain('Kultúrne centrum')
+    expect(preview.text()).not.toContain(t('eventJourney.organizer') + ': ' + t('eventJourney.missing'))
+    await click(w, t('eventJourney.fillInPlace'))
+    expect(w.text()).toContain(t('eventJourney.venueRequiredHint'))
+    w.unmount()
+  })
+
   it('creates the first organizer inline without losing the event', async () => {
     organizers = []
     const w = await openForm()
@@ -124,6 +150,29 @@ describe('guided event creation', () => {
       canal_id: 7, venue_id: 4, start_at: '2030-10-12T18:00', status: scheduled ? 'scheduled' : 'published',
       publish_at: scheduled ? '2030-10-01T10:00' : null,
     }))
+    w.unmount()
+  })
+
+  it('shows the server message and offers to publish the draft venue too', async () => {
+    const w = await openForm()
+    await name(w)
+    const start = w.findAllComponents({ name: 'FormField' }).find(f => f.props('label') === t('events.fields.startAt'))!
+    start.vm.$emit('update:modelValue', '2030-10-12T18:00')
+    await click(w, t('eventJourney.next'))
+    const venue = w.findAllComponents({ name: 'FormField' }).find(f => f.props('label') === t('events.fields.venue'))!
+    venue.vm.$emit('update:modelValue', 4)
+    await click(w, t('eventJourney.next'))
+    post.mockRejectedValueOnce({ response: { status: 422, data: {
+      message: 'Podujatie sa nedá publikovať, kým nie je publikované aj miesto „Dom“.',
+      code: 'dependencies_not_published',
+      dependencies: [{ type: 'venue', id: 4, name: 'Dom', status: 'draft', label: 'miesto „Dom“' }],
+    } } })
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(w.text()).toContain('kým nie je publikované aj miesto')
+    post.mockClear()
+    await click(w, t('events.publish.withVenue'))
+    expect(post).toHaveBeenCalledWith('/dashboard/events', expect.objectContaining({ venue_id: 4, publish_dependencies: true, status: 'published' }))
     w.unmount()
   })
 

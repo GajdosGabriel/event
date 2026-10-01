@@ -19,6 +19,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiter Store
+    |--------------------------------------------------------------------------
+    |
+    | Limiter zapisuje do cache pri každom požiadavku. Nad databázovou cache sa
+    | súbežné zápisy do tej istej tabuľky občas zablokujú (SQLSTATE[40001]
+    | Deadlock) a požiadavka skončí 500. Preto má limiter vlastný úložný
+    | priestor mimo databázy.
+    |
+    */
+
+    'limiter' => env('CACHE_LIMITER_STORE', 'file'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |

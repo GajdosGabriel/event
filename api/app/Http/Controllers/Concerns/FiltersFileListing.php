@@ -14,6 +14,29 @@ use Illuminate\Http\Request;
 trait FiltersFileListing
 {
     /**
+     * Prepínače kôša chodia z query stringu ako `true`/`false` (axios) alebo
+     * `1`/`0`; pravidlo `boolean` pozná len druhé. Pred validáciou sa preto
+     * zjednotia na 1/0, inak by „Len zmazané“ skončilo na 422.
+     */
+    protected function normalizeFileListingFlags(Request $request): void
+    {
+        $normalized = [];
+
+        foreach (['with_trashed', 'deleted'] as $key) {
+            $value = $request->query($key);
+
+            if (is_string($value) && in_array(strtolower($value), ['true', 'false', 'on', 'off', 'yes', 'no'], true)) {
+                $normalized[$key] = in_array(strtolower($value), ['true', 'on', 'yes'], true) ? 1 : 0;
+            }
+        }
+
+        if ($normalized !== []) {
+            $request->merge($normalized);
+            $request->query->add($normalized);
+        }
+    }
+
+    /**
      * Pravidlá pre `validate()`. Rozsahové filtre (`fileable_type`,
      * `fileable_id`) si každý kontrolér pridáva sám — v dashboarde má typ inú
      * povinnosť než v admine.

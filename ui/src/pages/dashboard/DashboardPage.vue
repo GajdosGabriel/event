@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-3xl">{{ t('dashboard.title') }}</h1>
-        <p class="text-slate-500">{{ t('dashboard.greeting', { name: auth.canalName || t('dashboard.fallbackName') }) }}</p>
+        <p class="text-slate-500">{{ t('dashboard.greeting', { name: auth.displayName || auth.canalName || t('dashboard.fallbackName') }) }}</p>
       </div>
 
       <nav class="flex flex-wrap gap-2">

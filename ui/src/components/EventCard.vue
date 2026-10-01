@@ -73,7 +73,7 @@
           class="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
         >
           <span v-if="tag.emoji">{{ tag.emoji }}</span>
-          {{ tag.name }}
+          {{ tagLabel(tag) }}
         </span>
         <span v-if="hiddenTagCount" class="text-xs text-slate-400">+{{ hiddenTagCount }}</span>
       </div>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { tagLabel } from '@/utils/tagLabel'
 import { computed } from 'vue'
 import type { EventTicketCta as TicketCta, TagItem } from '@/types'
 import EventTicketCta from '@/components/EventTicketCta.vue'

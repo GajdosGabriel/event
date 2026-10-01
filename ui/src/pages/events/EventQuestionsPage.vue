@@ -39,6 +39,12 @@
       </section>
 
       <template v-else>
+        <!-- Verejný odkaz a QR kód vracajú 404, kým podujatie nie je zverejnené
+             — bez upozornenia vyzerali funkčne a organizátor ich mohol rozposlať. -->
+        <p v-if="!eventPublic" class="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+          {{ t('questions.dashboard.notPublic') }}
+        </p>
+
         <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
           <h2 class="mb-3 text-lg font-semibold text-slate-800">{{ t('questions.dashboard.materials.title') }}</h2>
           <p class="mb-4 text-xs text-slate-500">{{ t('questions.dashboard.materials.lead') }}</p>
@@ -227,6 +233,7 @@ import FormField from '@/components/FormField.vue'
 import SlideStudio from '@/components/questions/SlideStudio.vue'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'
+import { showEvent } from '@/api/events'
 import {
   createQuestionBoard,
   deleteQuestion,
@@ -247,6 +254,8 @@ const eventId = Number(route.params.id)
 const { t } = useI18n()
 const toast = useToast()
 
+// Kým stav nepoznáme, upozornenie neukazujeme — radšej bez než zbytočne.
+const eventPublic = ref(true)
 const slots = ref<QuestionBoardSlot[]>([])
 const activeKey = ref<string>('')
 const loading = ref(true)
@@ -441,5 +450,11 @@ async function remove(question: QuestionItem) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  // Zhoduje sa s BoardLocator na serveri: verejné je len zverejnené a archivované.
+  showEvent('dashboard', eventId)
+    .then((e) => { eventPublic.value = e.status === 'published' || e.status === 'archived' })
+    .catch(() => {})
+})
 </script>

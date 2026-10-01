@@ -90,8 +90,8 @@ export interface AdminFileParams {
   date_from?: string
   date_to?: string
   /** Vo výpise aj zmazané súbory; `deleted` naopak vráti len tie zmazané. */
-  with_trashed?: boolean
-  deleted?: boolean
+  with_trashed?: boolean | 0 | 1
+  deleted?: boolean | 0 | 1
   page?: number
 }
 

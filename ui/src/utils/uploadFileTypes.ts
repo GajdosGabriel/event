@@ -24,3 +24,15 @@ function isDocUpload(file: File): boolean {
 export function isAllowedUpload(file: File): boolean {
   return isImageLikeUpload(file) || isDocUpload(file)
 }
+
+/** Zhoduje sa s `max:10240` (KB) v API. */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+export type UploadRejection = 'tooLarge' | 'type'
+
+/** Dôvod, prečo súbor nemá zmysel posielať na server; `null` = v poriadku. */
+export function uploadRejection(file: File): UploadRejection | null {
+  if (!isAllowedUpload(file)) return 'type'
+  if (file.size > MAX_UPLOAD_BYTES) return 'tooLarge'
+  return null
+}

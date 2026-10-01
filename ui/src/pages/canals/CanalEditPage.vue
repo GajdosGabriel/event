@@ -39,7 +39,7 @@
            ešte nemá komu poslať pozvánku, preto až po uložení. -->
       <CanalTeamPanel v-if="scope === 'dashboard' && fileableId" :canal-id="fileableId" />
 
-      <AddressMapField v-model="address" />
+      <AddressMapField v-model="address" :errors="errors" />
     </div>
   </div>
 </template>

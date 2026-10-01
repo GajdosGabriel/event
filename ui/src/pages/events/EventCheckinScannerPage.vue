@@ -56,6 +56,9 @@
 
           <div v-if="result" class="mt-4 rounded-xl p-4 text-sm" :class="resultClass">
             <p class="font-semibold">{{ resultTitle }}</p>
+            <!-- Čas tohto skenu: opakovaný sken tej istej vstupenky sa tak dá
+                 od prvého rozlíšiť aj vtedy, keď hláška vyzerá rovnako. -->
+            <p v-if="resultAt" class="text-xs opacity-70">{{ t('checkin.scannedAt', { time: resultAt }) }}</p>
             <p v-if="result.admission">
               {{ result.admission.attendeeName || result.admission.holderName }}
               <span v-if="result.admission.ticketType" class="text-xs opacity-70">
@@ -66,9 +69,11 @@
 
           <form class="mt-6 flex gap-2" @submit.prevent="submitManual">
             <input v-model.trim="manualToken" type="text" :placeholder="t('checkin.manualPlaceholder')"
-              class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              :aria-invalid="Boolean(manualError)" @input="manualError = null" />
             <button type="submit" class="action-btn">{{ t('checkin.verify') }}</button>
           </form>
+          <p v-if="manualError" class="mt-2 text-sm text-red-600" role="alert">{{ manualError }}</p>
         </template>
       </div>
 
@@ -90,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
@@ -112,6 +117,7 @@ const videoEl = ref<HTMLVideoElement | null>(null)
 const cameraError = ref<string | null>(null)
 const result = ref<TicketCheckinResult | null>(null)
 const manualToken = ref('')
+const manualError = ref<string | null>(null)
 const stats = ref<CheckinStats | null>(null)
 const typesLoading = ref(true)
 const hasTypes = ref(false)
@@ -250,10 +256,21 @@ async function queueScan(token: string) {
 }
 
 async function submitManual() {
-  if (!manualToken.value) return
+  if (!manualToken.value) {
+    manualError.value = t('checkin.emptyCode')
+    return
+  }
+  manualError.value = null
   await handleToken(extractToken(manualToken.value))
   manualToken.value = ''
 }
+
+// Čas posledného výsledku — nastavuje sa pri každom novom výsledku zvlášť,
+// aj keď je jeho stav rovnaký ako pri predošlom skene.
+const resultAt = ref<string | null>(null)
+watch(result, (r) => {
+  resultAt.value = r ? new Date().toLocaleTimeString(currentLocale()) : null
+})
 
 const resultTitle = computed(() => {
   switch (result.value?.status) {

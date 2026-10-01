@@ -76,6 +76,20 @@ class AttendeeExportAndMailingTest extends EventSetupTest
     }
 
     #[Test]
+    public function csv_export_shows_times_in_bratislava_time_like_the_ui(): void
+    {
+        $this->order([], ['checked_in_at' => '2026-10-01 04:54:00', 'created_at' => '2026-10-01 04:54:00']);
+        $this->order(['holder_name' => 'Zimný Hosť'], ['checked_in_at' => '2026-12-01 04:54:00', 'created_at' => '2026-12-01 04:54:00']);
+
+        $csv = $this->get("/api/dashboard/events/{$this->futureEvent->id}/attendees/export")->streamedContent();
+
+        // Letný čas (UTC+2) a zimný (UTC+1).
+        $this->assertStringContainsString('"01.10.2026 06:54"', $csv);
+        $this->assertStringContainsString('"01.12.2026 05:54"', $csv);
+        $this->assertStringNotContainsString('04:54', $csv);
+    }
+
+    #[Test]
     public function bulk_email_reaches_every_attendee_exactly_once(): void
     {
         Notification::fake();

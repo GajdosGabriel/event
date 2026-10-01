@@ -18,7 +18,7 @@
         <form class="grid gap-3" @submit.prevent="submit">
           <FormField v-model="form.display_name" :label="t('auth.register.name')" required />
           <FormField v-model="form.email" type="email" :label="t('auth.register.email')" required />
-          <FormField v-model="form.password" type="password" :label="t('auth.register.password')" required autocomplete="new-password" />
+          <FormField v-model="form.password" type="password" :label="t('auth.register.password')" required autocomplete="new-password" :hint="t('auth.reset.passwordHint')" :error="passwordLengthError" />
           <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" :error="passwordError" />
 
           <TermsConsentField v-model="form.terms_accepted" :error="termsError" />
@@ -96,11 +96,22 @@ const termsError = ref<string | null>(null)
 // ešte pred odoslaním je rýchlejšie a nezhodí rozpísaný formulár.
 const passwordError = ref<string | null>(null)
 
+// Krátke heslo je chyba prvého poľa (`password`), nie potvrdenia — server ju
+// hlási pod kľúčom `password` a predtým sa preto zobrazila pri „Potvrdiť heslo“.
+const passwordLengthError = ref<string | null>(null)
+const MIN_PASSWORD_LENGTH = 8
+
 async function submit() {
   validation.markValidated()
   error.value = null
   termsError.value = null
   passwordError.value = null
+  passwordLengthError.value = null
+
+  if (form.value.password.length < MIN_PASSWORD_LENGTH) {
+    passwordLengthError.value = t('auth.register.passwordTooShort')
+    return
+  }
 
   if (form.value.password !== form.value.password_confirmation) {
     passwordError.value = t('auth.reset.mismatch')
@@ -123,7 +134,7 @@ async function submit() {
   } catch (e: unknown) {
     const response = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response
     if (response?.data?.errors?.['terms_accepted']) termsError.value = t('auth.register.termsRequired')
-    passwordError.value = response?.data?.errors?.['password']?.[0] ?? null
+    passwordLengthError.value = response?.data?.errors?.['password']?.[0] ?? null
     error.value = response?.data?.message ?? t('auth.register.failed')
   } finally {
     loading.value = false

@@ -36,20 +36,23 @@ class PromptCopywriter
         $sections = $partial
             ? '- Rozdel do 1 az 2 sekcii s <h3> nadpismi.
                     - Toto je len CAST dlhsieho popisu: nepis uvod k celemu podujatiu ani zaverecne zhrnutie.'
-            : '- Rozdel do 3 sekcii s <h3> nadpismi.';
+            : '- Dlhsi text rozdel najviac do 3 sekcii s <h3> nadpismi. Kratky text (par viet) napis ako 1 az 2 odstavce bez nadpisov — nadpisy a sekcie nevymyslaj len preto, aby text vyzeral rozsiahlejsie.';
 
         return [
             [
                 'role' => 'system',
                 'content' => 'Si copywriter pre duchovne a kulturne podujatia.
 
-                    Tvojou ulohou je ROZSIRIT existujuci text.
+                    Tvojou ulohou je PREPISAT existujuci text do prehladneho HTML.
+                    Vychadzaj VYLUCNE zo vstupneho textu.
                     Nikdy nemen fakty.
-                    Nikdy nevymyslaj nove informacie.
+                    Nikdy nevymyslaj nove informacie, opisy, dopady ani vysvetlenia,
+                    ktore vo vstupnom texte nie su (ani vseobecne o temach ako spev, modlitba ci hudba).
                     Zachovaj datum, miesto, cenu, kontakt.
 
-                    Text mas obohatit, prehlbit a spravit zaujimavejsim,
+                    Text mas usporiadat, rozclenit a jazykovo vycistit,
                     nie ho skratit ani zmenit jeho obsah.
+                    Ak je vstup kratky, vysledok ma byt tiez kratky.
                     Pouzi HTML tagy: p, strong, h3, ul, li.
                     Povolene atributy: class na h3, ul, li.
                     Pri tagoch h3, ul a li je class povinna.
@@ -58,13 +61,13 @@ class PromptCopywriter
             [
                 'role' => 'user',
                 'content' => "Vstupny text:{$text}
-                    Vytvor rozsireny HTML text.
+                    Vytvor HTML text zo vstupu.
 
                     Pravidla:
                     - Zachovaj vsetky povodne informacie.
                     - Nic nevynechaj.
                     - Nic nemen.
-                    - Text rozsir o motivacne a obsahove vysvetlenie.
+                    - Nepridavaj ziadne informacie, ktore vo vstupe nie su. Ziadne motivacne ani vseobecne vety.
                     {$sections}
                     - Nadpisy pis ako <h3 class=\"event-section-title\">...</h3>
                     - Zoznamy pis ako <ul class=\"event-list\">...</ul>

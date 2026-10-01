@@ -38,6 +38,29 @@ export function isCancelled(e: unknown): boolean {
 }
 
 /**
+ * Ponuka „zverejniť aj miesto/kanál" pre formuláre, ktoré ju ukazujú priamo na
+ * stránke. Vráti null, keď chyba nie je o závislostiach.
+ */
+export function dependencyPromptFor(e: unknown): {
+  message: string
+  dependencies: NonNullable<ApiErrorBody['dependencies']>
+  actionKey: 'events.publish.withVenue' | 'events.publish.withCanal' | 'events.publish.withBoth'
+} | null {
+  const body = errorBody(e)
+
+  if (body?.code !== DEPENDENCIES_CODE) return null
+
+  const dependencies = body.dependencies ?? []
+  const hasVenue = dependencies.some(d => d.type === 'venue')
+  const hasCanal = dependencies.some(d => d.type === 'canal')
+  const actionKey = hasVenue && hasCanal
+    ? 'events.publish.withBoth'
+    : hasCanal ? 'events.publish.withCanal' : 'events.publish.withVenue'
+
+  return { message: body.message ?? '', dependencies, actionKey }
+}
+
+/**
  * Vráti true, keď má volajúci požiadavku zopakovať s `publish_dependencies`.
  * Vyhodí PUBLISH_CANCELLED, keď používateľ dopublikovanie odmietol.
  */

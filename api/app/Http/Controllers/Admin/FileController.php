@@ -21,6 +21,8 @@ class FileController extends Controller
     {
         $this->authorize('viewAny', File::class);
 
+        $this->normalizeFileListingFlags($request);
+
         $request->validate([
             'fileable_type' => ['sometimes', 'string', 'in:canal,event,venue'],
             'fileable_id'   => ['sometimes', 'integer', 'min:1'],

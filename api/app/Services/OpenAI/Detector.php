@@ -125,7 +125,7 @@ class Detector
             $venueName = $eventPayload['venue']['name'] ?? null;
             $venueCity = $eventPayload['venue']['city'] ?? null;
             if (is_string($venueName) && $venueName !== '' && is_string($venueCity) && $venueCity !== '') {
-                $existingVenue = $this->lookupVenueByName($venueName);
+                $existingVenue = $this->lookupVenueByName($venueName, $venueCity);
                 $venueDetect = $this->detectVenueDetails($venueName, $venueCity);
                 $venueDetect['existing_venue'] = $existingVenue;
             }
@@ -250,7 +250,12 @@ class Detector
         return ['id' => $canal->id, 'name' => $canal->name, 'slug' => $canal->slug];
     }
 
-    private function lookupVenueByName(string $name): ?array
+    /**
+     * Existujúce miesto podľa názvu — a len v obci z textu. Zhoda iba podľa
+     * názvu ulice („Námestie SNP“) napojila podujatie z Banskej Bystrice na
+     * záznam z Bratislavy, ktorý ani nebol na Slovensku.
+     */
+    private function lookupVenueByName(string $name, ?string $city = null): ?array
     {
         $normalizedName = $this->normalizeLookupName($name);
         $slug = Str::slug($normalizedName);
@@ -261,6 +266,12 @@ class Detector
                     ->orWhere('name', $normalizedName)
                     ->orWhere('name', 'like', '%'.$normalizedName.'%');
             })
+            ->when($city !== null && trim($city) !== '', fn ($query) => $query->whereHas(
+                'municipality',
+                fn ($municipality) => $municipality
+                    ->where('fullname', trim($city))
+                    ->orWhere('shortname', trim($city)),
+            ))
             ->orderByDesc('created_at')
             ->first(['id', 'name', 'slug']);
 

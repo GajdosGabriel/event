@@ -132,4 +132,38 @@ class TicketTypeAdmissionTest extends EventSetupTest
             ->assertJsonPath('arrived', 1)
             ->assertJsonPath('remaining', 2);
     }
+
+    #[Test]
+    public function rescanning_a_used_ticket_reports_it_and_does_not_raise_the_arrived_count(): void
+    {
+        $this->app['auth']->forgetGuards();
+        $type = $this->futureEvent->ticketTypes()->create(['name' => 'Std', 'price_amount' => 0, 'is_active' => true]);
+
+        $this->postJson("/api/events/{$this->futureEvent->id}/tickets", [
+            'holder_name' => 'Dvaja',
+            'holder_email' => 'rescan@example.com',
+            'items' => [['ticket_type_id' => $type->id, 'quantity' => 2]],
+        ])->assertStatus(201);
+
+        $first = Ticket::query()->where('holder_email', 'rescan@example.com')->firstOrFail()
+            ->admissions()->orderBy('id')->firstOrFail();
+
+        $this->user->givePermissionTo(['ticket.view', 'ticket.checkin']);
+        $this->actingAs($this->user, 'sanctum');
+
+        $firstScan = $this->postJson('/api/dashboard/tickets/checkin', ['qr_token' => $first->qr_token])
+            ->assertOk()
+            ->assertJsonPath('status', 'checked_in');
+        $firstAt = $firstScan->json('admission.checked_in_at');
+
+        // Rovnaké údaje druhýkrát: iný stav a pôvodný čas vstupu, nie nový.
+        $this->postJson('/api/dashboard/tickets/checkin', ['qr_token' => $first->qr_token])
+            ->assertOk()
+            ->assertJsonPath('status', 'already_checked_in')
+            ->assertJsonPath('admission.checked_in_at', $firstAt);
+
+        $this->getJson("/api/dashboard/events/{$this->futureEvent->id}/checkin-stats")
+            ->assertOk()
+            ->assertJsonPath('arrived', 1);
+    }
 }

@@ -19,7 +19,7 @@
         <template #default="{ value, invalid, update }">
           <SearchableSelect
             :model-value="(value as number | null) ?? null"
-            :options="municipalities"
+            :options="props.municipalityKey === 'village_id' ? placeMunicipalities : municipalities"
             :placeholder="t('address.municipalityPlaceholder')"
             :invalid="invalid"
             @update:model-value="update"
@@ -84,7 +84,7 @@ const props = withDefaults(defineProps<{
 
 const model = defineModel<AddressModel>({ required: true })
 
-const { municipalities, loadMunicipalities } = useFormOptions(props.scope)
+const { municipalities, placeMunicipalities, loadMunicipalities } = useFormOptions(props.scope)
 
 onMounted(loadMunicipalities)
 

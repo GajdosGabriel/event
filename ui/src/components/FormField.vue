@@ -7,11 +7,14 @@
       class="form-checkbox"
       :required="required"
       :aria-invalid="invalid || undefined"
+      :aria-labelledby="labelId"
       v-bind="controlAttrs"
     />
     <span>
-      <slot name="label">{{ label }}</slot>
-      <span v-if="error" class="field-error block">{{ error }}</span>
+      <!-- Vlastné id popisky: bez neho prístupný strom ukazoval názov „on“
+           (hodnotu políčka), keď popiska obsahovala odkazy. -->
+      <span :id="labelId"><slot name="label">{{ label }}</slot></span>
+      <span v-if="visibleError" class="field-error block">{{ visibleError }}</span>
       <span v-else-if="hint" class="form-hint block">{{ hint }}</span>
     </span>
   </label>
@@ -44,11 +47,11 @@
       </span>
     </label>
 
-    <span v-if="error" class="field-error">{{ error }}</span>
+    <span v-if="visibleError" class="field-error">{{ visibleError }}</span>
     <span v-else-if="hint" class="form-hint">{{ hint }}</span>
   </fieldset>
 
-  <label v-else class="form-label" :class="wrapperClass" :style="wrapperStyle">
+  <label v-else class="form-label" :class="wrapperClass" :style="wrapperStyle" @click="guardLabelActivation">
     <span v-if="label || $slots.label">
       <slot name="label">{{ label }}</slot><span v-if="required" class="form-required" aria-hidden="true">*</span>
     </span>
@@ -113,7 +116,7 @@
       />
     </slot>
 
-    <span v-if="error" class="field-error">{{ error }}</span>
+    <span v-if="visibleError" class="field-error">{{ visibleError }}</span>
     <span v-else-if="hint" class="form-hint">{{ hint }}</span>
     <slot name="footer" />
   </label>
@@ -130,7 +133,7 @@
  *   • rozpísaný nezmysel (zlý e-mail, URL) až po odchode z poľa — to zariadi
  *     CSS `:user-invalid` nad natívnym `required`/`type`.
  */
-import { computed, useAttrs, type StyleValue } from 'vue'
+import { computed, ref, useAttrs, useId, watch, type StyleValue } from 'vue'
 import DateTimeInput from '@/components/DateTimeInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import { useFormValidation } from '@/composables/useFormValidation'
@@ -173,6 +176,7 @@ const props = withDefaults(defineProps<{
 const model = defineModel<T>()
 
 const validation = useFormValidation()
+const labelId = useId()
 
 /**
  * `<input type="number">` vracia reťazec a prázdne pole ako `''` — API čaká
@@ -213,8 +217,33 @@ function isBlank(value: unknown): boolean {
   return value === null || value === undefined || value === ''
 }
 
+/**
+ * Chyba zo servera platí pre hodnotu, ktorú človek odoslal. Keď ju zmení,
+ * chyba je zastaraná — bez tohto ostávalo „Pole … je povinné" pod poľom, do
+ * ktorého sa už dávno píše. Nová (iná) chyba z ďalšieho odoslania sa ukáže znova.
+ */
+const staleError = ref<string | null>(null)
+watch(model, () => { if (props.error) staleError.value = props.error })
+watch(() => props.error, (next) => { if (next !== staleError.value) staleError.value = null })
+const visibleError = computed(() => (props.error && props.error !== staleError.value ? props.error : null))
+
+/**
+ * Popiska smeruje klik na prvý ovládač vnútri seba. Pri vlastnom ovládači
+ * (HtmlEditor) je tým prvým tlačidlo „B" v paneli nástrojov, takže každý klik
+ * do editora prepol tučné písmo. Presmerovanie na tlačidlo preto zrušíme;
+ * na polia (input, select, textarea) to nemá vplyv.
+ */
+function guardLabelActivation(event: MouseEvent) {
+  const label = event.currentTarget as HTMLLabelElement
+  const target = event.target as Element | null
+
+  if (label.control instanceof HTMLButtonElement && !target?.closest('button, a, input, select, textarea')) {
+    event.preventDefault()
+  }
+}
+
 const invalid = computed(() => {
-  if (props.error) return true
+  if (visibleError.value) return true
 
   const validated = props.validated ?? validation.validated.value
 

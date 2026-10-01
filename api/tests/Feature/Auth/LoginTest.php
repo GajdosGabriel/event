@@ -104,4 +104,23 @@ class LoginTest extends TestCase
     //         'token' => hash('sha256', $rawToken),
     //     ]);
     // }
+
+    public function test_wrong_credentials_return_a_localized_message(): void
+    {
+        $user = User::factory()->create(['password' => bcrypt('spravne-heslo')]);
+
+        $expected = [
+            'sk' => 'Nesprávny e-mail alebo heslo.',
+            'cs' => 'Nesprávný e-mail nebo heslo.',
+            'de' => 'E-Mail oder Passwort ist falsch.',
+            'en' => 'Incorrect email or password.',
+        ];
+
+        foreach ($expected as $locale => $message) {
+            $response = $this->postJson('/api/login', ['email' => $user->email, 'password' => 'zle-heslo-123'], ['X-Locale' => $locale]);
+
+            $response->assertStatus(401);
+            $this->assertSame($message, $response->json('message'), $locale);
+        }
+    }
 }

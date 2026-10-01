@@ -60,7 +60,7 @@
             </FormField>
             <RecordStatusField v-model="form.status" kind="venues" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
             <FormField v-model="form.category" :label="t('venues.fields.category')" :error="errors.category" :placeholder="t('venues.fields.categoryPlaceholder')" />
-            <FormField v-model="form.capacity" type="number" :label="t('venues.fields.capacity')" min="0" :error="errors.capacity" />
+            <FormField v-model="form.capacity" type="number" :label="t('venues.fields.capacity')" min="0" max="1000000" step="1" :error="errors.capacity" />
             <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
             <DescriptionField v-model="form.body" :label="t('venues.fields.description')" :error="errors.body" min-height="130px"
               kind="venue" :scope="scope" :values="readinessValues" :name="form.name" :context="aiContext"
@@ -80,7 +80,7 @@
     <div class="edit-card grid gap-6">
       <RecordImages ref="images" kind="venues" fileable-type="venue" :fileable-id="fileableId" />
 
-      <AddressMapField v-model="address" />
+      <AddressMapField v-model="address" :errors="errors" />
     </div>
   </div>
 </template>

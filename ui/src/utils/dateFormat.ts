@@ -117,3 +117,23 @@ export function fmtDayTimeRange(start: string | null, end: string | null): strin
   const label = `${dayName(start)} ${fmtDate(start)} ${fmtTime(start)}`
   return end ? `${label}–${fmtTime(end)}` : label
 }
+
+/**
+ * Hodnota pre `<input type="datetime-local">` z času z API. API posiela okamih
+ * v UTC („2026-10-05T16:00:00.000000Z"), no organizátor zadával aj číta
+ * slovenský nástenný čas — preto sa prepočíta, nie odreže (`slice`).
+ * Hodnota bez zóny sa berie ako už lokálna.
+ */
+export function toLocalInput(iso: string | null | undefined, timeZone = 'Europe/Bratislava'): string {
+  if (!iso) return ''
+  if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(iso)) return iso.slice(0, 16)
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    }).formatToParts(date).map(p => [p.type, p.value]),
+  )
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`
+}

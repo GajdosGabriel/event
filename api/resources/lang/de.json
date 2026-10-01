@@ -3,5 +3,7 @@
     "Whoops!": "Hoppla!",
     "Regards,": "Mit freundlichen Grüßen,",
     "All rights reserved.": "Alle Rechte vorbehalten.",
-    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Falls Sie Probleme haben, die Schaltfläche „:actionText\" anzuklicken, kopieren Sie die folgende Adresse in Ihren Browser:"
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Falls Sie Probleme haben, die Schaltfläche „:actionText\" anzuklicken, kopieren Sie die folgende Adresse in Ihren Browser:",
+    "(and :count more error)": "(und ein weiterer Fehler)",
+    "(and :count more errors)": "(und :count weitere Fehler)"
 }

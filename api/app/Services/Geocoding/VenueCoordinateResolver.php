@@ -58,7 +58,18 @@ class VenueCoordinateResolver
         ?float $aiLng = null,
         bool $askAi = false,
     ): array {
-        if ($venueLat !== null && $venueLng !== null) {
+        $centre = null;
+        $municipality = function () use (&$centre, $city, $country): array {
+            return $centre ??= $this->safely(
+                fn (): array => $this->nominatimGeocoder->lookupMunicipality($city, $country)
+            );
+        };
+
+        // Zhoda budovy podľa názvu môže byť rovnomenný objekt v inom meste
+        // („Kultúrny dom“ pre miesto v Banskej Bystrici našiel ten v Ružomberku).
+        // Obec poznáme, tak sa výsledok overí voči jej stredu — vzdialenejší
+        // než ~25 km sa zahodí a rebrík ide ďalej (adresa, obec).
+        if ($venueLat !== null && $venueLng !== null && $this->venueIsNearMunicipality($venueLat, $venueLng, $city, $municipality)) {
             return $this->result($venueLat, $venueLng, 'venue');
         }
 
@@ -68,7 +79,7 @@ class VenueCoordinateResolver
         }
 
         // Stred obce treba aj tak: bez neho sa AI odhad nema o co oprieť.
-        $municipality = $this->safely(fn (): array => $this->nominatimGeocoder->lookupMunicipality($city, $country));
+        $municipality = $municipality();
 
         if ($askAi && ($aiLat === null || $aiLng === null)) {
             [$aiLat, $aiLng] = $this->fromAi($name ?? $city, $city, $country);
@@ -83,6 +94,21 @@ class VenueCoordinateResolver
         }
 
         return $this->result(null, null, null);
+    }
+
+    /**
+     * Suradnice presnej adresy (ulica + PSC + obec), alebo null suradnice.
+     *
+     * @return array{latitude:?float, longitude:?float}
+     */
+    public function lookupAddress(?string $street, ?string $postcode, ?string $city, ?string $country = null): array
+    {
+        $result = $this->safely(fn (): array => $this->nominatimGeocoder->lookupAddress($street, $postcode, $city, $country));
+
+        return [
+            'latitude' => $this->floatOrNull($result['latitude'] ?? null),
+            'longitude' => $this->floatOrNull($result['longitude'] ?? null),
+        ];
     }
 
     /**
@@ -101,6 +127,31 @@ class VenueCoordinateResolver
             'latitude' => $this->floatOrNull($result['latitude'] ?? null),
             'longitude' => $this->floatOrNull($result['longitude'] ?? null),
         ];
+    }
+
+    /**
+     * Prijme zhodu budovy, ak leží pri obci miesta (alebo ak obec overiť nevieme).
+     *
+     * @param  callable():array  $municipality  stred obce, načítava sa až keď treba
+     */
+    private function venueIsNearMunicipality(float $latitude, float $longitude, ?string $city, callable $municipality): bool
+    {
+        if ($this->clean($city) === null) {
+            return true;
+        }
+
+        $centre = $municipality();
+
+        if (! $this->hasCoordinates($centre)) {
+            return true;
+        }
+
+        return $this->distanceKm(
+            $latitude,
+            $longitude,
+            (float) $centre['latitude'],
+            (float) $centre['longitude'],
+        ) <= self::AI_MAX_DISTANCE_KM;
     }
 
     /**

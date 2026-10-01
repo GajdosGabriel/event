@@ -137,6 +137,75 @@ class PosterUploadTest extends TestCase
     }
 
     #[Test]
+    public function an_end_time_stated_in_the_text_is_not_reported_as_a_guess(): void
+    {
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')->andReturn($this->detection());
+        $this->app->instance(Detector::class, $detector);
+
+        $stated = $this->postJson('/api/poster/analyze', [
+            'text' => 'Letný koncert 21. augusta 2026, od 18:00 až 20:00 v Kultúrnom dome v Bratislave.',
+        ]);
+        $guessed = $this->postJson('/api/poster/analyze', [
+            'text' => 'Letný koncert 21. augusta 2026 od 18:00 v Kultúrnom dome v Bratislave, vstup voľný.',
+        ]);
+
+        $end = fn ($r) => collect($r->json('draft.analysis.fields'))->firstWhere('key', 'end_at');
+
+        $this->assertSame('found', $end($stated)['status']);
+        $this->assertNull($end($stated)['note']);
+        $this->assertSame('guessed', $end($guessed)['status']);
+    }
+
+    #[Test]
+    public function end_time_written_as_whole_hours_is_recognised_in_the_source(): void
+    {
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')->andReturn($this->detection());
+        $this->app->instance(Detector::class, $detector);
+
+        $end = fn ($r) => collect($r->json('draft.analysis.fields'))->firstWhere('key', 'end_at');
+
+        // Koniec 20:00 zapísaný ako „20 hod." a „do 20h" je stále nález, nie odhad.
+        foreach (['od 18 do 20 hod.', 'od 18h do 20h'] as $times) {
+            $response = $this->postJson('/api/poster/analyze', [
+                'text' => "Letný koncert 21. augusta 2026, $times v Kultúrnom dome v Bratislave.",
+            ]);
+
+            $this->assertSame('found', $end($response)['status'], $times);
+        }
+
+        // Číslo 20 ako súčasť iného údaja (rok, telefón) nie je čas konca.
+        $response = $this->postJson('/api/poster/analyze', [
+            'text' => 'Letný koncert 21. augusta 2026 od 18:00, info 0905 123 202, Kultúrny dom Bratislava.',
+        ]);
+
+        $this->assertSame('guessed', $end($response)['status']);
+    }
+
+    #[Test]
+    public function description_card_shows_plain_text_while_the_form_keeps_html(): void
+    {
+        $detection = $this->detection();
+        $detection['corrected_text'] = '<h3 class="event-section-title">Program</h3><p>Koncert &amp; <strong>spev</strong></p>';
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')->andReturn($detection);
+        $this->app->instance(Detector::class, $detector);
+
+        $response = $this->postJson('/api/poster/analyze', [
+            'text' => 'Krátky text pozvánky na koncert zboru, ktorý stačí na prejdenie validácie dĺžky.',
+        ]);
+
+        $response->assertStatus(201);
+
+        $description = collect($response->json('draft.analysis.fields'))->firstWhere('key', 'description');
+
+        $this->assertSame("Program\nKoncert & spev", $description['value']);
+        $this->assertStringContainsString('<h3', (string) $response->json('draft.description'));
+    }
+
+    #[Test]
     public function description_falls_back_to_the_poster_transcript_when_the_document_has_no_text(): void
     {
         // Obrázkový plagát nemá textovú vrstvu: `extracted_text` je prázdny a
@@ -341,7 +410,7 @@ class PosterUploadTest extends TestCase
     }
 
     #[Test]
-    public function a_complete_poster_is_published_straight_away(): void
+    public function a_complete_poster_is_saved_as_a_draft_and_stays_private(): void
     {
         Storage::fake('public');
 
@@ -354,13 +423,15 @@ class PosterUploadTest extends TestCase
 
         $event = Event::query()->findOrFail($response->json('event_id'));
 
-        $this->assertSame('published', $event->status->value);
-        $this->assertNotNull($event->published_at);
+        $this->assertSame('draft', $event->status->value);
+        $this->assertNull($event->published_at);
 
-        // Verejný zoznam pri podujatí ukazuje meno kanála, ale kanál sám je
-        // po založení koncept — publikované podujatie by inak odkazovalo na
-        // profil, ktorý sa nedá otvoriť.
-        $this->assertSame('published', $event->canal->status->value);
+        // Ani publikované miesto ho nezverejní: verejné API ho nevidí.
+        $event->venue?->forceFill(['status' => 'published'])->save();
+
+        $this->app['auth']->forgetGuards();
+        $this->getJson("/api/events/{$event->id}")->assertNotFound();
+        $this->assertNotContains($event->id, collect($this->getJson('/api/events')->json('data'))->pluck('id')->all());
     }
 
     #[Test]

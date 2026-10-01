@@ -39,7 +39,7 @@ class CanalStoreRequest extends FormRequest
             'title_prefix' => 'nullable|string|max:50',
             'title_suffix' => 'nullable|string|max:50',
             'body' => 'nullable|string',
-            'email' => 'nullable|email|max:150',
+            'email' => 'nullable|email:filter|max:150',
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
             'phone' => 'nullable|string|max:20',
             'latitude' => 'nullable|numeric|between:-90,90',

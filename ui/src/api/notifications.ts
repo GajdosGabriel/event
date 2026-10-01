@@ -16,15 +16,45 @@ export async function fetchNotifications(page = 1): Promise<NotificationPage> {
   return (await http.get<NotificationPage>('/notifications', { params: { page } })).data
 }
 
-export async function fetchUnreadCount(): Promise<number> {
-  return (await http.get<{ unread: number }>('/notifications/count')).data.unread
+/**
+ * Počet neprečítaných sa pýta z viacerých miest naraz: odznak v každom layoute
+ * (prechod verejná stránka ↔ dashboard ho prekreslí), návrat na kartu, časovač.
+ * Server pritom platí celý beh frameworku za každé volanie, takže čerstvá
+ * odpoveď sa krátko drží a súbežné volania sa zlejú do jedného requestu.
+ */
+const COUNT_TTL_MS = 15_000
+let countCache: { at: number; value: number } | null = null
+let countPending: Promise<number> | null = null
+
+/** `force` obíde krátku pamäť — po zmene prihláseného používateľa alebo úprave správ. */
+export function fetchUnreadCount(force = false): Promise<number> {
+  if (!force && countCache && Date.now() - countCache.at < COUNT_TTL_MS) return Promise.resolve(countCache.value)
+
+  if (force || !countPending) {
+    const request = http.get<{ unread: number }>('/notifications/count')
+      .then(({ data }) => {
+        countCache = { at: Date.now(), value: data.unread }
+        return data.unread
+      })
+      .finally(() => { if (countPending === request) countPending = null })
+    countPending = request
+  }
+
+  return countPending
+}
+
+export function resetUnreadCountCache(): void {
+  countCache = null
+  countPending = null
 }
 
 export async function markNotifications(read: boolean, ids?: string[]): Promise<void> {
+  resetUnreadCountCache()
   await http.post(`/notifications/${read ? 'read' : 'unread'}`, ids ? { ids } : {})
 }
 
 export async function deleteNotifications(selection: { ids?: string[]; only?: 'read' } = {}): Promise<void> {
+  resetUnreadCountCache()
   await http.delete('/notifications', { data: selection })
 }
 

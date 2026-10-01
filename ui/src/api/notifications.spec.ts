@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-vi.mock('./index', () => ({ default: {} }))
-import { groupNotifications, notificationLink, type NotificationItem } from './notifications'
+const { get } = vi.hoisted(() => ({ get: vi.fn() }))
+vi.mock('./index', () => ({ default: { get } }))
+import { fetchUnreadCount, groupNotifications, notificationLink, resetUnreadCountCache, type NotificationItem } from './notifications'
 
 describe('notification links and groups', () => {
   it('allows local links and rejects executable or external URLs', () => {
@@ -20,5 +21,23 @@ describe('notification links and groups', () => {
     expect(groups).toHaveLength(2)
     expect(groups[0]?.ids).toEqual(['1', '2'])
     expect(groups[0]?.unreadIds).toEqual(['1'])
+  })
+})
+
+describe('unread count polling', () => {
+  it('shares one request between concurrent callers and reuses a fresh answer', async () => {
+    resetUnreadCountCache()
+    get.mockReset()
+    get.mockResolvedValue({ data: { unread: 3 } })
+
+    const [a, b] = await Promise.all([fetchUnreadCount(), fetchUnreadCount()])
+    expect([a, b]).toEqual([3, 3])
+    expect(await fetchUnreadCount()).toBe(3)
+    expect(get).toHaveBeenCalledOnce()
+
+    // Zmena používateľa alebo úprava správ musí obísť pamäť.
+    get.mockResolvedValue({ data: { unread: 0 } })
+    expect(await fetchUnreadCount(true)).toBe(0)
+    expect(get).toHaveBeenCalledTimes(2)
   })
 })

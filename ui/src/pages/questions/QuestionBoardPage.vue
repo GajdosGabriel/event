@@ -232,7 +232,12 @@ async function submit() {
   validated.value = true
   error.value = null
 
-  if (form.body.trim().length < 3 || !board.value) return
+  if (!board.value) return
+
+  if (form.body.trim().length < 3) {
+    error.value = t('questions.board.bodyRequired')
+    return
+  }
 
   sending.value = true
 
@@ -272,6 +277,8 @@ async function submit() {
     }
 
     lastWasPending.value = result.pending
+    // Počet pochádza z načítania stránky — bez tohto ostával „0 otázok“ aj po odoslaní.
+    if (!result.pending) board.value.questionsCount += 1
     sent.value = true
     questionsOpen.value = board.value.showQuestions
     form.body = ''

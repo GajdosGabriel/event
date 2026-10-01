@@ -24,6 +24,13 @@
     </nav>
     <p v-if="loadingData" class="text-slate-600">{{ t('events.form.loading') }}</p>
     <p v-if="serverError" ref="errorBanner" role="alert" class="mb-4 text-red-600">{{ serverError }}</p>
+    <!-- Server odmietol zverejnenie, lebo miesto alebo kanál ešte nie sú
+         zverejnené. Ponuka je priamo na stránke — natívny confirm() sa v niektorých
+         prehliadačoch potlačí a človek by nevidel nič. -->
+    <div v-if="dependencyPrompt" ref="dependencyBanner" role="alert" class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      <span class="min-w-0 flex-1">{{ dependencyPrompt.message }}</span>
+      <button type="button" class="btn btn-primary" :disabled="saving" @click="submit(true)">{{ dependencyPrompt.action }}</button>
+    </div>
 
     <!--
       Obsah vľavo, nastavenia v lepkavom paneli vpravo. Celá mriežka je vnútri
@@ -37,7 +44,7 @@
       <!-- ── Ľavý stĺpec: to, čo sa píše ──────────────────────────────── -->
       <div v-show="!guided || step === 1" class="grid gap-5">
         <div class="edit-card grid gap-4">
-          <FormField v-model="form.name" :label="t('events.fields.name')" required :error="errors.name" />
+          <FormField v-model="form.name" :label="t('events.fields.name')" :maxlength="250" required :error="errors.name" />
 
           <!-- Popis je obalený vo FormField len kvôli popiske a chybe zo
                servera — kým tu FormField nebol, chyba na `body` sa nemala kde
@@ -113,7 +120,8 @@
               <SearchableSelect :model-value="value ?? null" :options="canalOptions" :source="`/${scope}/canals`" :invalid="invalid" @selected="selectedOrganizer = $event" @update:model-value="update" />
             </template>
           </FormField>
-          <FormField v-if="!guided || form.canal_id" v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id">
+          <FormField v-if="!guided || form.canal_id" v-model="form.venue_id" :label="t('events.fields.venue')" :error="errors.venue_id"
+            :required="guided" :validated="publishAttempted" :hint="guided ? t('eventJourney.venueRequiredHint') : undefined">
             <template #default="{ value, invalid, update }">
               <div class="grid gap-2">
                 <SearchableSelect
@@ -139,8 +147,15 @@
           <h3 class="text-2xl font-semibold">{{ form.name }}</h3>
           <dl class="grid gap-2 text-sm">
             <div><dt class="text-slate-500">{{ t('events.sections.schedule') }}</dt><dd>{{ fmtRowDateRange(form.start_at, form.end_at) || t('eventJourney.missing') }}</dd></div>
-            <div><dt class="text-slate-500">{{ t('events.fields.venue') }}</dt><dd>{{ placeName || t('eventJourney.missing') }}</dd></div>
-            <div><dt class="text-slate-500">{{ t('eventJourney.organizer') }}</dt><dd>{{ organizerName || t('eventJourney.missing') }}</dd></div>
+            <div><dt class="text-slate-500">{{ t('events.fields.venue') }}</dt><dd>
+              <template v-if="placeName">{{ placeName }}</template>
+              <template v-else>{{ t('eventJourney.missing') }} — <button type="button" class="underline" @click="goToStep(2)">{{ t('eventJourney.fillInPlace') }}</button></template>
+            </dd></div>
+            <div><dt class="text-slate-500">{{ t('eventJourney.organizer') }}</dt><dd>
+              <template v-if="organizerName">{{ organizerName }}</template>
+              <template v-else-if="form.canal_id">{{ t('eventJourney.organizerSelected') }}</template>
+              <template v-else>{{ t('eventJourney.missing') }} — <button type="button" class="underline" @click="goToStep(2)">{{ t('eventJourney.fillInPlace') }}</button></template>
+            </dd></div>
           </dl>
           <p class="whitespace-pre-line text-slate-600">{{ descriptionPreview }}</p>
           <p v-if="missingFields.length" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{{ t('eventJourney.missingHint', { fields: missingFields.join(', ') }) }}</p>
@@ -285,7 +300,7 @@
             <template #default="{ value, invalid, update }">
               <SearchableSelect
                 :model-value="value ?? null"
-                :options="municipalities"
+                :options="placeMunicipalities"
                 :placeholder="t('events.venueModal.villagePlaceholder')"
                 :invalid="invalid"
                 @update:model-value="update"
@@ -324,7 +339,7 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { scrollToError } from '@/utils/scrollToError'
-import { errorBody, isCancelled, withDependencyConsent } from '@/utils/publishFlow'
+import { errorBody, dependencyPromptFor } from '@/utils/publishFlow'
 import { publicEventPath } from '@/utils/publicUrl'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -338,7 +353,7 @@ import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { createCanal } from '@/api/canals'
 import http from '@/api/index'
-import { fmtRowDateRange } from '@/utils/dateFormat'
+import { fmtRowDateRange, toLocalInput } from '@/utils/dateFormat'
 import ToggleCard from '@/components/ToggleCard.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -375,7 +390,7 @@ const imageManager = ref<InstanceType<typeof ImageManager> | null>(null)
 const eventSlug = ref<string | null>(null)
 const publicUrl = computed(() => fileableId.value ? publicEventPath({ id: fileableId.value, slug: eventSlug.value }) : '')
 
-const { canals, venues, municipalities, loadCanals, loadMunicipalities } = useFormOptions(scope.value)
+const { canals, venues, municipalities, placeMunicipalities, loadCanals, loadMunicipalities } = useFormOptions(scope.value)
 
 const validation = provideFormValidation()
 
@@ -595,6 +610,13 @@ async function syncQuestionBoard(eventId: number) {
   }
 }
 
+/** Záznamy založené priamo v tomto formulári (`venue:12`) — ich zverejnenie s podujatím je zjavný zámer. */
+const createdHere = new Set<string>()
+/** Kliklo sa na Zverejniť — až vtedy sa povinné (pre zverejnenie) miesto zafarbí. */
+const publishAttempted = ref(false)
+const dependencyBanner = ref<HTMLElement | null>(null)
+const dependencyPrompt = ref<{ message: string; action: string } | null>(null)
+
 const venueModal = ref({
   show: false,
   saving: false,
@@ -603,6 +625,10 @@ const venueModal = ref({
   errors: {} as Record<string, string>,
   form: { name: '', village_id: null as number | null, street: '', postcode: '' },
 })
+
+// Súhrnná hláška modálu („Pole … je povinné“) platí pre odoslané hodnoty —
+// keď človek začne polia meniť, je zastaraná. Chyby pod poľami mažú samotné polia.
+watch(() => venueModal.value.form, () => { venueModal.value.error = null }, { deep: true })
 
 function openVenueModal() {
   venueModal.value = { show: true, saving: false, validated: false, error: null, errors: {}, form: { name: '', village_id: null, street: '', postcode: '' } }
@@ -626,6 +652,7 @@ async function saveNewVenue() {
     const created = await createVenue(payload, scope.value)
     venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
     selectedPlace.value = { id: created.id, name: created.name }
+    createdHere.add(`venue:${created.id}`)
     form.value.venue_id = created.id
     venueModal.value.show = false
     toast.success(t('events.venueModal.created'))
@@ -667,11 +694,11 @@ onMounted(async () => {
       form.value = {
         name: ev.name,
         status: ev.status,
-        publish_at: ev.publishAt?.slice(0, 16) ?? '',
+        publish_at: toLocalInput(ev.publishAt),
         canal_id: ev.canalId ?? auth.canalId ?? null,
         venue_id: ev.venueId ?? null,
-        start_at: ev.startAt?.slice(0, 16) ?? '',
-        end_at: ev.endAt?.slice(0, 16) ?? '',
+        start_at: toLocalInput(ev.startAt),
+        end_at: toLocalInput(ev.endAt),
         website: ev.website ?? '',
         email: ev.email ?? '',
         phone: ev.phone ?? '',
@@ -695,11 +722,19 @@ onMounted(async () => {
   }
 })
 
-async function submit() {
+async function submit(publishDependencies = false) {
   if (saving.value) return
   validation.markValidated()
   errors.value = {}
   serverError.value = null
+  dependencyPrompt.value = null
+  // Prázdny termín pri naplánovanom zverejnení server odmietne tiež, ale chyba
+  // patrí hneď k poľu — bez nej nebolo jasné, či sa uložilo alebo nie.
+  if (form.value.status === 'scheduled' && !form.value.publish_at) {
+    errors.value = { publish_at: t('events.fields.publishAtRequired') }
+    if (guided.value) step.value = 3
+    return
+  }
   saving.value = true
   try {
     // Prázdny reťazec z <input type="datetime-local"> by prešiel ako neplatný
@@ -710,9 +745,10 @@ async function submit() {
       // Prázdne riadky zo zoznamu kontaktov by neprešli validáciou.
       additional_emails: form.value.additional_emails.map(v => v.trim()).filter(Boolean),
       additional_phones: form.value.additional_phones.map(v => v.trim()).filter(Boolean),
+      ...(publishDependencies ? { publish_dependencies: true } : {}),
     }
     if (isCreate.value) {
-      const ev = await withDependencyConsent(p => createEvent(p, scope.value), payload)
+      const ev = await createEvent(payload, scope.value)
       savedId.value = ev.id
       eventSlug.value = ev.slug || null
       const pending = picker.value?.files ?? []
@@ -740,16 +776,29 @@ async function submit() {
       toast.success(t('events.form.created'))
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
-      await withDependencyConsent(p => updateEvent(Number(route.params.id), p, scope.value), payload)
+      await updateEvent(Number(route.params.id), payload, scope.value)
       await syncFreeRegistration(Number(route.params.id))
       await syncQuestionBoard(Number(route.params.id))
       toast.success(t('events.form.saved'))
     }
   } catch (e: unknown) {
-    // Odmietnuté dopublikovanie závislostí nie je chyba — používateľ sa len
-    // rozhodol nechať podujatie tak, ako bolo.
-    if (isCancelled(e)) { saving.value = false; return }
     const resp = errorBody(e)
+    const prompt = dependencyPromptFor(e)
+    if (prompt) {
+      // Miesto či kanál, ktorý si človek založil práve tu, zverejníme s podujatím
+      // bez pýtania — inak by ho zverejnenie podujatia nútilo ešte raz potvrdiť
+      // to, čo už raz chcel. Cudzie záznamy (cudzí koncept) len ponúkneme.
+      if (!publishDependencies && prompt.dependencies.every(d => createdHere.has(`${d.type}:${d.id}`))) {
+        saving.value = false
+        await submit(true)
+        return
+      }
+      dependencyPrompt.value = { message: prompt.message, action: t(prompt.actionKey) }
+      serverError.value = null
+      if (guided.value) step.value = 3
+      await scrollToError(dependencyBanner)
+      return
+    }
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
     serverError.value = resp?.message ?? t('events.form.saveFailed')
     if (guided.value) {
@@ -763,7 +812,11 @@ async function submit() {
 
 const selectedOrganizer = ref<SelectOption | null>(auth.canalId ? { id: auth.canalId, name: auth.canalName } : null)
 const selectedPlace = ref<SelectOption | null>(null)
-const organizerName = computed(() => canalOptions.value.find(c => c.id === form.value.canal_id)?.name || (selectedOrganizer.value?.id === form.value.canal_id ? selectedOrganizer.value.name : ''))
+const organizerName = computed(() =>
+  canalOptions.value.find(c => c.id === form.value.canal_id)?.name
+  || (selectedOrganizer.value?.id === form.value.canal_id ? selectedOrganizer.value.name : '')
+  || (auth.canalId === form.value.canal_id ? auth.canalName : ''),
+)
 const placeName = computed(() => venuesForCanal.value.find(v => v.id === form.value.venue_id)?.name || (selectedPlace.value?.id === form.value.venue_id ? selectedPlace.value.name : ''))
 const descriptionPreview = computed(() => {
   const doc = new DOMParser().parseFromString(form.value.body, 'text/html')
@@ -776,14 +829,38 @@ const missingFields = computed(() => [
   !form.value.venue_id && t('events.fields.venue'),
 ].filter((value): value is string => Boolean(value)))
 
+/**
+ * Kontrola kroku 1 zrkadlí server (názov ≤ 250 znakov, koniec po začiatku,
+ * minulý termín len pre publikované), aby sa chyba ukázala hneď, nie až pri
+ * uložení. Vráti prvú chybu; tá sa zároveň zapíše k poľu.
+ */
+function validateStepOne(): string | null {
+  const { name, start_at, end_at } = form.value
+  const failures: Array<[string, string]> = []
+  if (!name.trim()) failures.push(['name', t('eventJourney.nameRequired')])
+  else if (name.length > 250) failures.push(['name', t('eventJourney.nameTooLong')])
+  const start = start_at ? new Date(start_at).getTime() : NaN
+  const end = end_at ? new Date(end_at).getTime() : NaN
+  if (!Number.isNaN(start) && !allowPastSchedule.value && start <= Date.now()) failures.push(['start_at', t('eventJourney.startInPast')])
+  if (!Number.isNaN(start) && !Number.isNaN(end) && end <= start) failures.push(['end_at', t('eventJourney.endBeforeStart')])
+  else if (!Number.isNaN(end) && !allowPastSchedule.value && end <= Date.now()) failures.push(['end_at', t('eventJourney.endInPast')])
+  errors.value.name = ''
+  errors.value.start_at = ''
+  errors.value.end_at = ''
+  for (const [field, message] of failures) errors.value[field] = errors.value[field] || message
+  return failures[0]?.[1] ?? null
+}
+
 function goToStep(next: number) {
   if (saving.value || organizer.value.saving) return
-  if (next > step.value && !form.value.name.trim()) {
-    errors.value.name = t('eventJourney.nameRequired')
-    serverError.value = errors.value.name
-    step.value = 1
-    scrollToError(errorBanner)
-    return
+  if (next > step.value) {
+    const problem = validateStepOne()
+    if (problem) {
+      serverError.value = problem
+      step.value = 1
+      scrollToError(errorBanner)
+      return
+    }
   }
   errors.value.name = ''
   step.value = next
@@ -792,9 +869,9 @@ function goToStep(next: number) {
 
 async function saveGuided(action: 'draft' | 'publish') {
   if (saving.value || organizer.value.saving) return
-  if (!form.value.name.trim()) {
-    errors.value.name = t('eventJourney.nameRequired')
-    serverError.value = errors.value.name
+  const problem = validateStepOne()
+  if (problem) {
+    serverError.value = problem
     step.value = 1
     await scrollToError(errorBanner)
     return
@@ -806,6 +883,7 @@ async function saveGuided(action: 'draft' | 'publish') {
     return
   }
   if (action === 'publish' && missingFields.value.length) {
+    publishAttempted.value = true
     serverError.value = t('eventJourney.missingHint', { fields: missingFields.value.join(', ') })
     await scrollToError(errorBanner)
     return
@@ -834,6 +912,7 @@ async function saveOrganizer() {
   try {
     const created = await createCanal({ name: organizer.value.name, municipality_id: organizer.value.municipality_id, identity_mode: 'organization', status: 'draft' }, scope.value)
     canals.value.push({ id: created.id, name: created.name })
+    createdHere.add(`canal:${created.id}`)
     form.value.canal_id = created.id
     toast.success(t('eventJourney.organizerSaved'))
   } catch (e: unknown) {

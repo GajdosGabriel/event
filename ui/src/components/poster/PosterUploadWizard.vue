@@ -68,13 +68,28 @@
     <section v-else-if="step === 'analyzing'" class="py-10 text-center">
       <div class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
       <p class="text-base font-semibold text-slate-900">{{ progressMessage }}</p>
-      <p class="mt-1 text-sm text-slate-500">{{ t('poster.wizard.scanNote') }}</p>
+      <p class="mt-1 text-sm text-slate-500">{{ t(isScan ? 'poster.wizard.scanNote' : 'poster.wizard.textNote') }}</p>
+
+      <!-- Odhad, nie skutočný priebeh: server nehlási medzikroky, takže lišta
+           sa plní podľa typického trvania a pred koncom sa zastaví na 95 %. -->
+      <div
+        class="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-slate-100"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        :aria-valuenow="progressPercent"
+      >
+        <div class="h-full rounded-full bg-slate-900 transition-all duration-500" :style="{ width: `${progressPercent}%` }"></div>
+      </div>
+      <p class="mt-2 text-xs text-slate-400">
+        {{ t('poster.wizard.estimate', { seconds: estimatedSeconds, elapsed: elapsedSeconds }) }}
+      </p>
     </section>
 
     <!-- 3. Kontrola -->
     <section v-else-if="step === 'review' && draft">
       <header class="mb-4">
-        <h2 class="text-lg font-semibold text-slate-900">{{ t('poster.wizard.reviewTitle') }}</h2>
+        <h2 class="text-lg font-semibold text-slate-900">{{ t(draft.source_kind === 'text' ? 'poster.wizard.reviewTitleText' : 'poster.wizard.reviewTitle') }}</h2>
         <p class="text-sm text-slate-500">
           {{ t('poster.wizard.reviewLead', { found: draft.analysis.found_count, total: draft.analysis.total_count }) }}
         </p>
@@ -220,6 +235,7 @@
           :label="t('poster.wizard.password')"
           required
           :validated="accountValidated"
+          :error="passwordLengthError"
           autocomplete="new-password"
         />
 
@@ -242,7 +258,14 @@
         />
       </div>
 
-      <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
+      <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        {{ error }}
+        <RouterLink
+          v-if="emailNotVerified"
+          class="mt-1 block font-medium underline"
+          :to="{ name: 'verify-email', query: { email: account.email.trim().toLowerCase() } }"
+        >{{ t('auth.verify.resend') }}</RouterLink>
+      </p>
       <p v-if="info" class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">{{ info }}</p>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
@@ -334,6 +357,14 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const createdEventId = ref<number | null>(null)
 const progressMessage = ref(t('poster.wizard.progress.readPoster'))
 let progressTimer: ReturnType<typeof setInterval> | undefined
+let elapsedTimer: ReturnType<typeof setInterval> | undefined
+/** Vstup je obrázok alebo PDF — čítanie zrakom modelu je pomalšie než z textu. */
+const isScan = ref(false)
+const estimatedSeconds = ref(25)
+const elapsedSeconds = ref(0)
+const progressPercent = computed(() =>
+  Math.min(95, Math.round((1 - Math.exp(-elapsedSeconds.value / estimatedSeconds.value)) * 100)),
+)
 
 // Sprievodca validuje dvakrát a nezávisle: najprv údaje o podujatí (krok
 // „Kontrola"), potom prihlasovacie údaje (krok „Účet"). Kým sa na daný krok
@@ -342,6 +373,10 @@ const validation = provideFormValidation()
 const accountValidated = ref(false)
 /** Nezhoda v potvrdení hesla — patrí k druhému poľu, nie do hlavičky kroku. */
 const passwordError = ref<string | null>(null)
+/** Krátke heslo patrí k poľu „Heslo“, nie k potvrdeniu. */
+const passwordLengthError = ref<string | null>(null)
+/** Účet existuje, ale e-mail ešte nie je potvrdený — ponúkneme opätovné odoslanie. */
+const emailNotVerified = ref(false)
 
 const isAuthenticated = computed(() => auth.isAuthenticated)
 const stepIndex = computed(() => ({ upload: 0, analyzing: 1, review: 2, account: 3, verify: 3, done: 3 }[step.value]))
@@ -433,7 +468,15 @@ async function analyze(input: File | string) {
  * Hlásky sú preto naviazané na to, čo sa naozaj deje v pipeline.
  */
 function startProgress(kind: string) {
-  const messages = kind.startsWith('image') || kind === 'application/pdf'
+  isScan.value = kind.startsWith('image') || kind === 'application/pdf'
+  estimatedSeconds.value = isScan.value ? 40 : 25
+  elapsedSeconds.value = 0
+  const startedAt = Date.now()
+  elapsedTimer = setInterval(() => {
+    elapsedSeconds.value = Math.floor((Date.now() - startedAt) / 1000)
+  }, 500)
+
+  const messages = isScan.value
     ? [
         t('poster.wizard.progress.readPoster'),
         t('poster.wizard.progress.when'),
@@ -456,6 +499,7 @@ function startProgress(kind: string) {
 
 function stopProgress() {
   clearInterval(progressTimer)
+  clearInterval(elapsedTimer)
 }
 
 function applyDraft(next: PosterDraft) {
@@ -582,6 +626,8 @@ async function finish() {
   error.value = null
   info.value = null
   passwordError.value = null
+  passwordLengthError.value = null
+  emailNotVerified.value = false
   busy.value = true
 
   try {
@@ -595,6 +641,11 @@ async function finish() {
       // poli nič nezastaví — súhlas treba overiť tu, ešte pred registráciou.
       if (account.mode === 'register' && !account.termsAccepted) {
         error.value = t('auth.register.termsRequired')
+        return
+      }
+
+      if (account.mode === 'register' && account.password.length < 8) {
+        passwordLengthError.value = t('auth.register.passwordTooShort')
         return
       }
 
@@ -628,7 +679,15 @@ async function finish() {
 
     await claim()
   } catch (e: unknown) {
-    error.value = extractMessage(e, t('poster.wizard.saveFailed'))
+    // Rovnaký stav ako na /login: server vráti 409 `email_not_verified` s anglickou
+    // hláškou, ktorú človeku neukazujeme — vysvetlíme to po našom a ponúkneme odkaz.
+    if ((e as { response?: { data?: { code?: string } } })?.response?.data?.code === 'email_not_verified') {
+      persist()
+      emailNotVerified.value = true
+      error.value = t('poster.wizard.emailNotVerified')
+    } else {
+      error.value = extractMessage(e, t('poster.wizard.saveFailed'))
+    }
   } finally {
     busy.value = false
   }

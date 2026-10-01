@@ -181,4 +181,22 @@ class DashboardFileIndexTest extends EventSetupTest
         $this->assertContains($fresh->id, $ids);
         $this->assertNotContains($old->id, $ids);
     }
+
+    public function test_every_trash_filter_spelling_returns_a_listing(): void
+    {
+        $live = $this->makeFile(Event::class, $this->futureEvent->id, 'zivy.jpg');
+        $gone = $this->makeFile(Event::class, $this->futureEvent->id, 'zmazany.jpg');
+        $gone->delete();
+
+        foreach (['deleted=true', 'deleted=1', 'with_trashed=true', 'with_trashed=1', 'deleted=false', 'with_trashed=0'] as $query) {
+            $this->getJson("/api/dashboard/files?{$query}")->assertOk();
+        }
+
+        $onlyDeleted = $this->getJson('/api/dashboard/files?deleted=true');
+        $this->assertSame([$gone->id], collect($onlyDeleted->json('data'))->pluck('id')->all());
+
+        $withTrashed = collect($this->getJson('/api/dashboard/files?with_trashed=true')->json('data'))->pluck('id')->all();
+        $this->assertContains($live->id, $withTrashed);
+        $this->assertContains($gone->id, $withTrashed);
+    }
 }

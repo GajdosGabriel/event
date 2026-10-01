@@ -144,4 +144,33 @@ class DashboardEventStoreTest extends EventSetupTest
         $this->postJson('/api/dashboard/events', $payload)->assertForbidden();
         $this->assertDatabaseMissing('events', ['name' => $payload['name']]);
     }
+
+    #[Test]
+    public function form_times_without_zone_are_stored_as_bratislava_local_time(): void
+    {
+        $start = Carbon::now('Europe/Bratislava')->addMonths(3)->setTime(18, 0);
+
+        $response = $this->postJson('/api/dashboard/events', [
+            'name' => 'Časová zóna ' . uniqid(),
+            'start_at' => $start->format('Y-m-d\TH:i'),
+            'end_at' => $start->copy()->addHours(2)->format('Y-m-d\TH:i'),
+        ])->assertCreated();
+
+        $event = Event::query()->findOrFail($response->json('id'));
+
+        $this->assertTrue($event->start_at->equalTo($start));
+        $this->assertStringEndsWith('18:00 - 20:00', $response->json('date_range_label'));
+    }
+
+    #[Test]
+    public function event_created_directly_as_published_gets_published_at(): void
+    {
+        $response = $this->postJson('/api/dashboard/events', [
+            'name' => 'Rovno publikované ' . uniqid(),
+            'status' => ModelStatus::Published->value,
+        ])->assertCreated();
+
+        $this->assertNotNull($response->json('published_at'));
+        $this->assertNotNull(Event::query()->findOrFail($response->json('id'))->published_at);
+    }
 }

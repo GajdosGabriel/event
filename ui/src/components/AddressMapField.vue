@@ -11,8 +11,8 @@
       @update:source="patch({ coordinatesSource: $event })"
     />
     <div class="mt-2 grid grid-cols-2 gap-2">
-      <FormField v-model="latitude" type="number" :label="t('address.lat')" step="any" class="text-xs" />
-      <FormField v-model="longitude" type="number" :label="t('address.lng')" step="any" class="text-xs" />
+      <FormField v-model="latitude" type="number" :label="t('address.lat')" min="-90" max="90" step="any" :error="errors?.['latitude']" class="text-xs" />
+      <FormField v-model="longitude" type="number" :label="t('address.lng')" min="-180" max="180" step="any" :error="errors?.['longitude']" class="text-xs" />
     </div>
   </div>
 </template>
@@ -31,7 +31,7 @@ import MapPicker from '@/components/MapPicker.vue'
 import { t } from '@/i18n'
 import type { AddressModel } from '@/types'
 
-defineProps<{ title?: string; hint?: boolean }>()
+defineProps<{ title?: string; hint?: boolean; errors?: Record<string, string> }>()
 
 const model = defineModel<AddressModel>({ required: true })
 

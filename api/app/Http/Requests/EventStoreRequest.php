@@ -13,12 +13,43 @@ use Illuminate\Validation\Rule;
 
 class EventStoreRequest extends FormRequest
 {
+    private const INPUT_TIMEZONE = 'Europe/Bratislava';
+
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Časy z formulára (`<input type="datetime-local">`) chodia bez zóny a sú to
+     * hodiny na nástenných hodinách organizátora. Databáza drží UTC (tak ich
+     * ukladajú aj importy), takže bez prepočtu by sa zadané 18:00 uložilo ako
+     * 18:00 UTC a verejná stránka by ho ukázala o hodinu (v lete o dve) neskôr.
+     */
+    protected function prepareForValidation(): void
+    {
+        $converted = [];
+
+        foreach (['start_at', 'end_at', 'publish_at', 'registration_deadline_at'] as $field) {
+            $value = $this->input($field);
+
+            if (! is_string($value) || trim($value) === '' || preg_match('/(Z|[+-]\d{2}:?\d{2})$/i', trim($value))) {
+                continue;
+            }
+
+            try {
+                $converted[$field] = Carbon::parse($value, self::INPUT_TIMEZONE)->utc()->toIso8601String();
+            } catch (\Exception) {
+                // Nepoužiteľný vstup necháme spadnúť na validačné pravidlá.
+            }
+        }
+
+        if ($converted !== []) {
+            $this->merge($converted);
+        }
     }
 
     /**

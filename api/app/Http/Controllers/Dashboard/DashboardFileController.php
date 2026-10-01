@@ -45,6 +45,8 @@ class DashboardFileController extends Controller
     {
         $this->authorize('viewAny', File::class);
 
+        $this->normalizeFileListingFlags($request);
+
         $request->validate([
             // Typ je povinný len pri dopyte na konkrétny záznam; vo výpise
             // celého dashboardu je to nepovinný filter.

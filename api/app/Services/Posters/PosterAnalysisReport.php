@@ -31,6 +31,11 @@ class PosterAnalysisReport
         $startAt = $this->stringOrNull($payload['start_at'] ?? null);
         $endAt = $this->stringOrNull($payload['end_at'] ?? null);
 
+        $endIsStated = $endAt !== null && $this->endTimeIsInSource($endAt, [
+            $extraction->text,
+            $this->stringOrNull($detection['poster_text'] ?? null),
+        ]);
+
         $fields = [
             $this->field('title', 'Názov podujatia', $this->stringOrNull($payload['title'] ?? null), required: true),
             $this->field('start_at', 'Začiatok', $this->formatDateTime($startAt), required: true),
@@ -41,8 +46,8 @@ class PosterAnalysisReport
                 'Koniec',
                 $this->formatDateTime($endAt),
                 required: false,
-                status: $endAt !== null && $startAt !== null ? self::STATUS_GUESSED : null,
-                note: $this->endAtNote($startAt, $endAt),
+                status: $endAt !== null && $startAt !== null && ! $endIsStated ? self::STATUS_GUESSED : null,
+                note: $endIsStated ? null : $this->endAtNote($startAt, $endAt),
             ),
             $this->field('venue', 'Miesto konania', $this->joinParts([
                 $this->stringOrNull($venue['name'] ?? null),
@@ -137,6 +142,40 @@ class PosterAnalysisReport
             : 'Odhadnuté podľa typu podujatia — skontrolujte.';
     }
 
+    /**
+     * Je čas konca v zdrojovom texte? „10:00 až 16:00“ je nález, nie odhad;
+     * odhadom je až koniec, ktorý AI doplnila sama podľa typu akcie.
+     *
+     * @param  array<int, string|null>  $sources
+     */
+    private function endTimeIsInSource(string $endAt, array $sources): bool
+    {
+        try {
+            $end = Carbon::parse($endAt);
+        } catch (Throwable) {
+            return false;
+        }
+
+        // 23:59 a 00:00 nastavuje systém pri „celý deň“, nie plagát.
+        if (in_array($end->format('H:i'), ['00:00', '23:59'], true)) {
+            return false;
+        }
+
+        $hour = (int) $end->format('G');
+        $minutes = $end->format('i');
+        $pattern = $minutes === '00'
+            ? '/(?<![\d:.])0?'.$hour.'(?:\s?[:.]\s?00|\s?h(?:od\w*)?)/iu'
+            : '/(?<![\d:.])0?'.$hour.'\s?[:.]\s?'.$minutes.'(?!\d)/u';
+
+        foreach ($sources as $source) {
+            if (is_string($source) && preg_match($pattern, $source) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function isAllDay(string $startAt, string $endAt): bool
     {
         try {
@@ -183,12 +222,27 @@ class PosterAnalysisReport
         return [
             'key' => $key,
             'label' => $label,
-            'value' => $resolved === self::STATUS_MISSING ? null : $value,
+            'value' => $resolved === self::STATUS_MISSING ? null : ($preview ? $this->plainText((string) $value) : $value),
             'status' => $resolved,
             'required' => $required,
             'note' => $resolved === self::STATUS_MISSING ? null : $note,
             'preview' => $preview,
         ];
+    }
+
+    /**
+     * Náhľad popisu je karta „čo sme našli", nie editor: copywriter vracia HTML
+     * (<h3>, <p>…) a karta ho ukazovala ako surové značky. Plný HTML popis ide
+     * do formulára zvlášť (`draft.description`).
+     */
+    private function plainText(string $html): string
+    {
+        $text = preg_replace('~<\s*(?:br\s*/?|/\s*(?:p|h[1-6]|li|ul|ol|div))\s*>~i', "\n", $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/\s*\n\s*/u', "\n", $text) ?? $text;
+
+        return trim($text);
     }
 
     /** @param array<int, string|null> $parts */

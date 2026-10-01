@@ -16,11 +16,17 @@ use Carbon\CarbonInterface;
  */
 final class EventDateRange
 {
+    /** Zóna, v ktorej sa termíny zobrazujú; v DB je UTC. */
+    private const TIMEZONE = 'Europe/Bratislava';
+
     public static function label(?CarbonInterface $start, ?CarbonInterface $end): ?string
     {
         if (! $start instanceof CarbonInterface) {
             return null;
         }
+
+        $start = $start->copy()->setTimezone(self::TIMEZONE);
+        $end = $end?->copy()->setTimezone(self::TIMEZONE);
 
         if (! $end instanceof CarbonInterface) {
             return $start->format('d. m. Y H:i');

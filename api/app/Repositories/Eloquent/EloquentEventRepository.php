@@ -59,6 +59,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $filePayload = $this->extractFilePayload($properties);
         $tagIds = $this->extractTagIds($properties);
         $this->normalizeLocationPayload($properties);
+        $this->stampPublishedAt($properties);
 
         /** @var Event $event */
         $event = parent::create($properties);
@@ -68,6 +69,19 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $this->deriveEventAttributes($event);
 
         return $event->fresh(['files', 'tags']);
+    }
+
+    /**
+     * Podujatie založené rovno ako publikované (wizard „Zverejniť") dostane
+     * čas prvého zverejnenia hneď. Verejné výpisy filtrujú aj triedia podľa
+     * `published_at`, takže bez neho by chýbalo v „nových" akciách, kým by ho
+     * niekto neuložil znova (`update` ho dopĺňa).
+     */
+    private function stampPublishedAt(array &$properties): void
+    {
+        if (($properties['status'] ?? null) === ModelStatus::Published->value && empty($properties['published_at'])) {
+            $properties['published_at'] = now();
+        }
     }
 
     public function createForUser(User $user, array $properties)
@@ -92,6 +106,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $this->normalizeLocationPayload($properties, (int) $canal->id);
         $this->assertDependenciesPublishable($properties);
         $properties['user_id'] = $properties['user_id'] ?? $user->id;
+        $this->stampPublishedAt($properties);
 
         /** @var Event $event */
         $event = $canal->events()->create($properties);

@@ -6,6 +6,7 @@ const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 const EventListPage = () => import('@/pages/events/EventListPage.vue')
 const LegalPage = () => import('@/pages/legal/LegalPage.vue')
 // Rovnaká obrazovka v dashboarde aj v admine — rozsah rozlišuje prop `scope`.
+const NotFoundPage = () => import('@/pages/NotFoundPage.vue')
 const FileListPage = () => import('@/pages/files/FileListPage.vue')
 
 const router = createRouter({
@@ -17,8 +18,8 @@ const router = createRouter({
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
         { path: '', name: 'home', component: () => import('@/pages/home/HomePage.vue') },
-        { path: 'login', name: 'login', component: () => import('@/pages/auth/LoginPage.vue') },
-        { path: 'register', name: 'register', component: () => import('@/pages/auth/RegisterPage.vue') },
+        { path: 'login', name: 'login', component: () => import('@/pages/auth/LoginPage.vue'), meta: { guestOnly: true } },
+        { path: 'register', name: 'register', component: () => import('@/pages/auth/RegisterPage.vue'), meta: { guestOnly: true } },
         // Obnova hesla. Slovenské cesty ako pri ostatných verejných stránkach —
         // `/obnova-hesla/{token}` chodí v e-maile, adresa je v query.
         { path: 'zabudnute-heslo', name: 'password-forgot', component: () => import('@/pages/auth/ForgotPasswordPage.vue') },
@@ -130,6 +131,10 @@ const router = createRouter({
           component: LegalPage,
           props: { kind: 'privacy' },
         },
+        // Neplatné ID podujatia (`/akcie/abc`) a všetko ostatné, čo nemá trasu.
+        // Statické `akcie/...` cesty vyššie majú prednosť.
+        { path: 'akcie/:slug', name: 'event-public-not-found', component: NotFoundPage, props: { kind: 'event' } },
+        { path: ':pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
       ],
     },
 
@@ -260,6 +265,15 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
+  // Prihlásený nemá čo robiť na /login a /register. Rešpektuje sa `redirect`,
+  // ale len vnútorná cesta — inak by to bolo otvorené presmerovanie.
+  if (to.meta.guestOnly && auth.isAuthenticated) {
+    const redirect = to.query.redirect
+    return typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect
+      : { name: 'dashboard' }
+  }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }

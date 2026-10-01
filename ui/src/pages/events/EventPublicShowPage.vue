@@ -97,7 +97,7 @@
                 class="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white no-underline ring-1 ring-inset ring-white/20 backdrop-blur-sm transition-colors hover:bg-white/20"
               >
                 <span v-if="tag.emoji">{{ tag.emoji }}</span>
-                {{ tag.name }}
+                {{ tagLabel(tag) }}
               </RouterLink>
             </div>
 
@@ -137,7 +137,7 @@
                 <dd>
                   <span
                     class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold"
-                    :class="event.priceAmount ? 'bg-white/15' : 'bg-emerald-500 text-white'"
+                    :class="hasPaidPrice ? 'bg-white/15' : 'bg-emerald-500 text-white'"
                   >{{ priceLabel }}</span>
                 </dd>
               </div>
@@ -153,7 +153,7 @@
                 @click="scrollToRegistration"
               >
                 <AppIcon name="ticket" class="h-5 w-5" />
-                {{ t('public.event.register') }}
+                {{ registerLabel }}
               </button>
               <a
                 v-if="mapCoords"
@@ -503,7 +503,7 @@
             type="button"
             class="shrink-0 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             @click="scrollToRegistration"
-          >{{ t('public.event.register') }}</button>
+          >{{ registerLabel }}</button>
         </div>
       </div>
 
@@ -529,6 +529,7 @@
 </template>
 
 <script setup lang="ts">
+import { tagLabel } from '@/utils/tagLabel'
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
@@ -550,7 +551,7 @@ import ShareButtons from '@/components/ShareButtons.vue'
 import EventCard from '@/components/EventCard.vue'
 import BreadcrumbNav, { type BreadcrumbItem } from '@/components/BreadcrumbNav.vue'
 import { fmtDateLong, daysUntil, weekdayLabel, dayName, dateTile } from '@/utils/dateFormat'
-import { formatPriceOrFree } from '@/utils/money'
+import { formatPrice, formatPriceOrFree } from '@/utils/money'
 import {
   absoluteUrl,
   publicEventPath,
@@ -615,7 +616,26 @@ const posterBleed = computed(() => Boolean(heroImage.value) && !posterPortrait.v
 
 const heroTile = computed(() => (event.value?.startAt ? dateTile(event.value.startAt) : null))
 
-const priceLabel = computed(() => formatPriceOrFree(event.value?.priceAmount, event.value?.priceCurrency))
+// Cena podujatia (`event.priceAmount`) býva prázdna, keď sa predáva cez typy
+// lístkov — vtedy by hlavička hlásila „Zdarma" popri platenom lístku. Rozhodujú
+// preto samotné lístky; bez nich (alebo kým sa nenačítajú) platí cena podujatia.
+const mainTickets = computed(() => ticketTypes.value.filter(t => t.kind === 'ticket' && t.isActive !== false))
+const onlyPaidTickets = computed(
+  () => mainTickets.value.length > 0 && mainTickets.value.every(t => (t.priceAmount ?? 0) > 0),
+)
+
+const priceLabel = computed(() => {
+  const tickets = mainTickets.value
+  if (!tickets.length) return formatPriceOrFree(event.value?.priceAmount, event.value?.priceCurrency)
+  if (!onlyPaidTickets.value) return t('common.free')
+  const prices = tickets.map(x => x.priceAmount ?? 0)
+  const min = Math.min(...prices)
+  const label = formatPrice(min, tickets.find(x => x.priceAmount === min)?.priceCurrency)
+  return min === Math.max(...prices) ? label : `${t('public.event.priceFrom')} ${label}`
+})
+
+const registerLabel = computed(() => t(onlyPaidTickets.value ? 'tickets.request.buy' : 'public.event.register'))
+const hasPaidPrice = computed(() => (event.value?.priceAmount ?? 0) > 0 || onlyPaidTickets.value)
 
 /** Porovnanie názvov bez ohľadu na diakritiku a veľkosť písmen. */
 const isSameLabel = (a: string, b: string) =>

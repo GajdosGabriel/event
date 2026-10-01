@@ -36,7 +36,7 @@ import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { localeTag, useI18n } from '@/i18n'
-import { deleteNotifications, fetchNotifications, fetchUnreadCount, groupNotifications, markNotifications, type NotificationItem } from '@/api/notifications'
+import { deleteNotifications, fetchNotifications, fetchUnreadCount, groupNotifications, markNotifications, resetUnreadCountCache, type NotificationItem } from '@/api/notifications'
 
 const auth = useAuthStore()
 const { t } = useI18n()
@@ -78,13 +78,13 @@ async function load(nextPage = 1) {
   } catch { if (current === generation) error.value = t('notifications.loadError') }
   finally { if (current === generation) loading.value = false }
 }
-async function refreshCount() {
+async function refreshCount(force = false) {
   if (!enabled.value || busy.value || loading.value || countLoading || document.hidden) return
   const current = generation
   const countRevision = revision
   countLoading = true
   try {
-    const count = await fetchUnreadCount()
+    const count = await fetchUnreadCount(force)
     if (current === generation && countRevision === revision && !busy.value && !loading.value) unread.value = count
   } catch { /* The list shows a retry action when opened; background polling stays quiet. */ }
   finally { countLoading = false }
@@ -121,18 +121,22 @@ function removeAll(only?: 'read') {
 function outside(event: Event) { if (!root.value?.contains(event.target as Node)) close() }
 function visible() { if (!document.hidden) void refreshCount() }
 watch(() => route.fullPath, () => close())
-watch(() => [enabled.value, auth.identity?.id], () => {
+// Kľúč je reťazec, nie pole: nové pole by watcher spustilo pri každom
+// prepísaní `auth.identity` (aj pre toho istého človeka) a odznak by sa
+// zbytočne vynuloval a znova načítal.
+watch(() => `${enabled.value}:${auth.identity?.id ?? ''}`, () => {
   generation++
+  resetUnreadCountCache()
   close()
   items.value = []; unread.value = 0; page.value = 1; lastPage.value = 1
   loading.value = false; busy.value = false; error.value = ''
-  if (enabled.value) void refreshCount()
+  if (enabled.value) void refreshCount(true)
 }, { immediate: true })
 onMounted(() => {
   document.addEventListener('pointerdown', outside)
   document.addEventListener('focusin', outside)
   document.addEventListener('visibilitychange', visible)
-  timer = setInterval(refreshCount, 60000)
+  timer = setInterval(() => void refreshCount(), 60000)
 })
 onBeforeUnmount(() => {
   generation++

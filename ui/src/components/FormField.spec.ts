@@ -53,6 +53,35 @@ describe('FormField', () => {
     expect(wrapper.get('.field-error').text()).toBe('Názov je už obsadený.')
   })
 
+  it('chyba zo servera zmizne, keď človek zmení hodnotu', async () => {
+    const value = ref('')
+    const wrapper = mount(defineComponent({
+      setup: () => () => h(FormField, {
+        label: 'Názov', error: 'Pole je povinné.', modelValue: value.value, 'onUpdate:modelValue': (v: FieldValue | undefined) => { value.value = String(v ?? '') },
+      }),
+    }))
+    expect(wrapper.find('.field-error').exists()).toBe(true)
+
+    await wrapper.get('input').setValue('Ples')
+
+    expect(wrapper.find('.field-error').exists()).toBe(false)
+    expect(wrapper.get('input').classes()).not.toContain('invalid')
+  })
+
+  it('klik na popisku vlastného ovládača neaktivuje tlačidlo v ňom', async () => {
+    let clicks = 0
+    const { wrapper } = mountInForm({ label: 'Popis' }, {
+      default: () => h('div', [h('button', { type: 'button', onClick: () => { clicks++ } }, 'B'), h('div', { class: 'area' }, 'text')]),
+    })
+
+    await wrapper.get('span').trigger('click')
+    await wrapper.get('.area').trigger('click')
+    expect(clicks).toBe(0)
+
+    await wrapper.get('button').trigger('click')
+    expect(clicks).toBe(1)
+  })
+
   it('nepovinné prázdne pole nezčervenie ani po validácii', async () => {
     const { wrapper, validation } = mountInForm({ label: 'Telefón', modelValue: '' })
 

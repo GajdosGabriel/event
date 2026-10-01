@@ -72,31 +72,17 @@ class PosterDraftMaterializer
         $title = Str::limit($detectedTitle ?? 'Nové podujatie', 250, '');
         $body = $this->resolveBody($draft);
 
-        // Rovnaké kritérium ako pri importe zo zdrojov
-        // (`EventImportService::isComplete()`): termín, názov, popis a miesto.
-        //
-        // Miesto sa testuje podľa toho, čo sa naozaj prečítalo z plagátu, nie
-        // podľa `$venue->id` — `ImportedVenueManager` vždy niečo vráti, v
-        // najhoršom zberné „Celé Slovensko". Zverejniť podujatie s takým
-        // miestom by znamenalo pustiť von záznam, o ktorom sprievodca
-        // používateľovi tvrdil, že miesto chýba.
-        $hasVenue = $this->stringOrNull($payload['venue']['name'] ?? null) !== null;
-
-        $isComplete = $startAt !== null
-            && $endAt !== null
-            && $detectedTitle !== null
-            && $hasVenue
-            && $body !== null
-            && trim(strip_tags($body)) !== '';
-
-        $event = DB::transaction(function () use ($draft, $user, $canal, $venue, $payload, $startAt, $endAt, $title, $body, $isComplete) {
+        // Podujatie z plagátu je vždy koncept — sprievodca to používateľovi
+        // sľubuje („skontrolujte ho a zverejnite“) a údaje z AI nikto neoveril.
+        // Zverejní ho organizátor sám.
+        $event = DB::transaction(function () use ($draft, $user, $canal, $venue, $payload, $startAt, $endAt, $title, $body) {
             $event = Event::query()->create([
                 'name' => $title,
                 'body' => $body,
                 'start_at' => $startAt,
                 'end_at' => $endAt,
-                'status' => $isComplete ? ModelStatus::Published->value : ModelStatus::Draft->value,
-                'published_at' => $isComplete ? now() : null,
+                'status' => ModelStatus::Draft->value,
+                'published_at' => null,
                 // Orezanie na dĺžku stĺpcov: hodnoty z AI nie sú validované
                 // formulárom a dlhší reťazec by zápis zhodil.
                 ...ContactList::fromPayload($payload),
@@ -113,15 +99,6 @@ class PosterDraftMaterializer
                     ],
                 ],
             ]);
-
-            // Verejný zoznam podujatí filtruje podľa stavu podujatia, ale meno
-            // kanála a miesta pri ňom zobrazuje vždy. Publikované podujatie
-            // visiace na koncepte by teda odkazovalo na profil, ktorý sa tvári
-            // ako rozrobený — obe závislosti preto idú von spolu s ním. Miesto
-            // je tu vždy koncept, zakladá ho ImportedVenueManager.
-            if ($isComplete) {
-                $this->dependencyPublisher->publishAll($event);
-            }
 
             $draft->forceFill([
                 'claimed_by_user_id' => $user->id,

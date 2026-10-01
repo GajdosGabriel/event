@@ -32,6 +32,33 @@ class VenueCoordinateResolverTest extends TestCase
     }
 
     #[Test]
+    public function building_match_in_a_different_town_is_discarded_in_favour_of_the_address(): void
+    {
+        // Banska Bystrica vs. Ruzomberok (~60 km): rovnomenny objekt v inom
+        // meste nesmie prebit obec, ktoru clovek zadal.
+        $resolver = new VenueCoordinateResolver(
+            $this->geocoder(
+                address: ['latitude' => 48.7364, 'longitude' => 19.1462],
+                municipality: ['latitude' => 48.7363, 'longitude' => 19.1462],
+            ),
+            $this->chatGpt(),
+        );
+
+        $result = $resolver->resolve(
+            venueLat: 49.0830797,
+            venueLng: 19.3020343,
+            name: 'Kulturny dom',
+            street: 'Namestie SNP 1',
+            postcode: '97401',
+            city: 'Banska Bystrica',
+            country: 'Slovensko',
+        );
+
+        $this->assertSame(48.7364, $result['latitude']);
+        $this->assertSame('address', $result['source']);
+    }
+
+    #[Test]
     public function address_is_used_when_the_building_was_not_found(): void
     {
         $resolver = new VenueCoordinateResolver(

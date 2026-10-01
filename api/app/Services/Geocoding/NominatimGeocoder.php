@@ -659,7 +659,16 @@ class NominatimGeocoder
             // len absencia bonusu, stačil druhový zásah v inom okrese na to,
             // aby prešiel. Pokuta je nižšia než bonus za presné meno, takže
             // mestskú časť („Bratislava“ vs „Ružinov“) stále prijmeme.
-            $score -= 6;
+            //
+            // Obec, ktorá sa nezhoduje ani nikde v celej adrese kandidáta
+            // (`display_name` neobsahuje „Banská Bystrica“), nie je mestská
+            // časť, ale iné mesto. Záložné dotazy bez obce („kulturny dom
+            // Kulturny dom“) také nájdu ľahko a druhový názov s typom stavby
+            // by ich cez prah pustil — kultúrny dom v Ružomberku pre miesto
+            // v Banskej Bystrici. Preto je tu pokuta väčšia než súčet bodov
+            // za spoločné slová a typ stavby.
+            $displayName = $this->normalizeText($this->stringOrNull($result['display_name'] ?? null));
+            $score -= ($displayName !== null && str_contains($displayName, $normalizedCity)) ? 6 : 10;
         }
 
         $resultCountry = $this->stringOrNull($result['address']['country'] ?? null);

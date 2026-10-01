@@ -122,7 +122,7 @@
       <p class="text-[11px] text-slate-400">{{ t('media.manager.formats') }}</p>
     </div>
 
-    <p v-if="uploadError" class="text-sm text-red-600">{{ uploadError }}</p>
+    <p v-if="uploadError" class="text-sm whitespace-pre-line text-red-600" role="alert">{{ uploadError }}</p>
 
     <!-- Lightbox -->
     <Teleport to="body">
@@ -191,7 +191,7 @@ import { listFiles, uploadFiles, updateFile, deleteFile, reorderFiles, type File
 import { t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { extensionLabel, isImageFile, openOriginal, useFilePreview } from '@/composables/useFilePreview'
-import { UPLOAD_ACCEPT, isAllowedUpload, isImageLikeUpload } from '@/utils/uploadFileTypes'
+import { UPLOAD_ACCEPT, uploadRejection, isImageLikeUpload } from '@/utils/uploadFileTypes'
 
 const props = defineProps<{
   fileableType: 'canal' | 'event' | 'venue'
@@ -349,9 +349,39 @@ async function load() {
 }
 
 // Upload
+const REJECTION_KEY = {
+  tooLarge: 'media.manager.fileTooLarge',
+  type: 'media.manager.fileTypeNotAllowed',
+} as const
+
+/** Dôvod zo servera (422 / message), ak ho vieme prečítať. */
+function serverReason(e: unknown): string | null {
+  const data = (e as { response?: { data?: { message?: unknown; errors?: Record<string, unknown> } } })?.response?.data
+  const first = data?.errors ? Object.values(data.errors).flat()[0] : null
+  if (typeof first === 'string') return first
+  return typeof data?.message === 'string' && data.message ? data.message : null
+}
+
 async function uploadBatch(files: File[]) {
   uploadError.value = null
-  const previews: PendingItem[] = files.map(f => {
+  const errors: string[] = []
+
+  // Veľkosť a typ sa kontrolujú pred odoslaním — nepovolený súbor sa na server
+  // vôbec nedostane a používateľ vidí presný dôvod pri konkrétnom súbore.
+  const valid: File[] = []
+  for (const f of files) {
+    const rejection = uploadRejection(f)
+    if (rejection) errors.push(t(REJECTION_KEY[rejection], { name: f.name }))
+    else valid.push(f)
+  }
+
+  if (!valid.length) {
+    uploadError.value = errors.join('\n') || null
+    if (fileInputEl.value) fileInputEl.value.value = ''
+    return
+  }
+
+  const previews: PendingItem[] = valid.map(f => {
     const isImage = f.type.startsWith('image/')
     return {
       type: 'pending' as const,
@@ -366,59 +396,58 @@ async function uploadBatch(files: File[]) {
 
   // PDFs get converted server-side into an image preview (thumb/large), so they're
   // uploaded as type "image". DOC/DOCX have no such conversion and go in as type "file".
-  const imageGroup: { file: File; preview: PendingItem }[] = []
-  const docGroup: { file: File; preview: PendingItem }[] = []
-  files.forEach((f, i) => (isImageLikeUpload(f) ? imageGroup : docGroup).push({ file: f, preview: previews[i] }))
-  const hasExistingImage = images.value.some(i => i.mimeType.startsWith('image/'))
+  // Súbory idú po jednom, aby sa zlyhanie dalo pripísať konkrétnemu súboru.
+  let hasImage = images.value.some(i => i.mimeType.startsWith('image/'))
+  const uploaded: FileItem[] = []
 
   try {
-    const uploaded: FileItem[] = []
-    for (const [group, type, makePrimary] of [
-      [imageGroup, 'image', !hasExistingImage] as const,
-      [docGroup, 'file', false] as const,
-    ]) {
-      if (!group.length) continue
+    for (const [i, file] of valid.entries()) {
+      const preview = previews[i]
+      const imageLike = isImageLikeUpload(file)
       const fd = new FormData()
       fd.append('fileable_type', props.fileableType)
       fd.append('fileable_id', String(props.fileableId))
-      fd.append('type', type)
-      fd.append('make_primary', makePrimary ? '1' : '0')
-      group.forEach(g => fd.append('files[]', g.file))
+      fd.append('type', imageLike ? 'image' : 'file')
+      fd.append('make_primary', imageLike && !hasImage ? '1' : '0')
+      fd.append('files[]', file)
 
-      const res = await uploadFiles(fd)
-      // Build objectUrl map BEFORE removing pending previews
-      // Each uploaded file gets the objectUrl of its matching preview (by index)
-      res.forEach((fileItem, i) => {
-        const preview = group[i]?.preview
-        if (preview?.objectUrl) postUploadPreviews.value.set(fileItem.id, preview.objectUrl)
-      })
-      uploaded.push(...res)
+      try {
+        const res = await uploadFiles(fd)
+        res.forEach(fileItem => {
+          if (preview.objectUrl) postUploadPreviews.value.set(fileItem.id, preview.objectUrl)
+        })
+        uploaded.push(...res)
+        if (imageLike) hasImage = true
+      } catch (e) {
+        const reason = serverReason(e)
+        errors.push(reason ? `${file.name}: ${reason}` : t('media.manager.fileUploadFailed', { name: file.name }))
+        if (preview.objectUrl) URL.revokeObjectURL(preview.objectUrl)
+      }
     }
 
-    images.value = [...images.value, ...uploaded].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
-    await nextTick()
-    toast.success(plural('media.counts.uploaded', uploaded.length))
-  } catch {
-    uploadError.value = t('media.manager.uploadFailed')
-    // Revoke objectUrls that won't be transferred
-    previews.forEach(p => p.objectUrl && URL.revokeObjectURL(p.objectUrl))
+    if (uploaded.length) {
+      images.value = [...images.value, ...uploaded].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      await nextTick()
+      toast.success(plural('media.counts.uploaded', uploaded.length))
+    }
   } finally {
     const keys = new Set(previews.map(p => p.key))
     pendingPreviews.value = pendingPreviews.value.filter(p => !keys.has(p.key))
     // Note: objectUrls are NOT revoked here — they live in postUploadPreviews until @load fires
     uploading.value = false
+    uploadError.value = errors.join('\n') || null
     if (fileInputEl.value) fileInputEl.value.value = ''
   }
 }
 
 function onFileInput(e: Event) {
-  const files = Array.from((e.target as HTMLInputElement).files ?? []).filter(isAllowedUpload)
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
   if (files.length) uploadBatch(files)
 }
 
 function onDrop(e: DragEvent) {
   isDraggingOver.value = false
-  const files = Array.from(e.dataTransfer?.files ?? []).filter(isAllowedUpload)
+  const files = Array.from(e.dataTransfer?.files ?? [])
   if (files.length) uploadBatch(files)
 }
 

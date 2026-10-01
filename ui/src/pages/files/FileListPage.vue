@@ -273,8 +273,8 @@ async function load(page = 1) {
       ...(filters.value.dateFrom ? { date_from: filters.value.dateFrom } : {}),
       ...(filters.value.dateTo ? { date_to: filters.value.dateTo } : {}),
       // Dve polohy toho istého prepínača: „aj zmazané" vs. „len zmazané".
-      ...(filters.value.trash === 'with_trashed' ? { with_trashed: true } : {}),
-      ...(filters.value.trash === 'deleted' ? { deleted: true } : {}),
+      ...(filters.value.trash === 'with_trashed' ? { with_trashed: 1 as const } : {}),
+      ...(filters.value.trash === 'deleted' ? { deleted: 1 as const } : {}),
       page,
     }
     const res = isAdmin.value
@@ -284,8 +284,13 @@ async function load(page = 1) {
     total.value = res.total
     currentPage.value = res.currentPage
     lastPage.value = res.lastPage
-  } catch {
-    error.value = t('admin.files.loadFailed')
+  } catch (e) {
+    const status = (e as { response?: { status?: number } })?.response?.status
+    error.value = !status
+      ? t('admin.files.loadFailedNetwork')
+      : status === 422
+        ? t('admin.files.loadFailedFilter')
+        : t('admin.files.loadFailed')
   } finally {
     loading.value = false
   }
