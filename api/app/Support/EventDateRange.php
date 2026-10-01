@@ -19,6 +19,12 @@ final class EventDateRange
     /** Zóna, v ktorej sa termíny zobrazujú; v DB je UTC. */
     private const TIMEZONE = 'Europe/Bratislava';
 
+    /** Jeden okamih v zobrazovacej zóne — „5. 9. 2026 16:00". */
+    public static function moment(?CarbonInterface $value): ?string
+    {
+        return $value?->copy()->setTimezone(self::TIMEZONE)->format('d. m. Y H:i');
+    }
+
     public static function label(?CarbonInterface $start, ?CarbonInterface $end): ?string
     {
         if (! $start instanceof CarbonInterface) {

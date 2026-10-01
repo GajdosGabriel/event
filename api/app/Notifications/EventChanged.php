@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Services\Calendar\EventCalendarLinks;
@@ -66,7 +67,7 @@ class EventChanged extends Notification implements ShouldQueue
                 'eventUrl' => PublicUrl::event($this->event),
                 'cancelled' => $this->cancelled,
                 'changes' => $this->changes,
-                'startsAt' => $this->event->start_at?->format('d. m. Y H:i'),
+                'startsAt' => EventDateRange::moment($this->event->start_at),
                 'venueName' => $venue?->name,
                 'unsubscribeUrl' => PublicUrl::unsubscribe((string) $this->subscription->token),
                 // Zrušené podujatie nemá čo ponúkať do kalendára — naopak, ten

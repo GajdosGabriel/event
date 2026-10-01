@@ -7,7 +7,7 @@
         :value="value"
         :type="type"
         class="form-input min-w-0 flex-1"
-        :class="{ invalid: index === 0 && Boolean(error) }"
+        :class="{ invalid: (index === 0 && Boolean(error)) || rowInvalid(value) }"
         :aria-label="label"
         @input="setRow(index, ($event.target as HTMLInputElement).value)"
       />
@@ -31,6 +31,7 @@
     </div>
 
     <span v-if="error" class="field-error">{{ error }}</span>
+    <span v-else-if="type === 'tel' && rows.some(rowInvalid)" class="field-error">{{ t('common.phoneInvalid') }}</span>
 
     <button type="button" class="justify-self-start text-sm text-blue-700 hover:underline" @click="addRow">
       + {{ addLabel }}
@@ -41,13 +42,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { t } from '@/i18n'
+import { isValidPhone } from '@/utils/contact'
 
 /**
  * Zoznam kontaktov s jedným primárnym: prvý riadok je `primary` (stĺpec
  * `email` / `phone`), ostatné idú do `additional`. Primárny sa mení
  * presunutím vybraného riadku na prvé miesto.
  */
-defineProps<{
+const props = defineProps<{
   label: string
   addLabel: string
   type: 'email' | 'tel'
@@ -58,6 +60,10 @@ const primary = defineModel<string>('primary', { required: true })
 const additional = defineModel<string[]>('additional', { required: true })
 
 const rows = computed(() => [primary.value, ...additional.value])
+
+function rowInvalid(value: string): boolean {
+  return props.type === 'tel' && !isValidPhone(value)
+}
 
 function commit(next: string[]): void {
   primary.value = next[0] ?? ''

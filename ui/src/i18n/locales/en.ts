@@ -163,6 +163,8 @@ const en: Messages = {
     actionFailed: 'The action failed.',
     contact: 'Contact',
     phone: 'Phone',
+    phoneInvalid: 'Enter a valid phone number: digits, +, spaces, hyphens, parentheses (6 – 20 characters), e.g. +421 900 123 456.',
+    postcodeInvalid: 'Postcode must have 5 digits, e.g. 811 01.',
     email: 'E-mail',
     contactList: {
       addEmail: 'Add another e-mail',
@@ -329,6 +331,8 @@ const en: Messages = {
       textToggleOff: 'I have no file — I will paste the invitation text',
       textPlaceholder: 'Paste the invitation text or the event description…',
       textSubmit: 'Process the text',
+      textMinHint: 'At least {min} characters are needed to process the text – {count} so far.',
+      venueNameRequired: 'Add the venue name (e.g. Community Centre) – the address alone is not enough.',
       analyzeFailed: 'The poster could not be processed.',
       scanNote: 'A scanned poster takes longer — we are reading it from the image.',
       textNote: 'Processing the text takes a moment — we are looking for the date, venue and organiser.',

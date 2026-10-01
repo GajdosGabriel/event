@@ -163,6 +163,8 @@ const de: Messages = {
     actionFailed: 'Aktion fehlgeschlagen.',
     contact: 'Kontakt',
     phone: 'Telefon',
+    phoneInvalid: 'Geben Sie eine gültige Telefonnummer ein: Ziffern, +, Leerzeichen, Bindestriche, Klammern (6 – 20 Zeichen), z. B. +421 900 123 456.',
+    postcodeInvalid: 'Die PLZ muss aus 5 Ziffern bestehen, z. B. 811 01.',
     email: 'E-Mail',
     contactList: {
       addEmail: 'Weitere E-Mail hinzufügen',
@@ -329,6 +331,8 @@ const de: Messages = {
       textToggleOff: 'Ich habe keine Datei — ich füge den Text ein',
       textPlaceholder: 'Text der Einladung oder Beschreibung der Veranstaltung einfügen…',
       textSubmit: 'Text verarbeiten',
+      textMinHint: 'Zum Verarbeiten sind mindestens {min} Zeichen nötig – bisher {count}.',
+      venueNameRequired: 'Geben Sie den Namen des Veranstaltungsortes an (z. B. Kulturhaus) – die Adresse allein genügt nicht.',
       analyzeFailed: 'Das Plakat konnte nicht verarbeitet werden.',
       scanNote: 'Ein gescanntes Plakat dauert länger — wir lesen es aus dem Bild.',
       textNote: 'Die Verarbeitung des Textes dauert einen Moment — wir suchen Termin, Ort und Veranstalter.',

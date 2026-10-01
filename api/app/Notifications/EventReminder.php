@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Services\Calendar\EventCalendarLinks;
 use App\Support\PublicUrl;
@@ -63,7 +64,7 @@ class EventReminder extends Notification implements ShouldQueue
                     : __('mail.common.greeting'),
                 'eventName' => $this->event->name,
                 'eventUrl' => PublicUrl::event($this->event),
-                'startsAt' => $this->event->start_at?->format('d. m. Y H:i'),
+                'startsAt' => EventDateRange::moment($this->event->start_at),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
                 'unsubscribeUrl' => $this->unsubscribeUrl,

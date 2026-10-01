@@ -53,8 +53,11 @@
             class="form-input h-auto py-2"
             :placeholder="t('poster.wizard.textPlaceholder')"
           ></textarea>
+          <p v-if="pastedTextTooShort" class="form-hint">
+            {{ t('poster.wizard.textMinHint', { min: MIN_TEXT_LENGTH, count: pastedText.trim().length }) }}
+          </p>
           <div>
-            <button type="button" class="btn btn-primary" :disabled="pastedText.trim().length < 30" @click="analyze(pastedText)">
+            <button type="button" class="btn btn-primary" :disabled="pastedTextTooShort" @click="analyze(pastedText)">
               {{ t('poster.wizard.textSubmit') }}
             </button>
           </div>
@@ -107,16 +110,16 @@
           v-for="field in draft.analysis.fields"
           :key="field.key"
           class="flex items-start gap-2 rounded-lg border px-3 py-2 text-sm"
-          :class="statusClass(field.status)"
+          :class="statusClass(displayStatus(field))"
         >
-          <span class="mt-0.5 shrink-0 font-semibold">{{ statusIcon(field.status) }}</span>
+          <span class="mt-0.5 shrink-0 font-semibold">{{ statusIcon(displayStatus(field)) }}</span>
           <span class="min-w-0">
             <span class="block text-xs font-semibold uppercase tracking-wide opacity-70">{{ field.label }}</span>
             <span v-if="field.value" class="block truncate">{{ shorten(field.value) }}</span>
             <span v-else class="block italic opacity-70">
               {{ field.required ? t('poster.wizard.missingRequired') : t('poster.wizard.missing') }}
             </span>
-            <span v-if="field.note" class="mt-0.5 block text-xs opacity-70">{{ field.note }}</span>
+            <span v-if="displayNote(field)" class="mt-0.5 block text-xs opacity-70">{{ displayNote(field) }}</span>
           </span>
         </li>
       </ul>
@@ -136,7 +139,7 @@
 
         <FormField v-model="form.end_at" type="datetime" :label="t('poster.wizard.endAt')" allow-past />
 
-        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
+        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required :error="venueNameError" maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
 
         <!-- Mesto musí byť záznam z číselníka, nie voľný text: `village_id` je
              na `venues` povinné a z preklepu ako „Nové Zámky-mesto" by vzniklo
@@ -165,7 +168,7 @@
 
         <FormField v-model="form.email" type="email" :label="t('poster.wizard.email')" maxlength="250" />
 
-        <FormField v-model="form.phone" :label="t('poster.wizard.phone')" maxlength="50" />
+        <FormField v-model="form.phone" type="tel" :label="t('poster.wizard.phone')" :error="phoneError" maxlength="50" />
 
         <FormField :label="t('poster.wizard.description')" class="sm:col-span-2">
           <HtmlEditor v-model="form.description" :placeholder="t('poster.wizard.descriptionPlaceholder')" />
@@ -311,6 +314,7 @@ import type { LookupOption } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { register as registerAccount } from '@/api/auth'
 import { t } from '@/i18n'
+import { isValidPhone } from '@/utils/contact'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import {
@@ -319,6 +323,7 @@ import {
   fetchPosterDraft,
   rememberPosterDraft,
   type PosterDraft,
+  type PosterField,
   type PosterFieldStatus,
   type PosterOverrides,
 } from '@/api/posters'
@@ -407,7 +412,33 @@ const account = reactive({
   mode: 'register' as 'register' | 'login',
 })
 
+/** Pod tento počet znakov AI nemá z čoho čítať (rovnaké minimum ako na serveri). */
+const MIN_TEXT_LENGTH = 30
+const pastedTextTooShort = computed(() => pastedText.value.trim().length < MIN_TEXT_LENGTH)
+
+/**
+ * Prehľad nálezov prichádza zo servera a o názve miesta nevie, čo človek
+ * dopísal — keď je z plagátu len adresa, ✓ by klamalo. Preto stav miesta
+ * počítame tu: kým nie je názov vyplnený, miesto sa za nájdené nepovažuje.
+ */
+function displayStatus(field: PosterField): PosterFieldStatus {
+  if (field.key === 'venue' && form.venueName.trim() === '') return 'guessed'
+  return field.status
+}
+
+function displayNote(field: PosterField): string | null {
+  if (field.key === 'venue' && form.venueName.trim() === '') return t('poster.wizard.venueNameRequired')
+  return field.note
+}
+
+const venueNameError = computed(() =>
+  validation.validated.value && form.venueName.trim() === '' ? t('poster.wizard.venueNameRequired') : null,
+)
+
+const phoneError = computed(() => (isValidPhone(form.phone) ? null : t('common.phoneInvalid')))
+
 const formComplete = computed(() =>
+  isValidPhone(form.phone) &&
   form.title.trim() !== '' &&
   form.start_at.trim() !== '' &&
   form.venueName.trim() !== '' &&

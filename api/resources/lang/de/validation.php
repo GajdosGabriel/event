@@ -186,6 +186,8 @@ return [
 
     'attributes' => [
         'postcode' => 'Die Postleitzahl',
+        'city' => 'Die Stadt',
+        'street' => 'Die Straße',
         'price_amount' => 'Der Preis',
         'min_per_order' => 'Die Mindestmenge pro Bestellung',
         'max_per_order' => 'Die Höchstmenge pro Bestellung',

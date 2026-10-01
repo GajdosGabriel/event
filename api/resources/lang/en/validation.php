@@ -207,6 +207,8 @@ return [
 
     'attributes' => [
         'postcode' => 'postal code',
+        'city' => 'city',
+        'street' => 'street',
         'price_amount' => 'price',
         'min_per_order' => 'minimum per order',
         'max_per_order' => 'maximum per order',

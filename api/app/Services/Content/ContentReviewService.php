@@ -2,6 +2,7 @@
 
 namespace App\Services\Content;
 
+use App\Support\EventDateRange;
 use App\Enums\CanalNotificationTopic;
 use App\Services\Canals\CanalRecipients;
 use App\Enums\ModelStatus;
@@ -252,7 +253,7 @@ class ContentReviewService
             'Obec' => (string) ($model->relationLoaded('municipality')
                 ? $model->municipality?->name
                 : $model->getAttribute('city')),
-            'Začiatok' => $model->getAttribute('start_at')?->format('d. m. Y H:i') ?? '',
+            'Začiatok' => EventDateRange::moment($model->getAttribute('start_at')) ?? '',
         ], 'filled');
     }
 

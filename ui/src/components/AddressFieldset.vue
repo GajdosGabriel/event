@@ -29,7 +29,7 @@
       <FormField
         v-model="postcode"
         :label="t('address.postcode')"
-        :error="errors?.['postcode']"
+        :error="errors?.['postcode'] ?? postcodeError"
         autocomplete="postal-code"
       />
       <FormField
@@ -65,6 +65,7 @@ import FormField from '@/components/FormField.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { t } from '@/i18n'
+import { isValidPostcode } from '@/utils/contact'
 import type { AddressModel } from '@/types'
 
 const props = withDefaults(defineProps<{
@@ -101,6 +102,11 @@ const postcode = computed({
   get: () => model.value.postcode,
   set: (value: string) => patch({ postcode: value ?? '' }),
 })
+
+/** Rovnaké pravidlo ako na serveri — hláška hneď, nie až po uložení. */
+const postcodeError = computed(() =>
+  isValidPostcode(model.value.postcode, model.value.country) ? null : t('common.postcodeInvalid'),
+)
 
 const country = computed({
   get: () => model.value.country,

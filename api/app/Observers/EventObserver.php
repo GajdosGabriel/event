@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Support\EventDateRange;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Models\Subscription;
@@ -129,7 +130,7 @@ class EventObserver
         if ($event->wasChanged('start_at')) {
             $changes[] = __('mail.event_changed.change_start', [
                 'from' => $this->formatDate($event->getOriginal('start_at')),
-                'to' => $event->start_at?->format('d. m. Y H:i') ?? '—',
+                'to' => EventDateRange::moment($event->start_at) ?? '—',
             ]);
         }
 
@@ -150,7 +151,7 @@ class EventObserver
         }
 
         try {
-            return Carbon::parse($raw)->format('d. m. Y H:i');
+            return EventDateRange::moment(Carbon::parse($raw, 'UTC'));
         } catch (\Throwable) {
             return '—';
         }

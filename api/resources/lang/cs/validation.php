@@ -186,6 +186,8 @@ return [
 
     'attributes' => [
         'postcode' => 'PSČ',
+        'city' => 'město',
+        'street' => 'ulice',
         'price_amount' => 'cena',
         'min_per_order' => 'nejméně na objednávku',
         'max_per_order' => 'nejvíce na objednávku',

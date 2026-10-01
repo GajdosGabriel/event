@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Services\Calendar\EventCalendarLinks;
@@ -54,7 +55,7 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
                 'greeting' => __('mail.common.greeting'),
                 'eventName' => $this->event->name,
                 'eventUrl' => PublicUrl::event($this->event),
-                'startsAt' => $this->event->start_at?->format('d. m. Y H:i'),
+                'startsAt' => EventDateRange::moment($this->event->start_at),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
                 'unsubscribeUrl' => PublicUrl::unsubscribe((string) $this->subscription->token),

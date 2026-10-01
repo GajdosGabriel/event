@@ -177,6 +177,8 @@ const sk = {
     // Polia, ktoré má detail eventu, kanála aj miesta rovnaké
     contact: 'Kontakt',
     phone: 'Telefón',
+    phoneInvalid: 'Zadajte platné telefónne číslo: číslice, +, medzery, pomlčky, zátvorky (6 – 20 znakov), napr. +421 900 123 456.',
+    postcodeInvalid: 'PSČ musí mať 5 číslic, napr. 811 01.',
     email: 'E-mail',
     contactList: {
       addEmail: 'Pridať ďalší e-mail',
@@ -350,6 +352,8 @@ const sk = {
       textToggleOff: 'Nemám súbor — vložím text pozvánky',
       textPlaceholder: 'Vložte text pozvánky alebo popis podujatia…',
       textSubmit: 'Spracovať text',
+      textMinHint: 'Na spracovanie treba aspoň {min} znakov – zatiaľ {count}.',
+      venueNameRequired: 'Doplňte názov miesta konania (napr. Kultúrny dom) – adresa sama nestačí.',
       analyzeFailed: 'Plagát sa nepodarilo spracovať.',
       scanNote: 'Skenovaný plagát trvá dlhšie — čítame ho z obrázka.',
       textNote: 'Spracovanie textu chvíľu trvá — hľadáme termín, miesto a organizátora.',

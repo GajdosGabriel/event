@@ -163,6 +163,8 @@ const cs: Messages = {
     actionFailed: 'Akce selhala.',
     contact: 'Kontakt',
     phone: 'Telefon',
+    phoneInvalid: 'Zadejte platné telefonní číslo: číslice, +, mezery, pomlčky, závorky (6 – 20 znaků), např. +420 777 123 456.',
+    postcodeInvalid: 'PSČ musí mít 5 číslic, např. 110 00.',
     email: 'E-mail',
     contactList: {
       addEmail: 'Přidat další e-mail',
@@ -329,6 +331,8 @@ const cs: Messages = {
       textToggleOff: 'Nemám soubor — vložím text pozvánky',
       textPlaceholder: 'Vložte text pozvánky nebo popis akce…',
       textSubmit: 'Zpracovat text',
+      textMinHint: 'Ke zpracování je potřeba alespoň {min} znaků – zatím {count}.',
+      venueNameRequired: 'Doplňte název místa konání (např. Kulturní dům) – samotná adresa nestačí.',
       analyzeFailed: 'Plakát se nepodařilo zpracovat.',
       scanNote: 'Skenovaný plakát trvá déle — čteme ho z obrázku.',
       textNote: 'Zpracování textu chvíli trvá — hledáme termín, místo a pořadatele.',
