@@ -2,24 +2,21 @@
 
 namespace Tests\Feature\Events;
 
-
 use App\Enums\FileType;
-use PHPUnit\Framework\Attributes\Test;
-use Tests\TestSupport\EventSetupTest;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Venue;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
-
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestSupport\EventSetupTest;
 
 class DashboardEventShowTest extends EventSetupTest
 {
-
     #[Test]
     public function user_can_see_one_event()
     {
-        $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $response->assertStatus(200);
 
@@ -32,7 +29,7 @@ class DashboardEventShowTest extends EventSetupTest
             'user_id' => $this->futureEvent->user_id,
             'start_at' => $this->futureEvent->start_at,
             'venue_id' => $this->futureEvent->venue_id,
-            'end_at' => $this->futureEvent->end_at
+            'end_at' => $this->futureEvent->end_at,
         ]);
     }
 
@@ -41,9 +38,9 @@ class DashboardEventShowTest extends EventSetupTest
     {
         Storage::fake('public');
 
-        $originalPath = 'event/' . $this->futureEvent->id . '/image/source.jpg';
-        $thumbPath = 'event/' . $this->futureEvent->id . '/image/source_thumb.jpg';
-        $largePath = 'event/' . $this->futureEvent->id . '/image/source_large.jpg';
+        $originalPath = 'event/'.$this->futureEvent->id.'/image/source.jpg';
+        $thumbPath = 'event/'.$this->futureEvent->id.'/image/source_thumb.jpg';
+        $largePath = 'event/'.$this->futureEvent->id.'/image/source_large.jpg';
 
         Storage::disk('public')->put($originalPath, 'original');
         Storage::disk('public')->put($thumbPath, 'thumb');
@@ -64,7 +61,7 @@ class DashboardEventShowTest extends EventSetupTest
             'is_primary' => true,
         ]);
 
-        $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $thumbUrl = Storage::url($thumbPath);
         $largeUrl = Storage::url($largePath);
@@ -85,7 +82,7 @@ class DashboardEventShowTest extends EventSetupTest
             'end_at' => Carbon::parse('2026-04-28 20:30:00'),
         ]);
 
-        $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('date_range_label', '28. 04. 2026 19:30 - 22:30')
@@ -101,7 +98,7 @@ class DashboardEventShowTest extends EventSetupTest
             'end_at' => Carbon::parse('2026-05-08 10:30:00'),
         ]);
 
-        $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('date_range_label', '01. 05. 2026 18:00 - 08. 05. 2026 12:30')
@@ -117,7 +114,7 @@ class DashboardEventShowTest extends EventSetupTest
             'end_at' => Carbon::parse('2026-05-09 10:30:00'),
         ]);
 
-        $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('date_range_label', '01. 05. 2026 18:00 - 09. 05. 2026 12:30')
@@ -139,7 +136,7 @@ class DashboardEventShowTest extends EventSetupTest
             'venue_id' => $foreignVenue->id,
         ]);
 
-        $response = $this->getJson('/api/dashboard/events/' . $foreignEvent->id);
+        $response = $this->getJson('/api/dashboard/events/'.$foreignEvent->id);
 
         $response->assertStatus(404);
     }
