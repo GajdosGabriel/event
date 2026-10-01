@@ -5,11 +5,27 @@ namespace App\Rules;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use Closure;
+use Illuminate\Contracts\Validation\DataAwareRule;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Carbon;
 
-class EventDatetimeRule implements ValidationRule
+class EventDatetimeRule implements DataAwareRule, ValidationRule
 {
+    /** @var array<string, mixed> */
+    private array $data = [];
+
+    /**
+     * Validované dáta (po prepareForValidation, teda už v UTC). Globálny
+     * `request()` drží pôvodný vstup bez prepočtu zóny, takže start_at z neho
+     * by sa porovnával s end_at v inej zóne.
+     */
+    public function setData(array $data): static
+    {
+        $this->data = $data;
+
+        return $this;
+    }
+
     /**
      * Run the validation rule.
      *
@@ -23,14 +39,15 @@ class EventDatetimeRule implements ValidationRule
             // end_at musi byt vzdy striktne po start_at.
             // Toto plati pre draft aj publikovany event.
             if ($attribute === 'end_at') {
-                $startAtRaw = request()->input('start_at');
+                $startAtRaw = $this->data['start_at'] ?? request()->input('start_at');
 
                 if ($startAtRaw !== null) {
                     try {
                         $startAt = Carbon::parse($startAtRaw);
 
-                        if (!$datetime->gt($startAt)) {
+                        if (! $datetime->gt($startAt)) {
                             $fail(__('events.errors.end_after_start'));
+
                             return;
                         }
                     } catch (\Exception) {
@@ -41,7 +58,7 @@ class EventDatetimeRule implements ValidationRule
 
             // Datum v minulosti zakazujeme iba pre nepublikovane eventy.
             // Po publikovani je povolene upravit event aj na historicky termin.
-            if (!$this->isPublishedEvent() && !$datetime->gt(now())) {
+            if (! $this->isPublishedEvent() && ! $datetime->gt(now())) {
                 $fail(__('events.errors.datetime_future'));
             }
         } catch (\Exception) {
@@ -56,7 +73,7 @@ class EventDatetimeRule implements ValidationRule
         $publishedAt = $request->input('published_at');
 
         // Pri create/update berieme publikovanie priamo zo vstupu.
-        if ($status === ModelStatus::Published->value || !empty($publishedAt)) {
+        if ($status === ModelStatus::Published->value || ! empty($publishedAt)) {
             return true;
         }
 

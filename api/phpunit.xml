@@ -22,6 +22,7 @@
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
+        <env name="CACHE_LIMITER_STORE" value="array"/>
         <!-- Testy musia zapisovať lokálne. Bez tohto by zdedili FILESYSTEM_DISK
              z .env a pri prepnutí na s3 by písali do reálneho bucketu. -->
         <env name="FILESYSTEM_DISK" value="public"/>

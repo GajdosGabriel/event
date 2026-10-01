@@ -88,7 +88,7 @@ class DashboardEventShowTest extends EventSetupTest
         $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
 
         $response->assertStatus(200)
-            ->assertJsonPath('date_range_label', '28. 04. 2026 17:30 - 20:30')
+            ->assertJsonPath('date_range_label', '28. 04. 2026 19:30 - 22:30')
             ->assertJsonPath('date_range_days.start', 'Utorok')
             ->assertJsonPath('date_range_days.end', null);
     }
@@ -104,7 +104,7 @@ class DashboardEventShowTest extends EventSetupTest
         $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
 
         $response->assertStatus(200)
-            ->assertJsonPath('date_range_label', '01. 05. 2026 16:00 - 08. 05. 2026 10:30')
+            ->assertJsonPath('date_range_label', '01. 05. 2026 18:00 - 08. 05. 2026 12:30')
             ->assertJsonPath('date_range_days.start', 'Piatok')
             ->assertJsonPath('date_range_days.end', 'Piatok');
     }
@@ -120,7 +120,7 @@ class DashboardEventShowTest extends EventSetupTest
         $response = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id);
 
         $response->assertStatus(200)
-            ->assertJsonPath('date_range_label', '01. 05. 2026 16:00 - 09. 05. 2026 10:30')
+            ->assertJsonPath('date_range_label', '01. 05. 2026 18:00 - 09. 05. 2026 12:30')
             ->assertJsonPath('date_range_days.start', 'Piatok')
             ->assertJsonPath('date_range_days.end', 'Sobota');
     }
