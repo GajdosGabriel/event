@@ -3,11 +3,10 @@
 namespace Tests\Feature\Venues;
 
 use App\Enums\ModelStatus;
-
+use App\Models\Canal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use App\Models\Canal;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -18,15 +17,15 @@ class DashboardVenueStoreTest extends EventSetupTest
         return [
             'canal_id' => $this->canalPrimary->id,
             'village_id' => (int) DB::table('municipalities')->value('id'),
-            'name' => 'Venue ' . Str::random(8),
+            'name' => 'Venue '.Str::random(8),
             'street' => 'Main Street 1',
             'postcode' => '811 01',
-            'body' => 'Venue body ' . Str::random(16),
+            'body' => 'Venue body '.Str::random(16),
             'country' => 'Slovensko',
         ];
     }
 
-#[Test]
+    #[Test]
     public function store_rejects_out_of_range_coordinates_and_capacity(): void
     {
         foreach ([
@@ -53,7 +52,7 @@ class DashboardVenueStoreTest extends EventSetupTest
         $payload = [
             'canal_id' => $this->canalPrimary->id,
             'village_id' => (int) DB::table('municipalities')->value('id'),
-            'name' => 'Venue ' . Str::random(8),
+            'name' => 'Venue '.Str::random(8),
         ];
 
         $response = $this->postJson('/api/dashboard/venues', $payload);

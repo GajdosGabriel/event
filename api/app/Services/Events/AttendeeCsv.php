@@ -38,9 +38,7 @@ class AttendeeCsv
         'Objednané',
     ];
 
-    public function __construct(private readonly AttendeeDirectory $directory)
-    {
-    }
+    public function __construct(private readonly AttendeeDirectory $directory) {}
 
     public function response(Event $event): StreamedResponse
     {
@@ -101,13 +99,13 @@ class AttendeeCsv
             return '';
         }
 
-        return number_format($amount / 100, 2, ',', '') . ' ' . ($currency ?? 'EUR');
+        return number_format($amount / 100, 2, ',', '').' '.($currency ?? 'EUR');
     }
 
     private function filename(Event $event): string
     {
         $slug = trim((string) $event->slug) ?: 'podujatie';
 
-        return 'ucastnici-' . $slug . '-' . now()->format('Y-m-d') . '.csv';
+        return 'ucastnici-'.$slug.'-'.now()->format('Y-m-d').'.csv';
     }
 }

@@ -51,7 +51,7 @@ class DashboardFileController extends Controller
             // Typ je povinný len pri dopyte na konkrétny záznam; vo výpise
             // celého dashboardu je to nepovinný filter.
             'fileable_type' => [$request->filled('fileable_id') ? 'required' : 'sometimes', 'string', 'in:canal,event,venue'],
-            'fileable_id'   => ['sometimes', 'integer', 'min:1'],
+            'fileable_id' => ['sometimes', 'integer', 'min:1'],
         ] + $this->fileListingRules());
 
         if (! $request->filled('fileable_id')) {
@@ -209,8 +209,8 @@ class DashboardFileController extends Controller
     public function reorder(Request $request): JsonResponse
     {
         $request->validate([
-            'items'            => ['required', 'array'],
-            'items.*.id'       => ['required', 'integer'],
+            'items' => ['required', 'array'],
+            'items.*.id' => ['required', 'integer'],
             'items.*.sort_order' => ['required', 'integer', 'min:0'],
         ]);
 

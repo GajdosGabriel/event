@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Enums\CanalIdentityMode;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Rules\PhoneNumber;
+use App\Rules\Postcode;
 use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -40,13 +42,13 @@ class CanalStoreRequest extends FormRequest
             'title_suffix' => 'nullable|string|max:50',
             'body' => 'nullable|string',
             'email' => 'nullable|email:filter|max:150',
-            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
-            'phone' => 'nullable|string|max:20',
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
+            'phone' => ['nullable', 'string', 'max:20', new PhoneNumber],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'municipality_id' => 'required|integer|exists:municipalities,id',
             'street' => 'nullable|string|max:250',
-            'postcode' => 'nullable|string|max:20',
+            'postcode' => ['nullable', 'string', 'max:20', new Postcode],
             'country' => 'nullable|string|max:100',
             // Presnost suradnic: budova / adresa / odhad AI / stred obce / rucne.
             'coordinates_source' => ['nullable', 'string', Rule::in(['venue', 'address', 'ai', 'municipality', 'manual'])],

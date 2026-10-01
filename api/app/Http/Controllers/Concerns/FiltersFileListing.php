@@ -46,14 +46,14 @@ trait FiltersFileListing
     protected function fileListingRules(): array
     {
         return [
-            'search'       => ['sometimes', 'string', 'max:100'],
+            'search' => ['sometimes', 'string', 'max:100'],
             'with_trashed' => ['sometimes', 'boolean'],
             // Len zmazané — druhá poloha toho istého prepínača ako `with_trashed`.
-            'deleted'      => ['sometimes', 'boolean'],
-            'kind'         => ['sometimes', 'string', 'in:' . implode(',', File::KINDS)],
-            'sort'         => ['sometimes', 'string', 'in:newest,oldest,name,largest,smallest'],
-            'date_from'    => ['sometimes', 'date'],
-            'date_to'      => ['sometimes', 'date'],
+            'deleted' => ['sometimes', 'boolean'],
+            'kind' => ['sometimes', 'string', 'in:'.implode(',', File::KINDS)],
+            'sort' => ['sometimes', 'string', 'in:newest,oldest,name,largest,smallest'],
+            'date_from' => ['sometimes', 'date'],
+            'date_to' => ['sometimes', 'date'],
         ];
     }
 

@@ -19,6 +19,7 @@ use App\Services\Imports\ImportedVenueManager;
 use App\Services\Imports\PdfConverterService;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Support\ContactList;
+use App\Support\LocalDateTime;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -393,17 +394,13 @@ class PosterDraftMaterializer
         }
     }
 
+    /**
+     * Čas z plagátu (AI aj oprava z formulára) je čas na hodinách organizátora —
+     * do databázy ide v UTC, rovnako ako pri sprievodcovi podujatia.
+     */
     private function parseDate(mixed $value): ?Carbon
     {
-        if (! is_string($value) || trim($value) === '') {
-            return null;
-        }
-
-        try {
-            return Carbon::parse($value, config('app.timezone', 'Europe/Bratislava'));
-        } catch (\Throwable) {
-            return null;
-        }
+        return LocalDateTime::toUtcOrNull($value);
     }
 
     private function stringOrNull(mixed $value): ?string

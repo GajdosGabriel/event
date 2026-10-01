@@ -6,15 +6,15 @@ use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Rules\EventDatetimeRule;
+use App\Rules\PhoneNumber;
 use App\Rules\WebsiteUrl;
+use App\Support\LocalDateTime;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class EventStoreRequest extends FormRequest
 {
-    private const INPUT_TIMEZONE = 'Europe/Bratislava';
-
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -36,14 +36,15 @@ class EventStoreRequest extends FormRequest
         foreach (['start_at', 'end_at', 'publish_at', 'registration_deadline_at'] as $field) {
             $value = $this->input($field);
 
-            if (! is_string($value) || trim($value) === '' || preg_match('/(Z|[+-]\d{2}:?\d{2})$/i', trim($value))) {
+            if (! is_string($value) || trim($value) === '' || LocalDateTime::hasZone($value)) {
                 continue;
             }
 
-            try {
-                $converted[$field] = Carbon::parse($value, self::INPUT_TIMEZONE)->utc()->toIso8601String();
-            } catch (\Exception) {
-                // Nepoužiteľný vstup necháme spadnúť na validačné pravidlá.
+            // Nepoužiteľný vstup necháme spadnúť na validačné pravidlá.
+            $utc = LocalDateTime::toUtcOrNull($value);
+
+            if ($utc !== null) {
+                $converted[$field] = $utc->toIso8601String();
             }
         }
 
@@ -85,11 +86,11 @@ class EventStoreRequest extends FormRequest
             'publish_at' => $this->publishAtRules(),
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'email' => 'nullable|email|max:100',
-            'phone' => 'nullable|string|max:30',
+            'phone' => ['nullable', 'string', 'max:30', new PhoneNumber],
             'additional_emails' => ['nullable', 'array', 'max:10'],
             'additional_emails.*' => ['required', 'email', 'max:100', 'distinct:ignore_case'],
             'additional_phones' => ['nullable', 'array', 'max:10'],
-            'additional_phones.*' => ['required', 'string', 'max:30', 'distinct'],
+            'additional_phones.*' => ['required', 'string', 'max:30', 'distinct', new PhoneNumber],
             'price_amount' => ['nullable', 'integer', 'min:0'],
             'price_currency' => ['sometimes', 'string', 'size:3'],
             // Chýbajúci kľúč znamená „štítkov sa nedotýkaj", prázdne pole

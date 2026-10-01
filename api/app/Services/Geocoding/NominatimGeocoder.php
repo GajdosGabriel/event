@@ -140,6 +140,7 @@ class NominatimGeocoder
                         'status' => $response?->status(),
                         'candidates' => [],
                     ];
+
                     continue;
                 }
 
@@ -150,6 +151,7 @@ class NominatimGeocoder
                         'http_ok' => true,
                         'candidates' => [],
                     ];
+
                     continue;
                 }
 
@@ -276,7 +278,7 @@ class NominatimGeocoder
             return Http::timeout(10)
                 ->acceptJson()
                 ->withHeaders(['User-Agent' => $this->userAgent()])
-                ->get($this->baseUrl() . '/search', $params);
+                ->get($this->baseUrl().'/search', $params);
         } catch (\Throwable) {
             return null;
         }
@@ -360,7 +362,7 @@ class NominatimGeocoder
      */
     private function structuredLookup(string $kind, array $params, callable $accepts): array
     {
-        $cacheKey = 'venue_detection:nominatim_' . $kind . ':' . sha1(json_encode($params) ?: implode('|', $params));
+        $cacheKey = 'venue_detection:nominatim_'.$kind.':'.sha1(json_encode($params) ?: implode('|', $params));
 
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
@@ -517,12 +519,12 @@ class NominatimGeocoder
 
         $appName = trim((string) config('app.name', 'Event API'));
 
-        return $appName . ' geocoder';
+        return $appName.' geocoder';
     }
 
     private function cacheKey(array $queries): string
     {
-        return 'venue_detection:nominatim:' . sha1(implode('|', $queries));
+        return 'venue_detection:nominatim:'.sha1(implode('|', $queries));
     }
 
     private function cacheTtl(): int
@@ -710,7 +712,7 @@ class NominatimGeocoder
                 $variants[] = $synonym;
 
                 if ($asciiName !== '') {
-                    $variants[] = preg_replace('/\s+/u', ' ', trim($synonym . ' ' . $this->extractLikelyLocalitySuffix($asciiName))) ?: $synonym;
+                    $variants[] = preg_replace('/\s+/u', ' ', trim($synonym.' '.$this->extractLikelyLocalitySuffix($asciiName))) ?: $synonym;
                 }
             }
         }
@@ -884,7 +886,7 @@ class NominatimGeocoder
         $lastToken = array_pop($parts);
         $baseName = trim(implode(' ', $parts));
         if ($baseName !== '' && is_string($lastToken) && $lastToken !== '') {
-            $variants[] = $baseName . ', ' . $lastToken;
+            $variants[] = $baseName.', '.$lastToken;
         }
 
         if (count($parts) >= 2) {
@@ -894,7 +896,7 @@ class NominatimGeocoder
             $suffixName = trim(implode(' ', $lastTwo));
 
             if ($prefixName !== '' && $suffixName !== '') {
-                $variants[] = $prefixName . ', ' . $suffixName;
+                $variants[] = $prefixName.', '.$suffixName;
             }
         }
 

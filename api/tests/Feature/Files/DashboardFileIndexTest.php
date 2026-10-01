@@ -25,15 +25,15 @@ class DashboardFileIndexTest extends EventSetupTest
     {
         return File::create(array_merge([
             'fileable_type' => $type,
-            'fileable_id'   => $id,
-            'name'          => $name,
+            'fileable_id' => $id,
+            'name' => $name,
             'original_name' => $name,
-            'extension'     => 'jpg',
-            'size'          => 1024,
-            'mime_type'     => 'image/jpeg',
-            'disk'          => 'public',
-            'path'          => 'files/' . $name,
-            'type'          => FileType::IMAGE->value,
+            'extension' => 'jpg',
+            'size' => 1024,
+            'mime_type' => 'image/jpeg',
+            'disk' => 'public',
+            'path' => 'files/'.$name,
+            'type' => FileType::IMAGE->value,
         ], $attributes));
     }
 
@@ -86,7 +86,7 @@ class DashboardFileIndexTest extends EventSetupTest
     {
         $file = $this->makeFile(Event::class, $this->futureEvent->id, 'priloha.jpg');
 
-        $response = $this->getJson('/api/dashboard/files?fileable_type=event&fileable_id=' . $this->futureEvent->id);
+        $response = $this->getJson('/api/dashboard/files?fileable_type=event&fileable_id='.$this->futureEvent->id);
 
         $response->assertOk();
 
@@ -95,7 +95,7 @@ class DashboardFileIndexTest extends EventSetupTest
 
     public function test_fileable_id_without_type_is_rejected(): void
     {
-        $this->getJson('/api/dashboard/files?fileable_id=' . $this->futureEvent->id)
+        $this->getJson('/api/dashboard/files?fileable_id='.$this->futureEvent->id)
             ->assertStatus(422);
     }
 
@@ -110,10 +110,10 @@ class DashboardFileIndexTest extends EventSetupTest
         $pdf = $this->makeFile(Event::class, $this->futureEvent->id, 'program.pdf', [
             'extension' => 'pdf',
             'mime_type' => 'application/pdf',
-            'type'      => FileType::FILE->value,
+            'type' => FileType::FILE->value,
         ]);
 
-        $ids = fn (string $kind) => collect($this->getJson('/api/dashboard/files?kind=' . $kind)->json('data'))
+        $ids = fn (string $kind) => collect($this->getJson('/api/dashboard/files?kind='.$kind)->json('data'))
             ->pluck('id')->all();
 
         $this->assertContains($image->id, $ids('image'));
@@ -150,7 +150,7 @@ class DashboardFileIndexTest extends EventSetupTest
         $trashed = $this->makeFile(Event::class, $this->futureEvent->id, 'kos.jpg');
         $trashed->delete();
 
-        $ids = fn (string $query) => collect($this->getJson('/api/dashboard/files?' . $query)->json('data'))
+        $ids = fn (string $query) => collect($this->getJson('/api/dashboard/files?'.$query)->json('data'))
             ->pluck('id')->all();
 
         $default = $ids('');
@@ -175,7 +175,7 @@ class DashboardFileIndexTest extends EventSetupTest
         $fresh = $this->makeFile(Event::class, $this->futureEvent->id, 'novy.jpg');
 
         $ids = collect(
-            $this->getJson('/api/dashboard/files?date_from=' . now()->subDay()->toDateString())->json('data')
+            $this->getJson('/api/dashboard/files?date_from='.now()->subDay()->toDateString())->json('data')
         )->pluck('id')->all();
 
         $this->assertContains($fresh->id, $ids);

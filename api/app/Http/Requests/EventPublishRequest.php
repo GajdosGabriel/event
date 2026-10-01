@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Event;
 use App\Rules\EventDatetimeRule;
+use App\Rules\PhoneNumber;
 use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -85,11 +86,11 @@ class EventPublishRequest extends FormRequest
             'venue_id' => ['required', 'integer', 'exists:venues,id'],
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'email' => ['nullable', 'email', 'max:100'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30', new PhoneNumber],
             'additional_emails' => ['nullable', 'array', 'max:10'],
             'additional_emails.*' => ['required', 'email', 'max:100'],
             'additional_phones' => ['nullable', 'array', 'max:10'],
-            'additional_phones.*' => ['required', 'string', 'max:30'],
+            'additional_phones.*' => ['required', 'string', 'max:30', new PhoneNumber],
         ];
     }
 }

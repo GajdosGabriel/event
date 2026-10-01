@@ -15,7 +15,9 @@ use Carbon\Carbon;
 class PosterAnalysisReport
 {
     public const STATUS_FOUND = 'found';
+
     public const STATUS_MISSING = 'missing';
+
     public const STATUS_GUESSED = 'guessed';
 
     /**

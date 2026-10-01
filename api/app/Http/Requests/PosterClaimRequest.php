@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -28,7 +29,7 @@ class PosterClaimRequest extends FormRequest
             // dlhšia hodnota by pri zápise spadla na chybe databázy namiesto
             // zrozumiteľnej validačnej hlášky.
             'overrides.email' => ['sometimes', 'nullable', 'email', 'max:100'],
-            'overrides.phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'overrides.phone' => ['sometimes', 'nullable', 'string', 'max:20', new PhoneNumber],
             'overrides.description' => ['sometimes', 'nullable', 'string', 'max:50000'],
             'overrides.canal_id' => ['sometimes', 'nullable', 'integer'],
 

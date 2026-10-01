@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Rules\PhoneNumber;
+use App\Rules\Postcode;
 use App\Rules\WebsiteUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -38,11 +40,11 @@ class VenueStoreRequest extends FormRequest
             'village_id' => 'required|integer|exists:municipalities,id',
             'name' => 'required|string|max:250',
             'street' => 'nullable|string|max:250',
-            'postcode' => 'nullable|string|max:250',
+            'postcode' => ['nullable', 'string', 'max:20', new Postcode],
             'body' => 'nullable|string',
-            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl()],
+            'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'email' => 'nullable|email|max:100',
-            'phone' => 'nullable|string|max:20',
+            'phone' => ['nullable', 'string', 'max:20', new PhoneNumber],
             'country' => 'nullable|string|max:100',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',

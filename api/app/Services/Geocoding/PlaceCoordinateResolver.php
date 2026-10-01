@@ -19,8 +19,8 @@ class PlaceCoordinateResolver
     private readonly VenueCoordinateResolver $venueCoordinateResolver;
 
     public function __construct(
-        NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        ChatGPT $chatGPT = new ChatGPT(),
+        NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
+        ChatGPT $chatGPT = new ChatGPT,
         ?VenueCoordinateResolver $venueCoordinateResolver = null,
     ) {
         $this->venueCoordinateResolver = $venueCoordinateResolver

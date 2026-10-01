@@ -36,8 +36,8 @@ class VenueCoordinateResolver
     private const AI_MAX_DISTANCE_KM = 25.0;
 
     public function __construct(
-        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
+        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
+        private readonly ChatGPT $chatGPT = new ChatGPT,
     ) {}
 
     /**

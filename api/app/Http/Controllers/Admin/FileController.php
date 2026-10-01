@@ -25,7 +25,7 @@ class FileController extends Controller
 
         $request->validate([
             'fileable_type' => ['sometimes', 'string', 'in:canal,event,venue'],
-            'fileable_id'   => ['sometimes', 'integer', 'min:1'],
+            'fileable_id' => ['sometimes', 'integer', 'min:1'],
         ] + $this->fileListingRules());
 
         $query = File::query();
@@ -33,7 +33,7 @@ class FileController extends Controller
         $this->applyFileTrashState($query, $request);
 
         if ($request->filled('fileable_type')) {
-            $query->where('fileable_type', 'App\\Models\\' . ucfirst($request->fileable_type));
+            $query->where('fileable_type', 'App\\Models\\'.ucfirst($request->fileable_type));
         }
 
         if ($request->filled('fileable_id')) {

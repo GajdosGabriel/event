@@ -119,7 +119,7 @@ class PosterUploadTest extends TestCase
         $this->app->instance(Detector::class, $detector);
 
         $text = 'Púť na Staré Hory sa koná od 5. do 7. augusta 2026. '
-            . 'Začíname svätou omšou v Chrenovci, nocľah v Turčianskych Tepliciach.';
+            .'Začíname svätou omšou v Chrenovci, nocľah v Turčianskych Tepliciach.';
 
         $response = $this->postJson('/api/poster/analyze', ['text' => $text]);
 
@@ -337,6 +337,45 @@ class PosterUploadTest extends TestCase
     }
 
     #[Test]
+    public function claiming_stores_poster_times_in_utc(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->unverified()->create(['canal_id' => null]);
+        $this->actingAs($user, 'sanctum');
+
+        foreach ([
+            ['2026-12-19 10:00', '2026-12-19 16:00', '2026-12-19 09:00:00', '2026-12-19 15:00:00'],
+            ['2026-07-18 10:00', '2026-07-18 16:00', '2026-07-18 08:00:00', '2026-07-18 14:00:00'],
+        ] as [$start, $end, $expectedStart, $expectedEnd]) {
+            PosterDraft::query()->delete();
+            $draft = $this->makeDraft();
+
+            $response = $this->postJson("/api/poster/drafts/{$draft->id}/claim", [
+                'token' => 'tajny-token',
+                'overrides' => ['start_at' => $start, 'end_at' => $end],
+            ])->assertStatus(201);
+
+            $event = Event::query()->findOrFail($response->json('event_id'));
+
+            $this->assertSame($expectedStart, $event->start_at->utc()->format('Y-m-d H:i:s'));
+            $this->assertSame($expectedEnd, $event->end_at->utc()->format('Y-m-d H:i:s'));
+        }
+    }
+
+    #[Test]
+    public function claiming_rejects_an_invalid_phone(): void
+    {
+        $draft = $this->makeDraft();
+        $this->actingAs(User::factory()->unverified()->create(['canal_id' => null]), 'sanctum');
+
+        $this->postJson("/api/poster/drafts/{$draft->id}/claim", [
+            'token' => 'tajny-token',
+            'overrides' => ['phone' => 'abc-telefon'],
+        ])->assertStatus(422)->assertJsonValidationErrors('overrides.phone');
+    }
+
+    #[Test]
     public function claiming_reuses_the_canal_the_user_already_has(): void
     {
         Storage::fake('public');
@@ -528,7 +567,7 @@ class PosterUploadTest extends TestCase
             'source_kind' => 'text',
             'extracted_text' => 'Letný koncert 21. augusta 2026 o 18:00.',
             'detection' => $detection,
-            'analysis' => (new PosterAnalysisReport())->build(
+            'analysis' => (new PosterAnalysisReport)->build(
                 $detection,
                 new PosterExtraction(text: 'Letný koncert', kind: 'text'),
             ),

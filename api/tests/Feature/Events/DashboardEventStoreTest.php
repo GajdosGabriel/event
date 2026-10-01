@@ -2,16 +2,15 @@
 
 namespace Tests\Feature\Events;
 
-use PHPUnit\Framework\Attributes\Test;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Models\Venue;
 use Carbon\Carbon;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
 class DashboardEventStoreTest extends EventSetupTest
 {
-
     #[Test]
     public function an_event_can_be_created_through_the_form(): void
     {
@@ -57,7 +56,6 @@ class DashboardEventStoreTest extends EventSetupTest
         ]);
     }
 
-
     #[Test]
     public function an_event_can_be_created_with_a_specific_status()
     {
@@ -72,7 +70,6 @@ class DashboardEventStoreTest extends EventSetupTest
             'canal_id' => $this->canalPrimary->id,
             'venue_id' => $venue->id,
         ])->toArray();
-
 
         // 3. Formátovanie všetkých dátumových polí
         $eventData['published_at'] = $eventData['published_at'];
@@ -89,7 +86,7 @@ class DashboardEventStoreTest extends EventSetupTest
         $this->assertDatabaseHas('events', [
             'name' => $eventData['name'],
             'status' => ModelStatus::Draft->value,
-            'user_id' => $this->user->id // Overenie vlastníctva
+            'user_id' => $this->user->id, // Overenie vlastníctva
         ]);
     }
 
@@ -97,7 +94,7 @@ class DashboardEventStoreTest extends EventSetupTest
     public function draft_event_can_be_created_with_only_title(): void
     {
         $eventData = [
-            'name' => 'Draft only title ' . uniqid(),
+            'name' => 'Draft only title '.uniqid(),
         ];
 
         $response = $this->postJson('/api/dashboard/events', $eventData);
@@ -151,7 +148,7 @@ class DashboardEventStoreTest extends EventSetupTest
         $start = Carbon::now('Europe/Bratislava')->addMonths(3)->setTime(18, 0);
 
         $response = $this->postJson('/api/dashboard/events', [
-            'name' => 'Časová zóna ' . uniqid(),
+            'name' => 'Časová zóna '.uniqid(),
             'start_at' => $start->format('Y-m-d\TH:i'),
             'end_at' => $start->copy()->addHours(2)->format('Y-m-d\TH:i'),
         ])->assertCreated();
@@ -166,7 +163,7 @@ class DashboardEventStoreTest extends EventSetupTest
     public function event_created_directly_as_published_gets_published_at(): void
     {
         $response = $this->postJson('/api/dashboard/events', [
-            'name' => 'Rovno publikované ' . uniqid(),
+            'name' => 'Rovno publikované '.uniqid(),
             'status' => ModelStatus::Published->value,
         ])->assertCreated();
 

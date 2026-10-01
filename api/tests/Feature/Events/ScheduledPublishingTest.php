@@ -21,7 +21,7 @@ class ScheduledPublishingTest extends EventSetupTest
     private function payload(array $overrides = []): array
     {
         return array_merge($this->futureEvent->toArray(), [
-            'name' => 'Naplánované podujatie - ' . Str::random(5),
+            'name' => 'Naplánované podujatie - '.Str::random(5),
             'start_at' => now()->addDays(10),
             'end_at' => now()->addDays(10)->addHours(2),
             'registration_deadline_at' => null,
@@ -37,14 +37,14 @@ class ScheduledPublishingTest extends EventSetupTest
         $past = $this->putJson("/api/dashboard/events/{$this->futureEvent->id}", $this->payload([
             'status' => ModelStatus::Scheduled->value,
             'publish_at' => now()->subDay()->toDateTimeString(),
-        ]), ["X-Locale" => "sk"]);
+        ]), ['X-Locale' => 'sk']);
         $past->assertStatus(422);
         $this->assertSame('Termín zverejnenia musí byť v budúcnosti.', $past->json('errors.publish_at.0'));
 
         $empty = $this->putJson("/api/dashboard/events/{$this->futureEvent->id}", $this->payload([
             'status' => ModelStatus::Scheduled->value,
             'publish_at' => null,
-        ]), ["X-Locale" => "sk"]);
+        ]), ['X-Locale' => 'sk']);
         $empty->assertStatus(422);
         $this->assertSame('Vyplňte, kedy sa má podujatie zverejniť.', $empty->json('errors.publish_at.0'));
     }

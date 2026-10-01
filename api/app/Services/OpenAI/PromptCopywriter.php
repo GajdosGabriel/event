@@ -14,7 +14,7 @@ class PromptCopywriter
                 'schema' => [
                     'type' => 'object',
                     'required' => [
-                        'event_body'
+                        'event_body',
                     ],
                     'properties' => [
                         'event_body' => ['type' => ['string', 'null']],
@@ -75,7 +75,7 @@ class PromptCopywriter
                     - Zachovaj cenu, miesto, datum, email.
                     - Nepouzivaj frazy typu 'srdecne vas pozyvame'
 
-                    Vrat iba validny JSON bez dalsieho textu."
+                    Vrat iba validny JSON bez dalsieho textu.",
             ],
         ];
     }

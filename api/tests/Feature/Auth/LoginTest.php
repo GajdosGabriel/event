@@ -2,19 +2,17 @@
 
 namespace Tests\Feature\Auth;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Notification;
-use Laravel\Sanctum\Sanctum;
-
+use Tests\TestCase;
 
 class LoginTest extends TestCase
 {
     use DatabaseTransactions;
+
     protected $user;
+
     /**
      * Test that the login form can be viewed.
      */
@@ -54,7 +52,6 @@ class LoginTest extends TestCase
         $response->assertUnauthorized();
         $this->assertGuest();
     }
-
 
     //  public function test_user_receives_an_email_with_a_password_reset_link()
     // {

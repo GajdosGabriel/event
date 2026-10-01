@@ -38,6 +38,7 @@ class AuthController extends Controller
             if (! $pending->expires_at?->isFuture()) {
                 $this->sendPendingConfirmation($pending);
             }
+
             return response()->json([
                 'message' => 'Email not verified',
                 'code' => 'email_not_verified',
