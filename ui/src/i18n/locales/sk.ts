@@ -865,6 +865,7 @@ const sk = {
       mapMissing: '{n} podujatí nie je na mape — ich miesto nemá súradnice.',
       mapTruncated: 'Ďalších {n} podujatí sa na mapu nezmestilo — zúžte výber filtrom.',
       mapShown: 'Na mape: {n}',
+      mapForeign: 'Zahraničné ({n})',
       mapMore: 'a ďalších {n}',
       mapWhen: { all: 'Všetky', today: 'Dnes', week: 'Najbližší týždeň', month: 'Najbližší mesiac' },
       viewLabel: 'Zobrazenie zoznamu',

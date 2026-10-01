@@ -810,6 +810,7 @@ const cs: Messages = {
       mapMissing: '{n} akcí není na mapě — jejich místo nemá souřadnice.',
       mapTruncated: 'Dalších {n} akcí se na mapu nevešlo — zužte výběr filtrem.',
       mapShown: 'Na mapě: {n}',
+      mapForeign: 'Zahraniční ({n})',
       mapMore: 'a dalších {n}',
       mapWhen: { all: 'Všechny', today: 'Dnes', week: 'Nejbližší týden', month: 'Nejbližší měsíc' },
       viewLabel: 'Zobrazení seznamu',

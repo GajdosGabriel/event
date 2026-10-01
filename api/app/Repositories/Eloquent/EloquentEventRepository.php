@@ -502,7 +502,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $query->getQuery()->bindings['select'] = [];
 
         $query->select(['events.id', 'events.name', 'events.slug', 'events.start_at', 'events.end_at', 'events.venue_id'])
-            ->with('venue:id,name,latitude,longitude')
+            ->with('venue:id,name,latitude,longitude,country')
             ->applyCommonFilters($filters);
 
         $total = (clone $query)->count();
@@ -519,6 +519,7 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
                     'name' => $event->venue->name,
                     'latitude' => $event->venue->latitude,
                     'longitude' => $event->venue->longitude,
+                    'country' => $event->venue->country,
                 ] : null,
             ])
             ->all();

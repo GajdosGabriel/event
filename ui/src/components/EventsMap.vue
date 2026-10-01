@@ -12,6 +12,14 @@
         :aria-pressed="when === option"
         @click="when = option"
       >{{ t(`public.list.mapWhen.${option}`) }}</button>
+      <button
+        v-if="foreignCount"
+        type="button"
+        class="chip"
+        :class="{ active: showForeign }"
+        :aria-pressed="showForeign"
+        @click="showForeign = !showForeign"
+      >{{ t('public.list.mapForeign', { n: foreignCount }) }}</button>
       <span class="ml-auto text-xs text-slate-500">{{ t('public.list.mapShown', { n: shownCount }) }}</span>
     </div>
     <div ref="mapEl" class="h-[32rem] w-full" />
@@ -57,24 +65,38 @@ const windows = ['all', 'today', 'week', 'month'] as const
 type MapWindow = typeof windows[number]
 
 const when = ref<MapWindow>('all')
+const showForeign = ref(false)
 
 const mapEl = useTemplateRef<HTMLElement>('mapEl')
 
 let map: L.Map | null = null
 let markers: L.LayerGroup | null = null
 
+/** Krajina je voľný text (importy, AI) — domáce je prázdna hodnota aj bežné zápisy Slovenska. */
+function isDomestic(country: string | null | undefined): boolean {
+  const value = (country ?? '').trim().toLowerCase()
+  return ['', 'sk', 'svk', 'slovakia', 'slovensko', 'slovak republic', 'slovenská republika'].includes(value)
+}
+
 /** Podujatia s miestom, ktoré má súradnice — ostatné na mape byť nemôžu. */
-const located = computed(() => props.events.flatMap((event) => {
+const allLocated = computed(() => props.events.flatMap((event) => {
   const point = pointOf(event.venue)
-  return point ? [{ event, point }] : []
+  return point ? [{ event, point, foreign: !isDomestic(event.venue?.country) }] : []
 }))
+
+const foreignCount = computed(() => allLocated.value.filter((item) => item.foreign).length)
+
+// Zahraničné miesta sú štandardne skryté — mapa by sa kvôli jedinému z nich
+// oddialila na pol Európy a slovenské špendlíky by sa zlievali.
+const located = computed(() =>
+  showForeign.value ? allLocated.value : allLocated.value.filter((item) => !item.foreign))
 
 /**
  * Koľko podujatí sa na mapu nedostalo. Ticho ich zahodiť by znamenalo, že
  * mapa ukazuje menej než zoznam a nikto nevie prečo — pri importovanom
  * katalógu je miesto bez súradníc bežné.
  */
-const withoutCoordinates = computed(() => props.events.length - located.value.length)
+const withoutCoordinates = computed(() => props.events.length - allLocated.value.length)
 
 /** Podujatia, ktoré zasahujú do zvoleného časového okna. */
 const inWindow = computed(() => {

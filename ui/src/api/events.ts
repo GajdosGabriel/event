@@ -12,7 +12,7 @@ export interface EventMapPoint {
   startAt: string | null
   endAt: string | null
   dateRangeLabel: string | null
-  venue: { name: string | null; latitude: number | string | null; longitude: number | string | null } | null
+  venue: { name: string | null; latitude: number | string | null; longitude: number | string | null; country?: string | null } | null
 }
 
 /** Celý výsledok verejného filtra bez stránkovania (`GET /events/map`). */
