@@ -11,6 +11,7 @@ use Tests\TestSupport\EventSetupTest;
 class PublicEventTagFilterTest extends EventSetupTest
 {
     private Tag $koncert;
+
     private Tag $folklor;
 
     protected function setUp(): void
@@ -46,7 +47,7 @@ class PublicEventTagFilterTest extends EventSetupTest
 
     private function ids(array $query): array
     {
-        return collect($this->getJson('/api/events?' . http_build_query($query + ['list' => 'all', 'per_page' => 100]))
+        return collect($this->getJson('/api/events?'.http_build_query($query + ['list' => 'all', 'per_page' => 100]))
             ->assertOk()
             ->json('data'))
             ->pluck('id')
@@ -113,7 +114,7 @@ class PublicEventTagFilterTest extends EventSetupTest
     {
         // Public\EventController::show() obchádza EventResource a serializuje
         // model priamo, takže štítky tam závisia od eager loadu v publicShow().
-        $tags = $this->getJson('/api/events/' . $this->futureEvent->id)
+        $tags = $this->getJson('/api/events/'.$this->futureEvent->id)
             ->assertOk()
             ->json('tags');
 

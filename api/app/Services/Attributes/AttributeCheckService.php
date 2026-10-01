@@ -2,10 +2,9 @@
 
 namespace App\Services\Attributes;
 
-use App\Enums\CanalNotificationTopic;
-use App\Services\Canals\CanalRecipients;
 use App\Contracts\AttributeProbe;
 use App\Enums\AttributeCheckStatus;
+use App\Enums\CanalNotificationTopic;
 use App\Models\AttributeCheck;
 use App\Models\Canal;
 use App\Models\Event;
@@ -13,6 +12,7 @@ use App\Models\Organization;
 use App\Models\Venue;
 use App\Notifications\AttributeIssueNotice;
 use App\Services\Attributes\Probes\WebsiteProbe;
+use App\Services\Canals\CanalRecipients;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;

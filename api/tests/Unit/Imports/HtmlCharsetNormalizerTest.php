@@ -20,10 +20,10 @@ class HtmlCharsetNormalizerTest extends TestCase
         $slovak = 'V nedeľu sa uskutoční púť mužov.';
         $html = $this->cp1250(
             '<html><head><META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1250"></head>'
-            . '<body><p>' . $slovak . '</p></body></html>'
+            .'<body><p>'.$slovak.'</p></body></html>'
         );
 
-        $normalized = (new HtmlCharsetNormalizer())->normalize($html, 'text/html');
+        $normalized = (new HtmlCharsetNormalizer)->normalize($html, 'text/html');
 
         $this->assertStringContainsString($slovak, $normalized);
         $this->assertSame(1, preg_match('//u', $normalized));
@@ -34,7 +34,7 @@ class HtmlCharsetNormalizerTest extends TestCase
     {
         $html = $this->cp1250('<html><head><meta charset="windows-1250"></head><body>ľúbozvučná slovenčina</body></html>');
 
-        $normalized = (new HtmlCharsetNormalizer())->normalize($html, null);
+        $normalized = (new HtmlCharsetNormalizer)->normalize($html, null);
 
         $this->assertStringContainsString('charset="utf-8"', $normalized);
         $this->assertStringNotContainsString('windows-1250', $normalized);
@@ -44,9 +44,9 @@ class HtmlCharsetNormalizerTest extends TestCase
     public function it_prefers_the_content_type_header_over_the_meta_tag(): void
     {
         $slovak = 'čerešňa';
-        $html = $this->cp1250('<html><head><meta charset="utf-8"></head><body>' . $slovak . '</body></html>');
+        $html = $this->cp1250('<html><head><meta charset="utf-8"></head><body>'.$slovak.'</body></html>');
 
-        $normalized = (new HtmlCharsetNormalizer())->normalize($html, 'text/html; charset=windows-1250');
+        $normalized = (new HtmlCharsetNormalizer)->normalize($html, 'text/html; charset=windows-1250');
 
         $this->assertStringContainsString($slovak, $normalized);
     }
@@ -56,7 +56,7 @@ class HtmlCharsetNormalizerTest extends TestCase
     {
         $html = $this->cp1250('<html><body>púť mužov</body></html>');
 
-        $normalized = (new HtmlCharsetNormalizer())->normalize($html, 'text/html');
+        $normalized = (new HtmlCharsetNormalizer)->normalize($html, 'text/html');
 
         $this->assertStringContainsString('púť mužov', $normalized);
     }
@@ -66,6 +66,6 @@ class HtmlCharsetNormalizerTest extends TestCase
     {
         $html = '<html><head><meta charset="utf-8"></head><body>púť mužov</body></html>';
 
-        $this->assertSame($html, (new HtmlCharsetNormalizer())->normalize($html, 'text/html; charset=UTF-8'));
+        $this->assertSame($html, (new HtmlCharsetNormalizer)->normalize($html, 'text/html; charset=UTF-8'));
     }
 }

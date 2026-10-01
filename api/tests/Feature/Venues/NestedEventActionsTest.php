@@ -37,7 +37,7 @@ class NestedEventActionsTest extends EventSetupTest
             'status' => ModelStatus::Archived->value,
         ]);
 
-        $rows = collect($this->getJson('/api/dashboard/venues/' . $venue->id . '/events')
+        $rows = collect($this->getJson('/api/dashboard/venues/'.$venue->id.'/events')
             ->assertOk()
             ->json())
             ->keyBy('id');
@@ -60,7 +60,7 @@ class NestedEventActionsTest extends EventSetupTest
             'status' => ModelStatus::Archived->value,
         ]);
 
-        $row = collect($this->getJson('/api/dashboard/canals/' . $this->canalPrimary->id . '/events')
+        $row = collect($this->getJson('/api/dashboard/canals/'.$this->canalPrimary->id.'/events')
             ->assertOk()
             ->json())
             ->firstWhere('id', $archived->id);

@@ -194,7 +194,7 @@ class PrivateQuestionTest extends EventSetupTest
 
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:' . $board->token),
+            fn () => SubmissionTicket::issue('question:'.$board->token),
         );
 
         // Nástenka z QR je zámerne bez kontaktu — odpoveď tam zaznie nahlas.
@@ -250,7 +250,7 @@ class PrivateQuestionTest extends EventSetupTest
 
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:' . $board->token),
+            fn () => SubmissionTicket::issue('question:'.$board->token),
         );
 
         $this->postJson("/api/q/{$board->token}/questions", [
@@ -369,7 +369,7 @@ class PrivateQuestionTest extends EventSetupTest
     {
         return $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
     }
 }

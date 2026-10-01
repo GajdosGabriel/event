@@ -33,6 +33,5 @@ final readonly class SlideContent
         public string $cta,
         /** Bajty fotky kanála, alebo null — vtedy sa kreslí monogram. */
         public ?string $photo = null,
-    ) {
-    }
+    ) {}
 }

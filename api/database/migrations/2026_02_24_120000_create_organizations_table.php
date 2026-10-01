@@ -5,7 +5,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-
 return new class extends Migration
 {
     /**
@@ -35,7 +34,7 @@ return new class extends Migration
             $table->string('youtube_playlist', 40)->nullable();
             $table->string('website', 150)->nullable();
             $table->boolean('published')->default(true);
-            $table->enum('status', array_map(fn($status) => $status->value, ModelStatus::cases()))->default('draft');
+            $table->enum('status', array_map(fn ($status) => $status->value, ModelStatus::cases()))->default('draft');
             $table->softDeletes();
             $table->timestamps();
         });

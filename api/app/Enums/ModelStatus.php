@@ -45,7 +45,7 @@ enum ModelStatus: string implements HasLabel
 
     public function label(): string
     {
-        return __('statuses.' . $this->value);
+        return __('statuses.'.$this->value);
     }
 
     /**

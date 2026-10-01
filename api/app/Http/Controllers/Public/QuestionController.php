@@ -27,8 +27,7 @@ class QuestionController extends Controller
         private QuestionSubmitter $submitter,
         private QuestionVoteToggler $votes,
         private QuestionAlert $organizerAlert,
-    ) {
-    }
+    ) {}
 
     public function store(QuestionStoreRequest $request, string $token): JsonResponse
     {

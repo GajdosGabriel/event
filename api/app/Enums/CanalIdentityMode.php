@@ -22,6 +22,6 @@ enum CanalIdentityMode: string implements HasLabel
 
     public function label(): string
     {
-        return __('canal_identity_modes.' . $this->value);
+        return __('canal_identity_modes.'.$this->value);
     }
 }

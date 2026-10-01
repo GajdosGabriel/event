@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 class PosterDraft extends Model
 {
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

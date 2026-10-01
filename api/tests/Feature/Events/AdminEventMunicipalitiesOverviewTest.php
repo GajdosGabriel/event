@@ -18,8 +18,8 @@ class AdminEventMunicipalitiesOverviewTest extends EventSetupTest
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
         $scheduledMunicipalityId = (int) DB::table('municipalities')->insertGetId([
-            'fullname' => 'Test Scheduled Municipality ' . uniqid(),
-            'shortname' => 'TSM ' . random_int(100, 999),
+            'fullname' => 'Test Scheduled Municipality '.uniqid(),
+            'shortname' => 'TSM '.random_int(100, 999),
             'zip' => '01001',
             'district_id' => 1,
             'region_id' => 1,
@@ -29,8 +29,8 @@ class AdminEventMunicipalitiesOverviewTest extends EventSetupTest
         ]);
 
         $draftMunicipalityId = (int) DB::table('municipalities')->insertGetId([
-            'fullname' => 'Test Draft Municipality ' . uniqid(),
-            'shortname' => 'TDM ' . random_int(100, 999),
+            'fullname' => 'Test Draft Municipality '.uniqid(),
+            'shortname' => 'TDM '.random_int(100, 999),
             'zip' => '01002',
             'district_id' => 1,
             'region_id' => 1,

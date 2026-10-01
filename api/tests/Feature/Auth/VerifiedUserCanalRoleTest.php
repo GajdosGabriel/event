@@ -3,7 +3,6 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\ModelStatus;
-
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -71,4 +70,3 @@ class VerifiedUserCanalRoleTest extends TestCase
             ->assertOk();
     }
 }
-

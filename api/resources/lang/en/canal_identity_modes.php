@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'personal'     => 'Personal',
+    'personal' => 'Personal',
     'organization' => 'Organization',
     'pseudonymous' => 'Pseudonymous',
 ];

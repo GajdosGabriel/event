@@ -41,7 +41,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
     {
         Http::fake();
 
-        $result = (new MunicipalityGeocodeResolver())->resolve('Poprad', 'Dom kultúry');
+        $result = (new MunicipalityGeocodeResolver)->resolve('Poprad', 'Dom kultúry');
 
         $this->assertSame('Poprad', $this->fullnameOf($result));
         Http::assertNothingSent();
@@ -54,7 +54,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // a samostatné mesto v článku nie je.
         Http::fake();
 
-        $result = (new MunicipalityGeocodeResolver())->resolve(null, 'Gaboltov');
+        $result = (new MunicipalityGeocodeResolver)->resolve(null, 'Gaboltov');
 
         $this->assertSame('Gaboltov', $this->fullnameOf($result));
         Http::assertNothingSent();
@@ -66,7 +66,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // Číselník má „Šaštín - Stráže", zdroje píšu „Šaštín-Stráže".
         Http::fake();
 
-        $result = (new MunicipalityGeocodeResolver())->resolve('Šaštín-Stráže', 'Bazilika Sedembolestnej Panny Márie');
+        $result = (new MunicipalityGeocodeResolver)->resolve('Šaštín-Stráže', 'Bazilika Sedembolestnej Panny Márie');
 
         $this->assertSame('Šaštín - Stráže', $this->fullnameOf($result));
         Http::assertNothingSent();
@@ -80,24 +80,24 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // pri throttlingu ticho končili v zbernom „Celé Slovensko".
         Http::fake();
 
-        $resolver = new MunicipalityGeocodeResolver();
+        $resolver = new MunicipalityGeocodeResolver;
 
         $expected = [
             'Bratislave' => 'Bratislava',
-            'Košiciach'  => 'Košice',
-            'Prešove'    => 'Prešov',
-            'Nitre'      => 'Nitra',
-            'Žiline'     => 'Žilina',
-            'Zvolene'    => 'Zvolen',
-            'Klokočova'  => 'Klokočov',
-            'Levoči'     => 'Levoča',
+            'Košiciach' => 'Košice',
+            'Prešove' => 'Prešov',
+            'Nitre' => 'Nitra',
+            'Žiline' => 'Žilina',
+            'Zvolene' => 'Zvolen',
+            'Klokočova' => 'Klokočov',
+            'Levoči' => 'Levoča',
         ];
 
         foreach ($expected as $inflected => $municipality) {
             $this->assertSame(
                 $municipality,
                 $this->fullnameOf($resolver->resolve($inflected, null)),
-                "„{$inflected}" . '" sa malo odvodiť na ' . $municipality,
+                "„{$inflected}".'" sa malo odvodiť na '.$municipality,
             );
         }
 
@@ -110,12 +110,12 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // Bez poistky by kmeň „kaplnk" trafil obec Kaplna a „kostol" Kostolec.
         Http::fake();
 
-        $resolver = new MunicipalityGeocodeResolver();
+        $resolver = new MunicipalityGeocodeResolver;
 
         foreach (['Kostol', 'Kostole', 'Kaplnka', 'Kaplnke', 'Dome kultúry', 'Sále', 'Aule', 'Bazilike'] as $building) {
             $this->assertNull(
                 $resolver->resolve($building, null),
-                "„{$building}" . '" nie je obec.',
+                "„{$building}".'" nie je obec.',
             );
         }
     }
@@ -127,7 +127,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // obce s takým menom o nič neprídu.
         Http::fake();
 
-        $resolver = new MunicipalityGeocodeResolver();
+        $resolver = new MunicipalityGeocodeResolver;
 
         $this->assertSame('Kostolné', $this->fullnameOf($resolver->resolve('Kostolné', null)));
         $this->assertSame('Kaplna', $this->fullnameOf($resolver->resolve('Kaplna', null)));
@@ -141,8 +141,8 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // na náhodnú obec.
         Http::fake();
 
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve('Banskobystrický', null));
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve('Slovensko', null));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve('Banskobystrický', null));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve('Slovensko', null));
     }
 
     #[Test]
@@ -167,7 +167,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new MunicipalityGeocodeResolver())->resolve('Skalka pri Trenčíne', 'lúka pod kláštorom');
+        $result = (new MunicipalityGeocodeResolver)->resolve('Skalka pri Trenčíne', 'lúka pod kláštorom');
 
         $this->assertSame('Trenčín', $this->fullnameOf($result));
         $this->assertSame('911 01', $result['postcode']);
@@ -193,7 +193,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
             ], 200),
         ]);
 
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve('Banskobystrický', null));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve('Banskobystrický', null));
     }
 
     #[Test]
@@ -203,7 +203,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
             'https://nominatim.example/search*' => Http::response('boom', 500),
         ]);
 
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve('Skalka pri Trenčíne', 'lúka pod kláštorom'));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve('Skalka pri Trenčíne', 'lúka pod kláštorom'));
     }
 
     #[Test]
@@ -211,10 +211,11 @@ class MunicipalityGeocodeResolverTest extends TestCase
     {
         Http::fake();
 
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve(null, null));
-        $this->assertNull((new MunicipalityGeocodeResolver())->resolve('   ', ''));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve(null, null));
+        $this->assertNull((new MunicipalityGeocodeResolver)->resolve('   ', ''));
         Http::assertNothingSent();
     }
+
     #[Test]
     public function a_country_wide_placeholder_never_becomes_a_municipality(): void
     {
@@ -224,7 +225,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
         // Celulózka, ktoré používa sedem podujatí.
         Http::fake();
 
-        $resolver = new MunicipalityGeocodeResolver();
+        $resolver = new MunicipalityGeocodeResolver;
 
         foreach (['Slovensko', 'Celé Slovensko', 'Slovenská republika', 'online'] as $placeholder) {
             $this->assertNull(
@@ -245,7 +246,7 @@ class MunicipalityGeocodeResolverTest extends TestCase
     {
         Http::fake();
 
-        $resolved = (new MunicipalityGeocodeResolver())->resolve('Slovenská Ľupča', null);
+        $resolved = (new MunicipalityGeocodeResolver)->resolve('Slovenská Ľupča', null);
 
         $this->assertSame('Slovenská Ľupča', $this->fullnameOf($resolved));
         Http::assertNothingSent();

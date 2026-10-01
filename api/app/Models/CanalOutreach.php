@@ -13,6 +13,7 @@ class CanalOutreach extends Model
     public const UPDATED_AT = null;
 
     public const SENT = 'sent';
+
     public const SIMULATED = 'simulated';
 
     protected $table = 'canal_outreach';

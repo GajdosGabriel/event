@@ -9,19 +9,20 @@
 
 namespace App\Repositories;
 
-use Illuminate\Support\Arr;
-use App\Repositories\Criteria\CriteriaInterface;
 use App\Repositories\Contracts\InterfaceRepository;
+use App\Repositories\Criteria\CriteriaInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Pagination\LengthAwarePaginator;
 
-abstract class AbstractRepository implements InterfaceRepository, CriteriaInterface
+abstract class AbstractRepository implements CriteriaInterface, InterfaceRepository
 {
     protected $entity;
+
     protected $user;
 
     public function __construct()

@@ -1,9 +1,9 @@
 <?php
 
+use App\Enums\ModelStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Enums\ModelStatus;
 
 return new class extends Migration
 {
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamp('end_at')->nullable();
             $table->dateTime('published_at')->nullable();
             $table->dateTime('registration_deadline_at')->nullable();
-            $table->enum('status', array_map(fn($status) => $status->value, ModelStatus::cases()))->default('draft');
+            $table->enum('status', array_map(fn ($status) => $status->value, ModelStatus::cases()))->default('draft');
             $table->string('website', 150)->nullable();
             $table->string('orginal_source')->nullable();
             $table->json('meta')->nullable();

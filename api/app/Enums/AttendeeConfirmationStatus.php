@@ -8,18 +8,18 @@ namespace App\Enums;
  */
 enum AttendeeConfirmationStatus: string
 {
-    case Pending   = 'pending';   // čaká na potvrdenie účastníkom
+    case Pending = 'pending';   // čaká na potvrdenie účastníkom
     case Confirmed = 'confirmed'; // účastník potvrdil účasť
-    case Declined  = 'declined';  // účastník odmietol lístok
-    case Expired   = 'expired';   // uplynula lehota bez potvrdenia
+    case Declined = 'declined';  // účastník odmietol lístok
+    case Expired = 'expired';   // uplynula lehota bez potvrdenia
 
     public function label(): string
     {
         return match ($this) {
-            self::Pending   => 'Čaká na potvrdenie',
+            self::Pending => 'Čaká na potvrdenie',
             self::Confirmed => 'Potvrdené',
-            self::Declined  => 'Odmietnuté',
-            self::Expired   => 'Nepotvrdené včas',
+            self::Declined => 'Odmietnuté',
+            self::Expired => 'Nepotvrdené včas',
         };
     }
 

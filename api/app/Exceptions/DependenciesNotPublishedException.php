@@ -16,7 +16,7 @@ class DependenciesNotPublishedException extends \RuntimeException implements Res
     public const CODE = 'dependencies_not_published';
 
     /**
-     * @param array<int, array{type: string, id: int, name: string, status: string, label: string}> $dependencies
+     * @param  array<int, array{type: string, id: int, name: string, status: string, label: string}>  $dependencies
      */
     public function __construct(private readonly array $dependencies)
     {

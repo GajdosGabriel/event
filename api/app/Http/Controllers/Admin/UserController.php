@@ -6,12 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminUserUpdateRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\UserResource;
-use App\Repositories\Contracts\UserRepository;
-use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Models\User;
-
+use App\Repositories\Contracts\UserRepository; // Good practice to import JsonResponse
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
@@ -84,8 +82,8 @@ class UserController extends Controller
         if (array_key_exists('blocked', $data)) {
             $blocked = (bool) $data['blocked'];
 
-            $attributes['blocked_at']     = $blocked ? ($user->blocked_at ?? now()) : null;
-            $attributes['blocked_until']  = $blocked ? ($data['blocked_until'] ?? null) : null;
+            $attributes['blocked_at'] = $blocked ? ($user->blocked_at ?? now()) : null;
+            $attributes['blocked_until'] = $blocked ? ($data['blocked_until'] ?? null) : null;
             $attributes['blocked_reason'] = $blocked ? ($data['blocked_reason'] ?? null) : null;
         }
 

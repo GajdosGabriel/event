@@ -80,7 +80,7 @@ class EventImportDeduplicationTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $detail
+     * @param  array<string, mixed>  $detail
      */
     private function findExisting(int $canalId, array $detail): ?Event
     {

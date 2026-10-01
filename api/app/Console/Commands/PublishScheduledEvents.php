@@ -48,7 +48,7 @@ class PublishScheduledEvents extends Command
             ]);
         }
 
-        $this->info('Published scheduled events: ' . $due->count());
+        $this->info('Published scheduled events: '.$due->count());
 
         return self::SUCCESS;
     }

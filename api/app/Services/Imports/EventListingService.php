@@ -4,217 +4,216 @@ namespace App\Services\Imports;
 
 class EventListingService
 {
-	public function __construct(private readonly ImportPageFetcher $pageFetcher)
-	{
-	}
+    public function __construct(private readonly ImportPageFetcher $pageFetcher) {}
 
-	/**
-	 * @return array<int, string>
-	 */
-	public function listArticleUrls(string $listingUrl, int $maxPages = 1, ?int $limit = null): array
-	{
-		$urls = [];
-		$pageUrl = $listingUrl;
+    /**
+     * @return array<int, string>
+     */
+    public function listArticleUrls(string $listingUrl, int $maxPages = 1, ?int $limit = null): array
+    {
+        $urls = [];
+        $pageUrl = $listingUrl;
 
-		for ($page = 1; $page <= max(1, $maxPages); $page++) {
-			$html = $this->pageFetcher->fetch($pageUrl);
+        for ($page = 1; $page <= max(1, $maxPages); $page++) {
+            $html = $this->pageFetcher->fetch($pageUrl);
 
-			foreach ($this->extractArticleUrls($html, $pageUrl, $listingUrl) as $url) {
-				if (! in_array($url, $urls, true)) {
-					$urls[] = $url;
-				}
+            foreach ($this->extractArticleUrls($html, $pageUrl, $listingUrl) as $url) {
+                if (! in_array($url, $urls, true)) {
+                    $urls[] = $url;
+                }
 
-				if ($limit !== null && count($urls) >= $limit) {
-					return array_slice($urls, 0, $limit);
-				}
-			}
+                if ($limit !== null && count($urls) >= $limit) {
+                    return array_slice($urls, 0, $limit);
+                }
+            }
 
-			$nextPageUrl = $this->extractNextPageUrl($html, $pageUrl, $listingUrl, $page + 1);
-			if ($nextPageUrl === null) {
-				break;
-			}
+            $nextPageUrl = $this->extractNextPageUrl($html, $pageUrl, $listingUrl, $page + 1);
+            if ($nextPageUrl === null) {
+                break;
+            }
 
-			$pageUrl = $nextPageUrl;
-		}
+            $pageUrl = $nextPageUrl;
+        }
 
-		return $limit !== null ? array_slice($urls, 0, $limit) : $urls;
-	}
+        return $limit !== null ? array_slice($urls, 0, $limit) : $urls;
+    }
 
-	/**
-	 * @return array<int, string>
-	 */
-	private function extractArticleUrls(string $html, string $currentUrl, string $listingUrl): array
-	{
-		if ($this->isTkkbsUrl($listingUrl)) {
-			$links = $this->extractLinks($html, $currentUrl);
-			return array_values(array_filter($links, fn (string $url) => $this->isTkkbsArticleUrl($url)));
-		}
+    /**
+     * @return array<int, string>
+     */
+    private function extractArticleUrls(string $html, string $currentUrl, string $listingUrl): array
+    {
+        if ($this->isTkkbsUrl($listingUrl)) {
+            $links = $this->extractLinks($html, $currentUrl);
 
-		if ($this->isVyveskaUrl($listingUrl)) {
-			return $this->extractVyveskaArticleUrls($html, $currentUrl);
-		}
+            return array_values(array_filter($links, fn (string $url) => $this->isTkkbsArticleUrl($url)));
+        }
 
-		$links = $this->extractLinks($html, $currentUrl);
+        if ($this->isVyveskaUrl($listingUrl)) {
+            return $this->extractVyveskaArticleUrls($html, $currentUrl);
+        }
 
-		return array_values(array_filter($links, fn (string $url) => $this->isEcavArticleUrl($url)));
-	}
+        $links = $this->extractLinks($html, $currentUrl);
 
-	private function extractNextPageUrl(string $html, string $currentUrl, string $listingUrl, int $pageNumber): ?string
-	{
-		if ($this->isTkkbsUrl($listingUrl)) {
-			return $this->extractNextTkkbsPageUrl($html, $currentUrl, $pageNumber);
-		}
+        return array_values(array_filter($links, fn (string $url) => $this->isEcavArticleUrl($url)));
+    }
 
-		return null;
-	}
+    private function extractNextPageUrl(string $html, string $currentUrl, string $listingUrl, int $pageNumber): ?string
+    {
+        if ($this->isTkkbsUrl($listingUrl)) {
+            return $this->extractNextTkkbsPageUrl($html, $currentUrl, $pageNumber);
+        }
 
-	private function extractNextTkkbsPageUrl(string $html, string $currentUrl, int $pageNumber): ?string
-	{
-		foreach ($this->extractLinks($html, $currentUrl) as $url) {
-			if (! str_contains($url, 'search.php')) {
-				continue;
-			}
+        return null;
+    }
 
-			if (preg_match('/[?&]rskolikata=' . preg_quote((string) $pageNumber, '/') . '([&#]|$)/', $url)) {
-				return $url;
-			}
-		}
+    private function extractNextTkkbsPageUrl(string $html, string $currentUrl, int $pageNumber): ?string
+    {
+        foreach ($this->extractLinks($html, $currentUrl) as $url) {
+            if (! str_contains($url, 'search.php')) {
+                continue;
+            }
 
-		return null;
-	}
+            if (preg_match('/[?&]rskolikata='.preg_quote((string) $pageNumber, '/').'([&#]|$)/', $url)) {
+                return $url;
+            }
+        }
 
-	/**
-	 * @return array<int, string>
-	 */
-	private function extractLinks(string $html, string $baseUrl): array
-	{
-		$document = new \DOMDocument();
-		libxml_use_internal_errors(true);
-		$document->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
-		libxml_clear_errors();
+        return null;
+    }
 
-		$xpath = new \DOMXPath($document);
-		$nodes = $xpath->query('//a[@href]');
-		$urls = [];
+    /**
+     * @return array<int, string>
+     */
+    private function extractLinks(string $html, string $baseUrl): array
+    {
+        $document = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
 
-		foreach ($nodes ?: [] as $node) {
-			$href = trim((string) $node->attributes?->getNamedItem('href')?->nodeValue);
-			if ($href === '') {
-				continue;
-			}
+        $xpath = new \DOMXPath($document);
+        $nodes = $xpath->query('//a[@href]');
+        $urls = [];
 
-			$absoluteUrl = $this->absoluteUrl($baseUrl, $href);
-			if ($absoluteUrl === null) {
-				continue;
-			}
+        foreach ($nodes ?: [] as $node) {
+            $href = trim((string) $node->attributes?->getNamedItem('href')?->nodeValue);
+            if ($href === '') {
+                continue;
+            }
 
-			$urls[] = $absoluteUrl;
-		}
+            $absoluteUrl = $this->absoluteUrl($baseUrl, $href);
+            if ($absoluteUrl === null) {
+                continue;
+            }
 
-		return array_values(array_unique($urls));
-	}
+            $urls[] = $absoluteUrl;
+        }
 
-	private function isEcavArticleUrl(string $url): bool
-	{
-		$path = (string) parse_url($url, PHP_URL_PATH);
+        return array_values(array_unique($urls));
+    }
 
-		return str_starts_with($url, 'https://www.ecav.sk/aktuality/pozvanky/')
-			&& $path !== '/aktuality/pozvanky'
-			&& $path !== '/aktuality/pozvanky/';
-	}
+    private function isEcavArticleUrl(string $url): bool
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
 
-	private function isTkkbsUrl(string $url): bool
-	{
-		return str_contains((string) parse_url($url, PHP_URL_HOST), 'tkkbs.sk');
-	}
+        return str_starts_with($url, 'https://www.ecav.sk/aktuality/pozvanky/')
+            && $path !== '/aktuality/pozvanky'
+            && $path !== '/aktuality/pozvanky/';
+    }
 
-	private function isVyveskaUrl(string $url): bool
-	{
-		return str_contains((string) parse_url($url, PHP_URL_HOST), 'vyveska.sk');
-	}
+    private function isTkkbsUrl(string $url): bool
+    {
+        return str_contains((string) parse_url($url, PHP_URL_HOST), 'tkkbs.sk');
+    }
 
-	private function isTkkbsArticleUrl(string $url): bool
-	{
-		return str_contains($url, 'tkkbs.sk/view.php') && preg_match('/[?&]cisloclanku=\d+/', $url) === 1;
-	}
+    private function isVyveskaUrl(string $url): bool
+    {
+        return str_contains((string) parse_url($url, PHP_URL_HOST), 'vyveska.sk');
+    }
 
-	private function isVyveskaArticleUrl(string $url): bool
-	{
-		$host = (string) parse_url($url, PHP_URL_HOST);
+    private function isTkkbsArticleUrl(string $url): bool
+    {
+        return str_contains($url, 'tkkbs.sk/view.php') && preg_match('/[?&]cisloclanku=\d+/', $url) === 1;
+    }
 
-		if (! str_contains($host, 'vyveska.sk')) {
-			return false;
-		}
+    private function isVyveskaArticleUrl(string $url): bool
+    {
+        $host = (string) parse_url($url, PHP_URL_HOST);
 
-		// Event detail slugs are a single path segment — either the legacy
-		// "slug.html" or the new (2026) trailing-slash "slug/" form. Section
-		// pages ("zoznam-podujati/…", "kategoria/…") span multiple segments and
-		// the listing root is empty, so both are rejected.
-		$path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        if (! str_contains($host, 'vyveska.sk')) {
+            return false;
+        }
 
-		return $path !== '' && ! str_contains($path, '/');
-	}
+        // Event detail slugs are a single path segment — either the legacy
+        // "slug.html" or the new (2026) trailing-slash "slug/" form. Section
+        // pages ("zoznam-podujati/…", "kategoria/…") span multiple segments and
+        // the listing root is empty, so both are rejected.
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
 
-	/**
-	 * @return array<int, string>
-	 */
-	private function extractVyveskaArticleUrls(string $html, string $baseUrl): array
-	{
-		$document = new \DOMDocument();
-		libxml_use_internal_errors(true);
-		$document->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
-		libxml_clear_errors();
+        return $path !== '' && ! str_contains($path, '/');
+    }
 
-		$xpath = new \DOMXPath($document);
-		// The 2026 redesign renders each listed event as an <article class="…
-		// border-b …"> whose title link sits in an <h4>. Navigation/footer links
-		// live outside these cards, so scoping to them keeps the list clean.
-		$nodes = $xpath->query('//article[contains(concat(" ", normalize-space(@class), " "), " border-b ")]//h4/a[@href]');
-		$urls = [];
+    /**
+     * @return array<int, string>
+     */
+    private function extractVyveskaArticleUrls(string $html, string $baseUrl): array
+    {
+        $document = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
 
-		foreach ($nodes ?: [] as $node) {
-			$href = trim((string) $node->attributes?->getNamedItem('href')?->nodeValue);
-			$absoluteUrl = $this->absoluteUrl($baseUrl, $href);
+        $xpath = new \DOMXPath($document);
+        // The 2026 redesign renders each listed event as an <article class="…
+        // border-b …"> whose title link sits in an <h4>. Navigation/footer links
+        // live outside these cards, so scoping to them keeps the list clean.
+        $nodes = $xpath->query('//article[contains(concat(" ", normalize-space(@class), " "), " border-b ")]//h4/a[@href]');
+        $urls = [];
 
-			if ($absoluteUrl === null || ! $this->isVyveskaArticleUrl($absoluteUrl)) {
-				continue;
-			}
+        foreach ($nodes ?: [] as $node) {
+            $href = trim((string) $node->attributes?->getNamedItem('href')?->nodeValue);
+            $absoluteUrl = $this->absoluteUrl($baseUrl, $href);
 
-			$urls[] = $absoluteUrl;
-		}
+            if ($absoluteUrl === null || ! $this->isVyveskaArticleUrl($absoluteUrl)) {
+                continue;
+            }
 
-		return array_values(array_unique($urls));
-	}
+            $urls[] = $absoluteUrl;
+        }
 
-	private function absoluteUrl(string $baseUrl, string $url): ?string
-	{
-		if ($url === '' || str_starts_with($url, '#') || str_starts_with(strtolower($url), 'javascript:')) {
-			return null;
-		}
+        return array_values(array_unique($urls));
+    }
 
-		if (preg_match('#^https?://#i', $url) === 1) {
-			return $url;
-		}
+    private function absoluteUrl(string $baseUrl, string $url): ?string
+    {
+        if ($url === '' || str_starts_with($url, '#') || str_starts_with(strtolower($url), 'javascript:')) {
+            return null;
+        }
 
-		$base = parse_url($baseUrl);
-		if (! is_array($base) || empty($base['host'])) {
-			return null;
-		}
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
 
-		$scheme = (string) ($base['scheme'] ?? 'https');
-		$host = (string) $base['host'];
+        $base = parse_url($baseUrl);
+        if (! is_array($base) || empty($base['host'])) {
+            return null;
+        }
 
-		if (str_starts_with($url, '//')) {
-			return $scheme . ':' . $url;
-		}
+        $scheme = (string) ($base['scheme'] ?? 'https');
+        $host = (string) $base['host'];
 
-		if (str_starts_with($url, '/')) {
-			return $scheme . '://' . $host . $url;
-		}
+        if (str_starts_with($url, '//')) {
+            return $scheme.':'.$url;
+        }
 
-		$basePath = (string) ($base['path'] ?? '/');
-		$directory = preg_replace('#/[^/]*$#', '/', $basePath) ?? '/';
+        if (str_starts_with($url, '/')) {
+            return $scheme.'://'.$host.$url;
+        }
 
-		return $scheme . '://' . $host . $directory . $url;
-	}
+        $basePath = (string) ($base['path'] ?? '/');
+        $directory = preg_replace('#/[^/]*$#', '/', $basePath) ?? '/';
+
+        return $scheme.'://'.$host.$directory.$url;
+    }
 }

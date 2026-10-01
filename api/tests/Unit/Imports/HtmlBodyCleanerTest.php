@@ -16,14 +16,14 @@ class HtmlBodyCleanerTest extends TestCase
     {
         parent::setUp();
 
-        $this->cleaner = new HtmlBodyCleaner();
+        $this->cleaner = new HtmlBodyCleaner;
     }
 
     private function xpath(string $html): DOMXPath
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="utf-8" ?><body>' . $html . '</body>', LIBXML_NOERROR | LIBXML_NOWARNING);
+        $document->loadHTML('<?xml encoding="utf-8" ?><body>'.$html.'</body>', LIBXML_NOERROR | LIBXML_NOWARNING);
         libxml_clear_errors();
 
         return new DOMXPath($document);
@@ -51,7 +51,7 @@ class HtmlBodyCleanerTest extends TestCase
     {
         $html = $this->cleaner->cleanHtmlString('<div>Prvý riadok.<br>Druhý riadok.</div>');
 
-        $this->assertSame("<p>Prvý riadok.<br>Druhý riadok.</p>", $html);
+        $this->assertSame('<p>Prvý riadok.<br>Druhý riadok.</p>', $html);
     }
 
     #[Test]

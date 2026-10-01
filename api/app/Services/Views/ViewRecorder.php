@@ -25,7 +25,7 @@ class ViewRecorder
     private const BOT_PATTERN = '~bot|crawl|spider|slurp|headless|preview|monitor|curl|wget|python-requests|facebookexternalhit|whatsapp|telegram~i';
 
     /**
-     * @return bool  true, keď zobrazenie naozaj pribudlo
+     * @return bool true, keď zobrazenie naozaj pribudlo
      */
     public function record(Model $model, Request $request): bool
     {

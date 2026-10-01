@@ -31,7 +31,7 @@ enum TagGroup: string implements HasLabel
 
     public function label(): string
     {
-        return __('tags.groups.' . $this->value);
+        return __('tags.groups.'.$this->value);
     }
 
     /**

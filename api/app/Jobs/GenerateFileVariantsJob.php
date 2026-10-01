@@ -17,7 +17,7 @@ class GenerateFileVariantsJob implements ShouldQueue
     public function handle(ImageVariantGenerator $generator): void
     {
         $file = File::withTrashed()->find($this->fileId);
-        if (!$file || !$file->path) {
+        if (! $file || ! $file->path) {
             return;
         }
 

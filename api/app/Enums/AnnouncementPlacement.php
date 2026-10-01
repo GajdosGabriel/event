@@ -18,7 +18,7 @@ enum AnnouncementPlacement: string implements HasLabel
 
     public function label(): string
     {
-        return __('announcements.placements.' . $this->value);
+        return __('announcements.placements.'.$this->value);
     }
 
     /** @return array<int, string> */

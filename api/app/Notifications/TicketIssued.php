@@ -25,8 +25,7 @@ class TicketIssued extends Notification implements ShouldQueue
         protected Ticket $ticket,
         protected bool $restored = false,
         protected bool $bellOnly = false,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -42,7 +41,7 @@ class TicketIssued extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $ticketUrl = rtrim(config('app.frontend_url'), '/') . '/tickets/' . $this->ticket->uuid;
+        $ticketUrl = rtrim(config('app.frontend_url'), '/').'/tickets/'.$this->ticket->uuid;
         $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
 
         $generator = app(QrCodeGenerator::class);
@@ -64,8 +63,8 @@ class TicketIssued extends Notification implements ShouldQueue
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
-                'type'  => $admission->ticketType?->name,
-                'png'   => $generator->forToken($admission->qr_token)->getString(),
+                'type' => $admission->ticketType?->name,
+                'png' => $generator->forToken($admission->qr_token)->getString(),
                 // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
                 'qrUrl' => route('public.admissions.qr', $admission->uuid),
             ])
@@ -75,16 +74,16 @@ class TicketIssued extends Notification implements ShouldQueue
 
         $key = $this->restored ? 'mail.ticket_restored' : 'mail.ticket_issued';
 
-        $mail = (new MailMessage())
-            ->subject(__($key . '.subject', ['event' => $eventName]))
+        $mail = (new MailMessage)
+            ->subject(__($key.'.subject', ['event' => $eventName]))
             ->markdown('mail.ticket-issued', [
                 'greetingName' => $this->ticket->holder_name,
-                'intro'        => __($key . '.intro', ['event' => $eventName]),
-                'eventName'    => $eventName,
-                'quantity'     => (int) ($this->ticket->quantity ?? 1),
-                'seats'        => $seats,
+                'intro' => __($key.'.intro', ['event' => $eventName]),
+                'eventName' => $eventName,
+                'quantity' => (int) ($this->ticket->quantity ?? 1),
+                'seats' => $seats,
                 'pendingCount' => $pendingCount,
-                'ticketUrl'    => $ticketUrl,
+                'ticketUrl' => $ticketUrl,
                 ...$calendar->viewData(),
             ]);
 

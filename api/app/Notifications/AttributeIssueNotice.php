@@ -31,8 +31,7 @@ class AttributeIssueNotice extends Notification implements ShouldQueue
     public function __construct(
         protected AttributeCheck $check,
         protected Model $subject,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -51,7 +50,7 @@ class AttributeIssueNotice extends Notification implements ShouldQueue
         $attribute = __('mail.attribute_issue.attributes.'.$this->check->attribute);
         $name = trim((string) ($this->subject->name ?? $this->subject->title ?? ''));
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.attribute_issue.subject', ['attribute' => $attribute]))
             ->greeting(__('mail.common.greeting'))
             ->line($name !== ''

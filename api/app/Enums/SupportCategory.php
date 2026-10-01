@@ -13,7 +13,7 @@ enum SupportCategory: string
 
     public function label(): string
     {
-        return __('support.category.' . $this->value);
+        return __('support.category.'.$this->value);
     }
 
     /** @return array<int, string> */

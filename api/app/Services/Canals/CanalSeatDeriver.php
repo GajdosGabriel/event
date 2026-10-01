@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\DB;
 class CanalSeatDeriver
 {
     public function __construct(
-        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver(),
+        private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver,
     ) {}
 
     /**
@@ -43,7 +43,7 @@ class CanalSeatDeriver
      * („v Trnave"). Preklad na obec z číselníka rieši `MunicipalityGeocodeResolver`:
      * najprv číselník, potom orezanie koncovky a až nakoniec geokóder.
      *
-     * @return bool  true, keď sa obec naozaj zmenila
+     * @return bool true, keď sa obec naozaj zmenila
      */
     public function applyDetectedCity(Canal $canal, ?string $city): bool
     {
@@ -102,7 +102,7 @@ class CanalSeatDeriver
     }
 
     /**
-     * @return bool  true, keď sa obec naozaj zmenila
+     * @return bool true, keď sa obec naozaj zmenila
      */
     public function sync(Canal $canal): bool
     {

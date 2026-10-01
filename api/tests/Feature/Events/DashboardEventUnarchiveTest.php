@@ -18,7 +18,7 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     private function archivedEvent(): Event
     {
         return Event::query()->create([
-            'name' => 'Archived ' . uniqid(),
+            'name' => 'Archived '.uniqid(),
             'status' => ModelStatus::Archived->value,
             'canal_id' => (int) $this->canalPrimary->id,
             'user_id' => $this->user->id,
@@ -31,7 +31,7 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     {
         $event = $this->archivedEvent();
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/unarchive')
+        $this->postJson('/api/dashboard/events/'.$event->id.'/unarchive')
             ->assertOk()
             ->assertJsonPath('status', ModelStatus::Draft->value);
 
@@ -49,12 +49,12 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     {
         $event = $this->archivedEvent();
 
-        $this->putJson('/api/dashboard/events/' . $event->id, ['name' => 'Opravené'])
+        $this->putJson('/api/dashboard/events/'.$event->id, ['name' => 'Opravené'])
             ->assertForbidden();
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/unarchive')->assertOk();
+        $this->postJson('/api/dashboard/events/'.$event->id.'/unarchive')->assertOk();
 
-        $this->putJson('/api/dashboard/events/' . $event->id, ['name' => 'Opravené'])
+        $this->putJson('/api/dashboard/events/'.$event->id, ['name' => 'Opravené'])
             ->assertOk()
             ->assertJsonPath('name', 'Opravené');
     }
@@ -74,7 +74,7 @@ class DashboardEventUnarchiveTest extends EventSetupTest
             'holder_email' => 'jozef@example.test',
         ]);
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/unarchive')
+        $this->postJson('/api/dashboard/events/'.$event->id.'/unarchive')
             ->assertForbidden();
 
         $this->assertSame(ModelStatus::Archived, $event->fresh()->status);
@@ -84,13 +84,13 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     public function only_archived_events_can_be_unarchived(): void
     {
         $draft = Event::query()->create([
-            'name' => 'Draft ' . uniqid(),
+            'name' => 'Draft '.uniqid(),
             'status' => ModelStatus::Draft->value,
             'canal_id' => (int) $this->canalPrimary->id,
             'user_id' => $this->user->id,
         ]);
 
-        $this->postJson('/api/dashboard/events/' . $draft->id . '/unarchive')
+        $this->postJson('/api/dashboard/events/'.$draft->id.'/unarchive')
             ->assertForbidden();
     }
 
@@ -103,7 +103,7 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     {
         $this->cudziEvent->forceFill(['status' => ModelStatus::Archived->value])->save();
 
-        $this->postJson('/api/dashboard/events/' . $this->cudziEvent->id . '/unarchive')
+        $this->postJson('/api/dashboard/events/'.$this->cudziEvent->id.'/unarchive')
             ->assertNotFound();
     }
 
@@ -113,7 +113,7 @@ class DashboardEventUnarchiveTest extends EventSetupTest
     {
         $archived = $this->archivedEvent();
 
-        $this->getJson('/api/dashboard/events/' . $archived->id)
+        $this->getJson('/api/dashboard/events/'.$archived->id)
             ->assertOk()
             ->assertJsonPath('permissions.unarchive', true)
             ->assertJsonPath('permissions.update', false);
@@ -121,13 +121,13 @@ class DashboardEventUnarchiveTest extends EventSetupTest
         // Vlastný koncept, nie $this->futureEvent — tomu EventFactory losuje stav
         // naprieč všetkými prípadmi ModelStatus a vedel by vyjsť archivovaný.
         $draft = Event::query()->create([
-            'name' => 'Draft ' . uniqid(),
+            'name' => 'Draft '.uniqid(),
             'status' => ModelStatus::Draft->value,
             'canal_id' => (int) $this->canalPrimary->id,
             'user_id' => $this->user->id,
         ]);
 
-        $this->getJson('/api/dashboard/events/' . $draft->id)
+        $this->getJson('/api/dashboard/events/'.$draft->id)
             ->assertOk()
             ->assertJsonPath('permissions.unarchive', false);
     }

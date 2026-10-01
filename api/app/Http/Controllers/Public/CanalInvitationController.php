@@ -19,8 +19,7 @@ class CanalInvitationController extends Controller
 {
     public function __construct(
         private CanalInviter $inviter,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request, string $token): JsonResponse
     {

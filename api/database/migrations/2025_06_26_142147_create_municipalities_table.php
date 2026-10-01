@@ -2,7 +2,9 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\{DB, File, Schema};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -12,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         // Vytvorenie tabuľky (ak ešte neexistuje)
-        if (!Schema::hasTable('municipalities')) {
+        if (! Schema::hasTable('municipalities')) {
             Schema::create('municipalities', function (Blueprint $table) {
                 $table->increments('id');
                 $table->string('fullname');

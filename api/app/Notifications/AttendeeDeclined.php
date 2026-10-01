@@ -22,8 +22,7 @@ class AttendeeDeclined extends Notification implements ShouldQueue
         protected string $attendeeEmail,
         protected int $seats = 1,
         protected bool $expired = false,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -40,15 +39,15 @@ class AttendeeDeclined extends Notification implements ShouldQueue
         $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
         $who = $this->attendeeName ?: $this->attendeeEmail;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.attendee_declined.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-declined', [
-                'holderName'    => $this->ticket->holder_name,
-                'attendeeName'  => $who,
+                'holderName' => $this->ticket->holder_name,
+                'attendeeName' => $who,
                 'attendeeEmail' => $this->attendeeEmail,
-                'eventName'     => $eventName,
-                'seats'         => $this->seats,
-                'expired'       => $this->expired,
+                'eventName' => $eventName,
+                'seats' => $this->seats,
+                'expired' => $this->expired,
             ]);
     }
 }

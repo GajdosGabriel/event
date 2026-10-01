@@ -36,7 +36,7 @@ class MunicipalityResolverTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $result = (new MunicipalityResolver())->resolve('Ceresnove');
+        $result = (new MunicipalityResolver)->resolve('Ceresnove');
 
         $this->assertSame([
             'village_id' => $municipalityId,
@@ -78,7 +78,7 @@ class MunicipalityResolverTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $result = (new MunicipalityResolver())->resolve('Testov', '811 01');
+        $result = (new MunicipalityResolver)->resolve('Testov', '811 01');
 
         $this->assertSame([
             'village_id' => $expectedId,
@@ -98,7 +98,7 @@ class MunicipalityResolverTest extends TestCase
     #[Test]
     public function resolve_returns_null_when_no_municipality_matches(): void
     {
-        $result = (new MunicipalityResolver())->resolve('Neexistujuce mesto');
+        $result = (new MunicipalityResolver)->resolve('Neexistujuce mesto');
 
         $this->assertSame([
             'village_id' => null,
@@ -126,7 +126,7 @@ class MunicipalityResolverTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $resolver = new MunicipalityResolver();
+        $resolver = new MunicipalityResolver;
 
         $first = $resolver->resolve('Cachetown', '11111');
 

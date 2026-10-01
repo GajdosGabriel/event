@@ -27,8 +27,7 @@ class EventAnnouncement extends Notification implements ShouldQueue
         protected string $body,
         protected ?string $replyToEmail = null,
         protected ?string $replyToName = null,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -46,7 +45,7 @@ class EventAnnouncement extends Notification implements ShouldQueue
         // SEQUENCE, takže kalendár pôvodný záznam prepíše — nevznikne duplikát.
         $calendar = new EventCalendarLinks($this->event);
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject($this->subject)
             ->markdown('mail.event-announcement', [
                 'eventName' => $this->event->name,

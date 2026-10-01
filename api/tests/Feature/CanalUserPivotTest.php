@@ -2,15 +2,14 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Canal;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use PHPUnit\Framework\Attributes\Test;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use App\Models\User;
 use Carbon\Carbon;
-
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class CanalUserPivotTest extends TestCase
 {
@@ -29,7 +28,7 @@ class CanalUserPivotTest extends TestCase
         // Verify in database
         $this->assertDatabaseHas('canal_user', [
             'canal_id' => $canal->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         // Verify relationship
@@ -59,7 +58,7 @@ class CanalUserPivotTest extends TestCase
 
         $this->assertDatabaseMissing('canal_user', [
             'canal_id' => $canal->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
     }
 
@@ -73,7 +72,7 @@ class CanalUserPivotTest extends TestCase
         $now = now();
         $canal->users()->attach($user->id, [
             'created_at' => $now,
-            'updated_at' => $now
+            'updated_at' => $now,
         ]);
 
         // Načítame pivot záznam

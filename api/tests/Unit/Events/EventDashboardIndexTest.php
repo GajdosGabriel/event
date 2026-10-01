@@ -7,7 +7,6 @@ use Tests\TestSupport\EventSetupTest;
 
 class EventDashboardIndexTest extends EventSetupTest
 {
-
     public function test_dashboard_user_can_index_events()
     {
 
@@ -23,14 +22,11 @@ class EventDashboardIndexTest extends EventSetupTest
         // 3. Id canalov ktoré patria user
         $canalIds = $this->user->canals()->pluck('id')->all();
 
-
         // 3. Overte výsledky, každý záznam musí mat výsledok s id aktivných kanálov
         $this->assertTrue(
-            $results->every(fn($item) => in_array($item['canal_id'], $canalIds)),
+            $results->every(fn ($item) => in_array($item['canal_id'], $canalIds)),
             'Všetky výsledky musia patriť do očakávaných canal_id'
         );
-
-
 
         // $this->assertFalse(
         //     $results->contains('id', $pastEvent->id),
@@ -42,7 +38,7 @@ class EventDashboardIndexTest extends EventSetupTest
         // $this->assertEquals($activeCanal->id, $results->items()[0]->id);
     }
 
-    public function test_events_orderBy_id()
+    public function test_events_order_by_id()
     {
         // 2. Získajte výsledky
         $results = $this->eventRepository->dashboardIndexQuery()->get();

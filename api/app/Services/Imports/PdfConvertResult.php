@@ -7,7 +7,7 @@ class PdfConvertResult
     public readonly string $fullText;
 
     /**
-     * @param array<int, array{page: int, image: string, text: string}> $pages
+     * @param  array<int, array{page: int, image: string, text: string}>  $pages
      */
     public function __construct(
         public readonly int $pageCount,

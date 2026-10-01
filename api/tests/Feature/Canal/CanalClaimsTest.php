@@ -30,6 +30,7 @@ class CanalClaimsTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Canal $canal;
 
     protected function setUp(): void
@@ -59,10 +60,10 @@ class CanalClaimsTest extends TestCase
         $invitation = app(CanalInviter::class)->ensureOwnerInvitation($this->canal, 'info@farnost.sk');
         $jozef = $this->user('jozef@gmail.test');
 
-        $this->actingAs($jozef, 'sanctum')->getJson('/api/invitations/' . $invitation->token)
+        $this->actingAs($jozef, 'sanctum')->getJson('/api/invitations/'.$invitation->token)
             ->assertJsonPath('data.any_account', true)
             ->assertJsonPath('data.email_matches', false);
-        $this->actingAs($jozef, 'sanctum')->postJson('/api/invitations/' . $invitation->token . '/accept')->assertOk();
+        $this->actingAs($jozef, 'sanctum')->postJson('/api/invitations/'.$invitation->token.'/accept')->assertOk();
 
         $claim = CanalClaim::sole();
         $this->assertSame(CanalClaimStatus::Completed, $claim->status);
@@ -71,15 +72,15 @@ class CanalClaimsTest extends TestCase
 
         // Kontakt dostal upozornenie s odkazom na námietku.
         $warning = SystemLog::where('event', 'mail.simulated')->where('recipient', 'info@farnost.sk')->sole();
-        $this->assertStringEndsWith('/prevzatie/namietka/' . $claim->contest_token, $warning->context['action']);
+        $this->assertStringEndsWith('/prevzatie/namietka/'.$claim->contest_token, $warning->context['action']);
 
         // Námietka z odkazu — bez prihlásenia.
         auth()->forgetGuards();
-        $shown = $this->getJson('/api/canal-claims/contest/' . $claim->contest_token)
+        $shown = $this->getJson('/api/canal-claims/contest/'.$claim->contest_token)
             ->assertOk()->assertJsonPath('data.contestable', true)->json('data.requester.email');
         $this->assertNotSame('jozef@gmail.test', $shown);
         $this->assertStringEndsWith('@gmail.test', $shown);
-        $this->postJson('/api/canal-claims/contest/' . $claim->contest_token, ['note' => 'Nepoznáme ho.'])->assertOk();
+        $this->postJson('/api/canal-claims/contest/'.$claim->contest_token, ['note' => 'Nepoznáme ho.'])->assertOk();
         $this->assertSame(CanalClaimStatus::Contested, $claim->fresh()->status);
         $this->assertTrue(SystemLog::where('event', 'mail.simulated')->where('recipient', 'admin@portal.test')->exists());
 
@@ -100,7 +101,7 @@ class CanalClaimsTest extends TestCase
         $this->assertStringContainsString('Farnosť Hájske', $reverted->message);
 
         // Druhá námietka už nejde.
-        $this->postJson('/api/canal-claims/contest/' . $claim->contest_token)->assertUnprocessable();
+        $this->postJson('/api/canal-claims/contest/'.$claim->contest_token)->assertUnprocessable();
         Notification::assertNothingSent();
     }
 
@@ -122,19 +123,19 @@ class CanalClaimsTest extends TestCase
         $claim = CanalClaim::sole();
         $verify = SystemLog::where('event', 'mail.simulated')->sole();
         $this->assertSame('info@farnost.sk', $verify->recipient);
-        $this->assertStringEndsWith('/prevzatie/' . $claim->token, $verify->context['action']);
+        $this->assertStringEndsWith('/prevzatie/'.$claim->token, $verify->context['action']);
 
         // Potvrdí kontaktná schránka — bez prihlásenia.
         auth()->forgetGuards();
-        $this->getJson('/api/canal-claims/' . $claim->token)
+        $this->getJson('/api/canal-claims/'.$claim->token)
             ->assertOk()->assertJsonPath('data.status', 'pending')->assertJsonPath('data.message', 'Som predseda farskej rady.');
-        $this->postJson('/api/canal-claims/' . $claim->token . '/confirm')->assertOk();
+        $this->postJson('/api/canal-claims/'.$claim->token.'/confirm')->assertOk();
 
         $canal = $this->canal->fresh();
         $this->assertTrue($canal->isClaimed());
         $this->assertSame($jozef->id, $canal->claimed_by_user_id);
         $this->assertTrue(SystemLog::where('event', 'canals.claim_confirmed')->exists());
-        $this->postJson('/api/canal-claims/' . $claim->token . '/confirm')->assertNotFound();
+        $this->postJson('/api/canal-claims/'.$claim->token.'/confirm')->assertNotFound();
     }
 
     #[Test]
@@ -199,7 +200,7 @@ class CanalClaimsTest extends TestCase
         $claim->forceFill(['expires_at' => now()->subMinute()])->save();
 
         auth()->forgetGuards();
-        $this->postJson('/api/canal-claims/' . $claim->token . '/confirm')->assertUnprocessable();
+        $this->postJson('/api/canal-claims/'.$claim->token.'/confirm')->assertUnprocessable();
 
         $this->assertSame(CanalClaimStatus::Expired, $claim->fresh()->status);
         $this->assertFalse($this->canal->fresh()->isManaged());

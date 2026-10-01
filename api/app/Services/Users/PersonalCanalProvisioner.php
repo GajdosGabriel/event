@@ -33,14 +33,14 @@ class PersonalCanalProvisioner
             $displayName = Str::before($user->email, '@');
         }
         if ($displayName === '') {
-            $displayName = 'User ' . $user->id;
+            $displayName = 'User '.$user->id;
         }
 
         $canal = Canal::create([
             'name' => $displayName,
             'email' => $user->email,
             'status' => 'published',
-            'body' => 'Osobný kanál používateľa ' . $displayName,
+            'body' => 'Osobný kanál používateľa '.$displayName,
             'published_at' => now(),
             'registration_source' => RegistrationSource::SELF->value,
             'identity_mode' => CanalIdentityMode::Personal->value,

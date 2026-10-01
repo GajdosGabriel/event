@@ -4,18 +4,18 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\EventDetectFromTextRequest;
 use App\Http\Requests\EventPublishRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\EventResource;
+use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Events\EventSeriesManager;
-use App\Support\EventDateRange;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\EventDependencyPublisher;
+use App\Support\EventDateRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -251,5 +251,4 @@ class DashboardEventController extends Controller
 
         return response()->json($result);
     }
-
 }

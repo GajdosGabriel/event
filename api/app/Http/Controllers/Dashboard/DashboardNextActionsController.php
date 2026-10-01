@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Http\Controllers\Controller;
-use App\Models\{Canal, Event, Venue, Message};
 use App\Enums\AdmissionStatus;
+use App\Http\Controllers\Controller;
+use App\Models\Canal;
+use App\Models\Event;
+use App\Models\Message;
+use App\Models\Venue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -33,6 +36,7 @@ class DashboardNextActionsController extends Controller
         $activeIds = (clone $canals)->pluck('id');
         $hasVenue = Venue::query()->whereNotIn('status', ['archived', 'blocked'])
             ->whereHas('canals', fn ($q) => $q->whereIn('canals.id', $activeIds)->where('canal_venue.status', 'published'))->exists();
+
         return response()->json(['data' => [
             'upcoming' => $upcoming, 'drafts' => $drafts,
             'unread' => Message::query()->inboxOf($user->id)->whereNull('read_at')->count(),

@@ -22,7 +22,7 @@ class EventDependencyPublishTest extends EventSetupTest
         ]);
 
         return Event::query()->create([
-            'name' => 'Dependency check ' . uniqid(),
+            'name' => 'Dependency check '.uniqid(),
             'status' => ModelStatus::Draft->value,
             'canal_id' => $this->canalPrimary->id,
             'user_id' => $this->user->id,
@@ -37,7 +37,7 @@ class EventDependencyPublishTest extends EventSetupTest
     {
         $event = $this->draftVenueEvent();
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/publish')
+        $this->postJson('/api/dashboard/events/'.$event->id.'/publish')
             ->assertStatus(422)
             ->assertJsonPath('code', DependenciesNotPublishedException::CODE)
             ->assertJsonPath('dependencies.0.type', 'venue');
@@ -51,7 +51,7 @@ class EventDependencyPublishTest extends EventSetupTest
         $this->user->givePermissionTo('venue.update');
         $event = $this->draftVenueEvent();
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/publish', [
+        $this->postJson('/api/dashboard/events/'.$event->id.'/publish', [
             'publish_dependencies' => true,
         ])->assertOk();
 
@@ -65,7 +65,7 @@ class EventDependencyPublishTest extends EventSetupTest
     {
         $event = $this->draftVenueEvent();
 
-        $this->putJson('/api/dashboard/events/' . $event->id, [
+        $this->putJson('/api/dashboard/events/'.$event->id, [
             'name' => $event->name,
             'status' => ModelStatus::Published->value,
             'canal_id' => $event->canal_id,
@@ -83,7 +83,7 @@ class EventDependencyPublishTest extends EventSetupTest
         $this->user->givePermissionTo('venue.update');
         $event = $this->draftVenueEvent();
 
-        $this->putJson('/api/dashboard/events/' . $event->id, [
+        $this->putJson('/api/dashboard/events/'.$event->id, [
             'name' => $event->name,
             'status' => ModelStatus::Published->value,
             'canal_id' => $event->canal_id,
@@ -108,7 +108,7 @@ class EventDependencyPublishTest extends EventSetupTest
             'published_at' => now(),
         ])->save();
 
-        $this->postJson('/api/dashboard/events/' . $event->id . '/publish', ['published' => false])
+        $this->postJson('/api/dashboard/events/'.$event->id.'/publish', ['published' => false])
             ->assertOk();
 
         $this->assertSame(ModelStatus::Draft, $event->fresh()->status);

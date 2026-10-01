@@ -115,7 +115,7 @@ class EventQuestionsPublicTest extends EventSetupTest
 
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
 
         $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
@@ -140,7 +140,7 @@ class EventQuestionsPublicTest extends EventSetupTest
         // zamieňať.
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:' . $board->token),
+            fn () => SubmissionTicket::issue('question:'.$board->token),
         );
 
         $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
@@ -191,7 +191,7 @@ class EventQuestionsPublicTest extends EventSetupTest
 
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
 
         $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
@@ -213,7 +213,7 @@ class EventQuestionsPublicTest extends EventSetupTest
 
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
 
         $this->postJson("/api/events/{$this->futureEvent->id}/questions", [
@@ -321,7 +321,7 @@ class EventQuestionsPublicTest extends EventSetupTest
     {
         return $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
     }
 }

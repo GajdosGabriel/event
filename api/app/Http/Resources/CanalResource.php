@@ -12,6 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CanalResource extends JsonResource
 {
     use HasAllowedStatuses, HasAttributeCheckState;
+
     /**
      * Transform the resource into an array.
      *
@@ -85,7 +86,7 @@ class CanalResource extends JsonResource
         if ($this->relationLoaded('users')) {
             $data['members_list'] = $this->users->map(fn ($u) => [
                 'id' => $u->id,
-                'name' => $u->display_name ?? $u->name ?? ('User #' . $u->id),
+                'name' => $u->display_name ?? $u->name ?? ('User #'.$u->id),
                 'is_owner' => (bool) $u->pivot->is_owner,
             ])->values()->all();
         }

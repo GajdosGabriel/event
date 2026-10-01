@@ -27,8 +27,7 @@ class SubscriptionController extends Controller
 {
     public function __construct(
         protected EventRepository $eventRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * Známka, že sa formulár naozaj otvoril. Vydáva sa až kliknutím na tlačidlo,
@@ -40,7 +39,7 @@ class SubscriptionController extends Controller
         $this->publicEventOrFail($event);
 
         return response()->json([
-            'ticket' => SubmissionTicket::issue('subscription:' . $event),
+            'ticket' => SubmissionTicket::issue('subscription:'.$event),
         ]);
     }
 

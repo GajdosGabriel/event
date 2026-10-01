@@ -17,13 +17,13 @@ enum TicketTypeKindOption: string implements HasLabel
 {
     use ProvidesOptions;
 
-    case Ticket       = 'ticket';
-    case Workshop     = 'workshop';
+    case Ticket = 'ticket';
+    case Workshop = 'workshop';
     case WorkshopOpen = 'workshop_open';
 
     public function label(): string
     {
-        return __('tickets.type_kind_option.' . $this->value);
+        return __('tickets.type_kind_option.'.$this->value);
     }
 
     /**
@@ -34,8 +34,8 @@ enum TicketTypeKindOption: string implements HasLabel
     public function toAttributes(): array
     {
         return match ($this) {
-            self::Ticket       => ['kind' => TicketTypeKind::Ticket,   'open_to_public' => false],
-            self::Workshop     => ['kind' => TicketTypeKind::Workshop, 'open_to_public' => false],
+            self::Ticket => ['kind' => TicketTypeKind::Ticket,   'open_to_public' => false],
+            self::Workshop => ['kind' => TicketTypeKind::Workshop, 'open_to_public' => false],
             self::WorkshopOpen => ['kind' => TicketTypeKind::Workshop, 'open_to_public' => true],
         };
     }
@@ -45,8 +45,8 @@ enum TicketTypeKindOption: string implements HasLabel
     {
         return match (true) {
             $kind === TicketTypeKind::Workshop && $openToPublic => self::WorkshopOpen,
-            $kind === TicketTypeKind::Workshop                  => self::Workshop,
-            default                                             => self::Ticket,
+            $kind === TicketTypeKind::Workshop => self::Workshop,
+            default => self::Ticket,
         };
     }
 

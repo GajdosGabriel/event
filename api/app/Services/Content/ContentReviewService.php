@@ -2,14 +2,14 @@
 
 namespace App\Services\Content;
 
-use App\Support\EventDateRange;
 use App\Enums\CanalNotificationTopic;
-use App\Services\Canals\CanalRecipients;
 use App\Enums\ModelStatus;
 use App\Models\ContentReview;
 use App\Notifications\ContentReviewNotice;
+use App\Services\Canals\CanalRecipients;
 use App\Services\OpenAI\ChatGPT;
 use App\Services\Publishing\PublishReadiness;
+use App\Support\EventDateRange;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;

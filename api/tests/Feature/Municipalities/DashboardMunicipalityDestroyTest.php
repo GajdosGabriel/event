@@ -22,7 +22,7 @@ class DashboardMunicipalityDestroyTest extends UserSetupTest
             'updated_at' => now(),
         ]);
 
-        $response = $this->deleteJson('/api/dashboard/municipalities/' . $municipalityId);
+        $response = $this->deleteJson('/api/dashboard/municipalities/'.$municipalityId);
 
         $response->assertStatus(403);
 

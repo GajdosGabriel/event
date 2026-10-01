@@ -18,8 +18,7 @@ class AttendeeRegistrar
     public function __construct(
         private GuestAccountProvisioner $accounts,
         private AttendeeConfirmation $confirmation,
-    ) {
-    }
+    ) {}
 
     public function registerAndNotify(Ticket $ticket): void
     {

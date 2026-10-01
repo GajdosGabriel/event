@@ -48,15 +48,15 @@ class MergeDuplicateEvents extends Command
             $keep = $group['keep'];
             $drop = $group['drop'];
 
-            $this->line($keep->name . ' — ' . $keep->start_at?->format('j. n. Y H:i'));
-            $this->line('  ostáva:  ' . $this->describe($keep));
+            $this->line($keep->name.' — '.$keep->start_at?->format('j. n. Y H:i'));
+            $this->line('  ostáva:  '.$this->describe($keep));
 
             foreach ($drop as $event) {
-                $this->line('  zahodiť: ' . $this->describe($event));
+                $this->line('  zahodiť: '.$this->describe($event));
             }
 
             if ($group['reason'] !== null) {
-                $this->warn('  preskočené — ' . $group['reason']);
+                $this->warn('  preskočené — '.$group['reason']);
                 $skipped++;
 
                 continue;
@@ -73,12 +73,12 @@ class MergeDuplicateEvents extends Command
         $this->newLine();
 
         if ($apply) {
-            $this->info('Zlúčené skupiny: ' . $merged . ', preskočené: ' . $skipped . '.');
+            $this->info('Zlúčené skupiny: '.$merged.', preskočené: '.$skipped.'.');
 
             return self::SUCCESS;
         }
 
-        $this->info('Nájdené skupiny: ' . count($candidates) . ' (z toho ' . $skipped . ' sa zlúčiť nesmie). Zlúčenie spustíte s --apply.');
+        $this->info('Nájdené skupiny: '.count($candidates).' (z toho '.$skipped.' sa zlúčiť nesmie). Zlúčenie spustíte s --apply.');
 
         return self::SUCCESS;
     }
@@ -92,6 +92,6 @@ class MergeDuplicateEvents extends Command
             $label .= ' [zberný]';
         }
 
-        return '#' . $event->id . ' · ' . $label . ' · ' . ($event->orginal_source ?? '—');
+        return '#'.$event->id.' · '.$label.' · '.($event->orginal_source ?? '—');
     }
 }

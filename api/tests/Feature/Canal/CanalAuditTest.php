@@ -27,7 +27,9 @@ class CanalAuditTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $owner;
+
     private Canal $canal;
 
     protected function setUp(): void
@@ -67,7 +69,7 @@ class CanalAuditTest extends TestCase
         $farar = $this->user(['email' => 'farnost@example.sk']);
         $this->actingAs($farar, 'sanctum')
             ->withHeader('X-Locale', 'sk')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertOk();
 
         $events = $this->canalLog($canal)->pluck('event')->all();

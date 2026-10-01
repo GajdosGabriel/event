@@ -63,7 +63,7 @@ class CanalOutreachNotice extends Notification implements ShouldQueue
             ->line(__('mail.canal_outreach.why', $params))
             ->line(__('mail.canal_outreach.unsubscribe', ['url' => $unsubscribe]))
             ->withSymfonyMessage(function (Email $message) use ($unsubscribe) {
-                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribe . '>');
+                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$unsubscribe.'>');
                 $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
             });
     }

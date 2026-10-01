@@ -246,7 +246,7 @@ class WikipediaPlaceEnricher
 
     private function cacheKey(string $query): string
     {
-        return 'venue_detection:wikipedia:' . sha1($query);
+        return 'venue_detection:wikipedia:'.sha1($query);
     }
 
     private function cacheTtl(): int
@@ -263,7 +263,7 @@ class WikipediaPlaceEnricher
 
         $appName = trim((string) config('app.name', 'Event API'));
 
-        return $appName . ' wikipedia-enricher';
+        return $appName.' wikipedia-enricher';
     }
 
     private function stringOrNull(mixed $value): ?string
@@ -312,29 +312,29 @@ class WikipediaPlaceEnricher
                     'format' => 'json',
                 ]);
 
-            if (!$response->ok()) {
+            if (! $response->ok()) {
                 return [];
             }
 
             $payload = $response->json();
-            if (!is_array($payload)) {
+            if (! is_array($payload)) {
                 return [];
             }
 
             $pages = $payload['query']['pages'] ?? null;
-            if (!is_array($pages)) {
+            if (! is_array($pages)) {
                 return [];
             }
 
             $images = [];
             foreach ($pages as $page) {
-                if (!is_array($page) || !is_array($page['images'] ?? null)) {
+                if (! is_array($page) || ! is_array($page['images'] ?? null)) {
                     continue;
                 }
 
                 foreach ($page['images'] as $imageInfo) {
                     $imageName = $imageInfo['title'] ?? null;
-                    if (!is_string($imageName)) {
+                    if (! is_string($imageName)) {
                         continue;
                     }
 
@@ -373,17 +373,17 @@ class WikipediaPlaceEnricher
                     'format' => 'json',
                 ]);
 
-            if (!$response->ok()) {
+            if (! $response->ok()) {
                 return null;
             }
 
             $payload = $response->json();
-            if (!is_array($payload)) {
+            if (! is_array($payload)) {
                 return null;
             }
 
             $pages = $payload['query']['pages'] ?? null;
-            if (!is_array($pages)) {
+            if (! is_array($pages)) {
                 return null;
             }
 
@@ -414,7 +414,7 @@ class WikipediaPlaceEnricher
             'phone' => null,
         ];
 
-        if (!is_string($wikidataId) || trim($wikidataId) === '') {
+        if (! is_string($wikidataId) || trim($wikidataId) === '') {
             return $result;
         }
 
@@ -424,22 +424,22 @@ class WikipediaPlaceEnricher
                 ->withHeaders(['User-Agent' => $this->userAgent()])
                 ->get(sprintf('https://www.wikidata.org/wiki/Special:EntityData/%s.json', rawurlencode(trim($wikidataId))));
 
-            if (!$response->ok()) {
+            if (! $response->ok()) {
                 return $result;
             }
 
             $payload = $response->json();
-            if (!is_array($payload)) {
+            if (! is_array($payload)) {
                 return $result;
             }
 
             $entity = $payload['entities'][$wikidataId] ?? null;
-            if (!is_array($entity)) {
+            if (! is_array($entity)) {
                 return $result;
             }
 
             $claims = $entity['claims'] ?? [];
-            if (!is_array($claims)) {
+            if (! is_array($claims)) {
                 return $result;
             }
 
@@ -487,23 +487,23 @@ class WikipediaPlaceEnricher
                 ->withHeaders(['User-Agent' => $this->userAgent()])
                 ->get('https://commons.wikimedia.org/w/api.php', [
                     'action' => 'query',
-                    'titles' => 'File:' . $fileName,
+                    'titles' => 'File:'.$fileName,
                     'prop' => 'imageinfo',
                     'iiprop' => 'url',
                     'format' => 'json',
                 ]);
 
-            if (!$response->ok()) {
+            if (! $response->ok()) {
                 return null;
             }
 
             $payload = $response->json();
-            if (!is_array($payload)) {
+            if (! is_array($payload)) {
                 return null;
             }
 
             $pages = $payload['query']['pages'] ?? null;
-            if (!is_array($pages)) {
+            if (! is_array($pages)) {
                 return null;
             }
 
@@ -545,10 +545,10 @@ class WikipediaPlaceEnricher
             if ($sentenceCount >= 12 || strlen($longDesc) + strlen($sentence) > 500) {
                 break;
             }
-            $longDesc .= ($longDesc ? ' ' : '') . $sentence;
+            $longDesc .= ($longDesc ? ' ' : '').$sentence;
             $sentenceCount++;
         }
 
-        return !empty($longDesc) ? $longDesc : null;
+        return ! empty($longDesc) ? $longDesc : null;
     }
 }

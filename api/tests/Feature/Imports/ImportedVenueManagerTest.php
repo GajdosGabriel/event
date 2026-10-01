@@ -137,7 +137,8 @@ class ImportedVenueManagerTest extends TestCase
 
     private function detectorReturning(string $name, int $villageId): Detector
     {
-        return new class($name, $villageId) extends Detector {
+        return new class($name, $villageId) extends Detector
+        {
             public function __construct(private readonly string $venueName, private readonly int $villageId)
             {
                 parent::__construct();
@@ -243,8 +244,8 @@ class ImportedVenueManagerTest extends TestCase
         $canal = Canal::factory()->create();
         $existing = Venue::factory()->create([
             'village_id' => $ladce->id,
-            'name'       => 'Sanktuárium Božieho Milosrdenstva',
-            'slug'       => 'sanktuarium-bozieho-milosrdenstva',
+            'name' => 'Sanktuárium Božieho Milosrdenstva',
+            'slug' => 'sanktuarium-bozieho-milosrdenstva',
         ]);
 
         $before = Venue::query()->count();
@@ -269,8 +270,8 @@ class ImportedVenueManagerTest extends TestCase
         $canal = Canal::factory()->create();
         Venue::factory()->create([
             'village_id' => $klokocov->id,
-            'name'       => 'Klokoč',
-            'slug'       => 'klokoc',
+            'name' => 'Klokoč',
+            'slug' => 'klokoc',
         ]);
 
         $resolved = app(ImportedVenueManager::class)->resolveOrDetect(

@@ -29,8 +29,7 @@ class DashboardCanalTeamController extends Controller
         private CanalMembership $membership,
         private CanalInviter $inviter,
         private CanalRecipients $recipients,
-    ) {
-    }
+    ) {}
 
     public function index(Canal $canal): JsonResponse
     {

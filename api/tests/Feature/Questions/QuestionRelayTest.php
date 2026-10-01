@@ -43,7 +43,7 @@ class QuestionRelayTest extends EventSetupTest
     {
         $ticket = $this->travelTo(
             now()->subSeconds(10),
-            fn () => SubmissionTicket::issue('question:event:' . $this->futureEvent->id),
+            fn () => SubmissionTicket::issue('question:event:'.$this->futureEvent->id),
         );
 
         return $this->postJson("/api/events/{$this->futureEvent->id}/questions", [

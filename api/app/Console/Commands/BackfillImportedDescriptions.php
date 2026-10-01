@@ -101,6 +101,7 @@ class BackfillImportedDescriptions extends Command
             if ($body === null) {
                 $this->line(sprintf(' - venue #%d %s -> preskočené', $venue->id, $venue->name));
                 $this->pause();
+
                 continue;
             }
 

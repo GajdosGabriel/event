@@ -14,7 +14,7 @@ class EventTextLabelExtractorTest extends TestCase
     {
         parent::setUp();
 
-        $this->extractor = new EventTextLabelExtractor();
+        $this->extractor = new EventTextLabelExtractor;
     }
 
     #[Test]
@@ -50,8 +50,8 @@ class EventTextLabelExtractorTest extends TestCase
         // Real Vyveska announcement (event 121): venue keyword-bearing segment wins,
         // preceding segment ("v Nitre") is the city, "na Kalvárii" is discarded.
         $text = "Pozývame na modlitbové stretnutia každú nedeľu o 18.00\n"
-            . "na Kalvárii\nv Nitre\nvo Farskom pastoračnom centre\n"
-            . '(vchod z veľkého parkoviska).';
+            ."na Kalvárii\nv Nitre\nvo Farskom pastoračnom centre\n"
+            .'(vchod z veľkého parkoviska).';
 
         $result = $this->extractor->extractVenue($text);
 
@@ -80,7 +80,7 @@ class EventTextLabelExtractorTest extends TestCase
     public function it_extracts_the_organizer_city_from_the_sentence_with_his_name(): void
     {
         $text = 'Trnava 4. septembra (TK KBS) Západoslovenské múzeum v Trnave pripravuje pri'
-            . " príležitosti 800. výročia\npodujatie Osem storočí – jeden príbeh.";
+            ." príležitosti 800. výročia\npodujatie Osem storočí – jeden príbeh.";
 
         $this->assertSame(
             'Trnave',

@@ -63,7 +63,7 @@ class WikipediaPlaceEnricherTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new WikipediaPlaceEnricher())->enrich('Katedrala sv. Martina', 'Bratislava', 'Slovakia');
+        $result = (new WikipediaPlaceEnricher)->enrich('Katedrala sv. Martina', 'Bratislava', 'Slovakia');
 
         $this->assertSame('Dóm svätého Martina (Bratislava)', $result['official_name']);
         $this->assertSame('https://upload.wikimedia.org/example.jpg', $result['image_url']);
@@ -110,7 +110,7 @@ class WikipediaPlaceEnricherTest extends TestCase
             ], 200),
         ]);
 
-        $enricher = new WikipediaPlaceEnricher();
+        $enricher = new WikipediaPlaceEnricher;
 
         $first = $enricher->enrich('Cached Place', 'Bratislava');
         $second = $enricher->enrich('Cached Place', 'Bratislava');
@@ -163,7 +163,7 @@ class WikipediaPlaceEnricherTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new WikipediaPlaceEnricher())->enrich('Test Place', 'Bratislava');
+        $result = (new WikipediaPlaceEnricher)->enrich('Test Place', 'Bratislava');
 
         $this->assertSame('https://official-place.example', $result['website']);
         $this->assertSame('https://sk.wikipedia.org/wiki/Test_Place', $result['reference_url']);

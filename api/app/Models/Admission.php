@@ -5,8 +5,9 @@ namespace App\Models;
 use App\Enums\AdmissionStatus;
 use App\Enums\AttendeeConfirmationStatus;
 use App\Enums\TicketTypeKind;
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Admission extends Model
@@ -16,7 +17,9 @@ class Admission extends Model
     protected $table = 'ticket_admissions';
 
     protected $guarded = [];
+
     protected $hidden = ['qr_token'];
+
     protected $appends = ['is_checked_in'];
 
     protected $casts = [

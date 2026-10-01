@@ -25,9 +25,13 @@ class CanalClaimNotice extends Notification implements ShouldQueue
     use Queueable;
 
     public const VERIFY = 'verify';
+
     public const REQUESTED = 'requested';
+
     public const REJECTED = 'rejected';
+
     public const CONTESTED = 'contested';
+
     public const REVERTED = 'reverted';
 
     public function __construct(
@@ -44,7 +48,7 @@ class CanalClaimNotice extends Notification implements ShouldQueue
     {
         $claim = $this->claim->loadMissing(['canal', 'user']);
         $canal = $claim->canal?->name ?: __('mail.canal_invitation.canal_fallback');
-        $key = 'mail.canal_claim.' . $this->kind;
+        $key = 'mail.canal_claim.'.$this->kind;
         $params = [
             'canal' => $canal,
             'member' => $claim->user?->maskedEmail() ?? '—',
@@ -52,9 +56,9 @@ class CanalClaimNotice extends Notification implements ShouldQueue
         ];
 
         $mail = (new MailMessage)
-            ->subject(__($key . '.subject', $params))
+            ->subject(__($key.'.subject', $params))
             ->greeting(__('mail.common.greeting'))
-            ->line(__($key . '.intro', $params));
+            ->line(__($key.'.intro', $params));
 
         if ($claim->message && in_array($this->kind, [self::REQUESTED, self::VERIFY], true)) {
             $mail->line(__('mail.canal_claim.message', ['message' => $claim->message]));
@@ -72,10 +76,10 @@ class CanalClaimNotice extends Notification implements ShouldQueue
 
         return match ($this->kind) {
             self::VERIFY => $mail
-                ->action(__($key . '.action'), $frontend . '/prevzatie/' . $claim->token)
-                ->line(__($key . '.ignore', ['date' => $claim->expires_at?->format('d. m. Y') ?? ''])),
+                ->action(__($key.'.action'), $frontend.'/prevzatie/'.$claim->token)
+                ->line(__($key.'.ignore', ['date' => $claim->expires_at?->format('d. m. Y') ?? ''])),
             self::REQUESTED, self::CONTESTED => $mail
-                ->action(__($key . '.action'), $frontend . '/admin/prevzatia'),
+                ->action(__($key.'.action'), $frontend.'/admin/prevzatia'),
             default => $mail,
         };
     }

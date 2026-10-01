@@ -360,7 +360,7 @@ class SlideCanvas
                 continue;
             }
 
-            $candidate = $current === '' ? $word : $current . ' ' . $word;
+            $candidate = $current === '' ? $word : $current.' '.$word;
 
             if ($this->textWidth($font, $size, $candidate) <= $maxWidth) {
                 $current = $candidate;
@@ -403,7 +403,7 @@ class SlideCanvas
         $current = '';
 
         foreach (mb_str_split($word) as $char) {
-            if ($current !== '' && $this->textWidth($font, $size, $current . $char) > $maxWidth) {
+            if ($current !== '' && $this->textWidth($font, $size, $current.$char) > $maxWidth) {
                 $chunks[] = $current;
                 $current = '';
             }
@@ -443,7 +443,7 @@ class SlideCanvas
         $last = count($lines) - 1;
 
         if ($last >= 0) {
-            $lines[$last] = rtrim($lines[$last]) . '…';
+            $lines[$last] = rtrim($lines[$last]).'…';
         }
 
         return ['size' => $minSize, 'lines' => $lines];

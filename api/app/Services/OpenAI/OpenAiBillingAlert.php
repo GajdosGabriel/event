@@ -4,8 +4,8 @@ namespace App\Services\OpenAI;
 
 use App\Listeners\SystemLogSubscriber;
 use App\Models\User;
-use App\Services\SystemLog\Recorder;
 use App\Notifications\OpenAiBillingIssue;
+use App\Services\SystemLog\Recorder;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;

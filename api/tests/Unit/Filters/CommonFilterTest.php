@@ -117,18 +117,18 @@ class CommonFilterTest extends TestCase
     public function test_filter_by_search_matches_name_before_body_but_returns_both(): void
     {
         $user = User::factory()->create();
-        $needle = 'Needle ' . uniqid();
+        $needle = 'Needle '.uniqid();
 
         $nameMatch = Event::factory()->create([
             'user_id' => $user->id,
-            'name' => 'Event ' . $needle,
+            'name' => 'Event '.$needle,
             'body' => 'Generic body text',
         ]);
 
         $bodyMatch = Event::factory()->create([
             'user_id' => $user->id,
             'name' => 'Body match only',
-            'body' => 'Contains ' . $needle . ' in description',
+            'body' => 'Contains '.$needle.' in description',
         ]);
 
         $nonMatch = Event::factory()->create([

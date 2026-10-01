@@ -56,6 +56,6 @@ class SupportTicket extends Model
     /** Čitateľné číslo do predmetu mailu a do zoznamu. */
     public function reference(): string
     {
-        return '#' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+        return '#'.str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 }

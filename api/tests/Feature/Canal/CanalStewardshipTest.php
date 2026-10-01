@@ -29,6 +29,7 @@ class CanalStewardshipTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Canal $canal;
 
     protected function setUp(): void
@@ -57,7 +58,7 @@ class CanalStewardshipTest extends TestCase
         $this->assertNull($this->canal->messageRecipient());
 
         $this->actingAs($farar, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertOk();
 
         $canal = $this->canal->fresh();
@@ -81,7 +82,7 @@ class CanalStewardshipTest extends TestCase
         $editor = $this->user(['email' => 'editor@example.sk']);
 
         $this->actingAs($editor, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertOk();
 
         $canal = $this->canal->fresh();
@@ -101,7 +102,7 @@ class CanalStewardshipTest extends TestCase
         $second = $this->user(['email' => 'druhy@example.sk']);
 
         $this->actingAs($second, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertOk();
 
         $canal = $this->canal->fresh();
@@ -154,7 +155,7 @@ class CanalStewardshipTest extends TestCase
         $farar = $this->user(['email' => 'farnost@example.sk']);
 
         $this->actingAs($farar, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertUnprocessable();
 
         $this->assertNull($this->canal->fresh()->claimed_at);

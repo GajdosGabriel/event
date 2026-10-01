@@ -124,7 +124,7 @@ class DetectorArticleCityWinsTest extends TestCase
         return new Detector(
             chatGPT: $chatGpt,
             nominatimGeocoder: $geocoder,
-            municipalityResolver: new MunicipalityResolver(),
+            municipalityResolver: new MunicipalityResolver,
             wikipediaPlaceEnricher: $enricher,
         );
     }

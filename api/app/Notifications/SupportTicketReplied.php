@@ -45,7 +45,7 @@ class SupportTicketReplied extends Notification implements ShouldQueue
             ->greeting(__('mail.common.greeting'))
             ->line(__('support.mail.replied.intro', ['name' => $author]))
             ->line(Str::limit($message->body, 1000))
-            ->action(__('support.mail.action'), rtrim((string) config('app.frontend_url'), '/') . $this->path())
+            ->action(__('support.mail.action'), rtrim((string) config('app.frontend_url'), '/').$this->path())
             ->line(__('support.mail.replied.outro'));
     }
 
@@ -62,6 +62,6 @@ class SupportTicketReplied extends Notification implements ShouldQueue
     private function path(): string
     {
         return ($this->message->is_staff ? '/dashboard/spravy/podpora/' : '/admin/podpora/')
-            . $this->message->support_ticket_id;
+            .$this->message->support_ticket_id;
     }
 }

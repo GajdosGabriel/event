@@ -154,7 +154,7 @@ class QuestionModerationTest extends EventSetupTest
 
         $this->app['auth']->forgetGuards();
         $this->getJson("/api/q/{$oldToken}")->assertNotFound();
-        $this->getJson('/api/q/' . $board->refresh()->token)->assertOk();
+        $this->getJson('/api/q/'.$board->refresh()->token)->assertOk();
     }
 
     #[Test]

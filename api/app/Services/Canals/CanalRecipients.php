@@ -199,7 +199,7 @@ class CanalRecipients
             $actor = Auth::user();
 
             Recorder::info('canals', 'notifications_changed',
-                "Kanál {$canal->name}: {$topic->value} " . ($enabled ? 'zapnuté' : 'vypnuté'),
+                "Kanál {$canal->name}: {$topic->value} ".($enabled ? 'zapnuté' : 'vypnuté'),
                 status: 'ok',
                 recipient: $member->email,
                 userId: $member->id,

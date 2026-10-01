@@ -20,7 +20,7 @@ class EventAttributeDeriverTest extends EventSetupTest
     {
         parent::setUp();
 
-        $this->deriver = new EventAttributeDeriver();
+        $this->deriver = new EventAttributeDeriver;
 
         foreach ([['vonku', 'Vonku'], ['vstup-volny', 'Vstup voľný'], ['s-registraciou', 'S registráciou'], ['viacdnove', 'Viacdňové'], ['online', 'Online']] as $index => [$slug, $name]) {
             Tag::query()->create([

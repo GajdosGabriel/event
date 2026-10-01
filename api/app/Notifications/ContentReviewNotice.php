@@ -36,8 +36,7 @@ class ContentReviewNotice extends Notification implements ShouldQueue
         protected ContentReview $review,
         protected Model $subject,
         protected array $issues,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -55,7 +54,7 @@ class ContentReviewNotice extends Notification implements ShouldQueue
         $type = __('mail.content_review.types.'.$alias);
         $name = trim((string) ($this->subject->name ?? ''));
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.content_review.subject', ['name' => $name !== '' ? $name : $type]))
             ->greeting(__('mail.common.greeting'))
             ->line($name !== ''

@@ -24,6 +24,7 @@ class CanalTeamTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private Canal $canal;
 
     protected function setUp(): void
@@ -41,7 +42,7 @@ class CanalTeamTest extends TestCase
         Notification::fake();
 
         $this->actingAs($this->owner, 'sanctum')
-            ->postJson($this->teamUrl() . '/invitations', [
+            ->postJson($this->teamUrl().'/invitations', [
                 'email' => 'dramaturg@divadlo.test',
                 'role' => CanalRole::Editor->value,
             ])
@@ -66,7 +67,7 @@ class CanalTeamTest extends TestCase
         $editor = $this->member('editor@divadlo.test', CanalRole::Editor);
 
         $this->actingAs($editor, 'sanctum')
-            ->postJson($this->teamUrl() . '/invitations', [
+            ->postJson($this->teamUrl().'/invitations', [
                 'email' => 'dalsi@divadlo.test',
                 'role' => CanalRole::Editor->value,
             ])
@@ -103,14 +104,14 @@ class CanalTeamTest extends TestCase
         $invitation = $this->invite('brigadnik@divadlo.test', CanalRole::Checkin);
         $invited = User::factory()->create(['email' => 'brigadnik@divadlo.test']);
 
-        $this->getJson('/api/invitations/' . $invitation->token)
+        $this->getJson('/api/invitations/'.$invitation->token)
             ->assertOk()
             ->assertJsonPath('data.canal.name', 'Divadlo')
             ->assertJsonPath('data.role', CanalRole::Checkin->value)
             ->assertJsonPath('data.status', 'pending');
 
         $this->actingAs($invited, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertOk()
             ->assertJsonPath('data.canal.id', $this->canal->id);
 
@@ -131,7 +132,7 @@ class CanalTeamTest extends TestCase
         $someoneElse = User::factory()->create(['email' => 'niekto.iny@inde.test']);
 
         $this->actingAs($someoneElse, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertStatus(422)
             ->assertJsonValidationErrors('email');
 
@@ -149,12 +150,12 @@ class CanalTeamTest extends TestCase
 
         $invited = User::factory()->create(['email' => 'neskoro@divadlo.test']);
 
-        $this->getJson('/api/invitations/' . $invitation->token)
+        $this->getJson('/api/invitations/'.$invitation->token)
             ->assertOk()
             ->assertJsonPath('data.status', 'expired');
 
         $this->actingAs($invited, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertStatus(422);
     }
 
@@ -164,13 +165,13 @@ class CanalTeamTest extends TestCase
         $invitation = $this->invite('zruseny@divadlo.test', CanalRole::Editor);
 
         $this->actingAs($this->owner, 'sanctum')
-            ->deleteJson($this->teamUrl() . '/invitations/' . $invitation->id)
+            ->deleteJson($this->teamUrl().'/invitations/'.$invitation->id)
             ->assertOk();
 
         $invited = User::factory()->create(['email' => 'zruseny@divadlo.test']);
 
         $this->actingAs($invited, 'sanctum')
-            ->postJson('/api/invitations/' . $invitation->token . '/accept')
+            ->postJson('/api/invitations/'.$invitation->token.'/accept')
             ->assertStatus(422);
     }
 
@@ -181,7 +182,7 @@ class CanalTeamTest extends TestCase
         $event = $this->makeEvent($this->canal);
 
         $this->actingAs($editor, 'sanctum')
-            ->putJson('/api/dashboard/events/' . $event->id, [
+            ->putJson('/api/dashboard/events/'.$event->id, [
                 'name' => 'Premiéra',
                 'canal_id' => $this->canal->id,
                 'start_at' => now()->addMonth()->format('Y-m-d H:i:s'),
@@ -189,7 +190,7 @@ class CanalTeamTest extends TestCase
             ->assertOk();
 
         $this->actingAs($editor, 'sanctum')
-            ->deleteJson('/api/dashboard/events/' . $event->id)
+            ->deleteJson('/api/dashboard/events/'.$event->id)
             ->assertStatus(403);
     }
 
@@ -200,7 +201,7 @@ class CanalTeamTest extends TestCase
         $event = $this->makeEvent($this->canal);
 
         $this->actingAs($brigadnik, 'sanctum')
-            ->getJson('/api/dashboard/events/' . $event->id)
+            ->getJson('/api/dashboard/events/'.$event->id)
             ->assertOk();
 
         // Podujatie vzniká v aktívnom kanáli, preto sa naň brigádnik najprv
@@ -232,7 +233,7 @@ class CanalTeamTest extends TestCase
         // Vo vlastnom kanáli editor podujatie upraví…
         $ownEvent = $this->makeEvent($this->canal);
         $this->actingAs($editor, 'sanctum')
-            ->putJson('/api/dashboard/events/' . $ownEvent->id, [
+            ->putJson('/api/dashboard/events/'.$ownEvent->id, [
                 'name' => 'Vlastné',
                 'canal_id' => $this->canal->id,
             ])
@@ -241,7 +242,7 @@ class CanalTeamTest extends TestCase
         // …v cudzom o ňom nesmie ani vedieť — dashboard výpis cudzie kanály
         // vôbec nevidí, preto 404 a nie 403.
         $this->actingAs($editor, 'sanctum')
-            ->getJson('/api/dashboard/events/' . $foreignEvent->id)
+            ->getJson('/api/dashboard/events/'.$foreignEvent->id)
             ->assertStatus(404);
     }
 
@@ -251,7 +252,7 @@ class CanalTeamTest extends TestCase
         $member = $this->member('povysenie@divadlo.test', CanalRole::Checkin);
 
         $this->actingAs($this->owner, 'sanctum')
-            ->putJson($this->teamUrl() . '/' . $member->id, ['role' => CanalRole::Owner->value])
+            ->putJson($this->teamUrl().'/'.$member->id, ['role' => CanalRole::Owner->value])
             ->assertOk();
 
         $this->assertDatabaseHas('canal_user', [
@@ -270,7 +271,7 @@ class CanalTeamTest extends TestCase
 
         // Kým sú vlastníci dvaja, degradácia prejde.
         $this->actingAs($this->owner, 'sanctum')
-            ->putJson($this->teamUrl() . '/' . $secondOwner->id, ['role' => CanalRole::Editor->value])
+            ->putJson($this->teamUrl().'/'.$secondOwner->id, ['role' => CanalRole::Editor->value])
             ->assertOk();
 
         // Posledného vlastníka už odobrať nejde — kanál by ostal bez správcu.
@@ -282,11 +283,11 @@ class CanalTeamTest extends TestCase
     public function owner_cannot_change_or_remove_their_own_membership(): void
     {
         $this->actingAs($this->owner, 'sanctum')
-            ->putJson($this->teamUrl() . '/' . $this->owner->id, ['role' => CanalRole::Editor->value])
+            ->putJson($this->teamUrl().'/'.$this->owner->id, ['role' => CanalRole::Editor->value])
             ->assertStatus(422);
 
         $this->actingAs($this->owner, 'sanctum')
-            ->deleteJson($this->teamUrl() . '/' . $this->owner->id)
+            ->deleteJson($this->teamUrl().'/'.$this->owner->id)
             ->assertStatus(422);
     }
 
@@ -297,7 +298,7 @@ class CanalTeamTest extends TestCase
         $event = $this->makeEvent($this->canal);
 
         $this->actingAs($this->owner, 'sanctum')
-            ->deleteJson($this->teamUrl() . '/' . $editor->id)
+            ->deleteJson($this->teamUrl().'/'.$editor->id)
             ->assertOk();
 
         $this->assertDatabaseMissing('canal_user', [
@@ -306,7 +307,7 @@ class CanalTeamTest extends TestCase
         ]);
 
         $this->actingAs($editor->fresh(), 'sanctum')
-            ->getJson('/api/dashboard/events/' . $event->id)
+            ->getJson('/api/dashboard/events/'.$event->id)
             ->assertStatus(404);
     }
 
@@ -316,7 +317,7 @@ class CanalTeamTest extends TestCase
         $editor = $this->member('uz.clen@divadlo.test', CanalRole::Editor);
 
         $this->actingAs($this->owner, 'sanctum')
-            ->postJson($this->teamUrl() . '/invitations', [
+            ->postJson($this->teamUrl().'/invitations', [
                 'email' => $editor->email,
                 'role' => CanalRole::Editor->value,
             ])
@@ -337,7 +338,7 @@ class CanalTeamTest extends TestCase
         $this->canal->forceFill(['status' => ModelStatus::Archived->value])->save();
 
         $this->actingAs($this->owner, 'sanctum')
-            ->postJson($this->teamUrl() . '/invitations', [
+            ->postJson($this->teamUrl().'/invitations', [
                 'email' => 'brigadnik@divadlo.test',
                 'role' => CanalRole::Editor->value,
             ])
@@ -351,7 +352,7 @@ class CanalTeamTest extends TestCase
 
     private function teamUrl(): string
     {
-        return '/api/dashboard/canals/' . $this->canal->id . '/team';
+        return '/api/dashboard/canals/'.$this->canal->id.'/team';
     }
 
     private function makeCanal(string $name): Canal
@@ -366,7 +367,7 @@ class CanalTeamTest extends TestCase
     private function makeEvent(Canal $canal): Event
     {
         return Event::query()->create([
-            'name' => 'Predstavenie ' . uniqid(),
+            'name' => 'Predstavenie '.uniqid(),
             'status' => ModelStatus::Draft->value,
             'canal_id' => $canal->id,
             'user_id' => $this->owner->id,
@@ -389,7 +390,7 @@ class CanalTeamTest extends TestCase
         Notification::fake();
 
         $this->actingAs($this->owner, 'sanctum')
-            ->postJson($this->teamUrl() . '/invitations', ['email' => $email, 'role' => $role->value])
+            ->postJson($this->teamUrl().'/invitations', ['email' => $email, 'role' => $role->value])
             ->assertStatus(201);
 
         return CanalInvitation::query()->where('email', $email)->latest('id')->firstOrFail();

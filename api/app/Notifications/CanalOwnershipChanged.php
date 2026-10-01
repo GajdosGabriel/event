@@ -30,7 +30,9 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
     use Queueable;
 
     public const CLAIMED = 'claimed';
+
     public const OWNER_ADDED = 'owner_added';
+
     public const OWNER_REMOVED = 'owner_removed';
 
     public function __construct(
@@ -49,13 +51,13 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $canal = $this->canal->name ?: __('mail.canal_invitation.canal_fallback');
-        $key = 'mail.canal_ownership.' . $this->change;
+        $key = 'mail.canal_ownership.'.$this->change;
         $audience = $this->audience($notifiable);
 
         $mail = (new MailMessage)
-            ->subject(__($key . '.subject', ['canal' => $canal]))
+            ->subject(__($key.'.subject', ['canal' => $canal]))
             ->greeting(__('mail.common.greeting'))
-            ->line(__($key . '.' . $audience, [
+            ->line(__($key.'.'.$audience, [
                 'canal' => $canal,
                 'member' => $this->member->maskedEmail() ?? $this->member->displayName(),
                 'role' => $this->role?->label() ?? '',
@@ -68,14 +70,14 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
                     ->line(__('mail.canal_ownership.contest', ['date' => $this->claim->contest_until->format('d. m. Y')]))
                     ->action(
                         __('mail.canal_ownership.contest_action'),
-                        rtrim((string) config('app.frontend_url'), '/') . '/prevzatie/namietka/' . $this->claim->contest_token,
+                        rtrim((string) config('app.frontend_url'), '/').'/prevzatie/namietka/'.$this->claim->contest_token,
                     );
             }
 
             return $mail->line(__('mail.canal_ownership.not_you'));
         }
 
-        return $mail->action(__('mail.canal_ownership.action'), DashboardUrl::base() . '/canals/' . $this->canal->id);
+        return $mail->action(__('mail.canal_ownership.action'), DashboardUrl::base().'/canals/'.$this->canal->id);
     }
 
     /** `member` (dotknutý), `contact` (adresa kanála bez účtu), inak `owners`. */

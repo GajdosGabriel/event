@@ -61,7 +61,7 @@ class SubscriptionStoreRequest extends FormRequest
 
             $valid = SubmissionTicket::isValid(
                 $this->input('ticket'),
-                'subscription:' . $this->route('event'),
+                'subscription:'.$this->route('event'),
                 self::MIN_FILL_SECONDS,
                 self::MAX_TICKET_AGE_SECONDS,
             );

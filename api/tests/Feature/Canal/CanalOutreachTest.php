@@ -91,7 +91,7 @@ class CanalOutreachTest extends TestCase
         $mail = SystemLog::where('event', 'mail.simulated')->sole();
         $this->assertSame('info@hajske.sk', $mail->recipient);
         $this->assertSame(CanalOutreachNotice::class, $mail->context['class']);
-        $this->assertStringEndsWith('/pozvanka/' . $invitation->token, $mail->context['action']);
+        $this->assertStringEndsWith('/pozvanka/'.$invitation->token, $mail->context['action']);
         $this->assertSame(CanalOutreach::SIMULATED, CanalOutreach::sole()->status);
         $this->assertTrue(SystemLog::where('event', 'canals.outreach_simulated')->exists());
         Notification::assertNothingSent();
@@ -173,7 +173,7 @@ class CanalOutreachTest extends TestCase
             View::query()->create([
                 'viewable_type' => $event->getMorphClass(),
                 'viewable_id' => $event->id,
-                'visitor_hash' => hash('sha256', 'v' . $i),
+                'visitor_hash' => hash('sha256', 'v'.$i),
                 'viewed_on' => now()->subDays($daysAgo + 1)->toDateString(),
             ]);
         }

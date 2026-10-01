@@ -20,7 +20,7 @@ class TextLinkExtractor
         $links = [];
         foreach ($matches[1] as $rawUrl) {
             $cleanUrl = $this->normalizeUrl($rawUrl);
-            if (!$cleanUrl) {
+            if (! $cleanUrl) {
                 continue;
             }
 
@@ -33,13 +33,13 @@ class TextLinkExtractor
     private function normalizeUrl(string $url): ?string
     {
         $url = trim($url);
-        $url = rtrim($url, ".,;:!?)\"]");
+        $url = rtrim($url, '.,;:!?)"]');
 
         if (str_starts_with($url, 'www.')) {
-            $url = 'https://' . $url;
+            $url = 'https://'.$url;
         }
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
             return null;
         }
 

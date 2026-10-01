@@ -26,7 +26,7 @@ class GoogleMapsLinkResolverTest extends TestCase
             ]),
         ]);
 
-        $coords = (new GoogleMapsLinkResolver())->resolveUrl('https://maps.app.goo.gl/iNdsVUDXdEruVovG6');
+        $coords = (new GoogleMapsLinkResolver)->resolveUrl('https://maps.app.goo.gl/iNdsVUDXdEruVovG6');
 
         $this->assertSame(48.298834, $coords['latitude']);
         $this->assertSame(18.092023, $coords['longitude']);
@@ -37,7 +37,7 @@ class GoogleMapsLinkResolverTest extends TestCase
     {
         Http::fake();
 
-        $coords = (new GoogleMapsLinkResolver())
+        $coords = (new GoogleMapsLinkResolver)
             ->resolveUrl('https://www.google.com/maps/place/Nitra/@48.3061,18.0764,15z');
 
         $this->assertSame(48.3061, $coords['latitude']);
@@ -50,7 +50,7 @@ class GoogleMapsLinkResolverTest extends TestCase
     {
         Http::fake();
 
-        $coords = (new GoogleMapsLinkResolver())
+        $coords = (new GoogleMapsLinkResolver)
             ->resolveUrl('https://www.google.com/maps/place/X/data=!3d49.1234!4d21.5678');
 
         $this->assertSame(49.1234, $coords['latitude']);
@@ -63,14 +63,14 @@ class GoogleMapsLinkResolverTest extends TestCase
         $target = 'https://www.google.com/maps/search/48.5,+18.5';
         Http::fake([
             'goo.gl/*' => Http::response('', 302, [
-                'Location' => 'https://consent.google.com/ml?continue=' . rawurlencode($target) . '&gl=SK',
+                'Location' => 'https://consent.google.com/ml?continue='.rawurlencode($target).'&gl=SK',
             ]),
             'consent.google.com/*' => Http::response('', 303, [
-                'Location' => $target . '?ucbcb=1',
+                'Location' => $target.'?ucbcb=1',
             ]),
         ]);
 
-        $coords = (new GoogleMapsLinkResolver())->resolveUrl('https://goo.gl/maps/abc123');
+        $coords = (new GoogleMapsLinkResolver)->resolveUrl('https://goo.gl/maps/abc123');
 
         $this->assertSame(48.5, $coords['latitude']);
         $this->assertSame(18.5, $coords['longitude']);
@@ -81,7 +81,7 @@ class GoogleMapsLinkResolverTest extends TestCase
     {
         Http::fake();
 
-        $coords = (new GoogleMapsLinkResolver())->fromText('Viac info na https://example.com/podujatie');
+        $coords = (new GoogleMapsLinkResolver)->fromText('Viac info na https://example.com/podujatie');
 
         $this->assertNull($coords['latitude']);
         $this->assertNull($coords['longitude']);
@@ -97,7 +97,7 @@ class GoogleMapsLinkResolverTest extends TestCase
             ]),
         ]);
 
-        $coords = (new GoogleMapsLinkResolver())
+        $coords = (new GoogleMapsLinkResolver)
             ->fromText("Stretneme sa, presne tu: https://maps.app.goo.gl/xyz\nTešíme sa!");
 
         $this->assertSame(48.1, $coords['latitude']);
@@ -109,7 +109,7 @@ class GoogleMapsLinkResolverTest extends TestCase
     {
         Http::fake();
 
-        $resolver = new GoogleMapsLinkResolver();
+        $resolver = new GoogleMapsLinkResolver;
 
         $this->assertNull($resolver->resolveUrl('https://www.google.com/maps/place/@0,0,3z')['latitude']);
         $this->assertNull($resolver->resolveUrl('https://www.google.com/maps/search/999.0,+18.0')['latitude']);

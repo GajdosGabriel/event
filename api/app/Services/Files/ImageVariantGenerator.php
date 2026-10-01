@@ -16,7 +16,7 @@ class ImageVariantGenerator
      */
     public function generate(string $disk, string $originalPath, int $thumbLongEdge = 320, int $largeLongEdge = 1280): array
     {
-        if (!Storage::disk($disk)->exists($originalPath)) {
+        if (! Storage::disk($disk)->exists($originalPath)) {
             return ['thumb' => null, 'large' => null, 'delete_original' => false];
         }
 
@@ -27,12 +27,12 @@ class ImageVariantGenerator
 
         $source = @imagecreatefromstring($binary);
         $isDocumentPreview = false;
-        if (!$source) {
+        if (! $source) {
             $source = $this->pdfPreviewRenderer->renderFirstPage($binary, basename($originalPath));
             $isDocumentPreview = true;
         }
 
-        if (!$source) {
+        if (! $source) {
             return ['thumb' => null, 'large' => null, 'delete_original' => false];
         }
 
@@ -59,7 +59,6 @@ class ImageVariantGenerator
         return $large !== null;
     }
 
-
     private function storeVariant(
         string $disk,
         string $originalPath,
@@ -71,7 +70,7 @@ class ImageVariantGenerator
         bool $alwaysGenerate
     ): ?string {
         $longEdge = max($width, $height);
-        if (!$alwaysGenerate && $longEdge <= $maxLongEdge) {
+        if (! $alwaysGenerate && $longEdge <= $maxLongEdge) {
             return null;
         }
 
@@ -80,7 +79,7 @@ class ImageVariantGenerator
         $newHeight = max(1, (int) round($height * $ratio));
 
         $target = imagecreatetruecolor($newWidth, $newHeight);
-        if (!$target) {
+        if (! $target) {
             return null;
         }
 
@@ -110,13 +109,13 @@ class ImageVariantGenerator
         $filename = $info['filename'] ?? 'file';
         $extension = strtolower((string) ($info['extension'] ?? 'jpg'));
 
-        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             $extension = 'jpg';
         }
 
-        $name = $filename . '_' . $suffix . '.' . $extension;
+        $name = $filename.'_'.$suffix.'.'.$extension;
 
-        return $dirname !== '' ? ($dirname . '/' . $name) : $name;
+        return $dirname !== '' ? ($dirname.'/'.$name) : $name;
     }
 
     private function toBinary(\GdImage $image, string $variantPath): ?string
@@ -131,7 +130,7 @@ class ImageVariantGenerator
         };
         $binary = ob_get_clean();
 
-        if (!$saved || !is_string($binary) || $binary === '') {
+        if (! $saved || ! is_string($binary) || $binary === '') {
             return null;
         }
 

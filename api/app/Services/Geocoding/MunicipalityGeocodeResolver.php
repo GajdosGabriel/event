@@ -33,8 +33,8 @@ class MunicipalityGeocodeResolver
     private const COUNTRY = 'Slovensko';
 
     public function __construct(
-        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder(),
-        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver(),
+        private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
+        private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver,
     ) {}
 
     /**
@@ -62,10 +62,10 @@ class MunicipalityGeocodeResolver
             if ($villageId !== null) {
                 return [
                     'village_id' => $villageId,
-                    'city'       => $candidate,
-                    'postcode'   => null,
-                    'latitude'   => null,
-                    'longitude'  => null,
+                    'city' => $candidate,
+                    'postcode' => null,
+                    'latitude' => null,
+                    'longitude' => null,
                 ];
             }
         }
@@ -78,10 +78,10 @@ class MunicipalityGeocodeResolver
             if ($villageId !== null) {
                 return [
                     'village_id' => $villageId,
-                    'city'       => $city,
-                    'postcode'   => null,
-                    'latitude'   => null,
-                    'longitude'  => null,
+                    'city' => $city,
+                    'postcode' => null,
+                    'latitude' => null,
+                    'longitude' => null,
                 ];
             }
         }
@@ -141,8 +141,8 @@ class MunicipalityGeocodeResolver
             $result = $this->nominatimGeocoder->lookup($name, $near, self::COUNTRY);
         } catch (\Throwable $e) {
             Log::warning('MunicipalityGeocodeResolver: Nominatim lookup failed', [
-                'name'  => $name,
-                'near'  => $near,
+                'name' => $name,
+                'near' => $near,
                 'error' => $e->getMessage(),
             ]);
 
@@ -166,10 +166,10 @@ class MunicipalityGeocodeResolver
 
         return [
             'village_id' => $villageId,
-            'city'       => $geocodedCity,
-            'postcode'   => $postcode,
-            'latitude'   => $this->floatOrNull($result['latitude'] ?? null),
-            'longitude'  => $this->floatOrNull($result['longitude'] ?? null),
+            'city' => $geocodedCity,
+            'postcode' => $postcode,
+            'latitude' => $this->floatOrNull($result['latitude'] ?? null),
+            'longitude' => $this->floatOrNull($result['longitude'] ?? null),
         ];
     }
 
@@ -251,7 +251,7 @@ class MunicipalityGeocodeResolver
             $resolved = $this->municipalityResolver->resolve($city, $postcode);
         } catch (\Throwable $e) {
             Log::warning('MunicipalityGeocodeResolver: municipality lookup failed', [
-                'city'  => $city,
+                'city' => $city,
                 'error' => $e->getMessage(),
             ]);
 

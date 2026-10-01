@@ -110,11 +110,11 @@ class MyTicketsTest extends EventSetupTest
             ->assertJsonPath('data.0.id', $subscription->id)
             ->assertJsonPath('data.0.type', 'event');
 
-        $this->deleteJson('/api/me/subscriptions/' . $subscription->id)->assertOk();
+        $this->deleteJson('/api/me/subscriptions/'.$subscription->id)->assertOk();
 
         // Odhlásenie zahodí adresu a riadok nechá — druhý pokus už nič nenájde.
         $this->assertNull($subscription->fresh()->email);
-        $this->deleteJson('/api/me/subscriptions/' . $subscription->id)->assertStatus(404);
+        $this->deleteJson('/api/me/subscriptions/'.$subscription->id)->assertStatus(404);
     }
 
     #[Test]
@@ -129,7 +129,7 @@ class MyTicketsTest extends EventSetupTest
             'token' => Subscription::freshToken(),
         ]);
 
-        $this->deleteJson('/api/me/subscriptions/' . $subscription->id)->assertStatus(404);
+        $this->deleteJson('/api/me/subscriptions/'.$subscription->id)->assertStatus(404);
 
         $this->assertNotNull($subscription->fresh()->email);
     }

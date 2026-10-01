@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Services\Calendar\EventCalendarLinks;
+use App\Support\EventDateRange;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,8 +28,7 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
     public function __construct(
         protected Event $event,
         protected Subscription $subscription,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -49,7 +48,7 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
 
         $calendar = new EventCalendarLinks($this->event);
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.subscription_confirmed.subject', ['event' => $this->event->name]))
             ->markdown('mail.subscription-confirmed', [
                 'greeting' => __('mail.common.greeting'),

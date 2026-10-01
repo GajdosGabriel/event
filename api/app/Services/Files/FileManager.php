@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\DB;
 class FileManager
 {
     public function __construct(
-        private readonly UploadedFilePersister $uploadedFilePersister = new UploadedFilePersister(),
-        private readonly RemoteAttachmentPersister $remoteAttachmentPersister = new RemoteAttachmentPersister(),
-        private readonly FileLifecycleService $fileLifecycleService = new FileLifecycleService(),
+        private readonly UploadedFilePersister $uploadedFilePersister = new UploadedFilePersister,
+        private readonly RemoteAttachmentPersister $remoteAttachmentPersister = new RemoteAttachmentPersister,
+        private readonly FileLifecycleService $fileLifecycleService = new FileLifecycleService,
     ) {}
 
     /**
-     * @param UploadedFile|array<int, UploadedFile> $files
-     * @param array<string, mixed> $meta
+     * @param  UploadedFile|array<int, UploadedFile>  $files
+     * @param  array<string, mixed>  $meta
      */
     public function storeForModel(
         Model $model,
@@ -62,8 +62,8 @@ class FileManager
     }
 
     /**
-     * @param UploadedFile|array<int, UploadedFile> $files
-     * @param array<string, mixed> $meta
+     * @param  UploadedFile|array<int, UploadedFile>  $files
+     * @param  array<string, mixed>  $meta
      */
     public function storeForEvent(
         Event $event,
@@ -78,8 +78,8 @@ class FileManager
     }
 
     /**
-     * @param array<int, array<string, mixed>> $attachments
-     * @param array<string, mixed> $meta
+     * @param  array<int, array<string, mixed>>  $attachments
+     * @param  array<string, mixed>  $meta
      */
     public function storeRemoteForModel(
         Model $model,
@@ -121,8 +121,8 @@ class FileManager
     }
 
     /**
-     * @param array<int, array<string, mixed>> $attachments
-     * @param array<string, mixed> $meta
+     * @param  array<int, array<string, mixed>>  $attachments
+     * @param  array<string, mixed>  $meta
      */
     public function storeRemoteForEvent(
         Event $event,
@@ -155,7 +155,7 @@ class FileManager
     {
         $modelName = strtolower(class_basename($model));
 
-        return $modelName . '/' . $model->getKey() . '/' . $type->value;
+        return $modelName.'/'.$model->getKey().'/'.$type->value;
     }
 
     private function resolveDisk(?string $disk): string
@@ -164,7 +164,7 @@ class FileManager
     }
 
     /**
-     * @param UploadedFile|array<int, UploadedFile> $files
+     * @param  UploadedFile|array<int, UploadedFile>  $files
      * @return Collection<int, UploadedFile>
      */
     private function normalizeFiles(UploadedFile|array $files): Collection
@@ -177,7 +177,7 @@ class FileManager
     }
 
     /**
-     * @param array<int, array<string, mixed>> $attachments
+     * @param  array<int, array<string, mixed>>  $attachments
      * @return Collection<int, array<string, mixed>>
      */
     private function normalizeRemoteAttachments(array $attachments): Collection

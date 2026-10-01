@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Canal;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 
 class CanalController extends Controller
 {

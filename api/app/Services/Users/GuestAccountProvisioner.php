@@ -20,11 +20,10 @@ class GuestAccountProvisioner
 {
     public function __construct(
         private PersonalCanalProvisioner $canalProvisioner,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param string $registeredVia Ako účet vznikol (napr. 'ticket', 'message').
+     * @param  string  $registeredVia  Ako účet vznikol (napr. 'ticket', 'message').
      */
     public function ensure(string $email, ?string $displayName, string $registeredVia): User
     {

@@ -61,7 +61,7 @@ class ToolRunTracker
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private static function put(string $runId, array $data): void
     {
@@ -69,7 +69,7 @@ class ToolRunTracker
     }
 
     /**
-     * @param array<string, mixed> $changes
+     * @param  array<string, mixed>  $changes
      */
     private static function merge(string $runId, array $changes): void
     {

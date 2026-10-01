@@ -12,7 +12,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface TicketRepository extends InterfaceRepository
 {
     public function issueForEvent(Event $event, array $properties): Ticket;
+
     public function findByUuid(string $uuid): ?Ticket;
+
     public function findAdmissionByUuid(string $uuid): ?Admission;
 
     /** Check-in vstupenky pomocou naskenovaného QR tokenu. */
@@ -55,6 +57,7 @@ interface TicketRepository extends InterfaceRepository
     public function waitlistCount(TicketType $type): int;
 
     public function cancel($id): Ticket;
+
     public function cancelAdmission(int $admissionId): Admission;
 
     /** Obnovenie zrušenej objednávky (aj s miestami) — objednávateľ dostane vstupenky znova. */

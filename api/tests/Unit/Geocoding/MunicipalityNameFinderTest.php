@@ -21,7 +21,7 @@ class MunicipalityNameFinderTest extends TestCase
         // Presne to, čo model vrátil z klokočovského plagátu ako „ulicu".
         $this->assertSame(
             'Klokočov',
-            (new MunicipalityNameFinder())->find('Klokočov - Zemplínska Šírava'),
+            (new MunicipalityNameFinder)->find('Klokočov - Zemplínska Šírava'),
         );
     }
 
@@ -30,7 +30,7 @@ class MunicipalityNameFinderTest extends TestCase
     {
         $this->assertSame(
             'Klokočov',
-            (new MunicipalityNameFinder())->find('Eparchiálna odpustová slávnosť Klokočov'),
+            (new MunicipalityNameFinder)->find('Eparchiálna odpustová slávnosť Klokočov'),
         );
     }
 
@@ -41,7 +41,7 @@ class MunicipalityNameFinderTest extends TestCase
         // inak by podujatie skončilo v inom okrese.
         $this->assertSame(
             'Spišská Nová Ves',
-            (new MunicipalityNameFinder())->find('Kultúrny dom, Spišská Nová Ves'),
+            (new MunicipalityNameFinder)->find('Kultúrny dom, Spišská Nová Ves'),
         );
     }
 
@@ -51,13 +51,13 @@ class MunicipalityNameFinderTest extends TestCase
         // Veľké písmeno je jediné, čo bráni tomu, aby bežné slovo trafilo
         // rovnomennú obec. Bez neho by „hora", „vieska" či „lipa" v ktorejkoľvek
         // vete plagátu vyrobili miesto konania.
-        $this->assertNull((new MunicipalityNameFinder())->find('stretnutie pri kostole v hore'));
+        $this->assertNull((new MunicipalityNameFinder)->find('stretnutie pri kostole v hore'));
     }
 
     #[Test]
     public function typical_venue_names_and_titles_match_nothing(): void
     {
-        $finder = new MunicipalityNameFinder();
+        $finder = new MunicipalityNameFinder;
 
         foreach ([
             'Chrám Zosnutia presvätej Bohorodičky',
@@ -66,14 +66,14 @@ class MunicipalityNameFinderTest extends TestCase
             'Koncert Márie Podhradskej',
             'Slávnostná akadémia',
         ] as $text) {
-            $this->assertNull($finder->find($text), $text . ' nemá byť obec.');
+            $this->assertNull($finder->find($text), $text.' nemá byť obec.');
         }
     }
 
     #[Test]
     public function it_returns_null_for_empty_input(): void
     {
-        $finder = new MunicipalityNameFinder();
+        $finder = new MunicipalityNameFinder;
 
         $this->assertNull($finder->find(null));
         $this->assertNull($finder->find('   '));

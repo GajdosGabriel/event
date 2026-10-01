@@ -18,10 +18,11 @@ class ImportEventSourcesJob implements ShouldQueue
     use Queueable;
 
     public int $timeout = 1800;
+
     public int $tries = 1;
 
     /**
-     * @param array<string, mixed> $options Artisan options for app:import-event-sources
+     * @param  array<string, mixed>  $options  Artisan options for app:import-event-sources
      */
     public function __construct(
         public readonly string $runId,
@@ -38,7 +39,7 @@ class ImportEventSourcesJob implements ShouldQueue
         if ($exitCode === 0) {
             ToolRunTracker::markDone($this->runId, $output !== '' ? $output : '(bez výstupu)');
         } else {
-            ToolRunTracker::markFailed($this->runId, $output !== '' ? $output : 'Import skončil s chybovým kódom ' . $exitCode . '.');
+            ToolRunTracker::markFailed($this->runId, $output !== '' ? $output : 'Import skončil s chybovým kódom '.$exitCode.'.');
         }
     }
 

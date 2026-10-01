@@ -87,7 +87,6 @@ class OrganizationController extends Controller
             return [$organization, $account];
         });
 
-
         return response()->json(
             (new OrganizationResource($organization))->withAccount($account)
         );

@@ -14,27 +14,31 @@ class PdfConverterService
     public function convertFromUrl(string $pdfUrl): ?PdfConvertResult
     {
         $apiUrl = rtrim((string) config('services.pdf_converter.url', self::FALLBACK_URL), '/');
-        $token  = (string) config('services.pdf_converter.token', '');
+        $token = (string) config('services.pdf_converter.token', '');
 
         if ($token === '') {
             Log::debug('PdfConverterService: PDF_CONVERTER_TOKEN not set, skipping', ['url' => $pdfUrl]);
+
             return null;
         }
 
         try {
             $pdfResponse = Http::timeout(30)->get($pdfUrl);
-            if (!$pdfResponse->successful()) {
+            if (! $pdfResponse->successful()) {
                 Log::debug('PdfConverterService: PDF download failed', ['url' => $pdfUrl, 'status' => $pdfResponse->status()]);
+
                 return null;
             }
             $contentType = strtolower((string) $pdfResponse->header('Content-Type'));
-            if (!str_contains($contentType, 'pdf') && !str_contains($contentType, 'octet-stream')) {
+            if (! str_contains($contentType, 'pdf') && ! str_contains($contentType, 'octet-stream')) {
                 Log::debug('PdfConverterService: URL did not return a PDF', ['url' => $pdfUrl, 'content_type' => $contentType]);
+
                 return null;
             }
             $pdfContent = $pdfResponse->body();
         } catch (\Throwable $e) {
             Log::warning('PdfConverterService: failed to download PDF', ['url' => $pdfUrl, 'error' => $e->getMessage()]);
+
             return null;
         }
 
@@ -58,10 +62,11 @@ class PdfConverterService
         $failureStatus = null;
 
         $apiUrl = rtrim((string) config('services.pdf_converter.url', self::FALLBACK_URL), '/');
-        $token  = (string) config('services.pdf_converter.token', '');
+        $token = (string) config('services.pdf_converter.token', '');
 
         if ($token === '') {
             Log::debug('PdfConverterService: PDF_CONVERTER_TOKEN not set, skipping', ['filename' => $filename]);
+
             return null;
         }
 
@@ -73,12 +78,13 @@ class PdfConverterService
     }
 
     /**
-     * @param array<string, string> $logContext
+     * @param  array<string, string>  $logContext
      */
     private function convert(string $apiUrl, string $token, string $pdfContent, string $filename, array $logContext, ?int &$failureStatus = null): ?PdfConvertResult
     {
-        if (!$this->looksLikePdf($pdfContent)) {
+        if (! $this->looksLikePdf($pdfContent)) {
             Log::debug('PdfConverterService: not a PDF, skipping converter', $logContext);
+
             return null;
         }
 
@@ -89,10 +95,10 @@ class PdfConverterService
                 ->attach('file', $pdfContent, $filename)
                 ->post("{$apiUrl}/api/pdf-convert", [
                     'include_text' => '1',
-                    'dpi'          => '150',
+                    'dpi' => '150',
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $failureStatus = $response->status();
 
                 Log::warning('PdfConverterService: converter returned error', [
@@ -100,15 +106,16 @@ class PdfConverterService
                     'status' => $response->status(),
                     // Telo býva celá HTML chybovka z nginxu — do logu z nej stačí
                     // začiatok, inak jeden 413 zaplní pol obrazovky.
-                    'body'   => Str::limit(trim(strip_tags($response->body())), 200),
+                    'body' => Str::limit(trim(strip_tags($response->body())), 200),
                 ]);
+
                 return null;
             }
 
-            $data  = $response->json();
+            $data = $response->json();
             $pages = $data['pages'] ?? [];
 
-            if (!is_array($pages) || $pages === []) {
+            if (! is_array($pages) || $pages === []) {
                 return null;
             }
 
@@ -118,6 +125,7 @@ class PdfConverterService
             );
         } catch (\Throwable $e) {
             Log::warning('PdfConverterService: conversion failed', [...$logContext, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -164,7 +172,7 @@ class PdfConverterService
         file_put_contents($tmpPath, $binary);
 
         $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', pathinfo($baseName, PATHINFO_FILENAME));
-        $fileName = ($safeName ?: 'page') . "_page{$pageNumber}.png";
+        $fileName = ($safeName ?: 'page')."_page{$pageNumber}.png";
 
         return new UploadedFile($tmpPath, $fileName, 'image/png', null, true);
     }

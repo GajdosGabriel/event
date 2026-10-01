@@ -27,8 +27,7 @@ class BrokenLinkReportController extends Controller
 {
     public function __construct(
         private readonly AttributeCheckService $service,
-    ) {
-    }
+    ) {}
 
     /**
      * Odpoveď je vždy rovnaká a bez obsahu — volá sa cez `sendBeacon()` pri

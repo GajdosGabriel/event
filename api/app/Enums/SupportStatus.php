@@ -16,7 +16,7 @@ enum SupportStatus: string
 
     public function label(): string
     {
-        return __('support.status.' . $this->value);
+        return __('support.status.'.$this->value);
     }
 
     /** @return array<int, string> */

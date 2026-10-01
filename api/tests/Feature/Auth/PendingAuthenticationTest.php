@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Feature\Auth;
 
 use App\Models\PendingRegistration;
@@ -19,6 +20,7 @@ class PendingAuthenticationTest extends TestCase
             'email' => 'pending-flow@example.test',
             'password' => 'Original-pass-2026', 'password_confirmation' => 'Original-pass-2026',
         ])->assertCreated();
+
         return PendingRegistration::where('email', 'pending-flow@example.test')->firstOrFail();
     }
 

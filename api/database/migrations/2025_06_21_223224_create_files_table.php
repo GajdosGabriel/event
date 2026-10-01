@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('thumb', 2048)->nullable();
             $table->string('large', 2048)->nullable();
             $table->string('checksum', 64)->nullable();
-            $table->enum('type', array_map(fn($status) => $status->value, FileType::cases()))
+            $table->enum('type', array_map(fn ($status) => $status->value, FileType::cases()))
                 ->default(FileType::FILE->value);
 
             // Extra info

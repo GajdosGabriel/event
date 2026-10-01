@@ -24,6 +24,7 @@ class EventImportStatusPreservationTest extends TestCase
     use RefreshDatabase;
 
     private const LISTING_URL = 'https://www.ecav.sk/aktuality/pozvanky';
+
     private const DETAIL_URL = 'https://www.ecav.sk/aktuality/pozvanky/test-import-event';
 
     /**
@@ -63,7 +64,7 @@ class EventImportStatusPreservationTest extends TestCase
         );
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 0, updated: 0, skipped: 1, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 0, updated: 0, skipped: 1, errors: 0')
             ->assertSuccessful();
 
         $this->assertSame(
@@ -82,7 +83,7 @@ class EventImportStatusPreservationTest extends TestCase
         $event->update(['status' => ModelStatus::Draft->value, 'published_at' => null]);
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 0, updated: 0, skipped: 1, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 0, updated: 0, skipped: 1, errors: 0')
             ->assertSuccessful();
 
         $event->refresh();
@@ -98,7 +99,7 @@ class EventImportStatusPreservationTest extends TestCase
         $publishedAt = $event->fresh()->published_at;
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1, '--force' => true])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 0, updated: 1, skipped: 0, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 0, updated: 1, skipped: 0, errors: 0')
             ->assertSuccessful();
 
         $event->refresh();
@@ -144,7 +145,7 @@ class EventImportStatusPreservationTest extends TestCase
         $this->fakeSource($body);
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 1, updated: 0, skipped: 0, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 1, updated: 0, skipped: 0, errors: 0')
             ->assertSuccessful();
 
         $event = Event::query()->where('orginal_source', self::DETAIL_URL)->firstOrFail();
@@ -155,7 +156,7 @@ class EventImportStatusPreservationTest extends TestCase
         $this->fakeSource('Modlitebné spoločenstvo ECAV pozýva na výročnú konferenciu v termíne 13. – 15. marca 2026.');
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 0, updated: 1, skipped: 0, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 0, updated: 1, skipped: 0, errors: 0')
             ->assertSuccessful();
 
         $event->refresh();
@@ -173,7 +174,7 @@ class EventImportStatusPreservationTest extends TestCase
         $this->fakeSource('Modlitebné spoločenstvo ECAV pozýva na výročnú konferenciu v termíne 13. – 15. marca 2026.');
 
         $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
-            ->expectsOutput('Source ' . self::LISTING_URL . ' -> imported: 1, updated: 0, skipped: 0, errors: 0')
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 1, updated: 0, skipped: 0, errors: 0')
             ->assertSuccessful();
 
         $event = Event::query()->where('orginal_source', self::DETAIL_URL)->firstOrFail();

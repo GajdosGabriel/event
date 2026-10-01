@@ -105,8 +105,8 @@ class QuestionStoreRequest extends FormRequest
         $token = $this->route('token');
 
         return $token !== null
-            ? 'question:' . $token
-            : 'question:event:' . $this->route('event');
+            ? 'question:'.$token
+            : 'question:event:'.$this->route('event');
     }
 
     /** Otázka je čistý text — riadkovanie sa zachová, biele okraje nie. */

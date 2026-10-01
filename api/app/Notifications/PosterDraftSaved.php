@@ -27,8 +27,7 @@ class PosterDraftSaved extends Notification implements ShouldQueue
         protected string $token,
         protected ?string $eventName = null,
         protected ?CarbonInterface $expiresAt = null,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -43,9 +42,9 @@ class PosterDraftSaved extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $url = rtrim((string) config('app.frontend_url'), '/')
-            . '/nahrat-plagat/' . $this->draftId . '?token=' . $this->token;
+            .'/nahrat-plagat/'.$this->draftId.'?token='.$this->token;
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.poster_draft.subject'))
             ->greeting(__('mail.common.greeting'))
             ->line($this->eventName !== null && $this->eventName !== ''

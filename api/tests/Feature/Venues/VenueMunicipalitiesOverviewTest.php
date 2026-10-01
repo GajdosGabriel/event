@@ -68,8 +68,8 @@ class VenueMunicipalitiesOverviewTest extends EventSetupTest
     private function createMunicipality(string $name): int
     {
         return (int) DB::table('municipalities')->insertGetId([
-            'fullname' => $name . ' ' . uniqid(),
-            'shortname' => 'TVM ' . random_int(100, 999),
+            'fullname' => $name.' '.uniqid(),
+            'shortname' => 'TVM '.random_int(100, 999),
             'zip' => '01001',
             'district_id' => 1,
             'region_id' => 1,

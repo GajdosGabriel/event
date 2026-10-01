@@ -111,7 +111,7 @@ class OrganizerName
      */
     private static function cutTrailingSentence(string $value): string
     {
-        $pattern = '/\s+(' . implode('|', array_map('preg_quote', self::SENTENCE_MARKERS)) . ')\b.*$/iu';
+        $pattern = '/\s+('.implode('|', array_map('preg_quote', self::SENTENCE_MARKERS)).')\b.*$/iu';
 
         $cut = preg_replace($pattern, '', $value);
 

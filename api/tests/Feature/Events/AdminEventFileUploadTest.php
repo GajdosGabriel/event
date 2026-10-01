@@ -39,7 +39,7 @@ class AdminEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->create('event-admin-store.pdf', 120, 'application/pdf');
 
         $payload = [
-            'name' => 'Admin Event File Store ' . uniqid(),
+            'name' => 'Admin Event File Store '.uniqid(),
             'body' => 'Admin event with uploaded file.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -82,7 +82,7 @@ class AdminEventFileUploadTest extends EventSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $event->name . ' Admin Updated ' . uniqid(),
+            'name' => $event->name.' Admin Updated '.uniqid(),
             'body' => 'Admin updated event with uploaded file.',
             'start_at' => now()->addDays(3)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(3)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -94,7 +94,7 @@ class AdminEventFileUploadTest extends EventSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/admin/events/' . $event->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/admin/events/'.$event->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 
@@ -129,7 +129,7 @@ class AdminEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->image('event-admin-store.jpg');
 
         $payload = [
-            'name' => 'Admin Event Image Store ' . uniqid(),
+            'name' => 'Admin Event Image Store '.uniqid(),
             'body' => 'Admin event with uploaded image.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -176,7 +176,7 @@ class AdminEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->image('event-admin-store-no-type.jpg');
 
         $payload = [
-            'name' => 'Admin Event Image Store No Type ' . uniqid(),
+            'name' => 'Admin Event Image Store No Type '.uniqid(),
             'body' => 'Admin event with uploaded image and default file type.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -221,7 +221,7 @@ class AdminEventFileUploadTest extends EventSetupTest
             'size' => 1024,
             'mime_type' => 'image/jpeg',
             'disk' => 'public',
-            'path' => 'event/' . $event->id . '/image/existing-event-primary.jpg',
+            'path' => 'event/'.$event->id.'/image/existing-event-primary.jpg',
             'checksum' => 'existing-event-primary-checksum',
             'type' => FileType::IMAGE->value,
             'is_primary' => true,
@@ -231,7 +231,7 @@ class AdminEventFileUploadTest extends EventSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $event->name . ' Admin Secondary Image ' . uniqid(),
+            'name' => $event->name.' Admin Secondary Image '.uniqid(),
             'body' => 'Admin updated event with uploaded secondary image.',
             'start_at' => now()->addDays(3)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(3)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -242,7 +242,7 @@ class AdminEventFileUploadTest extends EventSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/admin/events/' . $event->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/admin/events/'.$event->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 

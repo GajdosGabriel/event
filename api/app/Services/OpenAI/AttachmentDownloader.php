@@ -14,7 +14,7 @@ class AttachmentDownloader
         foreach ($attachments as $attachment) {
             try {
                 $url = $attachment['url'] ?? null;
-                if (!$url) {
+                if (! $url) {
                     continue;
                 }
 
@@ -31,15 +31,16 @@ class AttachmentDownloader
                 $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
                 curl_close($ch);
 
-                if ($httpCode !== 200 || !$content) {
-                    Log::warning('Nepodarilo sa stiahnut prilohu: ' . $url);
+                if ($httpCode !== 200 || ! $content) {
+                    Log::warning('Nepodarilo sa stiahnut prilohu: '.$url);
+
                     continue;
                 }
 
                 $originalName = $attachment['name'] ?? 'priloha.pdf';
                 $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
-                $fileName = 'event_' . $eventId . '_' . time() . '_' . $safeName;
-                $path = 'attachments/' . $fileName;
+                $fileName = 'event_'.$eventId.'_'.time().'_'.$safeName;
+                $path = 'attachments/'.$fileName;
 
                 Storage::disk(config('filesystems.default', 'public'))->put($path, $content);
 
@@ -51,7 +52,7 @@ class AttachmentDownloader
                     'mime_type' => $contentType,
                 ];
             } catch (\Throwable $e) {
-                Log::error('Chyba pri stahovani prilohy: ' . $e->getMessage());
+                Log::error('Chyba pri stahovani prilohy: '.$e->getMessage());
             }
         }
 

@@ -9,11 +9,11 @@ enum TicketTypeKind: string implements HasLabel
 {
     use ProvidesOptions;
 
-    case Ticket   = 'ticket';
+    case Ticket = 'ticket';
     case Workshop = 'workshop';
 
     public function label(): string
     {
-        return __('tickets.type_kind.' . $this->value);
+        return __('tickets.type_kind.'.$this->value);
     }
 }

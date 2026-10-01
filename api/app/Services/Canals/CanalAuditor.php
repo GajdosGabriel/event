@@ -114,7 +114,7 @@ class CanalAuditor
     {
         $canal = $claim->canal()->first();
 
-        Recorder::info('canals', 'claim_' . $action,
+        Recorder::info('canals', 'claim_'.$action,
             "Kanál {$canal?->name}: žiadosť o prevzatie — {$action} ({$claim->method->value})",
             status: 'ok',
             recipient: $claim->user?->email ?? $claim->contact_email,
@@ -143,7 +143,7 @@ class CanalAuditor
             default => $action,
         };
 
-        Recorder::info('canals', 'invitation_' . $action,
+        Recorder::info('canals', 'invitation_'.$action,
             "Kanál {$canal?->name}: {$what} ({$invitation->role->value})",
             status: 'ok',
             recipient: $invitation->email,

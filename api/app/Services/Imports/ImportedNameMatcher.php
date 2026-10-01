@@ -67,7 +67,7 @@ class ImportedNameMatcher
         }
 
         $stripped = preg_replace(
-            '/\s*[,\-–—]?\s*' . preg_quote($locality, '/') . '\s*$/iu',
+            '/\s*[,\-–—]?\s*'.preg_quote($locality, '/').'\s*$/iu',
             '',
             $value,
         );
@@ -104,7 +104,7 @@ class ImportedNameMatcher
         }
 
         return $query
-            ->where(fn ($q) => $q->where('slug', $base)->orWhere('slug', 'like', $base . '-%'))
+            ->where(fn ($q) => $q->where('slug', $base)->orWhere('slug', 'like', $base.'-%'))
             ->orderBy('id')
             ->get()
             ->first(fn (Model $model) => self::baseSlug((string) $model->getAttribute('name'), $locality) === $base);

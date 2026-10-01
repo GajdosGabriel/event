@@ -35,8 +35,7 @@ class QuestionSlideController extends Controller
         private SlideRenderer $renderer,
         private PptxPackager $packager,
         private QrCodeGenerator $qrCodes,
-    ) {
-    }
+    ) {}
 
     public function png(Request $request, string $token): Response
     {
@@ -51,7 +50,7 @@ class QuestionSlideController extends Controller
         return $this->download(
             $png,
             'image/png',
-            $this->filename($board, $variant->value . '-' . $theme->value, 'png'),
+            $this->filename($board, $variant->value.'-'.$theme->value, 'png'),
             $request->boolean('inline'),
         );
     }
@@ -155,12 +154,12 @@ class QuestionSlideController extends Controller
         return response($bytes, 200, [
             'Content-Type' => $mime,
             'Content-Length' => (string) strlen($bytes),
-            'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
             // Desať minút znesie aj náhľad v dashboarde pri preklikávaní
             // motívov a zároveň to je jediná obrana proti opakovanému
             // sťahovaniu tej istej snímky.
             'Cache-Control' => 'public, max-age=600',
-            'ETag' => '"' . md5($bytes) . '"',
+            'ETag' => '"'.md5($bytes).'"',
         ]);
     }
 }

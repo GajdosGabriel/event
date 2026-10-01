@@ -18,8 +18,8 @@ class QrCodeGenerator
     public function forToken(string $token, int $size = 300): ResultInterface
     {
         return (new Builder(
-            writer: new PngWriter(),
-            data: 'TICKET:' . $token,
+            writer: new PngWriter,
+            data: 'TICKET:'.$token,
             size: $size,
             margin: 10,
         ))->build();
@@ -45,7 +45,7 @@ class QrCodeGenerator
     public function imageForUrl(string $url, int $size = 620, int $margin = 0): GdImage
     {
         $result = (new Builder(
-            writer: new PngWriter(),
+            writer: new PngWriter,
             data: $url,
             errorCorrectionLevel: ErrorCorrectionLevel::Medium,
             size: $size,

@@ -13,11 +13,11 @@ class DashboardUserUpdateTest extends UserSetupTest
     public function user_can_update_himself_from_dashboard_scope(): void
     {
         $payload = [
-            'email' => 'updated.' . $this->user->id . '@example.test',
+            'email' => 'updated.'.$this->user->id.'@example.test',
             'registered_via' => 'local',
         ];
 
-        $response = $this->putJson('/api/dashboard/users/' . $this->user->id, $payload);
+        $response = $this->putJson('/api/dashboard/users/'.$this->user->id, $payload);
 
         $response->assertStatus(200);
         $response->assertJsonFragment([
@@ -38,7 +38,7 @@ class DashboardUserUpdateTest extends UserSetupTest
     #[Test]
     public function user_can_save_profile_without_changing_email(): void
     {
-        $response = $this->putJson('/api/dashboard/users/' . $this->user->id, [
+        $response = $this->putJson('/api/dashboard/users/'.$this->user->id, [
             'email' => $this->user->email,
             'registered_via' => 'local',
         ]);
@@ -57,7 +57,7 @@ class DashboardUserUpdateTest extends UserSetupTest
     {
         $other = User::factory()->create();
 
-        $response = $this->putJson('/api/dashboard/users/' . $this->user->id, [
+        $response = $this->putJson('/api/dashboard/users/'.$this->user->id, [
             'email' => $other->email,
         ]);
 
@@ -76,8 +76,8 @@ class DashboardUserUpdateTest extends UserSetupTest
             'canal_id' => Canal::factory()->create()->id,
         ]);
 
-        $response = $this->putJson('/api/dashboard/users/' . $foreignUser->id, [
-            'email' => 'foreign.' . $foreignUser->id . '@example.test',
+        $response = $this->putJson('/api/dashboard/users/'.$foreignUser->id, [
+            'email' => 'foreign.'.$foreignUser->id.'@example.test',
         ]);
 
         $response->assertStatus(404);

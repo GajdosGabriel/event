@@ -22,7 +22,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
     {
         $this->assertSame(ModelStatus::Published, $this->canalPrimary->status);
 
-        $response = $this->deleteJson('/api/dashboard/canals/' . $this->canalPrimary->id);
+        $response = $this->deleteJson('/api/dashboard/canals/'.$this->canalPrimary->id);
 
         $response->assertForbidden();
 
@@ -56,7 +56,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->deleteJson('/api/dashboard/canals/' . $canal->id)->assertStatus(422);
+        $this->deleteJson('/api/dashboard/canals/'.$canal->id)->assertStatus(422);
 
         $this->assertNotSoftDeleted('canals', ['id' => $canal->id]);
     }
@@ -80,7 +80,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'updated_at' => now(),
         ]);
 
-        $this->deleteJson('/api/dashboard/canals/' . $canal->id)->assertStatus(204);
+        $this->deleteJson('/api/dashboard/canals/'.$canal->id)->assertStatus(204);
 
         $this->assertSoftDeleted('canals', ['id' => $canal->id]);
     }
@@ -106,7 +106,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->deleteJson('/api/dashboard/canals/' . $canal->id)->assertStatus(422);
+        $this->deleteJson('/api/dashboard/canals/'.$canal->id)->assertStatus(422);
 
         $this->assertNotSoftDeleted('canals', ['id' => $canal->id]);
     }

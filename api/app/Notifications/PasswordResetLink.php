@@ -25,8 +25,7 @@ class PasswordResetLink extends Notification implements ShouldQueue
     public function __construct(
         protected string $token,
         protected string $email
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -38,7 +37,7 @@ class PasswordResetLink extends Notification implements ShouldQueue
         // `expire` je v minútach (config/auth.php), v e-maile chceme hodiny.
         $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.password_reset.subject'))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.password_reset.intro'))

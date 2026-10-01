@@ -83,7 +83,7 @@ return new class extends Migration
 
                 // Záznam do denníka ako pri živom prevzatí (CanalAuditor::claimed),
                 // len bez e-mailu — prevzatie sa stalo dávno.
-                Recorder::info('canals', 'claimed', 'Kanál #' . $claim->canal_id . ' prevzatý (doplnené migráciou)',
+                Recorder::info('canals', 'claimed', 'Kanál #'.$claim->canal_id.' prevzatý (doplnené migráciou)',
                     status: 'ok',
                     userId: (int) $claim->accepted_by_user_id,
                     context: [

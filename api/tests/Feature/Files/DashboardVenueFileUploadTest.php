@@ -100,7 +100,7 @@ class DashboardVenueFileUploadTest extends EventSetupTest
             'size' => 1024,
             'mime_type' => 'image/jpeg',
             'disk' => 'public',
-            'path' => 'venue/' . $venue->id . '/image/existing-venue-primary.jpg',
+            'path' => 'venue/'.$venue->id.'/image/existing-venue-primary.jpg',
             'checksum' => 'existing-venue-primary-checksum',
             'type' => FileType::IMAGE->value,
             'is_primary' => true,

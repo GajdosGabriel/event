@@ -3,28 +3,26 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Event;
-use App\Notifications\PasswordResetLink;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use App\Models\Traits\HasCommonFilters;
-use Illuminate\Notifications\Notifiable;
-use App\Models\Canal;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Str;
 use App\Enums\CanalIdentityMode;
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
+use App\Models\Traits\HasCommonFilters;
+use App\Notifications\PasswordResetLink;
 use App\Support\EmailMask;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes, HasCommonFilters;
+    use HasApiTokens, HasCommonFilters, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $appends = ['canal'];
 
@@ -387,7 +385,7 @@ class User extends Authenticatable
 
         $local = trim(Str::before((string) $this->maskedEmail(), '@'));
 
-        return $local !== '' ? $local : 'Používateľ #' . $this->id;
+        return $local !== '' ? $local : 'Používateľ #'.$this->id;
     }
 
     /**

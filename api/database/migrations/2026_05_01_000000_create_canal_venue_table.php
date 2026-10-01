@@ -1,10 +1,10 @@
 <?php
 
+use App\Enums\ModelStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use App\Enums\ModelStatus;
 
 return new class extends Migration
 {
@@ -14,7 +14,7 @@ return new class extends Migration
             $table->unsignedInteger('canal_id');
             $table->unsignedInteger('venue_id');
             $table->boolean('is_owner')->default(false);
-            $table->enum('status', array_map(fn($status) => $status->value, ModelStatus::cases()))
+            $table->enum('status', array_map(fn ($status) => $status->value, ModelStatus::cases()))
                 ->default(ModelStatus::Published->value);
             $table->timestamps();
 

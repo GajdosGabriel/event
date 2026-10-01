@@ -71,7 +71,7 @@ class FontLibrary
         }
 
         foreach (self::CANDIDATES[$name] as $candidate) {
-            $path = resource_path('fonts/' . $candidate);
+            $path = resource_path('fonts/'.$candidate);
 
             if (is_file($path)) {
                 return $this->resolved[$name] = $path;
@@ -88,7 +88,7 @@ class FontLibrary
 
         foreach ($fallbackChain as $next) {
             foreach (self::CANDIDATES[$next] as $candidate) {
-                $path = resource_path('fonts/' . $candidate);
+                $path = resource_path('fonts/'.$candidate);
 
                 if (is_file($path)) {
                     return $this->resolved[$name] = $path;
@@ -103,7 +103,7 @@ class FontLibrary
     {
         foreach (self::CANDIDATES as $candidates) {
             foreach ($candidates as $candidate) {
-                $path = resource_path('fonts/' . $candidate);
+                $path = resource_path('fonts/'.$candidate);
 
                 if (is_file($path)) {
                     return $path;
@@ -111,7 +111,7 @@ class FontLibrary
             }
         }
 
-        $vendor = base_path('vendor/' . self::VENDOR_FALLBACK);
+        $vendor = base_path('vendor/'.self::VENDOR_FALLBACK);
 
         return is_file($vendor) ? $vendor : null;
     }

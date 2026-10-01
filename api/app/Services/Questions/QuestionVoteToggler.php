@@ -87,6 +87,6 @@ class QuestionVoteToggler
 
     private function hash(string $voterToken): string
     {
-        return hash('sha256', $voterToken . '|' . config('app.key'));
+        return hash('sha256', $voterToken.'|'.config('app.key'));
     }
 }

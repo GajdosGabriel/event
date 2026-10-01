@@ -2,9 +2,8 @@
 
 namespace App\Services\Profiles;
 
-use App\Enums\CanalNotificationTopic;
-use App\Services\Canals\CanalRecipients;
 use App\Enums\CanalIdentityMode;
+use App\Enums\CanalNotificationTopic;
 use App\Enums\ModelStatus;
 use App\Models\AiUsage;
 use App\Models\Canal;
@@ -12,6 +11,7 @@ use App\Models\Municipality;
 use App\Models\ProfileEnrichment;
 use App\Models\Venue;
 use App\Notifications\ProfileCompleted;
+use App\Services\Canals\CanalRecipients;
 use App\Services\SystemLog\Recorder;
 use App\Support\PlaceholderNames;
 use Illuminate\Support\Facades\Cache;

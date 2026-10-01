@@ -22,7 +22,7 @@ class PdfConverterServiceTest extends TestCase
     {
         Http::fake();
 
-        $docx = "PK\x03\x04" . str_repeat('x', 200);
+        $docx = "PK\x03\x04".str_repeat('x', 200);
 
         $result = app(PdfConverterService::class)->convertFromBinary($docx, 'document.docx');
 
@@ -58,7 +58,7 @@ class PdfConverterServiceTest extends TestCase
         ]);
 
         $result = app(PdfConverterService::class)->convertFromBinary(
-            str_repeat("\n", 100) . $this->pdfBinary(),
+            str_repeat("\n", 100).$this->pdfBinary(),
             'document.pdf',
         );
 
@@ -102,6 +102,6 @@ class PdfConverterServiceTest extends TestCase
 
     private function pdfBinary(): string
     {
-        return "%PDF-1.4\n" . str_repeat('x', 200) . "\n%%EOF";
+        return "%PDF-1.4\n".str_repeat('x', 200)."\n%%EOF";
     }
 }

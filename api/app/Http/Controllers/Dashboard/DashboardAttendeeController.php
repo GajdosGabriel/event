@@ -23,8 +23,7 @@ class DashboardAttendeeController extends Controller
     public function __construct(
         private readonly AttendeeDirectory $directory,
         private readonly AttendeeCsv $csv,
-    ) {
-    }
+    ) {}
 
     /** CSV so všetkými vstupenkami podujatia (aj zrušenými — organizátor ich chce vidieť). */
     public function export(string $eventId): StreamedResponse

@@ -21,12 +21,12 @@ enum QuestionStatus: string implements HasLabel
 {
     use ProvidesOptions;
 
-    case Pending   = 'pending';
+    case Pending = 'pending';
     case Published = 'published';
-    case Hidden    = 'hidden';
+    case Hidden = 'hidden';
 
     public function label(): string
     {
-        return __('questions.status.' . $this->value);
+        return __('questions.status.'.$this->value);
     }
 }

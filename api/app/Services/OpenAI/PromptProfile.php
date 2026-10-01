@@ -14,6 +14,7 @@ namespace App\Services\OpenAI;
 class PromptProfile
 {
     public const KIND_CANAL = 'canal';
+
     public const KIND_VENUE = 'venue';
 
     public function jsonSchema(): array
@@ -64,11 +65,11 @@ class PromptProfile
             [
                 'role' => 'user',
                 'content' => "Napis popis pre {$subject}.\n"
-                    . "Nazov: {$name}\n"
-                    . $contextLine
-                    . "\nVrat JSON objekt s jedinym klucom:\n"
-                    . "- description (string s popisom, alebo null ak subjekt spolahlivo nepoznas)\n\n"
-                    . 'Priklad: {"description":"Farnost Bela je rimskokatolicka farnost v obci Bela v okrese Zilina. Patri do Zilinskej diecezy a stara sa o duchovny zivot v obci a okolitych osadach. Farnost spravuje miestny farsky kostol a zabezpecuje pravidelne bohosluzby, vysluhovanie sviatosti a vyucbu nabozenstva. Okrem liturgickeho zivota organizuje aj podujatia pre rodiny, mladez a seniorov. Sucastou jej cinnosti su tradicne farske slavnosti a putnicke podujatia, ktore sa viazu na cirkevny rok."}',
+                    ."Nazov: {$name}\n"
+                    .$contextLine
+                    ."\nVrat JSON objekt s jedinym klucom:\n"
+                    ."- description (string s popisom, alebo null ak subjekt spolahlivo nepoznas)\n\n"
+                    .'Priklad: {"description":"Farnost Bela je rimskokatolicka farnost v obci Bela v okrese Zilina. Patri do Zilinskej diecezy a stara sa o duchovny zivot v obci a okolitych osadach. Farnost spravuje miestny farsky kostol a zabezpecuje pravidelne bohosluzby, vysluhovanie sviatosti a vyucbu nabozenstva. Okrem liturgickeho zivota organizuje aj podujatia pre rodiny, mladez a seniorov. Sucastou jej cinnosti su tradicne farske slavnosti a putnicke podujatia, ktore sa viazu na cirkevny rok."}',
             ],
         ];
     }

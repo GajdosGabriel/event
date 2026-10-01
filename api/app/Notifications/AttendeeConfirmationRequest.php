@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notification;
  * Žiadosť pre účastníka, aby potvrdil rezerváciu, ktorú preňho urobil
  * objednávateľ. Obsahuje tlačidlá Potvrdiť / Zrušiť lístok a lehotu.
  *
- * @param int[] $admissionIds
+ * @param  int[]  $admissionIds
  */
 class AttendeeConfirmationRequest extends Notification implements ShouldQueue
 {
@@ -24,8 +24,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
         protected array $admissionIds,
         protected string $token,
         protected bool $needsActivation = false,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -52,24 +51,24 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
-                'type'  => $admission->ticketType?->name,
+                'type' => $admission->ticketType?->name,
             ])
             ->all();
 
-        $base = rtrim((string) config('app.frontend_url'), '/') . '/rsvp/' . $this->token;
+        $base = rtrim((string) config('app.frontend_url'), '/').'/rsvp/'.$this->token;
         $deadline = $admissions->first()?->confirmation_deadline_at;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.attendee_confirmation_request.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-confirmation-request', [
                 'greetingName' => $admissions->first()?->attendee_name,
-                'holderName'   => $this->ticket->holder_name,
-                'eventName'    => $eventName,
-                'isPaid'       => (int) ($this->ticket->price_amount ?? 0) > 0,
-                'seats'        => $seats,
-                'confirmUrl'   => $base . '?do=confirm',
-                'declineUrl'   => $base . '?do=cancel',
-                'deadline'     => $deadline?->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
+                'holderName' => $this->ticket->holder_name,
+                'eventName' => $eventName,
+                'isPaid' => (int) ($this->ticket->price_amount ?? 0) > 0,
+                'seats' => $seats,
+                'confirmUrl' => $base.'?do=confirm',
+                'declineUrl' => $base.'?do=cancel',
+                'deadline' => $deadline?->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
                 'needsActivation' => $this->needsActivation,
             ]);
     }

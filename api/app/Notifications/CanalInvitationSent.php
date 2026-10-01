@@ -18,8 +18,7 @@ class CanalInvitationSent extends Notification implements ShouldQueue
 
     public function __construct(
         protected CanalInvitation $invitation,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -35,16 +34,16 @@ class CanalInvitationSent extends Notification implements ShouldQueue
     {
         $canalName = $this->invitation->canal?->name ?? __('mail.canal_invitation.canal_fallback');
         $inviterName = $this->invitation->invitedBy?->canal?->name;
-        $url = rtrim((string) config('app.frontend_url'), '/') . '/pozvanka/' . $this->invitation->token;
+        $url = rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$this->invitation->token;
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.canal_invitation.subject', ['canal' => $canalName]))
             ->greeting(__('mail.common.greeting'))
             ->line($inviterName
                 ? __('mail.canal_invitation.intro_named', ['inviter' => $inviterName, 'canal' => $canalName])
                 : __('mail.canal_invitation.intro', ['canal' => $canalName]))
             ->line(__('mail.canal_invitation.role', ['role' => $this->invitation->role->label()]))
-            ->line(__('mail.canal_invitation.role_note.' . $this->invitation->role->value))
+            ->line(__('mail.canal_invitation.role_note.'.$this->invitation->role->value))
             ->action(__('mail.canal_invitation.action'), $url);
 
         if ($this->invitation->expires_at !== null) {

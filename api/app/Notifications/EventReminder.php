@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Services\Calendar\EventCalendarLinks;
+use App\Support\EventDateRange;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,8 +32,7 @@ class EventReminder extends Notification implements ShouldQueue
         protected Event $event,
         protected string $attendeeName = '',
         protected ?string $unsubscribeUrl = null,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -56,7 +55,7 @@ class EventReminder extends Notification implements ShouldQueue
         // účastníkov si ho pri objednávke nezapísala.
         $calendar = new EventCalendarLinks($this->event);
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.event_reminder.subject', ['event' => $this->event->name]))
             ->markdown('mail.event-reminder', [
                 'greeting' => $this->attendeeName !== ''

@@ -14,7 +14,7 @@ class DashboardEventDestroyTest extends EventSetupTest
     #[Test]
     public function user_can_delete_event_from_dashboard_scope(): void
     {
-        $response = $this->deleteJson('/api/dashboard/events/' . $this->futureEvent->id);
+        $response = $this->deleteJson('/api/dashboard/events/'.$this->futureEvent->id);
 
         $response->assertNoContent();
 
@@ -31,10 +31,10 @@ class DashboardEventDestroyTest extends EventSetupTest
     #[Test]
     public function restored_dashboard_event_remains_draft_after_delete(): void
     {
-        $this->deleteJson('/api/dashboard/events/' . $this->futureEvent->id)
+        $this->deleteJson('/api/dashboard/events/'.$this->futureEvent->id)
             ->assertNoContent();
 
-        $response = $this->postJson('/api/dashboard/events/' . $this->futureEvent->id . '/restore');
+        $response = $this->postJson('/api/dashboard/events/'.$this->futureEvent->id.'/restore');
 
         $response->assertOk();
 
@@ -59,7 +59,7 @@ class DashboardEventDestroyTest extends EventSetupTest
             'venue_id' => $foreignVenue->id,
         ]);
 
-        $response = $this->deleteJson('/api/dashboard/events/' . $foreignEvent->id);
+        $response = $this->deleteJson('/api/dashboard/events/'.$foreignEvent->id);
 
         $response->assertStatus(404);
 

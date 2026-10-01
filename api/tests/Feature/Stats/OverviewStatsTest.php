@@ -193,7 +193,7 @@ class OverviewStatsTest extends EventSetupTest
         DB::table('views')->insert([
             'viewable_type' => $type,
             'viewable_id' => $id,
-            'visitor_hash' => hash('sha256', $type . $id . ($day ?? 'now') . uniqid('', true)),
+            'visitor_hash' => hash('sha256', $type.$id.($day ?? 'now').uniqid('', true)),
             'viewed_on' => $day ?? now()->toDateString(),
             'created_at' => $day ? now()->parse($day) : now(),
         ]);

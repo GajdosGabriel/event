@@ -28,7 +28,7 @@ class PdfPreviewRenderer
     private function viaImagick(string $binary): \GdImage|false
     {
         $imagickClass = 'Imagick';
-        if (!class_exists($imagickClass)) {
+        if (! class_exists($imagickClass)) {
             return false;
         }
 
@@ -41,9 +41,9 @@ class PdfPreviewRenderer
 
         try {
             /** @var object $imagick */
-            $imagick = new $imagickClass();
+            $imagick = new $imagickClass;
             $imagick->setResolution(150, 150);
-            $imagick->readImage($tmpPath . '[0]');
+            $imagick->readImage($tmpPath.'[0]');
             $imagick->setImageBackgroundColor('white');
             $imagick->setImageFormat('jpeg');
             $blob = $imagick->getImageBlob();

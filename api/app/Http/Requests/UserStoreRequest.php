@@ -28,6 +28,4 @@ class UserStoreRequest extends FormRequest
             'display_name' => 'required|string|max:255',
         ];
     }
-
 }
-

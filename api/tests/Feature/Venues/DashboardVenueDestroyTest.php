@@ -22,7 +22,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'status' => ModelStatus::Draft->value,
         ]);
 
-        $response = $this->deleteJson('/api/dashboard/venues/' . $venue->id);
+        $response = $this->deleteJson('/api/dashboard/venues/'.$venue->id);
 
         $response->assertStatus(204);
 
@@ -46,7 +46,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $response = $this->deleteJson('/api/dashboard/venues/' . $venue->id);
+        $response = $this->deleteJson('/api/dashboard/venues/'.$venue->id);
 
         $response->assertStatus(422);
 
@@ -96,7 +96,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'status' => ModelStatus::Published->value,
         ]);
 
-        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(204);
+        $this->deleteJson('/api/dashboard/venues/'.$venue->id)->assertStatus(204);
 
         $this->assertSoftDeleted('venues', ['id' => $venue->id]);
     }
@@ -115,7 +115,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'status' => ModelStatus::Archived->value,
         ]);
 
-        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(204);
+        $this->deleteJson('/api/dashboard/venues/'.$venue->id)->assertStatus(204);
 
         $this->assertSoftDeleted('venues', ['id' => $venue->id]);
     }
@@ -136,7 +136,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $this->deleteJson('/api/dashboard/venues/' . $venue->id)->assertStatus(422);
+        $this->deleteJson('/api/dashboard/venues/'.$venue->id)->assertStatus(422);
 
         $this->assertNotSoftDeleted('venues', ['id' => $venue->id]);
     }
@@ -154,7 +154,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'status' => ModelStatus::Archived->value,
         ]);
 
-        $this->putJson('/api/dashboard/venues/' . $venue->id, [
+        $this->putJson('/api/dashboard/venues/'.$venue->id, [
             'name' => $venue->name,
             'village_id' => $venue->village_id,
             'canal_id' => $this->canalPrimary->id,
@@ -175,7 +175,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
         ]);
         $venue->assignCanal($this->canalPrimary->id, isOwner: false);
 
-        $response = $this->deleteJson('/api/dashboard/venues/' . $venue->id);
+        $response = $this->deleteJson('/api/dashboard/venues/'.$venue->id);
 
         $response->assertStatus(204);
 
@@ -210,7 +210,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $response = $this->deleteJson('/api/dashboard/venues/' . $venue->id);
+        $response = $this->deleteJson('/api/dashboard/venues/'.$venue->id);
 
         $response->assertStatus(204);
 
@@ -240,7 +240,7 @@ class DashboardVenueDestroyTest extends EventSetupTest
         ]);
         $foreignVenue = Venue::factory()->forCanal($foreignCanal->id)->create();
 
-        $response = $this->deleteJson('/api/dashboard/venues/' . $foreignVenue->id);
+        $response = $this->deleteJson('/api/dashboard/venues/'.$foreignVenue->id);
 
         $response->assertStatus(404);
 
@@ -249,4 +249,3 @@ class DashboardVenueDestroyTest extends EventSetupTest
         ]);
     }
 }
-

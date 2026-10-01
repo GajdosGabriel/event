@@ -51,12 +51,12 @@ return new class extends Migration
             }
 
             Schema::table($table, function (Blueprint $blueprint) use ($table, $primary, $all) {
-                if (! $this->hasIndex($table, $table . '_search_primary_fulltext')) {
-                    $blueprint->fullText($primary, $table . '_search_primary_fulltext');
+                if (! $this->hasIndex($table, $table.'_search_primary_fulltext')) {
+                    $blueprint->fullText($primary, $table.'_search_primary_fulltext');
                 }
 
-                if ($all !== $primary && ! $this->hasIndex($table, $table . '_search_fulltext')) {
-                    $blueprint->fullText($all, $table . '_search_fulltext');
+                if ($all !== $primary && ! $this->hasIndex($table, $table.'_search_fulltext')) {
+                    $blueprint->fullText($all, $table.'_search_fulltext');
                 }
             });
         }
@@ -74,7 +74,7 @@ return new class extends Migration
             }
 
             Schema::table($table, function (Blueprint $blueprint) use ($table) {
-                foreach ([$table . '_search_fulltext', $table . '_search_primary_fulltext'] as $index) {
+                foreach ([$table.'_search_fulltext', $table.'_search_primary_fulltext'] as $index) {
                     if ($this->hasIndex($table, $index)) {
                         $blueprint->dropFullText($index);
                     }

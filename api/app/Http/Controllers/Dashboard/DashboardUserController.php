@@ -4,18 +4,17 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ActiveCanalRequest;
 use App\Http\Requests\IndexFilterRequest;
-use App\Repositories\Contracts\UserRepository;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
-use App\Http\Requests\ActiveCanalRequest;
 use App\Http\Resources\UserResource;
 use App\Models\PendingProfile;
 use App\Models\User;
+use App\Repositories\Contracts\UserRepository;
 use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
-
 
 class DashboardUserController extends Controller
 {
@@ -66,6 +65,7 @@ class DashboardUserController extends Controller
         $this->authorize('update', $user);
 
         $this->userRepository->update($id, $request->validated());
+
         return response()->json(
             new UserResource($this->userRepository->dashboardShow($id)), 200
         );
@@ -78,6 +78,7 @@ class DashboardUserController extends Controller
             'user_id' => $user->id,
             'display_name' => $request->input('display_name'),
         ]);
+
         return response()->json(
             new UserResource($this->userRepository->dashboardShow($user->id)),
             201

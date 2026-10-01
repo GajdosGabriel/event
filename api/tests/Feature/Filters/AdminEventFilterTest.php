@@ -27,13 +27,13 @@ class AdminEventFilterTest extends TestCase
         // Create published events
         Event::factory(3)->create([
             'status' => ModelStatus::Published->value,
-            'published_at' => now()
+            'published_at' => now(),
         ]);
 
         // Create draft events
         Event::factory(2)->create([
             'status' => ModelStatus::Draft->value,
-            'published_at' => null
+            'published_at' => null,
         ]);
     }
 
@@ -68,7 +68,7 @@ class AdminEventFilterTest extends TestCase
     public function test_filter_events_by_status(): void
     {
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/events?status=' . ModelStatus::Draft->value);
+            ->getJson('/api/admin/events?status='.ModelStatus::Draft->value);
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -91,16 +91,16 @@ class AdminEventFilterTest extends TestCase
 
     public function test_filter_events_by_search_matches_name_and_body(): void
     {
-        $needle = 'SearchNeedle' . uniqid();
+        $needle = 'SearchNeedle'.uniqid();
 
         $nameMatch = Event::factory()->create([
-            'name' => 'Name ' . $needle,
+            'name' => 'Name '.$needle,
             'body' => 'No match here',
         ]);
 
         $bodyMatch = Event::factory()->create([
             'name' => 'Generic event',
-            'body' => 'Body contains ' . $needle,
+            'body' => 'Body contains '.$needle,
         ]);
 
         $otherEvent = Event::factory()->create([
@@ -109,7 +109,7 @@ class AdminEventFilterTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/events?search=' . urlencode($needle));
+            ->getJson('/api/admin/events?search='.urlencode($needle));
 
         $response->assertStatus(200);
 
@@ -151,7 +151,7 @@ class AdminEventFilterTest extends TestCase
     public function test_invalid_search_validation(): void
     {
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/events?search=' . str_repeat('a', 251));
+            ->getJson('/api/admin/events?search='.str_repeat('a', 251));
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('search');

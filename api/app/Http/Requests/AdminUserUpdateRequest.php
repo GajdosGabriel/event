@@ -36,19 +36,19 @@ class AdminUserUpdateRequest extends FormRequest
                 // unikátnosť kontroluje aj nad nimi — bez `withoutTrashed()`.
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
-            'status'          => ['sometimes', 'required', Rule::enum(ModelStatus::class)],
+            'status' => ['sometimes', 'required', Rule::enum(ModelStatus::class)],
             // Overenie e-mailu vie admin potvrdiť aj zrušiť — napr. keď sa
             // adresa zmenila a má sa overiť znova.
-            'email_verified'  => 'sometimes|boolean',
+            'email_verified' => 'sometimes|boolean',
             // Prázdne pole = heslo sa nemení, preto `nullable`.
-            'password'        => 'sometimes|nullable|string|min:8',
+            'password' => 'sometimes|nullable|string|min:8',
             // Osobný kanál. Kto ho má nastavený, je v ňom vlastník
             // (User::canalRole), takže sa smie ukázať len ako výber
             // z kanálov, ktorých je členom.
-            'canal_id'        => 'sometimes|nullable|integer|exists:canals,id',
-            'blocked'         => 'sometimes|boolean',
-            'blocked_until'   => 'nullable|date|after:now',
-            'blocked_reason'  => 'nullable|string|max:255',
+            'canal_id' => 'sometimes|nullable|integer|exists:canals,id',
+            'blocked' => 'sometimes|boolean',
+            'blocked_until' => 'nullable|date|after:now',
+            'blocked_reason' => 'nullable|string|max:255',
         ];
     }
 
@@ -58,11 +58,11 @@ class AdminUserUpdateRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'email'          => __('users.fields.email'),
-            'status'         => __('users.fields.status'),
-            'password'       => __('users.fields.password'),
-            'canal_id'       => __('users.fields.canal_id'),
-            'blocked_until'  => __('users.fields.blocked_until'),
+            'email' => __('users.fields.email'),
+            'status' => __('users.fields.status'),
+            'password' => __('users.fields.password'),
+            'canal_id' => __('users.fields.canal_id'),
+            'blocked_until' => __('users.fields.blocked_until'),
             'blocked_reason' => __('users.fields.blocked_reason'),
         ];
     }

@@ -50,7 +50,7 @@ class DashboardMessageController extends Controller
         }
 
         if (! empty($filters['search'])) {
-            $query->where('body', 'like', '%' . addcslashes($filters['search'], '\\%_') . '%');
+            $query->where('body', 'like', '%'.addcslashes($filters['search'], '\\%_').'%');
         }
 
         return MessageResource::collection(

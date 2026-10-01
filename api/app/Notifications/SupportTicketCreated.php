@@ -27,7 +27,7 @@ class SupportTicketCreated extends Notification implements ShouldQueue
     {
         return [
             'message' => $this->subject(),
-            'link' => '/admin/podpora/' . $this->ticket->id,
+            'link' => '/admin/podpora/'.$this->ticket->id,
         ];
     }
 
@@ -59,6 +59,6 @@ class SupportTicketCreated extends Notification implements ShouldQueue
 
     private function url(): string
     {
-        return rtrim((string) config('app.frontend_url'), '/') . '/admin/podpora/' . $this->ticket->id;
+        return rtrim((string) config('app.frontend_url'), '/').'/admin/podpora/'.$this->ticket->id;
     }
 }

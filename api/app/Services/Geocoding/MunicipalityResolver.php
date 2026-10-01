@@ -55,7 +55,7 @@ class MunicipalityResolver
 
     private function cacheKey(string $normalizedCity, ?string $postcode): string
     {
-        return 'venue_detection:municipality:' . sha1($normalizedCity . '|' . ($this->normalizePostcode($postcode) ?? ''));
+        return 'venue_detection:municipality:'.sha1($normalizedCity.'|'.($this->normalizePostcode($postcode) ?? ''));
     }
 
     private function cacheTtl(): int

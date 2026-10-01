@@ -31,7 +31,7 @@ enum CanalRole: string implements HasLabel
 
     public function label(): string
     {
-        return __('canal_roles.' . $this->value);
+        return __('canal_roles.'.$this->value);
     }
 
     public function isOwner(): bool

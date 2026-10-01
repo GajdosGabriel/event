@@ -43,9 +43,7 @@ class QuestionRelay
     /** Rovnaký text od rovnakého človeka je dvojklik. */
     private const DUPLICATE_MINUTES = 10;
 
-    public function __construct(private CanalInviter $inviter)
-    {
-    }
+    public function __construct(private CanalInviter $inviter) {}
 
     /**
      * Adresa, na ktorú sa otázka smie preposlať — alebo null, keď sa nesmie
@@ -77,12 +75,12 @@ class QuestionRelay
 
         abort_if($email === null, 422, __('questions.errors.relay_unavailable'));
 
-        $hash = md5($sender->id . '|' . $event->id . '|' . $body);
-        abort_unless(Cache::add('question-relay:dup:' . $hash, 1, now()->addMinutes(self::DUPLICATE_MINUTES)),
+        $hash = md5($sender->id.'|'.$event->id.'|'.$body);
+        abort_unless(Cache::add('question-relay:dup:'.$hash, 1, now()->addMinutes(self::DUPLICATE_MINUTES)),
             422, __('questions.errors.duplicate'));
 
-        $userKey = 'question-relay:user:' . $sender->id;
-        $canalKey = 'question-relay:canal:' . $canal->id;
+        $userKey = 'question-relay:user:'.$sender->id;
+        $canalKey = 'question-relay:canal:'.$canal->id;
 
         abort_if(RateLimiter::tooManyAttempts($userKey, self::PER_USER_PER_HOUR)
             || RateLimiter::tooManyAttempts($canalKey, self::PER_CANAL_PER_DAY),
@@ -92,7 +90,7 @@ class QuestionRelay
         RateLimiter::hit($canalKey, 86400);
 
         $invitation = $this->inviter->ensureOwnerInvitation($canal, $email);
-        $claimUrl = rtrim((string) config('app.frontend_url'), '/') . '/pozvanka/' . $invitation->token;
+        $claimUrl = rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$invitation->token;
         $unsubscribeUrl = URL::signedRoute('public.email.unsubscribe', ['email' => $email]);
 
         $name = $sender->displayName();

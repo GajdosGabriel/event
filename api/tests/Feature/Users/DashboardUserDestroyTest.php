@@ -10,7 +10,7 @@ class DashboardUserDestroyTest extends UserSetupTest
     #[Test]
     public function user_cannot_delete_himself_from_dashboard_scope(): void
     {
-        $response = $this->deleteJson('/api/dashboard/users/' . $this->user->id);
+        $response = $this->deleteJson('/api/dashboard/users/'.$this->user->id);
 
         $response->assertStatus(403);
 

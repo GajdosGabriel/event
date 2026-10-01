@@ -26,7 +26,7 @@ class AdminCanalFileUploadTest extends CanalSetupTest
         $upload = UploadedFile::fake()->create('canal-admin-store.pdf', 120, 'application/pdf');
 
         $payload = [
-            'name' => 'Admin Canal File Store ' . uniqid(),
+            'name' => 'Admin Canal File Store '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Admin canal with uploaded file.',
             'file_type' => FileType::FILE->value,
@@ -63,7 +63,7 @@ class AdminCanalFileUploadTest extends CanalSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $canal->name . ' Admin Updated ' . uniqid(),
+            'name' => $canal->name.' Admin Updated '.uniqid(),
             'municipality_id' => $canal->municipality_id,
             'body' => 'Admin updated canal with uploaded file.',
             'file_type' => FileType::FILE->value,
@@ -71,7 +71,7 @@ class AdminCanalFileUploadTest extends CanalSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/admin/canals/' . $canal->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/admin/canals/'.$canal->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 
@@ -96,7 +96,7 @@ class AdminCanalFileUploadTest extends CanalSetupTest
         $upload = UploadedFile::fake()->image('canal-admin-store-no-type.jpg');
 
         $payload = [
-            'name' => 'Admin Canal Image Store No Type ' . uniqid(),
+            'name' => 'Admin Canal Image Store No Type '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Admin canal with uploaded image and default file type.',
             'files' => [$upload],
@@ -135,7 +135,7 @@ class AdminCanalFileUploadTest extends CanalSetupTest
             'size' => 1024,
             'mime_type' => 'image/jpeg',
             'disk' => 'public',
-            'path' => 'canal/' . $canal->id . '/image/existing-canal-primary.jpg',
+            'path' => 'canal/'.$canal->id.'/image/existing-canal-primary.jpg',
             'checksum' => 'existing-canal-primary-checksum-admin',
             'type' => FileType::IMAGE->value,
             'is_primary' => true,
@@ -143,14 +143,14 @@ class AdminCanalFileUploadTest extends CanalSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $canal->name . ' Admin Secondary Image ' . uniqid(),
+            'name' => $canal->name.' Admin Secondary Image '.uniqid(),
             'municipality_id' => $canal->municipality_id,
             'body' => 'Admin canal update with secondary image.',
             'file_type' => FileType::IMAGE->value,
             'files' => [UploadedFile::fake()->image('canal-admin-secondary.jpg')],
         ];
 
-        $response = $this->post('/api/admin/canals/' . $canal->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/admin/canals/'.$canal->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 

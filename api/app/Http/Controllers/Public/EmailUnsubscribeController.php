@@ -36,6 +36,6 @@ class EmailUnsubscribeController extends Controller
             return response()->noContent();
         }
 
-        return redirect()->away(rtrim((string) config('app.frontend_url'), '/') . '/odhlasenie');
+        return redirect()->away(rtrim((string) config('app.frontend_url'), '/').'/odhlasenie');
     }
 }

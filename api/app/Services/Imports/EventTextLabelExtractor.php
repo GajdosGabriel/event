@@ -91,7 +91,7 @@ class EventTextLabelExtractor
 
         // Druhé slovo mesta musí byť tiež s veľkým začiatočným písmenom, inak
         // by sa do názvu obce dostalo pokračovanie vety („v Trnave vďaka…").
-        $pattern = '/' . preg_quote($name, '/') . '\s+(?:v|vo)\s+(\p{Lu}[\p{L}\-]+(?:\s+\p{Lu}[\p{L}\-]+)?)/u';
+        $pattern = '/'.preg_quote($name, '/').'\s+(?:v|vo)\s+(\p{Lu}[\p{L}\-]+(?:\s+\p{Lu}[\p{L}\-]+)?)/u';
 
         if (! preg_match($pattern, $normalized, $match)) {
             return null;
@@ -201,12 +201,12 @@ class EventTextLabelExtractor
         $tail = mb_substr($tail, 0, 160);
 
         $prepositions = implode('|', self::LOCATION_PREPOSITIONS);
-        $stopwords = $prepositions . '|a|i|o|s|so|z|zo|do|od|za|k|ku|pre|po|cez|u';
+        $stopwords = $prepositions.'|a|i|o|s|so|z|zo|do|od|za|k|ku|pre|po|cez|u';
 
         // Each segment: a preposition + a phrase that starts with a capitalized
         // word and continues with words that are not another preposition/conjunction.
-        $segmentPattern = '/\b(?:' . $prepositions . ')\s+'
-            . '(\p{Lu}[\p{L}.\-]*(?:\s+(?!(?:' . $stopwords . ')\b)\p{L}[\p{L}.\-]*)*)/u';
+        $segmentPattern = '/\b(?:'.$prepositions.')\s+'
+            .'(\p{Lu}[\p{L}.\-]*(?:\s+(?!(?:'.$stopwords.')\b)\p{L}[\p{L}.\-]*)*)/u';
 
         if (! preg_match_all($segmentPattern, $tail, $matches) || count($matches[1]) < 2) {
             return null;

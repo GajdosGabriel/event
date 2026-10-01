@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\FileType;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Traits\HasAllowedStatuses;
-use App\Http\Requests\VenueDetectRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Requests\PublishRequest;
-use App\Http\Resources\FileResource;
+use App\Http\Requests\VenueDetectRequest;
 use App\Http\Requests\VenueStoreRequest;
+use App\Http\Resources\FileResource;
+use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\VenueResource;
 use App\Models\Canal;
 use App\Models\Event;
@@ -122,7 +122,7 @@ class DashboardVenueController extends Controller
                     model: $model,
                     attachments: [[
                         'url' => $imageUrl,
-                        'name' => ($result['venue_payload']['name'] ?? 'venue-image') . '.jpg',
+                        'name' => ($result['venue_payload']['name'] ?? 'venue-image').'.jpg',
                     ]],
                     type: FileType::IMAGE,
                     makePrimary: (bool) ($payload['make_primary_image'] ?? true),

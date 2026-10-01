@@ -91,7 +91,7 @@ class AdminMergeDuplicatesToolTest extends TestCase
                 'published_at' => now(),
                 'start_at' => '2026-10-09 07:00:00',
                 'end_at' => '2026-10-09 12:00:00',
-                'orginal_source' => 'https://www.vyveska.sk/trening-' . $index,
+                'orginal_source' => 'https://www.vyveska.sk/trening-'.$index,
             ]);
         }
     }

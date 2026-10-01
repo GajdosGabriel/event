@@ -18,7 +18,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        (new RolesAndPermissionsSeeder())->run();
+        (new RolesAndPermissionsSeeder)->run();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

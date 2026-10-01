@@ -20,7 +20,7 @@ use Illuminate\Database\Seeder;
 class TagSeeder extends Seeder
 {
     /**
-     * @var array<string, array<int, array{0: string, 1: string, 2: string}>>  facet => [[slug, názov, emoji], …]
+     * @var array<string, array<int, array{0: string, 1: string, 2: string}>> facet => [[slug, názov, emoji], …]
      */
     private const TAGS = [
         TagGroup::Format->value => [

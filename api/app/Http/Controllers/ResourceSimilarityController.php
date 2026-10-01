@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Canal, Venue, Organization};
+use App\Models\Canal;
+use App\Models\Organization;
+use App\Models\Venue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -29,19 +31,24 @@ class ResourceSimilarityController extends Controller
             };
         }
         $needle = self::normalize($input['name']);
-        if (mb_strlen($needle) < 2) return response()->json(['data' => []]);
+        if (mb_strlen($needle) < 2) {
+            return response()->json(['data' => []]);
+        }
         $municipality = $kind === 'canals' ? 'municipality_id' : 'village_id';
         $label = $kind === 'organizations' ? 'title' : 'name';
         $columns = ['id', $label];
-        if ($municipality) $columns[] = $municipality;
+        if ($municipality) {
+            $columns[] = $municipality;
+        }
         $matches = $query->where('id', '!=', $input['exclude_id'] ?? 0)->select($columns)->get()
             ->filter(fn ($row) => str_contains(self::normalize($row->$label), $needle) && Gate::allows('view', $row))
             ->sortBy(fn ($row) => [
                 self::normalize($row->$label) === $needle ? 0 : 1,
-                $municipality && isset($input['municipality']) && $row->$municipality == $input['municipality'] ? 0 : 1,
+                $municipality && isset($input['municipality']) && $input['municipality'] == $row->$municipality ? 0 : 1,
                 $row->id,
             ])->take(5)->map(fn ($row) => ['id' => $row->id, 'name' => $row->$label,
                 'municipality_id' => $municipality ? $row->$municipality : null])->values();
+
         return response()->json(['data' => $matches]);
     }
 

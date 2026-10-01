@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use App\Support\EventDateRange;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Services\Calendar\EventCalendarLinks;
+use App\Support\EventDateRange;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,8 +36,7 @@ class EventChanged extends Notification implements ShouldQueue
         protected Subscription $subscription,
         protected array $changes,
         protected bool $cancelled = false,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -55,7 +54,7 @@ class EventChanged extends Notification implements ShouldQueue
 
         $calendar = new EventCalendarLinks($this->event);
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(
                 $this->cancelled
                     ? __('mail.event_changed.subject_cancelled', ['event' => $this->event->name])

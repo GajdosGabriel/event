@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\PendingProfile;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Models\Venue;
-use App\Enums\ModelStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
             PendingProfile::updateOrCreate([
                 'user_id' => $user->id,
             ], [
-                'display_name' => 'User ' . $user->id,
+                'display_name' => 'User '.$user->id,
             ]);
         });
 
@@ -116,11 +116,11 @@ class DatabaseSeeder extends Seeder
 
         $userSuperadmin = User::query()->orderBy('id')->first();
         $userSuperadmin?->update([
-            'email'             => env('SEED_ADMIN_EMAIL', 'admin@example.com'),
-            'password'          => Hash::make(env('SEED_ADMIN_PASSWORD', 'password')),
-            'registered_via'    => 'local',
-            'provider_id'       => null,
-            'canal_id'          => 1,
+            'email' => env('SEED_ADMIN_EMAIL', 'admin@example.com'),
+            'password' => Hash::make(env('SEED_ADMIN_PASSWORD', 'password')),
+            'registered_via' => 'local',
+            'provider_id' => null,
+            'canal_id' => 1,
             'email_verified_at' => now(),
         ]);
         $userSuperadmin?->assignRole('super-admin');

@@ -158,6 +158,6 @@ class EventAttributeDeriver
 
     private function text(Event $event): string
     {
-        return (string) $event->name . ' ' . strip_tags((string) ($event->body ?? ''));
+        return (string) $event->name.' '.strip_tags((string) ($event->body ?? ''));
     }
 }

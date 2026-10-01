@@ -32,8 +32,11 @@ class CanalRecipientsTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+
     private User $editor;
+
     private User $checkin;
+
     private Canal $canal;
 
     protected function setUp(): void
@@ -232,7 +235,7 @@ class CanalRecipientsTest extends TestCase
         return Event::factory()->future()->create([
             'canal_id' => $this->canal->id,
             // Autor mimo tímu — inak by platilo pravidlo „k vlastnému podujatiu vždy".
-            'user_id' => $this->user('autor-' . uniqid() . '@example.sk')->id,
+            'user_id' => $this->user('autor-'.uniqid().'@example.sk')->id,
             'status' => ModelStatus::Published->value,
             'published_at' => now()->subDay(),
             'registration_deadline_at' => null,

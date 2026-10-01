@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 class EventDependencyPublisher
 {
-    public function __construct(private readonly RecordPublisher $publisher = new RecordPublisher()) {}
+    public function __construct(private readonly RecordPublisher $publisher = new RecordPublisher) {}
 
     /**
      * Závislosti, ktoré ešte nie sú publikované.
@@ -49,8 +49,8 @@ class EventDependencyPublisher
                 'id' => (int) $pair['model']->id,
                 'name' => (string) $pair['model']->name,
                 'status' => (string) ($pair['model']->status?->value ?? ''),
-                'label' => __('events.dependencies.' . $pair['type'], [
-                    'name' => '„' . $pair['model']->name . '"',
+                'label' => __('events.dependencies.'.$pair['type'], [
+                    'name' => '„'.$pair['model']->name.'"',
                 ]),
             ])
             ->values()
@@ -99,8 +99,8 @@ class EventDependencyPublisher
 
                 if ($actor !== null && ! $actor->can('publish', $model)) {
                     abort(403, __('events.errors.dependency_forbidden', [
-                        'name' => __('events.dependencies.' . $pair['type'], [
-                            'name' => '„' . $model->name . '"',
+                        'name' => __('events.dependencies.'.$pair['type'], [
+                            'name' => '„'.$model->name.'"',
                         ]),
                     ]));
                 }

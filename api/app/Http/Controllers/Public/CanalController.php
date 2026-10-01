@@ -36,7 +36,7 @@ class CanalController extends Controller
         $ok = $verifier->verify($canal, (string) $request->query('email'));
 
         return redirect()->away(
-            rtrim((string) config('app.frontend_url'), '/') . '/organizatori/' . $canal->id . '?kontakt=' . ($ok ? 'overeny' : 'neplatny'),
+            rtrim((string) config('app.frontend_url'), '/').'/organizatori/'.$canal->id.'?kontakt='.($ok ? 'overeny' : 'neplatny'),
         );
     }
 

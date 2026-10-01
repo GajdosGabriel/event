@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: Gabriel
@@ -8,7 +9,6 @@
 
 namespace App\Repositories\Eloquent\Criteria;
 
-
 use App\Repositories\Criteria\CriterionInterface;
 
 class LatestFirst implements CriterionInterface
@@ -17,5 +17,4 @@ class LatestFirst implements CriterionInterface
     {
         return $entity->latest();
     }
-
 }

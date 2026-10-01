@@ -23,7 +23,7 @@ use Spatie\Permission\Models\Role;
 class CanalMembership
 {
     public function __construct(
-        private CanalAuditor $auditor = new CanalAuditor(),
+        private CanalAuditor $auditor = new CanalAuditor,
     ) {}
 
     /**

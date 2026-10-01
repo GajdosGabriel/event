@@ -118,8 +118,9 @@ class IndexFilterRequest extends FormRequest
             return $this->boolean('published');
         }
         if ($this->has('unpublished')) {
-            return !$this->boolean('unpublished');
+            return ! $this->boolean('unpublished');
         }
+
         return null;
     }
 

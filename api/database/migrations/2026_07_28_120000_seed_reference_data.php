@@ -28,8 +28,8 @@ return new class extends Migration
             return;
         }
 
-        (new RolesAndPermissionsSeeder())->run();
-        (new TagSeeder())->run();
+        (new RolesAndPermissionsSeeder)->run();
+        (new TagSeeder)->run();
     }
 
     /**

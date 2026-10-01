@@ -55,7 +55,8 @@ class EventTaggerTest extends EventSetupTest
      */
     private function tagger(array $tags, array $suggested = []): EventTagger
     {
-        $chatGpt = new class($tags, $suggested) extends ChatGPT {
+        $chatGpt = new class($tags, $suggested) extends ChatGPT
+        {
             public function __construct(private array $stubTags, private array $stubSuggested)
             {
                 parent::__construct();
@@ -67,7 +68,7 @@ class EventTaggerTest extends EventSetupTest
             }
         };
 
-        return new EventTagger($chatGpt, new EventAttributeDeriver());
+        return new EventTagger($chatGpt, new EventAttributeDeriver);
     }
 
     private function slugsFor(Event $event, ?string $source = null): array
@@ -222,14 +223,15 @@ class EventTaggerTest extends EventSetupTest
     #[Test]
     public function ai_failure_is_reported_not_thrown(): void
     {
-        $chatGpt = new class extends ChatGPT {
+        $chatGpt = new class extends ChatGPT
+        {
             public function extractTags(string $text, array $catalog): array
             {
                 throw new \RuntimeException('OpenAI API error: 429');
             }
         };
 
-        $result = (new EventTagger($chatGpt, new EventAttributeDeriver()))->tag($this->futureEvent);
+        $result = (new EventTagger($chatGpt, new EventAttributeDeriver))->tag($this->futureEvent);
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('429', $result['error']);
@@ -259,7 +261,8 @@ class EventTaggerTest extends EventSetupTest
     {
         $captured = null;
 
-        $chatGpt = new class($captured) extends ChatGPT {
+        $chatGpt = new class($captured) extends ChatGPT
+        {
             public function __construct(private &$captured)
             {
                 parent::__construct();
@@ -273,7 +276,7 @@ class EventTaggerTest extends EventSetupTest
             }
         };
 
-        (new EventTagger($chatGpt, new EventAttributeDeriver()))->tag($this->futureEvent);
+        (new EventTagger($chatGpt, new EventAttributeDeriver))->tag($this->futureEvent);
 
         $this->assertArrayHasKey('format', $captured);
         // Facet „charakter" odvádza EventAttributeDeriver z dát — model ho

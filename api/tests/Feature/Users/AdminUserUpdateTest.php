@@ -42,7 +42,7 @@ class AdminUserUpdateTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, [
+            ->putJson('/api/admin/users/'.$user->id, [
                 'email' => 'new@example.test',
                 'email_verified' => true,
                 'status' => ModelStatus::Archived->value,
@@ -66,7 +66,7 @@ class AdminUserUpdateTest extends TestCase
         $user = User::factory()->create(['email_verified_at' => now()]);
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, ['email_verified' => false])
+            ->putJson('/api/admin/users/'.$user->id, ['email_verified' => false])
             ->assertStatus(200);
 
         $this->assertNull($user->refresh()->email_verified_at);
@@ -81,7 +81,7 @@ class AdminUserUpdateTest extends TestCase
         ]);
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, [
+            ->putJson('/api/admin/users/'.$user->id, [
                 'blocked' => true,
                 'blocked_reason' => 'spam',
             ])
@@ -105,7 +105,7 @@ class AdminUserUpdateTest extends TestCase
         ]);
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, ['blocked' => false])
+            ->putJson('/api/admin/users/'.$user->id, ['blocked' => false])
             ->assertStatus(200);
 
         $user->refresh();
@@ -122,7 +122,7 @@ class AdminUserUpdateTest extends TestCase
         $user = User::factory()->create(['password' => Hash::make('povodne-heslo')]);
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, [
+            ->putJson('/api/admin/users/'.$user->id, [
                 'email' => $user->email,
                 'password' => null,
             ])
@@ -138,7 +138,7 @@ class AdminUserUpdateTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, ['email' => $other->email])
+            ->putJson('/api/admin/users/'.$user->id, ['email' => $other->email])
             ->assertStatus(422)
             ->assertJsonValidationErrors('email');
     }
@@ -149,7 +149,7 @@ class AdminUserUpdateTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $user->id, ['email' => $user->email])
+            ->putJson('/api/admin/users/'.$user->id, ['email' => $user->email])
             ->assertStatus(200);
     }
 
@@ -157,7 +157,7 @@ class AdminUserUpdateTest extends TestCase
     public function admin_cannot_update_his_own_account_here(): void
     {
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/users/' . $this->admin->id, ['status' => ModelStatus::Archived->value])
+            ->putJson('/api/admin/users/'.$this->admin->id, ['status' => ModelStatus::Archived->value])
             ->assertStatus(403);
     }
 }

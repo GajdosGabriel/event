@@ -6,12 +6,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-
 abstract class UserSetupTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $user;
+
     protected User $userSuperAdmin;
 
     protected function setUp(): void

@@ -53,8 +53,7 @@ class EventQuestionController extends Controller
         private QuestionSubmitter $submitter,
         private QuestionAlert $organizerAlert,
         private QuestionRelay $relay,
-    ) {
-    }
+    ) {}
 
     public function index(int|string $event): JsonResponse
     {
@@ -68,7 +67,7 @@ class EventQuestionController extends Controller
                 return response()->json([
                     'available' => true,
                     'relay' => true,
-                    'ticket' => SubmissionTicket::issue('question:event:' . $model->id),
+                    'ticket' => SubmissionTicket::issue('question:event:'.$model->id),
                 ]);
             }
 
@@ -96,7 +95,7 @@ class EventQuestionController extends Controller
             'intro' => $board->intro,
             'questions_count' => (int) $board->questions_count,
             'answered_count' => $questions->filter(fn ($q) => $q->answered_at !== null)->count(),
-            'ticket' => SubmissionTicket::issue('question:event:' . $model->id),
+            'ticket' => SubmissionTicket::issue('question:event:'.$model->id),
             'questions' => QuestionResource::collection($questions),
         ]);
     }
@@ -201,7 +200,7 @@ class EventQuestionController extends Controller
     private function visibleQuestions(QuestionBoard $board, QuestionBoardPhase $phase): Collection
     {
         if (! $board->show_questions) {
-            return new Collection();
+            return new Collection;
         }
 
         $query = $board->questions()->publiclyVisible();

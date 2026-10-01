@@ -19,6 +19,7 @@ class CanalContactNotice extends Notification implements ShouldQueue
     use Queueable;
 
     public const VERIFY = 'verify';
+
     public const CHANGED = 'changed';
 
     public function __construct(
@@ -39,15 +40,15 @@ class CanalContactNotice extends Notification implements ShouldQueue
             'canal' => $this->canal->name ?: __('mail.canal_invitation.canal_fallback'),
             'email' => $this->newEmail ?? '',
         ];
-        $key = 'mail.canal_contact.' . $this->kind;
+        $key = 'mail.canal_contact.'.$this->kind;
 
         $mail = (new MailMessage)
-            ->subject(__($key . '.subject', $params))
+            ->subject(__($key.'.subject', $params))
             ->greeting(__('mail.common.greeting'))
-            ->line(__($key . '.intro', $params));
+            ->line(__($key.'.intro', $params));
 
         return $this->kind === self::VERIFY && $this->verifyUrl
-            ? $mail->action(__($key . '.action'), $this->verifyUrl)->line(__($key . '.ignore'))
+            ? $mail->action(__($key.'.action'), $this->verifyUrl)->line(__($key.'.ignore'))
             : $mail->line(__('mail.canal_ownership.not_you'));
     }
 }

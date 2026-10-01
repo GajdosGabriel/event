@@ -2,8 +2,8 @@
 
 namespace App\Services\Files;
 
-use App\Jobs\GenerateFileVariantsJob;
 use App\Enums\FileType;
+use App\Jobs\GenerateFileVariantsJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -14,13 +14,13 @@ use InvalidArgumentException;
 class RemoteAttachmentPersister
 {
     public function __construct(
-        private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver(),
-        private readonly FileDuplicator $fileDuplicator = new FileDuplicator(),
+        private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver,
+        private readonly FileDuplicator $fileDuplicator = new FileDuplicator,
     ) {}
 
     /**
-     * @param Collection<int, array<string, mixed>> $attachments
-     * @param array<string, mixed> $meta
+     * @param  Collection<int, array<string, mixed>>  $attachments
+     * @param  array<string, mixed>  $meta
      */
     public function store(
         Model $model,
@@ -38,17 +38,17 @@ class RemoteAttachmentPersister
                 ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; Event API Bot)'])
                 ->get($url);
 
-            if (!$response->successful()) {
-                throw new InvalidArgumentException('Failed to download remote file: ' . $url);
+            if (! $response->successful()) {
+                throw new InvalidArgumentException('Failed to download remote file: '.$url);
             }
 
             $content = $response->body();
             if ($content === '') {
-                throw new InvalidArgumentException('Remote file is empty: ' . $url);
+                throw new InvalidArgumentException('Remote file is empty: '.$url);
             }
 
             $originalName = $this->resolveOriginalName($attachment);
-            $safeOriginalName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('remote_file_' . time());
+            $safeOriginalName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('remote_file_'.time());
             $extension = strtolower((string) pathinfo($safeOriginalName, PATHINFO_EXTENSION));
 
             $mimeType = (string) $response->header('Content-Type', 'application/octet-stream');
@@ -76,7 +76,7 @@ class RemoteAttachmentPersister
             if ($extension === '') {
                 $extension = $this->extensionFromMimeType($mimeType);
                 if ($extension !== '') {
-                    $safeOriginalName .= '.' . $extension;
+                    $safeOriginalName .= '.'.$extension;
                 }
             }
 
@@ -94,12 +94,12 @@ class RemoteAttachmentPersister
                 return $reused;
             }
 
-            $storedFileName = Str::random(40) . ($extension !== '' ? '.' . $extension : '');
-            $path = trim($storageDirectory, '/') . '/' . $storedFileName;
+            $storedFileName = Str::random(40).($extension !== '' ? '.'.$extension : '');
+            $path = trim($storageDirectory, '/').'/'.$storedFileName;
 
             $stored = Storage::disk($disk)->put($path, $content);
-            if (!$stored) {
-                throw new InvalidArgumentException('Failed to store remote file: ' . $url);
+            if (! $stored) {
+                throw new InvalidArgumentException('Failed to store remote file: '.$url);
             }
 
             $file = $model->files()->create([
@@ -129,14 +129,14 @@ class RemoteAttachmentPersister
     }
 
     /**
-     * @param array<string, mixed> $attachment
+     * @param  array<string, mixed>  $attachment
      */
     /**
      * Prekopíruje už uložený súbor s rovnakým obsahom, ak nejaký existuje.
      *
      * @param  array<string, mixed>  $meta
      * @param  array<string, mixed>  $attachment
-     * @return \App\Models\File|null  null, keď sa nedá použiť a treba ukladať normálne
+     * @return \App\Models\File|null null, keď sa nedá použiť a treba ukladať normálne
      */
     private function reuseStoredCopy(
         Model $model,
@@ -184,6 +184,7 @@ class RemoteAttachmentPersister
             ]),
         ]);
     }
+
     private function resolveOriginalName(array $attachment): string
     {
         $url = (string) ($attachment['url'] ?? '');
@@ -207,7 +208,7 @@ class RemoteAttachmentPersister
             return $name;
         }
 
-        return 'remote_file_' . time() . '.bin';
+        return 'remote_file_'.time().'.bin';
     }
 
     private function extensionFromMimeType(string $mimeType): string
@@ -231,7 +232,7 @@ class RemoteAttachmentPersister
 
         $normalizedMime = strtolower(trim($mimeType));
         if ($normalizedMime === '' || ! str_starts_with($normalizedMime, 'image/')) {
-            throw new InvalidArgumentException('Remote file is not an image: ' . $url);
+            throw new InvalidArgumentException('Remote file is not an image: '.$url);
         }
 
         $allowedMimes = config('services.venue_detection.attach.allowed_mime_types', [
@@ -249,13 +250,13 @@ class RemoteAttachmentPersister
             $allowedMimes = array_map(fn ($item) => strtolower((string) $item), $allowedMimes);
 
             if (! in_array($normalizedMime, $allowedMimes, true)) {
-                throw new InvalidArgumentException('Remote image mime type is not allowed: ' . $normalizedMime);
+                throw new InvalidArgumentException('Remote image mime type is not allowed: '.$normalizedMime);
             }
         }
 
         $maxBytes = max(1, (int) config('services.venue_detection.attach.max_bytes', 10485760));
         if (strlen($content) > $maxBytes) {
-            throw new InvalidArgumentException('Remote image is too large: ' . $url);
+            throw new InvalidArgumentException('Remote image is too large: '.$url);
         }
     }
 }

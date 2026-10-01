@@ -23,7 +23,7 @@ class ImportedProfileDescriber
     private const MAX_LENGTH = 2000;
 
     public function __construct(
-        private readonly ChatGPT $chatGPT = new ChatGPT(),
+        private readonly ChatGPT $chatGPT = new ChatGPT,
     ) {}
 
     public function forCanal(string $name, ?string $sourceOrigin = null): string

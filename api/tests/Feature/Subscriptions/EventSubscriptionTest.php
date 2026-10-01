@@ -37,7 +37,7 @@ class EventSubscriptionTest extends EventSetupTest
     /** Známka, akú by si front vypýtal otvorením formulára. */
     private function ticketFor(Event $event, int $ageSeconds = 5): string
     {
-        return $this->travelTo(now()->subSeconds($ageSeconds), fn () => SubmissionTicket::issue('subscription:' . $event->id));
+        return $this->travelTo(now()->subSeconds($ageSeconds), fn () => SubmissionTicket::issue('subscription:'.$event->id));
     }
 
     #[Test]
@@ -204,7 +204,7 @@ class EventSubscriptionTest extends EventSetupTest
         // plán návštevníka.
         $this->futureEvent->update(['body' => '<p>Opravený preklep.</p>']);
 
-        Notification::assertNotSentTo(new AnonymousNotifiable(), EventChanged::class);
+        Notification::assertNotSentTo(new AnonymousNotifiable, EventChanged::class);
     }
 
     #[Test]

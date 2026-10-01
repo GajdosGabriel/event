@@ -106,7 +106,7 @@ class CanalOutreachSender
     {
         $simulate = $this->simulate();
         $invitation = $this->inviter->ensureOwnerInvitation($canal, $email);
-        $claimUrl = rtrim((string) config('app.frontend_url'), '/') . '/pozvanka/' . $invitation->token;
+        $claimUrl = rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$invitation->token;
 
         MailSimulator::send(
             [Notification::route('mail', $email)],
@@ -124,7 +124,7 @@ class CanalOutreachSender
             'invitation_id' => $invitation->id,
         ]);
 
-        Recorder::info('canals', 'outreach_' . $outreach->status,
+        Recorder::info('canals', 'outreach_'.$outreach->status,
             "Kanál {$canal->name}: oslovenie po akcii {$event->name}",
             status: 'ok',
             recipient: $email,

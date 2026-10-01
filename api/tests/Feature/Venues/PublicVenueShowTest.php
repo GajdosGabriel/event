@@ -12,7 +12,7 @@ class PublicVenueShowTest extends EventSetupTest
     #[Test]
     public function public_venue_detail_carries_municipality(): void
     {
-        $name = 'Test Public Venue Municipality ' . uniqid();
+        $name = 'Test Public Venue Municipality '.uniqid();
         $municipalityId = $this->createMunicipality($name);
 
         $venue = Venue::factory()->forCanal($this->canalPrimary->id)->create([
@@ -52,7 +52,7 @@ class PublicVenueShowTest extends EventSetupTest
     {
         return (int) DB::table('municipalities')->insertGetId([
             'fullname' => $name,
-            'shortname' => 'TPV ' . random_int(100, 999),
+            'shortname' => 'TPV '.random_int(100, 999),
             'zip' => '01001',
             'district_id' => 1,
             'region_id' => 1,

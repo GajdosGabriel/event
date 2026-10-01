@@ -31,7 +31,7 @@ enum QuestionVisibility: string implements HasLabel
 
     public function label(): string
     {
-        return __('questions.visibility.' . $this->value);
+        return __('questions.visibility.'.$this->value);
     }
 
     public function isPrivate(): bool

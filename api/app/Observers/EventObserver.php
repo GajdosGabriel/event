@@ -2,13 +2,13 @@
 
 namespace App\Observers;
 
-use App\Support\EventDateRange;
 use App\Enums\ModelStatus;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Models\Venue;
 use App\Notifications\EventChanged;
 use App\Services\Events\SubscriberDirectory;
+use App\Support\EventDateRange;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 

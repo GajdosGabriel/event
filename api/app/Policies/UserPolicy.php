@@ -8,6 +8,7 @@ use App\Policies\Traits\DeniesArchivedUpdate;
 class UserPolicy
 {
     use DeniesArchivedUpdate;
+
     /**
      * Determine whether the user can view any models.
      */

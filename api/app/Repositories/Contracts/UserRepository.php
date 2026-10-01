@@ -9,11 +9,13 @@
 
 namespace App\Repositories\Contracts;
 
-
 interface UserRepository extends InterfaceRepository
 {
     public function dashboardIndex($perPage = 15);
+
     public function createUserRegisterForm($value);
+
     public function createUserBySocial($value);
+
     public function usersHasRoleAdmin();
 }

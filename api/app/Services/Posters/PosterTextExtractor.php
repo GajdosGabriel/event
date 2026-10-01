@@ -33,7 +33,7 @@ class PosterTextExtractor
     private const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
     public function __construct(
-        private readonly PdfConverterService $pdfConverter = new PdfConverterService(),
+        private readonly PdfConverterService $pdfConverter = new PdfConverterService,
     ) {}
 
     public function fromText(string $text): PosterExtraction
@@ -91,7 +91,7 @@ class PosterTextExtractor
 
         return new PosterExtraction(
             text: '',
-            imageDataUrls: ['data:' . $mime . ';base64,' . base64_encode($binary)],
+            imageDataUrls: ['data:'.$mime.';base64,'.base64_encode($binary)],
             kind: 'image',
         );
     }
@@ -181,7 +181,7 @@ class PosterTextExtractor
             if ($pageBinary === null || strlen($pageBinary) > self::MAX_IMAGE_BYTES) {
                 continue;
             }
-            $imageDataUrls[] = 'data:image/png;base64,' . base64_encode($pageBinary);
+            $imageDataUrls[] = 'data:image/png;base64,'.base64_encode($pageBinary);
         }
 
         if ($imageDataUrls === [] && trim($text) === '') {
@@ -211,7 +211,7 @@ class PosterTextExtractor
         }
 
         try {
-            return (string) (new \Smalot\PdfParser\Parser())->parseContent($binary)->getText();
+            return (string) (new \Smalot\PdfParser\Parser)->parseContent($binary)->getText();
         } catch (\Throwable $e) {
             Log::debug('PosterTextExtractor: lokálna extrakcia textu z PDF zlyhala.', [
                 'error' => $e->getMessage(),
@@ -231,7 +231,7 @@ class PosterTextExtractor
             throw new PosterExtractionException(__('poster.extract.zip_missing'));
         }
 
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
 
         if ($zip->open($file->getRealPath()) !== true) {
             throw new PosterExtractionException(__('poster.extract.docx_unreadable'));

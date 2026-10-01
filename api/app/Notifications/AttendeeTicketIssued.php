@@ -14,7 +14,7 @@ use Illuminate\Notifications\Notification;
 /**
  * E-mail pre ďalšieho účastníka objednávky — obsahuje len jeho vstupenky (QR).
  *
- * @param int[] $admissionIds
+ * @param  int[]  $admissionIds
  */
 class AttendeeTicketIssued extends Notification implements ShouldQueue
 {
@@ -24,8 +24,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
         protected Ticket $ticket,
         protected array $admissionIds,
         protected bool $needsActivation = false,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -54,14 +53,14 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
-                'type'  => $admission->ticketType?->name,
-                'png'   => $generator->forToken($admission->qr_token)->getString(),
+                'type' => $admission->ticketType?->name,
+                'png' => $generator->forToken($admission->qr_token)->getString(),
                 // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
                 'qrUrl' => route('public.admissions.qr', $admission->uuid),
             ])
             ->all();
 
-        $activationUrl = rtrim((string) config('app.frontend_url'), '/') . '/login';
+        $activationUrl = rtrim((string) config('app.frontend_url'), '/').'/login';
 
         // Bezplatnú vstupenku môže účastník sám zrušiť — odkaz vedie na RSVP
         // stránku, kde zrušenie ešte potvrdí (aby ho neurobil náhľad e-mailu).
@@ -69,22 +68,22 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
             ?->confirmation_token;
 
         $cancelUrl = $cancelToken
-            ? rtrim((string) config('app.frontend_url'), '/') . '/rsvp/' . $cancelToken
+            ? rtrim((string) config('app.frontend_url'), '/').'/rsvp/'.$cancelToken
             : null;
 
         $calendar = new EventCalendarLinks($this->ticket->event);
 
-        $mail = (new MailMessage())
+        $mail = (new MailMessage)
             ->subject(__('mail.attendee_ticket_issued.subject', ['event' => $eventName]))
             ->markdown('mail.attendee-ticket-issued', [
-                'greetingName'    => $admissions->first()?->attendee_name,
-                'holderName'      => $this->ticket->holder_name,
-                'eventName'       => $eventName,
-                'isPaid'          => (int) ($this->ticket->price_amount ?? 0) > 0,
-                'seats'           => $seats,
-                'cancelUrl'       => $cancelUrl,
+                'greetingName' => $admissions->first()?->attendee_name,
+                'holderName' => $this->ticket->holder_name,
+                'eventName' => $eventName,
+                'isPaid' => (int) ($this->ticket->price_amount ?? 0) > 0,
+                'seats' => $seats,
+                'cancelUrl' => $cancelUrl,
                 'needsActivation' => $this->needsActivation,
-                'activationUrl'   => $activationUrl,
+                'activationUrl' => $activationUrl,
                 ...$calendar->viewData(),
             ]);
 

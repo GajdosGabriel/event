@@ -18,9 +18,8 @@ class AddressGeocoder
     private const COUNTRY = 'Slovensko';
 
     public function __construct(
-        private readonly NominatimGeocoder $geocoder = new NominatimGeocoder(),
-    ) {
-    }
+        private readonly NominatimGeocoder $geocoder = new NominatimGeocoder,
+    ) {}
 
     /**
      * @return array{latitude:?float, longitude:?float, source:?string, city:?string, postcode:?string}

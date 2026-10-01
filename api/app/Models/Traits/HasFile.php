@@ -118,7 +118,7 @@ trait HasFile
             ? dirname($diskUrl)
             : rtrim((string) config('app.url'), '/');
 
-        return $root . '/' . ltrim($path, '/');
+        return $root.'/'.ltrim($path, '/');
     }
 
     protected function defaultPrimaryImage(): array
@@ -158,8 +158,8 @@ trait HasFile
     }
 
     /**
-     * @param UploadedFile|array<int, UploadedFile> $files
-     * @param array<string, mixed> $meta
+     * @param  UploadedFile|array<int, UploadedFile>  $files
+     * @param  array<string, mixed>  $meta
      */
     public function addFiles(
         UploadedFile|array $files,

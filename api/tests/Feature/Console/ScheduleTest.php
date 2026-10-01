@@ -24,7 +24,7 @@ class ScheduleTest extends TestCase
             $this->assertInstanceOf(
                 CallbackEvent::class,
                 $event,
-                'Naplánovaný príkaz [' . $event->getSummaryForDisplay() . '] by sa spustil cez shell.'
+                'Naplánovaný príkaz ['.$event->getSummaryForDisplay().'] by sa spustil cez shell.'
             );
         }
     }

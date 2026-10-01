@@ -13,6 +13,7 @@ class ResourceMergeController extends Controller
         abort_unless($request->user()->hasRole('super-admin'), 403);
         $input = $request->validate(['target_id' => ['required', 'integer', 'min:1']]);
         $merger->merge($request->route('resource'), (int) $request->route('id'), (int) $input['target_id'], (int) $request->user()->id);
+
         return response()->json(['data' => ['id' => (int) $input['target_id']]]);
     }
 }

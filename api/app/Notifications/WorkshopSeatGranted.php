@@ -20,8 +20,7 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
 
     public function __construct(
         protected Admission $admission
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -37,9 +36,9 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
     {
         $workshop = $this->admission->ticketType?->name ?? __('mail.common.workshop_fallback');
         $eventName = $this->admission->event?->name ?? __('mail.common.event_fallback');
-        $base = rtrim((string) config('app.frontend_url'), '/') . '/rsvp/' . $this->admission->confirmation_token;
+        $base = rtrim((string) config('app.frontend_url'), '/').'/rsvp/'.$this->admission->confirmation_token;
 
-        $message = (new MailMessage())
+        $message = (new MailMessage)
             ->subject(__('mail.workshop_seat_granted.subject', ['workshop' => $workshop]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.workshop_seat_granted.intro', ['workshop' => $workshop, 'event' => $eventName]));
@@ -57,8 +56,8 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
         }
 
         return $message
-            ->action(__('mail.workshop_seat_granted.action'), $base . '?do=confirm')
+            ->action(__('mail.workshop_seat_granted.action'), $base.'?do=confirm')
             ->line(__('mail.workshop_seat_granted.after_confirm'))
-            ->line(__('mail.workshop_seat_granted.decline', ['url' => $base . '?do=cancel']));
+            ->line(__('mail.workshop_seat_granted.decline', ['url' => $base.'?do=cancel']));
     }
 }

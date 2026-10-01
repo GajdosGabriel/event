@@ -19,7 +19,7 @@ class ImportSocialAvatarJobTest extends TestCase
     {
         Http::fake([
             'https://lh3.googleusercontent.com/*' => Http::response(
-                (string) file_get_contents(__DIR__ . '/../../../public/images/default.svg'),
+                (string) file_get_contents(__DIR__.'/../../../public/images/default.svg'),
                 200,
                 ['Content-Type' => 'image/png'],
             ),

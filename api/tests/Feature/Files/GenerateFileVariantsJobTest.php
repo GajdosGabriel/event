@@ -100,7 +100,7 @@ class GenerateFileVariantsJobTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      */
     private function createFile(User $user, array $overrides = []): File
     {

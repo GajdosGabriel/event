@@ -63,9 +63,7 @@ class AttributeCheckTest extends TestCase
     {
         $probe = new class($result) implements AttributeProbe
         {
-            public function __construct(private ProbeResult $result)
-            {
-            }
+            public function __construct(private ProbeResult $result) {}
 
             public function attribute(): string
             {

@@ -66,8 +66,8 @@ class SlideComposer
         }
 
         return $start->isSameDay($end)
-            ? $label . ' – ' . $end->format('H:i')
-            : $label . ' – ' . $end->translatedFormat('j. n. Y, H:i');
+            ? $label.' – '.$end->format('H:i')
+            : $label.' – '.$end->translatedFormat('j. n. Y, H:i');
     }
 
     private function whereLabel(?Model $event): ?string

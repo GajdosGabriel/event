@@ -54,7 +54,7 @@ class QuestionBoardPublicTest extends EventSetupTest
         $this->futureEvent->update(['status' => ModelStatus::Published]);
         $board = $this->futureEvent->ensureQuestionBoard();
 
-        $typed = strtolower(substr($board->token, 0, 5) . '-' . substr($board->token, 5));
+        $typed = strtolower(substr($board->token, 0, 5).'-'.substr($board->token, 5));
 
         $this->getJson("/api/q/{$typed}")->assertOk();
     }

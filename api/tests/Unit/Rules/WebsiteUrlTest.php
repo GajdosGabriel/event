@@ -18,7 +18,7 @@ class WebsiteUrlTest extends TestCase
 {
     private function fails(mixed $value): bool
     {
-        return Validator::make(['website' => $value], ['website' => [new WebsiteUrl()]])->fails();
+        return Validator::make(['website' => $value], ['website' => [new WebsiteUrl]])->fails();
     }
 
     #[Test]

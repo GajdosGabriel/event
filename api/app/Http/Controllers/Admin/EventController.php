@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Traits\HasAllowedStatuses;
-use App\Services\Publishing\EventDependencyPublisher;
 use App\Http\Requests\EventPublishRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Resources\EventResource;
+use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -145,7 +145,6 @@ class EventController extends Controller
 
         return response()->json(new EventResource($copy), 201);
     }
-
 
     public function municipalitiesOverview(Request $request): JsonResponse
     {

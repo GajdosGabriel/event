@@ -25,7 +25,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
         $upload = UploadedFile::fake()->create('canal-dashboard-store.pdf', 120, 'application/pdf');
 
         $payload = [
-            'name' => 'Dashboard Canal File Store ' . uniqid(),
+            'name' => 'Dashboard Canal File Store '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Canal with uploaded dashboard file.',
             'file_type' => FileType::FILE->value,
@@ -61,7 +61,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $canal->name . ' Updated ' . uniqid(),
+            'name' => $canal->name.' Updated '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Updated canal with new uploaded file.',
             'file_type' => FileType::FILE->value,
@@ -69,7 +69,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/dashboard/canals/' . $canal->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/dashboard/canals/'.$canal->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 
@@ -93,7 +93,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
         $upload = UploadedFile::fake()->image('canal-dashboard-store.jpg');
 
         $payload = [
-            'name' => 'Dashboard Canal Image Store ' . uniqid(),
+            'name' => 'Dashboard Canal Image Store '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Canal with uploaded dashboard image.',
             'file_type' => FileType::IMAGE->value,
@@ -124,7 +124,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
         $upload = UploadedFile::fake()->image('canal-dashboard-store-no-type.jpg');
 
         $payload = [
-            'name' => 'Dashboard Canal Image Store No Type ' . uniqid(),
+            'name' => 'Dashboard Canal Image Store No Type '.uniqid(),
             'municipality_id' => $municipalityId,
             'body' => 'Canal with uploaded dashboard image and default file type.',
             'files' => [$upload],
@@ -159,7 +159,7 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
             'size' => 1024,
             'mime_type' => 'image/jpeg',
             'disk' => 'public',
-            'path' => 'canal/' . $canal->id . '/image/existing-canal-primary.jpg',
+            'path' => 'canal/'.$canal->id.'/image/existing-canal-primary.jpg',
             'checksum' => 'existing-canal-primary-checksum-dashboard',
             'type' => FileType::IMAGE->value,
             'is_primary' => true,
@@ -167,14 +167,14 @@ class DashboardCanalFileUploadTest extends CanalSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $canal->name . ' Dashboard Secondary Image ' . uniqid(),
+            'name' => $canal->name.' Dashboard Secondary Image '.uniqid(),
             'municipality_id' => $canal->municipality_id,
             'body' => 'Canal update with secondary image.',
             'file_type' => FileType::IMAGE->value,
             'files' => [UploadedFile::fake()->image('canal-dashboard-secondary.jpg')],
         ];
 
-        $response = $this->post('/api/dashboard/canals/' . $canal->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/dashboard/canals/'.$canal->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 

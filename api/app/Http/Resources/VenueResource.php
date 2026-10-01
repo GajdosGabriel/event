@@ -11,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class VenueResource extends JsonResource
 {
     use HasAllowedStatuses, HasAttributeCheckState;
+
     /**
      * Transform the resource into an array.
      *

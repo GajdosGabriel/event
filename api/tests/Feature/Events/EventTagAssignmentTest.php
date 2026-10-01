@@ -11,6 +11,7 @@ use Tests\TestSupport\EventSetupTest;
 class EventTagAssignmentTest extends EventSetupTest
 {
     private Tag $koncert;
+
     private Tag $folklor;
 
     protected function setUp(): void
@@ -43,7 +44,7 @@ class EventTagAssignmentTest extends EventSetupTest
     #[Test]
     public function user_can_assign_tags_when_updating_an_event(): void
     {
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'tag_ids' => [$this->koncert->id, $this->folklor->id],
         ])->assertOk();
@@ -62,7 +63,7 @@ class EventTagAssignmentTest extends EventSetupTest
         ]);
 
         // Rýchla zmena iného poľa nesmie zmazať štítky.
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => 'Nový názov',
         ])->assertOk();
 
@@ -76,7 +77,7 @@ class EventTagAssignmentTest extends EventSetupTest
             $this->koncert->id => ['confidence' => 100, 'source' => 'manual', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'tag_ids' => [],
         ])->assertOk();
@@ -91,7 +92,7 @@ class EventTagAssignmentTest extends EventSetupTest
             $this->folklor->id => ['confidence' => 90, 'source' => 'ai', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'tag_ids' => [$this->koncert->id],
         ])->assertOk();
@@ -107,7 +108,7 @@ class EventTagAssignmentTest extends EventSetupTest
     #[Test]
     public function unknown_tag_id_is_rejected(): void
     {
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'tag_ids' => [999999],
         ])->assertStatus(422)->assertJsonValidationErrors('tag_ids.0');
@@ -125,7 +126,7 @@ class EventTagAssignmentTest extends EventSetupTest
             'end_at' => now()->addWeek()->addHours(2),
         ]);
 
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
             'end_at' => now()->addWeek()->addHours(2)->format('Y-m-d H:i:s'),
@@ -135,7 +136,7 @@ class EventTagAssignmentTest extends EventSetupTest
 
         // Predĺženie termínu nemení text, takže AI beh sa nespustí — odvodenie
         // preto musí bežať pri každom zápise, inak by štítok chýbal navždy.
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
             'end_at' => now()->addWeek()->addDays(3)->format('Y-m-d H:i:s'),
@@ -144,7 +145,7 @@ class EventTagAssignmentTest extends EventSetupTest
         $this->assertSame(['viacdnove' => 'derived'], $this->pivot($this->futureEvent->id));
 
         // A skrátenie termínu ho musí zase odobrať.
-        $this->putJson('/api/dashboard/events/' . $this->futureEvent->id, [
+        $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
             'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
             'end_at' => now()->addWeek()->addHours(2)->format('Y-m-d H:i:s'),
@@ -175,7 +176,7 @@ class EventTagAssignmentTest extends EventSetupTest
         ]);
 
         // replicate() pivot riadky neprenáša — kópia by inak prišla o štítky.
-        $copyId = $this->postJson('/api/dashboard/events/' . $this->futureEvent->id . '/duplicate')
+        $copyId = $this->postJson('/api/dashboard/events/'.$this->futureEvent->id.'/duplicate')
             ->assertSuccessful()
             ->json('id');
 

@@ -51,7 +51,7 @@ class DashboardSupportController extends Controller
             ->when(! $all, fn (Builder $q) => $q->where('user_id', $user->id))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
             ->when($filters['search'] ?? null, function (Builder $q, string $search) {
-                $term = '%' . addcslashes($search, '\\%_') . '%';
+                $term = '%'.addcslashes($search, '\\%_').'%';
                 $q->where(fn (Builder $w) => $w
                     ->where('subject', 'like', $term)
                     ->orWhereHas('messages', fn (Builder $m) => $m->where('body', 'like', $term))
@@ -149,7 +149,7 @@ class DashboardSupportController extends Controller
         // Otvorenie vlákna je jeho prečítanie — aj upozornenia k nemu už netreba.
         $supportTicket->forceFill([$this->seenColumn($user, $supportTicket) => now()])->save();
         $user->unreadNotifications()
-            ->whereIn('data->link', ['/dashboard/spravy/podpora/' . $supportTicket->id, '/admin/podpora/' . $supportTicket->id])
+            ->whereIn('data->link', ['/dashboard/spravy/podpora/'.$supportTicket->id, '/admin/podpora/'.$supportTicket->id])
             ->update(['read_at' => now()]);
 
         return response()->json($this->present($this->loadThread($supportTicket), $user, true));

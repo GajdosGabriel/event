@@ -39,8 +39,7 @@ class QuestionDraft
         public readonly ?int $userId = null,
         public readonly ?string $locale = null,
         public readonly QuestionVisibility $visibility = QuestionVisibility::Public,
-    ) {
-    }
+    ) {}
 
     public static function from(
         QuestionStoreRequest $request,

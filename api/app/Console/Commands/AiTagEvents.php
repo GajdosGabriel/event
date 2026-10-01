@@ -120,8 +120,8 @@ class AiTagEvents extends Command
                 $event->id,
                 $event->name,
                 implode(', ', $result['tags'] ?? []) ?: '(žiadne)',
-                ($result['derived'] ?? []) !== [] ? ' + ' . implode(', ', $result['derived']) : '',
-                ($result['suggested'] ?? []) !== [] ? '  [návrhy: ' . implode(', ', $result['suggested']) . ']' : '',
+                ($result['derived'] ?? []) !== [] ? ' + '.implode(', ', $result['derived']) : '',
+                ($result['suggested'] ?? []) !== [] ? '  [návrhy: '.implode(', ', $result['suggested']).']' : '',
             ));
 
             $this->pause();

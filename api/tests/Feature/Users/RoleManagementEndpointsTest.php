@@ -16,7 +16,7 @@ class RoleManagementEndpointsTest extends UserSetupTest
 
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
-        $response = $this->putJson('/api/dashboard/users/' . $target->id . '/roles', [
+        $response = $this->putJson('/api/dashboard/users/'.$target->id.'/roles', [
             'roles' => ['canal-editor'],
         ]);
 
@@ -38,7 +38,7 @@ class RoleManagementEndpointsTest extends UserSetupTest
         $regularUser = User::factory()->create();
         $this->actingAs($regularUser, 'sanctum');
 
-        $response = $this->putJson('/api/dashboard/users/' . $target->id . '/roles', [
+        $response = $this->putJson('/api/dashboard/users/'.$target->id.'/roles', [
             'roles' => ['canal-editor'],
         ]);
 
@@ -52,7 +52,7 @@ class RoleManagementEndpointsTest extends UserSetupTest
 
         $this->actingAs($this->userSuperAdmin, 'sanctum');
 
-        $response = $this->putJson('/api/dashboard/users/' . $target->id . '/roles', [
+        $response = $this->putJson('/api/dashboard/users/'.$target->id.'/roles', [
             'roles' => ['unknown-role'],
         ]);
 

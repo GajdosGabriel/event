@@ -106,7 +106,7 @@ class EventPhaseFilterTest extends TestCase
         $draftToday = $this->event(now()->addHours(4), now()->addHours(6), ModelStatus::Draft);
 
         $this->assertPhaseReturns('today', [$this->running, $this->laterToday, $draftToday]);
-        $this->assertPhaseReturns('today', [$draftToday], '&status=' . ModelStatus::Draft->value);
+        $this->assertPhaseReturns('today', [$draftToday], '&status='.ModelStatus::Draft->value);
     }
 
     private function event(Carbon $startAt, ?Carbon $endAt, ModelStatus $status = ModelStatus::Published): Event

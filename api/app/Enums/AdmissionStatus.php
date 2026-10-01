@@ -9,12 +9,12 @@ enum AdmissionStatus: string implements HasLabel
 {
     use ProvidesOptions;
 
-    case Valid      = 'valid';
+    case Valid = 'valid';
     case Waitlisted = 'waitlisted';
-    case Cancelled  = 'cancelled';
+    case Cancelled = 'cancelled';
 
     public function label(): string
     {
-        return __('tickets.admission_status.' . $this->value);
+        return __('tickets.admission_status.'.$this->value);
     }
 }

@@ -66,24 +66,24 @@ class PromptVenue
             [
                 'role' => 'user',
                 'content' => "Vstupne data:\n{$text}\n\n"
-                    . "Vrat JSON objekt s klucmi:\n"
-                    . "- name (nazov miesta; zachovaj identitu objektu zo vstupu, neprepisuj ho na iny objekt)\n"
-                    . "- street (ulica, aj bez cisla domu)\n"
-                    . "- postcode\n"
-                    . "- city (mesto/obec v zakladnom tvare)\n"
-                    . "- country\n"
-                    . "- latitude\n"
-                    . "- longitude\n\n"
-                    . "Priklad 1 (neznamy objekt - suradnice nehadaj):\n"
-                    . "Vstup: Miesto konania: Greckokatolicky chram v Sabinove, Sabinov, Matice Slovenskej\n"
-                    . "Vystup:\n"
-                    . "{\"name\":\"Greckokatolicky chram v Sabinove\",\"street\":\"Matice Slovenskej\",\"postcode\":null,\"city\":\"Sabinov\",\"country\":\"Slovensko\",\"latitude\":null,\"longitude\":null}\n\n"
-                    . "Priklad 2 (vseobecne znamy objekt - priblizne suradnice su v poriadku):\n"
-                    . "Vstup: Miesto konania: Bojnicky zamok, Bojnice\n"
-                    . "Vystup:\n"
-                    . "{\"name\":\"Bojnicky zamok\",\"street\":null,\"postcode\":null,\"city\":\"Bojnice\",\"country\":\"Slovensko\",\"latitude\":48.7794,\"longitude\":18.5786}\n\n"
-                    . "Suradnice z prikladu nikdy nepouzi pre ine miesto - platia len pre objekt, ktory naozaj poznas.\n\n"
-                    . "Ak udaj nevies spolahlivo urcit, vrat null. Vrat iba validny JSON bez dalsieho textu.",
+                    ."Vrat JSON objekt s klucmi:\n"
+                    ."- name (nazov miesta; zachovaj identitu objektu zo vstupu, neprepisuj ho na iny objekt)\n"
+                    ."- street (ulica, aj bez cisla domu)\n"
+                    ."- postcode\n"
+                    ."- city (mesto/obec v zakladnom tvare)\n"
+                    ."- country\n"
+                    ."- latitude\n"
+                    ."- longitude\n\n"
+                    ."Priklad 1 (neznamy objekt - suradnice nehadaj):\n"
+                    ."Vstup: Miesto konania: Greckokatolicky chram v Sabinove, Sabinov, Matice Slovenskej\n"
+                    ."Vystup:\n"
+                    ."{\"name\":\"Greckokatolicky chram v Sabinove\",\"street\":\"Matice Slovenskej\",\"postcode\":null,\"city\":\"Sabinov\",\"country\":\"Slovensko\",\"latitude\":null,\"longitude\":null}\n\n"
+                    ."Priklad 2 (vseobecne znamy objekt - priblizne suradnice su v poriadku):\n"
+                    ."Vstup: Miesto konania: Bojnicky zamok, Bojnice\n"
+                    ."Vystup:\n"
+                    ."{\"name\":\"Bojnicky zamok\",\"street\":null,\"postcode\":null,\"city\":\"Bojnice\",\"country\":\"Slovensko\",\"latitude\":48.7794,\"longitude\":18.5786}\n\n"
+                    ."Suradnice z prikladu nikdy nepouzi pre ine miesto - platia len pre objekt, ktory naozaj poznas.\n\n"
+                    .'Ak udaj nevies spolahlivo urcit, vrat null. Vrat iba validny JSON bez dalsieho textu.',
             ],
         ];
     }

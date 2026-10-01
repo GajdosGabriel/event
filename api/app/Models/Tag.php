@@ -51,7 +51,7 @@ class Tag extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query
-            ->orderByRaw('FIELD(`group`, ' . implode(', ', array_fill(0, count(TagGroup::values()), '?')) . ')', TagGroup::values())
+            ->orderByRaw('FIELD(`group`, '.implode(', ', array_fill(0, count(TagGroup::values()), '?')).')', TagGroup::values())
             ->orderBy('sort_order')
             ->orderBy('name');
     }

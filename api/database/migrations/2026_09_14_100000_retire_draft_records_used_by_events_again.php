@@ -42,7 +42,7 @@ return new class extends Migration
             ->whereExists(function ($q) use ($table, $foreignKey, $upcomingOnly) {
                 $q->select(DB::raw(1))
                     ->from('events')
-                    ->whereColumn('events.' . $foreignKey, $table . '.id');
+                    ->whereColumn('events.'.$foreignKey, $table.'.id');
 
                 if ($upcomingOnly) {
                     $q->whereNull('events.deleted_at')->where('events.start_at', '>=', now());

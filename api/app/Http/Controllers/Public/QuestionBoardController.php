@@ -21,8 +21,7 @@ class QuestionBoardController extends Controller
 {
     public function __construct(
         private BoardLocator $locator,
-    ) {
-    }
+    ) {}
 
     public function show(string $token): JsonResponse
     {
@@ -111,7 +110,7 @@ class QuestionBoardController extends Controller
             'ask_for_name' => (bool) $board->ask_for_name,
             'questions_count' => (int) $board->questions_count,
             // Známka putuje na klienta a vracia sa pri odoslaní — viď SubmissionTicket.
-            'ticket' => SubmissionTicket::issue('question:' . $board->token),
+            'ticket' => SubmissionTicket::issue('question:'.$board->token),
             'v' => $board->show_questions ? $this->streamState($board) : null,
             'questions' => $board->show_questions
                 ? QuestionResource::collection($this->visibleQuestions($board))

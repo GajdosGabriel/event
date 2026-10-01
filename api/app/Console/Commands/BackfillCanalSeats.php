@@ -59,6 +59,7 @@ class BackfillCanalSeats extends Command
 
             if ($municipalityId === null) {
                 $skipped++;
+
                 continue;
             }
 
@@ -67,6 +68,7 @@ class BackfillCanalSeats extends Command
 
             if (! $dryRun && ! $seatDeriver->applyDetectedCity($canal, $city)) {
                 $skipped++;
+
                 continue;
             }
 

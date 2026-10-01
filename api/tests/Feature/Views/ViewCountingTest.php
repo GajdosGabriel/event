@@ -45,7 +45,7 @@ class ViewCountingTest extends EventSetupTest
 
         return $this->withHeaders(array_merge([
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
-        ], $headers))->getJson('/api/events/' . $event->id);
+        ], $headers))->getJson('/api/events/'.$event->id);
     }
 
     private function viewsOf(?Event $event = null): int
@@ -114,7 +114,7 @@ class ViewCountingTest extends EventSetupTest
         $this->asGuest();
 
         $this->withHeaders(['User-Agent' => ''])
-            ->getJson('/api/events/' . $this->futureEvent->id)
+            ->getJson('/api/events/'.$this->futureEvent->id)
             ->assertOk();
 
         $this->assertSame(0, $this->viewsOf());

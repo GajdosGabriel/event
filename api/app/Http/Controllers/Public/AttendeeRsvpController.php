@@ -17,8 +17,7 @@ class AttendeeRsvpController extends Controller
 {
     public function __construct(
         private AttendeeConfirmation $confirmation,
-    ) {
-    }
+    ) {}
 
     public function show(string $token): JsonResponse
     {

@@ -37,7 +37,7 @@ class UserEmailPrivacyTest extends UserSetupTest
             ->assertDontSee('kolega.tajny@firma.test')
             ->assertJsonFragment(['email_masked' => 'k•••y@firma.test']);
 
-        $this->getJson('/api/dashboard/users/' . $this->colleague->id)
+        $this->getJson('/api/dashboard/users/'.$this->colleague->id)
             ->assertOk()
             ->assertDontSee('kolega.tajny@firma.test')
             ->assertJsonMissingPath('email')
@@ -66,7 +66,7 @@ class UserEmailPrivacyTest extends UserSetupTest
     public function admin_sees_full_email(): void
     {
         $this->actingAs($this->userSuperAdmin, 'sanctum')
-            ->getJson('/api/admin/users/' . $this->colleague->id)
+            ->getJson('/api/admin/users/'.$this->colleague->id)
             ->assertOk()
             ->assertJsonPath('email', 'kolega.tajny@firma.test');
     }

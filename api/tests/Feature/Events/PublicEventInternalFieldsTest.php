@@ -87,7 +87,7 @@ class PublicEventInternalFieldsTest extends EventSetupTest
     {
         $this->asGuest();
 
-        $data = $this->getJson('/api/events/' . $this->futureEvent->id)->assertOk()->json();
+        $data = $this->getJson('/api/events/'.$this->futureEvent->id)->assertOk()->json();
 
         foreach (self::INTERNAL as $field) {
             $this->assertArrayNotHasKey($field, $data);
@@ -101,7 +101,7 @@ class PublicEventInternalFieldsTest extends EventSetupTest
     #[Test]
     public function public_responses_never_contain_detector_contacts(): void
     {
-        foreach (['/api/events', '/api/events/' . $this->futureEvent->id] as $url) {
+        foreach (['/api/events', '/api/events/'.$this->futureEvent->id] as $url) {
             $this->asGuest();
 
             $body = $this->getJson($url)->assertOk()->getContent();
@@ -115,7 +115,7 @@ class PublicEventInternalFieldsTest extends EventSetupTest
     #[Test]
     public function owner_still_receives_internal_fields(): void
     {
-        $data = $this->getJson('/api/dashboard/events/' . $this->futureEvent->id)
+        $data = $this->getJson('/api/dashboard/events/'.$this->futureEvent->id)
             ->assertOk()
             ->json();
 

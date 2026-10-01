@@ -17,8 +17,7 @@ final class ProbeResult
         public readonly ?string $reason = null,
         public readonly ?int $httpStatus = null,
         public readonly bool $skipped = false,
-    ) {
-    }
+    ) {}
 
     public static function ok(?int $httpStatus = null): self
     {

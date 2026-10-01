@@ -3,7 +3,6 @@
 namespace Tests\Feature\Venues;
 
 use App\Enums\ModelStatus;
-
 use App\Models\Canal;
 use App\Models\User;
 use App\Models\Venue;
@@ -67,4 +66,3 @@ class DashboardVenueIndexTest extends EventSetupTest
             ->assertJsonFragment(['id' => $foreignVenue->id]);
     }
 }
-

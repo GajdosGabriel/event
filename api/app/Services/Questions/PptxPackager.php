@@ -35,7 +35,7 @@ class PptxPackager
     public const SLIDE_HEIGHT_EMU = 6858000;
 
     /**
-     * @param string $png bajty obrázka 16:9
+     * @param  string  $png  bajty obrázka 16:9
      * @return string bajty .pptx súboru
      */
     public function package(string $png, string $title = 'Q&A'): string
@@ -50,7 +50,7 @@ class PptxPackager
         }
 
         try {
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $zip->open($tmp, ZipArchive::OVERWRITE | ZipArchive::CREATE);
 
             foreach ($this->parts($title) as $path => $xml) {

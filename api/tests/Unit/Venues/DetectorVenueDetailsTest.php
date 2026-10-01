@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\Venues;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\MunicipalityResolver;
+use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\OpenAI\ChatGPT;
 use App\Services\OpenAI\Detector;
 use App\Services\Places\WikipediaPlaceEnricher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -41,7 +41,8 @@ class DetectorVenueDetailsTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $chatGpt = new class extends ChatGPT {
+        $chatGpt = new class extends ChatGPT
+        {
             public function extractVenueDetails(array|string $input): array
             {
                 return [
@@ -56,7 +57,8 @@ class DetectorVenueDetailsTest extends TestCase
             }
         };
 
-        $geocoder = new class extends NominatimGeocoder {
+        $geocoder = new class extends NominatimGeocoder
+        {
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -71,7 +73,8 @@ class DetectorVenueDetailsTest extends TestCase
             }
         };
 
-        $enricher = new class extends WikipediaPlaceEnricher {
+        $enricher = new class extends WikipediaPlaceEnricher
+        {
             public function enrich(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -95,7 +98,7 @@ class DetectorVenueDetailsTest extends TestCase
         $detector = new Detector(
             chatGPT: $chatGpt,
             nominatimGeocoder: $geocoder,
-            municipalityResolver: new MunicipalityResolver(),
+            municipalityResolver: new MunicipalityResolver,
             wikipediaPlaceEnricher: $enricher,
         );
 
@@ -161,7 +164,8 @@ class DetectorVenueDetailsTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $chatGpt = new class extends ChatGPT {
+        $chatGpt = new class extends ChatGPT
+        {
             public function extractVenueDetails(array|string $input): array
             {
                 return [
@@ -176,7 +180,8 @@ class DetectorVenueDetailsTest extends TestCase
             }
         };
 
-        $geocoder = new class extends NominatimGeocoder {
+        $geocoder = new class extends NominatimGeocoder
+        {
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -191,7 +196,8 @@ class DetectorVenueDetailsTest extends TestCase
             }
         };
 
-        $enricher = new class extends WikipediaPlaceEnricher {
+        $enricher = new class extends WikipediaPlaceEnricher
+        {
             public function enrich(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -208,7 +214,7 @@ class DetectorVenueDetailsTest extends TestCase
         $detector = new Detector(
             chatGPT: $chatGpt,
             nominatimGeocoder: $geocoder,
-            municipalityResolver: new MunicipalityResolver(),
+            municipalityResolver: new MunicipalityResolver,
             wikipediaPlaceEnricher: $enricher,
         );
 
@@ -245,7 +251,8 @@ class DetectorVenueDetailsTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $chatGpt = new class extends ChatGPT {
+        $chatGpt = new class extends ChatGPT
+        {
             public function extractVenueDetails(array|string $input): array
             {
                 return [
@@ -262,7 +269,8 @@ class DetectorVenueDetailsTest extends TestCase
 
         // Bezny kulturny dom v OSM nie je a adresu z neho nedostaneme. Doteraz
         // take miesto skoncilo bez suradnic a na detaile bez mapy.
-        $geocoder = new class extends NominatimGeocoder {
+        $geocoder = new class extends NominatimGeocoder
+        {
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -287,7 +295,8 @@ class DetectorVenueDetailsTest extends TestCase
             }
         };
 
-        $enricher = new class extends WikipediaPlaceEnricher {
+        $enricher = new class extends WikipediaPlaceEnricher
+        {
             public function enrich(string $name, string $city, ?string $country = null): array
             {
                 return [];
@@ -297,7 +306,7 @@ class DetectorVenueDetailsTest extends TestCase
         $detector = new Detector(
             chatGPT: $chatGpt,
             nominatimGeocoder: $geocoder,
-            municipalityResolver: new MunicipalityResolver(),
+            municipalityResolver: new MunicipalityResolver,
             wikipediaPlaceEnricher: $enricher,
         );
 

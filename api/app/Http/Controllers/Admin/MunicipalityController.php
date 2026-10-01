@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
-use App\Http\Resources\MunicipalityResource;
-use App\Repositories\Contracts\MunicipalityRepository;
+use App\Http\Resources\MunicipalityResource; // Good practice to import JsonResponse
 use App\Models\Municipality;
+use App\Repositories\Contracts\MunicipalityRepository;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-
 
 class MunicipalityController extends Controller
 {
     protected $municipalityRepository;
+
     protected $venueRepository;
 
     public function __construct(MunicipalityRepository $municipalityRepository)

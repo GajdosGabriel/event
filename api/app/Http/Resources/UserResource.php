@@ -32,11 +32,11 @@ class UserResource extends JsonResource
             ->select('canals.id', 'canals.name', 'canals.slug', 'canals.status')
             ->get()
             ->map(fn ($c) => [
-                'id'     => $c->id,
-                'name'   => $c->name,
-                'slug'   => $c->slug,
+                'id' => $c->id,
+                'name' => $c->name,
+                'slug' => $c->slug,
                 'status' => $c->status,
-                'role'   => $c->pivot->role,
+                'role' => $c->pivot->role,
             ]);
 
         $activeCanalRole = $activeCanal !== null
@@ -44,17 +44,17 @@ class UserResource extends JsonResource
             : null;
 
         return [
-            'id'           => $this->id,
+            'id' => $this->id,
             // Nikdy nie surový e-mail — používateľ bez kanála by ho inak ukázal
             // každému, kto ho vidí vo výpise (členovia spoločného kanála).
             'display_name' => $activeCanal?->name ?? $this->resource->displayName(),
             // Na rozlíšenie účtov; celú adresu vidí len on sám a admin (nižšie).
             'email_masked' => $this->resource->maskedEmail(),
-            'roles'        => $globalRoles,
-            'canals'       => $canals,
+            'roles' => $globalRoles,
+            'canals' => $canals,
             'canal_context' => [
                 'active' => $activeCanal ? [
-                    'id'   => $activeCanal->id,
+                    'id' => $activeCanal->id,
                     'name' => $activeCanal->name,
                     'slug' => $activeCanal->slug,
                 ] : null,
@@ -73,44 +73,44 @@ class UserResource extends JsonResource
             ]),
 
             'permissions' => [
-                'view'    => $user?->can('view', $this->resource) ?? false,
-                'update'  => $user?->can('update', $this->resource) ?? false,
-                'delete'  => $user?->can('delete', $this->resource) ?? false,
+                'view' => $user?->can('view', $this->resource) ?? false,
+                'update' => $user?->can('update', $this->resource) ?? false,
+                'delete' => $user?->can('delete', $this->resource) ?? false,
                 'restore' => $user?->can('restore', $this->resource) ?? false,
             ],
 
             // Admin-only management fields. Foreign emails / audit data stay
             // out of the public + dashboard scopes.
             $this->mergeWhen($request->routeIs('admin.*'), fn () => [
-                'uuid'              => $this->uuid,
-                'email'             => $this->email,
-                'status'            => $this->status,
-                'status_label'      => $this->status?->label(),
+                'uuid' => $this->uuid,
+                'email' => $this->email,
+                'status' => $this->status,
+                'status_label' => $this->status?->label(),
                 // Číselník pre admin formulár — rovnako ako pri kanáli
                 // a podujatí posiela popisky server, front ich neprekladá.
-                'allowed_statuses'  => ModelStatus::allowedForUser($user),
-                'registered_via'    => $this->registered_via,
-                'email_verified'    => $this->email_verified_at !== null,
+                'allowed_statuses' => ModelStatus::allowedForUser($user),
+                'registered_via' => $this->registered_via,
+                'email_verified' => $this->email_verified_at !== null,
                 'email_verified_at' => $this->email_verified_at,
                 // Osobný kanál — v ňom je používateľ vlastníkom aj bez pivotu
                 // (viď User::canalRole), preto ho admin formulár ukazuje zvlášť.
-                'canal_id'          => $this->canal_id,
+                'canal_id' => $this->canal_id,
                 // Doklad o súhlase s podmienkami — kedy a s akou verziou.
                 'terms_accepted_at' => $this->terms_accepted_at,
-                'terms_version'     => $this->terms_version,
-                'is_blocked'        => $this->resource->isBlocked(),
-                'blocked_at'        => $this->blocked_at,
-                'blocked_until'     => $this->blocked_until,
-                'blocked_reason'    => $this->blocked_reason,
-                'canals_count'      => $canals->count(),
+                'terms_version' => $this->terms_version,
+                'is_blocked' => $this->resource->isBlocked(),
+                'blocked_at' => $this->blocked_at,
+                'blocked_until' => $this->blocked_until,
+                'blocked_reason' => $this->blocked_reason,
+                'canals_count' => $canals->count(),
                 // Kontakt pre správu portálu: účet má len prihlasovací e-mail,
                 // telefón a web sú pri kanáloch — osobnom a tých, čo vlastní.
-                'contacts'          => $this->adminContacts(),
-                'last_login_at'     => $this->last_login_at,
-                'last_activity'     => $this->last_activity,
-                'created_at'        => $this->created_at,
-                'updated_at'        => $this->updated_at,
-                'deleted_at'        => $this->deleted_at,
+                'contacts' => $this->adminContacts(),
+                'last_login_at' => $this->last_login_at,
+                'last_activity' => $this->last_activity,
+                'created_at' => $this->created_at,
+                'updated_at' => $this->updated_at,
+                'deleted_at' => $this->deleted_at,
             ]),
         ];
     }
@@ -147,14 +147,14 @@ class UserResource extends JsonResource
         }
 
         $items = $canals->map(fn (Canal $c) => [
-                'canal_id' => $c->id,
-                'canal_name' => $c->name,
-                'personal' => $c->id === (int) $this->canal_id,
-                'email' => $c->email,
-                'email_verified' => $c->email_verified_at !== null,
-                'phone' => $c->phone,
-                'website' => $c->website,
-            ])->values()->all();
+            'canal_id' => $c->id,
+            'canal_name' => $c->name,
+            'personal' => $c->id === (int) $this->canal_id,
+            'email' => $c->email,
+            'email_verified' => $c->email_verified_at !== null,
+            'phone' => $c->phone,
+            'website' => $c->website,
+        ])->values()->all();
 
         return ['items' => $items, 'more' => max(0, $total - $limit)];
     }

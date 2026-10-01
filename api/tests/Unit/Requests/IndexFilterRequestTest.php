@@ -12,7 +12,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_published(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['published' => 'true']);
         $request->setMethod('GET');
 
@@ -23,7 +23,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_unpublished(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['unpublished' => 'true']);
         $request->setMethod('GET');
 
@@ -34,7 +34,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_status(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['status' => 'published']);
         $request->setMethod('GET');
 
@@ -45,7 +45,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_search(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['search' => '  letny festival  ']);
         $request->setMethod('GET');
 
@@ -56,7 +56,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_per_page(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['per_page' => '50']);
         $request->setMethod('GET');
 
@@ -67,7 +67,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_default_per_page(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->setMethod('GET');
 
         $filters = $request->getFilters();
@@ -81,7 +81,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_blocked(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['blocked' => 'true']);
         $request->setMethod('GET');
 
@@ -92,7 +92,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_get_filters_with_deleted(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['deleted' => 'false']);
         $request->setMethod('GET');
 
@@ -115,7 +115,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_validation_invalid_status(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['status' => 'invalid_status']);
         $request->setMethod('GET');
 
@@ -126,7 +126,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_validation_per_page_max(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['per_page' => '200']);
         $request->setMethod('GET');
 
@@ -137,7 +137,7 @@ class IndexFilterRequestTest extends TestCase
 
     public function test_validation_search_max(): void
     {
-        $request = new IndexFilterRequest();
+        $request = new IndexFilterRequest;
         $request->merge(['search' => str_repeat('a', 251)]);
         $request->setMethod('GET');
 

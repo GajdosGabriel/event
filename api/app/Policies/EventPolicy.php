@@ -10,6 +10,7 @@ use App\Policies\Traits\DeniesArchivedUpdate;
 class EventPolicy
 {
     use DeniesArchivedUpdate;
+
     /**
      * Determine whether the user can view any models.
      */

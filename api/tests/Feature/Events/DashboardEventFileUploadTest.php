@@ -29,7 +29,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->create('event-dashboard-store.pdf', 120, 'application/pdf');
 
         $payload = [
-            'name' => 'Dashboard Event File Store ' . uniqid(),
+            'name' => 'Dashboard Event File Store '.uniqid(),
             'body' => 'Dashboard event with uploaded file.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -67,7 +67,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $event->name . ' Dashboard Updated ' . uniqid(),
+            'name' => $event->name.' Dashboard Updated '.uniqid(),
             'body' => 'Dashboard updated event with uploaded file.',
             'start_at' => now()->addDays(3)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(3)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -78,7 +78,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/dashboard/events/' . $event->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/dashboard/events/'.$event->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 
@@ -110,7 +110,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->image('event-dashboard-store.jpg');
 
         $payload = [
-            'name' => 'Dashboard Event Image Store ' . uniqid(),
+            'name' => 'Dashboard Event Image Store '.uniqid(),
             'body' => 'Dashboard event with uploaded image.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -152,7 +152,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
         $upload = UploadedFile::fake()->image('event-dashboard-store-no-type.jpg');
 
         $payload = [
-            'name' => 'Dashboard Event Image Store No Type ' . uniqid(),
+            'name' => 'Dashboard Event Image Store No Type '.uniqid(),
             'body' => 'Dashboard event with uploaded image and default file type.',
             'start_at' => now()->addDays(2)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(2)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -188,7 +188,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $event->name . ' Dashboard Image Updated ' . uniqid(),
+            'name' => $event->name.' Dashboard Image Updated '.uniqid(),
             'body' => 'Dashboard updated event with uploaded image.',
             'start_at' => now()->addDays(3)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(3)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -198,7 +198,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/dashboard/events/' . $event->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/dashboard/events/'.$event->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 
@@ -226,7 +226,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
             'size' => 1024,
             'mime_type' => 'image/jpeg',
             'disk' => 'public',
-            'path' => 'event/' . $event->id . '/image/existing-primary.jpg',
+            'path' => 'event/'.$event->id.'/image/existing-primary.jpg',
             'checksum' => 'existing-primary-checksum',
             'type' => FileType::IMAGE->value,
             'is_primary' => true,
@@ -236,7 +236,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
 
         $payload = [
             '_method' => 'PUT',
-            'name' => $event->name . ' Dashboard Secondary Image ' . uniqid(),
+            'name' => $event->name.' Dashboard Secondary Image '.uniqid(),
             'body' => 'Dashboard updated event with secondary uploaded image.',
             'start_at' => now()->addDays(3)->startOfHour()->format('Y-m-d H:i:s'),
             'end_at' => now()->addDays(3)->addHours(2)->startOfHour()->format('Y-m-d H:i:s'),
@@ -246,7 +246,7 @@ class DashboardEventFileUploadTest extends EventSetupTest
             'files' => [$upload],
         ];
 
-        $response = $this->post('/api/dashboard/events/' . $event->id, $payload, ['Accept' => 'application/json']);
+        $response = $this->post('/api/dashboard/events/'.$event->id, $payload, ['Accept' => 'application/json']);
 
         $response->assertStatus(200);
 

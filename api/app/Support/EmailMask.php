@@ -34,10 +34,10 @@ class EmailMask
         // Pri krátkom mene by prvý + posledný znak prezradil celé meno.
         $masked = match (true) {
             $length === 0 => self::DOTS,
-            $length < 3 => mb_substr($local, 0, 1) . self::DOTS,
-            default => mb_substr($local, 0, 1) . self::DOTS . mb_substr($local, -1),
+            $length < 3 => mb_substr($local, 0, 1).self::DOTS,
+            default => mb_substr($local, 0, 1).self::DOTS.mb_substr($local, -1),
         };
 
-        return $masked . '@' . $domain;
+        return $masked.'@'.$domain;
     }
 }

@@ -8,12 +8,20 @@ use App\Models\User;
 interface EventRepository extends InterfaceRepository
 {
     public function dashboardIndex($perPage = 15);
+
     public function events($user = null);
+
     public function createForUser(User $user, array $properties);
+
     public function duplicateForUser(User $user, Event $source): Event;
+
     public function publish($id, bool $published = true);
+
     public function dashboardMunicipalityOverview(string $scope = 'all');
+
     public function adminMunicipalityOverview(string $scope = 'all');
+
     public function publicMunicipalityOverview(string $scope = 'all');
+
     public function publicMapPoints(array $filters, int $limit): array;
 }

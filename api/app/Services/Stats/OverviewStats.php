@@ -47,8 +47,8 @@ final class OverviewStats
     private array $windows;
 
     /**
-     * @param list<int>|null $canalIds  null = celý systém (admin)
-     * @param int|null $recipientUserId komu chodia správy (dashboard); null = všetky
+     * @param  list<int>|null  $canalIds  null = celý systém (admin)
+     * @param  int|null  $recipientUserId  komu chodia správy (dashboard); null = všetky
      */
     private function __construct(
         private readonly ?array $canalIds,
@@ -56,10 +56,10 @@ final class OverviewStats
         private readonly CarbonImmutable $now,
     ) {
         $this->periodMeta = [
-            'day'   => ['label' => __('stats.periods.day'), 'from' => $this->now->startOfDay()],
-            'week'  => ['label' => __('stats.periods.week'), 'from' => $this->now->subDays(7)],
+            'day' => ['label' => __('stats.periods.day'), 'from' => $this->now->startOfDay()],
+            'week' => ['label' => __('stats.periods.week'), 'from' => $this->now->subDays(7)],
             'month' => ['label' => __('stats.periods.month'), 'from' => $this->now->subDays(self::TREND_DAYS)],
-            'all'   => ['label' => __('stats.periods.all'), 'from' => null],
+            'all' => ['label' => __('stats.periods.all'), 'from' => null],
         ];
 
         $this->windows = [];
@@ -79,7 +79,7 @@ final class OverviewStats
             // to znamená rovnaký úsek včerajška, nie celý včerajšok — inak by
             // ranné čísla vyzerali ako prepad oproti celému predošlému dňu.
             $length = (int) $from->diffInSeconds($this->now);
-            $this->windows[self::PREVIOUS . $key] = [$from->subSeconds($length), $from];
+            $this->windows[self::PREVIOUS.$key] = [$from->subSeconds($length), $from];
         }
     }
 
@@ -252,7 +252,7 @@ final class OverviewStats
     /**
      * Spustí sadu podmienených agregácií jedným dotazom.
      *
-     * @param array<string, array{0: string, 1: list<mixed>}> $expressions alias => [SQL, bindings]
+     * @param  array<string, array{0: string, 1: list<mixed>}>  $expressions  alias => [SQL, bindings]
      * @return array<string, int>
      */
     private function aggregate(Builder $query, array $expressions): array
@@ -301,12 +301,12 @@ final class OverviewStats
     /**
      * Jedna metrika pre jedno obdobie: hodnota, porovnanie a percentuálna zmena.
      *
-     * @param array<string, int> $buckets
+     * @param  array<string, int>  $buckets
      */
     private function metric(array $buckets, string $period): array
     {
         $value = $buckets[$period] ?? 0;
-        $previous = $buckets[self::PREVIOUS . $period] ?? null;
+        $previous = $buckets[self::PREVIOUS.$period] ?? null;
 
         return [
             'value' => $value,
@@ -793,8 +793,8 @@ final class OverviewStats
                 // spolu s pôvodným SELECT-om a dotaz by spadol.
                 ->whereRaw(
                     '(SELECT COUNT(*) FROM ticket_admissions ta'
-                    . ' WHERE ta.ticket_type_id = ticket_types.id'
-                    . ' AND ta.status = ? AND ta.deleted_at IS NULL) >= ticket_types.capacity * 0.9',
+                    .' WHERE ta.ticket_type_id = ticket_types.id'
+                    .' AND ta.status = ? AND ta.deleted_at IS NULL) >= ticket_types.capacity * 0.9',
                     [AdmissionStatus::Valid->value],
                 )
                 ->count(),

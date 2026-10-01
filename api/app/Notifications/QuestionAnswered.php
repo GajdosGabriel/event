@@ -26,8 +26,7 @@ class QuestionAnswered extends Notification implements ShouldQueue
 
     public function __construct(
         protected Question $question,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -50,7 +49,7 @@ class QuestionAnswered extends Notification implements ShouldQueue
         // relácií (Model::preventLazyLoading je mimo produkcie zapnuté).
         $event = $this->question->loadMissing('board')->board?->event();
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.question_answered.subject', ['event' => $event?->name ?? '']))
             ->markdown('mail.question-answered', [
                 'greeting' => __('mail.common.greeting'),

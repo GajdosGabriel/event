@@ -57,7 +57,7 @@ class Recorder
             return SystemLog::create([
                 'level' => in_array($level, SystemLog::LEVELS, true) ? $level : 'info',
                 'channel' => Str::limit($channel, 32, ''),
-                'event' => Str::limit($channel . '.' . $event, 64, ''),
+                'event' => Str::limit($channel.'.'.$event, 64, ''),
                 'status' => $status,
                 'message' => Str::limit($message, 250),
                 'recipient' => $recipient !== null ? Str::limit($recipient, 191, '') : null,
@@ -69,7 +69,7 @@ class Recorder
             ]);
         } catch (Throwable $e) {
             Log::warning('SystemLog: záznam sa nepodarilo uložiť', [
-                'event' => $channel . '.' . $event,
+                'event' => $channel.'.'.$event,
                 'message' => $message,
                 'error' => $e->getMessage(),
             ]);
@@ -87,7 +87,7 @@ class Recorder
     public static function onceIn(int $minutes, string $key): bool
     {
         try {
-            return Cache::add('system-log:' . $key, true, now()->addMinutes($minutes));
+            return Cache::add('system-log:'.$key, true, now()->addMinutes($minutes));
         } catch (Throwable) {
             return true;
         }
@@ -99,7 +99,7 @@ class Recorder
         return [
             'exception' => get_class($e),
             'error' => Str::limit($e->getMessage(), 1000),
-            'at' => basename($e->getFile()) . ':' . $e->getLine(),
+            'at' => basename($e->getFile()).':'.$e->getLine(),
         ];
     }
 

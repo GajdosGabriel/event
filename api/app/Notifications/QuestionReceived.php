@@ -34,8 +34,7 @@ class QuestionReceived extends Notification implements ShouldQueue
     public function __construct(
         protected Question $question,
         protected Event $event,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -51,14 +50,14 @@ class QuestionReceived extends Notification implements ShouldQueue
     {
         $key = $this->textKey();
 
-        return (new MailMessage())
-            ->subject(__('mail.question_received.' . $key . '.subject', ['event' => $this->event->name]))
+        return (new MailMessage)
+            ->subject(__('mail.question_received.'.$key.'.subject', ['event' => $this->event->name]))
             ->markdown('mail.question-received', [
                 'greeting' => __('mail.common.greeting'),
-                'intro' => __('mail.question_received.' . $key . '.intro', ['event' => $this->event->name]),
+                'intro' => __('mail.question_received.'.$key.'.intro', ['event' => $this->event->name]),
                 'authorName' => $this->question->author_name,
                 'body' => $this->question->body,
-                'hint' => __('mail.question_received.' . $key . '.hint'),
+                'hint' => __('mail.question_received.'.$key.'.hint'),
                 'action' => __('mail.question_received.action'),
                 'boardUrl' => $this->boardUrl(),
             ]);
@@ -88,6 +87,6 @@ class QuestionReceived extends Notification implements ShouldQueue
     private function boardUrl(): string
     {
         return rtrim((string) config('app.frontend_url'), '/')
-            . '/dashboard/events/' . $this->event->id . '/otazky';
+            .'/dashboard/events/'.$this->event->id.'/otazky';
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: Gabriel
@@ -8,9 +9,7 @@
 
 namespace App\Repositories\Criteria;
 
-
 interface CriteriaInterface
 {
     public function withCriteria(...$criteria);
-
 }

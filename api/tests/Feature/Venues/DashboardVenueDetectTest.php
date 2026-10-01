@@ -14,7 +14,8 @@ class DashboardVenueDetectTest extends EventSetupTest
     {
         $municipalityId = (int) DB::table('municipalities')->value('id');
 
-        $this->instance(Detector::class, new class($municipalityId) extends Detector {
+        $this->instance(Detector::class, new class($municipalityId) extends Detector
+        {
             public function __construct(private readonly int $municipalityId = 0)
             {
                 parent::__construct();

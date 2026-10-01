@@ -57,7 +57,7 @@ class FilePolicy
     {
         $fileable = $this->resolveFileable($file);
 
-        if (!$fileable) {
+        if (! $fileable) {
             return false;
         }
 
@@ -77,13 +77,13 @@ class FilePolicy
             return $file->getRelation('fileable');
         }
 
-        if (!$file->fileable_type || !$file->fileable_id) {
+        if (! $file->fileable_type || ! $file->fileable_id) {
             return null;
         }
 
-        $key = $file->fileable_type . ':' . $file->fileable_id;
+        $key = $file->fileable_type.':'.$file->fileable_id;
 
-        if (!array_key_exists($key, $this->fileableCache)) {
+        if (! array_key_exists($key, $this->fileableCache)) {
             // Aj vymazaný záznam — súbory archivovaného podujatia sa vo výpise
             // zobrazujú a majú mať rovnaké práva ako jeho živá verzia.
             $this->fileableCache[$key] = $file->fileable()->withTrashed()->first();

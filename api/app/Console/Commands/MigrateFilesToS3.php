@@ -94,7 +94,7 @@ class MigrateFilesToS3 extends Command
             'Cieľ: bucket=%s region=%s prefix=%s',
             $bucket,
             $region,
-            $root !== '' ? $root . '/' : '(koreň bucketu)',
+            $root !== '' ? $root.'/' : '(koreň bucketu)',
         ));
 
         if ($root === '') {
@@ -104,7 +104,7 @@ class MigrateFilesToS3 extends Command
         // Skutočný zápis: overí kľúče, región aj práva naraz. Bez neho by sa
         // chyba prejavila až v polovici migrácie. Disk má throw=false, takže
         // samotné put() pri chybe nevyhodí výnimku — kontrolujeme exists().
-        $probe = '_preflight-' . uniqid() . '.txt';
+        $probe = '_preflight-'.uniqid().'.txt';
 
         try {
             $disk = Storage::disk('s3');
@@ -118,7 +118,7 @@ class MigrateFilesToS3 extends Command
 
             $disk->delete($probe);
         } catch (\Throwable $e) {
-            $this->error('S3 nedostupné: ' . $e->getMessage());
+            $this->error('S3 nedostupné: '.$e->getMessage());
 
             return false;
         }
@@ -164,6 +164,7 @@ class MigrateFilesToS3 extends Command
                             if (! $s3->exists($path)) {
                                 $skipped++;
                                 $this->warn("Preskočené (na S3 chýba): {$path}");
+
                                 continue;
                             }
 
@@ -199,7 +200,7 @@ class MigrateFilesToS3 extends Command
         $size = 0;
 
         foreach ($paths as $path) {
-            if (!$source->exists($path)) {
+            if (! $source->exists($path)) {
                 continue;
             }
 
@@ -245,7 +246,7 @@ class MigrateFilesToS3 extends Command
             }
         }
 
-        if (!$target->exists($path)) {
+        if (! $target->exists($path)) {
             throw new \RuntimeException("Upload na S3 zlyhal (súbor po zápise neexistuje) pre {$path}");
         }
     }

@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'draft'          => 'Draft',
+    'draft' => 'Draft',
     'pending_review' => 'Pending review',
-    'rejected'       => 'Rejected',
-    'scheduled'      => 'Scheduled',
-    'published'      => 'Published',
-    'archived'       => 'Archived',
-    'blocked'        => 'Blocked',
+    'rejected' => 'Rejected',
+    'scheduled' => 'Scheduled',
+    'published' => 'Published',
+    'archived' => 'Archived',
+    'blocked' => 'Blocked',
 ];

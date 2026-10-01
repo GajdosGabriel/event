@@ -38,7 +38,7 @@ class PublicEventListParamTest extends TestCase
 
     private function fetchIds(string $query = ''): array
     {
-        $response = $this->getJson('/api/events' . $query);
+        $response = $this->getJson('/api/events'.$query);
         $response->assertStatus(200);
 
         return collect($response->json('data'))->pluck('id')->map(fn ($id) => (int) $id)->all();

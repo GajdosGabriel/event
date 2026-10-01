@@ -2,11 +2,10 @@
 
 namespace Tests\Feature\Events;
 
+use App\Enums\FileType;
 use App\Enums\ModelStatus;
-
 use App\Models\Canal;
 use App\Models\Event;
-use App\Enums\FileType;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Imports\VyveskaRssService;
@@ -290,7 +289,7 @@ class ImportEventSourcesCommandTest extends TestCase
             'size' => 123,
             'mime_type' => 'image/gif',
             'disk' => 'public',
-            'path' => 'event/' . $event->id . '/image/legacy-tkkbs-logo.gif',
+            'path' => 'event/'.$event->id.'/image/legacy-tkkbs-logo.gif',
             'type' => FileType::IMAGE->value,
             'is_primary' => false,
             'meta' => [
@@ -553,9 +552,9 @@ class ImportEventSourcesCommandTest extends TestCase
                 return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
             }
 
-			if ($request->url() === $attachmentUrl) {
-				return Http::response('%PDF-1.4 fake pdf binary', 200, ['Content-Type' => 'application/pdf']);
-			}
+            if ($request->url() === $attachmentUrl) {
+                return Http::response('%PDF-1.4 fake pdf binary', 200, ['Content-Type' => 'application/pdf']);
+            }
 
             return Http::response('', 404);
         });
@@ -869,7 +868,7 @@ HTML;
     }
 
     /**
-     * @param list<string> $paragraphs
+     * @param  list<string>  $paragraphs
      */
     private function tkkbsDetailHtmlWithParagraphs(string $imageUrl, string $title, array $paragraphs): string
     {
@@ -1029,8 +1028,8 @@ HTML;
 
     private function vyveskaRssXml(string $detailUrl): string
     {
-        $rssLink = $detailUrl . '?utm_source=vyveska.sk&utm_content=simple&utm_medium=rss';
-                $escapedRssLink = htmlspecialchars($rssLink, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $rssLink = $detailUrl.'?utm_source=vyveska.sk&utm_content=simple&utm_medium=rss';
+        $escapedRssLink = htmlspecialchars($rssLink, ENT_QUOTES | ENT_XML1, 'UTF-8');
 
         return <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1065,4 +1064,3 @@ XML;
 HTML;
     }
 }
-

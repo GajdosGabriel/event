@@ -12,7 +12,7 @@ class PromptDataPosterTextTest extends TestCase
     #[Test]
     public function poster_text_is_absent_from_the_default_schema(): void
     {
-        $schema = (new PromptData())->jsonSchema()['json_schema']['schema'];
+        $schema = (new PromptData)->jsonSchema()['json_schema']['schema'];
 
         $this->assertArrayNotHasKey('poster_text', $schema['properties']);
         $this->assertNotContains('poster_text', $schema['required']);
@@ -22,7 +22,7 @@ class PromptDataPosterTextTest extends TestCase
     public function poster_text_is_both_a_property_and_required_when_requested(): void
     {
         // `strict: true` odmietne schému, v ktorej je property mimo `required`.
-        $schema = (new PromptData())->jsonSchema(true)['json_schema']['schema'];
+        $schema = (new PromptData)->jsonSchema(true)['json_schema']['schema'];
 
         $this->assertArrayHasKey('poster_text', $schema['properties']);
         $this->assertContains('poster_text', $schema['required']);
@@ -35,7 +35,7 @@ class PromptDataPosterTextTest extends TestCase
     #[Test]
     public function the_prompt_asks_for_the_transcript_only_when_the_schema_does(): void
     {
-        $prompt = new PromptData();
+        $prompt = new PromptData;
         $date = Carbon::parse('2026-08-01');
 
         $withText = json_encode($prompt->prompt('text', $date, true), JSON_UNESCAPED_UNICODE);

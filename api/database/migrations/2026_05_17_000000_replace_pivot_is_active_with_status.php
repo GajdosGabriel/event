@@ -30,7 +30,7 @@ return new class extends Migration
         }
 
         Schema::table($table, function (Blueprint $table): void {
-            $table->enum('status', array_map(fn($status) => $status->value, ModelStatus::cases()))
+            $table->enum('status', array_map(fn ($status) => $status->value, ModelStatus::cases()))
                 ->default(ModelStatus::Published->value)
                 ->after('is_owner');
         });

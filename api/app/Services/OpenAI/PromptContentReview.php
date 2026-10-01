@@ -61,7 +61,7 @@ class PromptContentReview
     }
 
     /**
-     * @param  string  $kind     'event' | 'venue' | 'canal'
+     * @param  string  $kind  'event' | 'venue' | 'canal'
      * @param  array<string, string>  $context  ďalšie polia záznamu (názov, obec…)
      */
     public function prompt(string $kind, string $name, string $body, array $context = []): array
@@ -107,10 +107,10 @@ PRAVIDLÁ:
             [
                 'role' => 'user',
                 'content' => "Posúď popis {$subject}.\n"
-                    . "Názov: {$name}\n"
-                    . $contextLines
-                    . "\nText:\n"
-                    . $body,
+                    ."Názov: {$name}\n"
+                    .$contextLines
+                    ."\nText:\n"
+                    .$body,
             ],
         ];
     }

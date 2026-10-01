@@ -31,7 +31,7 @@ class FulltextSearchTest extends TestCase
     {
         parent::setUp();
 
-        $this->marker = 'ftmarker' . bin2hex(random_bytes(4));
+        $this->marker = 'ftmarker'.bin2hex(random_bytes(4));
 
         $this->user = User::factory()->create();
         $this->canal = Canal::factory()->create();
@@ -64,18 +64,18 @@ class FulltextSearchTest extends TestCase
     public function search_matches_words_in_any_order_and_across_columns(): void
     {
         $match = $this->makeEvent(
-            'Spomienka na sestru ' . $this->marker,
+            'Spomienka na sestru '.$this->marker,
             'Podujatie sa kona v Kosiciach na hrade',
         );
 
         $missingSecondWord = $this->makeEvent(
-            'Spomienka na sestru ' . $this->marker,
+            'Spomienka na sestru '.$this->marker,
             'Podujatie sa kona v Bratislave',
         );
 
         // Presne to, co stary LIKE '%term%' nenasiel: obe slova su v zazname,
         // ale nie vedla seba a ani nie v tom istom stlpci.
-        $results = Event::query()->applyCommonFilters(['search' => $this->marker . ' Kosiciach'])->get();
+        $results = Event::query()->applyCommonFilters(['search' => $this->marker.' Kosiciach'])->get();
 
         $this->assertTrue($results->contains('id', $match->id));
         $this->assertFalse($results->contains('id', $missingSecondWord->id));
@@ -84,9 +84,9 @@ class FulltextSearchTest extends TestCase
     #[Test]
     public function search_matches_word_prefix(): void
     {
-        $event = $this->makeEvent('Vecerny koncert ' . $this->marker);
+        $event = $this->makeEvent('Vecerny koncert '.$this->marker);
 
-        $results = Event::query()->applyCommonFilters(['search' => $this->marker . ' konce'])->get();
+        $results = Event::query()->applyCommonFilters(['search' => $this->marker.' konce'])->get();
 
         $this->assertTrue($results->contains('id', $event->id));
     }
@@ -94,8 +94,8 @@ class FulltextSearchTest extends TestCase
     #[Test]
     public function search_orders_name_matches_before_body_matches(): void
     {
-        $bodyMatch = $this->makeEvent('Podujatie bez markera', 'V popise je ' . $this->marker);
-        $nameMatch = $this->makeEvent('Podujatie ' . $this->marker);
+        $bodyMatch = $this->makeEvent('Podujatie bez markera', 'V popise je '.$this->marker);
+        $nameMatch = $this->makeEvent('Podujatie '.$this->marker);
 
         $results = Event::query()->applyCommonFilters(['search' => $this->marker])->get();
 
@@ -108,7 +108,7 @@ class FulltextSearchTest extends TestCase
     {
         // Dvojznakove slovo v indexe nie je (innodb_ft_min_token_size = 3),
         // takze musi nastupit LIKE — inak by hladanie vratilo prazdno.
-        $event = $this->makeEvent('Podujatie ' . $this->marker . ' Qx');
+        $event = $this->makeEvent('Podujatie '.$this->marker.' Qx');
 
         $results = Event::query()->applyCommonFilters(['search' => 'Qx'])->get();
 
@@ -118,11 +118,11 @@ class FulltextSearchTest extends TestCase
     #[Test]
     public function search_ignores_boolean_mode_operators(): void
     {
-        $event = $this->makeEvent('Podujatie ' . $this->marker);
+        $event = $this->makeEvent('Podujatie '.$this->marker);
 
         // Operatory boolean modu sa pri tokenizacii zahodia, takze dopyt
         // nespadne na syntakticku chybu ani nezmeni vyznam hladania.
-        $results = Event::query()->applyCommonFilters(['search' => '+*"(' . $this->marker . ')" -~'])->get();
+        $results = Event::query()->applyCommonFilters(['search' => '+*"('.$this->marker.')" -~'])->get();
 
         $this->assertTrue($results->contains('id', $event->id));
     }

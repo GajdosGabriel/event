@@ -113,7 +113,7 @@ class AnnouncementTest extends TestCase
         $announcement = $this->announcement(['title' => 'Kampaň', 'body' => '<p>Text</p>']);
 
         $this->actingAs($admin, 'sanctum')
-            ->putJson('/api/admin/announcements/' . $announcement->id, [
+            ->putJson('/api/admin/announcements/'.$announcement->id, [
                 'placement' => 'top',
                 'title' => 'Kampaň',
                 'body' => '<p>Text</p>',

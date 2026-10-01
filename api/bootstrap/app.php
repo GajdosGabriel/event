@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Middleware\LogLastUserActivity;
-use App\Listeners\SystemLogSubscriber;
 use App\Http\Middleware\SetLocale;
+use App\Listeners\SystemLogSubscriber;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;

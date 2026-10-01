@@ -20,8 +20,7 @@ class AttendeeConfirmed extends Notification implements ShouldQueue
         protected ?string $attendeeName,
         protected string $attendeeEmail,
         protected int $seats = 1,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -37,17 +36,17 @@ class AttendeeConfirmed extends Notification implements ShouldQueue
     {
         $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
         $who = $this->attendeeName ?: $this->attendeeEmail;
-        $ticketUrl = rtrim((string) config('app.frontend_url'), '/') . '/tickets/' . $this->ticket->uuid;
+        $ticketUrl = rtrim((string) config('app.frontend_url'), '/').'/tickets/'.$this->ticket->uuid;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.attendee_confirmed.subject', ['attendee' => $who, 'event' => $eventName]))
             ->markdown('mail.attendee-confirmed', [
-                'holderName'    => $this->ticket->holder_name,
-                'attendeeName'  => $who,
+                'holderName' => $this->ticket->holder_name,
+                'attendeeName' => $who,
                 'attendeeEmail' => $this->attendeeEmail,
-                'eventName'     => $eventName,
-                'seats'         => $this->seats,
-                'ticketUrl'     => $ticketUrl,
+                'eventName' => $eventName,
+                'seats' => $this->seats,
+                'ticketUrl' => $ticketUrl,
             ]);
     }
 }

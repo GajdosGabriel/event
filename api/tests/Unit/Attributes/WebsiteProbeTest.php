@@ -31,7 +31,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function a_normal_response_means_the_site_works(): void
     {
-        Http::fake([ '*' => Http::response('', 200) ]);
+        Http::fake(['*' => Http::response('', 200)]);
 
         $result = $this->probe()->probe(self::URL);
 
@@ -43,7 +43,7 @@ class WebsiteProbeTest extends TestCase
     public function a_site_that_blocks_robots_still_counts_as_working(): void
     {
         foreach ([401, 403, 405, 429] as $status) {
-            Http::fake([ '*' => Http::response('', $status) ]);
+            Http::fake(['*' => Http::response('', $status)]);
 
             $this->assertTrue($this->probe()->probe(self::URL)->ok, "HTTP $status");
         }
@@ -91,7 +91,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function a_missing_page_is_a_failure(): void
     {
-        Http::fake([ '*' => Http::response('', 404) ]);
+        Http::fake(['*' => Http::response('', 404)]);
 
         $result = $this->probe()->probe(self::URL);
 
@@ -103,7 +103,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function a_server_error_is_a_failure(): void
     {
-        Http::fake([ '*' => Http::response('', 503) ]);
+        Http::fake(['*' => Http::response('', 503)]);
 
         $result = $this->probe()->probe(self::URL);
 
@@ -135,7 +135,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function a_redirect_loop_is_a_failure(): void
     {
-        Http::fake([ '*' => Http::response('', 301, ['Location' => 'https://example.com/sk']) ]);
+        Http::fake(['*' => Http::response('', 301, ['Location' => 'https://example.com/sk'])]);
 
         $result = $this->probe()->probe(self::URL);
 
@@ -164,7 +164,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function a_nonexistent_domain_never_reaches_http(): void
     {
-        Http::fake([ '*' => Http::response('', 200) ]);
+        Http::fake(['*' => Http::response('', 200)]);
 
         $result = $this->probe()->probe('https://tento-web-naozaj-neexistuje-98765.sk');
 
@@ -176,7 +176,7 @@ class WebsiteProbeTest extends TestCase
     #[Test]
     public function an_address_pointing_inside_the_network_is_refused(): void
     {
-        Http::fake([ '*' => Http::response('', 200) ]);
+        Http::fake(['*' => Http::response('', 200)]);
 
         // Sonda chodí na adresy zadané cudzími ľuďmi. Bez tejto poistky by
         // stačilo do formulára napísať vnútornú adresu a nechať si ju overiť.

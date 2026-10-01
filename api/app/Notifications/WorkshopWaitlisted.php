@@ -16,8 +16,7 @@ class WorkshopWaitlisted extends Notification implements ShouldQueue
     public function __construct(
         protected Admission $admission,
         protected int $position,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -33,9 +32,9 @@ class WorkshopWaitlisted extends Notification implements ShouldQueue
     {
         $workshop = $this->admission->ticketType?->name ?? __('mail.common.workshop_fallback');
         $eventName = $this->admission->event?->name ?? __('mail.common.event_fallback');
-        $eventUrl = rtrim(config('app.frontend_url'), '/') . '/events/' . $this->admission->event_id;
+        $eventUrl = rtrim(config('app.frontend_url'), '/').'/events/'.$this->admission->event_id;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.workshop_waitlisted.subject', ['workshop' => $workshop]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.workshop_waitlisted.intro', ['workshop' => $workshop, 'event' => $eventName]))

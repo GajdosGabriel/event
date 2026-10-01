@@ -83,7 +83,7 @@ class GoogleMapsLinkResolver
         }
 
         return Cache::remember(
-            'maps_link:' . sha1($url),
+            'maps_link:'.sha1($url),
             now()->addSeconds($this->cacheTtl()),
             fn () => $this->resolveUrlUncached($url)
         );
@@ -157,10 +157,10 @@ class GoogleMapsLinkResolver
         }
 
         if (str_starts_with($location, '/')) {
-            return $scheme . '://' . $host . $location;
+            return $scheme.'://'.$host.$location;
         }
 
-        return $scheme . '://' . $host . '/' . $location;
+        return $scheme.'://'.$host.'/'.$location;
     }
 
     /**
@@ -249,7 +249,7 @@ class GoogleMapsLinkResolver
     {
         $configured = trim((string) config('services.imports.user_agent', ''));
 
-        return $configured !== '' ? $configured : (trim((string) config('app.name', 'Event API')) . ' importer');
+        return $configured !== '' ? $configured : (trim((string) config('app.name', 'Event API')).' importer');
     }
 
     private function cacheTtl(): int

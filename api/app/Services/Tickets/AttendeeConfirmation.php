@@ -30,8 +30,7 @@ class AttendeeConfirmation
 {
     public function __construct(
         private TicketRepository $tickets,
-    ) {
-    }
+    ) {}
 
     /**
      * Označí vstupenky objednané pre iných účastníkov ako „čaká na potvrdenie",
@@ -174,7 +173,7 @@ class AttendeeConfirmation
      * Zrušenie už potvrdenej bezplatnej vstupenky samotným účastníkom
      * (odkaz „Zrušiť vstupenku" v e-maile so vstupenkou). Idempotentné.
      *
-     * @param Collection<int, Admission> $group
+     * @param  Collection<int, Admission>  $group
      */
     public function cancel(Collection $group): void
     {
@@ -190,7 +189,7 @@ class AttendeeConfirmation
      * $eligible (kontroluje sa aj pod zámkom), posunie workshopových
      * náhradníkov a oznámi to objednávateľovi.
      *
-     * @param Collection<int, Admission> $group
+     * @param  Collection<int, Admission>  $group
      */
     private function release(Collection $group, \Closure $eligible, AttendeeConfirmationStatus $status, bool $expired = false): void
     {
@@ -265,7 +264,7 @@ class AttendeeConfirmation
 
         // Zoskupíme po objednávke + e-maile účastníka, aby objednávateľ dostal
         // jeden e-mail za skupinu, nie za každé miesto zvlášť.
-        foreach ($due->groupBy(fn (Admission $a) => $a->ticket_id . '|' . $a->attendee_email) as $group) {
+        foreach ($due->groupBy(fn (Admission $a) => $a->ticket_id.'|'.$a->attendee_email) as $group) {
             $this->decline($group, expired: true);
             $released += $group->count();
         }
@@ -276,8 +275,8 @@ class AttendeeConfirmation
     /**
      * Lehota na potvrdenie — nikdy nie neskôr než termín registrácie / začiatok podujatia.
      *
-     * @param int|null    $hours   Vlastná dĺžka lehoty (default: tickets.confirmation_hours).
-     * @param Carbon|null $notAfter Ďalší strop, napr. začiatok workshopu.
+     * @param  int|null  $hours  Vlastná dĺžka lehoty (default: tickets.confirmation_hours).
+     * @param  Carbon|null  $notAfter  Ďalší strop, napr. začiatok workshopu.
      */
     public function deadlineFor(?Ticket $ticket, ?int $hours = null, ?Carbon $notAfter = null): Carbon
     {

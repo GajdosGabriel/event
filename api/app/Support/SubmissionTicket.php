@@ -25,7 +25,7 @@ final class SubmissionTicket
 {
     public static function issue(string $scope): string
     {
-        return Crypt::encryptString($scope . '|' . now()->getTimestamp() . '|' . Str::random(8));
+        return Crypt::encryptString($scope.'|'.now()->getTimestamp().'|'.Str::random(8));
     }
 
     /**

@@ -2,8 +2,8 @@
 
 namespace App\Services\Files;
 
-use App\Jobs\GenerateFileVariantsJob;
 use App\Enums\FileType;
+use App\Jobs\GenerateFileVariantsJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -12,12 +12,12 @@ use InvalidArgumentException;
 class UploadedFilePersister
 {
     public function __construct(
-        private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver(),
+        private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver,
     ) {}
 
     /**
-     * @param Collection<int, UploadedFile> $uploadedFiles
-     * @param array<string, mixed> $meta
+     * @param  Collection<int, UploadedFile>  $uploadedFiles
+     * @param  array<string, mixed>  $meta
      */
     public function store(
         Model $model,
@@ -30,7 +30,7 @@ class UploadedFilePersister
     ): Collection {
         return $uploadedFiles->values()->map(function (UploadedFile $uploadedFile, int $index) use ($model, $type, $disk, $storageDirectory, $makePrimary, $meta) {
             $path = $uploadedFile->store($storageDirectory, $disk);
-            if (!$path) {
+            if (! $path) {
                 throw new InvalidArgumentException('Failed to store uploaded file.');
             }
 

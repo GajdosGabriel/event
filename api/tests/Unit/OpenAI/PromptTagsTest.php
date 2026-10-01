@@ -26,7 +26,7 @@ class PromptTagsTest extends TestCase
     #[Test]
     public function schema_restricts_slugs_to_the_catalog(): void
     {
-        $schema = (new PromptTags())->jsonSchema(['koncert', 'divadlo', 'folklor']);
+        $schema = (new PromptTags)->jsonSchema(['koncert', 'divadlo', 'folklor']);
 
         $slugProperty = $schema['json_schema']['schema']['properties']['tags']['items']['properties']['slug'];
 
@@ -40,7 +40,7 @@ class PromptTagsTest extends TestCase
     #[Test]
     public function schema_requires_both_tags_and_suggestions(): void
     {
-        $schema = (new PromptTags())->jsonSchema(['koncert']);
+        $schema = (new PromptTags)->jsonSchema(['koncert']);
 
         $this->assertSame(['tags', 'suggested'], $schema['json_schema']['schema']['required']);
         $this->assertSame(
@@ -52,7 +52,7 @@ class PromptTagsTest extends TestCase
     #[Test]
     public function prompt_lists_every_catalog_entry_with_its_facet(): void
     {
-        $messages = (new PromptTags())->prompt('Folklórny festival', $this->catalog());
+        $messages = (new PromptTags)->prompt('Folklórny festival', $this->catalog());
 
         $this->assertCount(2, $messages);
         $this->assertSame('system', $messages[0]['role']);
@@ -72,7 +72,7 @@ class PromptTagsTest extends TestCase
         // spadnúť na validácii.
         $validator = validator(
             ['tags' => [], 'suggested' => []],
-            (new PromptTags())->validator(),
+            (new PromptTags)->validator(),
         );
 
         $this->assertFalse($validator->fails());

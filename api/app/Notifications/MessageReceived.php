@@ -21,8 +21,7 @@ class MessageReceived extends Notification implements ShouldQueue
         protected Message $message,
         protected string $senderName,
         protected string $senderEmail,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -41,7 +40,7 @@ class MessageReceived extends Notification implements ShouldQueue
         $label = $this->targetLabel();
         $targetUrl = $this->targetUrl();
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.message_received.subject', ['label' => $label, 'name' => $targetName]))
             // Vlastník vie odpovedať priamo odosielateľovi.
             ->replyTo($this->senderEmail, $this->senderName)
@@ -63,7 +62,7 @@ class MessageReceived extends Notification implements ShouldQueue
             default => 'default',
         };
 
-        return __('mail.message_received.targets.' . $type);
+        return __('mail.message_received.targets.'.$type);
     }
 
     /** Odkaz na cieľ vo frontende podľa jeho typu. */
@@ -77,6 +76,6 @@ class MessageReceived extends Notification implements ShouldQueue
             default => '/',
         };
 
-        return $base . $path . $this->message->messageable_id;
+        return $base.$path.$this->message->messageable_id;
     }
 }

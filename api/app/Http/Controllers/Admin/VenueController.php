@@ -5,27 +5,26 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\FileType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexFilterRequest;
-use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\PublishRequest;
 use App\Http\Requests\VenueDetectRequest;
 use App\Http\Requests\VenueStoreRequest;
 use App\Http\Resources\FileResource;
-use Illuminate\Http\JsonResponse; // Good practice to import JsonResponse
-use App\Http\Resources\VenueResource;
-use App\Repositories\Contracts\VenueRepository;
+use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Http\Resources\VenueResource; // Good practice to import JsonResponse
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\RecordPublisher;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-
 
 class VenueController extends Controller
 {
     use HasAllowedStatuses;
+
     private const FILEABLE_MAP = [
         'canal' => Canal::class,
         'event' => Event::class,
@@ -103,7 +102,7 @@ class VenueController extends Controller
                     model: $model,
                     attachments: [[
                         'url' => $imageUrl,
-                        'name' => ($result['venue_payload']['name'] ?? 'venue-image') . '.jpg',
+                        'name' => ($result['venue_payload']['name'] ?? 'venue-image').'.jpg',
                     ]],
                     type: FileType::IMAGE,
                     makePrimary: (bool) ($payload['make_primary_image'] ?? true),

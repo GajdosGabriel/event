@@ -24,6 +24,7 @@ class QuestionRelayed extends Notification implements ShouldQueue
     use Queueable;
 
     public const ORGANIZER = 'organizer';
+
     public const ADMIN = 'admin';
 
     public function __construct(
@@ -51,31 +52,31 @@ class QuestionRelayed extends Notification implements ShouldQueue
             'email' => $this->askerEmail,
             'site' => (string) config('app.name'),
         ];
-        $key = 'mail.question_relayed.' . $this->audience;
+        $key = 'mail.question_relayed.'.$this->audience;
 
         $mail = (new MailMessage)
-            ->subject(__($key . '.subject', $params))
+            ->subject(__($key.'.subject', $params))
             ->greeting(__('mail.common.greeting'))
-            ->line(__($key . '.intro', $params))
-            ->line('> ' . str_replace("\n", "\n> ", $this->body));
+            ->line(__($key.'.intro', $params))
+            ->line('> '.str_replace("\n", "\n> ", $this->body));
 
         if ($this->audience === self::ADMIN) {
             return $mail
-                ->line(__($key . '.sent_to', ['email' => (string) $this->canal->email]))
-                ->action(__($key . '.action'), PublicUrl::event($this->event));
+                ->line(__($key.'.sent_to', ['email' => (string) $this->canal->email]))
+                ->action(__($key.'.action'), PublicUrl::event($this->event));
         }
 
         $unsubscribe = $this->unsubscribeUrl;
 
         return $mail
             ->replyTo($this->askerEmail, $this->askerName)
-            ->line(__($key . '.reply', $params))
-            ->line(__($key . '.offer', $params))
-            ->action(__($key . '.action'), $this->claimUrl)
-            ->line(__($key . '.why', $params))
-            ->line(__($key . '.unsubscribe', ['url' => $unsubscribe]))
+            ->line(__($key.'.reply', $params))
+            ->line(__($key.'.offer', $params))
+            ->action(__($key.'.action'), $this->claimUrl)
+            ->line(__($key.'.why', $params))
+            ->line(__($key.'.unsubscribe', ['url' => $unsubscribe]))
             ->withSymfonyMessage(function (Email $message) use ($unsubscribe) {
-                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribe . '>');
+                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$unsubscribe.'>');
                 $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
             });
     }

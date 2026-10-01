@@ -43,8 +43,7 @@ final readonly class SlideSpec
         public int $metaSize,
         public int $ctaSize,
         public int $urlSize,
-    ) {
-    }
+    ) {}
 
     /** Šírka, ktorú má text vnútri bielej karty k dispozícii. */
     public function cardInnerWidth(): int

@@ -2,19 +2,18 @@
 
 namespace Tests\Unit\Canals;
 
-use Tests\TestCase; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
-use App\Models\Canal;
+use App\Models\Canal; // <-- Dôležité: Použite Laravel TestCase namiesto PHPUnit TestCase
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Repositories\Contracts\CanalRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase; // <-- Používame DatabaseTransactions pre testy, ktoré potrebujú transakcie
 
 class CanalPublicIndexTest extends TestCase // <-- Zmena základnej triedy
 {
-
     use DatabaseTransactions;
 
     protected CanalRepository $canalRepository;
+
     protected $user;
 
     protected function setUp(): void
@@ -33,7 +32,7 @@ class CanalPublicIndexTest extends TestCase // <-- Zmena základnej triedy
         $activeItem = Canal::factory()->active()->create();
         $inactiveItem = Canal::factory()->inactive()->create();
         $deletedCanal = Canal::factory()->create([
-            'deleted_at' => now()
+            'deleted_at' => now(),
         ]);
 
         // 2. Získajte výsledky

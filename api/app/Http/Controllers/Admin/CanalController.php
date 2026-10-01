@@ -4,19 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\CanalIdentityMode;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
 use App\Http\Requests\PublishRequest;
 use App\Http\Resources\CanalResource;
-use App\Repositories\Contracts\CanalRepository;
+use App\Http\Resources\Traits\HasAllowedStatuses;
+use App\Models\Canal;
 use App\Models\Event;
+use App\Models\SystemLog;
+use App\Repositories\Contracts\CanalRepository;
 use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use App\Models\Canal;
-use App\Models\SystemLog;
 
 class CanalController extends Controller
 {

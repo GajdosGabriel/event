@@ -35,7 +35,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
     {
         $canal = $this->ownedCanal(ModelStatus::Draft);
 
-        $this->postJson('/api/dashboard/canals/' . $canal->id . '/publish')
+        $this->postJson('/api/dashboard/canals/'.$canal->id.'/publish')
             ->assertOk()
             ->assertJsonPath('status', ModelStatus::Published->value);
 
@@ -49,7 +49,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
     {
         $canal = $this->ownedCanal(ModelStatus::Published);
 
-        $this->postJson('/api/dashboard/canals/' . $canal->id . '/publish', ['published' => false])
+        $this->postJson('/api/dashboard/canals/'.$canal->id.'/publish', ['published' => false])
             ->assertOk()
             ->assertJsonPath('status', ModelStatus::Draft->value);
 
@@ -71,7 +71,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->postJson('/api/dashboard/canals/' . $canal->id . '/publish', ['published' => false])
+        $this->postJson('/api/dashboard/canals/'.$canal->id.'/publish', ['published' => false])
             ->assertForbidden();
 
         $this->assertSame(ModelStatus::Published, $canal->fresh()->status);
@@ -89,7 +89,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+        $this->putJson('/api/dashboard/canals/'.$canal->id, array_merge($this->formCanal, [
             'status' => ModelStatus::Draft->value,
         ]))->assertStatus(422);
 
@@ -102,8 +102,8 @@ class DashboardCanalPublishTest extends CanalSetupTest
     {
         $canal = $this->ownedCanal(ModelStatus::Archived);
 
-        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
-            'name' => 'Odarchivovany kanal ' . uniqid(),
+        $this->putJson('/api/dashboard/canals/'.$canal->id, array_merge($this->formCanal, [
+            'name' => 'Odarchivovany kanal '.uniqid(),
             'status' => ModelStatus::Published->value,
         ]))->assertOk();
 
@@ -125,7 +125,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+        $this->putJson('/api/dashboard/canals/'.$canal->id, array_merge($this->formCanal, [
             'status' => ModelStatus::Draft->value,
         ]))->assertStatus(422);
 
@@ -147,8 +147,8 @@ class DashboardCanalPublishTest extends CanalSetupTest
             'user_id' => User::factory()->create()->id,
         ]);
 
-        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
-            'name' => 'Opraveny kanal ' . uniqid(),
+        $this->putJson('/api/dashboard/canals/'.$canal->id, array_merge($this->formCanal, [
+            'name' => 'Opraveny kanal '.uniqid(),
             'status' => ModelStatus::Draft->value,
         ]))->assertOk();
 
@@ -160,7 +160,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
     {
         $canal = $this->ownedCanal(ModelStatus::Draft);
 
-        $this->putJson('/api/dashboard/canals/' . $canal->id, array_merge($this->formCanal, [
+        $this->putJson('/api/dashboard/canals/'.$canal->id, array_merge($this->formCanal, [
             'status' => ModelStatus::Blocked->value,
         ]))->assertStatus(422)->assertJsonValidationErrors(['status']);
     }

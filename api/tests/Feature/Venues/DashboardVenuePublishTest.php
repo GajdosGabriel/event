@@ -23,7 +23,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'status' => ModelStatus::Draft->value,
         ]);
 
-        $this->postJson('/api/dashboard/venues/' . $venue->id . '/publish')
+        $this->postJson('/api/dashboard/venues/'.$venue->id.'/publish')
             ->assertOk()
             ->assertJsonPath('status', ModelStatus::Published->value);
 
@@ -40,7 +40,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'status' => ModelStatus::Archived->value,
         ]);
 
-        $this->postJson('/api/dashboard/venues/' . $venue->id . '/publish')->assertOk();
+        $this->postJson('/api/dashboard/venues/'.$venue->id.'/publish')->assertOk();
 
         $this->assertSame(ModelStatus::Published, $venue->fresh()->status);
     }
@@ -54,7 +54,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'status' => ModelStatus::Published->value,
         ]);
 
-        $this->postJson('/api/dashboard/venues/' . $venue->id . '/publish', ['published' => false])
+        $this->postJson('/api/dashboard/venues/'.$venue->id.'/publish', ['published' => false])
             ->assertOk()
             ->assertJsonPath('status', ModelStatus::Draft->value);
 
@@ -80,7 +80,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $this->postJson('/api/dashboard/venues/' . $venue->id . '/publish', ['published' => false])
+        $this->postJson('/api/dashboard/venues/'.$venue->id.'/publish', ['published' => false])
             ->assertForbidden();
 
         $this->assertSame(ModelStatus::Published, $venue->fresh()->status);
@@ -102,7 +102,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $this->putJson('/api/dashboard/venues/' . $venue->id, [
+        $this->putJson('/api/dashboard/venues/'.$venue->id, [
             'name' => $venue->name,
             'canal_id' => $this->canalPrimary->id,
             'village_id' => $venue->village_id,
@@ -132,7 +132,7 @@ class DashboardVenuePublishTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $this->putJson('/api/dashboard/venues/' . $venue->id, [
+        $this->putJson('/api/dashboard/venues/'.$venue->id, [
             'name' => $venue->name,
             'canal_id' => $this->canalPrimary->id,
             'village_id' => $venue->village_id,
@@ -161,8 +161,8 @@ class DashboardVenuePublishTest extends EventSetupTest
             'user_id' => $this->user->id,
         ]);
 
-        $this->putJson('/api/dashboard/venues/' . $venue->id, [
-            'name' => 'Opravene miesto ' . uniqid(),
+        $this->putJson('/api/dashboard/venues/'.$venue->id, [
+            'name' => 'Opravene miesto '.uniqid(),
             'canal_id' => $this->canalPrimary->id,
             'village_id' => $venue->village_id,
             'status' => ModelStatus::Draft->value,
@@ -180,6 +180,6 @@ class DashboardVenuePublishTest extends EventSetupTest
             'status' => ModelStatus::Published->value,
         ]);
 
-        $this->postJson('/api/dashboard/venues/' . $venue->id . '/publish')->assertForbidden();
+        $this->postJson('/api/dashboard/venues/'.$venue->id.'/publish')->assertForbidden();
     }
 }

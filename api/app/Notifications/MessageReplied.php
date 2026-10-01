@@ -21,8 +21,7 @@ class MessageReplied extends Notification implements ShouldQueue
         protected Message $reply,
         protected string $senderName,
         protected string $senderEmail,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -40,9 +39,9 @@ class MessageReplied extends Notification implements ShouldQueue
         // loadMissing (Model::preventLazyLoading je mimo produkcie zapnutý).
         $target = $this->reply->loadMissing('messageable')->messageable;
         $targetName = $target?->name ?? __('mail.message_received.target_fallback');
-        $label = __('mail.message_received.targets.' . ($this->reply->targetType() ?? 'default'));
+        $label = __('mail.message_received.targets.'.($this->reply->targetType() ?? 'default'));
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject(__('mail.message_replied.subject', ['label' => $label, 'name' => $targetName]))
             ->replyTo($this->senderEmail, $this->senderName)
             ->markdown('mail.message-replied', [
@@ -50,7 +49,7 @@ class MessageReplied extends Notification implements ShouldQueue
                 'targetName' => $targetName,
                 'senderName' => $this->senderName,
                 'body' => $this->reply->body,
-                'inboxUrl' => rtrim((string) config('app.frontend_url'), '/') . '/dashboard/spravy',
+                'inboxUrl' => rtrim((string) config('app.frontend_url'), '/').'/dashboard/spravy',
             ]);
     }
 }

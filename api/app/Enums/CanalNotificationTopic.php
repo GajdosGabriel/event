@@ -27,7 +27,7 @@ enum CanalNotificationTopic: string implements HasLabel
 
     public function label(): string
     {
-        return __('canal_notifications.' . $this->value);
+        return __('canal_notifications.'.$this->value);
     }
 
     /** Predvoľba pre rolu, kým si ju člen (alebo vlastník) nezmení. */

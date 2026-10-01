@@ -9,7 +9,6 @@
 
 namespace App\Repositories\Contracts;
 
-
 interface CanalRepository extends InterfaceRepository
 {
     public function create(array $properties);

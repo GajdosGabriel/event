@@ -42,7 +42,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Katedrala sv. Martina', 'Bratislava', 'Slovakia');
+        $result = (new NominatimGeocoder)->lookup('Katedrala sv. Martina', 'Bratislava', 'Slovakia');
 
         $this->assertSame('Katedrala sv. Martina', $result['name']);
         $this->assertSame('Rudnayovo namestie 1', $result['street']);
@@ -63,7 +63,7 @@ class NominatimGeocoderTest extends TestCase
             'https://nominatim.example/search*' => Http::response([], 500),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Unknown', 'Bratislava');
+        $result = (new NominatimGeocoder)->lookup('Unknown', 'Bratislava');
 
         $this->assertSame([
             'name' => null,
@@ -95,7 +95,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $geocoder = new NominatimGeocoder();
+        $geocoder = new NominatimGeocoder;
 
         $first = $geocoder->lookup('Cached place', 'Bratislava');
         $second = $geocoder->lookup('Cached place', 'Bratislava');
@@ -147,7 +147,7 @@ class NominatimGeocoderTest extends TestCase
             },
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Kultúrny dom Raslavice', 'Raslavice', 'Slovakia');
+        $result = (new NominatimGeocoder)->lookup('Kultúrny dom Raslavice', 'Raslavice', 'Slovakia');
 
         $this->assertSame('Dom kultury', $result['name']);
         $this->assertSame('Toplianska 560', $result['street']);
@@ -179,7 +179,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Kultúrny dom Raslavice', 'Raslavice', 'Slovakia');
+        $result = (new NominatimGeocoder)->lookup('Kultúrny dom Raslavice', 'Raslavice', 'Slovakia');
 
         $this->assertSame([
             'name' => null,
@@ -235,7 +235,7 @@ class NominatimGeocoderTest extends TestCase
             },
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Divadlo Jonasa Zaborskeho v Presove', 'Presov', 'Slovakia');
+        $result = (new NominatimGeocoder)->lookup('Divadlo Jonasa Zaborskeho v Presove', 'Presov', 'Slovakia');
 
         $this->assertSame('Theatre Jonasa Zaborskeho', $result['name']);
         $this->assertSame('Namestie legionarov 6', $result['street']);
@@ -277,7 +277,7 @@ class NominatimGeocoderTest extends TestCase
             },
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Savore Sigord', 'Presov', 'Slovakia');
+        $result = (new NominatimGeocoder)->lookup('Savore Sigord', 'Presov', 'Slovakia');
 
         $this->assertSame('Savore Sigord', $result['name']);
         $this->assertSame('Sigord 1', $result['street']);
@@ -286,6 +286,7 @@ class NominatimGeocoderTest extends TestCase
         $this->assertSame(48.9477, $result['latitude']);
         $this->assertSame(21.3065, $result['longitude']);
     }
+
     #[Test]
     public function a_generic_type_word_is_never_queried_without_a_town(): void
     {
@@ -307,7 +308,7 @@ class NominatimGeocoderTest extends TestCase
             },
         ]);
 
-        (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+        (new NominatimGeocoder)->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
 
         $this->assertNotEmpty($queries);
         $this->assertNotContains('amfiteater', $queries);
@@ -317,7 +318,7 @@ class NominatimGeocoderTest extends TestCase
             $this->assertStringContainsStringIgnoringCase(
                 'kosice',
                 $query,
-                'Druhový dotaz bez obce trafí ľubovoľnú stavbu toho typu: ' . $query,
+                'Druhový dotaz bez obce trafí ľubovoľnú stavbu toho typu: '.$query,
             );
         }
     }
@@ -345,7 +346,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
 
         $this->assertNull($result['city']);
         $this->assertNull($result['latitude']);
@@ -372,7 +373,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookup('Amfiteater Kosice', 'Kosice', 'Slovensko');
 
         $this->assertSame('Kosice', $result['city']);
         $this->assertSame(48.7268, $result['latitude']);
@@ -414,7 +415,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookupAddress('Toplianska 560', '086 41', 'Raslavice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookupAddress('Toplianska 560', '086 41', 'Raslavice', 'Slovensko');
 
         $this->assertSame(49.1234, $result['latitude']);
         $this->assertSame(21.4321, $result['longitude']);
@@ -428,7 +429,7 @@ class NominatimGeocoderTest extends TestCase
 
         Http::fake();
 
-        $result = (new NominatimGeocoder())->lookupAddress(null, '086 41', 'Raslavice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookupAddress(null, '086 41', 'Raslavice', 'Slovensko');
 
         $this->assertNull($result['latitude']);
         Http::assertNothingSent();
@@ -454,7 +455,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookupMunicipality('Raslavice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookupMunicipality('Raslavice', 'Slovensko');
 
         $this->assertSame(49.0999, $result['latitude']);
         $this->assertSame(21.4111, $result['longitude']);
@@ -480,12 +481,11 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookupMunicipality('Raslavice', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookupMunicipality('Raslavice', 'Slovensko');
 
         $this->assertNull($result['latitude']);
         $this->assertNull($result['longitude']);
     }
-
 
     /**
      * Verejny Nominatim vracia pri prekroceni limitu 429. Kym sa taky "vysledok"
@@ -512,7 +512,7 @@ class NominatimGeocoderTest extends TestCase
                 ], 200);
         });
 
-        $geocoder = new NominatimGeocoder();
+        $geocoder = new NominatimGeocoder;
         $this->assertNull($geocoder->lookup('Katedrala sv. Martina', 'Bratislava')['latitude']);
 
         $rateLimited = false;
@@ -541,7 +541,7 @@ class NominatimGeocoderTest extends TestCase
                 ], 200);
         });
 
-        $geocoder = new NominatimGeocoder();
+        $geocoder = new NominatimGeocoder;
         $this->assertNull($geocoder->lookupMunicipality('Sabinov', 'Slovensko')['latitude']);
 
         $rateLimited = false;
@@ -575,7 +575,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Kultúrny dom', 'Sabinov', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookup('Kultúrny dom', 'Sabinov', 'Slovensko');
 
         $this->assertNull($result['latitude']);
         $this->assertNull($result['longitude']);
@@ -603,7 +603,7 @@ class NominatimGeocoderTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new NominatimGeocoder())->lookup('Kultúrny dom', 'Sabinov', 'Slovensko');
+        $result = (new NominatimGeocoder)->lookup('Kultúrny dom', 'Sabinov', 'Slovensko');
 
         $this->assertSame(49.0998938, $result['latitude']);
         $this->assertSame(21.0981632, $result['longitude']);

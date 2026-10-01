@@ -6,8 +6,9 @@ use App\Enums\AdmissionStatus;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Models\Traits\HasCommonFilters;
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
@@ -16,9 +17,10 @@ use Illuminate\Support\Str;
  */
 class Ticket extends Model
 {
-    use HasFactory, SoftDeletes, HasCommonFilters;
+    use HasCommonFilters, HasFactory, SoftDeletes;
 
     protected $guarded = [];
+
     protected $appends = ['checked_in_count', 'admissions_total'];
 
     protected $casts = [
