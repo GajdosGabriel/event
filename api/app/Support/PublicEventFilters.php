@@ -96,21 +96,28 @@ final class PublicEventFilters
     }
 
     /**
-     * Pomenované časové okno pre landing stránky. Dnes jediné: `weekend`.
-     * Výpočet drží [EventTimeframe], aby SPA aj bot-render vrstva ukazovali
-     * ten istý zoznam.
+     * Pomenované časové okno: `weekend` (landing stránka), `today`
+     * a `week` (rýchle voľby vo výpise a na mape). Výpočet drží
+     * [EventTimeframe], aby SPA aj bot-render vrstva ukazovali ten istý zoznam.
      *
      * @return array{0: ?string, 1: ?string}
      */
     private static function range(Request $request): array
     {
-        if ($request->input('range') !== 'weekend') {
+        $today = now()->startOfDay();
+
+        $window = match ($request->input('range')) {
+            'weekend' => EventTimeframe::thisWeekend(),
+            'today' => [$today, $today->copy()->endOfDay()],
+            'week' => [$today, $today->copy()->addDays(6)->endOfDay()],
+            default => null,
+        };
+
+        if ($window === null) {
             return [null, null];
         }
 
-        [$from, $to] = EventTimeframe::thisWeekend();
-
-        return [$from->toDateString(), $to->toDateString()];
+        return [$window[0]->toDateString(), $window[1]->toDateString()];
     }
 
     /**

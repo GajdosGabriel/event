@@ -1,25 +1,8 @@
 <template>
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-    <!-- Časové okno filtruje už načítané podujatia priamo na fronte — mapa
-         dostáva celý výsledok filtra naraz, ďalší dotaz na API by nič nepridal. -->
+    <!-- Časové okno je v spoločnom riadku nad výpisom — mapa dostáva už
+         prefiltrovaný výsledok. Tu zostáva len to, čo je špecifické pre mapu. -->
     <div class="flex flex-wrap items-center gap-1.5 border-b border-slate-100 px-3 py-2">
-      <button
-        v-for="option in windows"
-        :key="option"
-        type="button"
-        class="chip"
-        :class="{ active: when === option }"
-        :aria-pressed="when === option"
-        @click="when = option"
-      >{{ t(`public.list.mapWhen.${option}`) }}</button>
-      <button
-        v-if="foreignCount"
-        type="button"
-        class="chip"
-        :class="{ active: showForeign }"
-        :aria-pressed="showForeign"
-        @click="showForeign = !showForeign"
-      >{{ t('public.list.mapForeign', { n: foreignCount }) }}</button>
       <span class="ml-auto text-xs text-slate-500">{{ t('public.list.mapShown', { n: shownCount }) }}</span>
     </div>
     <div ref="mapEl" class="h-[32rem] w-full" />
@@ -43,7 +26,7 @@ import { useTemplateRef } from 'vue'
 import type { EventMapPoint } from '@/api/events'
 import { t } from '@/i18n'
 import { publicEventPath } from '@/utils/publicUrl'
-import { pointOf, type Point } from '@/utils/geo'
+import { isDomestic, pointOf, type Point } from '@/utils/geo'
 
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)['_getIconUrl']
 L.Icon.Default.mergeOptions({
@@ -56,27 +39,18 @@ const props = withDefaults(defineProps<{
   events: EventMapPoint[]
   /** Koľko podujatí filtra sa do mapy nenačítalo (strop počtu). */
   truncated?: number
-}>(), { truncated: 0 })
+  /** Zahraničné miesta sa prepínajú v spoločnom riadku nad výpisom. */
+  showForeign?: boolean
+}>(), { truncated: 0, showForeign: false })
 
 /** Koľko podujatí bublina vypíše, kým ostatné zhrnie do „a ďalšie". */
 const POPUP_LIMIT = 8
 
-const windows = ['all', 'today', 'week', 'month'] as const
-type MapWindow = typeof windows[number]
-
-const when = ref<MapWindow>('all')
-const showForeign = ref(false)
 
 const mapEl = useTemplateRef<HTMLElement>('mapEl')
 
 let map: L.Map | null = null
 let markers: L.LayerGroup | null = null
-
-/** Krajina je voľný text (importy, AI) — domáce je prázdna hodnota aj bežné zápisy Slovenska. */
-function isDomestic(country: string | null | undefined): boolean {
-  const value = (country ?? '').trim().toLowerCase()
-  return ['', 'sk', 'svk', 'slovakia', 'slovensko', 'slovak republic', 'slovenská republika'].includes(value)
-}
 
 /** Podujatia s miestom, ktoré má súradnice — ostatné na mape byť nemôžu. */
 const allLocated = computed(() => props.events.flatMap((event) => {
@@ -84,12 +58,10 @@ const allLocated = computed(() => props.events.flatMap((event) => {
   return point ? [{ event, point, foreign: !isDomestic(event.venue?.country) }] : []
 }))
 
-const foreignCount = computed(() => allLocated.value.filter((item) => item.foreign).length)
-
 // Zahraničné miesta sú štandardne skryté — mapa by sa kvôli jedinému z nich
 // oddialila na pol Európy a slovenské špendlíky by sa zlievali.
 const located = computed(() =>
-  showForeign.value ? allLocated.value : allLocated.value.filter((item) => !item.foreign))
+  props.showForeign ? allLocated.value : allLocated.value.filter((item) => !item.foreign))
 
 /**
  * Koľko podujatí sa na mapu nedostalo. Ticho ich zahodiť by znamenalo, že
@@ -98,25 +70,7 @@ const located = computed(() =>
  */
 const withoutCoordinates = computed(() => props.events.length - allLocated.value.length)
 
-/** Podujatia, ktoré zasahujú do zvoleného časového okna. */
-const inWindow = computed(() => {
-  if (when.value === 'all') return located.value
-
-  const from = new Date()
-  from.setHours(0, 0, 0, 0)
-  const to = new Date(from)
-  to.setDate(to.getDate() + (when.value === 'today' ? 1 : when.value === 'week' ? 7 : 31))
-
-  return located.value.filter(({ event }) => {
-    if (!event.startAt) return false
-    const start = new Date(event.startAt)
-    const end = event.endAt ? new Date(event.endAt) : start
-    // Prekryv intervalov — viacdňový festival, ktorý už beží, do „dnes" patrí.
-    return start < to && end >= from
-  })
-})
-
-const shownCount = computed(() => inWindow.value.length)
+const shownCount = computed(() => located.value.length)
 
 /**
  * Podujatia na tom istom mieste v jednom špendlíku. Samostatné značky by
@@ -126,7 +80,7 @@ const shownCount = computed(() => inWindow.value.length)
 const groups = computed(() => {
   const byPlace = new Map<string, { point: Point; events: EventMapPoint[] }>()
 
-  for (const { event, point } of inWindow.value) {
+  for (const { event, point } of located.value) {
     const key = `${point.latitude.toFixed(5)},${point.longitude.toFixed(5)}`
     const group = byPlace.get(key) ?? { point, events: [] }
     group.events.push(event)

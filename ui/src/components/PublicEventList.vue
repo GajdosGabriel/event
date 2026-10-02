@@ -58,17 +58,44 @@
         <!-- Časové okná mali vlastné adresy, ale zo zoznamu na ne nič neviedlo —
              „tento víkend" sa dalo nájsť len tak, že o ňom človek už vedel. -->
         <nav :aria-label="t('filters.events.quick')" class="flex flex-wrap gap-1.5">
-          <RouterLink
-            v-for="shortcut in shortcuts"
-            :key="shortcut.to"
-            :to="shortcut.to"
+          <!-- Poradie ide časovo: všetky → dnes → víkend → týždeň → archív.
+               „Dnes" a „týždeň" nemajú vlastnú adresu — sú len filtrom nad
+               aktuálnym výpisom (zoznam aj mapa). -->
+          <template v-for="shortcut in shortcuts" :key="shortcut.key">
+            <button
+              v-if="shortcut.window"
+              type="button"
+              class="chip"
+              :class="{ active: quickWindow === shortcut.window }"
+              :aria-pressed="quickWindow === shortcut.window"
+              :disabled="Boolean(range) || list === 'past'"
+              @click="quickWindow = quickWindow === shortcut.window ? null : shortcut.window"
+            >
+              <span aria-hidden="true">{{ shortcut.emoji }}</span>
+              {{ shortcut.label }}
+            </button>
+            <RouterLink
+              v-else
+              :to="shortcut.to!"
+              class="chip"
+              :class="{ active: shortcut.active }"
+              :aria-current="shortcut.active ? 'page' : undefined"
+            >
+              <span aria-hidden="true">{{ shortcut.emoji }}</span>
+              {{ shortcut.label }}
+            </RouterLink>
+          </template>
+
+          <!-- Zahraničné miesta má zmysel prepínať len na mape — v zozname sú
+               rovnaké podujatia ako inak. -->
+          <button
+            v-if="view === 'map' && foreignCount"
+            type="button"
             class="chip"
-            :class="{ active: shortcut.active }"
-            :aria-current="shortcut.active ? 'page' : undefined"
-          >
-            <span aria-hidden="true">{{ shortcut.emoji }}</span>
-            {{ shortcut.label }}
-          </RouterLink>
+            :class="{ active: showForeign }"
+            :aria-pressed="showForeign"
+            @click="showForeign = !showForeign"
+          >{{ t('public.list.mapForeign', { n: foreignCount }) }}</button>
 
           <!-- „V mojom okolí". V tom istom riadku ako časové skratky, lebo je
                to tá istá otázka, len v druhej osi: kedy verzus kde. -->
@@ -138,7 +165,7 @@
           </div>
 
           <template v-else>
-            <EventsMap v-if="view === 'map'" :events="mapPoints" :truncated="Math.max(0, total - mapPoints.length)" />
+            <EventsMap v-if="view === 'map'" :events="mapPoints" :show-foreign="showForeign" :truncated="Math.max(0, total - mapPoints.length)" />
             <EventAgenda v-else-if="view === 'agenda'" :events="events" :show-ticket-cta="showTicketCta" />
             <!-- Mriežka je o obrázkoch — obsahové štítky („Svätá omša“ a spol.)
                  sa tu neukazujú, na karte z nich boli dva riadky farby navyše.
@@ -196,7 +223,7 @@ import { useSettings, type PublicEventsView } from '@/composables/useSettings'
 import { usePageQuery } from '@/composables/usePageQuery'
 import { absoluteUrl, publicArchivePath, publicEventPath, publicWeekendPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { useI18n, localeTag } from '@/i18n'
-import { distanceKm, formatDistance, pointOf } from '@/utils/geo'
+import { distanceKm, formatDistance, isDomestic, pointOf } from '@/utils/geo'
 
 const props = withDefaults(defineProps<{
   heading: string
@@ -281,6 +308,10 @@ function distanceLabel(event: EventItem): string | null {
 const events = ref<EventItem[]>([])
 /** Body pre mapu — celý výsledok filtra, nie strana zoznamu. */
 const mapPoints = ref<EventMapPoint[]>([])
+const showForeign = ref(false)
+/** Zahraničné miesta so súradnicami — tie, ktoré mapa vie ukázať. */
+const foreignCount = computed(() =>
+  mapPoints.value.filter((event) => pointOf(event.venue) && !isDomestic(event.venue?.country)).length)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const page = ref(1)
@@ -309,23 +340,41 @@ const allPath = computed(() => {
   return route.path === '/' || cameFromHome ? '/' : PUBLIC_EVENTS
 })
 
-const shortcuts = computed(() => [
+type QuickWindow = 'today' | 'week'
+const quickWindow = ref<QuickWindow | null>(null)
+
+interface Shortcut {
+  key: string
+  label: string
+  emoji: string
+  /** Odkaz na vlastnú adresu; chýba pri rýchlom okne, ktoré je len filtrom. */
+  to?: string
+  window?: QuickWindow
+  active?: boolean
+}
+
+const shortcuts = computed<Shortcut[]>(() => [
   {
+    key: 'all',
     label: t('filters.events.all'),
     emoji: '📅',
     to: allPath.value,
-    active: !props.range && !props.list && !props.tags && !props.municipality,
+    active: !props.range && !props.list && !props.tags && !props.municipality && !quickWindow.value,
   },
+  { key: 'today', label: t('public.list.mapWhen.today'), emoji: '☀️', window: 'today' },
   {
+    key: 'weekend',
     label: t('filters.events.weekend'),
     emoji: '🎉',
     to: publicWeekendPath(),
     active: props.range === 'weekend',
   },
+  { key: 'week', label: t('public.list.mapWhen.week'), emoji: '🗓️', window: 'week' },
   // Archív. Odkaz je vo výpise zámerne: je to jediná cesta na detaily
   // skončených podujatí — pre človeka, ktorý hľadá „čo tu bolo vlani",
   // aj pre crawlera, ktorému by inak tie stránky ostali nedostupné.
   {
+    key: 'archive',
     label: t('filters.events.archive'),
     emoji: '🗄️',
     to: publicArchivePath(),
@@ -409,7 +458,8 @@ async function fetchPage(p: number) {
     params['list'] = props.list ?? (search.value.trim() ? 'all' : 'upcoming')
     if (municipalityParam.value) params['municipality'] = municipalityParam.value
     if (tagsParam.value) params['tags'] = tagsParam.value
-    if (props.range) params['range'] = props.range
+    const windowRange = props.range ?? (props.list === 'past' ? null : quickWindow.value)
+    if (windowRange) params['range'] = windowRange
     if (search.value.trim()) params['search'] = search.value.trim()
     if (nearby.value) {
       params['latitude'] = nearby.value.latitude
@@ -449,7 +499,10 @@ async function fetchPage(p: number) {
 watch(() => view.value === 'map', () => loadPage(1))
 
 // Iný filter je iný výsledok — tretia strana v ňom nemusí existovať.
-watch(() => [municipalityParam.value, tagsParam.value, props.range], () => loadPage(1))
+watch(() => [municipalityParam.value, tagsParam.value, props.range, quickWindow.value], () => loadPage(1))
+
+// Iná landing stránka (víkend, archív, „Všetky") začína bez rýchleho okna.
+watch(() => [props.range, props.list], () => { quickWindow.value = null })
 
 // Tlačidlo „späť" mení `?q=` mimo políčka — vstup aj výsledky sa musia dotiahnuť.
 watch(() => route.query.q, (value) => {

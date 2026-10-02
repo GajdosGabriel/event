@@ -144,7 +144,6 @@ const { t } = useI18n()
 // Ikony sa neberú z lokálneho `<svg>`, ale z registra v AppIcon — tá istá
 // ikona tak vyzerá v navigácii rovnako ako všade inde v aplikácii.
 const mainLinks = computed<Array<{ to: string; label: string; icon: IconName }>>(() => [
-  { to: '/podujatia/tento-vikend', label: t('nav.weekend'), icon: 'calendar' },
   { to: '/nahrat-plagat', label: t('nav.uploadPoster'), icon: 'upload' },
 ])
 

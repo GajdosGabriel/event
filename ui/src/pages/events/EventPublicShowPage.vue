@@ -3,7 +3,9 @@
     <!-- Načítavanie: kostra v tvare výslednej stránky. Spinner na prázdnej ploche
          pôsobil pomalšie, než stránka v skutočnosti je, a po dobehnutí skákal obsah. -->
     <div v-if="loading" class="animate-pulse">
-      <div class="h-96 w-full bg-slate-300 sm:mx-4 sm:mt-4 sm:w-auto sm:rounded-3xl md:h-[30rem]" />
+      <div class="mx-auto w-full max-w-300 sm:px-4 sm:pt-4">
+        <div class="h-96 w-full bg-slate-300 sm:rounded-3xl md:h-[30rem]" />
+      </div>
       <div class="mx-auto w-full max-w-300 px-4 py-8">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
           <div class="space-y-6">
@@ -47,7 +49,9 @@
            ostával len pás textu uprostred. Pozadie je ten istý obrázok,
            rozmazaný: stránka tak preberie farby plagátu bez ďalšieho obsahu.
            Bez obrázka nesie hlavičku prechod, aby nevyzerala nedonačítane. -->
-      <header class="relative isolate overflow-hidden bg-slate-900 text-white sm:mx-4 sm:mt-4 sm:rounded-3xl">
+      <!-- Obal drží hlavičku v rovnakej šírke (max-w-300 + px-4) ako obsah pod ňou. -->
+      <div class="mx-auto w-full max-w-300 sm:px-4 sm:pt-4">
+      <header class="relative isolate overflow-hidden bg-slate-900 text-white sm:rounded-3xl">
         <img
           v-if="heroImage"
           :src="event.imageUrl ?? heroImage"
@@ -169,6 +173,7 @@
           </div>
         </div>
       </header>
+      </div>
 
       <div class="mx-auto w-full max-w-300 px-4 py-6">
         <BreadcrumbNav :items="breadcrumbs" class="mb-5" />

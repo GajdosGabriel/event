@@ -24,8 +24,21 @@
         </li>
       </template>
 
-      <li v-for="group in groups" v-else :key="group.regionId" class="item">
+      <li
+        v-for="group in groups"
+        v-else
+        :key="group.regionId"
+        class="item"
+        :class="{ 'item-active': isFlat(group) && active === group.municipalities[0].municipalityId }"
+      >
+        <!-- Pseudo-kraj s jedinou pseudo-obcou: rozbaľovať nie je čo, rovno odkaz. -->
+        <RouterLink v-if="isFlat(group)" :to="linkFor(group.municipalities[0])" class="flat-row">
+          <span class="group-name link">{{ group.municipalities[0].municipalityName }}</span>
+          <span class="count">{{ group.totalCount }}</span>
+        </RouterLink>
+
         <button
+          v-else
           type="button"
           class="group-header"
           :class="{ 'group-header-open': isOpen(group.regionId) }"
@@ -44,7 +57,7 @@
           <span class="count">{{ group.totalCount }}</span>
         </button>
 
-        <ul v-show="isOpen(group.regionId)" :id="`region-${group.regionId}`" class="sublist">
+        <ul v-if="!isFlat(group)" v-show="isOpen(group.regionId)" :id="`region-${group.regionId}`" class="sublist">
           <li
             v-for="item in group.municipalities"
             :key="item.municipalityId"
@@ -146,6 +159,10 @@ const groups = computed<RegionGroup[]>(() => {
   })
 })
 
+function isFlat(group: RegionGroup) {
+  return group.regionId === NATIONWIDE_REGION_ID && group.municipalities.length === 1
+}
+
 function isOpen(regionId: number) {
   return openRegions.value.has(regionId)
 }
@@ -229,6 +246,10 @@ onMounted(load)
   @apply flex w-full cursor-pointer items-center gap-1.5 border-0 bg-transparent px-4 py-2 text-left hover:bg-slate-50;
 }
 .group-header-open { @apply bg-slate-50/60; }
+.flat-row {
+  @apply flex w-full items-center gap-1.5 px-4 py-2 no-underline hover:bg-slate-50;
+}
+.item-active .flat-row { @apply hover:bg-blue-50; }
 .group-name { @apply min-w-0 flex-1 truncate text-sm font-medium text-slate-700; }
 .group-header-open .group-name { @apply text-slate-900; }
 

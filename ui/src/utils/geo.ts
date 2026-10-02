@@ -67,3 +67,9 @@ export function formatDistance(km: number, locale: string): string {
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180
 }
+
+/** Krajina je voľný text (importy, AI) — domáce je prázdna hodnota aj bežné zápisy Slovenska. */
+export function isDomestic(country: string | null | undefined): boolean {
+  const value = (country ?? '').trim().toLowerCase()
+  return ['', 'sk', 'svk', 'slovakia', 'slovensko', 'slovak republic', 'slovenská republika'].includes(value)
+}
