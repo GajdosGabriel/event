@@ -16,6 +16,7 @@ class ImportedCanalManager
 {
     public function __construct(
         private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber,
+        private readonly DuplicateResolver $duplicates = new DuplicateResolver,
     ) {}
 
     /**
@@ -68,6 +69,13 @@ class ImportedCanalManager
                 ->first();
         }
 
+        // Pomenovaný organizátor, ktorého nenašla ani presná, ani „holá" zhoda:
+        // skôr než založíme nový kanál, overíme, či nejde o ten istý subjekt
+        // pod iným zápisom ("Farnosť Nitra – Kalvária" vs "Kalvária Nitra").
+        if (! $existing instanceof Canal && $detectedName !== null) {
+            $existing = $this->duplicates->findCanal($canalName, $website);
+        }
+
         if ($existing?->isClaimed()) {
             return $existing;
         }
@@ -116,6 +124,7 @@ class ImportedCanalManager
             'identity_mode' => CanalIdentityMode::Organization->value,
         ]);
 
+        $this->duplicates->markCreated($canal);
         $this->ensureSystemOwnership($canal);
 
         return $canal->fresh();

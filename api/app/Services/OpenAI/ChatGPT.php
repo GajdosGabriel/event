@@ -50,6 +50,7 @@ class ChatGPT
         private readonly PromptTags $promptTags = new PromptTags,
         private readonly PromptContentReview $promptContentReview = new PromptContentReview,
         private readonly PromptHtmlFormatter $promptHtmlFormatter = new PromptHtmlFormatter,
+        private readonly PromptDuplicate $promptDuplicate = new PromptDuplicate,
     ) {}
 
     /**
@@ -530,6 +531,44 @@ class ChatGPT
         $description = trim($description);
 
         return $description !== '' ? $description : null;
+    }
+
+    /**
+     * Označujú dva záznamy ten istý kanál/miesto? Model rozhoduje len medzi
+     * kandidátmi, ktorých našla deterministická kontrola — nikdy nehľadá sám.
+     *
+     * @param  'canal'|'venue'  $kind
+     * @param  array<string, string|null>  $new  nový záznam
+     * @param  array<string, string|null>  $existing  existujúci záznam
+     * @return array{same: bool, confidence: float, reason: string}
+     */
+    public function judgeDuplicate(string $kind, array $new, array $existing): array
+    {
+        $clean = fn (array $fields): array => array_map(
+            fn ($value) => is_string($value) ? $this->sanitizeUtf8($value) : null,
+            $fields,
+        );
+
+        $content = $this->chatComplete(
+            0,
+            $this->promptDuplicate->prompt($kind, $clean($new), $clean($existing)),
+            $this->promptDuplicate->jsonSchema(),
+            30,
+        );
+
+        $data = $this->decodeJson($content);
+
+        $validator = Validator::make($data, $this->promptDuplicate->validator());
+
+        if ($validator->fails()) {
+            throw new \RuntimeException('Neplatna struktura dat: '.$validator->errors()->toJson());
+        }
+
+        return [
+            'same' => (bool) $data['same'],
+            'confidence' => max(0.0, min(1.0, (float) $data['confidence'])),
+            'reason' => trim((string) ($data['reason'] ?? '')),
+        ];
     }
 
     /**

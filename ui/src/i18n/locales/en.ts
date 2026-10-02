@@ -1148,6 +1148,7 @@ const en: Messages = {
       saving: 'Saving…',
       cancel: 'Cancel',
       created: 'Venue created.',
+      reused: 'This venue already exists – the existing record was used.',
       failed: 'Saving failed.',
     },
   },
@@ -1212,6 +1213,7 @@ const en: Messages = {
       loadFailed: 'Loading failed.',
       saveFailed: 'Saving failed.',
       created: 'Venue created.',
+      reused: 'This venue already exists – the existing record was used.',
       saved: 'Venue saved.',
     },
     sections: {

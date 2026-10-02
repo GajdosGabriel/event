@@ -64,6 +64,7 @@
             @mousedown.prevent="select(opt)"
           >
             {{ opt.name }}
+            <span v-if="opt.hint" class="block text-xs font-normal text-slate-500">{{ opt.hint }}</span>
           </li>
         </ul>
         <button v-if="source && nextPage <= lastPage && !loading && !failed" type="button" class="p-2 text-sm" @click="fetchOptions(nextPage)">{{ t('roadmap.more') }}</button>
@@ -79,7 +80,7 @@ import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
 
-interface Option { id: number; name: string }
+interface Option { id: number; name: string; hint?: string | null }
 
 const props = defineProps<{
   modelValue: number | null

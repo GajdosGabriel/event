@@ -76,7 +76,10 @@ class VenuePolicy
      */
     public function delete(User $user, Venue $venue): bool
     {
-        return $this->ownsVenueThrough($user, $venue, 'venue.delete')
+        // Miesto je spoločný záznam: akonáhle ho používa aj iný kanál, správca ho
+        // smie upravovať, ale nie zmazať — zmizlo by aj ostatným. Zmazať ho vie
+        // len administrátor (v /admin, kde policy neplatí).
+        return ($this->ownsVenueThrough($user, $venue, 'venue.delete') && ! $this->isUsedByOtherCanals($user, $venue))
             // Odpojenie cudzieho miesta nie je mazanie — väzba ostáva na
             // vlastníckom kanáli, takže referenčný zámok sa naň nevzťahuje.
             || ($this->isForeignVenue($user, $venue) && $this->isLinkedToVenueCanal($user, $venue));
@@ -100,6 +103,14 @@ class VenuePolicy
     {
         return $venue->ownerCanals()
             ->whereIn('canals.id', $user->canalIdsWithAbility($ability))
+            ->exists();
+    }
+
+    /** Miesto má pripojený aj kanál, ku ktorému používateľ nepatrí. */
+    private function isUsedByOtherCanals(User $user, Venue $venue): bool
+    {
+        return $venue->activeCanals()
+            ->whereNotIn('canals.id', $user->dashboardCanalIds())
             ->exists();
     }
 

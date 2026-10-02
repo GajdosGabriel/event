@@ -1148,6 +1148,7 @@ const de: Messages = {
       saving: 'Wird gespeichert…',
       cancel: 'Abbrechen',
       created: 'Ort erstellt.',
+      reused: 'Dieser Ort existiert bereits – der vorhandene Eintrag wurde verwendet.',
       failed: 'Speichern fehlgeschlagen.',
     },
   },
@@ -1212,6 +1213,7 @@ const de: Messages = {
       loadFailed: 'Laden fehlgeschlagen.',
       saveFailed: 'Speichern fehlgeschlagen.',
       created: 'Ort erstellt.',
+      reused: 'Dieser Ort existiert bereits – der vorhandene Eintrag wurde verwendet.',
       saved: 'Ort gespeichert.',
     },
     sections: {

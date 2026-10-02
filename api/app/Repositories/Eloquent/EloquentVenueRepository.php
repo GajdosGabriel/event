@@ -51,9 +51,40 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         );
     }
 
+    /**
+     * Miesta, ktoré si používateľ smie vybrať pre podujatie: vlastné (z jeho
+     * kanálov, v akomkoľvek stave) a cudzie zverejnené. Zberné „Celé Slovensko"
+     * a zmazané miesta sa neponúkajú.
+     */
+    private function selectableQuery()
+    {
+        $canalIds = auth('sanctum')->user()?->dashboardCanalIds() ?? collect();
+
+        return $this->latestFirst(
+            $this->model()->with('canals')->where(fn ($query) => $query
+                ->whereHas('canals', fn ($canals) => $canals
+                    ->whereIn('canals.id', $canalIds)
+                    ->where('canal_venue.status', ModelStatus::Published->value))
+                ->orWhere(fn ($public) => $public
+                    ->where('venues.status', ModelStatus::Published->value)
+                    ->where(fn ($category) => $category->whereNull('venues.category')->orWhere('venues.category', '!=', 'fallback'))))
+        );
+    }
+
     public function dashboardIndexWithFilters($perPage = 15, array $filters = []): LengthAwarePaginator
     {
         Gate::authorize('viewAny', $this->entity);
+
+        // Výber miesta vo formulári podujatia s hľadaným výrazom: ponúkajú sa
+        // všetky zverejnené miesta, nielen tie z kanálov používateľa. Miesto je
+        // spoločný záznam o reálnom objekte — kto ho nájde, nemusí ho zakladať
+        // znova. Filter kanála sa preto pri hľadaní neuplatňuje; bez hľadania
+        // ostáva zoznam „mojich" miest.
+        if (! empty($filters['for_select']) && ! empty($filters['search'])) {
+            unset($filters['canal_id']);
+
+            return $this->paginateFilteredQuery($this->withRowContext($this->selectableQuery()), $perPage, $filters);
+        }
 
         $query = ! empty($filters['for_select']) || empty($filters['search'])
             ? $this->dashboardIndexQuery()

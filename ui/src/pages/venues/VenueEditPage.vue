@@ -294,14 +294,14 @@ async function submit() {
       const v = await createVenue(payload(), scope.value)
       savedId.value = v.id
       const pending = images.value?.pendingFiles ?? []
-      if (pending.length) {
+      if (pending.length && !v.reused) {
         const fd = new FormData()
         fd.append('fileable_type', 'venue')
         fd.append('fileable_id', String(v.id))
         pending.forEach(f => fd.append('files[]', f))
         await uploadFiles(fd)
       }
-      toast.success(t('venues.form.created'))
+      toast.success(t(v.reused ? 'venues.form.reused' : 'venues.form.created'))
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
       await updateVenue(Number(route.params.id), payload(), scope.value)

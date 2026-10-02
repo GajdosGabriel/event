@@ -23,6 +23,14 @@ class VenueResource extends JsonResource
         $data = parent::toArray($request);
 
         $data['status_label'] = $this->statusLabel();
+        // Rozlišovač vo výbere miesta — rovnomenné miesta sú v rôznych obciach
+        // („Kostol sv. Jozefa"), samotný názov by ich vo vyhľadávaní nerozlíšil.
+        $data['hint'] = $this->resource->relationLoaded('municipality')
+            ? (implode(', ', array_filter([
+                $this->resource->municipality?->fullname,
+                $this->street,
+            ])) ?: null)
+            : null;
         $data['allowed_statuses'] = $this->allowedStatuses($request);
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);

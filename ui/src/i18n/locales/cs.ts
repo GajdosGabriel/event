@@ -1147,6 +1147,7 @@ const cs: Messages = {
       saving: 'Ukládám…',
       cancel: 'Zrušit',
       created: 'Místo vytvořeno.',
+      reused: 'Toto místo už existuje – použili jsme existující záznam.',
       failed: 'Uložení selhalo.',
     },
   },
@@ -1211,6 +1212,7 @@ const cs: Messages = {
       loadFailed: 'Nepodařilo se načíst.',
       saveFailed: 'Uložení selhalo.',
       created: 'Místo vytvořeno.',
+      reused: 'Toto místo už existuje – použili jsme existující záznam.',
       saved: 'Místo uloženo.',
     },
     sections: {

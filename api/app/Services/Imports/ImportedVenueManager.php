@@ -19,6 +19,7 @@ class ImportedVenueManager
         private readonly Detector $detector = new Detector,
         private readonly ImportedProfileDescriber $describer = new ImportedProfileDescriber,
         private readonly MunicipalityGeocodeResolver $municipalityGeocoder = new MunicipalityGeocodeResolver,
+        private readonly DuplicateResolver $duplicates = new DuplicateResolver,
     ) {}
 
     public function resolveOrDetect(
@@ -98,7 +99,21 @@ class ImportedVenueManager
                             }
                         }
 
+                        // Tretia kontrola — podobný (nie rovnaký) názov v tej istej
+                        // obci alebo na tých istých súradniciach rozhodne AI.
+                        $existing = $this->duplicates->findVenue(
+                            $normalizedName,
+                            is_numeric($payload['village_id'] ?? null) ? (int) $payload['village_id'] : null,
+                            is_string($payload['street'] ?? null) ? $payload['street'] : $venueStreet,
+                            isset($payload['latitude']) ? (float) $payload['latitude'] : null,
+                            isset($payload['longitude']) ? (float) $payload['longitude'] : null,
+                        );
+                        if ($existing instanceof Venue) {
+                            return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
+                        }
+
                         $venue = Venue::create($payload);
+                        $this->duplicates->markCreated($venue);
                         // Kto miesto priniesol, ten ho aj vlastní — VenuePolicy
                         // sa pýta výhradne na `ownerCanals()`, takže bez toho
                         // importované miesto v dashboarde neupraví nikto okrem
@@ -134,6 +149,19 @@ class ImportedVenueManager
                 }
             }
 
+            if ($venueName !== null) {
+                $existing = $this->duplicates->findVenue(
+                    $name,
+                    (int) $municipality['village_id'],
+                    $venueStreet,
+                    $hasCoordinates ? $latitude : null,
+                    $hasCoordinates ? $longitude : null,
+                );
+                if ($existing instanceof Venue) {
+                    return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
+                }
+            }
+
             $venue = Venue::create([
                 'village_id' => $municipality['village_id'],
                 'name' => Str::limit($name, 250, ''),
@@ -147,6 +175,7 @@ class ImportedVenueManager
                 'latitude' => $hasCoordinates ? $latitude : $municipality['latitude'],
                 'longitude' => $hasCoordinates ? $longitude : $municipality['longitude'],
             ]);
+            $this->duplicates->markCreated($venue);
             // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
             $venue->assignCanal($canal, isOwner: true);
 

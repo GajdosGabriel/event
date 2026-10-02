@@ -16,6 +16,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
+use App\Services\Imports\DuplicateResolver;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
@@ -92,9 +93,54 @@ class DashboardVenueController extends Controller
     {
         $this->authorize('create', Venue::class);
 
-        $venue = $this->venueRepository->create($request->validated());
+        $data = $request->validated();
+        $duplicates = app(DuplicateResolver::class);
+
+        // Miesto je spoločný záznam o reálnom objekte. Keď už v tej istej obci
+        // existuje (rovnaký názov, alebo AI s vysokou istotou), nezakladá sa
+        // kópia — kanál si existujúce miesto len pripojí ako „používa".
+        $existing = $duplicates->findVenue(
+            (string) $data['name'],
+            (int) $data['village_id'],
+            $data['street'] ?? null,
+            isset($data['latitude']) ? (float) $data['latitude'] : null,
+            isset($data['longitude']) ? (float) $data['longitude'] : null,
+            $request->user()->dashboardCanalIds()->map(fn ($id) => (int) $id)->all(),
+        );
+
+        if ($existing instanceof Venue) {
+            foreach ($this->requestedCanalIds($data) as $canalId) {
+                if (! $existing->activeCanals()->where('canals.id', $canalId)->exists()) {
+                    $existing->assignCanal($canalId, isOwner: false);
+                }
+            }
+
+            return response()->json([
+                ...(new VenueResource($existing->fresh(['files', 'canals', 'municipality'])))->resolve($request),
+                'reused' => true,
+            ], 200);
+        }
+
+        $venue = $this->venueRepository->create($data);
+        $duplicates->markCreated($venue);
 
         return response()->json(new VenueResource($venue), 201);
+    }
+
+    /**
+     * Kanály, ktoré formulár k miestu posiela (správca aj „používa").
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, int>
+     */
+    private function requestedCanalIds(array $data): array
+    {
+        return collect([$data['owner_canal_id'] ?? null, $data['canal_id'] ?? null, ...(array) ($data['canal_ids'] ?? [])])
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function detect(VenueDetectRequest $request, Detector $detector): JsonResponse

@@ -396,6 +396,8 @@ export interface AddressModel {
 
 export interface VenueItem {
   id: number
+  /** Server miesto nezaložil, ale použil existujúce (duplicita v tej istej obci). */
+  reused?: boolean
   canalId: number | null
   /** Správca miesta (canal_venue.is_owner) — `null`, keď ho nemá a spravuje ho admin. */
   ownerCanalId: number | null

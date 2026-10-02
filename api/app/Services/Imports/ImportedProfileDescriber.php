@@ -34,18 +34,18 @@ class ImportedProfileDescriber
         // Zberný kanál zdroja nie je reálny organizátor — nie je čo popisovať.
         $description = $isSourceBucket
             ? null
-            : $this->describe(PromptProfile::KIND_CANAL, $name, $host !== null ? "Podujatia pochádzajú zo zdroja {$host}." : null);
+            : $this->describe(PromptProfile::KIND_CANAL, $name, $host !== null ? 'Podujatia pochádzajú z verejných zdrojov.' : null);
 
         if ($description !== null) {
             return $description;
         }
 
         if ($isSourceBucket) {
-            return "Zberný kanál pre podujatia zo zdroja {$host}, ktoré sa nepodarilo priradiť konkrétnemu organizátorovi.";
+            return 'Zberný kanál pre podujatia z verejných zdrojov, ktoré sa nepodarilo priradiť konkrétnemu organizátorovi.';
         }
 
         return $host !== null
-            ? "{$name} — organizátor podujatí. Podujatia sú preberané zo zdroja {$host}."
+            ? "{$name} — organizátor podujatí. Podujatia sú preberané z verejných zdrojov."
             : "{$name} — organizátor podujatí.";
     }
 

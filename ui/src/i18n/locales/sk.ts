@@ -1214,6 +1214,7 @@ const sk = {
       saving: 'Ukladám…',
       cancel: 'Zrušiť',
       created: 'Miesto vytvorené.',
+      reused: 'Toto miesto už existuje – použili sme existujúci záznam.',
       failed: 'Uloženie zlyhalo.',
     },
   },
@@ -1285,6 +1286,7 @@ const sk = {
       loadFailed: 'Nepodarilo sa načítať.',
       saveFailed: 'Uloženie zlyhalo.',
       created: 'Miesto vytvorené.',
+      reused: 'Toto miesto už existuje – použili sme existujúci záznam.',
       saved: 'Miesto uložené.',
     },
     sections: {

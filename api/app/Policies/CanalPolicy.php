@@ -80,7 +80,12 @@ class CanalPolicy
      */
     public function delete(User $user, Canal $canal): bool
     {
-        return $user->canInCanal((int) $canal->id, 'canal.delete');
+        // Prevzatý kanál (importovaný, ktorý si organizátor privlastnil) sa
+        // spravuje, ale nemaže: jeho podujatia a história vznikli z verejných
+        // zdrojov ešte pred prevzatím a zmazaním by zmizli všetkým. Zmazať ho
+        // vie len administrátor (v /admin, kde policy neplatí).
+        return ! $canal->isClaimed()
+            && $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 
     /**

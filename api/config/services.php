@@ -95,6 +95,13 @@ return [
         // Popisy nových kanálov/miest z importu píše AI; pri vypnutí sa použije
         // neutrálny vetný fallback (kanál) alebo prázdny popis (miesto).
         'describe_with_ai' => (bool) env('IMPORTS_DESCRIBE_WITH_AI', env('IMPORTS_DETECT_CANAL_WITH_AI', false)),
+        // Kontrola duplicít kanálov a miest pri importe: AI rozhoduje medzi
+        // kandidátmi s podobným názvom. Pri vysokej istote import použije
+        // existujúci záznam, pri strednej založí nový a nechá ho na kontrolu
+        // (`php artisan imports:duplicates`). Bez AI sa len zapíše podozrenie.
+        'dedupe_with_ai' => (bool) env('IMPORTS_DEDUPE_WITH_AI', false),
+        'dedupe_auto_threshold' => (float) env('IMPORTS_DEDUPE_AUTO_THRESHOLD', 0.85),
+        'dedupe_review_threshold' => (float) env('IMPORTS_DEDUPE_REVIEW_THRESHOLD', 0.5),
         // Web organizátora, ktorý nie je v článku, sa dohľadá vo Wikidata (P856).
         // Bez neho organizátor dostane len web z odkazov článku alebo žiadny.
         'organizer_website_lookup' => (bool) env('IMPORTS_ORGANIZER_WEBSITE_LOOKUP', true),

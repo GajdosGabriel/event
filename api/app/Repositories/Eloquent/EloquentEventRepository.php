@@ -702,6 +702,20 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         $targetCanalId = $forcedCanalId ?? (isset($properties['canal_id']) ? (int) $properties['canal_id'] : null);
 
         if ($targetCanalId !== null && ! $venue->activeCanals()->where('canals.id', $targetCanalId)->exists()) {
+            // Miesto je spoločný záznam o reálnom objekte: zverejnené miesto
+            // cudzieho kanála sa dá použiť a kanál si ho tým pripojí ako
+            // „používa" (bez správy). Organizátor tak nemusí zakladať kópiu
+            // budovy, ktorú už v systéme niekto má.
+            if ($this->isSharedVenue($venue)) {
+                $venue->assignCanal($targetCanalId, isOwner: false);
+
+                if ($forcedCanalId !== null) {
+                    $properties['canal_id'] = $forcedCanalId;
+                }
+
+                return;
+            }
+
             if ($syncCanalFromVenue) {
                 $venueCanalId = $this->resolveVenueCanalId($venue);
                 $this->authorizeCanalReassignment($venueCanalId);
@@ -716,6 +730,29 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
         if ($forcedCanalId !== null) {
             $properties['canal_id'] = $forcedCanalId;
         }
+    }
+
+    /**
+     * Zverejnené miesto, ktoré nepatrí žiadnemu kanálu používateľa — teda to,
+     * ktoré si vybral z vyhľadávania všetkých miest. Miesto z vlastného iného
+     * kanála sem nepatrí: tam ostáva doterajšie správanie (podujatie sa presunie
+     * do kanála miesta, alebo sa výber odmietne).
+     */
+    private function isSharedVenue(Venue $venue): bool
+    {
+        if ($venue->status !== ModelStatus::Published || $venue->category === 'fallback') {
+            return false;
+        }
+
+        $user = auth('sanctum')->user();
+
+        if (! $user instanceof User || $user->hasRole('super-admin')) {
+            return false;
+        }
+
+        return ! $venue->activeCanals()
+            ->whereIn('canals.id', $user->dashboardCanalIds())
+            ->exists();
     }
 
     private function resolveVenueCanalId(Venue $venue): int

@@ -31,13 +31,20 @@ return new class extends Migration
         $descriptions = json_decode((string) file_get_contents(self::DATA_FILE), true, 512, JSON_THROW_ON_ERROR);
 
         foreach ($descriptions as $id => $description) {
-            // Bez updated_at: oprava popisu nemá posúvať „naposledy upravené".
-            DB::table('canals')
+            $canal = DB::table('canals')
                 ->where('id', (int) $id)
                 ->where('name', $description['name'])
                 ->where('identity_mode', 'organization')
-                ->whereRaw('MD5(COALESCE(body, \'\')) = ?', [$description['old']])
-                ->update(['body' => $description['body']]);
+                ->first(['id', 'body']);
+
+            // MD5 sa porovnáva v PHP: v SQL sa kolácia výsledku MD5() líši od
+            // kolácie spojenia a porovnanie padá na „Illegal mix of collations".
+            if ($canal === null || md5((string) $canal->body) !== $description['old']) {
+                continue;
+            }
+
+            // Bez updated_at: oprava popisu nemá posúvať „naposledy upravené".
+            DB::table('canals')->where('id', $canal->id)->update(['body' => $description['body']]);
         }
     }
 

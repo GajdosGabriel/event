@@ -655,7 +655,7 @@ async function saveNewVenue() {
     createdHere.add(`venue:${created.id}`)
     form.value.venue_id = created.id
     venueModal.value.show = false
-    toast.success(t('events.venueModal.created'))
+    toast.success(t(created.reused ? 'events.venueModal.reused' : 'events.venueModal.created'))
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) venueModal.value.errors = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))
