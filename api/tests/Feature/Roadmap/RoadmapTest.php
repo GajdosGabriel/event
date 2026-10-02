@@ -110,11 +110,15 @@ class RoadmapTest extends EventSetupTest
         $this->postJson($url, ['target_id' => $target->id])->assertNotFound();
     }
 
-    public function test_remote_form_search_does_not_expand_to_unrelated_venues(): void
+    public function test_remote_form_search_offers_published_venues_of_other_canals_but_not_unpublished_ones(): void
     {
+        // Miesto je spoločný záznam — výber vo formulári podujatia ponúka cudzie
+        // zverejnené miesta (EloquentVenueRepository::selectableQuery()), nie koncepty.
         $other = Canal::factory()->create();
         Venue::factory()->create(['canal_id' => $other->id, 'name' => 'Isolated Roadmap Place', 'status' => 'published']);
-        $this->getJson('/api/dashboard/venues?search=Isolated%20Roadmap%20Place&for_select=1')
-            ->assertOk()->assertJsonCount(0, 'data');
+        Venue::factory()->create(['canal_id' => $other->id, 'name' => 'Isolated Roadmap Draft', 'status' => 'draft']);
+
+        $this->getJson('/api/dashboard/venues?search=Isolated%20Roadmap&for_select=1')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.name', 'Isolated Roadmap Place');
     }
 }

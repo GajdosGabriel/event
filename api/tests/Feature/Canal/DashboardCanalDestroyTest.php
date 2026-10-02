@@ -20,6 +20,9 @@ class DashboardCanalDestroyTest extends CanalSetupTest
     #[Test]
     public function user_cannot_delete_published_canal_from_dashboard_scope(): void
     {
+        // Osobný kanál dáva používateľovi globálnu rolu canal-owner; test overuje editora.
+        $this->user->syncRoles(['canal-editor']);
+
         $this->assertSame(ModelStatus::Published, $this->canalPrimary->status);
 
         $response = $this->deleteJson('/api/dashboard/canals/'.$this->canalPrimary->id);
@@ -49,6 +52,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->user->forgetCanalRoles();
 
         Event::factory()->create([
             'canal_id' => $canal->id,
@@ -79,6 +83,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->user->forgetCanalRoles();
 
         $this->deleteJson('/api/dashboard/canals/'.$canal->id)->assertStatus(204);
 
@@ -99,6 +104,7 @@ class DashboardCanalDestroyTest extends CanalSetupTest
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->user->forgetCanalRoles();
 
         Event::factory()->create([
             'canal_id' => $canal->id,

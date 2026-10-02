@@ -78,6 +78,8 @@ class DashboardOrganizationEndpointsTest extends UserSetupTest
     {
         /** @var User $rolelessUser */
         $rolelessUser = User::factory()->create();
+        // Osobný kanál dáva globálnu rolu canal-owner; „bez roly“ treba nastaviť výslovne.
+        $rolelessUser->syncRoles([]);
         $this->actingAs($rolelessUser, 'sanctum');
 
         $response = $this->getJson('/api/dashboard/organizations');

@@ -16,7 +16,7 @@ class AuthServiceProviderTest extends UserSetupTest
         $this->assertTrue(Gate::allows('some-ability'));
 
         // Pre overenie, že to neovplyvní iných užívateľov
-        $this->user->assignRole('canal-editor'); // Pridáme normálnu rolu pre testovanie
+        $this->user->syncRoles(['canal-editor']); // Nahradíme normálnu rolu pre testovanie
         $this->actingAs($this->user, 'sanctum');
 
         // Editor podujatia zakladá a upravuje — migrácia

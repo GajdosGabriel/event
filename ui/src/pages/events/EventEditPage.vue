@@ -131,6 +131,11 @@
                   :params="{ canal_id: form.canal_id, for_select: true }"
                   @selected="selectedPlace = $event"
                   :placeholder="t('events.fields.venuePlaceholder')"
+                  :search-placeholder="t('events.fields.venueSearchPlaceholder')"
+                  :idle-label="t('events.fields.venueIdleLabel')"
+                  :idle-hint="t('events.fields.venueIdleHint')"
+                  :search-label="t('events.fields.venueSearchLabel')"
+                  :empty-hint="t('events.fields.venueEmptyHint')"
                   :invalid="invalid"
                   @update:model-value="update"
                 />

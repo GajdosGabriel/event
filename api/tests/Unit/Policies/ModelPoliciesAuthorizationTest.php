@@ -34,6 +34,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $member->forgetCanalRoles();
 
         $policy = new CanalPolicy;
 
@@ -64,6 +65,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $member->forgetCanalRoles();
 
         $outsider = User::factory()->create();
 
@@ -101,6 +103,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $member->forgetCanalRoles();
 
         $checkin = User::factory()->create();
         $checkin->canals()->attach($canal->id, [
@@ -110,6 +113,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $checkin->forgetCanalRoles();
 
         $venueByCanal = Venue::factory()->forCanal($canal->id)->create([
             'status' => ModelStatus::Draft->value,
@@ -155,6 +159,7 @@ class ModelPoliciesAuthorizationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $member->forgetCanalRoles();
 
         $outsider = User::factory()->create();
         $unverified = User::factory()->unverified()->create();

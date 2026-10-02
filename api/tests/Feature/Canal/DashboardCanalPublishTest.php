@@ -26,6 +26,7 @@ class DashboardCanalPublishTest extends CanalSetupTest
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->user->forgetCanalRoles();
 
         return $canal;
     }

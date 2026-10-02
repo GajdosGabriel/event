@@ -31,27 +31,32 @@
             v-model="search"
             type="text"
             class="form-input h-8 text-sm"
-            :placeholder="t('filters.search')"
+            :placeholder="searchPlaceholder ?? t('filters.search')"
             @click.stop
             @keydown.down.prevent="active = Math.min(active + 1, filtered.length - 1)"
             @keydown.up.prevent="active = Math.max(active - 1, 0)"
             @keydown.enter.prevent="selectActive"
             @keydown.esc.stop.prevent="open = false; trigger?.focus()"
             role="combobox"
-            :aria-label="t('filters.search')"
+            :aria-label="searchPlaceholder ?? t('filters.search')"
             :aria-expanded="open"
             :aria-controls="listId"
             :aria-activedescendant="filtered[active] ? `${listId}-${filtered[active]?.id}` : undefined"
           />
         </div>
         <ul class="max-h-52 overflow-y-auto py-1" role="listbox" :id="listId" :aria-busy="loading">
+          <!-- Nadpis hovorí, čo zoznam práve obsahuje: bez hľadania len „moje"
+               položky, po zadaní textu výsledky z celého portálu. -->
+          <li v-if="sectionLabel && filtered.length" role="presentation" class="px-3 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            {{ sectionLabel }}
+          </li>
           <li v-if="loading" class="px-3 py-2 text-sm">{{ t('common.loading') }}</li>
           <li v-if="failed" class="px-3 py-2 text-sm" role="alert">{{ t('common.actionFailed') }} <button type="button" @click="fetchOptions(nextPage)">{{ t('roadmap.retry') }}</button></li>
           <li
-            v-if="!filtered.length && !loading && !failed"
+            v-if="!filtered.length && !loading && !failed && (searching || !idleHint)"
             class="px-3 py-2 text-sm text-slate-400"
           >
-            {{ t('filters.noResults') }}
+            {{ searching && emptyHint ? emptyHint : t('filters.noResults') }}
           </li>
           <li
             v-for="(opt, index) in filtered"
@@ -68,6 +73,9 @@
           </li>
         </ul>
         <button v-if="source && nextPage <= lastPage && !loading && !failed" type="button" class="p-2 text-sm" @click="fetchOptions(nextPage)">{{ t('roadmap.more') }}</button>
+        <p v-if="idleHint && !searching && !loading" class="border-t border-slate-100 bg-slate-50 px-3 py-2 text-xs leading-snug text-slate-600 rounded-b-xl">
+          {{ idleHint }}
+        </p>
       </div>
     </Teleport>
   </div>
@@ -89,6 +97,16 @@ const props = defineProps<{
   invalid?: boolean
   source?: string
   params?: Record<string, unknown>
+  /** Text v poli hľadania (predvolene všeobecné „Hľadať"). */
+  searchPlaceholder?: string
+  /** Nadpis zoznamu, kým sa nič nehľadá (napr. „Vaše miesta"). */
+  idleLabel?: string
+  /** Nadpis výsledkov po zadaní hľadaného výrazu. */
+  searchLabel?: string
+  /** Pokyn pod zoznamom, kým sa nič nehľadá — vysvetlí, že hľadať sa dá aj inde. */
+  idleHint?: string
+  /** Text pri hľadaní bez výsledku. */
+  emptyHint?: string
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', v: number | null): void; (e: 'selected', option: Option): void }>()
@@ -112,6 +130,9 @@ const search = ref('')
 const dropStyle = ref<Record<string, string>>({})
 
 const selectedOpt = computed(() => [...props.options, ...remote.value, ...(chosen.value ? [chosen.value] : [])].find(o => o.id === props.modelValue) ?? null)
+
+const searching = computed(() => search.value.trim() !== '')
+const sectionLabel = computed(() => (searching.value ? props.searchLabel : props.idleLabel))
 
 const filtered = computed(() => {
   if (props.source) return remote.value
