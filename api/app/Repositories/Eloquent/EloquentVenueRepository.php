@@ -176,6 +176,12 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             $canalIds = array_values(array_unique([$ownerCanalId, ...$canalIds]));
         }
 
+        // Prázdna krajina z formulára príde ako null; stĺpec je NOT NULL
+        // s defaultom, takže ju necháme doplniť databázou.
+        if (($properties['country'] ?? null) === null) {
+            unset($properties['country']);
+        }
+
         /** @var Venue $venue */
         $venue = parent::create($properties);
         $venue->syncCanalAssignments($canalIds, true, $ownerCanalId ?: null);
@@ -197,6 +203,11 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         // Stav sa dá zhodiť aj <select>-om vo formulári, nielen tlačidlom —
         // zámok odpublikovania musí stáť v oboch cestách. Viď UnpublishGuard.
         (new UnpublishGuard)->assert($venue, $properties['status'] ?? null);
+
+        // Vymazaná krajina: stĺpec je NOT NULL, ostáva doterajšia hodnota.
+        if (array_key_exists('country', $properties) && $properties['country'] === null) {
+            unset($properties['country']);
+        }
 
         $venue->update($properties);
 

@@ -427,7 +427,7 @@ return [
     // App\Notifications\EventSignupOrganizerNotice — organizátorovi pri prihlásení na akciu.
     'event_signup_organizer' => [
         'subject' => 'Nový účastník na akcii :event',
-        'intro' => 'Na vašu akciu **„:event"** sa cez portál Hlas Cirkvi prihlásil(a) **:name**.',
+        'intro' => 'Na vašu akciu **„:event"** sa cez portál :site prihlásil(a) **:name**.',
         'reserved' => 'Miesto je rezervované — účastník dostal vstupenku s QR kódom a je v zozname prihlásených.',
         'interest' => 'Rezervácia miest je vypnutá, vyžaduje platený lístok alebo je plno, preto sme vstupenku nevystavili a zaznamenali len záujem. Ozvite sa, prosím, účastníkovi.',
         'count' => '{1} Zatiaľ je prihlásený **:count** účastník.|[2,4] Prihlásení sú už **:count** účastníci.|[5,*] Prihlásených je už **:count** účastníkov.',

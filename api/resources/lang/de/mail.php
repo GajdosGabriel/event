@@ -419,7 +419,7 @@ return [
 
     'event_signup_organizer' => [
         'subject' => 'Neue Anmeldung für :event',
-        'intro' => '**:name** hat sich über Hlas Cirkvi zu Ihrer Veranstaltung **„:event"** angemeldet.',
+        'intro' => '**:name** hat sich über :site zu Ihrer Veranstaltung **„:event"** angemeldet.',
         'reserved' => 'Der Platz ist reserviert — die Person hat ein Ticket mit QR-Code erhalten und steht auf der Teilnehmerliste.',
         'interest' => 'Reservierungen sind aus, erfordern ein kostenpflichtiges Ticket oder es ist voll, daher wurde nur das Interesse erfasst. Bitte melden Sie sich bei der Person.',
         'count' => '{1} Bisher ist **:count** Person angemeldet.|[2,*] Bisher sind **:count** Personen angemeldet.',

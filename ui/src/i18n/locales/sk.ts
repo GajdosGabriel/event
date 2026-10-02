@@ -723,6 +723,9 @@ const sk = {
     // Tvary podľa počtu — viď helper `plural` v @/i18n.
     admissions: { one: '{n} vstupenka', few: '{n} vstupenky', many: '{n} vstupeniek' },
     open: 'Otvoriť vstupenku',
+    orderedBy: 'objednal(a) {name}',
+    confirm: 'Potvrdiť účasť',
+    openQr: 'Zobraziť QR kód',
     calendar: 'Do kalendára',
     cancel: 'Zrušiť registráciu',
     cancelling: 'Ruším…',
@@ -1320,15 +1323,10 @@ const sk = {
     // Predvyplnenie miesta z AI. Formulár sa prepíše až po potvrdení, aby
     // ručne zadané údaje nezmizli jedným kliknutím.
     detect: {
-      show: 'Vyplniť pomocou AI',
-      hide: 'Skryť AI detekciu',
-      name: 'Názov miesta',
-      namePlaceholder: 'napr. Kultúrny dom',
-      city: 'Mesto / Obec',
-      cityPlaceholder: 'napr. Trenčín',
-      country: 'Krajina',
-      countryPlaceholder: 'Slovensko',
-      run: 'Detekovať',
+      title: 'Doplniť zvyšok pomocou AI',
+      lead: 'Podľa názvu „{name}“ a obce {city} vyhľadáme adresu, kontakt a popis. Do formulára sa dostanú, až keď ich potvrdíte.',
+      needCity: 'Vyberte v adrese obec — podľa názvu a obce potom AI vyhľadá adresu, kontakt a popis miesta.',
+      run: 'Vyhľadať údaje',
       running: 'Detekujem…',
       result: 'Výsledok detekcie:',
       apply: 'Vyplniť formulár',

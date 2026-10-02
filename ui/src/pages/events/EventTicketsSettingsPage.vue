@@ -14,9 +14,9 @@
       <section class="rounded-2xl border border-slate-200 bg-white p-5">
         <div class="mb-1 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-slate-800">{{ t('tickets.settings.typesTitle') }}</h2>
-          <RouterLink :to="{ name: 'dashboard-events-tickets-create', params: { id: eventId } }" class="btn btn-secondary">
+          <button v-if="types.length && !adding" type="button" class="btn btn-secondary" @click="adding = true">
             {{ t('tickets.settings.typeNew') }}
-          </RouterLink>
+          </button>
         </div>
 
         <p class="mb-3 text-xs text-slate-500">{{ t('tickets.settings.lead') }}</p>
@@ -73,6 +73,19 @@
           </table>
         </div>
       </section>
+
+      <!-- Nový typ sa zakladá tu, nie na ďalšej obrazovke: pri prázdnom
+           zozname je formulár otvorený hneď, inak ho otvorí „+ Nový typ". -->
+      <div v-if="adding || !types.length" class="mt-5">
+        <h2 class="mb-3 text-lg font-semibold text-slate-800">{{ t('tickets.type.createTitle') }}</h2>
+        <TicketTypeForm
+          :key="formKey"
+          :event-id="eventId"
+          :cancellable="types.length > 0"
+          @saved="onTypeSaved"
+          @cancel="adding = false"
+        />
+      </div>
     </template>
   </div>
 </template>
@@ -86,6 +99,7 @@ import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import RowActions from '@/components/RowActions.vue'
+import TicketTypeForm from '@/components/TicketTypeForm.vue'
 import type { TicketTypeItem } from '@/types'
 import { formatPrice } from '@/utils/money'
 
@@ -98,6 +112,16 @@ const loadError = ref<string | null>(null)
 const eventName = ref('')
 
 const types = ref<TicketTypeItem[]>([])
+/** Otvorený formulár nového typu (pri prázdnom zozname je otvorený vždy). */
+const adding = ref(false)
+/** Po uložení sa formulár zahodí a vytvorí nanovo, aby začínal prázdny. */
+const formKey = ref(0)
+
+async function onTypeSaved() {
+  types.value = await indexTicketTypes(eventId)
+  adding.value = false
+  formKey.value++
+}
 
 async function loadAll() {
   loading.value = true

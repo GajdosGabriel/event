@@ -419,7 +419,7 @@ return [
 
     'event_signup_organizer' => [
         'subject' => 'Nový účastník na akci :event',
-        'intro' => 'Na vaši akci **„:event"** se přes portál Hlas Cirkvi přihlásil(a) **:name**.',
+        'intro' => 'Na vaši akci **„:event"** se přes portál :site přihlásil(a) **:name**.',
         'reserved' => 'Místo je rezervováno — účastník dostal vstupenku s QR kódem a je v seznamu přihlášených.',
         'interest' => 'Rezervace míst je vypnutá, vyžaduje placenou vstupenku nebo je plno, proto jsme vstupenku nevystavili a zaznamenali jen zájem. Ozvěte se prosím účastníkovi.',
         'count' => '{1} Zatím je přihlášen **:count** účastník.|[2,4] Přihlášeni jsou už **:count** účastníci.|[5,*] Přihlášeno je už **:count** účastníků.',

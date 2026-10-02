@@ -52,7 +52,7 @@
             </div>
 
             <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusClass(ticket)">
-              {{ ticket.statusLabel }}
+              {{ statusLabel(ticket) }}
             </span>
           </div>
 
@@ -61,11 +61,31 @@
             <span v-if="ticket.priceAmount">
               · {{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }} ({{ ticket.paymentStatusLabel }})
             </span>
+            <span v-if="ticket.attendeeOnly">· {{ t('myTickets.orderedBy', { name: ticket.holderName }) }}</span>
           </p>
 
           <div class="mt-4 flex flex-wrap gap-2">
+            <!-- Vstupenka v cudzej objednávke: detail objednávky ukazuje QR
+                 kódy všetkých miest, preto účastník dostane len svoje. -->
+            <template v-if="ticket.attendeeOnly">
+              <RouterLink v-if="seat(ticket)?.confirmationStatus === 'pending' && ticket.rsvpToken" :to="`/rsvp/${ticket.rsvpToken}`" class="btn btn-primary">
+                {{ t('myTickets.confirm') }}
+              </RouterLink>
+              <template v-else>
+                <a
+                  v-for="admission in ticket.admissions.filter(hasQr)"
+                  :key="admission.uuid"
+                  :href="admission.qrUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-primary"
+                >
+                  {{ t('myTickets.openQr') }}
+                </a>
+              </template>
+            </template>
             <!-- Detail s QR je tá istá stránka, na akú vedie odkaz z e-mailu. -->
-            <RouterLink :to="`/tickets/${ticket.uuid}`" class="btn btn-primary">
+            <RouterLink v-else :to="`/tickets/${ticket.uuid}`" class="btn btn-primary">
               {{ t('myTickets.open') }}
             </RouterLink>
             <a v-if="ticket.event" :href="calendarUrl(ticket.event.id)" class="action-btn">
@@ -132,7 +152,7 @@ import { useHead } from '@vueuse/head'
 import { myTickets, mySubscriptions, cancelMySubscription, type MySubscription } from '@/api/me'
 import { cancelOwnRegistration } from '@/api/tickets'
 import { BASE_URL } from '@/api'
-import type { TicketItem } from '@/types'
+import type { AdmissionItem, TicketItem } from '@/types'
 import { t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { publicEventPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
@@ -207,7 +227,28 @@ function venueLabel(ticket: TicketItem): string | null {
   return event.venue?.name ?? event.locationName ?? null
 }
 
+/** Účastníkova vstupenka v cudzej objednávke (API mu posiela len jeho miesta). */
+function seat(ticket: TicketItem): AdmissionItem | undefined {
+  return ticket.attendeeOnly ? ticket.admissions[0] : undefined
+}
+
+/** QR kód vzniká až po potvrdení účasti. */
+function hasQr(admission: AdmissionItem): boolean {
+  return admission.status === 'valid' && (admission.confirmationStatus === null || admission.confirmationStatus === 'confirmed')
+}
+
+function statusLabel(ticket: TicketItem): string {
+  const own = seat(ticket)
+  if (!own) return ticket.statusLabel
+  return own.status === 'valid' ? own.confirmationStatusLabel ?? own.statusLabel : own.statusLabel
+}
+
 function statusClass(ticket: TicketItem): string {
+  const own = seat(ticket)
+  if (own) {
+    if (own.status !== 'valid') return 'bg-red-100 text-red-700'
+    return own.confirmationStatus === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
+  }
   if (ticket.status === 'cancelled') return 'bg-red-100 text-red-700'
   if (ticket.status === 'reserved') return 'bg-amber-100 text-amber-800'
   return 'bg-emerald-100 text-emerald-700'
@@ -219,7 +260,7 @@ function statusClass(ticket: TicketItem): string {
  * tlačidlo, ktoré nemá čo robiť.
  */
 function canCancel(ticket: TicketItem): boolean {
-  return list.value === 'upcoming' && ticket.status !== 'cancelled' && Boolean(ticket.event?.id)
+  return list.value === 'upcoming' && !ticket.attendeeOnly && ticket.status !== 'cancelled' && Boolean(ticket.event?.id)
 }
 
 function calendarUrl(eventId: number): string {

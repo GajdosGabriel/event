@@ -64,6 +64,8 @@ export function mapTicket(raw: Record<string, unknown>): TicketItem {
     checkedInCount: (raw['checked_in_count'] as number) ?? 0,
     admissionsTotal: (raw['admissions_total'] as number) ?? admissions.length,
     admissions: admissions.map(mapAdmission),
+    attendeeOnly: Boolean(raw['attendee_only']),
+    rsvpToken: (raw['rsvp_token'] as string) ?? null,
     createdAt: raw['created_at'] as string,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     // Cez mapEvent, nie pretypovaním: raw prichádza v snake_case, takže

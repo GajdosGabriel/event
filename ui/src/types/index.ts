@@ -703,6 +703,10 @@ export interface TicketItem {
   checkedInCount: number
   admissionsTotal: number
   admissions: AdmissionItem[]
+  /** „Moje lístky": vstupenka v cudzej objednávke — `uuid` je vtedy uuid vstupenky, nie objednávky. */
+  attendeeOnly?: boolean
+  /** Token stránky /rsvp/{token}, kde účastník účasť potvrdí alebo zruší. */
+  rsvpToken?: string | null
   createdAt: string
   deletedAt?: string | null
   event?: EventItem

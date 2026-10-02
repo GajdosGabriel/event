@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Me;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\TicketResource;
+use App\Http\Resources\MyTicketResource;
 use App\Services\Tickets\TicketOwnership;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -61,6 +61,6 @@ class TicketController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return TicketResource::collection($tickets);
+        return MyTicketResource::collection($tickets);
     }
 }

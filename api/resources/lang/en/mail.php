@@ -419,7 +419,7 @@ return [
 
     'event_signup_organizer' => [
         'subject' => 'New attendee for :event',
-        'intro' => '**:name** has signed up for your event **":event"** via Hlas Cirkvi.',
+        'intro' => '**:name** has signed up for your event **":event"** via :site.',
         'reserved' => 'The place is reserved — the attendee received a ticket with a QR code and is on the attendee list.',
         'interest' => 'Reservations are off, require a paid ticket or the event is full, so no ticket was issued and only interest was recorded. Please get in touch with the attendee.',
         'count' => '{1} So far **:count** attendee has signed up.|[2,*] **:count** attendees have signed up so far.',

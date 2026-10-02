@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\ModelStatus;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -50,6 +51,19 @@ class VerifiedUserCanalRoleTest extends TestCase
             'is_owner' => 1,
             'status' => ModelStatus::Published->value,
         ]);
+    }
+
+    #[Test]
+    public function verified_user_gets_the_global_owner_role_and_may_create_a_venue(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $this->assertTrue($user->fresh()->hasRole('canal-owner'));
+        $this->assertTrue($user->fresh()->can('venue.create'));
     }
 
     #[Test]

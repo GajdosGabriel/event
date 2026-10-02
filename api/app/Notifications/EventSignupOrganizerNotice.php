@@ -50,7 +50,7 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
         $mail = (new MailMessage)
             ->subject(__('mail.event_signup_organizer.subject', ['event' => $event]))
             ->greeting(__('mail.common.greeting'))
-            ->line(__('mail.event_signup_organizer.intro', ['event' => $event, 'name' => $name]))
+            ->line(__('mail.event_signup_organizer.intro', ['event' => $event, 'name' => $name, 'site' => (string) config('app.name')]))
             ->line(__($this->reserved
                 ? 'mail.event_signup_organizer.reserved'
                 : 'mail.event_signup_organizer.interest'));

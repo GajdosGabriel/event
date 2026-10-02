@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Tickets;
 
+use App\Enums\AdmissionStatus;
+use App\Enums\AttendeeConfirmationStatus;
 use App\Enums\TicketStatus;
 use App\Models\Subscription;
 use App\Models\Ticket;
@@ -44,6 +46,55 @@ class MyTicketsTest extends EventSetupTest
 
         $response->assertOk();
         $response->assertJsonPath('data.0.uuid', $ticket->uuid);
+    }
+
+    /**
+     * Vstupenku objednal niekto iný a účastníka uviedol e-mailom. Účastník ju
+     * vidí, ale len svoje miesto — `uuid` objednávky by mu cez /tickets/{uuid}
+     * otvorilo QR kódy objednávateľa.
+     */
+    #[Test]
+    public function attendee_sees_only_own_seat_of_an_order_made_by_someone_else(): void
+    {
+        $ticket = $this->ticketFor($this->futureEvent, ['user_id' => null, 'quantity' => 2, 'price_amount' => 2000]);
+        $holderSeat = $ticket->admissions()->create(['event_id' => $this->futureEvent->id, 'status' => AdmissionStatus::Valid->value]);
+        $ownSeat = $ticket->admissions()->create([
+            'event_id' => $this->futureEvent->id,
+            'status' => AdmissionStatus::Valid->value,
+            'attendee_name' => 'Peter Pozvaný',
+            'attendee_email' => mb_strtoupper($this->user->email),
+            'confirmation_status' => AttendeeConfirmationStatus::Pending->value,
+            'confirmation_token' => 'rsvp-token',
+        ]);
+
+        $response = $this->getJson('/api/me/tickets')->assertOk();
+
+        $response->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.attendee_only', true)
+            ->assertJsonPath('data.0.uuid', $ownSeat->uuid)
+            ->assertJsonPath('data.0.rsvp_token', 'rsvp-token')
+            ->assertJsonPath('data.0.price_amount', null)
+            ->assertJsonCount(1, 'data.0.admissions')
+            ->assertJsonPath('data.0.admissions.0.uuid', $ownSeat->uuid);
+
+        $this->assertStringNotContainsString($ticket->uuid, $response->getContent());
+        $this->assertStringNotContainsString($holderSeat->uuid, $response->getContent());
+    }
+
+    #[Test]
+    public function declined_seat_of_a_foreign_order_moves_to_history(): void
+    {
+        $ticket = $this->ticketFor($this->futureEvent, ['user_id' => null]);
+        $ticket->admissions()->create([
+            'event_id' => $this->futureEvent->id,
+            'status' => AdmissionStatus::Cancelled->value,
+            'attendee_email' => $this->user->email,
+        ]);
+
+        $this->getJson('/api/me/tickets')->assertJsonCount(0, 'data');
+        $this->getJson('/api/me/tickets?list=past')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.attendee_only', true);
     }
 
     #[Test]

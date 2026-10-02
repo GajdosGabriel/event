@@ -2,6 +2,7 @@
 
 namespace App\Services\Tickets;
 
+use App\Enums\AdmissionStatus;
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\User;
@@ -41,9 +42,34 @@ class TicketOwnership
             $q->where('tickets.user_id', $user->id);
 
             if ($email !== '') {
-                $q->orWhereRaw('LOWER(tickets.holder_email) = ?', [$email]);
+                $q->orWhereRaw('LOWER(tickets.holder_email) = ?', [$email])
+                    // Vstupenka v cudzej objednávke: objednal ju niekto iný a
+                    // účastníka uviedol e-mailom. Zvonček ho posiela na „Moje
+                    // lístky", takže ju tam musí nájsť (viď MyTicketResource).
+                    ->orWhereHas('admissions', fn (Builder $a) => $this->attendee($a, $email));
             }
         });
+    }
+
+    /** Je účet objednávateľom, alebo len účastníkom na cudzej objednávke? */
+    public function isHolder(Ticket $ticket, User $user): bool
+    {
+        return (int) $ticket->user_id === (int) $user->id
+            || $this->email($user) === mb_strtolower(trim((string) $ticket->holder_email));
+    }
+
+    public function email(User $user): string
+    {
+        return mb_strtolower(trim((string) $user->email));
+    }
+
+    private function attendee(Builder $admissions, string $email, bool $validOnly = false): Builder
+    {
+        $admissions->whereRaw('LOWER(attendee_email) = ?', [$email]);
+
+        return $validOnly
+            ? $admissions->where('status', AdmissionStatus::Valid->value)
+            : $admissions;
     }
 
     /**
@@ -58,8 +84,20 @@ class TicketOwnership
      */
     public function upcoming(User $user): Builder
     {
+        $email = $this->email($user);
+
         return $this->query($user)
             ->where('tickets.status', '!=', TicketStatus::Cancelled->value)
+            // Účastník cudzej objednávky ju má pred sebou len dovtedy, kým jeho
+            // vlastná vstupenka platí — odmietnutá patrí do histórie.
+            ->where(function (Builder $q) use ($user, $email) {
+                $q->where('tickets.user_id', $user->id);
+
+                if ($email !== '') {
+                    $q->orWhereRaw('LOWER(tickets.holder_email) = ?', [$email])
+                        ->orWhereHas('admissions', fn (Builder $a) => $this->attendee($a, $email, true));
+                }
+            })
             ->whereHas('event', fn (Builder $q) => $q
                 ->where(function (Builder $qq) {
                     // Bez prefixu: vnútro `whereHas` je samostatný poddotaz
@@ -79,6 +117,10 @@ class TicketOwnership
         return $this->query($user)
             ->where(fn (Builder $q) => $q
                 ->where('tickets.status', TicketStatus::Cancelled->value)
-                ->orWhereHas('event', fn (Builder $qq) => $qq->where('start_at', '<', now()->startOfDay())));
+                ->orWhereHas('event', fn (Builder $qq) => $qq->where('start_at', '<', now()->startOfDay()))
+                // Cudzia objednávka, v ktorej účastníkova vstupenka už neplatí.
+                ->orWhere(fn (Builder $qq) => $qq
+                    ->whereHas('event')
+                    ->whereNotIn('tickets.id', $this->upcoming($user)->select('tickets.id'))));
     }
 }
