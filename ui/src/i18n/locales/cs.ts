@@ -1,6 +1,7 @@
 import type { Messages } from './sk'
 
 const cs: Messages = {
+  pagination: { label: 'Stránkování', previous: 'Předchozí strana', next: 'Následující strana', page: 'Strana {n}' },
   notifications: {
     title: "Upozornění",
     unread: "Upozornění: {count} nepřečtených",
@@ -993,6 +994,7 @@ const cs: Messages = {
   },
   events: {
     series: {
+      loadFailed: "Termíny se nepodařilo načíst.",
       title: 'Termíny ({n})',
       emptyTitle: 'Opakuje se akce?',
       emptyLead: 'Přidejte další termín a popis, obrázky i místo zůstanou společné. Každý termín má vlastní kapacitu a vlastní seznam přihlášených.',
@@ -2622,6 +2624,14 @@ const cs: Messages = {
     reset: 'Zrušit filtry',
     allStatuses: 'Všechny stavy',
     allPhases: 'Kdykoliv',
+    attention: {
+      title: 'Vyžaduje pozornost',
+      all: 'Bez omezení',
+      stale_drafts: 'Koncepty starší než týden',
+      past_drafts: 'Koncepty po začátku termínu',
+      missing_image: 'Zveřejněné bez obrázku',
+      empty_upcoming: 'Nejbližší bez účastníků',
+    },
     phaseTitle: 'Termín',
     sortTitle: 'Řazení',
     dateFrom: 'Od',

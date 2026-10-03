@@ -17,15 +17,19 @@
         :sort-options="sortOptions"
         :show-date-range="resource === 'event'"
         :canal-filter="canalFilter"
-        :extra-active="withoutOwner ? 1 : 0"
+        :extra-active="Number(withoutOwner) + Number(Boolean(attentionFilter))"
         :history-key="`${scope}-${resource}`"
         @change="load(1)"
         @clear-canal="canalFilter = null"
-        @reset="withoutOwner = false"
+        @reset="withoutOwner = false; attentionFilter = ''"
       >
         <!-- Miesta bez správcu — zoznam na ručné priradenie (len admin). -->
-        <template v-if="canFilterWithoutOwner" #filters>
-          <label class="flex h-10 items-center gap-2 text-sm text-slate-600">
+        <template #filters>
+          <select v-if="resource === 'event'" v-model="attentionFilter" class="form-input w-auto" :aria-label="t('filters.attention.title')" @change="load(1)">
+            <option value="">{{ t('filters.attention.all') }}</option>
+            <option v-for="key in attentionKeys" :key="key" :value="key">{{ t(`filters.attention.${key}`) }}</option>
+          </select>
+          <label v-if="canFilterWithoutOwner" class="flex h-10 items-center gap-2 text-sm text-slate-600">
             <input v-model="withoutOwner" type="checkbox" class="form-checkbox" @change="load(1)" />
             {{ t('venues.filters.withoutOwner') }}
           </label>
@@ -295,11 +299,12 @@ const items = ref<ResourceItem[]>([])
 const canCreate = ref(false)
 const requestedPage = ref(1)
 let requestVersion = 0
-const hasFilters = computed(() => Boolean(search.value || statusFilter.value || phaseFilter.value || dateFrom.value || dateTo.value || canalFilter.value || route.query.municipality))
+const hasFilters = computed(() => Boolean(search.value || statusFilter.value || phaseFilter.value || attentionFilter.value || withoutOwner.value || dateFrom.value || dateTo.value || canalFilter.value || route.query.municipality))
 async function clearFilters() {
   search.value = ''; statusFilter.value = ''; phaseFilter.value = ''
   dateFrom.value = ''; dateTo.value = ''; canalFilter.value = null
   sortFilter.value = 'newest'
+  attentionFilter.value = ''; withoutOwner.value = false
   await router.replace({ query: {} })
   load(1)
 }
@@ -310,6 +315,8 @@ const lastPage = ref(1)
 const search = ref('')
 const statusFilter = ref('')
 const phaseFilter = ref('')
+const attentionKeys = ['stale_drafts', 'past_drafts', 'missing_image', 'empty_upcoming'] as const
+const attentionFilter = ref('')
 const sortFilter = ref('newest')
 const dateFrom = ref('')
 const dateTo = ref('')
@@ -364,6 +371,7 @@ function filtersToQuery(): Record<string, string> {
   if (search.value) q['q'] = search.value
   if (statusFilter.value) q['status'] = statusFilter.value
   if (phaseFilter.value) q['phase'] = phaseFilter.value
+  if (attentionFilter.value && props.resource === 'event') q['attention'] = attentionFilter.value
   if (sortFilter.value && sortFilter.value !== 'newest') q['sort'] = sortFilter.value
   if (dateFrom.value) q['from'] = dateFrom.value
   if (dateTo.value) q['to'] = dateTo.value
@@ -380,6 +388,7 @@ function filtersFromQuery() {
   search.value = typeof q.q === 'string' ? q.q : ''
   statusFilter.value = typeof q.status === 'string' ? q.status : ''
   phaseFilter.value = typeof q.phase === 'string' ? q.phase : ''
+  attentionFilter.value = props.resource === 'event' && typeof q.attention === 'string' && attentionKeys.some(key => key === q.attention) ? q.attention : ''
   sortFilter.value = typeof q.sort === 'string' ? q.sort : 'newest'
   dateFrom.value = typeof q.from === 'string' ? q.from : ''
   dateTo.value = typeof q.to === 'string' ? q.to : ''
@@ -397,6 +406,16 @@ function filtersFromQuery() {
 function syncQuery(page: number) {
   replaceQuery(filtersToQuery(), page)
 }
+
+// Sidebar links and browser history can change filters while Vue reuses this page.
+// Register before the pagination watcher so a simultaneous page change uses the new filters.
+watch(() => route.query, query => {
+  const keys = ['q', 'status', 'phase', 'sort', 'from', 'to', 'without_owner', 'canal_id', 'canal_name', 'attention']
+  const current = filtersToQuery()
+  if (keys.every(key => (query[key] ?? '') === (current[key] ?? ''))) return
+  filtersFromQuery()
+  load(pageFromQuery())
+})
 
 /**
  * Číslo strany drží v adrese (`?page=`) — inak sa zoznam po návrate z detailu
@@ -422,6 +441,7 @@ async function fetchPage(p: number) {
       params['status'] = statusFilter.value
     }
     if (phaseFilter.value) params['phase'] = phaseFilter.value
+    if (attentionFilter.value && props.resource === 'event') params['attention'] = attentionFilter.value
     if (sortFilter.value && sortFilter.value !== 'newest') params['sort'] = sortFilter.value
     if (dateFrom.value) params['date_from'] = dateFrom.value
     if (dateTo.value) params['date_to'] = dateTo.value
@@ -464,6 +484,8 @@ watch(() => [props.resource, scope.value], () => {
   search.value = ''
   statusFilter.value = ''
   phaseFilter.value = ''
+  attentionFilter.value = ''
+  withoutOwner.value = false
   sortFilter.value = 'newest'
   dateFrom.value = ''
   dateTo.value = ''

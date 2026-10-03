@@ -3,8 +3,10 @@
        po kliknutí (alebo „/") sa pole roztiahne. S výrazom zostáva rozbalené,
        inak by sa stratil kontext filtra. -->
   <div
+    ref="root"
     class="relative min-w-0 shrink-0"
     :class="open ? (collapsible ? 'flex-1 sm:w-64 sm:flex-none' : 'w-full sm:w-64') : sizeClass.box"
+    @focusout="onBlur"
   >
     <button
       v-if="!open"
@@ -44,7 +46,6 @@
         :aria-expanded="showHistory"
         @input="onInput"
         @focus="historyOpen = true"
-        @blur="onBlur"
         @keydown.down.prevent="moveHistory(1)"
         @keydown.up.prevent="moveHistory(-1)"
         @keydown.enter.prevent="onEnter"
@@ -58,7 +59,8 @@
         :aria-label="t('filters.clearSearch')"
         :title="t('filters.clearSearch')"
         class="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        @mousedown.prevent="clear"
+        @mousedown.prevent
+        @click="clear"
       >
         <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -77,7 +79,7 @@
       >
         <div class="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-slate-400">
           <span>{{ t('filters.history.label') }}</span>
-          <button type="button" class="transition-colors hover:text-slate-600" @mousedown.prevent="clearHistory">
+          <button type="button" class="transition-colors hover:text-slate-600" @mousedown.prevent @click="clearHistory">
             {{ t('filters.history.clear') }}
           </button>
         </div>
@@ -92,7 +94,8 @@
             <button
               type="button"
               class="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700"
-              @mousedown.prevent="pickHistory(item)"
+              @mousedown.prevent
+              @click="pickHistory(item)"
             >
               <svg class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <span class="truncate">{{ item }}</span>
@@ -101,7 +104,9 @@
               type="button"
               class="px-2 py-1.5 text-slate-300 transition-colors hover:text-slate-600"
               :title="t('filters.history.remove')"
-              @mousedown.prevent="removeHistory(item)"
+              :aria-label="`${t('filters.history.remove')}: ${item}`"
+              @mousedown.prevent
+              @click="removeHistory(item)"
             >
               <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -153,6 +158,7 @@ const model = defineModel<string>({ default: '' })
 const { t } = useI18n()
 
 const input = ref<HTMLInputElement | null>(null)
+const root = ref<HTMLElement | null>(null)
 const open = ref(!props.collapsible || Boolean(model.value))
 let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -256,7 +262,10 @@ function onEnter() {
   commit()
 }
 
-function onBlur() {
+function onBlur(event: FocusEvent) {
+  // Tab na tlačidlá histórie zostáva v rámci poľa; ponuku nezahodíme
+  // skôr, než ju používateľ stihne ovládať klávesnicou.
+  if (event.relatedTarget instanceof Node && root.value?.contains(event.relatedTarget)) return
   // Opustené pole berieme ako dokončené hľadanie; rozpísané tvary („bra" pred
   // „bratislava") si história zahodí sama pri ďalšom zápise.
   rememberSearch(model.value)

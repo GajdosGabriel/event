@@ -83,6 +83,7 @@
           <!-- Termíny série. Nad galériou zámerne: pri repríznom programe je to
                to, čo organizátor hľadá častejšie než fotky. -->
           <EventSeriesPanel
+            v-if="event.permissions.viewTickets"
             :event-id="Number(route.params.id)"
             :prefix="prefix"
             :can-add="Boolean(event.permissions.duplicate)"

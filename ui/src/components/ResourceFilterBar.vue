@@ -9,19 +9,19 @@
       :class="[expanded ? 'flex' : 'hidden', collapsible ? '' : 'sm:order-none sm:flex sm:w-auto sm:min-w-0 sm:flex-1']"
     >
     <!-- Status -->
-    <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" @change="emitChange">
+    <select v-if="statusOptions.length" v-model="status" class="form-input w-auto" :aria-label="allStatusesLabel || t('filters.allStatuses')" @change="emitChange">
       <option value="">{{ allStatusesLabel || t('filters.allStatuses') }}</option>
       <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
     <!-- Časové okno (podujatia) -->
-    <select v-if="phaseOptions.length" v-model="phase" class="form-input w-auto" :title="t('filters.phaseTitle')" @change="emitChange">
+    <select v-if="phaseOptions.length" v-model="phase" class="form-input w-auto" :aria-label="t('filters.phaseTitle')" :title="t('filters.phaseTitle')" @change="emitChange">
       <option value="">{{ t('filters.allPhases') }}</option>
       <option v-for="opt in phaseOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 
     <!-- Sort (stránka ho môže vypnúť prázdnym poľom — napr. keď radí klikom v hlavičke tabuľky) -->
-    <select v-if="sortChoices.length" v-model="sort" class="form-input w-auto" :title="t('filters.sortTitle')" @change="emitChange">
+    <select v-if="sortChoices.length" v-model="sort" class="form-input w-auto" :aria-label="t('filters.sortTitle')" :title="t('filters.sortTitle')" @change="emitChange">
       <option v-for="opt in sortChoices" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
 

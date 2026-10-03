@@ -68,6 +68,7 @@ class IndexFilterRequest extends FormRequest
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'phase' => ['nullable', 'in:active,running,today,next7d,past'],
+            'attention' => ['nullable', 'in:stale_drafts,past_drafts,missing_image,empty_upcoming'],
         ];
     }
 
@@ -89,6 +90,7 @@ class IndexFilterRequest extends FormRequest
             'date_from' => $this->input('date_from'),
             'date_to' => $this->input('date_to'),
             'phase' => $this->input('phase'),
+            'attention' => $this->input('attention'),
         ];
     }
 

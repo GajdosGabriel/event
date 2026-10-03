@@ -70,7 +70,8 @@
       <main class="body">
         <div class="body-inner">
           <div class="page-content">
-            <RouterView />
+            <!-- A different record needs fresh page state; query filters keep the current page. -->
+            <RouterView :key="route.path" />
           </div>
 
           <aside v-if="munResource" class="right-aside">

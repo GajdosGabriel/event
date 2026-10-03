@@ -151,8 +151,9 @@ class EventResource extends JsonResource
                 && ($user?->can('unarchive', $this->resource) ?? false),
             'duplicate' => $user?->can('duplicate', $this->resource) ?? false,
             'restore' => $isTrashed && ($user?->can('restore', $this->resource) ?? false),
-            'view_tickets' => $user?->can('view', $this->resource) ?? false,
-            'checkin' => ($user?->can('view', $this->resource) ?? false) && ($user?->can('ticket.checkin') ?? false),
+            // These links target /dashboard, where the admin bypass does not apply.
+            'view_tickets' => $user?->canInCanal((int) $this->canal_id, 'event.view') ?? false,
+            'checkin' => ($user?->canInCanal((int) $this->canal_id, 'event.view') ?? false) && ($user?->hasPermissionTo('ticket.checkin') ?? false),
         ];
 
         // „Poslať správu" potrebuje príznak len na detaile (show) — na výpisoch

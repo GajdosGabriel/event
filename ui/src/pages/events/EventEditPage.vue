@@ -50,7 +50,7 @@
                servera — kým tu FormField nebol, chyba na `body` sa nemala kde
                zobraziť a človek videl iba všeobecný banner. -->
           <FormField :label="t('events.sections.description')" :error="errors.body">
-            <HtmlEditor v-model="form.body" :placeholder="t('events.fields.bodyPlaceholder')" min-height="260px" />
+            <HtmlEditor v-model="form.body" :aria-label="t('events.sections.description')" :placeholder="t('events.fields.bodyPlaceholder')" min-height="260px" />
           </FormField>
 
           <!--

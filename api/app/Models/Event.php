@@ -6,6 +6,8 @@ use App\Casts\StringLength250;
 use App\Casts\Website;
 use App\Contracts\HasQuestionBoard;
 use App\Contracts\Messageable;
+use App\Enums\AdmissionStatus;
+use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Models\Traits\HasCheckedAttributes;
 use App\Models\Traits\HasCommonFilters;
@@ -16,6 +18,7 @@ use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\InteractsAsQuestionBoard;
 use App\Models\Traits\SanitizesHtmlBody;
 use App\Support\EventTimeframe;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +39,28 @@ class Event extends Model implements HasQuestionBoard, Messageable
     }
 
     protected $guarded = [];
+
+    /** Keep overview counts and their linked lists on the same predicates. */
+    public function scopeNeedsAttention(Builder $query, ?string $attention, ?CarbonInterface $at = null): Builder
+    {
+        $at = ($at ?? now())->toImmutable();
+
+        return match ($attention) {
+            'stale_drafts' => $query->where('events.status', ModelStatus::Draft->value)
+                ->where('events.created_at', '<', $at->subDays(7)),
+            'past_drafts' => $query->where('events.status', ModelStatus::Draft->value)
+                ->where('events.start_at', '<', $at),
+            'missing_image' => $query->where('events.status', ModelStatus::Published->value)
+                ->where(fn ($q) => $q->where('events.end_at', '>=', $at)
+                    ->orWhere(fn ($q) => $q->whereNull('events.end_at')->where('events.start_at', '>=', $at->startOfDay())))
+                ->whereDoesntHave('files', fn ($file) => $file->where('files.type', FileType::IMAGE->value)->where('files.is_primary', true)),
+            'empty_upcoming' => $query->where('events.status', ModelStatus::Published->value)
+                ->whereBetween('events.start_at', [$at, $at->addDays(7)])
+                ->whereHas('ticketTypes', fn ($type) => $type->where('ticket_types.is_active', true))
+                ->whereDoesntHave('admissions', fn ($seat) => $seat->where('ticket_admissions.status', AdmissionStatus::Valid->value)),
+            default => $query,
+        };
+    }
 
     /**
      * Vnútorná réžia, ktorá nepatrí do odpovede.

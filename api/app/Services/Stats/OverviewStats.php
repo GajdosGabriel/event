@@ -4,7 +4,6 @@ namespace App\Services\Stats;
 
 use App\Enums\AdmissionStatus;
 use App\Enums\AttendeeConfirmationStatus;
-use App\Enums\FileType;
 use App\Enums\ModelStatus;
 use App\Enums\TicketPaymentStatus;
 use App\Models\Admission;
@@ -686,14 +685,9 @@ final class OverviewStats
     private function attention(): array
     {
         $now = $this->now;
-        $today = $now->startOfDay();
-
         $items = [];
 
-        $staleDrafts = $this->eventQuery()
-            ->where('events.status', ModelStatus::Draft->value)
-            ->where('events.created_at', '<', $now->subDays(7))
-            ->count();
+        $staleDrafts = $this->eventQuery()->needsAttention('stale_drafts', $now)->count();
 
         $items[] = [
             'key' => 'stale_drafts',
@@ -701,7 +695,7 @@ final class OverviewStats
             'label' => __('stats.attention.stale_drafts.label'),
             'hint' => __('stats.attention.stale_drafts.hint'),
             'count' => $staleDrafts,
-            'link' => 'events?status=draft',
+            'link' => 'events?attention=stale_drafts',
         ];
 
         // Termín už prebehol, ale podujatie zostalo v koncepte — buď sa
@@ -711,12 +705,8 @@ final class OverviewStats
             'severity' => 'serious',
             'label' => __('stats.attention.past_drafts.label'),
             'hint' => __('stats.attention.past_drafts.hint'),
-            'count' => $this->eventQuery()
-                ->where('events.status', ModelStatus::Draft->value)
-                ->whereNotNull('events.start_at')
-                ->where('events.start_at', '<', $now)
-                ->count(),
-            'link' => 'events?status=draft&phase=past',
+            'count' => $this->eventQuery()->needsAttention('past_drafts', $now)->count(),
+            'link' => 'events?attention=past_drafts',
         ];
 
         $items[] = [
@@ -724,17 +714,8 @@ final class OverviewStats
             'severity' => 'warning',
             'label' => __('stats.attention.missing_image.label'),
             'hint' => __('stats.attention.missing_image.hint'),
-            'count' => $this->eventQuery()
-                ->where('events.status', ModelStatus::Published->value)
-                ->where(fn ($query) => $query
-                    ->whereNull('events.end_at')
-                    ->where('events.start_at', '>=', $today)
-                    ->orWhere('events.end_at', '>=', $now))
-                ->whereDoesntHave('files', fn ($file) => $file
-                    ->where('files.type', FileType::IMAGE->value)
-                    ->where('files.is_primary', true))
-                ->count(),
-            'link' => 'events?status=published&phase=active',
+            'count' => $this->eventQuery()->needsAttention('missing_image', $now)->count(),
+            'link' => 'events?attention=missing_image',
         ];
 
         // Termín sa blíži a nikto nie je prihlásený — ešte je čas propagovať.
@@ -743,13 +724,8 @@ final class OverviewStats
             'severity' => 'warning',
             'label' => __('stats.attention.empty_upcoming.label'),
             'hint' => __('stats.attention.empty_upcoming.hint'),
-            'count' => $this->eventQuery()
-                ->where('events.status', ModelStatus::Published->value)
-                ->whereBetween('events.start_at', [$now, $now->addDays(7)])
-                ->whereHas('ticketTypes', fn ($type) => $type->where('ticket_types.is_active', true))
-                ->whereDoesntHave('admissions', fn ($seat) => $seat->where('ticket_admissions.status', AdmissionStatus::Valid->value))
-                ->count(),
-            'link' => 'events?status=published&phase=next7d',
+            'count' => $this->eventQuery()->needsAttention('empty_upcoming', $now)->count(),
+            'link' => 'events?attention=empty_upcoming',
         ];
 
         $items[] = [

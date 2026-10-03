@@ -4,12 +4,14 @@
       <h2 class="text-base font-semibold text-slate-800">
         {{ occurrences.length ? t('events.series.title', { n: occurrences.length }) : t('events.series.emptyTitle') }}
       </h2>
-      <button v-if="canAdd" type="button" class="text-xs text-blue-600 hover:underline" :disabled="adding" @click="add">
+      <button v-if="canAdd" type="button" class="text-xs text-blue-600 hover:underline" :disabled="adding || loading || Boolean(loadError)" @click="add">
         {{ adding ? t('events.series.adding') : t('events.series.add') }}
       </button>
     </div>
 
-    <p v-if="!occurrences.length" class="text-sm text-slate-500">{{ t('events.series.emptyLead') }}</p>
+    <p v-if="loadError" role="alert" class="text-sm text-red-600">{{ loadError }} <button type="button" class="underline" @click="load">{{ t('roadmap.retry') }}</button></p>
+    <p v-else-if="loading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
+    <p v-else-if="!occurrences.length" class="text-sm text-slate-500">{{ t('events.series.emptyLead') }}</p>
 
     <ul v-else class="grid gap-1.5">
       <li
@@ -69,11 +71,25 @@ const router = useRouter()
 const toast = useToast()
 
 const occurrences = ref<SeriesOccurrenceRow[]>([])
+const loading = ref(false)
+const loadError = ref<string | null>(null)
+let loadVersion = 0
 const adding = ref(false)
 const detaching = ref(false)
 
 async function load() {
-  occurrences.value = await eventOccurrences(props.eventId)
+  const version = ++loadVersion
+  occurrences.value = []
+  loading.value = true
+  loadError.value = null
+  try {
+    const rows = await eventOccurrences(props.eventId)
+    if (version === loadVersion) occurrences.value = rows
+  } catch {
+    if (version === loadVersion) loadError.value = t('events.series.loadFailed')
+  } finally {
+    if (version === loadVersion) loading.value = false
+  }
 }
 
 watch(() => props.eventId, load, { immediate: true })

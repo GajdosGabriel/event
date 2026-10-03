@@ -1,6 +1,7 @@
 import type { Messages } from './sk'
 
 const de: Messages = {
+  pagination: { label: 'Seitennavigation', previous: 'Vorherige Seite', next: 'Nächste Seite', page: 'Seite {n}' },
   notifications: {
     title: "Benachrichtigungen",
     unread: "Benachrichtigungen: {count} ungelesen",
@@ -994,6 +995,7 @@ const de: Messages = {
   },
   events: {
     series: {
+      loadFailed: "Termine konnten nicht geladen werden.",
       title: 'Termine ({n})',
       emptyTitle: 'Wiederholt sich die Veranstaltung?',
       emptyLead: 'Fügen Sie einen weiteren Termin hinzu — Beschreibung, Bilder und Ort bleiben gemeinsam. Jeder Termin hat eigene Kapazität und eigene Anmeldungen.',
@@ -2623,6 +2625,14 @@ const de: Messages = {
     reset: 'Filter zurücksetzen',
     allStatuses: 'Alle Status',
     allPhases: 'Beliebiger Termin',
+    attention: {
+      title: 'Handlungsbedarf',
+      all: 'Alle Einträge',
+      stale_drafts: 'Entwürfe älter als eine Woche',
+      past_drafts: 'Entwürfe nach Veranstaltungsbeginn',
+      missing_image: 'Veröffentlicht ohne Bild',
+      empty_upcoming: 'Bevorstehend ohne Teilnehmer',
+    },
     phaseTitle: 'Termin',
     sortTitle: 'Sortierung',
     dateFrom: 'Von',

@@ -1,6 +1,7 @@
 import type { Messages } from './sk'
 
 const en: Messages = {
+  pagination: { label: 'Pagination', previous: 'Previous page', next: 'Next page', page: 'Page {n}' },
   notifications: {
     title: "Notifications",
     unread: "Notifications: {count} unread",
@@ -994,6 +995,7 @@ const en: Messages = {
   },
   events: {
     series: {
+      loadFailed: "Occurrences could not be loaded.",
       title: 'Dates ({n})',
       emptyTitle: 'Does this event repeat?',
       emptyLead: 'Add another date and the description, images and venue stay shared. Each date keeps its own capacity and its own attendee list.',
@@ -2623,6 +2625,14 @@ const en: Messages = {
     reset: 'Clear filters',
     allStatuses: 'All statuses',
     allPhases: 'Any date',
+    attention: {
+      title: 'Needs attention',
+      all: 'Any attention status',
+      stale_drafts: 'Drafts older than a week',
+      past_drafts: 'Drafts whose start has passed',
+      missing_image: 'Published without an image',
+      empty_upcoming: 'Upcoming without attendees',
+    },
     phaseTitle: 'Date',
     sortTitle: 'Sorting',
     dateFrom: 'From',

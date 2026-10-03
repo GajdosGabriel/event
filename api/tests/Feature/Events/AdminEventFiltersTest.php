@@ -15,6 +15,53 @@ class AdminEventFiltersTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_detail_does_not_offer_dashboard_actions_for_a_foreign_canal(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+        $other = User::factory()->create();
+        $foreign = Event::factory()->create(['canal_id' => $other->canal_id, 'user_id' => $other->id]);
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/events/'.$foreign->id)
+            ->assertOk()->assertJsonPath('permissions.view', true)
+            ->assertJsonPath('permissions.view_tickets', false)
+            ->assertJsonPath('permissions.checkin', false);
+        $this->getJson('/api/dashboard/events/'.$foreign->id)->assertNotFound();
+    }
+
+    public function test_attention_filter_excludes_recent_drafts_and_published_events(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+        $this->travelTo(now()->startOfDay()->addHours(12));
+
+        $stale = Event::factory()->create(['status' => ModelStatus::Draft, 'created_at' => now()->subDays(8)]);
+        Event::factory()->create(['status' => ModelStatus::Draft, 'created_at' => now()->subDays(7)]);
+        Event::factory()->create(['status' => ModelStatus::Published, 'created_at' => now()->subDays(8)]);
+
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/events?attention=stale_drafts')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $stale->id);
+        $this->getJson('/api/admin/events?attention=invalid')->assertUnprocessable();
+    }
+
+    public function test_missing_image_filter_checks_primary_images_and_active_dates(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+        $this->travelTo(now()->startOfDay()->addHours(12));
+        $attrs = ['status' => ModelStatus::Published, 'start_at' => now()->addDay(), 'end_at' => null];
+        $missing = Event::factory()->create($attrs);
+        $withImage = Event::factory()->create($attrs);
+        $withImage->files()->create(['name' => 'Primary', 'original_name' => 'test.jpg', 'size' => 1024, 'mime_type' => 'image/jpeg', 'path' => 'test.jpg', 'type' => \App\Enums\FileType::IMAGE, 'is_primary' => true]);
+        Event::factory()->create([...$attrs, 'start_at' => now()->subDay()]);
+        Event::factory()->create([...$attrs, 'status' => ModelStatus::Draft]);
+
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/events?attention=missing_image')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $missing->id);
+    }
+
     public function test_admin_events_index_supports_published_query_filter(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

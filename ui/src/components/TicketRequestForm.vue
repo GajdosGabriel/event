@@ -113,12 +113,12 @@
             <!-- Údaje objednávateľa sa berú z účtu alebo z polí nižšie — tu sa
                  len ukazujú. -->
             <template v-if="isHolderSeat(type, i)">
-              <FormField :model-value="holderName" disabled :placeholder="t('tickets.request.attendeeName')" />
-              <FormField :model-value="holderEmail" type="email" disabled :placeholder="t('tickets.request.attendeeEmail')" />
+              <FormField :model-value="holderName" disabled :label="t('tickets.request.attendeeName')" :placeholder="t('tickets.request.attendeeName')" />
+              <FormField :model-value="holderEmail" type="email" disabled :label="t('tickets.request.attendeeEmail')" :placeholder="t('tickets.request.attendeeEmail')" />
             </template>
             <template v-else>
-              <FormField v-model="attendee(type, i).name" required trim maxlength="250" :placeholder="t('tickets.request.attendeeName')" />
-              <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :placeholder="t('tickets.request.attendeeEmail')" />
+              <FormField v-model="attendee(type, i).name" required trim maxlength="250" :label="t('tickets.request.attendeeName')" :placeholder="t('tickets.request.attendeeName')" />
+              <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :label="t('tickets.request.attendeeEmail')" :placeholder="t('tickets.request.attendeeEmail')" />
             </template>
           </div>
 

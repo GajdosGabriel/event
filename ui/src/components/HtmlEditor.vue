@@ -78,6 +78,7 @@ const ToolBtn = defineComponent({
     return () => h('button', {
       type: 'button',
       title: props.title,
+      'aria-label': props.title,
       disabled: props.disabled,
       onClick: (e: MouseEvent) => { e.preventDefault(); emit('click') },
       class: [
@@ -94,9 +95,11 @@ const ToolBtn = defineComponent({
 const props = withDefaults(defineProps<{
   modelValue: string
   placeholder?: string
+  ariaLabel?: string
   minHeight?: string
 }>(), {
   placeholder: '',
+  ariaLabel: '',
   minHeight: '180px',
 })
 
@@ -109,7 +112,12 @@ const editor = useEditor({
     Placeholder.configure({ placeholder: props.placeholder || t('editor.placeholder') }),
   ],
   editorProps: {
-    attributes: { class: 'prose prose-slate prose-sm max-w-none focus:outline-none' },
+    attributes: {
+      class: 'prose prose-slate prose-sm max-w-none focus:outline-none',
+      role: 'textbox',
+      'aria-multiline': 'true',
+      'aria-label': props.ariaLabel || props.placeholder || t('editor.placeholder'),
+    },
   },
   onUpdate({ editor }) {
     const html = editor.getHTML()

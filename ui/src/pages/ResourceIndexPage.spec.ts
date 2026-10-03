@@ -46,6 +46,29 @@ describe('ResourceIndexPage — stránkovanie v adrese', () => {
     expect(lastParams()['page']).toBe(3)
   })
 
+  it('obnoví filter pozornosti z odkazu a zrušením ho odstráni aj z API', async () => {
+    const { wrapper, router } = await mountAt('/dashboard/events?attention=missing_image')
+    expect(lastParams().attention).toBe('missing_image')
+    const attention = wrapper.findAll('select').find(select => select.find('option[value="missing_image"]').exists())!
+    expect((attention.element as HTMLSelectElement).value).toBe('missing_image')
+    await wrapper.get('.index-list button').trigger('click')
+    await flushPromises()
+    expect(lastParams().attention).toBeUndefined()
+    expect(router.currentRoute.value.query).toEqual({})
+    wrapper.unmount()
+  })
+
+  it('odkaz v navigácii zruší filtre aj pri opätovnom použití stránky', async () => {
+    const { wrapper, router } = await mountAt('/dashboard/events?attention=missing_image&q=kino&page=3')
+    await router.push('/dashboard/events')
+    await flushPromises()
+    expect(lastParams()).not.toHaveProperty('attention')
+    expect(lastParams()).not.toHaveProperty('search')
+    expect(lastParams().page).toBe(1)
+    expect(router.currentRoute.value.query).toEqual({})
+    wrapper.unmount()
+  })
+
   it('prestránkovanie zapíše stranu do adresy a nechá filtre na mieste', async () => {
     const { wrapper, router } = await mountAt('/dashboard/events?q=kino')
 

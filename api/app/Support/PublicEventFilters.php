@@ -104,7 +104,7 @@ final class PublicEventFilters
      */
     private static function range(Request $request): array
     {
-        $today = now()->startOfDay();
+        $today = now('Europe/Bratislava')->startOfDay();
 
         $window = match ($request->input('range')) {
             'weekend' => EventTimeframe::thisWeekend(),
@@ -117,7 +117,9 @@ final class PublicEventFilters
             return [null, null];
         }
 
-        return [$window[0]->toDateString(), $window[1]->toDateString()];
+        // Termíny sú v databáze v UTC, ale deň návštevníka je slovenský.
+        // Samotný dátum by zahrnul aj začiatok nasledujúceho lokálneho dňa.
+        return [$window[0]->copy()->utc()->toDateTimeString(), $window[1]->copy()->utc()->toDateTimeString()];
     }
 
     /**

@@ -80,8 +80,8 @@ final class EventTimeframe
      */
     public static function thisWeekend(): array
     {
-        $from = now()->startOfWeek()->addDays(4)->startOfDay();
-        $to = now()->startOfWeek()->addDays(6)->endOfDay();
+        $from = now('Europe/Bratislava')->startOfWeek()->addDays(4)->startOfDay();
+        $to = now('Europe/Bratislava')->startOfWeek()->addDays(6)->endOfDay();
 
         if (now()->greaterThan($to)) {
             $from = $from->addWeek();

@@ -63,7 +63,15 @@
                aktuálnym výpisom (zoznam aj mapa). -->
           <template v-for="shortcut in shortcuts" :key="shortcut.key">
             <button
-              v-if="shortcut.window"
+              v-if="shortcut.key === 'all' && route.path === allPath"
+              type="button"
+              class="chip"
+              :class="{ active: shortcut.active }"
+              :aria-pressed="shortcut.active"
+              @click="resetFilters"
+            ><span aria-hidden="true">{{ shortcut.emoji }}</span> {{ shortcut.label }}</button>
+            <button
+              v-else-if="shortcut.window"
               type="button"
               class="chip"
               :class="{ active: quickWindow === shortcut.window }"
@@ -99,7 +107,7 @@
 
           <!-- „V mojom okolí". V tom istom riadku ako časové skratky, lebo je
                to tá istá otázka, len v druhej osi: kedy verzus kde. -->
-          <NearbyFilter @change="onNearbyChange" />
+          <NearbyFilter :key="nearbyReset" @change="onNearbyChange" />
         </nav>
 
         <div>
@@ -156,6 +164,12 @@
                 class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 @click="clearSearch"
               >{{ t('public.list.clearSearch') }}</button>
+              <button
+                v-if="quickWindow || nearby"
+                type="button"
+                class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                @click="resetFilters"
+              >{{ t('public.list.allEvents') }}</button>
               <RouterLink
                 v-if="hasRouteFilters"
                 :to="PUBLIC_EVENTS"
@@ -190,7 +204,7 @@
             </div>
           </template>
 
-          <AppPaginator v-if="view !== 'map'" :current-page="page" :last-page="lastPage" @change="goToPage" />
+          <AppPaginator v-if="view !== 'map' && !loading && !error" :current-page="page" :last-page="lastPage" @change="goToPage" />
         </div>
       </div>
 
@@ -204,7 +218,7 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { indexEventMapPoints, indexEvents, type EventMapPoint } from '@/api/events'
 import type { EventItem } from '@/types'
@@ -255,6 +269,7 @@ const props = withDefaults(defineProps<{
 })
 
 const route = useRoute()
+const router = useRouter()
 const { settings, save } = useSettings()
 const { t, plural } = useI18n()
 
@@ -284,6 +299,7 @@ function setView(next: PublicEventsView) {
  * v NearbyFilter, prečo sa neukladá ani do adresy.
  */
 const nearby = ref<NearbySelection | null>(null)
+const nearbyReset = ref(0)
 
 function onNearbyChange(value: NearbySelection | null) {
   nearby.value = value
@@ -341,7 +357,20 @@ const allPath = computed(() => {
 })
 
 type QuickWindow = 'today' | 'week'
-const quickWindow = ref<QuickWindow | null>(null)
+const quickWindow = computed<QuickWindow | null>({
+  get: () => {
+    if (props.range || props.list === 'past') return null
+    const value = route.query.when
+    return value === 'today' || value === 'week' ? value : null
+  },
+  set: (value) => {
+    const query = { ...route.query }
+    if (value) query.when = value
+    else delete query.when
+    delete query.page
+    void router.replace({ path: route.path, query })
+  },
+})
 
 interface Shortcut {
   key: string
@@ -359,7 +388,7 @@ const shortcuts = computed<Shortcut[]>(() => [
     label: t('filters.events.all'),
     emoji: '📅',
     to: allPath.value,
-    active: !props.range && !props.list && !props.tags && !props.municipality && !quickWindow.value,
+    active: !props.range && !props.list && !hasActiveFilters.value,
   },
   { key: 'today', label: t('public.list.mapWhen.today'), emoji: '☀️', window: 'today' },
   {
@@ -385,7 +414,7 @@ const shortcuts = computed<Shortcut[]>(() => [
 /** Filtre zapísané v adrese — tie sa nedajú zrušiť tlačidlom, len odkazom. */
 const hasRouteFilters = computed(() => Boolean(props.range || props.tags || props.municipality
   || route.query.municipality || route.query.tags))
-const hasActiveFilters = computed(() => hasRouteFilters.value || Boolean(search.value.trim()) || Boolean(nearby.value))
+const hasActiveFilters = computed(() => hasRouteFilters.value || Boolean(search.value.trim()) || Boolean(nearby.value) || Boolean(quickWindow.value))
 
 const resultLabel = computed(() => plural('public.list.counts.events', total.value || events.value.length))
 
@@ -416,6 +445,14 @@ function clearSearch() {
   if (!search.value) return
   search.value = ''
   void loadPage(1)
+}
+
+async function resetFilters() {
+  nearby.value = null
+  nearbyReset.value++
+  search.value = ''
+  await router.replace({ path: allPath.value, query: {} })
+  await loadPage(1)
 }
 
 /** Po prestránkovaní sa vracia pohľad na začiatok zoznamu, nie doprostred. */
@@ -499,10 +536,7 @@ async function fetchPage(p: number) {
 watch(() => view.value === 'map', () => loadPage(1))
 
 // Iný filter je iný výsledok — tretia strana v ňom nemusí existovať.
-watch(() => [municipalityParam.value, tagsParam.value, props.range, quickWindow.value], () => loadPage(1))
-
-// Iná landing stránka (víkend, archív, „Všetky") začína bez rýchleho okna.
-watch(() => [props.range, props.list], () => { quickWindow.value = null })
+watch(() => [municipalityParam.value, tagsParam.value, props.range, props.list, quickWindow.value], () => loadPage(1))
 
 // Tlačidlo „späť" mení `?q=` mimo políčka — vstup aj výsledky sa musia dotiahnuť.
 watch(() => route.query.q, (value) => {

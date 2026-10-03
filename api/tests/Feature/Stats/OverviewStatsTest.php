@@ -266,6 +266,10 @@ class OverviewStatsTest extends EventSetupTest
         $attention = collect($this->getJson('/api/dashboard')->json('attention'));
 
         $this->assertSame(1, $attention->firstWhere('key', 'stale_drafts')['count']);
+        $this->assertSame('events?attention=stale_drafts', $attention->firstWhere('key', 'stale_drafts')['link']);
+        foreach ($attention->whereIn('key', ['stale_drafts', 'past_drafts', 'missing_image', 'empty_upcoming']) as $item) {
+            $this->getJson('/api/dashboard/'.$item['link'])->assertOk()->assertJsonPath('meta.total', $item['count']);
+        }
         // Položky s nulou sa nezobrazujú — zoznam má byť to, čo treba riešiť.
         $this->assertTrue($attention->every(fn (array $item) => $item['count'] > 0));
     }

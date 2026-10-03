@@ -336,7 +336,7 @@ class PrerenderController extends Controller
         [$from, $to] = EventTimeframe::thisWeekend();
 
         $events = $this->upcomingEvents(
-            fn (Builder $query) => $query->whereBetween('start_at', [max(now(), $from), $to]),
+            fn (Builder $query) => $query->whereBetween('start_at', [max(now(), $from->copy()->utc()), $to->copy()->utc()]),
         );
 
         return $this->list(

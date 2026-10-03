@@ -1,22 +1,27 @@
 <template>
-  <div v-if="lastPage > 1" class="flex flex-wrap justify-center gap-2 pt-4">
-    <button class="nav-btn" :disabled="currentPage <= 1" @click="emit('change', currentPage - 1)">‹</button>
+  <nav v-if="lastPage > 1" :aria-label="t('pagination.label')" class="flex flex-wrap justify-center gap-2 pt-4">
+    <button type="button" class="nav-btn" :aria-label="t('pagination.previous')" :disabled="currentPage <= 1" @click="emit('change', currentPage - 1)">‹</button>
     <template v-for="(page, i) in pages" :key="i">
       <span v-if="page === GAP" class="gap">…</span>
       <button
         v-else
+        type="button"
         class="page-btn"
+        :aria-label="t('pagination.page', { n: page })"
         :class="{ active: page === currentPage }"
         :aria-current="page === currentPage ? 'page' : undefined"
         @click="emit('change', page)"
       >{{ page }}</button>
     </template>
-    <button class="nav-btn" :disabled="currentPage >= lastPage" @click="emit('change', currentPage + 1)">›</button>
-  </div>
+    <button type="button" class="nav-btn" :aria-label="t('pagination.next')" :disabled="currentPage >= lastPage" @click="emit('change', currentPage + 1)">›</button>
+  </nav>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ currentPage: number; lastPage: number }>()
 const emit = defineEmits<{ change: [page: number] }>()

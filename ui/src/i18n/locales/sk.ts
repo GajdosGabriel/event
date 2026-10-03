@@ -1,6 +1,7 @@
 // Referenčný slovník. Ostatné jazyky sú typované proti nemu (Messages),
 // takže chýbajúci alebo preklepnutý kľúč spadne už na typecheck.
 const sk = {
+  pagination: { label: 'Stránkovanie', previous: 'Predchádzajúca strana', next: 'Nasledujúca strana', page: 'Strana {n}' },
   notifications: {
     title: "Upozornenia",
     unread: "Upozornenia: {count} neprečítaných",
@@ -1057,6 +1058,7 @@ const sk = {
   events: {
     // Séria opakovaných termínov (3.2). Panel na detaile podujatia.
     series: {
+      loadFailed: "Termíny sa nepodarilo načítať.",
       title: 'Termíny ({n})',
       emptyTitle: 'Opakuje sa podujatie?',
       emptyLead: 'Pridajte ďalší termín a popis, obrázky aj miesto zostanú spoločné. Každý termín má vlastnú kapacitu a vlastný zoznam prihlásených.',
@@ -2747,6 +2749,14 @@ const sk = {
     reset: 'Zrušiť filtre',
     allStatuses: 'Všetky stavy',
     allPhases: 'Kedykoľvek',
+    attention: {
+      title: 'Vyžaduje pozornosť',
+      all: 'Bez obmedzenia',
+      stale_drafts: 'Koncepty staršie ako týždeň',
+      past_drafts: 'Koncepty po začiatku termínu',
+      missing_image: 'Zverejnené bez obrázka',
+      empty_upcoming: 'Najbližšie bez účastníkov',
+    },
     phaseTitle: 'Termín',
     sortTitle: 'Zoradenie',
     dateFrom: 'Od',

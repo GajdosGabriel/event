@@ -221,11 +221,19 @@ trait HasCommonFilters
         $qualified = $this->qualifyColumn($column);
 
         if ($from !== null) {
-            $query->whereDate($qualified, '>=', $from);
+            if (strlen($from) === 10) {
+                $query->whereDate($qualified, '>=', $from);
+            } else {
+                $query->where($qualified, '>=', $from);
+            }
         }
 
         if ($to !== null) {
-            $query->whereDate($qualified, '<=', $to);
+            if (strlen($to) === 10) {
+                $query->whereDate($qualified, '<=', $to);
+            } else {
+                $query->where($qualified, '<=', $to);
+            }
         }
 
         return $query;
@@ -381,6 +389,7 @@ trait HasCommonFilters
         // bySort must run before bySearch: search relevance ordering keeps
         // pre-existing orders as secondary sort keys.
         return $query
+            ->when(! empty($filters['attention']) && method_exists($this, 'scopeNeedsAttention'), fn ($q) => $q->needsAttention($filters['attention']))
             ->byStatus($filters['status'] ?? null)
             ->byDateRange($filters['date_from'] ?? null, $filters['date_to'] ?? null)
             ->byPhase($filters['phase'] ?? null)

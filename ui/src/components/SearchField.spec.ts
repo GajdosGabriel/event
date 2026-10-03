@@ -51,7 +51,7 @@ describe('SearchField – zbalenie na ikonu', () => {
     mountField('', {})
     await wrapper.get('button').trigger('click')
 
-    await wrapper.get('input[type="search"]').trigger('blur')
+    await wrapper.get('input[type="search"]').trigger('focusout')
 
     expect(wrapper.find('input[type="search"]').exists()).toBe(false)
     wrapper.unmount()
@@ -89,7 +89,7 @@ describe('SearchField – história hľadania', () => {
     mountField()
 
     await wrapper.get('input[type="search"]').trigger('focus')
-    await wrapper.get('li button:first-child').trigger('mousedown')
+    await wrapper.get('li button:first-child').trigger('click')
 
     expect(wrapper.props('modelValue')).toBe('koncert')
     expect(wrapper.emitted('search')).toHaveLength(1)
@@ -108,6 +108,30 @@ describe('SearchField – história hľadania', () => {
     expect(wrapper.props('modelValue')).toBe('koncert')
   })
 
+  it('prechod Tabom na tlačidlo histórie ponuku nezavrie', async () => {
+    seed('koncert')
+    mountField()
+    const input = wrapper.get('input[type="search"]')
+    await input.trigger('focus')
+    const pick = wrapper.get('li button:first-child')
+    await input.trigger('focusout', { relatedTarget: pick.element })
+    expect(suggestions()).toEqual(['koncert'])
+    await pick.trigger('click')
+    expect(wrapper.props('modelValue')).toBe('koncert')
+    wrapper.unmount()
+  })
+
+  it('zrušenie hľadania funguje cez click a nespustí dva dotazy pri myši', async () => {
+    mountField('koncert')
+    const clear = wrapper.get('button[aria-label]')
+    await clear.trigger('mousedown')
+    expect(wrapper.emitted('search')).toBeUndefined()
+    await clear.trigger('click')
+    expect(wrapper.props('modelValue')).toBe('')
+    expect(wrapper.emitted('search')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('Enter uloží napísaný výraz do histórie a hľadá bez čakania', async () => {
     mountField('festival')
 
@@ -120,7 +144,7 @@ describe('SearchField – história hľadania', () => {
   it('opustenie poľa si výraz zapamätá', async () => {
     mountField('festival')
 
-    await wrapper.get('input[type="search"]').trigger('blur')
+    await wrapper.get('input[type="search"]').trigger('focusout')
 
     expect(JSON.parse(localStorage.getItem(KEY) ?? '[]')).toEqual(['festival'])
   })
@@ -130,7 +154,7 @@ describe('SearchField – história hľadania', () => {
     mountField()
 
     await wrapper.get('input[type="search"]').trigger('focus')
-    await wrapper.get('li button:last-child').trigger('mousedown')
+    await wrapper.get('li button:last-child').trigger('click')
 
     expect(suggestions()).toEqual(['koncert'])
     expect(JSON.parse(localStorage.getItem(KEY) ?? '[]')).toEqual(['koncert'])
@@ -143,7 +167,7 @@ describe('SearchField – história hľadania', () => {
     await field.get('input[type="search"]').trigger('focus')
     expect(field.findAll('li')).toHaveLength(0)
 
-    await field.get('input[type="search"]').trigger('blur')
+    await field.get('input[type="search"]').trigger('focusout')
     expect(localStorage.getItem('search_history:')).toBeNull()
   })
 })
