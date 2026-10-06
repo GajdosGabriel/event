@@ -234,7 +234,7 @@
               <li v-for="h in historyPage.items.value" :key="h.id" class="border-l-2 pl-3"
                 :class="h.level === 'error' ? 'border-red-400' : h.level === 'warning' ? 'border-amber-400' : 'border-slate-200'">
                 <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                  <span class="font-medium text-slate-700">{{ h.event }}</span>
+                  <span class="font-medium text-slate-700" :title="h.event">{{ eventLabel(h.event) }}</span>
                   <span v-if="h.status">· {{ t(`systemLog.status.${h.status}`) }}</span>
                   <span class="ml-auto" :title="h.createdAt ?? ''">{{ formatDateTime(h.createdAt) }}</span>
                 </div>
@@ -266,6 +266,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, fmtTime } from '@/utils/dateFormat'
+import { useSystemLogLabels } from '@/composables/useSystemLogLabels'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
 
@@ -273,6 +274,7 @@ const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const { eventLabel } = useSystemLogLabels()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)

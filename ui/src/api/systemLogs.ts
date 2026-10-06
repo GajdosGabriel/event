@@ -7,6 +7,14 @@ import http from './index'
 export type SystemLogLevel = 'info' | 'warning' | 'error'
 export type SystemLogStatus = 'sent' | 'simulated' | 'failed' | 'skipped' | 'ok'
 
+/** Odkaz na entitu, o ktorej záznam je (rozlúštený backendom aj s menom). */
+export interface SystemLogLink {
+  type: 'canal' | 'event' | 'venue' | 'user' | 'claim'
+  id: number
+  label: string
+  role: string
+}
+
 export interface SystemLogEntry {
   id: number
   createdAt: string | null
@@ -21,6 +29,7 @@ export interface SystemLogEntry {
   subjectId: number | null
   ip: string | null
   context: Record<string, unknown> | null
+  links: SystemLogLink[]
 }
 
 export interface SystemLogSummary {

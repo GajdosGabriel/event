@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Canal;
+use App\Models\Event;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +42,8 @@ class SystemLogController extends Controller
             ->orderByDesc('id')
             ->paginate(50);
 
+        $links = $this->links($logs->getCollection());
+
         return response()->json([
             'data' => $logs->getCollection()->map(fn (SystemLog $log) => [
                 'id' => $log->id,
@@ -55,6 +59,7 @@ class SystemLogController extends Controller
                 'subjectId' => $log->subject_id,
                 'ip' => $log->ip,
                 'context' => $log->context,
+                'links' => $links[$log->id] ?? [],
             ])->values(),
             'meta' => [
                 'currentPage' => $logs->currentPage(),
@@ -68,6 +73,103 @@ class SystemLogController extends Controller
                 'errorDays' => (int) config('logging.system_log.error_days'),
             ],
         ]);
+    }
+
+    /**
+     * Kľúče v `context`, ktoré ukazujú na iný záznam, a ich úloha v udalosti.
+     * Prvá položka je typ odkazu (canal|event|venue|user|claim).
+     */
+    private const CONTEXT_LINKS = [
+        'canal_id' => ['canal', 'canal'],
+        'event_id' => ['event', 'event'],
+        'member_id' => ['user', 'member'],
+        'actor_id' => ['user', 'actor'],
+        'removed_technical_owner_id' => ['user', 'removed'],
+        'invited_by_user_id' => ['user', 'inviter'],
+        'claim_id' => ['claim', 'claim'],
+    ];
+
+    /**
+     * Pre každý záznam zoznam odkazov na entity, o ktorých je — kanál,
+     * podujatie, miesto, používatelia (člen, kto zmenu urobil, príjemca) —
+     * aby sa z denníka dalo preklikať na ich detail. Mená sa dočítavajú
+     * hromadne, jedným dotazom na typ, nie po riadkoch.
+     *
+     * @param  \Illuminate\Support\Collection<int, SystemLog>  $logs
+     * @return array<int, list<array{type: string, id: int, label: string, role: string}>>
+     */
+    private function links($logs): array
+    {
+        $refs = [];
+
+        foreach ($logs as $log) {
+            $found = [];
+
+            if ($log->subject_type && $log->subject_id) {
+                $type = strtolower(class_basename($log->subject_type));
+                if (in_array($type, ['canal', 'event', 'venue', 'user'], true)) {
+                    $found[] = [$type, (int) $log->subject_id, 'subject'];
+                }
+            }
+            if ($log->user_id) {
+                $found[] = ['user', (int) $log->user_id, 'user'];
+            }
+            foreach (self::CONTEXT_LINKS as $key => [$type, $role]) {
+                $id = $log->context[$key] ?? null;
+                if (is_numeric($id)) {
+                    $found[] = [$type, (int) $id, $role];
+                }
+            }
+
+            $refs[$log->id] = $found;
+        }
+
+        $ids = fn (string $type) => collect($refs)->flatten(1)->where(0, $type)->pluck(1)->unique()->values();
+
+        $names = [
+            'canal' => Canal::withTrashed()->whereIn('id', $ids('canal'))->pluck('name', 'id'),
+            'event' => Event::withTrashed()->whereIn('id', $ids('event'))->pluck('name', 'id'),
+            'venue' => Venue::withTrashed()->whereIn('id', $ids('venue'))->pluck('name', 'id'),
+            'user' => User::withTrashed()->whereIn('id', $ids('user'))->pluck('email', 'id'),
+        ];
+
+        // E-mail príjemcu, ktorý patrí účtu, vedie na tento účet.
+        $recipients = $logs->pluck('recipient')->filter()->unique()->values();
+        $userByEmail = $recipients->isEmpty()
+            ? collect()
+            : User::withTrashed()->whereIn('email', $recipients)->pluck('id', 'email');
+
+        $result = [];
+
+        foreach ($logs as $log) {
+            $seen = [];
+            $row = [];
+
+            $add = function (string $type, int $id, string $role) use (&$seen, &$row, $names) {
+                if (isset($seen[$type.$id])) {
+                    return;
+                }
+                $seen[$type.$id] = true;
+                $label = $type === 'claim' ? '#'.$id : ($names[$type][$id] ?? null);
+                $row[] = [
+                    'type' => $type,
+                    'id' => $id,
+                    'label' => (string) ($label ?? '#'.$id),
+                    'role' => $role,
+                ];
+            };
+
+            foreach ($refs[$log->id] as [$type, $id, $role]) {
+                $add($type, $id, $role);
+            }
+            if ($log->recipient && isset($userByEmail[$log->recipient])) {
+                $add('user', (int) $userByEmail[$log->recipient], 'recipient');
+            }
+
+            $result[$log->id] = $row;
+        }
+
+        return $result;
     }
 
     /** @param array<string, mixed> $filters */

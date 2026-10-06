@@ -80,7 +80,9 @@
       <ul class="divide-y divide-slate-100" :class="{ 'opacity-60': loading }">
         <li v-for="row in page.data" :key="row.id" class="py-3">
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span class="rounded-full px-2 py-0.5 font-semibold" :class="levelClass[row.level]">{{ row.event }}</span>
+            <span class="rounded-full px-2 py-0.5 font-semibold" :class="levelClass[row.level]" :title="`${t('systemLog.technical')}: ${row.event}`">
+              {{ eventLabel(row.event) }}
+            </span>
             <span v-if="row.status" class="rounded-full px-2 py-0.5 font-medium" :class="statusClass[row.status]">
               {{ t(`systemLog.status.${row.status}`) }}
             </span>
@@ -89,19 +91,33 @@
 
           <p class="mt-1 break-words text-sm text-slate-900">{{ row.message || '—' }}</p>
 
-          <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-            <button v-if="row.recipient" type="button" class="break-all text-left underline decoration-dotted hover:text-slate-900" :title="t('systemLog.byRecipient')" @click="filterBy('recipient', row.recipient)">
-              ✉ {{ row.recipient }}
+          <!-- Entity, o ktorých záznam je: klik vedie na detail, ⌕ zúži denník len na ne. -->
+          <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
+            <span v-for="link in row.links" :key="`${link.type}-${link.id}-${link.role}`"
+              class="inline-flex items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-700">
+              <RouterLink :to="linkTarget(link)" class="flex items-center gap-1 px-2 py-1 hover:bg-slate-100 hover:text-slate-900" :title="t('systemLog.open')">
+                <span aria-hidden="true">{{ linkIcon[link.type] }}</span>
+                <span class="text-slate-500">{{ roleLabel(link.role) }}:</span>
+                <span class="break-all font-medium">{{ link.label }}</span>
+              </RouterLink>
+              <button v-if="link.type === 'user' || link.type === 'canal'" type="button"
+                class="border-l border-slate-200 px-1.5 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                :title="t('systemLog.byEntity')" @click="filterByLink(link)">⌕</button>
+            </span>
+            <button v-if="row.recipient && !row.links.some(l => l.role === 'recipient')" type="button"
+              class="inline-flex items-center gap-1 break-all rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-left text-slate-700 hover:bg-slate-100"
+              :title="t('systemLog.byRecipient')" @click="filterBy('recipient', row.recipient)">
+              <span aria-hidden="true">✉</span>
+              <span class="text-slate-500">{{ t('systemLog.role.recipient') }}:</span>
+              <span class="font-medium">{{ row.recipient }}</span>
             </button>
-            <RouterLink v-if="row.user" :to="`/admin/users/${row.user.id}`" class="underline decoration-dotted hover:text-slate-900">
-              👤 {{ row.user.email ?? `#${row.user.id}` }}
-            </RouterLink>
-            <span v-if="row.subjectType">🔗 {{ row.subjectType }} #{{ row.subjectId }}</span>
-            <span v-if="row.ip">🌐 {{ row.ip }}</span>
+            <button v-else-if="row.recipient" type="button" class="px-1 text-slate-500 hover:text-slate-900"
+              :title="t('systemLog.byRecipient')" @click="filterBy('recipient', row.recipient)">✉ ⌕</button>
+            <span v-if="row.ip" class="inline-flex items-center px-1 py-1 text-slate-500">🌐 {{ row.ip }}</span>
           </div>
 
           <details v-if="row.context" class="mt-2 text-xs">
-            <summary class="cursor-pointer text-slate-500 hover:text-slate-900">{{ t('systemLog.details') }}</summary>
+            <summary class="cursor-pointer text-slate-500 hover:text-slate-900">{{ t('systemLog.details') }} · <code>{{ row.event }}</code></summary>
             <pre class="mt-1 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-md bg-slate-50 p-2 text-slate-700">{{ JSON.stringify(row.context, null, 2) }}</pre>
           </details>
         </li>
@@ -120,15 +136,48 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   fetchSystemLogs,
   type SystemLogLevel,
+  type SystemLogLink,
   type SystemLogPage,
   type SystemLogParams,
   type SystemLogStatus,
 } from '@/api/systemLogs'
 import SearchField from '@/components/SearchField.vue'
 import { useToast } from '@/composables/useToast'
+import { useSystemLogLabels } from '@/composables/useSystemLogLabels'
 import { localeTag, useI18n } from '@/i18n'
 
 const { t } = useI18n()
+const { eventLabel } = useSystemLogLabels()
+
+const linkIcon: Record<SystemLogLink['type'], string> = {
+  canal: '📡',
+  event: '📅',
+  venue: '📍',
+  user: '👤',
+  claim: '🔑',
+}
+
+/** Detail entity v administrácii; žiadosti o prevzatie majú len spoločný zoznam. */
+function linkTarget(link: SystemLogLink): string {
+  switch (link.type) {
+    case 'canal': return `/admin/canals/${link.id}`
+    case 'event': return `/admin/events/${link.id}`
+    case 'venue': return `/admin/venues/${link.id}`
+    case 'user': return `/admin/users/${link.id}`
+    default: return '/admin/prevzatia'
+  }
+}
+
+function roleLabel(role: string): string {
+  const key = `systemLog.role.${role}`
+  const translated = t(key as Parameters<typeof t>[0])
+  return translated === key ? role : translated
+}
+
+function filterByLink(link: SystemLogLink) {
+  if (link.type === 'user') filterBy('user_id', String(link.id))
+  else if (link.type === 'canal') filterBy('canal_id', String(link.id))
+}
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()

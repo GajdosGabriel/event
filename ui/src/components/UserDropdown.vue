@@ -51,16 +51,32 @@
           </RouterLink>
         </div>
 
-        <div v-if="canals.length" class="border-t border-slate-100 py-1">
+        <div v-if="canals.length > 1" class="border-t border-slate-100 py-1">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            :aria-expanded="canalsOpen"
+            @click="canalsOpen = !canalsOpen"
+          >
+            <IconCanal class="h-4 w-4 shrink-0 text-slate-400" />
+            <span class="min-w-0 flex-1 truncate">{{ t('nav.switchCanal') }}</span>
+            <svg
+              class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150"
+              :class="{ 'rotate-180': canalsOpen }"
+              fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
           <RouterLink
-            v-for="canal in visibleCanals"
+            v-for="canal in canalsOpen ? visibleCanals : []"
             :key="canal.id"
             :to="`/dashboard/canals/${canal.id}`"
-            class="flex items-center gap-2.5 px-4 py-2 text-sm transition hover:bg-slate-50"
+            class="flex items-center gap-2.5 py-2 pl-10 pr-4 text-sm transition hover:bg-slate-50"
             :class="canal.id === activeCanalId ? 'bg-teal-50 font-semibold text-teal-800' : 'text-slate-700'"
             @click="onCanalClick(canal.id)"
           >
-            <IconCanal class="h-4 w-4 shrink-0" :class="canal.id === activeCanalId ? 'text-teal-500' : 'text-slate-400'" />
             <span class="min-w-0 flex-1 truncate">{{ canal.name }}</span>
             <span
               v-if="canal.id === activeCanalId"
@@ -71,9 +87,9 @@
           </RouterLink>
 
           <RouterLink
-            v-if="hiddenCanalCount > 0"
+            v-if="canalsOpen && hiddenCanalCount > 0"
             to="/dashboard/canals"
-            class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-500 transition hover:bg-slate-50"
+            class="flex items-center gap-2.5 py-2 pl-10 pr-4 text-sm text-slate-500 transition hover:bg-slate-50"
             @click="open = false"
           >
             <IconCanalList class="h-4 w-4 shrink-0 text-slate-300" />
@@ -113,6 +129,8 @@ const auth = useAuthStore()
 const router = useRouter()
 const { t } = useI18n()
 const open = ref(false)
+const canalsOpen = ref(false)
+watch(open, (v) => { if (!v) canalsOpen.value = false })
 const rootEl = ref<HTMLElement | null>(null)
 
 const triggerClass = computed(() => ({
