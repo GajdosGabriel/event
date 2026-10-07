@@ -30,9 +30,9 @@
 
         <!-- Základné polia — vždy viditeľné -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <FormField v-model="form.name" :label="t('tickets.type.name')" required trim :error="errors['name']" :placeholder="t('tickets.type.namePlaceholder')" class="sm:col-span-2" />
+          <FormField v-model="form.name" :label="t('tickets.type.name')" required trim maxlength="190" :error="errors['name']" :placeholder="t('tickets.type.namePlaceholder')" class="sm:col-span-2" />
           <FormField v-model="priceEuro" type="number" :label="t('tickets.type.price')" min="0" step="0.01" :error="errors['price_amount']" placeholder="0" />
-          <FormField v-model="form.capacity" type="number" :label="t('tickets.type.capacity')" min="1" :error="errors['capacity']" :placeholder="t('tickets.type.capacityPlaceholder')" />
+          <FormField v-model="form.capacity" type="number" :label="t('tickets.type.capacity')" min="1" step="1" :error="errors['capacity']" :placeholder="t('tickets.type.capacityPlaceholder')" />
           <FormField v-model="form.is_active" type="checkbox" :label="t('tickets.type.isActive')" class="sm:col-span-2" />
         </div>
 
@@ -48,13 +48,13 @@
 
         <div v-show="showAdvanced" class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
           <FormField v-model="kindOption" type="select" :label="t('tickets.type.kind')" :options="kindOptions" :error="errors['kind']" class="sm:col-span-2" />
-          <FormField v-model="form.description" :label="t('tickets.type.description')" trim :error="errors['description']" :placeholder="t('tickets.type.descriptionPlaceholder')" class="sm:col-span-2" />
+          <FormField v-model="form.description" :label="t('tickets.type.description')" trim maxlength="500" :error="errors['description']" :placeholder="t('tickets.type.descriptionPlaceholder')" class="sm:col-span-2" />
           <template v-if="form.kind === 'workshop'">
             <FormField v-model="form.starts_at" type="datetime" :label="tf('workshop_starts_at', t('tickets.type.workshopStart'))" :error="errors['starts_at']" />
             <FormField v-model="form.ends_at" type="datetime" :label="tf('workshop_ends_at', t('tickets.type.workshopEnd'))" :error="errors['ends_at']" />
           </template>
-          <FormField v-model="form.min_per_order" type="number" :label="t('tickets.type.minPerOrder')" min="1" :error="errors['min_per_order']" />
-          <FormField v-model="form.max_per_order" type="number" :label="t('tickets.type.maxPerOrder')" min="1" :error="errors['max_per_order']" />
+          <FormField v-model="form.min_per_order" type="number" :label="t('tickets.type.minPerOrder')" min="1" max="100" step="1" :error="errors['min_per_order']" />
+          <FormField v-model="form.max_per_order" type="number" :label="t('tickets.type.maxPerOrder')" min="1" max="100" step="1" :error="errors['max_per_order']" />
           <FormField v-model="form.sale_starts_at" type="datetime" :label="tf('sale_starts_at', t('tickets.type.saleFrom'))" :error="errors['sale_starts_at']" />
           <FormField v-model="form.sale_ends_at" type="datetime" :label="tf('sale_ends_at', t('tickets.type.saleTo'))" :error="errors['sale_ends_at']" />
           <FormField v-model="form.requires_attendee_name" type="checkbox" :label="t('tickets.type.requiresAttendeeName')" class="sm:col-span-2" />
@@ -91,6 +91,7 @@ import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { fieldErrors } from '@/utils/formErrors'
+import { focusFirstInvalid } from '@/utils/scrollToError'
 import FormField from '@/components/FormField.vue'
 import type { SelectOption } from '@/types'
 
@@ -274,6 +275,21 @@ async function load() {
   }
 }
 
+const isWholeNumber = (v: unknown, min: number, max = Number.MAX_SAFE_INTEGER) =>
+  typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max
+
+function validateNumbers(): Record<string, string> {
+  const problems: Record<string, string> = {}
+  if (priceEuro.value !== null && priceEuro.value < 0) problems['price_amount'] = t('tickets.type.priceInvalid')
+  if (form.capacity !== null && form.capacity !== undefined && !isWholeNumber(form.capacity, 1)) problems['capacity'] = t('tickets.type.capacityInvalid')
+  const minOk = isWholeNumber(form.min_per_order, 1, 100)
+  const maxOk = isWholeNumber(form.max_per_order, 1, 100)
+  if (!minOk || (maxOk && form.min_per_order > form.max_per_order)) problems['min_per_order'] = t('tickets.type.perOrderInvalid')
+  if (!maxOk) problems['max_per_order'] = t('tickets.type.perOrderInvalid')
+  if (form.sale_starts_at && form.sale_ends_at && form.sale_ends_at <= form.sale_starts_at) problems['sale_ends_at'] = t('tickets.type.saleRangeInvalid')
+  return problems
+}
+
 async function save() {
   validation.markValidated()
   errors.value = {}
@@ -283,6 +299,17 @@ async function save() {
   // nič nezastaví — prázdny názov by skončil až chybou zo servera.
   if (!form.name.trim()) {
     error.value = t('common.requiredMissing')
+    return
+  }
+
+  // Rovnaké pravidlá ako server — vymazané pole by inak odišlo ako `null`
+  // a prišla by všeobecná chyba bez ukazovateľa, ktoré pole je zlé.
+  const problems = validateNumbers()
+  if (Object.keys(problems).length) {
+    errors.value = problems
+    error.value = Object.values(problems)[0] ?? null
+    showAdvanced.value = showAdvanced.value || 'min_per_order' in problems || 'max_per_order' in problems || 'sale_ends_at' in problems
+    await focusFirstInvalid()
     return
   }
 

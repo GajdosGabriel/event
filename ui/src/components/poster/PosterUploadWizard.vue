@@ -139,7 +139,7 @@
 
         <FormField v-model="form.end_at" type="datetime" :label="t('poster.wizard.endAt')" allow-past />
 
-        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required :error="venueNameError" maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
+        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required :live-error="venueNameError" maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
 
         <!-- Mesto musí byť záznam z číselníka, nie voľný text: `village_id` je
              na `venues` povinné a z preklepu ako „Nové Zámky-mesto" by vzniklo
@@ -168,7 +168,7 @@
 
         <FormField v-model="form.email" type="email" :label="t('poster.wizard.email')" maxlength="250" />
 
-        <FormField v-model="form.phone" type="tel" :label="t('poster.wizard.phone')" :error="phoneError" maxlength="50" />
+        <FormField v-model="form.phone" type="tel" :label="t('poster.wizard.phone')" :live-error="phoneError" maxlength="50" />
 
         <FormField :label="t('poster.wizard.description')" class="sm:col-span-2">
           <HtmlEditor v-model="form.description" :placeholder="t('poster.wizard.descriptionPlaceholder')" />

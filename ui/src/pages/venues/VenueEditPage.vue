@@ -10,7 +10,7 @@
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('venues.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.name" :label="t('venues.fields.name')" required :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.name" :label="t('venues.fields.name')" required maxlength="250" :error="errors.name" class="lg:col-span-2" />
             <!-- Správca miesta = kanál, ktorý smie miesto upravovať (canal_venue.is_owner).
                  Nie je to nájomca: kanály, ktorých podujatia sa tu konajú, sa
                  pripájajú samy. V dashboarde ostáva povinný (bez neho by si
@@ -26,7 +26,7 @@
               </template>
             </FormField>
             <RecordStatusField v-model="form.status" kind="venues" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
-            <FormField v-model="form.category" :label="t('venues.fields.category')" :error="errors.category" :placeholder="t('venues.fields.categoryPlaceholder')" />
+            <FormField v-model="form.category" :label="t('venues.fields.category')" maxlength="100" :error="errors.category" :placeholder="t('venues.fields.categoryPlaceholder')" />
             <FormField v-model="form.capacity" type="number" :label="t('venues.fields.capacity')" min="0" max="1000000" step="1" :error="errors.capacity" />
             <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
             <DescriptionField v-model="form.body" :label="t('venues.fields.description')" :error="errors.body" min-height="130px"

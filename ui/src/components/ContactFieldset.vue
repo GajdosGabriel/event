@@ -2,9 +2,9 @@
   <fieldset class="field-group">
     <legend class="field-legend">{{ t(key('sections.contact')) }}</legend>
     <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      <FormField v-model="email" type="email" :label="t(key('fields.email'))" :error="errors.email" />
-      <FormField v-model="phone" type="tel" :label="t(key('fields.phone'))" :error="errors.phone ?? phoneError" />
-      <FormField v-model="website" type="url" :label="t(key('fields.website'))" :error="errors.website">
+      <FormField v-model="email" type="email" :label="t(key('fields.email'))" :maxlength="kind === 'canals' ? 150 : 100" :error="errors.email" />
+      <FormField v-model="phone" type="tel" :label="t(key('fields.phone'))" maxlength="20" :error="errors.phone" :live-error="phoneError" />
+      <FormField v-model="website" type="url" :label="t(key('fields.website'))" maxlength="150" :error="errors.website">
         <template #footer>
           <AttributeIssueHint :issue="websiteIssue" :label="t(key('fields.websiteIssueLabel'))" />
         </template>

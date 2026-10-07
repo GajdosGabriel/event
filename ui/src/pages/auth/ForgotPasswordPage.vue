@@ -33,10 +33,12 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { forgotPassword } from '@/api/auth'
 import { t } from '@/i18n'
+import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 
 const route = useRoute()
+usePrivatePageHead(() => t('auth.forgot.title'))
 const validation = provideFormValidation()
 
 // Adresu predvyplní prihlásenie, z ktorého sem človek prišiel — už ju raz

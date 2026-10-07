@@ -80,7 +80,7 @@
              servera ho otvorí za človeka — inak by ostala neviditeľná. -->
         <FormSection v-if="!guided" :title="t('events.sections.contact')" :note="contactNote" :force-open="hasContactError">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website">
+            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" maxlength="150" :error="errors.website">
               <template #footer>
                 <AttributeIssueHint :issue="websiteIssue" :label="t('events.fields.websiteIssueLabel')" />
               </template>
@@ -182,7 +182,7 @@
           <div class="grid gap-3">
           <template v-if="guided">
             <AiAssistPanel v-model="form.body" kind="event" :scope="scope" :values="readinessValues" :name="form.name" :record-id="fileableId" />
-            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" :error="errors.website" />
+            <FormField v-model="form.website" type="url" :label="t('events.fields.website')" maxlength="150" :error="errors.website" />
             <ContactListField v-model:primary="form.email" v-model:additional="form.additional_emails" type="email"
               :label="t('events.fields.email')" :add-label="t('common.contactList.addEmail')" :error="contactError('email', 'additional_emails')" />
             <ContactListField v-model:primary="form.phone" v-model:additional="form.additional_phones" type="tel"
@@ -343,7 +343,7 @@ import { useFormOptions, type SelectOption } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
-import { scrollToError } from '@/utils/scrollToError'
+import { focusFirstInvalid, scrollToError } from '@/utils/scrollToError'
 import { errorBody, dependencyPromptFor } from '@/utils/publishFlow'
 import { publicEventPath } from '@/utils/publicUrl'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
@@ -864,6 +864,7 @@ function goToStep(next: number) {
       serverError.value = problem
       step.value = 1
       scrollToError(errorBanner)
+      focusFirstInvalid()
       return
     }
   }
@@ -879,6 +880,7 @@ async function saveGuided(action: 'draft' | 'publish') {
     serverError.value = problem
     step.value = 1
     await scrollToError(errorBanner)
+    await focusFirstInvalid()
     return
   }
   if (!form.value.canal_id) {

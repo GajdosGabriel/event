@@ -124,11 +124,13 @@ import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import { useI18n } from '@/i18n'
+import { useAreaHead } from '@/composables/useAreaHead'
 import { supportSummary } from '@/api/support'
 
 const auth = useAuthStore()
 const route = useRoute()
 const { t } = useI18n()
+useAreaHead('admin')
 
 // Odznak Podpory: vlákna, ktoré čakajú na odpoveď. Obnovuje sa pri prechode
 // medzi stránkami — rovnako ako odznak Správ v dashboarde, bez pollingu.

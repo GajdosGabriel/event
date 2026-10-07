@@ -17,7 +17,12 @@
 
 <script setup lang="ts">
 import { t } from '@/i18n'
+import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 
 // `event` = neplatné ID podujatia (napr. /akcie/abc), inak všeobecná 404.
-defineProps<{ kind?: 'event' }>()
+const props = defineProps<{ kind?: 'event' }>()
+
+// SPA vracia pre neexistujúcu adresu 200, preto noindex — inak by vyhľadávače
+// indexovali chybovú stránku ako bežnú.
+usePrivatePageHead(() => (props.kind === 'event' ? t('notFound.eventTitle') : t('notFound.title')))
 </script>

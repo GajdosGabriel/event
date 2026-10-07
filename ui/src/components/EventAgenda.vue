@@ -82,6 +82,7 @@ import EventTicketCta from '@/components/EventTicketCta.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import { dayName, fmtDate } from '@/utils/dateFormat'
 import { publicEventPath } from '@/utils/publicUrl'
+import { htmlToText } from '@/utils/htmlToText'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -131,7 +132,7 @@ function place(event: EventItem): string {
 function summary(event: EventItem): string {
   const raw = event.body
   if (!raw) return ''
-  const text = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  const text = htmlToText(raw)
   return text.length > 160 ? `${text.slice(0, 160).trimEnd()}…` : text
 }
 </script>

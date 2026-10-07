@@ -16,8 +16,8 @@
 
       <template v-if="!success">
         <form class="grid gap-3" @submit.prevent="submit">
-          <FormField v-model="form.display_name" :label="t('auth.register.name')" required />
-          <FormField v-model="form.email" type="email" :label="t('auth.register.email')" required />
+          <FormField v-model="form.display_name" :label="t('auth.register.name')" required autocomplete="name" maxlength="255" />
+          <FormField v-model="form.email" type="email" :label="t('auth.register.email')" required autocomplete="email" />
           <FormField v-model="form.password" type="password" :label="t('auth.register.password')" required autocomplete="new-password" :hint="t('auth.reset.passwordHint')" :error="passwordLengthError" />
           <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" :error="passwordError" />
 
@@ -46,6 +46,7 @@ import { register } from '@/api/auth'
 import { showPublicEvent } from '@/api/events'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
+import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
@@ -55,6 +56,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+usePrivatePageHead(() => t('auth.register.title'))
 const validation = provideFormValidation()
 
 // Adresu vie predvyplniť ten, kto sem posiela (napr. pozvánka do tímu kanála) —

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { idFromRouteParam, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { endNavigation, startNavigation } from '@/composables/useNavigationProgress'
 
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
 const EventListPage = () => import('@/pages/events/EventListPage.vue')
@@ -290,5 +291,9 @@ router.beforeEach(async (to) => {
     return { name: 'dashboard' }
   }
 })
+
+router.beforeEach(() => { startNavigation() })
+router.afterEach(endNavigation)
+router.onError(endNavigation)
 
 export default router

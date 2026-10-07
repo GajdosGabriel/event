@@ -141,6 +141,7 @@ import CanalClaimBox from '@/components/CanalClaimBox.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
+import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
 
 const { t } = useI18n()
@@ -166,7 +167,7 @@ useHead(computed(() => {
   if (!c) return { title: t('common.loading') }
 
   const description = c.body
-    ? c.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
+    ? htmlToText(c.body).slice(0, 160).trim()
     : t('public.canal.seoDescription', { name: c.name })
   const url = absoluteUrl(publicCanalPath(c))
 

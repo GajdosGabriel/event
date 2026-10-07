@@ -8,7 +8,9 @@
         :type="type"
         class="form-input min-w-0 flex-1"
         :class="{ invalid: (index === 0 && Boolean(error)) || rowInvalid(value) }"
-        :aria-label="label"
+        :maxlength="type === 'email' ? 100 : 30"
+        :aria-invalid="(index === 0 && Boolean(error)) || rowInvalid(value) || undefined"
+        :aria-label="index === 0 ? label : `${label} ${index + 1}`"
         @input="setRow(index, ($event.target as HTMLInputElement).value)"
       />
       <span v-if="index === 0" class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">

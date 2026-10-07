@@ -8,6 +8,7 @@ import RegisterPage from './RegisterPage.vue'
 const { register } = vi.hoisted(() => ({ register: vi.fn() }))
 vi.mock('@/api/auth', () => ({ register }))
 vi.mock('@/api/events', () => ({ showPublicEvent: vi.fn() }))
+vi.mock('@vueuse/head', () => ({ useHead: vi.fn() }))
 
 beforeEach(() => {
   vi.clearAllMocks()

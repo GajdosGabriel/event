@@ -38,7 +38,7 @@
         type="search"
         :placeholder="placeholder || t('filters.search')"
         :aria-label="label || placeholder || t('filters.search')"
-        class="form-input search-field-input pl-9 pr-8"
+        class="form-input search-field-input search-field-reveal pl-9 pr-8"
         :class="sizeClass.input"
         autocomplete="off"
         role="combobox"
@@ -263,6 +263,9 @@ function onEnter() {
 }
 
 function onBlur(event: FocusEvent) {
+  // Rozbalením zmizne tlačidlo-ikona, ktoré malo fokus; jeho `focusout` nesmie
+  // pole hneď zbaliť späť.
+  if (event.target instanceof Element && event.target.getAttribute('aria-expanded') === 'false') return
   // Tab na tlačidlá histórie zostáva v rámci poľa; ponuku nezahodíme
   // skôr, než ju používateľ stihne ovládať klávesnicou.
   if (event.relatedTarget instanceof Node && root.value?.contains(event.relatedTarget)) return
@@ -318,4 +321,14 @@ defineExpose({ focus: expand })
 <style scoped>
 /* Vlastný krížik máme v tlačidle — natívny by sa zobrazil vedľa neho. */
 .search-field-input::-webkit-search-cancel-button { display: none; }
+
+/* Rozbalenie: pole sa odkryje z veľkosti ikony na plnú šírku. */
+.search-field-reveal { animation: search-field-reveal 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes search-field-reveal {
+  from { clip-path: inset(0 calc(100% - 2.25rem) 0 0 round 0.5rem); opacity: 0.4; }
+  to { clip-path: inset(0 0 0 0 round 0.5rem); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-field-reveal { animation: none; }
+}
 </style>

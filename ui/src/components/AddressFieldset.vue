@@ -8,6 +8,7 @@
         :placeholder="t('address.streetPlaceholder')"
         :error="errors?.['street']"
         autocomplete="street-address"
+        maxlength="250"
         class="lg:col-span-2"
       />
       <FormField
@@ -29,8 +30,10 @@
       <FormField
         v-model="postcode"
         :label="t('address.postcode')"
-        :error="errors?.['postcode'] ?? postcodeError"
+        :error="errors?.['postcode']"
+        :live-error="postcodeError"
         autocomplete="postal-code"
+        maxlength="20"
       />
       <FormField
         v-model="country"
@@ -38,6 +41,7 @@
         :placeholder="t('address.countryPlaceholder')"
         :error="errors?.['country']"
         autocomplete="country-name"
+        maxlength="100"
         class="lg:col-span-2"
       />
       <p v-if="searching" class="lg:col-span-2 text-xs text-slate-500">{{ t('address.searching') }}</p>

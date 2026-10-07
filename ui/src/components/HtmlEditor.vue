@@ -72,13 +72,15 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 
 const ToolBtn = defineComponent({
-  props: { active: Boolean, disabled: Boolean, title: String },
+  // `active` bez defaultu = nie je to prepínač (hr, späť/vpred), aria-pressed sa nevypisuje.
+  props: { active: { type: Boolean, default: undefined }, disabled: Boolean, title: String },
   emits: ['click'],
   setup(props, { slots, emit }) {
     return () => h('button', {
       type: 'button',
       title: props.title,
       'aria-label': props.title,
+      'aria-pressed': props.active === undefined ? undefined : String(props.active),
       disabled: props.disabled,
       onClick: (e: MouseEvent) => { e.preventDefault(); emit('click') },
       class: [

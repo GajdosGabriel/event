@@ -52,10 +52,12 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { resetPassword } from '@/api/auth'
 import { t } from '@/i18n'
+import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 
 const route = useRoute()
+usePrivatePageHead(() => t('auth.reset.title'))
 const validation = provideFormValidation()
 
 // Token je v ceste, adresa v query — obe z odkazu v e-maile. Adresa je len

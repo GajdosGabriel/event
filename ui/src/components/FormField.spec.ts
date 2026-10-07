@@ -68,6 +68,26 @@ describe('FormField', () => {
     expect(wrapper.get('input').classes()).not.toContain('invalid')
   })
 
+  it('priebežne počítaná chyba ostáva viditeľná aj pri ďalšom písaní', async () => {
+    const value = ref('a')
+    const wrapper = mount(defineComponent({
+      setup: () => () => h(FormField, {
+        label: 'Telefón', liveError: value.value.length < 6 ? 'Neplatné číslo.' : null, modelValue: value.value,
+        'onUpdate:modelValue': (v: FieldValue | undefined) => { value.value = String(v ?? '') },
+      }),
+    }))
+    expect(wrapper.get('.field-error').text()).toBe('Neplatné číslo.')
+
+    await wrapper.get('input').setValue('ab')
+    await wrapper.get('input').setValue('abc')
+
+    expect(wrapper.get('.field-error').text()).toBe('Neplatné číslo.')
+    expect(wrapper.get('input').classes()).toContain('invalid')
+
+    await wrapper.get('input').setValue('123456')
+    expect(wrapper.find('.field-error').exists()).toBe(false)
+  })
+
   it('klik na popisku vlastného ovládača neaktivuje tlačidlo v ňom', async () => {
     let clicks = 0
     const { wrapper } = mountInForm({ label: 'Popis' }, {

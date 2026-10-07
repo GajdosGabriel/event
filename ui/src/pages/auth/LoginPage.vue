@@ -40,6 +40,7 @@ import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
+import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
@@ -49,6 +50,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
+usePrivatePageHead(() => t('auth.login.title'))
 const validation = provideFormValidation()
 
 const form = ref({ email: typeof route.query.email === 'string' ? route.query.email : '', password: '' })

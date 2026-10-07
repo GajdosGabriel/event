@@ -152,6 +152,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
 import { absoluteUrl, idFromRouteParam, publicCanalPath, publicVenuePath } from '@/utils/publicUrl'
+import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
 
 const { t } = useI18n()
@@ -191,7 +192,7 @@ useHead(computed(() => {
   if (!v) return { title: t('common.loading') }
 
   const description = v.body
-    ? v.body.replace(/<[^>]+>/g, '').slice(0, 160).trim()
+    ? htmlToText(v.body).slice(0, 160).trim()
     : t('public.venue.seoDescription', { name: v.name })
   const url = absoluteUrl(publicVenuePath(v))
 

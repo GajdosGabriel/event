@@ -47,7 +47,8 @@
           default-open :force-open="hasRegisterError">
           <div class="grid gap-2 sm:flex sm:items-start sm:gap-3">
             <FormField v-model="account.ico" :error="errors['account.ico']" class="sm:w-56"
-              :placeholder="t('organizations.register.ico')" @keydown.enter.prevent="runLookup" />
+              :placeholder="t('organizations.register.ico')" :aria-label="t('organizations.register.ico')"
+              inputmode="numeric" maxlength="12" @keydown.enter.prevent="runLookup" />
             <button type="button" class="btn btn-primary btn-lg" :disabled="lookingUp || !account.ico" @click="runLookup">
               {{ lookingUp ? t('organizations.register.lookingUp') : t('organizations.register.lookup') }}
             </button>
@@ -64,13 +65,14 @@
               :label="t('organizations.register.legalName')"
               :error="errors['account.legal_name']"
               :placeholder="form.title || t('organizations.register.legalNamePlaceholder')"
+              maxlength="255"
               class="lg:col-span-2"
             />
             <FormField v-model="account.legal_form" type="select" :label="t('organizations.register.legalForm')">
               <option value="">{{ t('organizations.form.unselected') }}</option>
               <option v-for="o in LEGAL_FORMS" :key="o" :value="o">{{ t(`organizations.legalForms.${o}`) }}</option>
             </FormField>
-            <FormField v-model="account.dic" :label="t('organizations.register.dic')" :error="errors['account.dic']" />
+            <FormField v-model="account.dic" :label="t('organizations.register.dic')" maxlength="15" :error="errors['account.dic']" />
             <FormField v-model="account.vat_mode" type="select" :label="t('organizations.register.vatMode')">
               <option value="">{{ t('organizations.form.unselected') }}</option>
               <option v-for="o in VAT_MODES" :key="o" :value="o">{{ t(`organizations.vatModes.${o}`) }}</option>
@@ -81,6 +83,7 @@
               :error="errors['account.ic_dph']"
               :hint="t('organizations.register.icDphHint')"
               placeholder="SK2020123456"
+              maxlength="15"
             />
           </div>
 
@@ -113,6 +116,7 @@
               v-model="form.title"
               :label="isPerson ? t('organizations.profile.personName') : t('organizations.profile.name')"
               required
+              maxlength="250"
               :error="errors['title']"
               class="lg:col-span-2"
             />
@@ -146,9 +150,9 @@
             {{ t('organizations.contact.lead') }}
           </p>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.email" type="email" :label="t('organizations.contact.email')" :error="errors['email']" />
-            <FormField v-model="form.phone" type="tel" :label="t('organizations.contact.phone')" :error="errors['phone']" />
-            <FormField v-model="form.website" type="url" :label="t('organizations.contact.website')" :error="errors['website']" placeholder="https://" class="lg:col-span-2">
+            <FormField v-model="form.email" type="email" :label="t('organizations.contact.email')" maxlength="100" :error="errors['email']" />
+            <FormField v-model="form.phone" type="tel" :label="t('organizations.contact.phone')" maxlength="20" :error="errors['phone']" />
+            <FormField v-model="form.website" type="url" :label="t('organizations.contact.website')" maxlength="150" :error="errors['website']" placeholder="https://" class="lg:col-span-2">
               <template #footer>
                 <AttributeIssueHint :issue="websiteIssue" :label="t('organizations.contact.websiteIssueLabel')" />
               </template>

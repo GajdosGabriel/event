@@ -101,10 +101,12 @@ import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
 import { useI18n } from '@/i18n'
+import { useAreaHead } from '@/composables/useAreaHead'
 
 const auth = useAuthStore()
 const route = useRoute()
 const { t } = useI18n()
+useAreaHead('dashboard')
 
 // Odznak neprečítaných. Bez pollingu — obnoví sa pri prechode medzi stránkami
 // dashboardu, čo na inbox stačí a nedrží otvorený request na pozadí.

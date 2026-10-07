@@ -565,6 +565,7 @@ import {
   publicTagPath,
   PUBLIC_EVENTS,
 } from '@/utils/publicUrl'
+import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
 
 const { t, plural } = useI18n()
@@ -844,7 +845,7 @@ const mapUrl = computed(() => {
 const plainDescription = computed(() => {
   const e = event.value
   if (!e) return ''
-  if (e.body) return e.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300).trim()
+  if (e.body) return htmlToText(e.body).slice(0, 300).trim()
   return [e.dateRangeLabel, placeLabel.value].filter(Boolean).join(' · ')
 })
 

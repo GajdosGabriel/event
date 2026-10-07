@@ -151,6 +151,11 @@ const props = withDefaults(defineProps<{
   required?: boolean
   /** Chyba z validácie na serveri — pole je červené hneď, ako príde. */
   error?: string | null
+  /**
+   * Chyba, ktorú klient počíta z aktuálnej hodnoty (telefón, PSČ, zhoda hesiel).
+   * Na rozdiel od `error` sa nikdy nepovažuje za zastaranú — platí, kým ju výpočet vracia.
+   */
+  liveError?: string | null
   /** Vysvetlivka pod poľom. Chyba má prednosť. */
   hint?: string
   /**
@@ -225,7 +230,10 @@ function isBlank(value: unknown): boolean {
 const staleError = ref<string | null>(null)
 watch(model, () => { if (props.error) staleError.value = props.error })
 watch(() => props.error, (next) => { if (next !== staleError.value) staleError.value = null })
-const visibleError = computed(() => (props.error && props.error !== staleError.value ? props.error : null))
+const visibleError = computed(() => {
+  if (props.liveError) return props.liveError
+  return props.error && props.error !== staleError.value ? props.error : null
+})
 
 /**
  * Popiska smeruje klik na prvý ovládač vnútri seba. Pri vlastnom ovládači

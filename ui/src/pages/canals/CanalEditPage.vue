@@ -10,9 +10,9 @@
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('canals.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <FormField v-model="form.name" :label="t('canals.fields.name')" required :error="errors.name" class="lg:col-span-2" />
-            <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
-            <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
+            <FormField v-model="form.name" :label="t('canals.fields.name')" required minlength="3" maxlength="255" :error="errors.name" class="lg:col-span-2" />
+            <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" maxlength="50" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
+            <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" maxlength="50" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
             <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
             <RecordStatusField v-model="form.status" kind="canals" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
             <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
