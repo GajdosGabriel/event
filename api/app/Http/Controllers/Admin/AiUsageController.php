@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AiUsage;
 use App\Models\Canal;
+use App\Models\Event;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,9 @@ use Illuminate\Support\Facades\DB;
  */
 class AiUsageController extends Controller
 {
+    /** Typy predmetu, ako ich zapisuje AiUsageRecorder (class_basename). */
+    private const SUBJECTS = ['Event' => Event::class, 'Venue' => Venue::class, 'Canal' => Canal::class];
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -49,27 +54,49 @@ class AiUsageController extends Controller
                 ->orderBy('day')
                 ->get()
                 ->map(fn ($row) => ['day' => (string) $row->day] + $this->row($row)),
-            'recent' => AiUsage::query()
-                ->with(['canal:id,name', 'user:id,email'])
-                ->latest('id')
-                ->limit(50)
-                ->get()
-                ->map(fn (AiUsage $usage) => [
-                    'id' => $usage->id,
-                    'createdAt' => $usage->created_at?->toIso8601String(),
-                    'feature' => $usage->feature,
-                    'source' => $usage->source,
-                    'model' => $usage->model,
-                    'promptTokens' => $usage->prompt_tokens,
-                    'completionTokens' => $usage->completion_tokens,
-                    'costUsd' => round($usage->cost_usd, 6),
-                    'success' => $usage->success,
-                    'canal' => $usage->canal ? ['id' => $usage->canal->id, 'name' => $usage->canal->name] : null,
-                    'user' => $usage->user ? ['id' => $usage->user->id, 'name' => $usage->user->email] : null,
-                    'subjectType' => $usage->subject_type,
-                    'subjectId' => $usage->subject_id,
-                ]),
+            'recent' => $this->recent(),
         ]]);
+    }
+
+    /**
+     * Posledné volania aj s predmetom. Kanál sám nestačí: kontrola obsahu
+     * desiatich podujatí jedného kanála by inak vyzerala ako desať kontrol
+     * toho istého kanála.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function recent(): array
+    {
+        $recent = AiUsage::query()
+            ->with(['canal:id,name', 'user:id,email'])
+            ->latest('id')
+            ->limit(50)
+            ->get();
+
+        // Predmet je uložený ako class_basename, nie ako morph — mená sa
+        // dotiahnu jedným dotazom na typ.
+        $names = [];
+        foreach (self::SUBJECTS as $type => $class) {
+            $ids = $recent->where('subject_type', $type)->pluck('subject_id')->filter()->unique();
+            $names[$type] = $ids->isEmpty() ? collect() : $class::withTrashed()->whereIn('id', $ids)->pluck('name', 'id');
+        }
+
+        return $recent->map(fn (AiUsage $usage) => [
+            'id' => $usage->id,
+            'createdAt' => $usage->created_at?->toIso8601String(),
+            'feature' => $usage->feature,
+            'source' => $usage->source,
+            'model' => $usage->model,
+            'promptTokens' => $usage->prompt_tokens,
+            'completionTokens' => $usage->completion_tokens,
+            'costUsd' => round($usage->cost_usd, 6),
+            'success' => $usage->success,
+            'canal' => $usage->canal ? ['id' => $usage->canal->id, 'name' => $usage->canal->name] : null,
+            'user' => $usage->user ? ['id' => $usage->user->id, 'name' => $usage->user->email] : null,
+            'subjectType' => $usage->subject_type,
+            'subjectId' => $usage->subject_id,
+            'subjectName' => $usage->subject_id !== null ? ($names[$usage->subject_type][$usage->subject_id] ?? null) : null,
+        ])->all();
     }
 
     private function sums(): string

@@ -108,6 +108,15 @@ class Canal extends Model implements Messageable
             ->wherePivot('is_owner', true);
     }
 
+    /**
+     * Všetky e-mailové adresy kanála so stavom doručiteľnosti. Primárna je
+     * zrkadlená v `email` — zapisuje ich len CanalEmails.
+     */
+    public function emails()
+    {
+        return $this->hasMany(CanalEmail::class);
+    }
+
     /** Nevybavené pozvánky do tímu kanála. */
     public function invitations()
     {

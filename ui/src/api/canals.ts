@@ -23,6 +23,13 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     titleSuffix: (raw['title_suffix'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
     emailVerifiedAt: (raw['email_verified_at'] as string) ?? null,
+    emails: ((raw['emails'] as Record<string, unknown>[]) ?? []).map(e => ({
+      email: e['email'] as string,
+      isPrimary: Boolean(e['is_primary']),
+      status: (e['status'] as CanalItem['emails'][number]['status']) ?? 'unverified',
+      bouncedAt: (e['bounced_at'] as string) ?? null,
+      bounceReason: (e['bounce_reason'] as string) ?? null,
+    })),
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     phone: (raw['phone'] as string) ?? null,
     body: (raw['body'] as string) ?? null,

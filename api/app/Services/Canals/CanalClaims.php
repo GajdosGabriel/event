@@ -44,6 +44,7 @@ class CanalClaims
     public function __construct(
         private CanalStewardship $stewardship,
         private CanalAuditor $auditor,
+        private CanalEmails $emails,
     ) {}
 
     /** Dá sa kanál vôbec prevziať? Inak ValidationException s dôvodom. */
@@ -272,6 +273,12 @@ class CanalClaims
             $this->auditor->claim($claim, $action);
             $this->stewardship->complete($canal, $user, $claim);
         });
+
+        // Token prišiel z tejto schránky (pozvánka aj potvrdenie žiadosti) —
+        // adresa žije a patrí organizátorovi. Schválenie adminom to nedokazuje.
+        if ($claim->method !== CanalClaimMethod::AdminReview) {
+            $this->emails->confirm($canal, $claim->contact_email, 'claim', create: true);
+        }
 
         return $canal->fresh();
     }

@@ -87,6 +87,7 @@
               <tr class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
                 <th class="pb-2 pr-4">{{ t('aiUsage.colWhen') }}</th>
                 <th class="pb-2 pr-4">{{ t('aiUsage.colFeature') }}</th>
+                <th class="pb-2 pr-4">{{ t('aiUsage.colSubject') }}</th>
                 <th class="pb-2 pr-4">{{ t('aiUsage.colContext') }}</th>
                 <th class="pb-2 pr-4 text-right">{{ t('aiUsage.colTokens') }}</th>
                 <th class="pb-2 text-right">{{ t('aiUsage.colCost') }}</th>
@@ -100,6 +101,15 @@
                   <span v-if="!row.success" class="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">{{ t('aiUsage.error') }}</span>
                 </td>
                 <td class="py-2 pr-4 text-slate-600">
+                  <template v-if="row.subjectType && row.subjectId">
+                    <span class="text-slate-400">{{ subjectTypeLabel(row.subjectType) }}</span>
+                    {{ ' ' }}
+                    <RouterLink v-if="subjectLink(row)" :to="subjectLink(row)!" class="cell-name underline" :title="row.subjectName ?? undefined">{{ row.subjectName || `#${row.subjectId}` }}</RouterLink>
+                    <span v-else>#{{ row.subjectId }}</span>
+                  </template>
+                  <span v-else class="text-slate-400">—</span>
+                </td>
+                <td class="py-2 pr-4 text-slate-600">
                   <RouterLink v-if="row.canal" :to="`/admin/canals/${row.canal.id}`" class="cell-name underline" :title="row.canal.name">{{ row.canal.name }}</RouterLink>
                   <span v-if="row.canal && row.user"> · </span>
                   <span v-if="row.user">{{ row.user.name }}</span>
@@ -111,7 +121,7 @@
                 <td class="whitespace-nowrap py-2 text-right tabular-nums">{{ usd(row.costUsd) }}</td>
               </tr>
               <tr v-if="data.recent.length === 0">
-                <td colspan="5" class="py-4 text-slate-500">{{ t('aiUsage.empty') }}</td>
+                <td colspan="6" class="py-4 text-slate-500">{{ t('aiUsage.empty') }}</td>
               </tr>
             </tbody>
           </table>
@@ -128,7 +138,7 @@
 
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, ref, type PropType } from 'vue'
-import { fetchAiUsage, type AiUsageGroup, type AiUsageOverview } from '@/api/aiUsage'
+import { fetchAiUsage, type AiUsageGroup, type AiUsageOverview, type AiUsageRecent } from '@/api/aiUsage'
 import { useToast } from '@/composables/useToast'
 import { localeTag, useI18n } from '@/i18n'
 
@@ -198,6 +208,19 @@ function featureLabel(key: AiUsageGroup['key']): string {
   const k = String(key ?? 'other')
   const translated = t(`aiUsage.feature.${k}` as Parameters<typeof t>[0])
   return translated.startsWith('aiUsage.feature.') ? k : translated
+}
+
+/** Predmet volania: typ zapisuje AiUsageRecorder ako názov triedy modelu. */
+const subjectPaths: Record<string, string> = { Event: 'events', Venue: 'venues', Canal: 'canals' }
+
+function subjectTypeLabel(type: string): string {
+  const translated = t(`aiUsage.subject.${type}` as Parameters<typeof t>[0])
+  return translated.startsWith('aiUsage.subject.') ? type : translated
+}
+
+function subjectLink(row: AiUsageRecent): string | null {
+  const path = row.subjectType ? subjectPaths[row.subjectType] : undefined
+  return path && row.subjectId ? `/admin/${path}/${row.subjectId}` : null
 }
 
 function canalLabel(key: AiUsageGroup['key'], row?: AiUsageGroup): string {

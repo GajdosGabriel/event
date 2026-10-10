@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Canal;
+use App\Services\Canals\CanalEmails;
 
 class CanalObserver
 {
@@ -20,6 +21,17 @@ class CanalObserver
     public function updated(Canal $canal): void
     {
         //
+    }
+
+    /**
+     * `email` môže zapísať ktokoľvek (formulár, import, migrácia) — zoznam
+     * adries kanála sa s ním musí zhodnúť. Viď CanalEmails::adopt().
+     */
+    public function saved(Canal $canal): void
+    {
+        if ($canal->wasRecentlyCreated || $canal->wasChanged(['email', 'email_verified_at'])) {
+            app(CanalEmails::class)->adopt($canal);
+        }
     }
 
     /**

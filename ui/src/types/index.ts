@@ -318,6 +318,15 @@ export interface TagGroupItem {
 // Canal
 export type CanalIdentityMode = 'personal' | 'organization' | 'pseudonymous'
 
+export interface CanalEmailItem {
+  email: string
+  isPrimary: boolean
+  /** `undeliverable` = e-mail sa vrátil a na adresu sa nepíše. */
+  status: 'unverified' | 'verified' | 'undeliverable'
+  bouncedAt: string | null
+  bounceReason: string | null
+}
+
 export interface CanalItem {
   id: number
   municipalityId: number | null
@@ -332,6 +341,8 @@ export interface CanalItem {
   email: string | null
   /** Kedy vlastník potvrdil kontaktný e-mail; `null` = neoverený. */
   emailVerifiedAt: string | null
+  /** Všetky adresy kanála so stavom; len pre toho, kto kanál upravuje. Primárna je v `email`. */
+  emails: CanalEmailItem[]
   /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */
   attributeIssues: AttributeIssues | null
   phone: string | null

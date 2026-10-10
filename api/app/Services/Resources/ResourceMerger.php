@@ -5,6 +5,7 @@ namespace App\Services\Resources;
 use App\Models\Canal;
 use App\Models\SystemLog;
 use App\Models\Venue;
+use App\Services\Canals\CanalEmails;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +39,7 @@ class ResourceMerger
             }
             $supported = ['events', 'canal_venue'];
             if ($class === Canal::class) {
-                $supported = [...$supported, 'canal_user', 'users'];
+                $supported = [...$supported, 'canal_user', 'users', 'canal_emails'];
             }
             // Include legacy non-FK references and morph aliases as well as class names.
             foreach (Schema::getTables() as $table) {
@@ -85,6 +86,12 @@ class ResourceMerger
             if ($class === Canal::class) {
                 $moved['users'] = DB::table('users')->where('canal_id', $sourceId)->lockForUpdate()->pluck('id')->all();
                 DB::table('users')->where('canal_id', $sourceId)->update(['canal_id' => $targetId]);
+                // Addresses of the source become additional ones; the target keeps its primary.
+                $known = DB::table('canal_emails')->where('canal_id', $targetId)->lockForUpdate()->pluck('email')->all();
+                $moved['canal_emails'] = DB::table('canal_emails')->where('canal_id', $sourceId)->whereNotIn('email', $known)->lockForUpdate()->pluck('id')->all();
+                DB::table('canal_emails')->whereIn('id', $moved['canal_emails'])->update(['canal_id' => $targetId, 'is_primary' => false]);
+                DB::table('canal_emails')->where('canal_id', $sourceId)->delete();
+                app(CanalEmails::class)->refresh($target);
                 $moved['canal_user'] = DB::table('canal_user')->where('canal_id', $sourceId)->get()->map(fn ($row) => (array) $row)->all();
                 DB::table('canal_user')->where('canal_id', $sourceId)->delete();
             }

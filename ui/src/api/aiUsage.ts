@@ -35,6 +35,7 @@ export interface AiUsageRecent {
   user: { id: number; name: string } | null
   subjectType: string | null
   subjectId: number | null
+  subjectName: string | null
 }
 
 export interface AiUsageOverview {

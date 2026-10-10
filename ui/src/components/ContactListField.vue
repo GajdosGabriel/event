@@ -8,11 +8,15 @@
         :type="type"
         class="form-input min-w-0 flex-1"
         :class="{ invalid: (index === 0 && Boolean(error)) || rowInvalid(value) }"
-        :maxlength="type === 'email' ? 100 : 30"
+        :maxlength="maxlength ?? (type === 'email' ? 100 : 30)"
         :aria-invalid="(index === 0 && Boolean(error)) || rowInvalid(value) || undefined"
         :aria-label="index === 0 ? label : `${label} ${index + 1}`"
         @input="setRow(index, ($event.target as HTMLInputElement).value)"
       />
+      <span v-if="badgeOf(value)" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+        :class="badgeOf(value)!.class" :title="badgeOf(value)!.title">
+        {{ badgeOf(value)!.label }}
+      </span>
       <span v-if="index === 0" class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
         {{ t('common.contactList.primary') }}
       </span>
@@ -32,6 +36,7 @@
       >✕</button>
     </div>
 
+    <span v-if="hint" class="text-xs text-slate-500">{{ hint }}</span>
     <span v-if="error" class="field-error">{{ error }}</span>
     <span v-else-if="type === 'tel' && rows.some(rowInvalid)" class="field-error">{{ t('common.phoneInvalid') }}</span>
 
@@ -46,6 +51,12 @@ import { computed } from 'vue'
 import { t } from '@/i18n'
 import { isValidPhone } from '@/utils/contact'
 
+export interface ContactBadge {
+  label: string
+  class: string
+  title?: string
+}
+
 /**
  * Zoznam kontaktov s jedným primárnym: prvý riadok je `primary` (stĺpec
  * `email` / `phone`), ostatné idú do `additional`. Primárny sa mení
@@ -56,7 +67,15 @@ const props = defineProps<{
   addLabel: string
   type: 'email' | 'tel'
   error?: string
+  hint?: string
+  maxlength?: number
+  /** Stav už uložených hodnôt (kľúč = hodnota malými písmenami), napr. „nedoručiteľný". */
+  badges?: Record<string, ContactBadge>
 }>()
+
+function badgeOf(value: string): ContactBadge | undefined {
+  return props.badges?.[value.trim().toLowerCase()]
+}
 
 const primary = defineModel<string>('primary', { required: true })
 const additional = defineModel<string[]>('additional', { required: true })

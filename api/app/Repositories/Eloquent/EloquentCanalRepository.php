@@ -12,6 +12,7 @@ use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\CanalRepository;
 use App\Services\Canals\CanalAuditor;
 use App\Services\Canals\CanalContactVerifier;
+use App\Services\Canals\CanalEmails;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateResolver;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
@@ -144,8 +145,13 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function create(array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $additionalEmails = $this->extractAdditionalEmails($properties);
 
         $canal = $this->model()->create($properties);
+
+        if ($additionalEmails !== null) {
+            app(CanalEmails::class)->sync($canal, $canal->email, $additionalEmails);
+        }
 
         $user = auth('sanctum')->user();
 
@@ -174,6 +180,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function update($id, array $properties)
     {
         $filePayload = $this->extractFilePayload($properties);
+        $additionalEmails = $this->extractAdditionalEmails($properties);
 
         // withTrashed: adminShow() zmazaný kanál načíta, takže sa musí dať aj
         // uložiť — inak si ho admin otvorí a pri uložení dostane 404. Rovnako
@@ -188,10 +195,19 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         $canal->update($properties);
 
-        // Nový kontakt treba overiť a pôvodný upozorniť (CanalContactVerifier).
-        if ($canal->wasChanged('email')) {
-            app(CanalContactVerifier::class)->changed($canal, $oldEmail);
+        // Formulár posiela celý zoznam adries; bez neho (staršie volania)
+        // sa mení len primárna a ostatné ostávajú (CanalEmails::adopt).
+        if ($additionalEmails !== null) {
+            app(CanalEmails::class)->sync(
+                $canal,
+                array_key_exists('email', $properties) ? $properties['email'] : $canal->email,
+                $additionalEmails,
+            );
         }
+
+        // Nový kontakt treba overiť a pôvodný upozorniť (CanalContactVerifier)
+        // — porovnáva adresy sám, primárnu vie zmeniť aj zoznam adries.
+        app(CanalContactVerifier::class)->changed($canal, $oldEmail);
 
         $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
@@ -261,6 +277,24 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $fullname = trim((string) ($municipality?->fullname ?? ''));
 
         return $fullname !== '' ? $fullname : null;
+    }
+
+    /**
+     * Ďalšie e-maily nie sú stĺpec kanála (tabuľka `canal_emails`).
+     * `null` = volajúci zoznam neposlal a nemá sa meniť.
+     *
+     * @return list<string>|null
+     */
+    private function extractAdditionalEmails(array &$properties): ?array
+    {
+        if (! array_key_exists('additional_emails', $properties)) {
+            return null;
+        }
+
+        $emails = (array) ($properties['additional_emails'] ?? []);
+        unset($properties['additional_emails']);
+
+        return array_values($emails);
     }
 
     private function extractFilePayload(array &$properties): array

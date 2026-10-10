@@ -109,12 +109,12 @@ class CanalController extends Controller
         $canal = $this->canalRepository->adminShow($id);
         $this->authorize('view', $canal);
 
-        $email = trim((string) $canal->email);
+        $emails = $canal->emails()->pluck('email')->push(trim((string) $canal->email))->filter()->unique()->values();
 
         $logs = SystemLog::query()
             ->where(fn ($q) => $q
                 ->where(fn ($q) => $q->where('subject_type', $canal->getMorphClass())->where('subject_id', $canal->id))
-                ->when($email !== '', fn ($q) => $q->orWhere('recipient', $email)))
+                ->when($emails->isNotEmpty(), fn ($q) => $q->orWhereIn('recipient', $emails)))
             ->orderByDesc('id')
             ->limit(30)
             ->get();

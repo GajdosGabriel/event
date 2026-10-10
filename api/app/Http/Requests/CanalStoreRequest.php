@@ -8,6 +8,7 @@ use App\Enums\ModelStatus;
 use App\Rules\PhoneNumber;
 use App\Rules\Postcode;
 use App\Rules\WebsiteUrl;
+use App\Services\Canals\CanalEmails;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,6 +43,9 @@ class CanalStoreRequest extends FormRequest
             'title_suffix' => 'nullable|string|max:50',
             'body' => 'nullable|string',
             'email' => 'nullable|email:filter|max:150',
+            // Ďalšie adresy kanála; primárna je vždy v `email` (CanalEmails).
+            'additional_emails' => ['sometimes', 'nullable', 'array', 'max:'.(CanalEmails::MAX - 1)],
+            'additional_emails.*' => ['required', 'email:filter', 'max:150', 'distinct:ignore_case'],
             'website' => ['nullable', 'string', 'max:150', new WebsiteUrl],
             'phone' => ['nullable', 'string', 'max:20', new PhoneNumber],
             'latitude' => 'nullable|numeric|between:-90,90',

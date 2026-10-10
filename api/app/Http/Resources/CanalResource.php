@@ -6,6 +6,7 @@ use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
+use App\Services\Canals\CanalEmails;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,6 +38,20 @@ class CanalResource extends JsonResource
         $isPublished = $this->status === ModelStatus::Published;
         $isTrashed = $this->resource->trashed();
         $canUpdate = $user?->can('update', $this->resource) ?? false;
+
+        // Všetky adresy so stavom vidí len ten, kto kanál upravuje — a nie vo
+        // výpise, ten by sa na ne pýtal pri každom riadku.
+        if ($canUpdate && $request->route()?->getActionMethod() !== 'index') {
+            $data['emails'] = app(CanalEmails::class)->all($this->resource)->map(fn ($email) => [
+                'email' => $email->email,
+                'is_primary' => $email->is_primary,
+                'status' => $email->status->value,
+                'verified_at' => $email->verified_at,
+                'bounced_at' => $email->bounced_at,
+                'bounce_type' => $email->bounce_type,
+                'bounce_reason' => $email->bounce_reason,
+            ])->values()->all();
+        }
 
         // Viď VenueResource — dôvod, prečo mazanie neprejde, ide do tlačidla.
         $blocker = $canUpdate ? $this->resource->deletionBlocker() : null;
