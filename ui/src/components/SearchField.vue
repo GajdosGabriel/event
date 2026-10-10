@@ -264,8 +264,9 @@ function onEnter() {
 
 function onBlur(event: FocusEvent) {
   // Rozbalením zmizne tlačidlo-ikona, ktoré malo fokus; jeho `focusout` nesmie
-  // pole hneď zbaliť späť.
-  if (event.target instanceof Element && event.target.getAttribute('aria-expanded') === 'false') return
+  // pole hneď zbaliť späť. Samotné pole má `aria-expanded` tiež (combobox),
+  // preto sa pýtame výslovne na tlačidlo.
+  if (event.target instanceof HTMLButtonElement && event.target.getAttribute('aria-expanded') === 'false') return
   // Tab na tlačidlá histórie zostáva v rámci poľa; ponuku nezahodíme
   // skôr, než ju používateľ stihne ovládať klávesnicou.
   if (event.relatedTarget instanceof Node && root.value?.contains(event.relatedTarget)) return

@@ -74,6 +74,9 @@ class QuestionRelayTest extends EventSetupTest
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
             ->assertOk()->assertJsonPath('available', true);
 
+        // Kanál bez akejkoľvek adresy — inak by po vymazaní primárnej nastúpila
+        // ďalšia zo zoznamu (CanalEmails), tu pôvodná adresa z factory.
+        $this->futureEvent->canal->emails()->delete();
         $this->futureEvent->canal->forceFill(['email' => null])->save();
 
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
