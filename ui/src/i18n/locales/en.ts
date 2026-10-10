@@ -836,6 +836,12 @@ const en: Messages = {
     home: {
       heading: 'Upcoming events',
       subheading: 'Sorted by the nearest date.',
+      // Úvodná scéna homepage. Nadpis je rozdelený, lebo druhá časť je
+      // farebne zvýraznená.
+      heroCount: { one: '{n} upcoming event', few: '{n} upcoming events', many: '{n} upcoming events' },
+      heroTitle: 'Find an event',
+      heroTitleAccent: 'worth going to',
+      heroLead: 'Events from all over Slovakia in one place — from tonight to plans for the months ahead.',
     },
     breadcrumb: {
       home: 'Home',
@@ -876,6 +882,9 @@ const en: Messages = {
       countdownToday: 'Today is the last day',
       countdownLastDay: 'One last day left',
       countdownDays: { one: '{n} day left', few: '{n} days left', many: '{n} days left' },
+      about: 'About the event',
+      // Odpočet do začiatku v hlavičke detailu; jednotky dopĺňa Intl.
+      startsIn: 'Starts in',
     },
     canal: {
       loadFailed: 'The channel could not be loaded',

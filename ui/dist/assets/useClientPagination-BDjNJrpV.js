@@ -1,1 +1,0 @@
-import{l as o,k as u,q as c}from"./index-BllT8ElI.js";function m(n,e=20){const a=c(1),l=u(()=>Math.max(1,Math.ceil(n.value.length/e))),i=u(()=>n.value.slice((a.value-1)*e,a.value*e));o(l,t=>{a.value>t&&(a.value=t)});function s(t){a.value=Math.min(Math.max(1,t),l.value)}return{page:a,lastPage:l,items:i,setPage:s}}export{m as u};

@@ -18,7 +18,9 @@ async function mountList(path = '/akcie') {
   await router.isReady()
   const wrapper = shallowMount(PublicEventList, {
     props: { heading: 'Podujatia', subheading: 'Prehľad' },
-    global: { plugins: [router], stubs: { RouterLink: false } },
+    // Rýchle filtre sú v Teleporte (homepage ich kreslí v úvodnej scéne);
+    // plytký mount by ho nahradil prázdnou zástupkou aj s tlačidlami.
+    global: { plugins: [router], stubs: { RouterLink: false, teleport: false } },
   })
   await flushPromises()
   return { wrapper, router }

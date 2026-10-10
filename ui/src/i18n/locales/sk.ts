@@ -890,6 +890,12 @@ const sk = {
     home: {
       heading: 'Nadchádzajúce podujatia',
       subheading: 'Zoradené podľa najbližšieho termínu.',
+      // Úvodná scéna homepage. Nadpis je rozdelený, lebo druhá časť je
+      // farebne zvýraznená.
+      heroCount: { one: '{n} nadchádzajúce podujatie', few: '{n} nadchádzajúce podujatia', many: '{n} nadchádzajúcich podujatí' },
+      heroTitle: 'Nájdite podujatie,',
+      heroTitleAccent: 'ktoré stojí za to',
+      heroLead: 'Podujatia z celého Slovenska na jednom mieste — od dnešného večera po plány na ďalšie mesiace.',
     },
     breadcrumb: {
       home: 'Domov',
@@ -932,6 +938,9 @@ const sk = {
       countdownToday: 'Dnes je posledný deň',
       countdownLastDay: 'Zostáva posledný deň',
       countdownDays: { one: 'Zostáva {n} deň', few: 'Zostávajú {n} dni', many: 'Zostáva {n} dní' },
+      about: 'O podujatí',
+      // Odpočet do začiatku v hlavičke detailu; jednotky dopĺňa Intl.
+      startsIn: 'Začína o',
     },
     canal: {
       loadFailed: 'Kanál sa nepodarilo načítať',

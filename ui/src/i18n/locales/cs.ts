@@ -835,6 +835,12 @@ const cs: Messages = {
     home: {
       heading: 'Nadcházející akce',
       subheading: 'Seřazeno podle nejbližšího termínu.',
+      // Úvodná scéna homepage. Nadpis je rozdelený, lebo druhá časť je
+      // farebne zvýraznená.
+      heroCount: { one: '{n} nadcházející akce', few: '{n} nadcházející akce', many: '{n} nadcházejících akcí' },
+      heroTitle: 'Najděte akci,',
+      heroTitleAccent: 'která stojí za to',
+      heroLead: 'Akce z celého Slovenska na jednom místě — od dnešního večera po plány na další měsíce.',
     },
     breadcrumb: {
       home: 'Domů',
@@ -875,6 +881,9 @@ const cs: Messages = {
       countdownToday: 'Dnes je poslední den',
       countdownLastDay: 'Zbývá poslední den',
       countdownDays: { one: 'Zbývá {n} den', few: 'Zbývají {n} dny', many: 'Zbývá {n} dní' },
+      about: 'O akci',
+      // Odpočet do začiatku v hlavičke detailu; jednotky dopĺňa Intl.
+      startsIn: 'Začíná za',
     },
     canal: {
       loadFailed: 'Kanál se nepodařilo načíst',

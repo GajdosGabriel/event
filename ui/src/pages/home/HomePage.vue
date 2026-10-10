@@ -1,14 +1,15 @@
 <template>
-  <div class="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-8">
-    <PosterHero />
+  <div class="mx-auto w-full max-w-[1320px] px-4 pt-4 pb-8 sm:pt-6">
+    <HomeHero />
 
-    <!-- Jediný `h1` na stránke — vlastnú hlavičku homepage nemá, takže nadpis
-         zoznamu musí zostať na prvej úrovni, inak osnova začne od `h2`. -->
+    <!-- `h1` nesie hero sekcia, zoznam je preto až druhou úrovňou — dve `h1`
+         na stránke by rozbili osnovu dokumentu. -->
     <PublicEventList
       :heading="t('public.home.heading')"
       :subheading="t('public.home.subheading')"
-      heading-level="h1"
+      heading-level="h2"
       :show-ticket-cta="false"
+      :filters-to="`#${HERO_FILTERS_ID}`"
     />
   </div>
 </template>
@@ -17,7 +18,7 @@
 import { computed } from 'vue'
 import { useHead } from '@vueuse/head'
 import PublicEventList from '@/components/PublicEventList.vue'
-import PosterHero from '@/components/poster/PosterHero.vue'
+import HomeHero, { HERO_FILTERS_ID } from '@/components/home/HomeHero.vue'
 import { absoluteUrl, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { useI18n, currentLocale, localeTag } from '@/i18n'
 

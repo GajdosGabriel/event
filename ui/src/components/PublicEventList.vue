@@ -57,6 +57,11 @@
 
         <!-- Časové okná mali vlastné adresy, ale zo zoznamu na ne nič neviedlo —
              „tento víkend" sa dalo nájsť len tak, že o ňom človek už vedel. -->
+        <!-- Homepage si filtre berie do úvodnej scény (`filtersTo`). Teleport,
+             nie druhá kópia: stav filtrov aj načítanie ostávajú tu a v scéne
+             sa len kreslia. `defer` počká, kým cieľ naozaj existuje; bez
+             cieľa netreba čakať na nič a filtre sa kreslia hneď na mieste. -->
+        <Teleport :to="filtersTo ?? 'body'" :disabled="!filtersTo" :defer="Boolean(filtersTo)">
         <nav :aria-label="t('filters.events.quick')" class="flex flex-wrap gap-1.5">
           <!-- Poradie ide časovo: všetky → dnes → víkend → týždeň → archív.
                „Dnes" a „týždeň" nemajú vlastnú adresu — sú len filtrom nad
@@ -109,6 +114,7 @@
                to tá istá otázka, len v druhej osi: kedy verzus kde. -->
           <NearbyFilter :key="nearbyReset" @change="onNearbyChange" />
         </nav>
+        </Teleport>
 
         <div>
           <!-- Kostra v tvare výsledku: text „Načítavam…" nechal plochu prázdnu
@@ -259,7 +265,10 @@ const props = withDefaults(defineProps<{
    * až druhou úrovňou — dve `h1` na stránke by rozbili osnovu dokumentu.
    */
   headingLevel?: 'h1' | 'h2'
+  /** CSS selektor prvku, do ktorého sa majú vykresliť rýchle filtre. */
+  filtersTo?: string | null
 }>(), {
+  filtersTo: null,
   municipality: null,
   tags: null,
   range: null,

@@ -1,10 +1,10 @@
 <template>
-  <div class="pb-20 lg:pb-0">
+  <div class="isolate overflow-x-clip pb-24 lg:pb-0">
     <!-- Načítavanie: kostra v tvare výslednej stránky. Spinner na prázdnej ploche
          pôsobil pomalšie, než stránka v skutočnosti je, a po dobehnutí skákal obsah. -->
     <div v-if="loading" class="animate-pulse">
       <div class="mx-auto w-full max-w-300 sm:px-4 sm:pt-4">
-        <div class="h-96 w-full bg-slate-300 sm:rounded-3xl md:h-[30rem]" />
+        <div class="h-96 w-full bg-slate-300 sm:rounded-[2rem] md:h-[30rem]" />
       </div>
       <div class="mx-auto w-full max-w-300 px-4 py-8">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
@@ -22,7 +22,7 @@
     </div>
 
     <div v-else-if="error" class="mx-auto w-full max-w-300 px-4 py-16">
-      <div class="mx-auto max-w-md rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8 text-center">
+      <div class="mx-auto max-w-md rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8 text-center">
         <p class="mb-1 text-lg font-semibold text-slate-900">
           {{ notFound ? t('public.event.notFoundTitle') : t('public.event.errorTitle') }}
         </p>
@@ -50,8 +50,18 @@
            rozmazaný: stránka tak preberie farby plagátu bez ďalšieho obsahu.
            Bez obrázka nesie hlavičku prechod, aby nevyzerala nedonačítane. -->
       <!-- Obal drží hlavičku v rovnakej šírke (max-w-300 + px-4) ako obsah pod ňou. -->
-      <div class="mx-auto w-full max-w-300 sm:px-4 sm:pt-4">
-      <header class="relative isolate overflow-hidden bg-slate-900 text-white sm:rounded-3xl">
+      <div class="relative mx-auto w-full max-w-300 sm:px-4 sm:pt-4">
+        <!-- Žiara plagátu presahuje hlavičku a doznieva až pod ňou — karty
+             s obsahom tak nestoja na šedej ploche, ale vo farbách podujatia. -->
+        <div
+          v-if="heroImage"
+          class="event-ambient pointer-events-none absolute inset-x-0 -top-4 -bottom-56 -z-10 overflow-hidden lg:-inset-x-12"
+          aria-hidden="true"
+        >
+          <img :src="event.imageUrl ?? heroImage" alt="" class="h-full w-full scale-110 object-cover opacity-50 blur-3xl saturate-150" />
+        </div>
+
+      <header ref="heroEl" class="relative isolate overflow-hidden bg-slate-950 text-white shadow-2xl shadow-slate-900/25 sm:rounded-[2rem]">
         <img
           v-if="heroImage"
           :src="event.imageUrl ?? heroImage"
@@ -61,7 +71,8 @@
         />
         <div v-else class="absolute inset-0 -z-10 bg-linear-to-br from-indigo-800 via-slate-900 to-rose-900" />
         <!-- Stmavenie — biely text musí byť čitateľný aj nad svetlým plagátom. -->
-        <div class="absolute inset-0 -z-10 bg-linear-to-b from-slate-950/40 via-slate-950/55 to-slate-950/80" />
+        <div class="absolute inset-0 -z-10 bg-linear-to-b from-slate-950/45 via-slate-950/60 to-slate-950/85" />
+        <div class="event-hero-dots absolute inset-0 -z-10" aria-hidden="true" />
 
         <!-- Obrázok na šírku vypĺňa celú ľavú polovicu hlavičky až po okraje —
              v rámčeku s pozadím okolo pôsobil ako vložená známka. Plagát na
@@ -70,30 +81,58 @@
           class="grid w-full items-center"
           :class="posterBleed
             ? 'md:grid-cols-2'
-            : ['mx-auto max-w-300 gap-8 px-4 py-8 md:py-14', heroImage ? 'md:grid-cols-[minmax(0,460px)_1fr] lg:gap-14' : '']"
+            : ['mx-auto max-w-300 gap-8 px-5 py-8 md:px-10 md:py-14', heroImage ? 'md:grid-cols-[minmax(0,440px)_1fr] lg:gap-14' : '']"
         >
           <!-- Plagát vždy vyplní stĺpec, aj keď je zdroj malý (import občas
                prinesie 190 px náhľad) — pri `w-auto` ostával ako známka.
                Orientáciu vieme až po načítaní. -->
-          <div v-if="heroImage" :class="posterBleed ? 'relative self-stretch md:min-h-[26rem]' : 'contents'">
-            <img
-              :src="heroImage"
-              :srcset="heroSrcset"
-              :sizes="posterBleed ? '(min-width: 768px) 50vw, 100vw' : '(min-width: 768px) 460px, 100vw'"
-              :alt="event.name"
-              fetchpriority="high"
-              decoding="async"
-              :class="posterBleed
-                ? 'block h-auto w-full md:absolute md:inset-0 md:h-full md:object-cover'
-                : 'mx-auto h-[30rem] w-auto max-w-full rounded-2xl object-contain shadow-2xl ring-1 ring-white/15 md:h-[38rem]'"
-              @load="onPosterLoad"
-            />
+          <div
+            v-if="heroImage"
+            :class="posterBleed ? 'relative self-stretch md:min-h-[28rem]' : 'flex justify-center [perspective:1400px]'"
+          >
+            <!-- Plagát na výšku sa pod myšou nakláňa (useTilt); obrázok „na
+                 spad" ostáva pevný, tam by sa naklonila pol hlavička. -->
+            <div
+              :class="posterBleed ? 'contents' : 'relative max-w-full will-change-transform'"
+              :style="posterBleed ? undefined : tiltStyle"
+              @pointermove="onTiltMove"
+              @pointerleave="onTiltLeave"
+            >
+              <img
+                :src="heroImage"
+                :srcset="heroSrcset"
+                :sizes="posterBleed ? '(min-width: 768px) 50vw, 100vw' : '(min-width: 768px) 440px, 100vw'"
+                :alt="event.name"
+                fetchpriority="high"
+                decoding="async"
+                :class="posterBleed
+                  ? 'block h-auto w-full md:absolute md:inset-0 md:h-full md:object-cover'
+                  : 'mx-auto block h-[30rem] w-auto max-w-full rounded-2xl object-contain shadow-2xl shadow-black/50 ring-1 ring-white/15 md:h-[36rem]'"
+                @load="onPosterLoad"
+              />
+              <div
+                v-if="!posterBleed"
+                class="pointer-events-none absolute inset-0 rounded-2xl mix-blend-soft-light transition-opacity duration-300"
+                :style="tiltGlare"
+                aria-hidden="true"
+              />
+            </div>
           </div>
 
-          <div class="min-w-0" :class="{ 'px-4 py-8 md:px-10 md:py-14 lg:px-14': posterBleed }">
+          <div class="min-w-0" :class="{ 'px-5 py-8 md:px-10 md:py-14 lg:px-14': posterBleed }">
             <!-- Štítky vedú do tematických výpisov — pre návštevníka je to cesta
                  „chcem ešte niečo podobné", pre vyhľadávač interné prelinkovanie. -->
-            <div v-if="event.tags.length" class="mb-4 flex flex-wrap gap-1.5">
+            <div v-if="isLive || event.tags.length" class="mb-5 flex flex-wrap items-center gap-1.5">
+              <span
+                v-if="isLive"
+                class="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-3 py-1 text-xs font-bold text-emerald-950"
+              >
+                <span class="relative flex h-2 w-2" aria-hidden="true">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-900 opacity-60" />
+                  <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-900" />
+                </span>
+                {{ t('public.ongoing') }}
+              </span>
               <RouterLink
                 v-for="tag in event.tags"
                 :key="tag.id"
@@ -105,10 +144,32 @@
               </RouterLink>
             </div>
 
-            <h1 class="text-3xl leading-tight font-extrabold tracking-tight text-balance md:text-5xl">{{ event.name }}</h1>
+            <!-- Dlhý názov (importované titulky bývajú celé vety) dostane
+                 menšie písmo, inak by zabral celú výšku hlavičky. -->
+            <h1
+              class="leading-[1.08] font-extrabold tracking-tight text-balance"
+              :class="event.name.length > LONG_TITLE ? 'text-2xl md:text-4xl' : 'text-4xl md:text-5xl lg:text-6xl'"
+            >{{ event.name }}</h1>
 
-            <dl class="mt-6 grid gap-4 text-sm sm:text-base">
-              <div v-if="event.startAt || event.dateRangeLabel" class="flex items-center gap-3">
+            <p v-if="event.canal" class="mt-4 flex items-center gap-2.5 text-sm text-white/70">
+              <span
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white ring-1 ring-inset ring-white/20"
+                aria-hidden="true"
+              >{{ event.canal.name.trim().charAt(0).toUpperCase() }}</span>
+              <span class="min-w-0">
+                {{ t('public.event.organizer') }}
+                <RouterLink
+                  :to="publicCanalPath({ id: event.canal.id })"
+                  class="font-semibold text-white no-underline hover:underline"
+                >{{ event.canal.name }}</RouterLink>
+              </span>
+            </p>
+
+            <dl class="mt-7 grid gap-3 text-sm sm:grid-cols-2">
+              <div
+                v-if="event.startAt || event.dateRangeLabel"
+                class="flex items-center gap-3 rounded-2xl bg-white/[0.07] p-3 ring-1 ring-inset ring-white/10 backdrop-blur-md"
+              >
                 <dt class="sr-only">{{ t('public.event.date') }}</dt>
                 <!-- Kalendárny lístok — rovnaký tvar ako na kartách vo výpise. -->
                 <div
@@ -119,41 +180,47 @@
                   <span class="text-[10px] font-bold uppercase tracking-wide text-rose-600">{{ heroTile.month }}</span>
                   <span class="mt-0.5 text-lg font-extrabold">{{ heroTile.day }}</span>
                 </div>
-                <dd>
+                <dd class="min-w-0">
                   <span v-if="event.startAt" class="block font-semibold">{{ dayName(event.startAt) }}</span>
-                  <span class="text-white/75">{{ event.dateRangeLabel }}</span>
+                  <span class="text-white/70">{{ event.dateRangeLabel }}</span>
                 </dd>
               </div>
 
-              <div v-if="placeLabel" class="flex items-center gap-3">
+              <div
+                v-if="placeLabel"
+                class="flex items-center gap-3 rounded-2xl bg-white/[0.07] p-3 ring-1 ring-inset ring-white/10 backdrop-blur-md"
+              >
                 <dt class="sr-only">{{ t('public.event.place') }}</dt>
-                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15" aria-hidden="true">
+                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/15" aria-hidden="true">
                   <AppIcon name="mapPin" class="h-5 w-5" />
                 </span>
                 <dd class="min-w-0 font-semibold">{{ placeLabel }}</dd>
               </div>
-
-              <div class="flex items-center gap-3">
-                <dt class="sr-only">{{ t('public.event.registration') }}</dt>
-                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15" aria-hidden="true">
-                  <AppIcon name="ticket" class="h-5 w-5" />
-                </span>
-                <dd>
-                  <span
-                    class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold"
-                    :class="hasPaidPrice ? 'bg-white/15' : 'bg-emerald-500 text-white'"
-                  >{{ priceLabel }}</span>
-                </dd>
-              </div>
             </dl>
+
+            <!-- Živý odpočet. Dátum v dlaždici hovorí „kedy", toto hovorí
+                 „ako skoro" — a to rozhoduje, či sa človek prihlási hneď. -->
+            <div v-if="countdown && !hasEnded" class="mt-6" role="timer" :aria-label="t('public.event.startsIn')">
+              <p class="mb-2 text-[11px] font-semibold tracking-widest text-white/50 uppercase">{{ t('public.event.startsIn') }}</p>
+              <div class="flex gap-2">
+                <div
+                  v-for="part in countdown"
+                  :key="part.unit"
+                  class="flex min-w-14 flex-col items-center rounded-xl bg-white/[0.07] px-2.5 py-2 ring-1 ring-inset ring-white/10 backdrop-blur-md"
+                >
+                  <span class="text-2xl leading-none font-extrabold tabular-nums">{{ part.value }}</span>
+                  <span class="mt-1 text-[10px] font-semibold tracking-wide text-white/50 uppercase">{{ part.unit }}</span>
+                </div>
+              </div>
+            </div>
 
             <!-- Hlavná akcia hneď pod faktami — na `lg` je formulár v bočnom
                  paneli, ale „kde sa prihlásim" je prvá otázka po prečítaní nadpisu. -->
-            <div v-if="(showMobileCta && !hasEnded) || mapCoords" class="mt-7 flex flex-wrap gap-3">
+            <div class="mt-7 flex flex-wrap items-center gap-3">
               <button
-                v-if="showMobileCta && !hasEnded"
+                v-if="showMobileCta"
                 type="button"
-                class="inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 text-base font-bold text-slate-900 shadow-lg transition hover:bg-slate-100"
+                class="inline-flex h-12 cursor-pointer items-center gap-2 rounded-2xl bg-white px-6 text-base font-bold text-slate-900 shadow-xl shadow-black/30 transition hover:-translate-y-0.5 hover:bg-rose-50"
                 @click="scrollToRegistration"
               >
                 <AppIcon name="ticket" class="h-5 w-5" />
@@ -164,16 +231,57 @@
                 :href="`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex h-12 items-center gap-2 rounded-xl bg-white/10 px-5 text-base font-semibold text-white no-underline ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-white/20"
+                class="inline-flex h-12 items-center gap-2 rounded-2xl bg-white/10 px-5 text-base font-semibold text-white no-underline ring-1 ring-inset ring-white/25 backdrop-blur-sm transition hover:bg-white/20"
               >
                 <AppIcon name="mapPin" class="h-5 w-5" />
                 {{ t('public.event.navigate') }}
               </a>
+              <span
+                class="inline-flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-bold"
+                :class="hasPaidPrice ? 'bg-white/10 ring-1 ring-inset ring-white/15' : 'bg-emerald-400 text-emerald-950'"
+              >
+                <span class="sr-only">{{ t('public.event.registration') }}:</span>
+                <AppIcon name="ticket" class="h-4 w-4" />
+                {{ priceLabel }}
+              </span>
             </div>
           </div>
         </div>
       </header>
       </div>
+
+      <!-- Lišta po odrolovaní hlavičky: názov, termín a hlavná akcia ostanú
+           na dosah aj uprostred dlhého popisu. Všetko v nej je kópia toho,
+           čo stránka už má, preto je pre čítačku aj klávesnicu skrytá.
+           Na telefóne ju zastupuje spodná lišta. -->
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="-translate-y-full opacity-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-to-class="-translate-y-full opacity-0"
+      >
+        <div
+          v-if="heroPassed"
+          class="fixed inset-x-0 top-0 z-30 hidden border-b border-slate-900/5 bg-white/85 shadow-sm backdrop-blur-xl lg:block"
+          aria-hidden="true"
+        >
+          <div class="mx-auto flex h-16 max-w-300 items-center gap-4 px-4">
+            <img v-if="event.imageUrl" :src="event.imageUrl" alt="" class="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-slate-900/10" />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-bold text-slate-900">{{ event.name }}</p>
+              <p v-if="shareText" class="truncate text-xs text-slate-500">{{ shareText }}</p>
+            </div>
+            <span class="shrink-0 text-sm font-semibold text-slate-700">{{ priceLabel }}</span>
+            <button
+              v-if="showMobileCta"
+              type="button"
+              tabindex="-1"
+              class="h-10 shrink-0 cursor-pointer rounded-xl bg-slate-900 px-5 text-sm font-bold text-white transition hover:bg-rose-600"
+              @click="scrollToRegistration"
+            >{{ registerLabel }}</button>
+          </div>
+        </div>
+      </Transition>
 
       <div class="mx-auto w-full max-w-300 px-4 py-6">
         <BreadcrumbNav :items="breadcrumbs" class="mb-5" />
@@ -196,12 +304,16 @@
           <!-- Hlavný stĺpec -->
           <div class="space-y-6">
             <!-- Popis -->
-            <div v-if="event.body" class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6 md:p-8">
+            <section v-if="event.body" class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6 md:p-8">
+              <h2 class="mb-4 flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
+                <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
+                {{ t('public.event.about') }}
+              </h2>
               <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="event.body" />
-            </div>
+            </section>
 
             <!-- Workshopy (sub-akcie v rámci eventu) -->
-            <section v-if="workshops.length" class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6">
+            <section v-if="workshops.length" class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6">
               <div class="mb-4 flex items-center gap-2">
                 <svg class="h-4 w-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -229,23 +341,24 @@
             <EventQuestions :event-id="event.id" />
 
             <!-- Galéria -->
-            <section v-if="event.uploadedImages.length" class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6">
+            <section v-if="event.uploadedImages.length" class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-6">
               <h2 class="mb-4 text-lg font-bold text-slate-900">{{ t('public.event.photos') }}</h2>
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              <div class="grid grid-flow-dense grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                 <!-- Button, nie div: lightbox sa musí dať otvoriť aj klávesnicou. -->
                 <button
                   v-for="(img, idx) in event.uploadedImages"
                   :key="idx"
                   type="button"
                   :aria-label="t('public.event.photoOpen', { n: idx + 1, total: event.uploadedImages.length })"
-                  class="group relative aspect-square cursor-zoom-in overflow-hidden rounded-xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  class="group relative aspect-square cursor-zoom-in overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  :class="{ 'col-span-2 row-span-2': idx === 0 && event.uploadedImages.length >= BENTO_MIN }"
                   @click="lightboxIdx = idx"
                 >
                   <img
-                    :src="img.thumb || img.large"
+                    :src="idx === 0 && event.uploadedImages.length >= BENTO_MIN ? (img.large || img.thumb) : (img.thumb || img.large)"
                     :alt="t('public.event.photoAlt', { name: event.name, n: idx + 1 })"
                     loading="lazy" decoding="async"
-                    class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </button>
               </div>
@@ -259,7 +372,7 @@
                  `<details>` zámerne namiesto vlastného stavu: funguje
                  klávesnicou aj bez JS, prehliadač sám rieši `aria-expanded`
                  a obsah zabalenej sekcie sa ani nenačítava. -->
-            <details v-if="mapCoords" class="collapsible group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
+            <details v-if="mapCoords" class="collapsible group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5">
               <summary class="flex cursor-pointer items-center gap-2 px-6 py-4">
                 <AppIcon name="mapPin" class="h-4 w-4 text-slate-400" />
                 <h2 class="text-lg font-bold text-slate-900">{{ t('public.event.map') }}</h2>
@@ -289,9 +402,9 @@
 
           <!-- Sidebar. `sticky` drží termín a registráciu na očiach aj pri dlhom
                popise — na mobile ju zastupuje spodná lišta. -->
-          <aside class="space-y-4 lg:sticky lg:top-4">
+          <aside class="space-y-4 lg:sticky lg:top-20">
             <!-- Termín -->
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
+            <section class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/>
@@ -336,7 +449,7 @@
             </section>
 
             <!-- Lístok / registrácia -->
-            <section v-if="event.reservable" id="registracia" class="scroll-mt-4 rounded-2xl bg-white shadow-md ring-2 ring-blue-500/30 p-5">
+            <section v-if="event.reservable" id="registracia" class="scroll-mt-24 rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
@@ -355,7 +468,7 @@
 
             <!-- Miesto -->
             <section v-if="event.venue || event.locationName || event.street || event.municipality"
-              class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
+              class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/>
@@ -419,7 +532,7 @@
             </section>
 
             <!-- Organizátor -->
-            <section v-if="event.canal" class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
+            <section v-if="event.canal" class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
@@ -434,7 +547,7 @@
             </section>
 
             <!-- Kontakt -->
-            <section v-if="event.phone || event.website || event.contactable" class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
+            <section v-if="event.phone || event.website || event.contactable" class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
@@ -453,7 +566,7 @@
             </section>
 
             <!-- Zdieľanie -->
-            <section class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
+            <section class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-900/5 p-5">
               <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.share.title') }}</h2>
               <ShareButtons :url="canonicalUrl" :title="event.name" :text="shareText" />
             </section>
@@ -464,7 +577,7 @@
              návštevník, ktorému termín nevyhovuje, nemá kam pokračovať. -->
         <section v-if="relatedEvents.length" class="mt-14">
           <div class="mb-5 flex items-end justify-between gap-3">
-            <h2 class="text-lg font-bold text-slate-900">
+            <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">
               {{ event.municipality
                 ? t('public.event.relatedNear', { name: event.municipality.name })
                 : t('public.event.related') }}
@@ -497,7 +610,7 @@
            galériou a mapou. Na `lg` ju nahrádza sticky sidebar. -->
       <div
         v-if="showMobileCta"
-        class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden"
+        class="fixed inset-x-3 bottom-3 z-30 rounded-2xl bg-white/90 px-4 py-3 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 backdrop-blur-xl lg:hidden"
       >
         <div class="mx-auto flex max-w-300 items-center gap-3">
           <div class="min-w-0 flex-1">
@@ -506,7 +619,7 @@
           </div>
           <button
             type="button"
-            class="shrink-0 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            class="shrink-0 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600"
             @click="scrollToRegistration"
           >{{ registerLabel }}</button>
         </div>
@@ -516,7 +629,7 @@
            takže na telefóne nemal návštevník k dispozícii vôbec nič. -->
       <div
         v-else-if="showMobileRemind"
-        class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden"
+        class="fixed inset-x-3 bottom-3 z-30 rounded-2xl bg-white/90 px-4 py-3 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 backdrop-blur-xl lg:hidden"
       >
         <div class="mx-auto flex max-w-300 items-center gap-3">
           <div class="min-w-0 flex-1">
@@ -535,7 +648,7 @@
 
 <script setup lang="ts">
 import { tagLabel } from '@/utils/tagLabel'
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { showPublicEvent, indexEvents } from '@/api/events'
@@ -567,6 +680,8 @@ import {
 } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
+import { useTilt } from '@/composables/useTilt'
+import { useCountdown } from '@/composables/useCountdown'
 
 const { t, plural } = useI18n()
 const route = useRoute()
@@ -586,6 +701,31 @@ const lightboxIdx = ref<number | null>(null)
 
 /** Koľko súvisiacich podujatí sa vojde do jedného radu mriežky. */
 const RELATED_LIMIT = 4
+/** Od koľkých znakov je názov „dlhý" a v hlavičke dostane menšie písmo. */
+const LONG_TITLE = 48
+/** Od koľkých fotiek má galéria prvú zväčšenú — s menej by ostali diery. */
+const BENTO_MIN = 5
+
+const { style: tiltStyle, glareStyle: tiltGlare, onMove: onTiltMove, onLeave: onTiltLeave } = useTilt()
+
+/** Odpočet do začiatku; `null`, keď už podujatie začalo alebo termín nemá. */
+const { parts: countdown, now } = useCountdown(computed(() => event.value?.startAt))
+
+/**
+ * Lišta s názvom a hlavnou akciou sa ukáže, až keď hlavička odroluje z obrazu.
+ * Hlavička vznikne až po načítaní, preto sa pozorovateľ napája cez `watch`.
+ */
+const heroEl = ref<HTMLElement | null>(null)
+const heroPassed = ref(false)
+const heroObserver = typeof IntersectionObserver === 'undefined'
+  ? null
+  : new IntersectionObserver(([entry]) => { heroPassed.value = !entry.isIntersecting })
+watch(heroEl, (el) => {
+  heroObserver?.disconnect()
+  heroPassed.value = false
+  if (el) heroObserver?.observe(el)
+})
+onBeforeUnmount(() => heroObserver?.disconnect())
 
 // Ovládanie klávesnicou (Esc, šípky) aj priblíženie rieši ImageLightbox.
 const lightboxImages = computed(() => (event.value?.uploadedImages ?? []).map(img => ({
@@ -730,6 +870,12 @@ const hasEnded = computed(() => {
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
   return new Date(e.startAt).getTime() < startOfToday.getTime()
+})
+
+/** Už začalo a ešte neskončilo — hlavička to hlási odznakom namiesto odpočtu. */
+const isLive = computed(() => {
+  const start = event.value?.startAt
+  return Boolean(start) && new Date(start!).getTime() <= now.value && !hasEnded.value
 })
 
 /**
@@ -1015,3 +1161,18 @@ async function load() {
 
 onMounted(load)
 </script>
+
+<style scoped>
+/* Žiara doznieva nadol aj do strán — bez masky by končila ostrou hranou. */
+.event-ambient {
+  mask-image:
+    linear-gradient(to bottom, black 45%, transparent),
+    linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-composite: intersect;
+}
+.event-hero-dots {
+  background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black, transparent 80%);
+}
+</style>
