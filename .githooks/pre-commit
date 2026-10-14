@@ -1,0 +1,13 @@
+#!/bin/sh
+# Build frontendu pred commitom — ui/dist sa commituje a nasadzuje cez git pull.
+# Spúšťa sa len vtedy, keď commit obsahuje zmeny v ui/ mimo ui/dist.
+# Zapnutie na počítači: git config core.hooksPath .githooks
+
+if git diff --cached --name-only | grep '^ui/' | grep -qv '^ui/dist/'; then
+  echo "pre-commit: build frontendu (ui)..."
+  (cd ui && npm run build) || {
+    echo "pre-commit: build zlyhal, commit zrušený." >&2
+    exit 1
+  }
+  git add -A ui/dist
+fi

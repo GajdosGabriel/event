@@ -12,6 +12,7 @@ use App\Services\Geocoding\GoogleMapsLinkResolver;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\SystemLog\Recorder;
 use App\Support\ImportedText;
+use App\Support\WeeklyRecurrence;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -201,7 +202,8 @@ class EventImportService
         $regexStartAt = $startAtPrecise ? $detail['start_at'] : null;
         $regexEndAt = $startAtPrecise ? $detail['end_at'] : null;
 
-        $startAt = $regexStartAt ?? $resolvedCanal['ai_start_at'] ?? $detail['start_at'];
+        $startAt = $regexStartAt ?? $resolvedCanal['ai_start_at'] ?? $detail['start_at']
+            ?? $this->nextWeeklyOccurrence($enrichedBodyText, $detail);
         $endAt = $regexEndAt ?? $resolvedCanal['ai_end_at'] ?? $this->fallbackEndAt($startAt);
         $isComplete = $startAt !== null && $endAt !== null && trim($body) !== '';
 
@@ -301,6 +303,26 @@ class EventImportService
         $this->syncPdfPageImages($event, $pdfResults);
 
         return $status;
+    }
+
+    /**
+     * Pravidelné podujatie bez dátumu („každý pondelok o 18:00") dostane
+     * najbližší výskyt — inak by ostalo navždy konceptom (10/2026: ruženec
+     * v bratislavskej katedrále, prednášky v UPC Nitra).
+     *
+     * Nie pri oznamoch s uzávierkou prihlášok: tam „každý utorok o 19:00"
+     * opisuje stretnutia kurzu, ktorý sa ešte len otvára, a najbližší utorok
+     * by bol vymyslený začiatok.
+     *
+     * @param  array<string, mixed>  $detail
+     */
+    private function nextWeeklyOccurrence(string $text, array $detail): ?CarbonInterface
+    {
+        if (($detail['registration_deadline_at'] ?? null) !== null) {
+            return null;
+        }
+
+        return WeeklyRecurrence::nextOccurrence($text, now());
     }
 
     /**

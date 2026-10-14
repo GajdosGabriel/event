@@ -165,6 +165,29 @@ class EventImportStatusPreservationTest extends TestCase
         $this->assertNotNull($event->published_at);
     }
 
+    #[Test]
+    public function it_publishes_a_weekly_event_on_its_next_occurrence(): void
+    {
+        Storage::fake('public');
+        $this->seed(RolesAndPermissionsSeeder::class);
+        User::factory()->create()->assignRole('super-admin');
+        // Hodiny v UTC ako aplikácia — testovací čas v inej zóne by Carbon
+        // použil aj pri čítaní dátumov z DB a posunul by ich.
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-14 10:00', 'UTC'));
+
+        $this->fakeSource('Modlitebné spoločenstvo ECAV pozýva na modlitbu, ktorá sa koná každý pondelok o 18:00.');
+
+        $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--pages' => 1, '--limit' => 1])
+            ->expectsOutput('Source '.self::LISTING_URL.' -> imported: 1, updated: 0, skipped: 0, errors: 0')
+            ->assertSuccessful();
+
+        $event = Event::query()->where('orginal_source', self::DETAIL_URL)->firstOrFail();
+
+        $this->assertSame(ModelStatus::Published, $event->status);
+        $this->assertSame('2026-10-19 18:00', $event->start_at?->setTimezone('Europe/Bratislava')->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-19 20:00', $event->end_at?->setTimezone('Europe/Bratislava')->format('Y-m-d H:i'));
+    }
+
     private function importOnce(): Event
     {
         Storage::fake('public');
