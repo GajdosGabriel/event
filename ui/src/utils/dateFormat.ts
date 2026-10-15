@@ -18,6 +18,19 @@ export function dayName(d: string): string {
   return capitalize(date.toLocaleDateString(localeTag(), { weekday: 'long' }))
 }
 
+/**
+ * „Dnes" / „Zajtra" pre najbližšie dva dni, inak null. Z Intl, aby sa to
+ * preložilo samo vo všetkých jazykoch rovnako ako názvy dní.
+ */
+export function relativeDayName(d: string, now: Date = new Date()): string | null {
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return null
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diff = Math.round((startOf(date) - startOf(now)) / 86_400_000)
+  if (diff !== 0 && diff !== 1) return null
+  return capitalize(new Intl.RelativeTimeFormat(localeTag(), { numeric: 'auto' }).format(diff, 'day'))
+}
+
 /** Poradie zodpovedá kľúčom otváracích hodín; pondelok je prvý deň týždňa. */
 export const WEEKDAY_KEYS = [
   'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
@@ -66,6 +79,67 @@ export function fmtDateLong(d: string): string {
 /** Padnú oba časy do toho istého kalendárneho dňa? */
 export function isSameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString()
+}
+
+/** „24. 10." — dátum bez roka, keď rok vyplýva zo súvislosti. */
+export function fmtDayMonth(d: string): string {
+  return new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'numeric' })
+}
+
+/**
+ * Celodenné podujatie. Importy ho zapisujú ako 00:00 – 23:59 (niekedy do
+ * polnoci ďalšieho dňa) — časy by vo výpise len hovorili „od polnoci do polnoci".
+ * Zrkadlí App\Support\EventDateRange::isAllDay().
+ */
+export function isAllDay(start: string, end: string | null): boolean {
+  if (!end) return false
+  const s = new Date(start)
+  const e = new Date(end)
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return false
+  if (s.getHours() !== 0 || s.getMinutes() !== 0) return false
+  if (e.getHours() === 23 && e.getMinutes() === 59) return true
+  return e.getHours() === 0 && e.getMinutes() === 0 && e > s
+}
+
+/**
+ * Posledný deň podujatia — koniec o polnoci patrí ešte predchádzajúcemu dňu,
+ * inak by celodenná akcia „do 00:00" vyzerala ako dvojdňová.
+ */
+function lastDayOf(end: string): Date {
+  const e = new Date(end)
+  return e.getHours() === 0 && e.getMinutes() === 0 ? new Date(e.getTime() - 60_000) : e
+}
+
+/**
+ * Plný termín, keď ho API neposlalo (detail podujatia): „15. 10. 2026, 17:00 – 19:00",
+ * celodenné len „16. 10. 2026", viacdňové „16. 10. 2026 – 24. 10. 2026".
+ */
+export function fmtEventRange(start: string | null, end: string | null): string | null {
+  if (!start) return null
+  if (end && isAllDay(start, end)) {
+    const last = lastDayOf(end).toISOString()
+    return isSameDay(start, last) ? fmtDate(start) : `${fmtDate(start)} – ${fmtDate(last)}`
+  }
+  const label = `${fmtDate(start)}, ${fmtTime(start)}`
+  if (!end || end === start) return label
+  return isSameDay(start, end) ? `${label} – ${fmtTime(end)}` : `${label} – ${fmtDate(end)}, ${fmtTime(end)}`
+}
+
+/**
+ * Čas do riadku agendy, kde dátum už nesie nadpis dňa: „17:00 – 19:00",
+ * „Celý deň", pri viacdňovom „17:00 · do 24. 10.". Texty dodá volajúci (i18n).
+ */
+export function fmtAgendaTime(
+  start: string,
+  end: string | null,
+  labels: { allDay: string; until: (date: string) => string },
+): string {
+  const allDay = isAllDay(start, end)
+  const multiDay = Boolean(end) && !isSameDay(start, lastDayOf(end!).toISOString())
+  const time = allDay ? labels.allDay : fmtTime(start)
+  if (multiDay) return `${time} · ${labels.until(fmtDayMonth(lastDayOf(end!).toISOString()))}`
+  if (allDay || !end || end === start) return time
+  return `${time} – ${fmtTime(end)}`
 }
 
 /**

@@ -18,22 +18,31 @@
         >
           <!-- Náhľad je 96 px (128 px od `sm`). Thumb má 320 px, takže pokryje aj
                retinu — srcset by tu len sťahoval kilobajty navyše. -->
-          <div class="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-32 sm:w-32">
+          <!-- Náhľad je dekorácia vedľa názvu — prázdny alt, inak by čítačka
+               prečítala názov dvakrát za sebou. -->
+          <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-300 sm:h-32 sm:w-32">
             <img
               v-if="event.imageUrl"
               :src="event.imageUrl"
-              :alt="event.name"
+              alt=""
               loading="lazy"
               decoding="async"
               class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            <AppIcon v-else name="calendar" class="h-8 w-8" />
           </div>
 
           <div class="flex min-w-0 flex-1 flex-col py-0.5">
             <div class="flex items-start gap-3">
               <div class="min-w-0 flex-1">
-                <p v-if="event.dateRangeLabel" class="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-600">
-                  {{ event.dateRangeLabel }}
+                <!-- Dátum nesie nadpis dňa — tu stačí čas. Celý termín je
+                     v `title` a na detaile. -->
+                <p
+                  v-if="event.startAt"
+                  class="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-600"
+                  :title="event.dateRangeLabel ?? undefined"
+                >
+                  {{ timeLabel(event) }}
                 </p>
                 <h3 class="text-base font-bold leading-snug text-slate-900 sm:text-lg">
                   <RouterLink
@@ -80,9 +89,9 @@ import { computed } from 'vue'
 import type { EventItem } from '@/types'
 import EventTicketCta from '@/components/EventTicketCta.vue'
 import AppIcon from '@/components/AppIcon.vue'
-import { dayName, fmtDate } from '@/utils/dateFormat'
+import { dayName, fmtAgendaTime, fmtDate, relativeDayName } from '@/utils/dateFormat'
 import { publicEventPath } from '@/utils/publicUrl'
-import { htmlToText } from '@/utils/htmlToText'
+import { htmlToText, stripLeadingTitle } from '@/utils/htmlToText'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
@@ -114,7 +123,8 @@ const groups = computed<DayGroup[]>(() => {
     if (!group) {
       group = {
         key,
-        dayLabel: event.startAt ? dayName(event.startAt) : t('common.noDate'),
+        // „Dnes" a „Zajtra" sa čítajú rýchlejšie než názov dňa — dátum vedľa ostáva.
+        dayLabel: event.startAt ? relativeDayName(event.startAt) ?? dayName(event.startAt) : t('common.noDate'),
         dateLabel: event.startAt ? fmtDate(event.startAt) : '',
         events: [],
       }
@@ -129,10 +139,17 @@ function place(event: EventItem): string {
   return event.venue?.name ?? event.locationName ?? event.municipality?.name ?? ''
 }
 
+function timeLabel(event: EventItem): string {
+  return fmtAgendaTime(event.startAt!, event.endAt, {
+    allDay: t('common.allDay'),
+    until: (date) => t('public.ongoingUntil', { date }),
+  })
+}
+
 function summary(event: EventItem): string {
   const raw = event.body
   if (!raw) return ''
-  const text = htmlToText(raw)
+  const text = stripLeadingTitle(htmlToText(raw), event.name)
   return text.length > 160 ? `${text.slice(0, 160).trimEnd()}…` : text
 }
 </script>

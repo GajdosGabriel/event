@@ -819,6 +819,8 @@ const cs: Messages = {
       mapMore: 'a dalších {n}',
       mapWhen: { all: 'Všechny', today: 'Dnes', week: 'Nejbližší týden', month: 'Nejbližší měsíc' },
       viewLabel: 'Zobrazení seznamu',
+      // Skok na bočný panel s krajmi a štítkami — pod xl je až pod zoznamom.
+      filtersJump: 'Kraj a téma',
       agenda: 'Agenda',
       grid: 'Mřížka',
       loadFailed: 'Nepodařilo se načíst akce.',

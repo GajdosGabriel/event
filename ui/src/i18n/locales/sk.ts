@@ -874,6 +874,8 @@ const sk = {
       mapMore: 'a ďalších {n}',
       mapWhen: { all: 'Všetky', today: 'Dnes', week: 'Najbližší týždeň', month: 'Najbližší mesiac' },
       viewLabel: 'Zobrazenie zoznamu',
+      // Skok na bočný panel s krajmi a štítkami — pod xl je až pod zoznamom.
+      filtersJump: 'Kraj a téma',
       agenda: 'Agenda',
       grid: 'Mriežka',
       loadFailed: 'Nepodarilo sa načítať podujatia.',

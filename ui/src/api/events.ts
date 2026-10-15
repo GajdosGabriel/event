@@ -1,5 +1,6 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
+import { fmtEventRange } from '@/utils/dateFormat'
 import type { EventItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
 type Scope = 'public' | 'dashboard' | 'admin'
@@ -67,15 +68,6 @@ export function mapTicketCta(raw: unknown): EventTicketCta | null {
   return { kind: c['kind'], label: String(c['label'] ?? '') }
 }
 
-function buildDateRangeLabel(startAt: string | null, endAt: string | null): string | null {
-  if (!startAt) return null
-  const fmt = (d: string) => new Date(d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' })
-  if (!endAt || startAt === endAt) return fmt(startAt)
-  const start = new Date(startAt)
-  const end = new Date(endAt)
-  if (start.toDateString() === end.toDateString()) return fmt(startAt)
-  return `${fmt(startAt)} – ${fmt(endAt)}`
-}
 
 /**
  * Exportované kvôli vnoreným podujatiam v iných odpovediach (objednávka nesie
@@ -99,7 +91,9 @@ export function mapEvent(raw: Record<string, unknown>): EventItem {
     status: (raw['status'] as EventItem['status']) ?? 'draft',
     startAt,
     endAt,
-    dateRangeLabel: (raw['date_range_label'] as string) ?? buildDateRangeLabel(startAt, endAt),
+    // Detail (`toArray`, nie EventResource) label neposiela — bez času by
+    // hlavička aj spodný pruh ukazovali len dátum.
+    dateRangeLabel: (raw['date_range_label'] as string) ?? fmtEventRange(startAt, endAt),
     seriesId: (raw['series_id'] as number) ?? null,
     // Vo výpise ich prilepí withCount, na detaile nie sú — vtedy null,
     // aby sa dalo odlíšiť „séria bez ďalších termínov" od „nevieme".

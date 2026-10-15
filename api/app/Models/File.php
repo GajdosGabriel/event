@@ -159,15 +159,30 @@ class File extends Model
         $disk = (string) ($this->disk ?? config('filesystems.default', 'public'));
         if ($path && $this->isImage() && $disk === 's3'
             && app()->environment('local') && config('filesystems.local_image_prod_fallback')) {
-            $production = Storage::build(array_merge(config('filesystems.disks.s3'), [
-                'root' => config('filesystems.image_prod_root', 'prod'),
-            ]))->url($path);
+            $production = self::productionImageFilesystem()->url($path);
 
             // The fragment is not sent to S3. The UI uses it only if loading fails.
             return $production.'#local-image-fallback='.rawurlencode($this->filesystem()->url($path));
         }
 
         return $path ? $this->filesystem()->url($path) : null;
+    }
+
+    /**
+     * Produkčný S3 disk pre lokálny fallback obrázkov — jeden na celý request.
+     *
+     * `Storage::build()` zakaždým skladá nového S3 klienta (desiatky ms). Volal
+     * sa pre každú URL obrázka, takže lokálny výpis 24 podujatí trval ~3 s,
+     * hoci SQL desiatky milisekúnd.
+     */
+    private static function productionImageFilesystem(): \Illuminate\Filesystem\FilesystemAdapter
+    {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter|null $filesystem */
+        static $filesystem = null;
+
+        return $filesystem ??= Storage::build(array_merge(config('filesystems.disks.s3'), [
+            'root' => config('filesystems.image_prod_root', 'prod'),
+        ]));
     }
 
     private function isImage(): bool

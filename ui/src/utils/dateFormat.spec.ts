@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setLocale } from '@/i18n'
-import { dayName, weekdayLabel, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil, fmtRowDateRange, eventTimeState } from './dateFormat'
+import { dayName, weekdayLabel, fmtDate, fmtTime, fmtDayTimeRange, fmtDateLong, isSameDay, daysUntil, fmtRowDateRange, eventTimeState, relativeDayName, isAllDay, fmtEventRange, fmtAgendaTime } from './dateFormat'
 
 // Formát závisí od zvoleného jazyka; testy popisujú slovenský tvar, tak si ho
 // pred každým prípadom vypýtajú (v jsdom by inak vyhral jazyk prehliadača).
@@ -138,5 +138,56 @@ describe('daysUntil', () => {
 
   it('neplatný dátum vráti nulu', () => {
     expect(daysUntil('nezmysel', now)).toBe(0)
+  })
+})
+
+describe('relativeDayName', () => {
+  const now = new Date('2026-10-15T09:00:00')
+
+  it('vráti Dnes a Zajtra, inak null', () => {
+    expect(relativeDayName('2026-10-15T20:00:00', now)).toBe('Dnes')
+    expect(relativeDayName('2026-10-16T00:30:00', now)).toBe('Zajtra')
+    expect(relativeDayName('2026-10-17T10:00:00', now)).toBeNull()
+    expect(relativeDayName('2026-10-14T10:00:00', now)).toBeNull()
+  })
+})
+
+describe('isAllDay', () => {
+  it('rozozná 00:00 – 23:59 aj koniec o polnoci', () => {
+    expect(isAllDay('2026-10-16T00:00:00', '2026-10-16T23:59:00')).toBe(true)
+    expect(isAllDay('2026-10-16T00:00:00', '2026-10-17T00:00:00')).toBe(true)
+    expect(isAllDay('2026-10-16T17:00:00', '2026-10-16T23:59:00')).toBe(false)
+    expect(isAllDay('2026-10-16T00:00:00', null)).toBe(false)
+  })
+})
+
+describe('fmtEventRange', () => {
+  it('ukáže čas pri jednodňovom podujatí', () => {
+    expect(fmtEventRange('2026-10-15T17:00:00', '2026-10-15T19:00:00')).toBe('15. 10. 2026, 17:00 – 19:00')
+  })
+
+  it('celodenné podujatie bez časov', () => {
+    expect(fmtEventRange('2026-10-16T00:00:00', '2026-10-16T23:59:00')).toBe('16. 10. 2026')
+    expect(fmtEventRange('2026-10-16T00:00:00', '2026-10-17T00:00:00')).toBe('16. 10. 2026')
+    expect(fmtEventRange('2026-10-16T00:00:00', '2026-10-24T23:59:00')).toBe('16. 10. 2026 – 24. 10. 2026')
+  })
+
+  it('viacdňové s časmi', () => {
+    expect(fmtEventRange('2026-10-16T18:00:00', '2026-10-18T12:00:00')).toBe('16. 10. 2026, 18:00 – 18. 10. 2026, 12:00')
+  })
+})
+
+describe('fmtAgendaTime', () => {
+  const labels = { allDay: 'Celý deň', until: (date: string) => `do ${date}` }
+
+  it('v rámci dňa len časy', () => {
+    expect(fmtAgendaTime('2026-10-15T17:00:00', '2026-10-15T19:00:00', labels)).toBe('17:00 – 19:00')
+    expect(fmtAgendaTime('2026-10-15T17:00:00', null, labels)).toBe('17:00')
+  })
+
+  it('celodenné a viacdňové', () => {
+    expect(fmtAgendaTime('2026-10-16T00:00:00', '2026-10-16T23:59:00', labels)).toBe('Celý deň')
+    expect(fmtAgendaTime('2026-10-16T00:00:00', '2026-10-24T23:59:00', labels)).toBe('Celý deň · do 24. 10.')
+    expect(fmtAgendaTime('2026-10-16T18:00:00', '2026-10-18T12:00:00', labels)).toBe('18:00 · do 18. 10.')
   })
 })

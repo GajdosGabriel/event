@@ -820,6 +820,8 @@ const en: Messages = {
       mapMore: 'and {n} more',
       mapWhen: { all: 'All', today: 'Today', week: 'Next 7 days', month: 'Next month' },
       viewLabel: 'List view',
+      // Skok na bočný panel s krajmi a štítkami — pod xl je až pod zoznamom.
+      filtersJump: 'Region & topic',
       agenda: 'Agenda',
       grid: 'Grid',
       loadFailed: 'Events could not be loaded.',

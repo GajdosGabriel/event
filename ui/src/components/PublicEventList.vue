@@ -23,6 +23,18 @@
           @search="loadPage(1)"
         />
 
+        <!-- Pod `xl` je bočný panel s krajmi a štítkami až za zoznamom aj
+             stránkovaním — bez skratky by sa naň na telefóne nikto nedostal. -->
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 xl:hidden"
+          @click="filtersPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' })"
+        >
+          <AppIcon name="filter" class="h-4 w-4 text-slate-500" />
+          <!-- Na telefóne len ikona, nech sa panel zmestí do jedného riadku. -->
+          <span class="sr-only sm:not-sr-only">{{ t('public.list.filtersJump') }}</span>
+        </button>
+
         <!-- Prepínač zobrazenia je ten istý prvok ako karty v dashboarde,
              takže aj rovnako vyzerá — `.nav-tab.active` v styles.css. -->
         <div class="nav-tabs" role="group" :aria-label="t('public.list.viewLabel')">
@@ -214,7 +226,7 @@
         </div>
       </div>
 
-      <aside class="space-y-4">
+      <aside ref="filtersPanel" class="scroll-mt-4 space-y-4">
         <MunicipalityAside scope="public" resource="events" :params="facetParams" />
         <TagChips :count="loading ? null : resultLabel" :params="facetParams" />
       </aside>
@@ -236,6 +248,7 @@ import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import TagChips from '@/components/TagChips.vue'
 import NearbyFilter, { type NearbySelection } from '@/components/NearbyFilter.vue'
 import SearchField from '@/components/SearchField.vue'
+import AppIcon from '@/components/AppIcon.vue'
 // Mapa ťahá Leaflet aj jeho CSS — načíta sa až keď si ju niekto zapne, inak
 // by vyrástol balík každej verejnej stránky vrátane homepage.
 const EventsMap = defineAsyncComponent(() => import('@/components/EventsMap.vue'))
@@ -343,6 +356,7 @@ const page = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
 const listTop = ref<HTMLElement | null>(null)
+const filtersPanel = ref<HTMLElement | null>(null)
 
 /**
  * Filtre poslednej požiadavky na výpis — bočné panely z nich rátajú počty.
