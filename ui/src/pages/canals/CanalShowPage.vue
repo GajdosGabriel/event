@@ -11,9 +11,12 @@
         <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <!-- Dva stĺpce až od `xl`: na `lg` po odpočítaní bočného menu ostávalo
+           hlavnému obsahu ~370 px. `grid-cols-1` (minmax(0,1fr)) drží stĺpec v šírke
+           rodiča — bez neho ho roztiahla mapa či dlhý text a obsah sa odrezal. -->
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <!-- Ľavý stĺpec -->
-        <div class="grid gap-4">
+        <div class="grid grid-cols-1 gap-4">
           <!-- Hlavné info -->
           <div class="show-card">
             <div class="flex flex-wrap items-start gap-4">

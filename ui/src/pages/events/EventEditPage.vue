@@ -37,12 +37,14 @@
       jedného <form>: tlačidlo Uložiť síce sedí v paneli, ale odosiela natívne
       a prehliadač zvaliduje povinné polia z oboch stĺpcov naraz.
     -->
-    <form v-if="!loadingData" :novalidate="guided" class="grid items-start gap-5"
+    <!-- `grid-cols-1` = minmax(0,1fr): bez neho sa jediný stĺpec pod `xl`
+         roztiahol na šírku dlhej URL v popise a pravý okraj formulára sa odrezal. -->
+    <form v-if="!loadingData" :novalidate="guided" class="grid grid-cols-1 items-start gap-5"
       :class="guided ? 'mx-auto w-full max-w-3xl' : 'xl:grid-cols-[minmax(0,1fr)_360px]'"
       @submit.prevent="guided ? (step < 3 ? goToStep(step + 1) : saveGuided('publish')) : submit()">
       <fieldset :disabled="saving" class="contents">
       <!-- ── Ľavý stĺpec: to, čo sa píše ──────────────────────────────── -->
-      <div v-show="!guided || step === 1" class="grid gap-5">
+      <div v-show="!guided || step === 1" class="grid grid-cols-1 gap-5">
         <div class="edit-card grid gap-4">
           <FormField v-model="form.name" :label="t('events.fields.name')" :maxlength="250" required :error="errors.name" />
 
@@ -97,7 +99,7 @@
              meniť aj pri dlhom popise. Poradie kariet kopíruje poradie
              rozhodnutí: kto podujatie robí, ako vyzerá, čo stojí — a až
              nakoniec Publikovanie s tlačidlom Uložiť. ─────────────────── -->
-      <aside v-show="!guided || step !== 1" class="grid gap-4" :class="{ 'xl:sticky xl:top-4 xl:self-start': !guided }">
+      <aside v-show="!guided || step !== 1" class="grid grid-cols-1 gap-4" :class="{ 'xl:sticky xl:top-4 xl:self-start': !guided }">
         <div v-show="!guided || step === 2" class="edit-card grid gap-3">
           <p class="field-legend mb-0">{{ guided ? t('eventJourney.place') : t('events.sections.organizer') }}</p>
           <p v-if="guided && organizersLoading" role="status">{{ t('common.loading') }}</p>
@@ -252,15 +254,18 @@
             :error="errors.publish_at"
             :hint="t('events.fields.publishAtHint')"
           />
-          <div class="mt-1 flex gap-2">
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              {{ saving ? t('events.form.saving') : t('events.form.save') }}
-            </button>
-            <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
-          </div>
         </div>
 
       </aside>
+      <!-- Uložiť bolo len na konci panelu Publikovanie — pod `xl` za piatimi
+           obrazovkami formulára a na `xl` pod okrajom, lebo panel je vyšší než
+           obrazovka. Lišta ho drží pri spodnom okraji na každej šírke. -->
+      <div v-if="!guided" class="sticky bottom-3 z-20 flex gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur xl:col-span-2">
+        <button type="submit" class="btn btn-primary" :disabled="saving">
+          {{ saving ? t('events.form.saving') : t('events.form.save') }}
+        </button>
+        <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
+      </div>
       <div v-if="guided" class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <button v-if="step > 1" type="button" class="btn btn-secondary" @click="goToStep(step - 1)">{{ t('eventJourney.back') }}</button>
         <button type="button" class="btn btn-secondary" :disabled="saving || organizer.saving" @click="saveGuided('draft')">{{ saving ? t('events.form.saving') : t('eventJourney.saveDraft') }}</button>

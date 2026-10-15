@@ -1,7 +1,7 @@
 <template>
   <div class="index-row" :class="{ 'index-row-muted': muted }">
     <div class="index-row-thumb">
-      <img v-if="imageUrl" :src="imageUrl" :alt="title" loading="lazy" />
+      <img v-if="imageUrl && !isPlaceholder" :src="imageUrl" :alt="title" loading="lazy" />
       <div v-else class="index-row-thumb-empty" aria-hidden="true">
         <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -35,8 +35,11 @@
       <slot name="detail" />
     </div>
 
+    <!-- „Publikované" je bežný stav a štítok by bol len šum; každý iný stav
+         (koncept, naplánované, archív, blokované…) mení, čo s riadkom robiť,
+         a musí byť vidieť — naplánované podujatie inak vyzeralo ako zverejnené. -->
     <div class="flex justify-start md:justify-center">
-      <span v-if="statusValue === 'draft'" class="index-row-status status-draft">{{ status }}</span>
+      <span v-if="status && statusValue && statusValue !== 'published'" class="index-row-status" :class="`status-${statusValue}`">{{ status }}</span>
     </div>
 
     <div class="index-row-actions">
@@ -46,11 +49,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from '@/i18n'
 
 const { t } = useI18n()
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   title: string
   imageUrl?: string | null
   meta?: string
@@ -66,4 +70,11 @@ withDefaults(defineProps<{
   muted: false,
   viewsCount: null,
 })
+
+/**
+ * Záznam bez obrázka dostane z API zástupné SVG (`images/event.svg` a spol.).
+ * Nahrať SVG sa nedá (FileStoreRequest::FILE_RULES), takže .svg = zástupca —
+ * kreslí sa ako prázdny náhľad, ktorý na telefóne nezaberá miesto.
+ */
+const isPlaceholder = computed(() => /\.svg([?#]|$)/i.test(props.imageUrl ?? ''))
 </script>

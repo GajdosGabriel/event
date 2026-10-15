@@ -153,6 +153,9 @@ onBeforeUnmount(() => editor.value?.destroy())
   min-height: v-bind(minHeight);
   padding: 0.75rem 1rem;
   outline: none;
+  /* Importované popisy nesú dlhé URL bez medzier (formuláre, mapy) —
+     bez zalomenia by roztiahli editor aj celý formulár. */
+  overflow-wrap: anywhere;
 }
 
 .html-editor-content .tiptap p.is-editor-empty:first-child::before {

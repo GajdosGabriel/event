@@ -28,7 +28,9 @@
   .btn-lg { @apply h-11 rounded-xl px-6 text-base; }
 
   /* Index */
-  .index-head { @apply grid gap-2; }
+  /* grid-cols-1 = minmax(0,1fr): bez neho stĺpec rástol na šírku riadku filtrov
+     a posledné polia (dátum Do, hľadanie) sa odrezali. */
+  .index-head { @apply grid grid-cols-1 gap-2; }
   .index-head .head-actions { @apply flex flex-wrap gap-2 justify-between; }
   .index-status { @apply text-slate-600; }
   .index-status-error { @apply text-red-700; }
@@ -65,10 +67,18 @@
   .index-row-thumb { @apply -mx-3 -mt-3 block h-24 overflow-hidden rounded-t-[7px] bg-slate-50 md:m-0 md:-my-3 md:-ml-3 md:h-auto md:min-h-[4.5rem] md:self-stretch md:rounded-l-[7px] md:rounded-tr-none; }
   .index-row-thumb img { @apply block size-full object-cover; }
   .index-row-thumb-empty { @apply grid size-full place-items-center bg-slate-50 text-slate-300; }
+  /* Na telefóne je náhľad pás cez celú šírku — prázdny zástupca by z každej
+     karty bez obrázka zjedol tretinu. Na `md` drží stĺpec, tam ostáva. */
+  .index-row-thumb:has(> .index-row-thumb-empty) { @apply hidden md:block; }
   /* Typograficky zhodné s chipmi v riadku (`.row-chip`) — stav je ďalší údaj
      o zázname, nie iný druh prvku. Odlišuje ho rámček, nie veľkosť písma. */
   .index-row-status { @apply whitespace-nowrap rounded-full border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600; }
   .index-row-status.status-draft { @apply border-amber-300 bg-amber-100 text-amber-800; }
+  .index-row-status.status-scheduled { @apply border-sky-300 bg-sky-50 text-sky-800; }
+  .index-row-status.status-archived { @apply border-slate-300 bg-slate-100 text-slate-600; }
+  .index-row-status.status-pending_review { @apply border-violet-300 bg-violet-50 text-violet-800; }
+  .index-row-status.status-blocked,
+  .index-row-status.status-rejected { @apply border-red-300 bg-red-50 text-red-800; }
   .index-row-actions { @apply relative z-10 flex md:self-start flex-wrap items-center justify-start gap-1.5 md:justify-end; }
 
   /* Chipy v riadku výpisu. Jeden tvar, mení sa len farba — pri šiestich
@@ -79,6 +89,9 @@
   .row-chip-past { @apply bg-slate-100 text-slate-500; }
   .row-chip-danger { @apply bg-rose-100 text-rose-700; }
   .row-chip-canal { @apply relative z-10 bg-teal-50 text-teal-700; }
+  /* Názvy kanálov bývajú dlhé („Úrad pre apoštolát ochrany života…") — na
+     telefóne by chip presahoval riadok. Celý názov nesie title. */
+  .row-chip-canal { @apply inline-block max-w-full truncate align-middle; }
   button.row-chip-canal, a.row-chip-canal { @apply cursor-pointer no-underline transition-colors hover:bg-teal-100; }
   /* Obec. `relative z-10` je nutnosť, nie ozdoba — inak ho prekryje odkaz
      názvu, ktorý sa cez `::after` roztiahne na celý riadok. */

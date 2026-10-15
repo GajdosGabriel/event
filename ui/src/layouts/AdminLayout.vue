@@ -229,7 +229,11 @@ const munResource = computed(() => {
 .collapsed .aside-link { @apply justify-center px-2; }
 .collapsed .toggle-btn { @apply justify-center; }
 
-.body { @apply min-w-0 overflow-auto p-4; }
+/* clip, nie auto: overflow-auto robil z <main> scroll kontajner, ktorý nikdy
+   nescrolloval (výška rastie s obsahom, scrolluje okno) — a sticky vnútri
+   administrácie (panel formulára, lišta Uložiť) sa preto nikdy neprilepil.
+   Široké tabuľky majú vlastný overflow-x-auto. */
+.body { @apply min-w-0 overflow-x-clip p-4; }
 .body-inner { @apply mx-auto flex min-h-full w-full max-w-[1300px] gap-4; }
 .page-content { @apply min-w-0 flex-1; }
 .right-aside { @apply hidden xl:block w-72 shrink-0 self-stretch border-l border-slate-200; }
