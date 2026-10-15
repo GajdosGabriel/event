@@ -82,7 +82,8 @@ class PublicEventTicketCtaTest extends TestCase
     #[Test]
     public function canal_event_list_carries_the_cta_and_hides_helper_flags(): void
     {
-        $canal = Canal::factory()->create();
+        // Verejný profil (a jeho zoznam) má len publikovaný kanál.
+        $canal = Canal::factory()->active()->create();
         $event = $this->publishedEvent(['canal_id' => $canal->id]);
         $event->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
 

@@ -132,6 +132,9 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
                 'municipality',
                 'venues' => fn ($q) => $q->wherePivot('status', ModelStatus::Published->value),
             ])
+            // Koncept ani blokovaný kanál verejný profil nemá — viď
+            // ModelStatus::publiclyReadableValues().
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
             ->find($id);
     }
 

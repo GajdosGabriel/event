@@ -45,11 +45,14 @@ class Canal extends Model implements Messageable
     protected $appends = ['has_primary_image', 'primary_image', 'thumb_image', 'files'];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Kontakt a stav správy kanála nie sú verejné — kanál sa kontaktuje cez
+     * „Poslať správu", nie cez zverejnenú adresu. Model sa serializuje aj
+     * priamo (verejný zoznam a detail kanála), takže skrytie musí byť tu.
+     * Organizátorovi a adminovi ich vracia CanalResource po kontrole `view`.
      *
      * @var list<string>
      */
-    protected $hidden = [];
+    protected $hidden = ['email', 'email_verified_at', 'claimed_by_user_id'];
 
     protected $casts = [
         'name' => StringLength250::class,

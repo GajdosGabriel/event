@@ -60,8 +60,8 @@ class CanalController extends Controller
         $claims = app(CanalClaims::class);
         $data['claimable'] = $claims->isClaimable($canal);
         $data['claim_contact'] = $data['claimable'] && $claims->contactOf($canal) !== null;
-        // Kontaktnú adresu a stav správy UI nepotrebuje — nesú ich tieto príznaky.
-        unset($data['claimed_by_user_id']);
+        // Kontaktnú adresu a stav správy UI nepotrebuje — nesú ich tieto
+        // príznaky; samotné stĺpce drží Canal::$hidden.
 
         // Obec a (publikované) miesta pre verejný detail – rovnaký tvar ako
         // v CanalResource, aby ich front vedel zobraziť.
@@ -88,7 +88,10 @@ class CanalController extends Controller
      */
     public function events($id): JsonResponse
     {
-        $canal = Canal::findOrFail($id);
+        // Nepublikovaný kanál nemá verejný profil — ani jeho zoznam podujatí.
+        $canal = Canal::query()
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->findOrFail($id);
 
         // Aj archivované — po skončení podujatia ho tam preklopí
         // `app:events-archive-finished`, takže filter len na `published` by

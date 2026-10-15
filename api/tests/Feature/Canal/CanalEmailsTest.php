@@ -4,6 +4,7 @@ namespace Tests\Feature\Canal;
 
 use App\Enums\CanalEmailStatus;
 use App\Enums\CanalRole;
+use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\CanalEmail;
@@ -175,8 +176,28 @@ class CanalEmailsTest extends TestCase
             'additional_emails' => ['nie-je-email'],
         ])->assertJsonValidationErrors('additional_emails.0');
 
+        // Majiteľ kontakt vidí, návštevník ani hlavnú adresu.
+        $this->getJson("/api/dashboard/canals/{$canal->id}")->assertOk()->assertJsonPath('email', 'a@divadlo.test');
+
         $this->app['auth']->forgetGuards();
-        $this->getJson("/api/canals/{$canal->id}")->assertJsonMissingPath('emails');
+        $public = $this->getJson("/api/canals/{$canal->id}")->assertOk()
+            ->assertJsonMissingPath('emails')
+            ->assertJsonMissingPath('email')
+            ->assertJsonMissingPath('claimed_by_user_id');
+        $this->assertStringNotContainsString('a@divadlo.test', $public->getContent());
+        $this->assertStringNotContainsString('a@divadlo.test', $this->getJson('/api/canals')->assertOk()->getContent());
+    }
+
+    #[Test]
+    public function unpublished_canal_has_no_public_profile(): void
+    {
+        $canal = Canal::factory()->inactive()->create();
+
+        $this->getJson("/api/canals/{$canal->id}")->assertNotFound();
+        $this->getJson("/api/canals/{$canal->id}/events")->assertNotFound();
+
+        $canal->forceFill(['status' => ModelStatus::Blocked->value])->save();
+        $this->getJson("/api/canals/{$canal->id}")->assertNotFound();
     }
 
     private function canal(string $email, bool $verified = false): Canal

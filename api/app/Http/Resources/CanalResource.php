@@ -30,9 +30,13 @@ class CanalResource extends JsonResource
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);
 
-        // Len pre organizátora a admina — model ho drží v $hidden (HasViews).
+        // Len pre organizátora a admina — model ich drží v $hidden (HasViews,
+        // Canal::$hidden), verejne kontakt kanála nevychádza.
         if ($user?->can('view', $this->resource)) {
             $data['views_count'] = (int) $this->views_count;
+            $data['email'] = $this->email;
+            $data['email_verified_at'] = $this->email_verified_at;
+            $data['claimed_by_user_id'] = $this->claimed_by_user_id;
         }
 
         $isPublished = $this->status === ModelStatus::Published;
