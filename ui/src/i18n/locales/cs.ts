@@ -2598,6 +2598,7 @@ const cs: Messages = {
       empty: 'Žádní uživatelé neodpovídají hledání.',
       colUser: 'Uživatel',
       colRoles: 'Role',
+      noRole: 'bez role',
       colStatus: 'Stav',
       colCanals: 'Kanály',
       colRegistration: 'Registrace',

@@ -63,7 +63,9 @@
               </div>
               <div>
                 <dt class="text-xs text-slate-400">{{ t('admin.user.status') }}</dt>
-                <dd class="text-sm text-slate-800">{{ user.status_label || user.status || '—' }}</dd>
+                <!-- Ten istý stav ako odznak v hlavičke — surový `status` je stĺpec
+                     zdieľaný s obsahom a vypisoval „Publikovaný" pri aktívnom účte. -->
+                <dd class="text-sm text-slate-800">{{ statusOf(user).label }}</dd>
               </div>
               <div>
                 <dt class="text-xs text-slate-400">{{ t('admin.user.registeredVia') }}</dt>

@@ -60,8 +60,8 @@
                     {{ initials(displayName(user)) }}
                   </span>
                   <div class="min-w-0">
-                    <div class="cell-name font-medium text-slate-900 group-hover:text-blue-600" :title="displayName(user)">{{ displayName(user) }}</div>
-                    <div class="cell-name text-xs text-slate-500" :title="(user.email as string) || undefined">{{ user.email || '—' }}</div>
+                    <div class="cell-name block font-medium text-slate-900 group-hover:text-blue-600" :title="displayName(user)">{{ displayName(user) }}</div>
+                    <div class="cell-name block text-xs text-slate-500" :title="(user.email as string) || undefined">{{ user.email || '—' }}</div>
                   </div>
                 </RouterLink>
               </td>
@@ -75,7 +75,7 @@
                     {{ roleLabel(role, roles) }}
                   </span>
                 </div>
-                <span v-else class="text-xs text-slate-400">bez roly</span>
+                <span v-else class="text-xs text-slate-400">{{ t('admin.users.noRole') }}</span>
               </td>
 
               <!-- Status -->

@@ -13,6 +13,17 @@ const SECTION_KEYS: Record<string, MessageKey> = {
   files: 'nav.files',
   spravy: 'nav.messages',
   'navrhy-stitkov': 'nav.tagSuggestions',
+  // Admin — bez nich mala každá karta prehliadača titulok „Admin | Event".
+  prevzatia: 'nav.canalClaims',
+  vstupenky: 'nav.tickets',
+  otazky: 'nav.questions',
+  oznamy: 'nav.announcements',
+  podpora: 'nav.support',
+  users: 'nav.users',
+  'ai-spotreba': 'nav.aiUsage',
+  dennik: 'nav.systemLog',
+  tools: 'nav.tools',
+  settings: 'nav.settings',
 }
 
 /** Titulok „Sekcia · Oblasť | Event" a `noindex` pre prihlásené časti (dashboard, admin). */

@@ -2718,6 +2718,7 @@ const sk = {
       empty: 'Žiadni používatelia nezodpovedajú hľadaniu.',
       colUser: 'Používateľ',
       colRoles: 'Role',
+      noRole: 'bez roly',
       colStatus: 'Stav',
       colCanals: 'Kanály',
       colRegistration: 'Registrácia',

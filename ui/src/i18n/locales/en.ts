@@ -2599,6 +2599,7 @@ const en: Messages = {
       empty: 'No users match the search.',
       colUser: 'User',
       colRoles: 'Roles',
+      noRole: 'no role',
       colStatus: 'Status',
       colCanals: 'Channels',
       colRegistration: 'Registration',

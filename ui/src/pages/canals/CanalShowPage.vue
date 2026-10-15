@@ -137,7 +137,7 @@
         </div>
 
         <!-- Pravý stĺpec -->
-        <aside class="grid gap-4 self-start">
+        <aside class="grid grid-cols-1 gap-4 self-start">
           <dl class="show-card grid gap-3">
             <!-- Organizácia (fakturačná identita kanála) -->
             <div v-if="canal.organization" class="detail-card">

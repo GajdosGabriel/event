@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-4">
+  <div class="grid grid-cols-1 gap-4">
     <p v-if="loading" class="index-status">{{ t('stats.loading') }}</p>
     <p v-else-if="error" class="index-status index-status-error">{{ error }}</p>
 
@@ -51,7 +51,7 @@
       </section>
 
       <!-- Prírastky za obdobie -->
-      <section class="grid gap-3">
+      <section class="grid grid-cols-1 gap-3">
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.periods.title') }}</h2>
@@ -89,9 +89,9 @@
 
       <ActivityChart :trend="stats.trend" />
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <!-- Návštevnosť verejných detailov -->
-        <section class="panel-card grid gap-4">
+        <section class="panel-card grid grid-cols-1 gap-4">
           <div>
             <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.views.title') }}</h2>
             <p class="text-sm text-slate-500">{{ t('stats.views.subtitle') }}</p>
@@ -134,7 +134,7 @@
         </section>
 
         <!-- Predaj a dochádzka -->
-        <section class="panel-card grid gap-4">
+        <section class="panel-card grid grid-cols-1 gap-4">
           <div>
             <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.tickets.title') }}</h2>
             <p class="text-sm text-slate-500">
@@ -183,9 +183,9 @@
         </section>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <!-- Skladba obsahu -->
-        <section class="panel-card grid gap-4">
+        <section class="panel-card grid grid-cols-1 gap-4">
           <div>
             <h2 class="text-lg font-semibold text-slate-900">{{ t('stats.composition.title') }}</h2>
             <p class="text-sm text-slate-500">
@@ -267,7 +267,7 @@
         </section>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <!-- Najviac zobrazené -->
         <section class="panel-card">
           <h2 class="mb-3 text-lg font-semibold text-slate-900">{{ t('stats.mostViewed.title') }}</h2>

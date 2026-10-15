@@ -2599,6 +2599,7 @@ const de: Messages = {
       empty: 'Keine Nutzer passen zur Suche.',
       colUser: 'Nutzer',
       colRoles: 'Rollen',
+      noRole: 'keine Rolle',
       colStatus: 'Status',
       colCanals: 'Kanäle',
       colRegistration: 'Registrierung',
