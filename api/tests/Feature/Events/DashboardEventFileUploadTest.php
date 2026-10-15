@@ -57,6 +57,27 @@ class DashboardEventFileUploadTest extends EventSetupTest
         $this->assertTrue(Storage::disk('public')->exists($file->path));
     }
 
+    /**
+     * `store()` dáva príponu podľa obsahu — HTML/SVG/PHP by sa uložilo
+     * s vlastnou príponou a verejný disk by ho servíroval z našej domény.
+     */
+    #[Test]
+    public function dashboard_update_event_rejects_executable_uploads(): void
+    {
+        Storage::fake('public');
+
+        foreach (['stranka.html' => '<script>alert(1)</script>', 'shell.php' => '<?php echo 1;', 'obrazok.svg' => '<svg onload="alert(1)"/>'] as $name => $content) {
+            $this->put('/api/dashboard/events/'.$this->futureEvent->id, [
+                'name' => $this->futureEvent->name,
+                'files' => [UploadedFile::fake()->createWithContent($name, $content)],
+            ], ['Accept' => 'application/json'])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('files.0');
+        }
+
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
     #[Test]
     public function dashboard_update_event_saves_uploaded_files(): void
     {

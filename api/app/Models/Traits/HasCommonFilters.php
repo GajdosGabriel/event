@@ -3,9 +3,9 @@
 namespace App\Models\Traits;
 
 use App\Enums\ModelStatus;
+use App\Support\SchemaCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Schema;
 
 trait HasCommonFilters
 {
@@ -14,10 +14,6 @@ trait HasCommonFilters
      * takže by ich „+slovo*" nikdy nenašlo. 3 je default MySQL aj MariaDB.
      */
     protected const FULLTEXT_MIN_TOKEN_LENGTH = 3;
-
-    protected static array $commonFilterColumnCache = [];
-
-    protected static array $commonFulltextIndexCache = [];
 
     protected array $commonPrimarySearchColumns = ['name', 'title', 'email'];
 
@@ -549,15 +545,7 @@ trait HasCommonFilters
 
     protected function hasCommonFulltextIndex(string $index): bool
     {
-        $table = $this->getTable();
-        $cacheKey = $table.':'.$index;
-
-        if (! array_key_exists($cacheKey, self::$commonFulltextIndexCache)) {
-            $names = array_column($this->getConnection()->getSchemaBuilder()->getIndexes($table), 'name');
-            self::$commonFulltextIndexCache[$cacheKey] = in_array($index, $names, true);
-        }
-
-        return self::$commonFulltextIndexCache[$cacheKey];
+        return SchemaCache::hasIndex($this->getTable(), $index);
     }
 
     protected function buildLikeConditionSql(array $columns): string
@@ -570,14 +558,7 @@ trait HasCommonFilters
 
     protected function hasCommonFilterColumn(string $column): bool
     {
-        $table = $this->getTable();
-        $cacheKey = $table.':'.$column;
-
-        if (! array_key_exists($cacheKey, self::$commonFilterColumnCache)) {
-            self::$commonFilterColumnCache[$cacheKey] = Schema::hasColumn($table, $column);
-        }
-
-        return self::$commonFilterColumnCache[$cacheKey];
+        return SchemaCache::hasColumn($this->getTable(), $column);
     }
 
     protected function usesSoftDeletes(): bool

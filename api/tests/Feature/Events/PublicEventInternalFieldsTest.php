@@ -112,6 +112,37 @@ class PublicEventInternalFieldsTest extends EventSetupTest
         }
     }
 
+    /**
+     * Detail serializuje model priamo, nie cez EventResource — kanál a miesto
+     * v ňom smú mať len tvar z EventResource::canalSummary()/venueSummary().
+     */
+    #[Test]
+    public function public_detail_hides_canal_and_venue_contact_email(): void
+    {
+        $this->futureEvent->canal->forceFill(['email' => 'kanal@example.test'])->save();
+        $this->futureEvent->venue->forceFill(['email' => 'miesto@example.test'])->save();
+        $this->asGuest();
+
+        $response = $this->getJson('/api/events/'.$this->futureEvent->id)->assertOk();
+
+        $this->assertStringNotContainsString('kanal@example.test', $response->getContent());
+        $this->assertStringNotContainsString('miesto@example.test', $response->getContent());
+        $response
+            ->assertJsonPath('canal.id', $this->futureEvent->canal_id)
+            ->assertJsonPath('venue.id', $this->futureEvent->venue_id)
+            ->assertJsonMissingPath('canal.claimed_by_user_id');
+    }
+
+    #[Test]
+    public function public_files_are_hidden_for_unpublished_events(): void
+    {
+        $this->asGuest();
+        $this->getJson('/api/events/'.$this->futureEvent->id.'/files')->assertOk();
+
+        $this->futureEvent->forceFill(['status' => ModelStatus::Draft->value])->save();
+        $this->getJson('/api/events/'.$this->futureEvent->id.'/files')->assertNotFound();
+    }
+
     #[Test]
     public function owner_still_receives_internal_fields(): void
     {

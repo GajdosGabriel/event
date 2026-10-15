@@ -11,8 +11,10 @@ use App\Observers\CanalObserver;
 use App\Observers\EventObserver;
 use App\Observers\MunicipalityObserver;
 use App\Observers\UserObserver;
+use App\Support\SchemaCache;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
         Canal::observe(CanalObserver::class);
         Event::observe(EventObserver::class);
         Municipality::observe(MunicipalityObserver::class);
+
+        // Migrácia mohla pridať či zmazať stĺpec — nacachovaná schéma by klamala.
+        \Illuminate\Support\Facades\Event::listen(MigrationsEnded::class, fn () => SchemaCache::flush());
 
         // Poistka proti N+1: mimo produkcie je lazy load relácie tvrdá chyba,
         // takže sa chýbajúci eager load ukáže pri vývoji a v testoch, nie až

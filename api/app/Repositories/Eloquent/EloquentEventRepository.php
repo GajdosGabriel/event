@@ -412,14 +412,14 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             $scope
         );
 
-        return $query->get();
+        return $query->toBase()->get();
     }
 
     public function adminMunicipalityOverview(string $scope = 'all'): Collection
     {
         $query = $this->applyMunicipalityOverviewScope($this->model()->newQuery(), $scope);
 
-        return $query->get();
+        return $query->toBase()->get();
     }
 
     public function publicMunicipalityOverview(string $scope = 'all', array $filters = []): Collection
@@ -435,8 +435,12 @@ class EloquentEventRepository extends AbstractRepository implements EventReposit
             $query->where('events.start_at', '>=', now());
         }
 
+        // Holé riadky, nie modely Event: agregát nemá `id`, a serializácia
+        // modelu by pre každý riadok spustila $appends (kanál, obrázok…) —
+        // stovky prázdnych dotazov `where id is null`. Platí pre všetky prehľady obcí.
         return $this->municipalityOverviewQuery
             ->apply($query, 'venues.village_id', 'events.id')
+            ->toBase()
             ->get();
     }
 

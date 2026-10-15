@@ -527,9 +527,9 @@ class PrerenderController extends Controller
     }
 
     /**
-     * `body` sa dnes ukladá bez sanitizácie (ROADMAP 0.1), takže surové HTML
-     * z DB sa sem nesmie dostať — prerender je verejná HTML odpoveď, nie JSON.
-     * `HtmlBodyCleaner` už v projekte je, len bežal iba na importe a AI výstupe.
+     * `body` čistí pri zápise mutator SanitizesHtmlBody. Prerender je však
+     * verejná HTML odpoveď, nie JSON, a hromadný `DB::table()->update()`
+     * (migrácie, merge) mutator obchádza — preto sa čistí ešte raz aj tu.
      */
     private function safeBody(?string $html): ?string
     {

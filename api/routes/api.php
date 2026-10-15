@@ -318,10 +318,12 @@ Route::get('canals/{canal}/contact/verify', [PublicCanalController::class, 'veri
     ->name('public.canals.contact.verify')
     ->middleware(['signed', 'throttle:public-write']);
 
+// Len čítanie — verejné controllery store/update/destroy nemajú a plný
+// apiResource by na ne smeroval POST/PUT/DELETE, ktoré končili 500-kou.
 Route::apiResources([
     'events' => PublicEventController::class,
     'canals' => PublicCanalController::class,
-]);
+], ['only' => ['index', 'show']]);
 
 // Vlastný účet návštevníka: lístky a odbery. Zámerne mimo prefixu `dashboard`,
 // ktorý patrí organizovaniu — sem sa dostane každý prihlásený bez ohľadu na to,

@@ -64,9 +64,9 @@ class CanalStoreRequest extends FormRequest
             ))],
             'identity_mode' => ['sometimes', 'string', Rule::enum(CanalIdentityMode::class)],
             'files' => ['sometimes', 'array'],
-            'files.*' => ['file', 'max:10240'],
+            'files.*' => FileStoreRequest::FILE_RULES,
             'file_type' => ['sometimes', 'string', Rule::enum(FileType::class)],
-            'file_disk' => ['sometimes', 'string', 'max:50'],
+            'file_disk' => ['sometimes', 'string', Rule::in(FileStoreRequest::DISKS)],
             'make_primary_file' => ['sometimes', 'boolean'],
         ];
     }

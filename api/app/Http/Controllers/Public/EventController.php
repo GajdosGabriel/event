@@ -73,7 +73,19 @@ class EventController extends Controller
 
         $viewRecorder->record($event, $request);
 
+        // Kanál a miesto načítané vopred a bez vlastných $appends: accessory
+        // podujatia by si ich inak dopytovali pri každom použití a každý ich
+        // toArray() by ťahal ďalšie obrázky a vlastníkov (~30 dotazov na detail).
+        $event->loadMissing(['files', 'canal', 'venue.municipality']);
+        $event->getRelation('canal')?->setAppends([]);
+        $event->getRelation('venue')?->setAppends([]);
+
         $data = $event->toArray();
+
+        // Rovnaký tvar ako v EventResource — celý model by verejne vyniesol
+        // kontaktný e-mail kanála a miesta, ktorý front nikde neukazuje.
+        $data['canal'] = EventResource::canalSummary($event->getRelation('canal'));
+        $data['venue'] = EventResource::venueSummary($event->getRelation('venue'));
 
         // „Pridať do kalendára" — súbor `.ics` aj odkazy do webových kalendárov.
         // Skladá ich backend, aby termín, miesto aj popis boli všade rovnaké
@@ -131,7 +143,11 @@ class EventController extends Controller
 
     public function files($id): JsonResponse
     {
-        $event = Event::findOrFail($id);
+        // Rovnaký výber ako detail — inak by sa dali cez id vypísať prílohy
+        // konceptov a naplánovaných podujatí.
+        $event = Event::query()
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->findOrFail($id);
         $files = $event->files()->orderBy('sort_order')->orderBy('id')->get();
 
         return response()->json(FileResource::collection($files));

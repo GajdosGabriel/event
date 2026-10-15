@@ -98,9 +98,9 @@ class EventStoreRequest extends FormRequest
             'tag_ids' => ['sometimes', 'array', 'max:12'],
             'tag_ids.*' => ['integer', 'distinct', 'exists:tags,id'],
             'files' => ['sometimes', 'array'],
-            'files.*' => ['file', 'max:10240'],
+            'files.*' => FileStoreRequest::FILE_RULES,
             'file_type' => ['sometimes', 'string', Rule::enum(FileType::class)],
-            'file_disk' => ['sometimes', 'string', 'max:50'],
+            'file_disk' => ['sometimes', 'string', Rule::in(FileStoreRequest::DISKS)],
             'make_primary_file' => ['sometimes', 'boolean'],
         ];
     }

@@ -156,6 +156,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     {
         return $this->municipalityOverviewQuery
             ->apply($this->model()->newQuery()->withTrashed(), 'venues.village_id', 'venues.id', true)
+            ->toBase()
             ->get();
     }
 
@@ -163,6 +164,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     {
         return $this->municipalityOverviewQuery
             ->apply($this->dashboardIndexQuery(), 'venues.village_id', 'venues.id', true)
+            ->toBase()
             ->get();
     }
 

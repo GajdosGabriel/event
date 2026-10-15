@@ -111,6 +111,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     {
         return $this->municipalityOverviewQuery
             ->apply($this->model()->newQuery()->withTrashed(), 'canals.municipality_id', 'canals.id', true)
+            ->toBase()
             ->get();
     }
 
@@ -120,6 +121,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         return $this->municipalityOverviewQuery
             ->apply($query, 'canals.municipality_id', 'canals.id', true)
+            ->toBase()
             ->get();
     }
 

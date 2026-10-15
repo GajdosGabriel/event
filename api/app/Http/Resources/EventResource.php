@@ -6,6 +6,8 @@ use App\Enums\ModelStatus;
 use App\Enums\TicketTypeKindOption;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
+use App\Models\Canal;
+use App\Models\Venue;
 use App\Support\EventDateRange;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -95,44 +97,28 @@ class EventResource extends JsonResource
             $data['body_rewritten_at'] = $this->body_rewritten_at;
         }
 
-        // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží
-        // backend (lang + policy), front ich len vykreslí.
-        $data['ticket_type_kind_options'] = TicketTypeKindOption::options(
-            TicketTypeKindOption::allowedForUser($user)
-        );
+        $isShow = $request->route()?->getActionMethod() === 'show';
 
-        // Popisky polí formulára typu lístka — držané v lang, aby ich front
-        // nemal natvrdo a preklad bol len otázka lang súboru.
-        $data['ticket_type_labels'] = __('tickets.type_form');
+        // Formulár typu lístka (TicketTypeForm) si ich berie z detailu — vo
+        // výpisoch by to bol ten istý blok textov zopakovaný na každom riadku.
+        if ($isShow) {
+            // Možnosti „Druhu" typu lístka pre <select> — hodnoty aj popisky drží
+            // backend (lang + policy), front ich len vykreslí.
+            $data['ticket_type_kind_options'] = TicketTypeKindOption::options(
+                TicketTypeKindOption::allowedForUser($user)
+            );
+
+            // Popisky polí formulára typu lístka — držané v lang, aby ich front
+            // nemal natvrdo a preklad bol len otázka lang súboru.
+            $data['ticket_type_labels'] = __('tickets.type_form');
+        }
 
         // Nested canal/venue are exposed via the Event model's appended accessors,
         // which serialize the whole related model (all columns + their own image/pivot
         // appends). The event views only need a handful of fields, so trim to those:
         // this shrinks the payload and avoids leaking canal/venue email/body publicly.
-        $canal = $this->canal;
-        $data['canal'] = $canal ? [
-            'id' => $canal->id,
-            'name' => $canal->name,
-            'website' => $canal->website,
-            // Len keď ju dotaz eager loadol (admin výpis). Bez tejto podmienky
-            // by sa na každý riadok strieľal dotaz na firmu.
-            'organization' => $canal->relationLoaded('organization') && $canal->organization
-                ? ['id' => $canal->organization->id, 'title' => $canal->organization->title]
-                : null,
-        ] : null;
-
-        $venue = $this->venue;
-        $data['venue'] = $venue ? [
-            'id' => $venue->id,
-            'name' => $venue->name,
-            'street' => $venue->street,
-            'postcode' => $venue->postcode,
-            'latitude' => $venue->latitude,
-            'longitude' => $venue->longitude,
-            'phone' => $venue->phone,
-            'website' => $venue->website,
-            'opening_hours' => $venue->opening_hours,
-        ] : null;
+        $data['canal'] = self::canalSummary($this->canal);
+        $data['venue'] = self::venueSummary($this->venue);
 
         $isPublished = $this->status === ModelStatus::Published;
         $isTrashed = $this->resource->trashed();
@@ -158,11 +144,53 @@ class EventResource extends JsonResource
 
         // „Poslať správu" potrebuje príznak len na detaile (show) — na výpisoch
         // (index) by isContactableBy() robilo dotaz na každý riadok, preto len tu.
-        if ($request->route()?->getActionMethod() === 'show') {
+        if ($isShow) {
             $data['contactable'] = $this->resource->isContactableBy($user);
         }
 
         return $data;
+    }
+
+    /**
+     * Kanál pri podujatí — len to, čo ukazuje karta a detail. Celý model by
+     * verejne vyniesol kontaktný e-mail kanála aj stav jeho správy. Používa ho
+     * aj verejný detail (Public\EventController::show), ktorý ide mimo resource.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function canalSummary(?Canal $canal): ?array
+    {
+        return $canal ? [
+            'id' => $canal->id,
+            'name' => $canal->name,
+            'website' => $canal->website,
+            // Len keď ju dotaz eager loadol (admin výpis). Bez tejto podmienky
+            // by sa na každý riadok strieľal dotaz na firmu.
+            'organization' => $canal->relationLoaded('organization') && $canal->organization
+                ? ['id' => $canal->organization->id, 'title' => $canal->organization->title]
+                : null,
+        ] : null;
+    }
+
+    /**
+     * Miesto pri podujatí — adresa, poloha a verejný kontakt, bez e-mailu
+     * a interných stĺpcov. Viď canalSummary().
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function venueSummary(?Venue $venue): ?array
+    {
+        return $venue ? [
+            'id' => $venue->id,
+            'name' => $venue->name,
+            'street' => $venue->street,
+            'postcode' => $venue->postcode,
+            'latitude' => $venue->latitude,
+            'longitude' => $venue->longitude,
+            'phone' => $venue->phone,
+            'website' => $venue->website,
+            'opening_hours' => $venue->opening_hours,
+        ] : null;
     }
 
     /** Podujatie sa dá naplánovať na neskôr — viď ModelStatus::allowedForEvent(). */
