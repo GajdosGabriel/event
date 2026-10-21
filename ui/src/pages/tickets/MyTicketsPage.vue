@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto w-full max-w-[900px] px-4 py-6">
+  <div class="w-full max-w-[900px]">
     <h1 class="text-2xl font-semibold text-slate-900">{{ t('myTickets.title') }}</h1>
     <p class="mt-1 text-sm text-slate-500">{{ t('myTickets.lead') }}</p>
 

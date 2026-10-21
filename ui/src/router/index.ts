@@ -89,14 +89,9 @@ const router = createRouter({
         // Návrat k rozpracovanému plagátu z odkazu v e-maile (token je v query).
         { path: 'nahrat-plagat/:id', name: 'poster-upload-draft', component: () => import('@/pages/posters/PosterUploadPage.vue') },
         { path: 'tickets/:uuid', name: 'ticket-public-show', component: () => import('@/pages/tickets/TicketPublicShowPage.vue') },
-        // Vlastné vstupenky a odbery. Vo verejnom layoute, nie v dashboarde:
-        // patrí to návštevníkovi, ktorý žiadny kanál mať nemusí.
-        {
-          path: 'moje-listky',
-          name: 'my-tickets',
-          component: () => import('@/pages/tickets/MyTicketsPage.vue'),
-          meta: { requiresAuth: true },
-        },
+        // Vlastné vstupenky sa presunuli do dashboardu. Pôvodná adresa chodí
+        // v notifikáciách a e-mailoch, takže musí ostať funkčná.
+        { path: 'moje-listky', redirect: '/dashboard/moje-listky' },
         { path: 'rsvp/:token', name: 'rsvp', component: () => import('@/pages/rsvp/RsvpPage.vue') },
         // Odhlásenie z „Pripomeň mi". Chodí v pätičke každého e-mailu z odberu,
         // takže sa adresa nesmie meniť; segment drží PublicUrl::UNSUBSCRIBE.
@@ -165,6 +160,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'dashboard', component: () => import('@/pages/dashboard/DashboardPage.vue') },
+        // Vlastné vstupenky a odbery. Dashboard je otvorený každému prihlásenému,
+        // takže sem patrí aj návštevník, ktorý žiadny kanál nemá.
+        { path: 'moje-listky', name: 'my-tickets', component: () => import('@/pages/tickets/MyTicketsPage.vue') },
         { path: 'events', name: 'dashboard-events', component: ResourceIndex, props: { resource: 'event' } },
         { path: 'events/create', name: 'dashboard-events-create', component: () => import('@/pages/events/EventEditPage.vue') },
         { path: 'events/:id', name: 'dashboard-events-show', component: () => import('@/pages/events/EventShowPage.vue') },

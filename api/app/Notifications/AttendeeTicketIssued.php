@@ -33,7 +33,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.attendee_ticket_issued.subject', ['event' => $this->ticket->loadMissing('event')->event?->name]), 'link' => '/moje-listky'];
+        return ['message' => __('mail.attendee_ticket_issued.subject', ['event' => $this->ticket->loadMissing('event')->event?->name]), 'link' => '/dashboard/moje-listky'];
     }
 
     public function toMail(object $notifiable): MailMessage

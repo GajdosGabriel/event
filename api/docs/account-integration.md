@@ -260,6 +260,49 @@ tenká read-model tabuľka (`account_uuid`, `name`, `ico`, `synced_at`) plnená
 
 ---
 
+## E-maily kanálom cez Account
+
+Pri `ACCOUNT_MESSAGING=true` odchádzajú e-maily na kontakt kanála cez schránku Eventu
+v Accounte, nie cez lokálne SMTP. Týka sa to štyroch notifikácií:
+
+| Notifikácia | `kind` v Accounte |
+|---|---|
+| `CanalOutreachNotice` (oslovenie po akcii, s List-Unsubscribe) | `canal.outreach` |
+| `CanalContactNotice` (overenie / zmena kontaktu) | `canal.contact_verify`, `canal.contact_changed` |
+| `CanalClaimNotice` – iba `verify` na kontakt kanála | `canal.claim_verify` |
+| `CanalInvitationSent` (pozvánka do tímu) | `canal.invitation` |
+
+Cez Account ide len pošta na **holú adresu** (`Notification::route('mail', …)`), od
+ktorej čakáme odpoveď. Používatelia a admini dostávajú poštu ako doteraz, rovnako
+reset hesla a ostatné systémové maily.
+
+Každý mail nesie `ref` = `canal:{id}` s popisom „Kanál: …“ a odkazom na
+`/admin/canals/{id}`. Podľa toho Account spáruje odpoveď a v Inboxe ukáže, o ktorý
+kanál ide.
+
+**Spätná cesta** (`AccountWebhookController` → `App\Services\Account\AccountMessages`):
+
+- `message.received` z adresy, na ktorú sme písali → `CanalEmails::recordReply()`
+  (adresa sa potvrdí). Odpoveď z inej adresy sa iba zapíše do denníka.
+- `message.bounced` → `CanalEmails::recordBounce()` s typom hard/soft a dôvodom.
+- Správa ku kanálu, ktorý medzičasom zmizol, sa potvrdí (200) a preskočí.
+
+Ručný príkaz `app:canal-email … bounced|replied` ostáva ako záloha pre poštu, ktorá
+neprešla cez Account.
+
+Odhlásenie (`EmailUnsubscribeController`) sa okrem lokálnej `email_suppressions`
+nahlási aj Accountu, aby na adresu nepísal ani Inbox.
+
+Zapnutie:
+
+1. V Accounte: Inbox → Schránky → pridať schránku Eventu (IMAP aj SMTP).
+2. Tokenu Eventu pridať oprávnenia `messages:write` a `messages:read`, webhook endpointu
+   udalosti `message.received` a `message.bounced`.
+3. V Evente `ACCOUNT_MESSAGING=true`. Mimo produkcie platí rovnaká poistka ako pri
+   zápise firiem: do vzdialenej inštancie sa neposiela bez `ACCOUNT_ALLOW_REMOTE_WRITES`.
+
+---
+
 ## Súbory
 
 | Súbor | Čo robí |
@@ -269,5 +312,9 @@ tenká read-model tabuľka (`account_uuid`, `name`, `ico`, `synced_at`) plnená
 | [`app/Services/Account/OrganizationSync.php`](../app/Services/Account/OrganizationSync.php) | mapovanie polí, push/pull, premenovanie chýb |
 | [`app/Http/Controllers/Webhooks/AccountWebhookController.php`](../app/Http/Controllers/Webhooks/AccountWebhookController.php) | príjem udalostí, overenie HMAC podpisu |
 | `tests/Feature/Organizations/OrganizationAccountSyncTest.php` | testy — Account sa v nich nikdy nevolá naozaj |
+| [`app/Notifications/Channels/AccountMailChannel.php`](../app/Notifications/Channels/AccountMailChannel.php) | odoslanie notifikácie cez Account, zápis do denníka |
+| [`app/Notifications/Concerns/SendsViaAccount.php`](../app/Notifications/Concerns/SendsViaAccount.php) | voľba kanála (Account / lokálne SMTP) a `ref` kanála |
+| [`app/Services/Account/AccountMessages.php`](../app/Services/Account/AccountMessages.php) | spracovanie `message.*` webhookov do `canal_emails` |
+| `tests/Feature/Canal/CanalAccountMessagingTest.php` | testy odosielania a spätnej cesty |
 
 Zdrojová predloha klienta je v Accounte v priečinku `klient-pre-projekty/`.

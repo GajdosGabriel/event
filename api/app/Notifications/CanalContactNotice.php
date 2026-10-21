@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Canal;
+use App\Notifications\Concerns\SendsViaAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -16,7 +17,7 @@ use Illuminate\Notifications\Notification;
  */
 class CanalContactNotice extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsViaAccount;
 
     public const VERIFY = 'verify';
 
@@ -31,7 +32,17 @@ class CanalContactNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->mailVia($notifiable);
+    }
+
+    public function accountRef(object $notifiable): array
+    {
+        return $this->canalRef($this->canal);
+    }
+
+    public function accountKind(): string
+    {
+        return 'canal.contact_'.$this->kind;
     }
 
     public function toMail(object $notifiable): MailMessage

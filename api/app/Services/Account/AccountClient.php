@@ -167,6 +167,171 @@ class AccountClient
     }
 
     /* ---------------------------------------------------------------
+     | Komunikácia s klientmi
+     |---------------------------------------------------------------*/
+
+    /** Posielať e-maily kanálom cez Account? */
+    public function messagingEnabled(): bool
+    {
+        return $this->enabled() && (bool) config('account.messaging');
+    }
+
+    /**
+     * Odošle e-mail cez schránku Eventu v Accounte.
+     *
+     * Volá sa z fronty (AccountMailChannel), takže výpadok Accountu sa
+     * vyrieši opakovaním. Blokovaná adresa vyhodí AccountMessageRejected –
+     * tú už opakovať nemá zmysel.
+     *
+     * Rovnako ako zápis firiem ide aj toto len do vlastnej inštancie:
+     * mail odoslaný z lokálu cez produkčný Account by dostal skutočný človek.
+     *
+     * @param  array<string, mixed>  $message
+     * @return array{conversation: array<string, mixed>, message: array<string, mixed>}
+     */
+    public function sendMessage(array $message): array
+    {
+        $this->assertWritesAllowed();
+
+        $response = $this->request(30)->post('/api/v1/messages', $message);
+
+        if ($response->status() === 422 && $response->json('reason')) {
+            throw new AccountMessageRejected($response->json('reason'), (string) $response->json('message'));
+        }
+
+        $this->throwValidationErrors($response);
+
+        return $response->throw()->json('data');
+    }
+
+    /**
+     * Konverzácie k veci v Evente (napr. ku kanálu).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function conversations(string $refType, string|int $refId): array
+    {
+        if (! $this->enabled()) {
+            return [];
+        }
+
+        try {
+            return $this->request()
+                ->get('/api/v1/conversations', ['ref_type' => $refType, 'ref_id' => (string) $refId])
+                ->throw()
+                ->json('data');
+        } catch (\Throwable $e) {
+            Log::warning('Account: konverzacie sa nepodarilo nacitat', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Odhlásenie z e-mailov Eventu nahlásené aj Accountu, aby na adresu
+     * neposielal ani inbox. Najlepšia snaha – lokálna EmailSuppression
+     * platí tak či tak.
+     */
+    public function suppress(string $email, string $reason = 'unsubscribed'): void
+    {
+        if (! $this->messagingEnabled()) {
+            return;
+        }
+
+        try {
+            $this->assertWritesAllowed();
+            $this->request()->post('/api/v1/suppressions', ['email' => $email, 'reason' => $reason])->throw();
+        } catch (\Throwable $e) {
+            Log::warning('Account: odhlasenie sa nepodarilo nahlasit', ['email' => $email, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /* ---------------------------------------------------------------
+     | Emailing (kampane sú v Accounte, Event hlási udalosti)
+     |---------------------------------------------------------------*/
+
+    /** Hlásiť udalosti registrácií pre kampane v Accounte? */
+    public function mailingEnabled(): bool
+    {
+        return $this->enabled() && (bool) config('account.mailing');
+    }
+
+    /**
+     * Nastala udalosť – aktívne automatizácie v Accounte zaradia maily.
+     * Volaj z fronty (ReportMailingEvent), nie priamo v požiadavke.
+     *
+     * @param  array{type: string, id: string|int, label?: string, url?: string}|null  $ref
+     * @param  array<string, scalar|null>  $variables  dosadia sa do textu ako {kluc}
+     * @return int počet zaradených mailov
+     */
+    public function mailingEvent(
+        string $event,
+        string $email,
+        ?array $ref = null,
+        array $variables = [],
+        ?string $dedupeKey = null,
+        ?\DateTimeInterface $occurredAt = null,
+        ?string $name = null,
+        ?string $threadId = null,
+    ): int {
+        $this->assertWritesAllowed();
+
+        return (int) $this->request()->post('/api/v1/mailing/events', array_filter([
+            'event' => $event,
+            'email' => $email,
+            'name' => $name,
+            'ref' => $ref,
+            'variables' => $variables ?: null,
+            'dedupe_key' => $dedupeKey,
+            'occurred_at' => $occurredAt?->format(DATE_ATOM),
+            'thread_id' => $threadId,
+        ], fn ($v) => $v !== null))->throw()->json('data.queued');
+    }
+
+    /**
+     * Vec sa zrušila (zrušená registrácia) – čakajúce maily k nej sa
+     * neodošlú, okrem kampaní na udalosti v `$except`.
+     *
+     * @param  array<int, string>  $except
+     */
+    public function cancelMailing(string $refType, string|int $refId, array $except = []): int
+    {
+        $this->assertWritesAllowed();
+
+        return (int) $this->request()->post('/api/v1/mailing/events/cancel', [
+            'ref' => ['type' => $refType, 'id' => (string) $refId],
+            'except' => $except,
+        ])->throw()->json('data.skipped');
+    }
+
+    /**
+     * Udalosti, ktoré Event hlási – v Accounte z nich operátor vyberá
+     * spúšťač automatizácie. Celý zoznam nahradí doterajší.
+     *
+     * @param  array<int, array{key: string, label: string, short_label?: string, variables?: array<int, string>, quote_kind?: string}>  $triggers
+     */
+    public function registerMailingTriggers(array $triggers): void
+    {
+        $this->assertWritesAllowed();
+
+        $this->request()->put('/api/v1/mailing/triggers', ['triggers' => $triggers])->throw();
+    }
+
+    /**
+     * Kontakty so súhlasom so zasielaním ponúk (max. 1000 naraz).
+     * Odhláseného človeka to späť neprihlási.
+     *
+     * @param  array<int, array{email: string, name?: string, permission_note: string, permission_at?: string, organization_id?: string}>  $contacts
+     * @return array{added: int, updated: int}
+     */
+    public function upsertMailingContacts(array $contacts): array
+    {
+        $this->assertWritesAllowed();
+
+        return $this->request()->post('/api/v1/mailing/contacts', ['contacts' => $contacts])->throw()->json('data');
+    }
+
+    /* ---------------------------------------------------------------
      | Pomocné
      |---------------------------------------------------------------*/
 

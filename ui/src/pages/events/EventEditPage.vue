@@ -39,10 +39,15 @@
     -->
     <!-- `grid-cols-1` = minmax(0,1fr): bez neho sa jediný stĺpec pod `xl`
          roztiahol na šírku dlhej URL v popise a pravý okraj formulára sa odrezal. -->
-    <form v-if="!loadingData" :novalidate="guided" class="grid grid-cols-1 items-start gap-5"
-      :class="guided ? 'mx-auto w-full max-w-3xl' : 'xl:grid-cols-[minmax(0,1fr)_360px]'"
+    <form v-if="!loadingData" :novalidate="guided" class="grid grid-cols-1 gap-5"
+      :class="{ 'mx-auto w-full max-w-3xl': guided }"
       @submit.prevent="guided ? (step < 3 ? goToStep(step + 1) : saveGuided('publish')) : submit()">
       <fieldset :disabled="saving" class="contents">
+      <!-- Stĺpce majú vlastný obal, aby lišta s Uložiť nebola v ich mriežke:
+           lepkavý panel sa posúva len v rámci svojho rodiča a keby ním bol
+           celý formulár, na konci stránky by zišiel do riadku lišty a ona by
+           mu prekryla spodok karty Publikovanie. -->
+      <div class="grid grid-cols-1 items-start gap-5" :class="{ 'xl:grid-cols-[minmax(0,1fr)_360px]': !guided }">
       <!-- ── Ľavý stĺpec: to, čo sa píše ──────────────────────────────── -->
       <div v-show="!guided || step === 1" class="grid grid-cols-1 gap-5">
         <div class="edit-card grid gap-4">
@@ -257,10 +262,11 @@
         </div>
 
       </aside>
+      </div>
       <!-- Uložiť bolo len na konci panelu Publikovanie — pod `xl` za piatimi
            obrazovkami formulára a na `xl` pod okrajom, lebo panel je vyšší než
            obrazovka. Lišta ho drží pri spodnom okraji na každej šírke. -->
-      <div v-if="!guided" class="sticky bottom-3 z-20 flex gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur xl:col-span-2">
+      <div v-if="!guided" class="sticky bottom-3 z-20 flex gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
         <button type="submit" class="btn btn-primary" :disabled="saving">
           {{ saving ? t('events.form.saving') : t('events.form.save') }}
         </button>

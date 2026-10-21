@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CanalClaim;
+use App\Notifications\Concerns\SendsViaAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -22,7 +23,7 @@ use Illuminate\Notifications\Notification;
  */
 class CanalClaimNotice extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsViaAccount;
 
     public const VERIFY = 'verify';
 
@@ -41,7 +42,19 @@ class CanalClaimNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        // Cez Account ide len overenie na kontakt kanála (holá adresa);
+        // žiadateľ a admini dostanú poštu ako doteraz.
+        return $this->mailVia($notifiable);
+    }
+
+    public function accountRef(object $notifiable): array
+    {
+        return $this->canalRef($this->claim->loadMissing('canal')->canal);
+    }
+
+    public function accountKind(): string
+    {
+        return 'canal.claim_'.$this->kind;
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -6,7 +6,7 @@
       <RouterLink v-if="result.ticket_uuid" :to="`/tickets/${result.ticket_uuid}`" class="btn btn-primary">
         {{ t('eventSignup.showTicket') }}
       </RouterLink>
-      <RouterLink v-else-if="result.status === 'already_registered'" to="/moje-listky" class="btn btn-primary">
+      <RouterLink v-else-if="result.status === 'already_registered'" to="/dashboard/moje-listky" class="btn btn-primary">
         {{ t('eventSignup.myTickets') }}
       </RouterLink>
       <RouterLink :to="`/akcie/${result.event.id}`" class="btn btn-secondary">

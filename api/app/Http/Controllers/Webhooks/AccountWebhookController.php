@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Webhooks;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Services\Account\AccountClient;
+use App\Services\Account\AccountMessages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,11 +17,15 @@ use Illuminate\Support\Facades\Log;
  * v Evente až po vypršaní cache (`ACCOUNT_ORGANIZATION_TTL`).
  *
  * Endpoint sa v Accounte registruje v „API a webhooky“ a musí odoberať
- * aspoň `organization.updated` a `organization.deleted`.
+ * aspoň `organization.updated` a `organization.deleted`, pri zapnutom
+ * `ACCOUNT_MESSAGING` aj `message.received` a `message.bounced`.
  */
 class AccountWebhookController extends Controller
 {
-    public function __construct(private readonly AccountClient $account) {}
+    public function __construct(
+        private readonly AccountClient $account,
+        private readonly AccountMessages $messages,
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {
@@ -43,6 +48,17 @@ class AccountWebhookController extends Controller
         // Ochrana proti replay útoku — odchytený request nesmie ísť použiť neskôr.
         if (abs(time() - $timestamp) > 300) {
             return response()->json(['message' => __('organizations.webhook.stale')], 400);
+        }
+
+        // E-maily kanálom poslané cez Account: odpoveď, nedoručenie…
+        if (str_starts_with((string) $request->input('event'), 'message.')) {
+            $this->messages->handle(
+                (string) $request->input('event'),
+                (array) $request->input('data.conversation', []),
+                (array) $request->input('data.message', []),
+            );
+
+            return response()->json(['ok' => true]);
         }
 
         $uuid = $request->input('data.organization_id')

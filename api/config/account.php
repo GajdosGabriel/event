@@ -52,6 +52,29 @@ return [
     // a IČO zadáva druhý raz ručne.
     'lookup_attempts' => (int) env('ACCOUNT_LOOKUP_ATTEMPTS', 2),
 
+    /*
+    | Komunikácia s klientmi cez Account
+    |
+    | Zapnuté: e-maily kanálom (oslovenie, overenie kontaktu, prevzatie,
+    | pozvánka) odchádzajú cez schránku Eventu v Accounte. Odpovede
+    | a nedoručené správy sa vracajú webhookom (`message.*`) a zapíšu sa
+    | do `canal_emails` – ručné `app:canal-email` už netreba.
+    |
+    | Vypnuté (predvolené): posiela sa ako doteraz cez lokálne SMTP.
+    | Zapnúť až keď má Event v Accounte schránku a token má `messages:write`.
+    */
+    'messaging' => (bool) env('ACCOUNT_MESSAGING', false),
+
+    /*
+    | Emailing (kampane a automatizácie) v Accounte
+    |
+    | Zapnuté: Event hlási udalosti registrácií (registrácia, zrušenie,
+    | koniec podujatia) a kampane na ne sa nastavujú v Accounte v menu
+    | Emailing. Zoznam udalostí pošle `php artisan emailing:register-triggers`
+    | (pri nasadení). Token potrebuje `mailing:write`.
+    */
+    'mailing' => (bool) env('ACCOUNT_MAILING', false),
+
     'cache' => [
         // Firemné údaje sa menia zriedka; cache invaliduje webhook.
         'organization_ttl' => (int) env('ACCOUNT_ORGANIZATION_TTL', 3600),

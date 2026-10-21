@@ -6,10 +6,12 @@ use App\Listeners\SystemLogSubscriber;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
+use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\CanalObserver;
 use App\Observers\EventObserver;
 use App\Observers\MunicipalityObserver;
+use App\Observers\TicketObserver;
 use App\Observers\UserObserver;
 use App\Support\SchemaCache;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -43,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Canal::observe(CanalObserver::class);
         Event::observe(EventObserver::class);
         Municipality::observe(MunicipalityObserver::class);
+        Ticket::observe(TicketObserver::class);
 
         // Migrácia mohla pridať či zmazať stĺpec — nacachovaná schéma by klamala.
         \Illuminate\Support\Facades\Event::listen(MigrationsEnded::class, fn () => SchemaCache::flush());

@@ -18,7 +18,7 @@
     {
       "name": "Moje lístky",
       "short_name": "Lístky",
-      "url": "/moje-listky",
+      "url": "/dashboard/moje-listky",
       "description": "Vstupenky s QR kódom, aj bez e-mailu."
     },
     {

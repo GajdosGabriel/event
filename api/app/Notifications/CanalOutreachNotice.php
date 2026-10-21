@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Canal;
 use App\Models\Event;
+use App\Notifications\Concerns\SendsViaAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,7 +18,7 @@ use Symfony\Component\Mime\Email;
  */
 class CanalOutreachNotice extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsViaAccount;
 
     /** @param  array<string, int>  $stats */
     public function __construct(
@@ -30,7 +31,17 @@ class CanalOutreachNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->mailVia($notifiable);
+    }
+
+    public function accountRef(object $notifiable): array
+    {
+        return $this->canalRef($this->canal);
+    }
+
+    public function accountKind(): string
+    {
+        return 'canal.outreach';
     }
 
     public function toMail(object $notifiable): MailMessage

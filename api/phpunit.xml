@@ -54,6 +54,7 @@
         <env name="ACCOUNT_URL" value="https://account.test"/>
         <env name="ACCOUNT_TOKEN" value=""/>
         <env name="ACCOUNT_WEBHOOK_SECRET" value=""/>
+        <env name="ACCOUNT_MAILING" value="false"/>
         <env name="IMPORTS_DESCRIBE_WITH_AI" value="false"/>
         <!-- Dohľadanie webu organizátora vo Wikidata ide na sieť; testy, ktoré ho
              potrebujú, si ho zapínajú samy a fakujú Http. -->

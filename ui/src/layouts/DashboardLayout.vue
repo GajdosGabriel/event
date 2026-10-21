@@ -14,6 +14,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span class="nav-label">{{ t('nav.events') }}</span>
         </RouterLink>
+        <RouterLink to="/dashboard/moje-listky" class="aside-link" :class="{ active: inSection('/dashboard/moje-listky') }" :title="collapsed ? t('nav.myTickets') : undefined">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 9V7a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 6v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 100-6z"/><path stroke-linecap="round" d="M13 5v14"/></svg>
+          <span class="nav-label">{{ t('nav.myTickets') }}</span>
+        </RouterLink>
         <details class="management-nav" :open="managementActive">
           <summary class="aside-link cursor-pointer" :title="t('eventJourney.manage')">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>

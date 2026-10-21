@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmailSuppression;
+use App\Services\Account\AccountClient;
 use App\Services\SystemLog\Recorder;
 use Illuminate\Http\Request;
 
@@ -29,6 +30,9 @@ class EmailUnsubscribeController extends Controller
                     recipient: $email,
                     context: ['source' => 'outreach', 'method' => $request->method()],
                 );
+
+                // Aby na adresu nepísal ani inbox v Accounte.
+                app(AccountClient::class)->suppress($email);
             }
         }
 

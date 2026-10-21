@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CanalInvitation;
+use App\Notifications\Concerns\SendsViaAccount;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notification;
  */
 class CanalInvitationSent extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsViaAccount;
 
     public function __construct(
         protected CanalInvitation $invitation,
@@ -22,7 +23,17 @@ class CanalInvitationSent extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [\App\Notifications\Channels\BellChannel::class, ...$this->mailVia($notifiable)];
+    }
+
+    public function accountRef(object $notifiable): array
+    {
+        return $this->canalRef($this->invitation->loadMissing('canal')->canal);
+    }
+
+    public function accountKind(): string
+    {
+        return 'canal.invitation';
     }
 
     public function toBell(object $notifiable): array

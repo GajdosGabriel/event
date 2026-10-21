@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\AdmissionStatus;
 use App\Enums\AttendeeConfirmationStatus;
+use App\Enums\MailingTrigger;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Enums\TicketTypeKind;
@@ -17,6 +18,7 @@ use App\Notifications\WorkshopSeatGranted;
 use App\Notifications\WorkshopWaitlisted;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Account\AccountMailing;
 use App\Services\Tickets\AttendeeConfirmation;
 use App\Services\Tickets\DefaultReservation;
 use Carbon\Carbon;
@@ -193,7 +195,12 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 }
             }
 
-            return $order->fresh(['admissions.ticketType', 'event']);
+            $order = $order->fresh(['admissions.ticketType', 'event']);
+
+            // Kampane po registrácii v Accounte (odíde až po commite).
+            app(AccountMailing::class)->event(MailingTrigger::TicketRegistered, $order, $order->created_at);
+
+            return $order;
         });
     }
 
