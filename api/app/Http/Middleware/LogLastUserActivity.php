@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Impersonation;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,7 +19,8 @@ class LogLastUserActivity
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check()) {
+        // Prezeranie účtu adminom (impersonácia) nie je aktivita používateľa.
+        if (Auth::check() && ! Impersonation::active(Auth::user())) {
             $user = Auth::user();
 
             // Ak chceš aktualizovať iba každých X minút, pridaj podmienku

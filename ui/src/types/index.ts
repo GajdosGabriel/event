@@ -161,6 +161,8 @@ export interface AuthIdentity {
     role_label?: string | null
   } | null
   permissions?: Record<string, boolean>
+  /** Super-admin, ktorý je v tomto účte prihlásený namiesto používateľa. */
+  impersonator?: { id: number; display_name: string } | null
   [key: string]: unknown
 }
 

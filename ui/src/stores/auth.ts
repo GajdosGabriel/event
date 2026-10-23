@@ -85,7 +85,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /** Super-admin prihlásený v tomto účte (impersonácia), inak `null`. */
+  const impersonator = computed(() => identity.value?.impersonator ?? null)
+
+  /**
+   * Celá appka sa po prepnutí účtu načíta nanovo — store-y, menu aj cache
+   * stránok by inak ešte chvíľu ukazovali dáta admina.
+   */
+  async function impersonate(userId: number) {
+    await authApi.impersonate(userId)
+    window.location.assign('/dashboard')
+  }
+
+  async function stopImpersonating() {
+    const userId = identity.value?.id
+    await authApi.stopImpersonating()
+    window.location.assign(userId ? `/admin/users/${userId}` : '/admin/users')
+  }
+
   async function logout() {
+    // „Odhlásiť sa" v cudzom účte vráti admina späť, používateľ ostáva prihlásený.
+    if (impersonator.value) return stopImpersonating()
     try {
       await authApi.logout()
     } finally {
@@ -105,5 +125,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthToken()
   }
 
-  return { identity, loading, ready, isAuthenticated, isSuperAdmin, displayName, email, canalName, canalId, fetchIdentity, login, socialLogin, logout, setActiveCanal, clear }
+  return { identity, loading, ready, isAuthenticated, isSuperAdmin, impersonator, displayName, email, canalName, canalId, fetchIdentity, login, socialLogin, logout, impersonate, stopImpersonating, setActiveCanal, clear }
 })

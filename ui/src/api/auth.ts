@@ -1,5 +1,5 @@
 import http from './index'
-import { clearAuthToken, setAuthToken } from './authToken'
+import { beginImpersonation, clearAuthToken, endImpersonation, setAuthToken } from './authToken'
 import type { AuthIdentity, LoginPayload, RegisterPayload } from '@/types'
 
 const CSRF_URL = '/sanctum/csrf-cookie'
@@ -129,4 +129,22 @@ export async function socialLogin(
   const identity = unwrapIdentity(data)
   if (!identity) throw new Error('No identity in social login response')
   return { identity, isNewUser: Boolean(data.is_new_user) }
+}
+
+/**
+ * Super-admin sa prihlási do cudzieho účtu. Vlastný token si odloží
+ * (`beginImpersonation`) a od tejto chvíle API odpovedá za toho používateľa.
+ */
+export async function impersonate(userId: number): Promise<void> {
+  const { data } = await http.post(`/admin/users/${userId}/impersonate`)
+  beginImpersonation(data.access_token)
+}
+
+/** Návrat do účtu admina: zruší impersonačný token a vráti ten pôvodný. */
+export async function stopImpersonating(): Promise<void> {
+  try {
+    await http.delete('/impersonation')
+  } finally {
+    endImpersonation()
+  }
 }

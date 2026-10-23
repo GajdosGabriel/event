@@ -120,6 +120,7 @@
                   <RowActions>
                     <RouterLink :to="`/admin/users/${user.id}`" class="row-menu-item block">{{ t('admin.user.view') }}</RouterLink>
                     <RouterLink :to="`/admin/users/${user.id}/edit`" class="row-menu-item block">{{ t('common.edit') }}</RouterLink>
+                    <button v-if="canImpersonate(user)" class="row-menu-item" @click="impersonate(user)">{{ t('admin.user.impersonate') }}</button>
                     <template v-if="user.deleted_at">
                       <button class="row-menu-item" @click="restore(user.id as number)">{{ t('common.restore') }}</button>
                     </template>
@@ -250,5 +251,16 @@ async function remove(user: Record<string, unknown>) {
     user.deleted_at = new Date().toISOString()
     toast.success(t('admin.user.removed'))
   } catch { toast.error(t('admin.user.removeFailed')) }
+}
+
+// Rovnaké pravidlá ako na backende: nie seba, nie iného super-admina, nie zmazaný účet.
+function canImpersonate(user: Record<string, unknown>): boolean {
+  return !user.deleted_at && !isSelf(user) && !((user.roles as string[] | undefined) ?? []).includes('super-admin')
+}
+
+async function impersonate(user: Record<string, unknown>) {
+  try {
+    await auth.impersonate(user.id as number)
+  } catch { toast.error(t('admin.user.impersonateFailed')) }
 }
 </script>

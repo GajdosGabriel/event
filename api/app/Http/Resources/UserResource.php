@@ -5,6 +5,8 @@ namespace App\Http\Resources;
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Models\Canal;
+use App\Models\User;
+use App\Support\Impersonation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -70,6 +72,9 @@ class UserResource extends JsonResource
             // objednávku); cudzie e-maily zostávajú len v admin scope nižšie.
             $this->mergeWhen($user?->id === $this->resource->id, fn () => [
                 'email' => $this->email,
+                // Admin prihlásený v tomto účte — front podľa toho ukáže lištu
+                // s návratom do vlastného účtu.
+                'impersonator' => $this->impersonator($user),
             ]),
 
             'permissions' => [
@@ -113,6 +118,14 @@ class UserResource extends JsonResource
                 'deleted_at' => $this->deleted_at,
             ]),
         ];
+    }
+
+    /** @return array{id: int, display_name: string}|null */
+    private function impersonator(User $user): ?array
+    {
+        $admin = User::find(Impersonation::impersonatorId($user));
+
+        return $admin ? ['id' => $admin->id, 'display_name' => $admin->displayName()] : null;
     }
 
     /**

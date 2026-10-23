@@ -2571,6 +2571,12 @@ const sk = {
   },
   // Len obrazovky, ktoré má admin sám pre seba. Výpisy a detaily zdieľa
   // s dashboardom, takže ich popisky sú pri svojom zdroji vyššie.
+  // Lišta počas prihlásenia admina v cudzom účte (App.vue).
+  impersonation: {
+    viewing: 'Ste v účte {name}',
+    by: 'ako admin {admin}',
+    back: 'Vrátiť sa do svojho účtu',
+  },
   admin: {
     index: {
       lead: 'Prehľad celého systému.',
@@ -2726,6 +2732,9 @@ const sk = {
       colActions: 'Akcie',
     },
     user: {
+      // Prihlásenie do cudzieho účtu — admin vidí appku presne ako on.
+      impersonate: 'Prihlásiť sa do účtu',
+      impersonateFailed: 'Prihlásenie do účtu zlyhalo.',
       back: '← Používatelia',
       loading: 'Načítavam…',
       loadFailed: 'Nepodarilo sa načítať používateľa.',

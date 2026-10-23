@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { authToken, clearAuthToken } from './authToken'
+import { authToken, clearAuthToken, endImpersonation } from './authToken'
 import { useToast } from '@/composables/useToast'
 import { currentLocale, t } from '@/i18n'
 
@@ -77,7 +77,10 @@ http.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && !isPublicAuthRequest(error.config?.url)) {
-      clearAuthToken()
+      // Vypršaný token cudzieho účtu (impersonácia) vráti admina do jeho
+      // vlastného — stránka sa načíta nanovo už za neho.
+      if (endImpersonation()) window.location.reload()
+      else clearAuthToken()
     }
 
     // Rate limit z API. Bez tohto by prekročený limit vyzeral ako tichá chyba —

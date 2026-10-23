@@ -13,6 +13,7 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Notifications\PendingRegistrationVerification;
 use App\Services\Tickets\EventSignup;
+use App\Support\Impersonation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -562,7 +563,13 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user->tokens()->delete();
+        // Admin v cudzom účte ruší len svoj impersonačný token — inak by
+        // používateľa odhlásil zo všetkých jeho zariadení.
+        if (Impersonation::active($user)) {
+            $user->currentAccessToken()->delete();
+        } else {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'message' => 'Logged out successfully',

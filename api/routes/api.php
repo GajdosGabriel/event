@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CanalController as AdminCanalController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\FileController as AdminFileController;
+use App\Http\Controllers\Admin\ImpersonationController as AdminImpersonationController;
 use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\QuestionController as AdminQuestionController;
@@ -117,6 +118,7 @@ Route::middleware('throttle:password-reset')->group(function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:sanctum');
+Route::delete('/impersonation', [AdminImpersonationController::class, 'destroy'])->name('auth.impersonation.stop')->middleware('auth:sanctum');
 
 // Dosah pre vyhľadávače a zdieľanie. Obe routy vracajú HTML/XML, nie JSON —
 // Apache na ne prepisuje `/sitemap.xml` a požiadavky crawlerov (pozri
@@ -792,6 +794,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::apiResource('users', AdminUserController::class)
         ->only(['destroy'])
         ->middleware('permission:user.delete');
+    // Prihlásenie do cudzieho účtu (návrat: DELETE /impersonation).
+    Route::post('users/{user}/impersonate', [AdminImpersonationController::class, 'store'])
+        ->name('users.impersonate')
+        ->middleware('permission:user.update');
     Route::post('users/{user}/restore', [AdminUserController::class, 'restore'])
         ->name('users.restore')
         ->middleware('permission:user.delete');

@@ -36,6 +36,10 @@
           <RouterLink :to="{ path: '/admin/dennik', query: { user_id: String(userId) } }" class="btn btn-secondary">
             {{ t('nav.systemLog') }}
           </RouterLink>
+          <!-- Kontrola „čo vidí on" — admin sa vráti lištou dole. -->
+          <button v-if="canImpersonate" type="button" class="btn btn-secondary" :disabled="impersonating" @click="impersonate">
+            {{ t('admin.user.impersonate') }}
+          </button>
           <!-- Detail je na čítanie; meniť sa dá vo formulári. -->
           <RouterLink :to="`/admin/users/${userId}/edit`" class="btn btn-primary">
             {{ t('admin.user.edit') }}
@@ -228,6 +232,8 @@ import {
 import { statusLabel } from '@/utils/statusLabel'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const SCOPE = 'admin' as const
 
@@ -257,6 +263,25 @@ const canals = computed(() => (user.value?.canals as { id: number; name: string;
 const {
   page: canalPage, lastPage: canalLastPage, items: pagedCanals, setPage: setCanalPage,
 } = useClientPagination(canals, 10)
+
+const auth = useAuthStore()
+const toast = useToast()
+const impersonating = ref(false)
+// Rovnaké pravidlá ako na backende: nie seba, nie iného super-admina, nie zmazaný účet.
+const canImpersonate = computed(() => user.value !== null
+  && !user.value.deleted_at
+  && userId.value !== auth.identity?.id
+  && !roleNames.value.includes('super-admin'))
+
+async function impersonate() {
+  impersonating.value = true
+  try {
+    await auth.impersonate(userId.value)
+  } catch {
+    toast.error(t('admin.user.impersonateFailed'))
+    impersonating.value = false
+  }
+}
 
 onMounted(async () => {
   try {

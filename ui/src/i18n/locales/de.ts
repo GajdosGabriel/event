@@ -2455,6 +2455,12 @@ const de: Messages = {
       users: { one: 'Benutzer', few: 'Benutzer', many: 'Benutzer' },
     },
   },
+  // Lišta počas prihlásenia admina v cudzom účte (App.vue).
+  impersonation: {
+    viewing: 'Sie sind im Konto von {name}',
+    by: 'als Admin {admin}',
+    back: 'Zurück zu meinem Konto',
+  },
   admin: {
     index: {
       lead: 'Überblick über das gesamte System.',
@@ -2607,6 +2613,9 @@ const de: Messages = {
       colActions: 'Aktionen',
     },
     user: {
+      // Prihlásenie do cudzieho účtu — admin vidí appku presne ako on.
+      impersonate: 'Als dieser Nutzer anmelden',
+      impersonateFailed: 'Anmeldung als Nutzer fehlgeschlagen.',
       back: '← Nutzer',
       loading: 'Wird geladen…',
       loadFailed: 'Der Nutzer konnte nicht geladen werden.',

@@ -2,10 +2,12 @@
   <div v-if="navigating" class="nav-progress" aria-hidden="true" />
   <RouterView />
   <AppToast />
+  <ImpersonationBar />
 </template>
 
 <script setup lang="ts">
 import AppToast from '@/components/AppToast.vue'
+import ImpersonationBar from '@/components/ImpersonationBar.vue'
 import { navigating } from '@/composables/useNavigationProgress'
 </script>
 

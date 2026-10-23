@@ -34,6 +34,49 @@ export function setAuthToken(token: string): void {
   }
 }
 
+/**
+ * Vlastný token super-admina počas prihlásenia do cudzieho účtu. Kým tu je,
+ * `authToken` patrí tomu používateľovi; návrat ho vráti späť.
+ */
+const IMPERSONATOR_KEY = 'auth_token_impersonator'
+
+function readImpersonator(): string | null {
+  try {
+    return localStorage.getItem(IMPERSONATOR_KEY)
+  } catch {
+    return null
+  }
+}
+
+export const impersonatorToken = ref<string | null>(readImpersonator())
+
+export function beginImpersonation(token: string): void {
+  // Odložíme len pôvodný token admina — vnorené prihlásenie backend nepustí.
+  if (impersonatorToken.value === null && authToken.value !== null) {
+    impersonatorToken.value = authToken.value
+    try {
+      localStorage.setItem(IMPERSONATOR_KEY, authToken.value)
+    } catch {
+      /* bez úložiska sa po zatvorení karty admin prihlási znova */
+    }
+  }
+  setAuthToken(token)
+}
+
+/** Vráti token admina. `false`, ak sa nebolo kam vrátiť. */
+export function endImpersonation(): boolean {
+  const token = impersonatorToken.value
+  if (token === null) return false
+  impersonatorToken.value = null
+  try {
+    localStorage.removeItem(IMPERSONATOR_KEY)
+  } catch {
+    /* nemáme čo mazať */
+  }
+  setAuthToken(token)
+  return true
+}
+
 export function clearAuthToken(): void {
   authToken.value = null
   try {
