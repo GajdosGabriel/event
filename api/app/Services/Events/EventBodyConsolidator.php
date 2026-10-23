@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\Schema;
  *    staging `body_ai` sa zahodí (dropom stĺpca v migrácii).
  *
  * Idempotentné: záznam s nastaveným `body_rewritten_at` alebo so `body === body_ai`
- * sa preskočí. Spúšťa to `app:consolidate-event-body` (predbežne na produkcii)
- * aj samotná migrácia `consolidate_event_body_drop_body_ai` (poistka).
+ * sa preskočí. Spúšťa to migrácia `consolidate_event_body_drop_body_ai` (na
+ * produkcii už prebehla; trieda ostáva kvôli migrovaniu čistej databázy).
  */
 class EventBodyConsolidator
 {
