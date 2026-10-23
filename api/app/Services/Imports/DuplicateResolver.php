@@ -63,6 +63,14 @@ class DuplicateResolver
             return null;
         }
 
+        $sameOrganizer = $this->canalByKey($name);
+
+        if ($sameOrganizer instanceof Canal) {
+            $this->record(DuplicateDecision::ENTITY_CANAL, $inputKey, $name, $sameOrganizer, DuplicateDecision::SAME, 0.95, DuplicateDecision::SOURCE_RULE, 'Rovnaký názov organizácie po odstránení právnej formy, skratiek a zápisu.');
+
+            return $sameOrganizer;
+        }
+
         $newTokens = self::tokens($name);
         $newHost = self::host($website);
         $candidates = [];
@@ -100,10 +108,69 @@ class DuplicateResolver
     }
 
     /**
+     * Kanál toho istého organizátora podľa kľúča názvu
+     * (ImportedNameMatcher::canalKey). Zhoda kľúča je istá, preto sa rozhoduje
+     * pred cache rozhodnutí — staršie „nerozhodnuté" ju nesmie prebiť.
+     *
+     * Hľadá sa aj medzi zlúčenými kanálmi: názov zlúčenej duplicity je alias
+     * kanála, do ktorého sa zlúčila. Inak by AI pri ďalšom článku s tým istým
+     * zápisom („TV LUX") kanál založila znova.
+     */
+    private function canalByKey(string $name): ?Canal
+    {
+        $key = ImportedNameMatcher::canalKey($name);
+
+        if ($key === '') {
+            return null;
+        }
+
+        // Presná zhoda kľúča má prednosť pred preklepom, najstarší pred novším.
+        $best = static function ($canals) use ($key): ?Canal {
+            $keyed = $canals->map(fn (Canal $canal) => [$canal, ImportedNameMatcher::canalKey((string) $canal->name)]);
+
+            return ($keyed->first(fn (array $pair) => $pair[1] === $key && ImportedNameMatcher::canalKeysMatch($key, $pair[1]))
+                ?? $keyed->first(fn (array $pair) => ImportedNameMatcher::canalKeysMatch($key, $pair[1])))[0] ?? null;
+        };
+
+        $live = $best(Canal::query()->select(['id', 'name'])->orderBy('id')->get());
+
+        if ($live instanceof Canal) {
+            return Canal::query()->find($live->id);
+        }
+
+        $alias = $best(Canal::onlyTrashed()->whereNotNull('merged_into_id')->select(['id', 'name', 'merged_into_id'])->orderBy('id')->get());
+
+        return $alias instanceof Canal ? $this->mergeTarget($alias) : null;
+    }
+
+    /** Živý kanál na konci reťaze zlúčení (A → B → C), alebo null, keď už nie je. */
+    private function mergeTarget(Canal $canal): ?Canal
+    {
+        $seen = [];
+
+        while ($canal->merged_into_id !== null && ! in_array($canal->id, $seen, true)) {
+            $seen[] = $canal->id;
+            $next = Canal::withTrashed()->find($canal->merged_into_id);
+
+            if (! $next instanceof Canal) {
+                return null;
+            }
+
+            if (! $next->trashed()) {
+                return $next;
+            }
+
+            $canal = $next;
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<int, int>|null  $visibleToCanalIds  ručné zadanie: brať len zverejnené miesta
-     *                                                    a miesta týchto kanálov (koncept cudzieho
-     *                                                    kanála sa nesmie potichu pripojiť); null =
-     *                                                    import, bez obmedzenia
+     *                                                   a miesta týchto kanálov (koncept cudzieho
+     *                                                   kanála sa nesmie potichu pripojiť); null =
+     *                                                   import, bez obmedzenia
      */
     public function findVenue(string $name, ?int $villageId, ?string $street = null, ?float $latitude = null, ?float $longitude = null, ?array $visibleToCanalIds = null): ?Venue
     {

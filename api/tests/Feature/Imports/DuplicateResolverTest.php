@@ -124,6 +124,43 @@ class DuplicateResolverTest extends TestCase
     }
 
     #[Test]
+    public function the_same_organizer_written_differently_merges_without_ai(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+        Http::fake();
+
+        $existing = Canal::factory()->create(['name' => 'Musica aeterna o.z']);
+        // Staršie „nerozhodnuté" rozhodnutie nesmie istú zhodu prebiť.
+        DuplicateDecision::query()->create([
+            'entity' => DuplicateDecision::ENTITY_CANAL, 'input_key' => 'musica-aeterna', 'input_name' => 'Musica aeterna',
+            'candidate_id' => $existing->id, 'decision' => DuplicateDecision::UNCERTAIN, 'source' => DuplicateDecision::SOURCE_RULE,
+        ]);
+
+        $found = app(DuplicateResolver::class)->findCanal('Musica aeterna');
+
+        $this->assertSame($existing->id, $found?->id);
+        Http::assertNothingSent();
+        $this->assertDatabaseHas('duplicate_decisions', ['candidate_id' => $existing->id, 'decision' => DuplicateDecision::SAME]);
+    }
+
+    #[Test]
+    public function the_name_of_a_merged_canal_leads_to_the_canal_it_was_merged_into(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+        Http::fake();
+
+        $target = Canal::factory()->create(['name' => 'Televízia LUX']);
+        $middle = Canal::factory()->create(['name' => 'Slovenská katolícka Televízia LUX']);
+        $alias = Canal::factory()->create(['name' => 'TV LUX']);
+        $alias->forceFill(['merged_into_id' => $middle->id])->save();
+        $alias->delete();
+        $middle->forceFill(['merged_into_id' => $target->id])->save();
+        $middle->delete();
+
+        $this->assertSame($target->id, app(DuplicateResolver::class)->findCanal('TV LUX')?->id);
+    }
+
+    #[Test]
     public function a_unique_website_with_a_similar_name_merges_without_ai(): void
     {
         config()->set('services.imports.dedupe_with_ai', true);
@@ -151,7 +188,7 @@ class DuplicateResolverTest extends TestCase
         Canal::factory()->create(['name' => 'SEŽ ECAV', 'website' => 'https://www.ecav.sk']);
         Canal::factory()->create(['name' => 'Tranoscius', 'website' => 'https://www.ecav.sk']);
 
-        $this->assertNull(app(DuplicateResolver::class)->findCanal('SEŽ ECAV Slovensko', 'https://www.ecav.sk'));
+        $this->assertNull(app(DuplicateResolver::class)->findCanal('SEŽ ECAV Bratislava', 'https://www.ecav.sk'));
         $this->assertDatabaseMissing('duplicate_decisions', ['decision' => DuplicateDecision::SAME]);
     }
 

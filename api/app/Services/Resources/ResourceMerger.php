@@ -94,6 +94,8 @@ class ResourceMerger
                 app(CanalEmails::class)->refresh($target);
                 $moved['canal_user'] = DB::table('canal_user')->where('canal_id', $sourceId)->get()->map(fn ($row) => (array) $row)->all();
                 DB::table('canal_user')->where('canal_id', $sourceId)->delete();
+                // The source name stays an alias of the target for future imports.
+                DB::table('canals')->where('id', $sourceId)->update(['merged_into_id' => $targetId]);
             }
             $source->delete();
             // Audit is part of the transaction: a failure must roll the merge back.

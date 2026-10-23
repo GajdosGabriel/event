@@ -38,6 +38,9 @@ use Illuminate\Support\Facades\Schema;
  *  6. nerozhodnuté import-duplicity medzi kanálmi skupiny sa označia ako
  *     vybavené a duplicita sa soft-deletne.
  *
+ * Duplicita si pamätá merged_into_id, takže jej názov ostáva aliasom
+ * kanonického kanála pre ďalšie importy.
+ *
  * down() duplicity obnoví (deleted_at = null); presuny sa nevracajú
  * (jednosmerný prepis ako pri predošlých zlúčeniach).
  */
@@ -90,7 +93,7 @@ return new class extends Migration
         [245, [1642]], // Centrum pre štúdium biblického a blízkovýchodného sveta
         [258, [1321]], // Rímskokatolícka cyrilometodská bohoslovecká fakulta UK
         [268, [1403]], // občianske združenie Naše MesTTo
-        [290, [817]], // Ekumenická rada cirkví v SR
+        [290, [817, 1578]], // Ekumenická rada cirkví v SR
         [1371, [297, 372]], // Gréckokatolícka evanjelizačná škola sv. Mikuláša
         [1460, [1858]], // Kongregácia sestier dominikánok bl. Imeldy
         [315, [853, 1312, 1123]], // Klub kresťanských lekárov a zdravotníkov Bratislava
@@ -144,7 +147,7 @@ return new class extends Migration
         [1281, [1795]], // Evanjelický cirkevný zbor v Modre-Kráľovej
         [1284, [1675]], // V.I.A.C. - Inštitút pre podporu a rozvoj mládeže
         [1867, [1287]], // Rímskokatolícky cirkevný hudobný spolok sv. Mikuláša (Trnava)
-        [1310, [1433, 1328]], // Rímskokatolícka farnosť Kežmarok
+        [726, [1310, 1433, 1328]], // Farnosť Kežmarok
         [1320, [1186, 1391]], // Slovenské národné múzeum (SNM) – Historické múzeum
         [1326, [1384]], // Výbor cirkevnej hudby a hymnológie ECAV
         [1389, [1626, 1367]], // Národný týždeň manželstva, o.z
@@ -158,8 +161,8 @@ return new class extends Migration
         [1709, [1711]], // Združenie Amazi
         [1834, [1727]], // 3. ekumenický Kirchentag
         [1783, [1817]], // Veľvyslanectvo Poľskej republiky na Slovensku
-        [1446, [1442]], // Spoločenstvo Cleopas, o.z
-        [954, [1917, 7, 542, 228, 425]], // Rehoľa bratov kazateľov (bratia dominikáni)
+        [1446, [1442, 575, 1104]], // Spoločenstvo Cleopas, o.z
+        [954, [1917, 7, 542, 228, 425, 839]], // Rehoľa bratov kazateľov (bratia dominikáni)
         [1052, [15]], // Vydavateľstvo Tranoscius, a. s.
         [19, [1204]], // Ekumenický výbor ECAV na Slovensku
         [29, [1224]], // Bratislavská eparchia
@@ -212,6 +215,19 @@ return new class extends Migration
         [1043, [1144]], // Aglow Slovakia
         [1018, [1069]], // Rehoľno-formačné centrum (Spišská Nová Ves)
         [1625, [838]], // Kolednícka akcia Dobrá novina
+        // Dohľadané podľa ImportedNameMatcher::canalKey():
+        [106, [681]], // Spolok svätého Vojtecha
+        [279, [256]], // Farnosť Levoča
+        [850, [406]], // Fórum života o.z
+        [836, [1058]], // Občianske združenie Via regum
+        [1271, [920]], // rímskokatolícka farnosť v Šaštíne
+        [956, [1696]], // farnosť Devín
+        [1053, [1108]], // Gréckokatolícke spoločenstvo vo farnosti Sedliská
+        [1163, [1734]], // Školský výbor ECAV
+        [1644, [1411]], // UPF Slovensko
+        [1481, [1685]], // PRE ŠUŇAVU o. z
+        [1513, [1832]], // Biskupský úrad Rožňava
+        [1545, [1546]], // Centrum starej hudby, o.z
     ];
 
     /**
@@ -263,7 +279,13 @@ return new class extends Migration
 
         $duplicateIds = collect(self::MERGES)->flatMap(fn ($merge) => $merge[1])->all();
 
-        DB::table('canals')->whereIn('id', $duplicateIds)->update(['deleted_at' => null, 'updated_at' => now()]);
+        $restore = ['deleted_at' => null, 'updated_at' => now()];
+
+        if (Schema::hasColumn('canals', 'merged_into_id')) {
+            $restore['merged_into_id'] = null;
+        }
+
+        DB::table('canals')->whereIn('id', $duplicateIds)->update($restore);
     }
 
     private function merge(int $canonicalId, int $duplicateId): bool
@@ -316,7 +338,14 @@ return new class extends Migration
         }
 
         DB::table('canal_user')->where('canal_id', $duplicateId)->delete();
-        DB::table('canals')->where('id', $duplicateId)->update(['deleted_at' => now(), 'updated_at' => now()]);
+        $trash = ['deleted_at' => now(), 'updated_at' => now()];
+
+        // Názov duplicity ostane aliasom kanonického kanála (DuplicateResolver::canalByKey).
+        if (Schema::hasColumn('canals', 'merged_into_id')) {
+            $trash['merged_into_id'] = $canonicalId;
+        }
+
+        DB::table('canals')->where('id', $duplicateId)->update($trash);
 
         return true;
     }
