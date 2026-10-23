@@ -131,7 +131,7 @@ class HtmlBodyCleaner
      */
     public function fromPlainText(string $text): string
     {
-        $text = trim($text);
+        $text = trim(ImportedText::stripDatelines($text));
         if ($text === '') {
             return '';
         }
@@ -389,6 +389,6 @@ class HtmlBodyCleaner
         // Collapse runs of blank lines to a single newline
         $html = preg_replace('/\n{3,}/', "\n\n", $html) ?? $html;
 
-        return trim(ImportedText::fixAbbreviationSpacing(ImportedText::stripNewsroomCodes($html)));
+        return trim(ImportedText::fixAbbreviationSpacing(ImportedText::stripDatelines(ImportedText::stripNewsroomCodes($html))));
     }
 }

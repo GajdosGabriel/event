@@ -17,6 +17,21 @@ class ImportedTextTest extends TestCase
     }
 
     #[Test]
+    public function it_strips_tkkbs_datelines(): void
+    {
+        $this->assertSame('Text', ImportedText::stripDatelines('Bratislava 25. júna (TK KBS) Text'));
+        $this->assertSame('<p>Úvod</p>', ImportedText::stripDatelines("<p>Bratislava 22. októbra (TK KBS)</p>\n<p>Úvod</p>"));
+        $this->assertSame('<p><strong>Košice</strong></p><p>Farnosť pozýva</p>', ImportedText::stripDatelines('<p><strong>Košice</strong></p><p><strong>Košice 22. októbra (TK KBS)</strong> – Farnosť pozýva</p>'));
+        $this->assertSame('<p>Registrácia sa začala.</p>', ImportedText::stripDatelines('<p>Vatikán/Južná Kórea 22. októbra (TK KBS) Registrácia sa začala.</p>'));
+        $this->assertSame('<p>Zbierka</p>', ImportedText::stripDatelines('<p>Žilina, 2. marca (TK KBS)</p><p>Zbierka</p>'));
+        $this->assertSame('<p>Úvod</p>', ImportedText::stripDatelines('<p>februára (TK KBS)</p><p>Úvod</p>'));
+        $this->assertSame('<p>TK KBS informoval Marián Oravec</p>', ImportedText::stripDatelines('<p>TK KBS informoval Marián Oravec, Bratislava 2. októbra (TK KBS)</p>'));
+        $this->assertSame('<ul><li>Cena: 5 €</li></ul>', ImportedText::stripDatelines('<ul><li>Cena: 5 €</li><li><strong>Kontakt:</strong> Bratislava 2. októbra (TK KBS)</li></ul>'));
+        $this->assertSame('<p>Kontakt: Biskupstvo Nitra</p>', ImportedText::stripDatelines('<p>Kontakt: Biskupstvo Nitra (TK KBS)</p>'));
+        $this->assertSame('<p>Omša 2. októbra o 18:00</p>', ImportedText::stripDatelines('<p>Omša 2. októbra o 18:00</p>'));
+    }
+
+    #[Test]
     public function it_adds_the_missing_space_after_sv(): void
     {
         $this->assertSame('Sv. omša a sv. Ján', ImportedText::fixAbbreviationSpacing('Sv.omša a sv.Ján'));
