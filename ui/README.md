@@ -47,8 +47,8 @@ XSRF hlavičku, Bearer token, odhlásenie pri 401 a hlásenie 429 (rate limit).
 ## Na čo si dať pozor
 
 **`dist/` je verzovaný v gite**, lebo produkcia sa nasadzuje `git pull`-om.
-Po zmene frontendu spusti `npm run build` a commitni aj `dist/`, inak sa
-nasadí starý build.
+Build a pridanie `dist/` do commitu robí git hook `.githooks/pre-commit`
+(zapnutie: `git config core.hooksPath .githooks`) — ručne ho spúšťať netreba.
 
 Vue **nemá modifikátor `.window`** (to je syntax Alpine.js). Zápis ako
 `@keydown.esc.window="close"` sa ticho ignoruje a skratka nefunguje — na

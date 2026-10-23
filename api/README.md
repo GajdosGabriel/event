@@ -55,134 +55,37 @@ a priradené v [routes/api.php](routes/api.php) cez `throttle:<meno>`:
 
 ## Scheduler a cron
 
-Laravel scheduler je zapojený v [routes/console.php](routes/console.php) a spúšťa:
-
-- `app:ai-detector` každú minútu
-- `app:events-archive-finished` každých 10 minút
-- `app:events-publish-scheduled` každých 5 minút (naplánované publikovanie, `events.publish_at`)
-- `app:tickets-expire-unconfirmed` každých 10 minút
-- `app:events-send-reminders` každých 10 minút (pripomienka účastníkom, `events.reminder_hours_before`)
-- `app:registrations-expire-pending` každých 10 minút
-- `app:import-event-sources` denne o 16:00 (`Europe/Bratislava`)
-- `queue:work database --queue=default,imports --stop-when-empty` každú minútu
-
-Poznámka k `app:import-event-sources`: pri importe sa časy zo zdrojov `ecav.sk`, `vyveska.sk` a `tkkbs.sk` interpretujú ako lokálny čas `Europe/Bratislava`, aby sa do aplikácie neukladali časovo posunuté eventy.
-
-### Fronta bez shellu
-
-`QUEUE_CONNECTION` je predvolene `sync`, čiže generovanie variantov obrázkov aj
-odosielanie e-mailov beží priamo v HTTP requeste a spomaľuje odpoveď. Keďže
-hosting nemá shell, klasický `queue:work` daemon tam bežať nemôže — scheduler
-preto každú minútu spustí krátky beh, ktorý po vyprázdnení fronty skončí.
-
-Prepnutie je vec `.env`, kód sa meniť nemusí:
-
-```
-QUEUE_CONNECTION=database
-```
-
-Scheduler sa nespúšťa sám. Na serveri musí bežať systémový cron, ktorý každú minútu zavolá Laravel scheduler.
-
-### Linux cron
-
-Do crontabu používateľa, pod ktorým beží aplikácia, pridaj:
-
-```cron
-* * * * * cd /var/www/event-api && php artisan schedule:run >> /dev/null 2>&1
-```
-
-Ak má server inú cestu k projektu alebo inú PHP binárku, uprav ju napríklad takto:
-
-```cron
-* * * * * cd /home/deploy/event-api && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
-```
-
-### Windows Task Scheduler
-
-Ak aplikácia beží na Windows serveri, vytvor plánovanú úlohu spúšťanú každú minútu.
-
-- Program/script: `php`
-- Add arguments: `artisan schedule:run`
-- Start in: `C:\www\event`
-
-### Overenie
-
-Na kontrolu registrovaných úloh použi:
+Úlohy sú v [routes/console.php](routes/console.php) — tam je aj vysvetlenie,
+prečo bežia cez `Schedule::call` a prečo má každý importný zdroj vlastný čas
+(od 16:00 `Europe/Bratislava` po 20 minútach). Aktuálny zoznam:
 
 ```bash
 php artisan schedule:list
 ```
 
-Na manuálne overenie behu schedulera použi:
+Hosting nemá shell ani systémový cron. `schedule:run` spúšťa webcron, ktorý
+každú minútu volá `GET /cron/schedule-run?token=<CRON_SECRET>` (pozri
+[koreňové README](../README.md#nasadenie)). Lokálne stačí
+`php artisan schedule:run` alebo `schedule:work`.
 
-```bash
-php artisan schedule:run
+### Fronta bez shellu
+
+`QUEUE_CONNECTION` je predvolene `sync`, čiže generovanie variantov obrázkov aj
+odosielanie e-mailov beží priamo v HTTP requeste a spomaľuje odpoveď. Keďže
+klasický `queue:work` daemon bežať nemôže, scheduler každú minútu spustí krátky
+`queue:work --stop-when-empty`. Prepnutie je len v `.env`:
+
+```
+QUEUE_CONNECTION=database
 ```
 
 ## Interná dokumentácia
 
-### Výveska import
-
-Import zo zdroja `vyveska.sk` používa ako primárny zdroj HTML detail stránky eventu. Ak sa z detailu nepodarí spoľahlivo získať `start_at`, `end_at` alebo `published_at_source`, importer použije RSS fallback z `https://www.vyveska.sk/rss.xml`, pričom RSS páruje podľa kanonického detail URL bez query parametrov.
-
-### Timezone pri importe zdrojov
-
-Časy z externých slovenských zdrojov `ecav.sk`, `vyveska.sk` a `tkkbs.sk` sa pri importe interpretujú ako lokálny čas `Europe/Bratislava`, aby nevznikal posun pri ukladaní event dátumov a publikovaných časov.
-
-- Správanie generovania náhľadov a mazania redundantných originálov je popísané v [docs/file-variant-pruning-behavior.md](docs/file-variant-pruning-behavior.md).
-- Timezone pravidlá importu externých zdrojov sú popísané v [docs/import-source-timezones.md](docs/import-source-timezones.md).
-- Výveska RSS fallback pre dátumy importovaných eventov je popísaný v [docs/vyveska-rss-fallback.md](docs/vyveska-rss-fallback.md).
-- Napojenie organizácií na Account (fakturačné údaje, IČO, webhooky) je popísané v [docs/account-integration.md](docs/account-integration.md).
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Tematické poznámky sú v [docs/](docs) — napr. import
+([pipeline](docs/import-extraction-pipeline.md),
+[časové pásma zdrojov](docs/import-source-timezones.md),
+[Výveska RSS fallback](docs/vyveska-rss-fallback.md)),
+[filtre index endpointov](docs/index-filters.md),
+[detekcia miesta](docs/venue-detect.md),
+[varianty súborov](docs/file-variant-pruning-behavior.md) a
+[napojenie na Account](docs/account-integration.md).

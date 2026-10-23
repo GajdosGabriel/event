@@ -40,7 +40,7 @@ cd ui && npm install && npm run dev
 | `npm run typecheck` | `ui/` | kontrola typov bez buildu |
 | `npm run build` | `ui/` | typová kontrola + produkčný build do `ui/dist` |
 
-Testy bežia proti MySQL databáze `event-api-test` (pozri `api/phpunit.xml`),
+Testy bežia proti MySQL databáze `event-test` (pozri `api/phpunit.xml`),
 nie proti sqlite — preto sú pomalé. Pri lokálnom vývoji spúšťaj konkrétne cesty.
 
 CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) púšťa testy, Pint na
@@ -49,8 +49,10 @@ zmenených súboroch, ESLint a build UI.
 ## Nasadenie
 
 Produkcia sa nasadzuje `git pull`-om, preto je **`ui/dist` verzovaný v gite**.
-Po zmene frontendu treba spustiť `npm run build` a výsledok commitnúť, inak
-sa nasadí starý build.
+Build robí git hook [`.githooks/pre-commit`](.githooks/pre-commit): pri commite
+so zmenou v `ui/` spustí `npm run build` a `ui/dist` pridá do toho istého
+commitu. Na každom počítači ho treba raz zapnúť:
+`git config core.hooksPath .githooks` — bez neho sa nasadí starý build.
 
 Hosting nemá shell ani systémový cron — všetko sa spúšťa cez URL:
 

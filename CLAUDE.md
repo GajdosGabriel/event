@@ -8,6 +8,17 @@
   (len v `APP_ENV=local`). Heslo nevypisuj do chatu ani necommituj —
   `api/.env` je mimo gitu.
 
+## Backend (`api/`)
+
+- Testy bežia na MySQL `event-test`, celá suite ~10 min — púšťaj cielene.
+  Ak DB chýba, povedz to, nemaskuj pád.
+- Permission middleware a policy sú vrstvené zámerne — neodstraňuj jedno
+  preto, že existuje druhé.
+- Repozitáre (`dashboardShow`, `adminShow`, `dashboardIndexWithFilters`…)
+  držia scoping dashboard/admin; neobchádzaj ho surovým Eloquentom v kontroleri.
+- Pri zmene verejného API kontraktu (request/response atribúty) to výslovne
+  uveď — konzumuje ho `ui/` aj embed widget.
+
 ## Frontend (`ui/`)
 
 - Produkčný build (`npm run build` v `ui/`) spúšťa git hook
