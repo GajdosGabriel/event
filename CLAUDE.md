@@ -1,5 +1,13 @@
 # Event — pokyny pre Claude
 
+## Lokálne prihlásenie pri overovaní v prehliadači
+
+- Na localhoste sa prihlasuj testovacím super-adminom z `api/.env`
+  (`DEV_ADMIN_EMAIL`, `DEV_ADMIN_PASSWORD`), nie účtom používateľa.
+  Účet zakladá/obnovuje `php artisan db:seed --class=LocalDevAdminSeeder`
+  (len v `APP_ENV=local`). Heslo nevypisuj do chatu ani necommituj —
+  `api/.env` je mimo gitu.
+
 ## Frontend (`ui/`)
 
 - Produkčný build (`npm run build` v `ui/`) spúšťa git hook

@@ -112,4 +112,10 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    // Testovací super-admin pre lokálny vývoj (Database\Seeders\LocalDevAdminSeeder).
+    'dev_admin' => [
+        'email' => env('DEV_ADMIN_EMAIL'),
+        'password' => env('DEV_ADMIN_PASSWORD'),
+    ],
+
 ];
