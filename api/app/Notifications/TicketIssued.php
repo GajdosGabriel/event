@@ -37,13 +37,20 @@ class TicketIssued extends Notification implements ShouldQueue
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.ticket_issued.subject', ['event' => $this->ticket->loadMissing('event')->event?->name]), 'link' => '/tickets/'.$this->ticket->uuid];
+        $key = $this->ticket->awaitsPayment() ? 'mail.ticket_payment.subject' : 'mail.ticket_issued.subject';
+
+        return ['message' => __($key, ['event' => $this->ticket->loadMissing('event')->event?->name]), 'link' => '/tickets/'.$this->ticket->uuid];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         $ticketUrl = rtrim(config('app.frontend_url'), '/').'/tickets/'.$this->ticket->uuid;
         $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
+
+        // Neuhradená platená objednávka: zatiaľ len rekapitulácia a suma, QR až po úhrade.
+        if ($this->ticket->awaitsPayment()) {
+            return $this->paymentRequest($eventName, $ticketUrl);
+        }
 
         $generator = app(QrCodeGenerator::class);
 
@@ -93,5 +100,41 @@ class TicketIssued extends Notification implements ShouldQueue
             ]);
 
         return $calendar->attachTo($mail);
+    }
+
+    /**
+     * Výzva na úhradu: čo si objednávateľ objednal (miesta, odpovede dotazníka
+     * s príplatkami) a koľko má zaplatiť. Vstupenky s QR príde až po tom, čo
+     * organizátor platbu označí ako uhradenú.
+     */
+    private function paymentRequest(string $eventName, string $ticketUrl): MailMessage
+    {
+        $questionnaire = app(Questionnaire::class);
+
+        $seats = $this->ticket->admissions()
+            ->with(['ticketType', 'answers.question', 'answers.option'])
+            ->where('status', AdmissionStatus::Valid->value)
+            ->orderBy('id')
+            ->get()
+            ->values()
+            ->map(fn (\App\Models\Admission $admission, int $i) => [
+                'label' => $admission->attendee_name ?: ($i === 0 ? $this->ticket->holder_name : __('mail.common.seat_label', ['number' => $i + 1])),
+                'type' => $admission->ticketType?->name,
+                'answers' => $questionnaire->present($admission->answers),
+            ])
+            ->all();
+
+        return (new MailMessage)
+            ->subject(__('mail.ticket_payment.subject', ['event' => $eventName]))
+            ->markdown('mail.ticket-payment-requested', [
+                'greetingName' => $this->ticket->holder_name,
+                'eventName' => $eventName,
+                'seats' => $seats,
+                'answers' => $questionnaire->present(
+                    $this->ticket->answers()->whereNull('admission_id')->with(['question', 'option'])->get()
+                ),
+                'amount' => number_format((int) $this->ticket->price_amount / 100, 2, ',', ' ').' '.($this->ticket->price_currency ?? 'EUR'),
+                'ticketUrl' => $ticketUrl,
+            ]);
     }
 }

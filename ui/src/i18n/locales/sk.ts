@@ -976,6 +976,9 @@ const sk = {
     },
     // Verejná stránka lístka — otvorí sa z e-mailu, často priamo pri vchode.
     ticket: {
+      awaitsPaymentTitle: "Čaká na úhradu: {amount}",
+      awaitsPaymentLead: "Rezervácia je prijatá. Vstupenky s QR kódmi vám pošleme e-mailom hneď, ako organizátor potvrdí platbu.",
+      qrAfterPayment: "QR kód bude k dispozícii po úhrade.",
       notFound: 'Lístok sa nenašiel',
       backHome: '← Späť na úvod',
       one: 'Lístok',
@@ -1564,6 +1567,7 @@ const sk = {
   },
   // Skener QR pri vstupe.
   checkin: {
+      paymentDue: "Neuhradená objednávka — vybrať {amount}",
       usedAtBy: 'Už použité o {time} — označil(a) {name}',
       offline: 'Bez pripojenia — skeny sa ukladajú',
       queueSending: 'Odosielam uložené skeny…',
@@ -1591,7 +1595,10 @@ const sk = {
   // Lístky: `request` je verejná objednávka, `settings` a `type` sú
   // nastavenia na strane organizátora.
   questionnaire: {
-    asideLead: "Súčasťou registrácie je krátky dotazník (napr. strava či ubytovanie).",
+    collapse: "Zbaliť",
+    expand: "Rozbaliť",
+    asideTitle: "Rezervácia",
+    asideLead: "Súčasťou rezervácie je krátky dotazník (napr. strava či ubytovanie).",
     perPerson: "za osobu",
     plusExtras: "+ príplatky",
     tab: "Dotazník",

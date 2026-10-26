@@ -477,7 +477,10 @@ async function run(action: () => Promise<unknown>, success: string) {
 
 async function onCheckin(admissionId: number) {
   const res = await checkinAdmissionManual(admissionId)
-  if (res.status === 'checked_in') toast.success(t('tickets.attendees.checkedIn'))
+  // Vstup prešiel, ale objednávka nie je uhradená — organizátor vyberie doplatok.
+  if (res.status === 'checked_in' && res.paymentDue) {
+    toast.show(t('checkin.paymentDue', { amount: formatPrice(res.paymentDue.amount, res.paymentDue.currency) }), 'error', 8000)
+  } else if (res.status === 'checked_in') toast.success(t('tickets.attendees.checkedIn'))
   else if (res.status === 'already_checked_in') toast.error(t('tickets.attendees.alreadyCheckedIn'))
   else toast.error(t('tickets.attendees.checkinFailed'))
   await reload()

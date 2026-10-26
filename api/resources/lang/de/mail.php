@@ -199,6 +199,16 @@ return [
     ],
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
+    // App\Notifications\TicketIssued pri neuhradenej platenej objednávke — výzva na úhradu bez QR.
+    'ticket_payment' => [
+        'subject' => 'Reservierung für :event — Zahlung ausstehend',
+        'intro' => 'Wir haben Ihre Reservierung für **„:event"** erhalten.',
+        'recap' => 'Übersicht der Bestellung',
+        'amount' => 'Zu zahlender Betrag: **:amount**',
+        'note' => 'Bitte zahlen Sie nach den Anweisungen des Veranstalters. Die Tickets mit QR-Codes senden wir Ihnen per E-Mail, sobald der Veranstalter die Zahlung bestätigt.',
+        'action' => 'Reservierung anzeigen',
+    ],
+
     'ticket_issued' => [
         'answers_title' => 'Ihre Antworten',
         'answers_edit' => 'Ihre Angaben aus der Anmeldung können Sie bis zum Anmeldeschluss auf der Ticketseite ändern.',

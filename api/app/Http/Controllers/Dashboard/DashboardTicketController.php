@@ -15,6 +15,7 @@ use App\Models\Admission;
 use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\PaidTicketDelivery;
 use App\Services\Tickets\Questionnaire;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -112,6 +113,9 @@ class DashboardTicketController extends Controller
     public function markPaid($id): JsonResponse
     {
         $ticket = $this->ticketRepository->markPaid($id);
+
+        // Až teraz dostanú objednávateľ a účastníci vstupenky s QR kódmi.
+        app(PaidTicketDelivery::class)->deliver($ticket);
 
         return response()->json(new TicketDashboardResource(
             $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
@@ -232,6 +236,12 @@ class DashboardTicketController extends Controller
         return response()->json([
             'status' => $result['status'],
             'reason' => $result['reason'] ?? null,
+            // Neuhradená objednávka — obsluha pri vchode vyberie doplatok.
+            'payment_due' => $admission?->ticket?->awaitsPayment() ? [
+                'amount' => (int) $admission->ticket->price_amount,
+                'currency' => $admission->ticket->price_currency ?? 'EUR',
+                'status_label' => $admission->ticket->payment_status->label(),
+            ] : null,
             'admission' => $admission
                 ? new AdmissionResource($admission->loadMissing(['event', 'ticket', 'ticketType', 'checkedInBy']))
                 : null,

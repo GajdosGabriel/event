@@ -65,6 +65,10 @@
                 · {{ result.admission.ticketType.kind === 'workshop' ? t('checkin.workshopPrefix') : '' }}{{ result.admission.ticketType.name }}
               </span>
             </p>
+            <!-- Vstup prešiel, ale objednávka nie je uhradená — obsluha vyberie doplatok. -->
+            <p v-if="result.paymentDue" class="mt-2 rounded-lg bg-amber-100 px-3 py-2 font-semibold text-amber-900">
+              {{ t('checkin.paymentDue', { amount: formatPrice(result.paymentDue.amount, result.paymentDue.currency) }) }}
+            </p>
           </div>
 
           <form class="mt-6 flex gap-2" @submit.prevent="submitManual">
@@ -104,6 +108,7 @@ import { enqueue, pending, remove, isSupported as queueSupported } from '@/utils
 import { showEvent } from '@/api/events'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import { currentLocale, t } from '@/i18n'
+import { formatPrice } from '@/utils/money'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { CheckinStats, TicketCheckinResult } from '@/types'

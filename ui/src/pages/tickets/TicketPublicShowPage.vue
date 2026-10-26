@@ -28,7 +28,12 @@
           {{ t('public.ticket.price') }} <strong>{{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }}</strong> ({{ ticket.paymentStatusLabel }})
         </div>
 
-        <p class="text-xs text-slate-500">{{ t('public.ticket.qrLead') }}</p>
+        <!-- Neuhradená platená objednávka: QR kódy prídu až po potvrdení platby. -->
+        <div v-if="ticket.awaitsPayment" class="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+          <p class="font-semibold">{{ t('public.ticket.awaitsPaymentTitle', { amount: formatPrice(ticket.priceAmount ?? 0, ticket.priceCurrency) }) }}</p>
+          <p class="mt-1">{{ t('public.ticket.awaitsPaymentLead') }}</p>
+        </div>
+        <p v-else class="text-xs text-slate-500">{{ t('public.ticket.qrLead') }}</p>
 
         <!-- Jednotlivé vstupenky s vlastným QR -->
         <div
@@ -38,7 +43,7 @@
         >
           <div class="mb-2 flex items-center justify-between">
             <p class="text-sm font-semibold text-slate-800">
-              {{ admission.attendeeName || t('public.ticket.admission', { n: i + 1 }) }}
+              {{ seatName(ticket, admission) || t('public.ticket.admission', { n: i + 1 }) }}
               <span v-if="admission.ticketType?.kind === 'workshop'" class="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
                 {{ t('public.ticket.workshopPrefix', { name: admission.ticketType.name }) }}
               </span>
@@ -62,6 +67,9 @@
           <p v-if="admission.status === 'waitlisted'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
             {{ t('public.ticket.waitlistLead') }}
           </p>
+          <p v-else-if="ticket.awaitsPayment" class="rounded-lg bg-white px-3 py-2 text-center text-xs text-slate-500 ring-1 ring-slate-200">
+            {{ t('public.ticket.qrAfterPayment') }}
+          </p>
           <!-- Vstupenka pre iného účastníka čaká, kým potvrdí účasť. -->
           <p v-else-if="admission.confirmationStatus === 'pending'" class="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
             {{ t('public.ticket.pendingLead', {
@@ -74,7 +82,7 @@
           </div>
         </div>
 
-        <p class="text-center text-xs text-slate-400">{{ t('public.ticket.qrHint') }}</p>
+        <p v-if="!ticket.awaitsPayment" class="text-center text-xs text-slate-400">{{ t('public.ticket.qrHint') }}</p>
 
         <!-- Dotazník (strava, ubytovanie…) — účastník si ho môže do uzávierky upraviť. -->
         <TicketAnswersPanel
@@ -96,6 +104,7 @@ import { useRoute } from 'vue-router'
 import { showTicket, updateTicketAnswers } from '@/api/tickets'
 import { publicQuestionnaire } from '@/api/questionnaire'
 import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
+import { seatName } from '@/utils/userDisplay'
 import type { QuestionItem, TicketItem } from '@/types'
 import { formatPrice } from '@/utils/money'
 import { useI18n, localeTag } from '@/i18n'

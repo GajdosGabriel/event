@@ -918,6 +918,9 @@ const cs: Messages = {
       seoDescription: 'Akce na místě {name}.',
     },
     ticket: {
+      awaitsPaymentTitle: "Čeká na úhradu: {amount}",
+      awaitsPaymentLead: "Rezervace je přijata. Vstupenky s QR kódy vám pošleme e-mailem, jakmile pořadatel potvrdí platbu.",
+      qrAfterPayment: "QR kód bude k dispozici po úhradě.",
       notFound: 'Lístek se nenašel',
       backHome: '← Zpět na úvod',
       one: 'Lístek',
@@ -1480,6 +1483,7 @@ const cs: Messages = {
     home: 'Zpět na úvod',
   },
   checkin: {
+      paymentDue: "Neuhrazená objednávka — vybrat {amount}",
       usedAtBy: 'Už použito v {time} — označil(a) {name}',
       offline: 'Bez připojení — skeny se ukládají',
       queueSending: 'Odesílám uložené skeny…',
@@ -1505,7 +1509,10 @@ const cs: Messages = {
     whoCanScan: 'Skenovat mohou členové týmu kanálu s rolí Vlastník, Editor nebo Vstup.',
   },
   questionnaire: {
-    asideLead: "Součástí registrace je krátký dotazník (např. strava či ubytování).",
+    collapse: "Sbalit",
+    expand: "Rozbalit",
+    asideTitle: "Rezervace",
+    asideLead: "Součástí rezervace je krátký dotazník (např. strava či ubytování).",
     perPerson: "za osobu",
     plusExtras: "+ příplatky",
     tab: "Dotazník",

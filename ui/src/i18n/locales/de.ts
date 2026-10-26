@@ -919,6 +919,9 @@ const de: Messages = {
       seoDescription: 'Veranstaltungen am Ort {name}.',
     },
     ticket: {
+      awaitsPaymentTitle: "Zahlung ausstehend: {amount}",
+      awaitsPaymentLead: "Die Reservierung ist eingegangen. Die Tickets mit QR-Codes senden wir per E-Mail, sobald der Veranstalter die Zahlung bestätigt.",
+      qrAfterPayment: "Der QR-Code ist nach der Zahlung verfügbar.",
       notFound: 'Ticket nicht gefunden',
       backHome: '← Zurück zur Startseite',
       one: 'Ticket',
@@ -1481,6 +1484,7 @@ const de: Messages = {
     home: 'Zur Startseite',
   },
   checkin: {
+      paymentDue: "Nicht bezahlte Bestellung — {amount} kassieren",
       usedAtBy: 'Bereits um {time} verwendet — von {name}',
       offline: 'Offline — Scans werden gespeichert',
       queueSending: 'Gespeicherte Scans werden gesendet…',
@@ -1506,7 +1510,10 @@ const de: Messages = {
     whoCanScan: 'Scannen dürfen Team-Mitglieder des Kanals mit der Rolle Eigentümer, Redakteur oder Einlass.',
   },
   questionnaire: {
-    asideLead: "Zur Anmeldung gehört ein kurzer Fragebogen (z. B. Verpflegung oder Unterkunft).",
+    collapse: "Einklappen",
+    expand: "Ausklappen",
+    asideTitle: "Reservierung",
+    asideLead: "Zur Reservierung gehört ein kurzer Fragebogen (z. B. Verpflegung oder Unterkunft).",
     perPerson: "pro Person",
     plusExtras: "+ Zuschläge",
     tab: "Fragebogen",

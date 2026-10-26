@@ -73,7 +73,7 @@
               </RouterLink>
               <template v-else>
                 <a
-                  v-for="admission in ticket.admissions.filter(hasQr)"
+                  v-for="admission in ticket.awaitsPayment ? [] : ticket.admissions.filter(hasQr)"
                   :key="admission.uuid"
                   :href="admission.qrUrl"
                   target="_blank"

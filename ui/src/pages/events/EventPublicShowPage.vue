@@ -340,11 +340,26 @@
                  panela nezmestili — formulár preto stojí v hlavnom stĺpci,
                  bočný panel ostáva s cenou a tlačidlom. -->
             <section v-if="event.reservable && hasQuestionnaire" id="registracia" class="scroll-mt-24 rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80 md:p-8">
-              <h2 class="mb-4 flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
-                <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
-                {{ t('public.event.registration') }}
-              </h2>
+              <!-- Dlhý formulár sa dá zbaliť; v-show, nech sa rozpísané odpovede nestratia. -->
+              <div class="flex items-center justify-between gap-3" :class="{ 'mb-4': registrationOpen }">
+                <h2 class="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
+                  <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
+                  {{ t('public.event.registration') }}
+                </h2>
+                <button
+                  type="button"
+                  class="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  :aria-expanded="registrationOpen"
+                  aria-controls="registracia-form"
+                  @click="registrationOpen = !registrationOpen"
+                >
+                  {{ registrationOpen ? t('questionnaire.collapse') : t('questionnaire.expand') }}
+                  <AppIcon name="chevronDown" class="h-4 w-4 transition-transform" :class="{ 'rotate-180': registrationOpen }" />
+                </button>
+              </div>
               <TicketRequestForm
+                v-show="registrationOpen"
+                id="registracia-form"
                 :event-id="event.id"
                 :types="ticketTypes"
                 :registration-deadline-at="event.registrationDeadlineAt"
@@ -469,17 +484,16 @@
               </div>
             </section>
 
-            <!-- Registrácia s dotazníkom je v hlavnom stĺpci — tu len cena a skok na ňu. -->
+            <!-- Rezervácia s dotazníkom je v hlavnom stĺpci — tu len krátka výzva a skok na ňu. -->
             <section v-if="event.reservable && hasQuestionnaire" class="rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80">
               <h2 class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
                 </svg>
-                {{ t('public.event.registration') }}
+                {{ t('questionnaire.asideTitle') }}
               </h2>
-              <p class="text-xl font-bold text-slate-900">{{ priceLabel }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ t('questionnaire.asideLead') }}</p>
-              <button type="button" class="btn btn-primary mt-3 w-full" @click="scrollToRegistration">{{ registerLabel }}</button>
+              <p class="text-sm text-slate-600">{{ t('questionnaire.asideLead') }}</p>
+              <button type="button" class="btn btn-primary mt-3 w-full" @click="scrollToRegistration">{{ t('tickets.request.reserve') }}</button>
             </section>
 
             <!-- Lístok / registrácia -->
@@ -950,8 +964,15 @@ const showRemindMe = computed(() => Boolean(event.value) && isUpcoming.value)
 // Na mobile buď registrácia, alebo pripomienka — nikdy prázdna lišta.
 const showMobileRemind = computed(() => !showMobileCta.value && showRemindMe.value)
 
-function scrollToRegistration() {
-  document.getElementById('registracia')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+/** Formulár s dotazníkom v hlavnom stĺpci — návštevník si ho môže zbaliť. */
+const registrationOpen = ref(true)
+
+async function scrollToRegistration() {
+  // Zbalený formulár sa pred skokom rozbalí; dlhý formulár sa zarovná
+  // na začiatok, nie na stred (tam by skok skončil uprostred otázok).
+  registrationOpen.value = true
+  await nextTick()
+  document.getElementById('registracia')?.scrollIntoView({ behavior: 'smooth', block: hasQuestionnaire.value ? 'start' : 'center' })
 }
 
 async function loadTicketTypes(eventId: number) {

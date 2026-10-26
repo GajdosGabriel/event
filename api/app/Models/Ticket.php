@@ -68,6 +68,16 @@ class Ticket extends Model
         return $this->hasMany(TicketAnswer::class);
     }
 
+    /**
+     * Platená objednávka, ktorá ešte nie je uhradená. Vstupenky s QR kódom sa
+     * vydajú až po úhrade — dovtedy objednávateľ dostane len výzvu na platbu.
+     */
+    public function awaitsPayment(): bool
+    {
+        return (int) $this->price_amount > 0
+            && in_array($this->payment_status, [TicketPaymentStatus::Pending, TicketPaymentStatus::Failed], true);
+    }
+
     /** Počet vstupeniek objednávky, ktoré už prešli vchodom. */
     public function getCheckedInCountAttribute(): int
     {

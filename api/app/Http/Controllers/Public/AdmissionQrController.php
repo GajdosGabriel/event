@@ -35,6 +35,11 @@ class AdmissionQrController extends Controller
             abort(404);
         }
 
+        // Neuhradená platená objednávka — vstupenka sa vydá až po úhrade.
+        if ($admission->ticket?->awaitsPayment()) {
+            abort(404);
+        }
+
         $result = $generator->forToken($admission->qr_token);
 
         return response($result->getString(), 200)

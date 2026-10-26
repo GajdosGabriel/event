@@ -199,6 +199,16 @@ return [
     ],
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
+    // App\Notifications\TicketIssued pri neuhradenej platenej objednávke — výzva na úhradu bez QR.
+    'ticket_payment' => [
+        'subject' => 'Reservation for :event — payment pending',
+        'intro' => 'We have received your reservation for **“:event”**.',
+        'recap' => 'Order summary',
+        'amount' => 'Amount due: **:amount**',
+        'note' => 'Please pay according to the organiser’s instructions. We will email you the tickets with QR codes as soon as the organiser confirms the payment.',
+        'action' => 'View reservation',
+    ],
+
     'ticket_issued' => [
         'answers_title' => 'Your answers',
         'answers_edit' => 'You can change your registration answers on the ticket page until the deadline.',

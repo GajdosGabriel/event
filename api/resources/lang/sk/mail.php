@@ -203,6 +203,16 @@ return [
     ],
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
+    // App\Notifications\TicketIssued pri neuhradenej platenej objednávke — výzva na úhradu bez QR.
+    'ticket_payment' => [
+        'subject' => 'Rezervácia na :event — čaká na úhradu',
+        'intro' => 'Vašu rezerváciu na akciu **„:event"** sme prijali.',
+        'recap' => 'Rekapitulácia objednávky',
+        'amount' => 'Suma na úhradu: **:amount**',
+        'note' => 'Platbu uhraďte podľa pokynov organizátora. Vstupenky s QR kódmi vám pošleme e-mailom hneď, ako organizátor platbu potvrdí.',
+        'action' => 'Zobraziť rezerváciu',
+    ],
+
     'ticket_issued' => [
         'answers_title' => 'Vaše odpovede',
         'answers_edit' => 'Odpovede z registrácie môžete do uzávierky upraviť na stránke lístka.',

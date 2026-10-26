@@ -54,10 +54,10 @@
             <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
             <p v-if="timeLabel(type)" class="text-xs font-medium text-blue-700">{{ timeLabel(type) }}</p>
             <p v-if="type.description" class="text-xs text-slate-500">{{ type.description }}</p>
-            <p class="mt-1 text-sm font-semibold" :class="unitPrice(type) ? 'text-slate-800' : 'text-green-700'">
-              {{ unitPrice(type) ? formatPrice(unitPrice(type), type.priceCurrency) : t('tickets.request.free') }}
-              <span v-if="unitPrice(type) && unitPrice(type) !== (type.priceAmount ?? 0)" class="ml-1 font-normal text-slate-500">{{ t('questionnaire.perPerson') }}</span>
-              <span v-if="hasExtras(type)" class="ml-1 font-normal text-slate-500">{{ t('questionnaire.plusExtras') }}</span>
+            <!-- Pri dotazníku s poplatkami cenu vopred nestrašíme — skutočnú sumu
+                 ukáže rozpis pod formulárom podľa toho, čo si človek vyberie. -->
+            <p v-if="!hasPricedQuestionnaire(type)" class="mt-1 text-sm font-semibold" :class="type.priceAmount ? 'text-slate-800' : 'text-green-700'">
+              {{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : t('tickets.request.free') }}
             </p>
             <p v-if="type.remainingCapacity !== null && type.remainingCapacity !== undefined" class="text-xs text-slate-400">
               {{ t('tickets.request.remaining', { n: type.remainingCapacity }) }}
@@ -282,6 +282,11 @@ watch(orderQs, qs => { orderAnswers.value = { ...emptyAnswers(qs), ...orderAnswe
 /** Cena typu nie je celá — dotazník k nemu ponúka platené možnosti. */
 function hasExtras(type: TicketTypeItem): boolean {
   return hasOptionalExtras([...seatQuestions(type), ...orderQs.value])
+}
+
+/** Má dotazník k typu poplatky či príplatky? Vtedy cena lístka nie je celá cena. */
+function hasPricedQuestionnaire(type: TicketTypeItem): boolean {
+  return hasExtras(type) || unitPrice(type) !== (type.priceAmount ?? 0)
 }
 
 /** Cena za osobu: lístok + povinné poplatky z dotazníka (napr. účastnícky). */

@@ -781,6 +781,8 @@ export interface TicketItem {
   rsvpToken?: string | null
   /** Odpovede dotazníka za objednávku (za miesta sú pri admissions). */
   answers?: TicketAnswerItem[]
+  /** Platená a ešte neuhradená — QR vstupenky sa vydajú až po úhrade. */
+  awaitsPayment?: boolean
   /** Smie účastník ešte meniť odpovede (verejná stránka lístka)? */
   answersEditable?: boolean
   answersEditableUntil?: string | null
@@ -801,6 +803,8 @@ export interface TicketCheckinResult {
   status: 'checked_in' | 'already_checked_in' | 'invalid' | 'reverted' | 'queued'
   reason?: 'not_found' | 'cancelled' | 'waitlisted' | 'unconfirmed' | null
   admission: AdmissionItem | null
+  /** Neuhradená objednávka — vstup prešiel, ale treba vybrať doplatok. */
+  paymentDue?: { amount: number; currency: string; statusLabel: string } | null
 }
 
 // RSVP: potvrdenie účasti účastníkom z e-mailu.

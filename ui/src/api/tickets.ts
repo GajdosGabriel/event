@@ -71,6 +71,7 @@ export function mapTicket(raw: Record<string, unknown>): TicketItem {
     rsvpToken: (raw['rsvp_token'] as string) ?? null,
     answers: raw['answers'] ? mapAnswers(raw['answers']) : undefined,
     answersEditable: raw['answers_editable'] === undefined ? undefined : Boolean(raw['answers_editable']),
+    awaitsPayment: Boolean(raw['awaits_payment']),
     answersEditableUntil: (raw['answers_editable_until'] as string) ?? null,
     createdAt: raw['created_at'] as string,
     deletedAt: (raw['deleted_at'] as string) ?? null,
@@ -165,6 +166,13 @@ function mapCheckinResult(data: Record<string, unknown>): TicketCheckinResult {
     status: data['status'] as TicketCheckinResult['status'],
     reason: (data['reason'] as TicketCheckinResult['reason']) ?? null,
     admission: data['admission'] ? mapAdmission(data['admission'] as Record<string, unknown>) : null,
+    paymentDue: data['payment_due']
+      ? {
+          amount: Number((data['payment_due'] as Record<string, unknown>)['amount'] ?? 0),
+          currency: String((data['payment_due'] as Record<string, unknown>)['currency'] ?? 'EUR'),
+          statusLabel: String((data['payment_due'] as Record<string, unknown>)['status_label'] ?? ''),
+        }
+      : null,
   }
 }
 

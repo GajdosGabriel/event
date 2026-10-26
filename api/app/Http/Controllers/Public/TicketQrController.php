@@ -24,7 +24,7 @@ class TicketQrController extends Controller
 
         $admission = $ticket?->admissions()->orderBy('id')->first();
 
-        if (! $admission) {
+        if (! $admission || $ticket->awaitsPayment()) {
             abort(404);
         }
 

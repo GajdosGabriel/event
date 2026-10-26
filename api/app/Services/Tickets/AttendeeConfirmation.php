@@ -142,9 +142,12 @@ class AttendeeConfirmation
         $user = User::where('email', $attendeeEmail)->first();
         $needsActivation = $user !== null && $user->email_verified_at === null;
 
-        // Účastníkovi teraz pošleme jeho vstupenku s QR kódom.
-        Notification::route('mail', $attendeeEmail)
-            ->notify(new AttendeeTicketIssued($ticket, $ids, $needsActivation));
+        // Účastníkovi teraz pošleme jeho vstupenku s QR kódom — pri neuhradenej
+        // platenej objednávke až po úhrade (PaidTicketDelivery).
+        if (! $ticket?->awaitsPayment()) {
+            Notification::route('mail', $attendeeEmail)
+                ->notify(new AttendeeTicketIssued($ticket, $ids, $needsActivation));
+        }
 
         // Objednávateľovi dáme vedieť, že účastník potvrdil účasť. Pri samoobslužnej
         // registrácii (napr. prijatie miesta z čakačky) je to tá istá osoba — druhý
