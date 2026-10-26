@@ -210,6 +210,7 @@ return [
     ],
 
     'ticket_issued' => [
+        'paid_amount' => 'Order total: **:amount** (paid).',
         'answers_title' => 'Your answers',
         'answers_edit' => 'You can change your registration answers on the ticket page until the deadline.',
         'subject' => 'Your ticket for :event',
@@ -241,6 +242,7 @@ return [
 
     // App\Notifications\AttendeeConfirmationRequest — žiadosť o potvrdenie účasti.
     'attendee_confirmation_request' => [
+        'paid_by_holder' => '**:holder** is paying for your place. You will receive your ticket with a QR code once you confirm and the order is paid.',
         'subject' => 'Confirm your attendance at :event',
         'intro_paid' => '**:holder** has bought you a ticket for **":event"**.',
         'intro_free' => '**:holder** has reserved you a seat at **":event"**.',

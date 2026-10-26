@@ -344,7 +344,7 @@
               <div class="flex items-center justify-between gap-3" :class="{ 'mb-4': registrationOpen }">
                 <h2 class="flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
                   <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
-                  {{ t('public.event.registration') }}
+                  {{ t('questionnaire.asideTitle') }}
                 </h2>
                 <button
                   type="button"
@@ -855,7 +855,10 @@ const basePriceLabel = computed(() => {
   return min === Math.max(...prices) ? label : `${t('public.event.priceFrom')} ${label}`
 })
 
-const registerLabel = computed(() => t(onlyPaidTickets.value ? 'tickets.request.buy' : 'public.event.register'))
+// Pri rezervácii s dotazníkom všade „Rezervovať", nech sa tlačidlá volajú rovnako.
+const registerLabel = computed(() => t(
+  hasQuestionnaire.value ? 'tickets.request.reserve' : onlyPaidTickets.value ? 'tickets.request.buy' : 'public.event.register',
+))
 const hasPaidPrice = computed(() => (event.value?.priceAmount ?? 0) > 0 || onlyPaidTickets.value || questionnaireFee.value > 0)
 
 /** Porovnanie názvov bez ohľadu na diakritiku a veľkosť písmen. */
@@ -964,8 +967,11 @@ const showRemindMe = computed(() => Boolean(event.value) && isUpcoming.value)
 // Na mobile buď registrácia, alebo pripomienka — nikdy prázdna lišta.
 const showMobileRemind = computed(() => !showMobileCta.value && showRemindMe.value)
 
-/** Formulár s dotazníkom v hlavnom stĺpci — návštevník si ho môže zbaliť. */
-const registrationOpen = ref(true)
+/**
+ * Formulár s dotazníkom v hlavnom stĺpci. Na začiatku je zbalený — otvorí ho
+ * „Rezervovať“ v bočnom paneli (alebo v lište) a návštevník ho môže znova zbaliť.
+ */
+const registrationOpen = ref(false)
 
 async function scrollToRegistration() {
   // Zbalený formulár sa pred skokom rozbalí; dlhý formulár sa zarovná

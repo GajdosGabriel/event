@@ -66,11 +66,23 @@ class TicketIssued extends Notification implements ShouldQueue
         // ešte nedávame, aby nescanoval miesto, ktoré účastník ešte neprijal.
         $pendingCount = $admissions->filter(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())->count();
 
+        // Účastníci, ktorí ešte nepotvrdili — bez QR, ale s tým, čo sa za nich vyplnilo.
+        $pendingSeats = $admissions
+            ->filter(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())
+            ->values()
+            ->map(fn (\App\Models\Admission $admission) => [
+                'label' => (string) $admission->attendee_name,
+                'type' => $admission->ticketType?->name,
+                'answers' => app(Questionnaire::class)->present($admission->answers),
+            ])
+            ->all();
+
         $seats = $admissions
             ->reject(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())
             ->values()
             ->map(fn (\App\Models\Admission $admission, int $i) => [
-                'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
+                // Miesto bez mena patrí objednávateľovi.
+                'label' => $admission->attendee_name ?: ($i === 0 ? $this->ticket->holder_name : __('mail.common.seat_label', ['number' => $i + 1])),
                 'type' => $admission->ticketType?->name,
                 'answers' => app(Questionnaire::class)->present($admission->answers),
                 'png' => $generator->forToken($admission->qr_token)->getString(),
@@ -92,6 +104,10 @@ class TicketIssued extends Notification implements ShouldQueue
                 'quantity' => (int) ($this->ticket->quantity ?? 1),
                 'seats' => $seats,
                 'pendingCount' => $pendingCount,
+                'pendingSeats' => $pendingSeats,
+                'paidAmount' => (int) $this->ticket->price_amount > 0
+                    ? number_format((int) $this->ticket->price_amount / 100, 2, ',', ' ').' '.($this->ticket->price_currency ?? 'EUR')
+                    : null,
                 'answers' => app(Questionnaire::class)->present(
                     $this->ticket->answers()->whereNull('admission_id')->with(['question', 'option'])->get()
                 ),

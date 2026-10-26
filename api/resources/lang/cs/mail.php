@@ -210,6 +210,7 @@ return [
     ],
 
     'ticket_issued' => [
+        'paid_amount' => 'Částka objednávky: **:amount** (uhrazeno).',
         'answers_title' => 'Vaše odpovědi',
         'answers_edit' => 'Odpovědi z registrace můžete do uzávěrky upravit na stránce vstupenky.',
         'subject' => 'Váš lístek na :event',
@@ -241,6 +242,7 @@ return [
 
     // App\Notifications\AttendeeConfirmationRequest — žiadosť o potvrdenie účasti.
     'attendee_confirmation_request' => [
+        'paid_by_holder' => 'Vstupné za vás hradí **:holder**. Vstupenku s QR kódem dostanete po potvrzení účasti a úhradě objednávky.',
         'subject' => 'Potvrďte účast na :event',
         'intro_paid' => '**:holder** vám objednal(a) vstupenku na akci **„:event"**.',
         'intro_free' => '**:holder** vám rezervoval(a) místo na akci **„:event"**.',

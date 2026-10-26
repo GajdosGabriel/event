@@ -210,6 +210,7 @@ return [
     ],
 
     'ticket_issued' => [
+        'paid_amount' => 'Bestellbetrag: **:amount** (bezahlt).',
         'answers_title' => 'Ihre Antworten',
         'answers_edit' => 'Ihre Angaben aus der Anmeldung können Sie bis zum Anmeldeschluss auf der Ticketseite ändern.',
         'subject' => 'Ihr Ticket für :event',
@@ -241,6 +242,7 @@ return [
 
     // App\Notifications\AttendeeConfirmationRequest — žiadosť o potvrdenie účasti.
     'attendee_confirmation_request' => [
+        'paid_by_holder' => 'Die Gebühr für Sie zahlt **:holder**. Ihr Ticket mit QR-Code erhalten Sie nach Bestätigung der Teilnahme und Bezahlung der Bestellung.',
         'subject' => 'Bestätigen Sie Ihre Teilnahme an :event',
         'intro_paid' => '**:holder** hat Ihnen ein Ticket für **„:event"** bestellt.',
         'intro_free' => '**:holder** hat Ihnen einen Platz bei **„:event"** reserviert.',

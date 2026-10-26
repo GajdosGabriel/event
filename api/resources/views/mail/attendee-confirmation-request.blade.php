@@ -7,10 +7,17 @@
 
 @if (count($seats))
 @foreach ($seats as $seat)
-- {{ empty($seat['type'])
+**{{ empty($seat['type'])
     ? __('mail.common.seat', ['label' => $seat['label']])
-    : __('mail.common.seat_typed', ['label' => $seat['label'], 'type' => $seat['type']]) }}
+    : __('mail.common.seat_typed', ['label' => $seat['label'], 'type' => $seat['type']]) }}**
+
+@include('mail.partials.answers', ['answers' => $seat['answers'] ?? []])
 @endforeach
+@endif
+
+@if ($awaitsPayment)
+{{ __('mail.attendee_confirmation_request.paid_by_holder', ['holder' => $holderName]) }}
+
 @endif
 
 @if ($deadline)

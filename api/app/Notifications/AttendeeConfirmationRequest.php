@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -41,7 +42,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
         $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
 
         $admissions = $this->ticket->admissions()
-            ->with('ticketType')
+            ->with(['ticketType', 'answers.question', 'answers.option'])
             ->whereIn('id', $this->admissionIds)
             ->where('status', AdmissionStatus::Valid->value)
             ->orderBy('id')
@@ -52,6 +53,8 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type' => $admission->ticketType?->name,
+                // Čo za neho objednávateľ vyplnil (strava, ubytovanie…) — nech to vie skontrolovať.
+                'answers' => app(Questionnaire::class)->present($admission->answers),
             ])
             ->all();
 
@@ -65,6 +68,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
                 'holderName' => $this->ticket->holder_name,
                 'eventName' => $eventName,
                 'isPaid' => (int) ($this->ticket->price_amount ?? 0) > 0,
+                'awaitsPayment' => $this->ticket->awaitsPayment(),
                 'seats' => $seats,
                 'confirmUrl' => $base.'?do=confirm',
                 'declineUrl' => $base.'?do=cancel',

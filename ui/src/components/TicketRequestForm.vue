@@ -488,6 +488,17 @@ function removeSeat(type: TicketTypeItem, index: number) {
 
 const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))
 
+// Široký formulár (rezervácia s dotazníkom) s jediným typom lístka má miesto
+// vybrané hneď — vlastné tlačidlo „Rezervovať“ by len zdvojovalo to v bočnom paneli.
+watch(
+  () => [props.wide, orderableTypes.value.length],
+  () => {
+    const only = orderableTypes.value.length === 1 ? orderableTypes.value[0] : null
+    if (props.wide && only && totalSeats.value === 0 && orderable(only)) activate(only)
+  },
+  { immediate: true },
+)
+
 /** Cena za objednané miesta jedného typu vrátane príplatkov z dotazníka. */
 function priceFor(type: TicketTypeItem): number {
   const seats = seatIndexes(type).reduce((sum, i) => sum + answersPrice(seatQuestions(type), seatAnswers(type, i)), 0)

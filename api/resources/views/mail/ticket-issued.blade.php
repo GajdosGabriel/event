@@ -25,6 +25,19 @@
 
 @if (!empty($pendingCount) && $pendingCount > 0)
 {{ trans_choice('mail.ticket_issued.pending', $pendingCount) }} {{ __('mail.ticket_issued.pending_note') }}
+
+@foreach ($pendingSeats ?? [] as $seat)
+**{{ empty($seat['type'])
+    ? __('mail.common.seat', ['label' => $seat['label']])
+    : __('mail.common.seat_typed', ['label' => $seat['label'], 'type' => $seat['type']]) }}**
+
+@include('mail.partials.answers', ['answers' => $seat['answers'] ?? []])
+@endforeach
+@endif
+
+@if (!empty($paidAmount))
+{{ __('mail.ticket_issued.paid_amount', ['amount' => $paidAmount]) }}
+
 @endif
 
 @if (!empty($answers))

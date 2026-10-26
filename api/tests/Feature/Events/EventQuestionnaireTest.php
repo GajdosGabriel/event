@@ -335,6 +335,39 @@ class EventQuestionnaireTest extends EventSetupTest
     }
 
     #[Test]
+    public function multi_name_reservation_sends_each_person_their_recap(): void
+    {
+        $meal = $this->mealQuestion();
+        [$normal, $veg] = $meal->options;
+
+        $uuid = $this->order([
+            ['name' => null, 'answers' => [$meal->id => $normal->id]],
+            ['name' => 'Eva Nová', 'email' => 'eva@example.com', 'answers' => [$meal->id => $veg->id]],
+        ])->assertStatus(201)->json('uuid');
+        $ticket = Ticket::query()->where('uuid', $uuid)->firstOrFail();
+
+        // Účastníčka dostane výzvu na potvrdenie so svojimi odpoveďami.
+        Notification::assertSentOnDemand(
+            \App\Notifications\AttendeeConfirmationRequest::class,
+            function ($n, $channels, $notifiable) {
+                $data = $n->toMail($notifiable)->viewData;
+
+                return $notifiable->routes['mail'] === 'eva@example.com'
+                    && $data['seats'][0]['answers'][0]['display'] === 'Vegetariánska';
+            },
+        );
+
+        // Objednávateľ vidí aj miesto, ktoré čaká na potvrdenie, s odpoveďami.
+        Notification::assertSentOnDemand(\App\Notifications\TicketIssued::class, function ($n) use ($ticket) {
+            $data = $n->toMail($ticket)->viewData;
+
+            return $data['seats'][0]['label'] === 'Janko'
+                && $data['pendingSeats'][0]['label'] === 'Eva Nová'
+                && $data['pendingSeats'][0]['answers'][0]['display'] === 'Vegetariánska';
+        });
+    }
+
+    #[Test]
     public function one_click_signup_needs_form_when_questions_are_required(): void
     {
         $this->mealQuestion();
