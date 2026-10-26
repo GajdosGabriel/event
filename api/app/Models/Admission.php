@@ -54,6 +54,11 @@ class Admission extends Model
         return $this->belongsTo(TicketType::class);
     }
 
+    public function answers()
+    {
+        return $this->hasMany(TicketAnswer::class);
+    }
+
     public function event()
     {
         return $this->belongsTo(Event::class);

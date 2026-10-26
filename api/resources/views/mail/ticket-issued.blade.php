@@ -16,6 +16,8 @@
 <img src="{{ $message->embedData($seat['png'], 'qr-'.$loop->index.'.png', 'image/png') }}" alt="{{ __('mail.common.qr_alt') }}" width="200" height="200" style="display:block;border:0;outline:none;margin:6px 0 6px;" />
 
 [{{ __('mail.common.qr_open') }}]({{ $seat['qrUrl'] }})
+
+@include('mail.partials.answers', ['answers' => $seat['answers'] ?? []])
 @endforeach
 
 {{ __('mail.ticket_issued.qr_note') }}
@@ -25,6 +27,15 @@
 {{ trans_choice('mail.ticket_issued.pending', $pendingCount) }} {{ __('mail.ticket_issued.pending_note') }}
 @endif
 
+@if (!empty($answers))
+**{{ __('mail.ticket_issued.answers_title') }}**
+
+@include('mail.partials.answers', ['answers' => $answers])
+@endif
+@if (!empty($answers) || collect($seats)->contains(fn ($seat) => !empty($seat['answers'])))
+{{ __('mail.ticket_issued.answers_edit') }}
+
+@endif
 @component('mail::button', ['url' => $ticketUrl])
 {{ __('mail.ticket_issued.action') }}
 @endcomponent

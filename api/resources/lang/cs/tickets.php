@@ -35,7 +35,30 @@ return [
         'sale_starts_at' => 'Prodej od',
         'sale_ends_at' => 'Prodej do',
     ],
+    // Dotazník k registrácii (App\Enums\QuestionScope, QuestionType).
+    'question_scope' => [
+        'order' => 'Jednou za objednávku',
+        'attendee' => 'Za každého účastníka',
+    ],
+    // Zobrazenie zaškrtnutého poľa v odpovediach (zoznam, export, e-mail).
+    'answer_yes' => 'Ano',
+    'question_type' => [
+        'text' => 'Krátký text',
+        'textarea' => 'Delší text',
+        'single_choice' => 'Výběr jedné možnosti',
+        'multi_choice' => 'Výběr více možností',
+        'checkbox' => 'Zaškrtávací pole',
+        'number' => 'Číslo',
+        'date' => 'Datum',
+    ],
     'errors' => [
+        'question_needs_options' => 'Otázka s výběrem potřebuje alespoň jednu možnost.',
+        'question_type_locked' => 'Na otázku už někdo odpověděl — její typ nelze změnit. Vytvořte novou otázku.',
+        'answer_required' => 'Vyplňte prosím „:label“.',
+        'answer_invalid' => 'Neplatná odpověď.',
+        'answer_paid_locked' => 'Uhrazenou možnost už nemůžete změnit — obraťte se na pořadatele.',
+        'answers_locked' => 'Odpovědi už nelze měnit.',
+        'signup_needs_form' => 'Před registrací je třeba vyplnit dotazník.',
         'kind_not_allowed' => 'Zvolený druh lístku pro tebe není dostupný.',
         'registration_disabled' => 'Registrace na tuto akci není povolena.',
         'event_finished' => 'Akce už proběhla, registrace není možná.',
@@ -65,6 +88,7 @@ return [
     ],
 
     'counts' => [
+        'option_remaining' => '{0} Možnost „:name“ je už obsazená.|{1} Pro možnost „:name“ zbývá už jen :count místo.|[2,4] Pro možnost „:name“ zbývají už jen :count místa.|[5,*] Pro možnost „:name“ zbývá už jen :count míst.',
         'remaining' => '{1} Pro „:name“ zbývá už jen :count.|[2,4] Pro „:name“ zbývají už jen :count.|[5,*] Pro „:name“ zbývá už jen :count.',
         'workshop_entitlement' => '{1} Na workshop „:name“ můžete objednat nejvýše :count místo — podle počtu vstupenek na akci.|[2,4] Na workshop „:name“ můžete objednat nejvýše :count místa — podle počtu vstupenek na akci.|[5,*] Na workshop „:name“ můžete objednat nejvýše :count míst — podle počtu vstupenek na akci.',
     ],

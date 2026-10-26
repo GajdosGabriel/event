@@ -25,6 +25,7 @@ use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
 use App\Http\Controllers\Dashboard\DashboardEventController;
+use App\Http\Controllers\Dashboard\DashboardEventQuestionController;
 use App\Http\Controllers\Dashboard\DashboardFileController;
 use App\Http\Controllers\Dashboard\DashboardHomeController;
 use App\Http\Controllers\Dashboard\DashboardMessageController;
@@ -59,10 +60,12 @@ use App\Http\Controllers\Public\PosterController as PublicPosterController;
 use App\Http\Controllers\Public\PrerenderController;
 use App\Http\Controllers\Public\QuestionBoardController as PublicQuestionBoardController;
 use App\Http\Controllers\Public\QuestionController as PublicQuestionController;
+use App\Http\Controllers\Public\QuestionnaireController as PublicQuestionnaireController;
 use App\Http\Controllers\Public\QuestionSlideController as PublicQuestionSlideController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\SubscriptionController as PublicSubscriptionController;
 use App\Http\Controllers\Public\TagController as PublicTagController;
+use App\Http\Controllers\Public\TicketAnswerController as PublicTicketAnswerController;
 use App\Http\Controllers\Public\TicketController as PublicTicketController;
 use App\Http\Controllers\Public\TicketQrController as PublicTicketQrController;
 use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeController;
@@ -155,6 +158,7 @@ Route::get('events/{id}/calendar.ics', [PublicEventCalendarController::class, 's
     ->name('public.events.calendar');
 
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
+Route::get('events/{event}/questionnaire', [PublicQuestionnaireController::class, 'index'])->name('public.events.questionnaire.index');
 Route::post('events/{event}/tickets', [PublicTicketController::class, 'store'])
     ->name('public.events.tickets.store')
     ->middleware('throttle:public-write');
@@ -311,6 +315,13 @@ Route::post('canal-claims/{token}/confirm', [PublicCanalClaimController::class, 
 Route::get('tickets/{uuid}', [PublicTicketController::class, 'show'])->name('public.tickets.show');
 Route::get('tickets/{uuid}/qr', [PublicTicketQrController::class, 'show'])->name('public.tickets.qr');
 Route::get('admissions/{uuid}/qr', [PublicAdmissionQrController::class, 'show'])->name('public.admissions.qr');
+// Dodatočná úprava odpovedí dotazníka cez odkaz z e-mailu (stačí uuid, ako pri zobrazení lístka).
+Route::put('tickets/{uuid}/answers', [PublicTicketAnswerController::class, 'updateTicket'])
+    ->name('public.tickets.answers')
+    ->middleware('throttle:public-write');
+Route::put('admissions/{uuid}/answers', [PublicTicketAnswerController::class, 'updateAdmission'])
+    ->name('public.admissions.answers')
+    ->middleware('throttle:public-write');
 Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.venues.show');
 Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name('public.venues.events');
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
@@ -487,6 +498,27 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->name('events.ticketing.settings')
         ->middleware('permission:event.update');
 
+    // Dotazník k registrácii (strava, ubytovanie…). Súhrn odpovedí je čítanie
+    // zoznamu prihlásených, preto `ticket.view`.
+    Route::get('events/{event}/questionnaire', [DashboardEventQuestionController::class, 'index'])
+        ->name('events.questionnaire.index')
+        ->middleware('permission:event.view');
+    Route::post('events/{event}/questionnaire', [DashboardEventQuestionController::class, 'store'])
+        ->name('events.questionnaire.store')
+        ->middleware('permission:event.update');
+    Route::put('events/{event}/questionnaire/order', [DashboardEventQuestionController::class, 'reorder'])
+        ->name('events.questionnaire.reorder')
+        ->middleware('permission:event.update');
+    Route::put('events/{event}/questionnaire/{question}', [DashboardEventQuestionController::class, 'update'])
+        ->name('events.questionnaire.update')
+        ->middleware('permission:event.update');
+    Route::delete('events/{event}/questionnaire/{question}', [DashboardEventQuestionController::class, 'destroy'])
+        ->name('events.questionnaire.destroy')
+        ->middleware('permission:event.update');
+    Route::get('events/{event}/questionnaire/summary', [DashboardEventQuestionController::class, 'summary'])
+        ->name('events.questionnaire.summary')
+        ->middleware('permission:ticket.view');
+
     // Nástenky otázok. `event.view` stačí na prezeranie, všetko ostatné (vrátane
     // moderovania) je `event.update` — schválená otázka sa objaví na plátne
     // pred sálou, takže je to publikovanie v mene organizátora.
@@ -560,6 +592,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('permission:ticket.update');
     Route::post('tickets/{id}/paid', [DashboardTicketController::class, 'markPaid'])
         ->name('tickets.paid')
+        ->middleware('permission:ticket.update');
+    Route::put('tickets/{id}/answers', [DashboardTicketController::class, 'answers'])
+        ->name('tickets.answers')
         ->middleware('permission:ticket.update');
     Route::delete('tickets/{id}', [DashboardTicketController::class, 'destroy'])
         ->name('tickets.destroy')

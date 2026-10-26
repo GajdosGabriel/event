@@ -1,23 +1,17 @@
 <template>
   <div class="relative" ref="rootEl">
     <button
-      class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm transition"
+      class="flex items-center rounded-lg p-1.5 text-sm transition"
       :class="triggerClass"
       :aria-label="auth.displayName"
       :title="auth.displayName"
+      :aria-expanded="open"
       @click="open = !open"
     >
       <!-- Len avatar — celé meno je v hlavičke rozbaleného menu. -->
       <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase" :class="avatarClass">
         {{ initials }}
       </span>
-      <svg
-        class="h-3.5 w-3.5 shrink-0 transition-transform duration-150"
-        :class="{ 'rotate-180': open }"
-        fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-      </svg>
     </button>
 
     <Transition

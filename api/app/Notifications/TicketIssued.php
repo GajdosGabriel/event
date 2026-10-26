@@ -6,6 +6,7 @@ use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
 use App\Services\Calendar\EventCalendarLinks;
 use App\Services\Tickets\QrCodeGenerator;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -49,7 +50,7 @@ class TicketIssued extends Notification implements ShouldQueue
         // QR kódy patria jednotlivým vstupenkám (admissions), nie objednávke.
         // Náhradník ešte nemá miesto — QR mu nevydáme (rovnako ako pri vchode).
         $admissions = $this->ticket->admissions()
-            ->with('ticketType')
+            ->with(['ticketType', 'answers.question', 'answers.option'])
             ->where('status', AdmissionStatus::Valid->value)
             ->orderBy('id')
             ->get();
@@ -64,6 +65,7 @@ class TicketIssued extends Notification implements ShouldQueue
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type' => $admission->ticketType?->name,
+                'answers' => app(Questionnaire::class)->present($admission->answers),
                 'png' => $generator->forToken($admission->qr_token)->getString(),
                 // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
                 'qrUrl' => route('public.admissions.qr', $admission->uuid),
@@ -83,6 +85,9 @@ class TicketIssued extends Notification implements ShouldQueue
                 'quantity' => (int) ($this->ticket->quantity ?? 1),
                 'seats' => $seats,
                 'pendingCount' => $pendingCount,
+                'answers' => app(Questionnaire::class)->present(
+                    $this->ticket->answers()->whereNull('admission_id')->with(['question', 'option'])->get()
+                ),
                 'ticketUrl' => $ticketUrl,
                 ...$calendar->viewData(),
             ]);

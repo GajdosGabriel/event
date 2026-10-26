@@ -6,6 +6,7 @@ use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
 use App\Services\Calendar\EventCalendarLinks;
 use App\Services\Tickets\QrCodeGenerator;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -43,7 +44,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
         $generator = app(QrCodeGenerator::class);
 
         $admissions = $this->ticket->admissions()
-            ->with(['ticketType', 'ticket.event'])
+            ->with(['ticketType', 'ticket.event', 'answers.question', 'answers.option'])
             ->whereIn('id', $this->admissionIds)
             ->where('status', AdmissionStatus::Valid->value)
             ->orderBy('id')
@@ -54,6 +55,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
             ->map(fn (\App\Models\Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type' => $admission->ticketType?->name,
+                'answers' => app(Questionnaire::class)->present($admission->answers),
                 'png' => $generator->forToken($admission->qr_token)->getString(),
                 // Priamy odkaz na QR (PNG) — fallback, keď klient blokuje vložené obrázky.
                 'qrUrl' => route('public.admissions.qr', $admission->uuid),

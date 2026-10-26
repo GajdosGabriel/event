@@ -21,6 +21,7 @@ use App\Repositories\Contracts\TicketRepository;
 use App\Services\Account\AccountMailing;
 use App\Services\Tickets\AttendeeConfirmation;
 use App\Services\Tickets\DefaultReservation;
+use App\Services\Tickets\Questionnaire;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -72,7 +73,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             $currency = null;
             $resolved = [];
 
-            foreach ($items as $item) {
+            foreach ($items as $index => $item) {
                 $quantity = max(0, (int) ($item['quantity'] ?? 0));
 
                 if ($quantity === 0) {
@@ -126,6 +127,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 $totalPrice += (int) ($type->price_amount ?? 0) * $quantity;
                 $currency = $currency ?? $type->price_currency;
                 $resolved[] = [
+                    'index' => $index,
                     'type' => $type,
                     'quantity' => $quantity,
                     'attendees' => $item['attendees'] ?? [],
@@ -164,6 +166,23 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 }
             }
 
+            // Dotazník (strava, ubytovanie…) — overí odpovede a kapacitu možností
+            // ešte pred zápisom; cena zvolených možností ide do ceny objednávky.
+            $seats = [];
+            foreach ($resolved as $line) {
+                for ($i = 0; $i < $line['quantity']; $i++) {
+                    $seats[] = [
+                        'type' => $line['type'],
+                        'answers' => (array) ($line['attendees'][$i]['answers'] ?? []),
+                        'key' => "items.{$line['index']}.attendees.{$i}.answers",
+                    ];
+                }
+            }
+
+            $questionnaire = app(Questionnaire::class);
+            $answers = $questionnaire->prepare($lockedEvent, (array) ($properties['answers'] ?? []), $seats);
+            $totalPrice += $answers['price'];
+
             $isPaid = $totalPrice > 0;
 
             /** @var Ticket $order */
@@ -180,11 +199,12 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 'price_currency' => $isPaid ? ($currency ?? 'EUR') : null,
             ]);
 
+            $admissions = [];
             foreach ($resolved as $line) {
                 for ($i = 0; $i < $line['quantity']; $i++) {
                     $attendeeEmail = mb_strtolower(trim((string) ($line['attendees'][$i]['email'] ?? '')));
 
-                    Admission::create([
+                    $admissions[] = Admission::create([
                         'ticket_id' => $order->id,
                         'ticket_type_id' => $line['type']->id,
                         'event_id' => $lockedEvent->id,
@@ -194,6 +214,8 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                     ]);
                 }
             }
+
+            $questionnaire->store($order, $answers, $admissions);
 
             $order = $order->fresh(['admissions.ticketType', 'event']);
 
@@ -1157,6 +1179,15 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
     }
 
+    public function updateAnswers($id, ?array $orderAnswers, array $seatAnswers): Ticket
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->dashboardShow($id);
+        Gate::authorize('update', $ticket);
+
+        return DB::transaction(fn () => app(Questionnaire::class)->update($ticket, $orderAnswers, $seatAnswers, asOrganizer: true));
+    }
+
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         Gate::authorize('view', $event);
@@ -1164,7 +1195,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         // `event` kvôli TicketPolicy — kontroluje kanál podujatia pri každom riadku.
         $query = Ticket::query()
             ->where('event_id', $event->id)
-            ->with(['event', 'admissions.ticketType', 'admissions.checkedInBy']);
+            ->with(['event', 'admissions.ticketType', 'admissions.checkedInBy', ...Questionnaire::TICKET_RELATIONS]);
 
         if (! empty($filters['payment'])) {
             $query->where('payment_status', $filters['payment']);

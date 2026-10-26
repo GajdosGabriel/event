@@ -62,6 +62,12 @@ class Ticket extends Model
         return $this->hasMany(Admission::class);
     }
 
+    /** Všetky odpovede dotazníka objednávky (za objednávku aj za miesta). */
+    public function answers()
+    {
+        return $this->hasMany(TicketAnswer::class);
+    }
+
     /** Počet vstupeniek objednávky, ktoré už prešli vchodom. */
     public function getCheckedInCountAttribute(): int
     {

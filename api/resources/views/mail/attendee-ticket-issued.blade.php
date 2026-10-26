@@ -12,6 +12,8 @@
 <img src="{{ $message->embedData($seat['png'], 'qr-'.$loop->index.'.png', 'image/png') }}" alt="{{ __('mail.common.qr_alt') }}" width="200" height="200" style="display:block;border:0;outline:none;margin:6px 0 6px;" />
 
 [{{ __('mail.common.qr_open') }}]({{ $seat['qrUrl'] }})
+
+@include('mail.partials.answers', ['answers' => $seat['answers'] ?? []])
 @endforeach
 @endif
 

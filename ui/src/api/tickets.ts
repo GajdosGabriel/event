@@ -2,12 +2,14 @@ import http, { BASE_URL } from './index'
 import { mapEvent } from './events'
 import type {
   AdmissionItem,
+  AnswerMap,
   AttendeeSummary,
   CheckinStats,
   PaginatedResponse,
   TicketCheckinResult,
   TicketItem,
 } from '@/types'
+import { mapAnswers } from './questionnaire'
 
 export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
   const checkedInBy = raw['checked_in_by'] as { id: number; name?: string } | null
@@ -40,6 +42,7 @@ export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
     ticketType: ticketType ?? null,
     holderName: (raw['holder_name'] as string) ?? null,
     event: event ?? null,
+    answers: raw['answers'] ? mapAnswers(raw['answers']) : undefined,
   }
 }
 
@@ -66,6 +69,9 @@ export function mapTicket(raw: Record<string, unknown>): TicketItem {
     admissions: admissions.map(mapAdmission),
     attendeeOnly: Boolean(raw['attendee_only']),
     rsvpToken: (raw['rsvp_token'] as string) ?? null,
+    answers: raw['answers'] ? mapAnswers(raw['answers']) : undefined,
+    answersEditable: raw['answers_editable'] === undefined ? undefined : Boolean(raw['answers_editable']),
+    answersEditableUntil: (raw['answers_editable_until'] as string) ?? null,
     createdAt: raw['created_at'] as string,
     deletedAt: (raw['deleted_at'] as string) ?? null,
     // Cez mapEvent, nie pretypovaním: raw prichádza v snake_case, takže
@@ -81,7 +87,7 @@ export function mapTicket(raw: Record<string, unknown>): TicketItem {
 export interface TicketRequestItem {
   ticket_type_id: number
   quantity: number
-  attendees?: { name?: string | null; email?: string | null }[]
+  attendees?: { name?: string | null; email?: string | null; answers?: AnswerMap }[]
 }
 
 export interface TicketRequestPayload {
@@ -90,6 +96,8 @@ export interface TicketRequestPayload {
   holder_phone?: string
   items?: TicketRequestItem[]
   quantity?: number
+  /** Odpovede dotazníka za objednávku. */
+  answers?: AnswerMap
 }
 
 export async function requestTicket(eventId: number, payload: TicketRequestPayload): Promise<TicketItem> {
@@ -104,6 +112,24 @@ export async function cancelOwnRegistration(eventId: number): Promise<void> {
 
 export async function showTicket(uuid: string): Promise<TicketItem> {
   const { data } = await http.get(`/tickets/${uuid}`)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Odpovede dotazníka pri úprave: za objednávku a podľa id miesta. */
+export interface TicketAnswersPayload {
+  answers?: AnswerMap
+  admissions?: Record<number, AnswerMap>
+}
+
+/** Dodatočná úprava odpovedí dotazníka cez odkaz lístka (do uzávierky). */
+export async function updateTicketAnswers(uuid: string, payload: TicketAnswersPayload): Promise<TicketItem> {
+  const { data } = await http.put(`/tickets/${uuid}/answers`, payload)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Úprava odpovedí organizátorom (aj uhradené možnosti a po uzávierke). */
+export async function updateDashboardTicketAnswers(id: number, payload: TicketAnswersPayload): Promise<TicketItem> {
+  const { data } = await http.put(`/dashboard/tickets/${id}/answers`, payload)
   return mapTicket((data.data ?? data) as Record<string, unknown>)
 }
 
@@ -268,7 +294,8 @@ export async function emailAttendees(
   return Number(data.recipients ?? 0)
 }
 
-export type EventSignupStatus = 'reserved' | 'already_registered' | 'interest' | 'closed'
+/** `needs_form` — podujatie má povinný dotazník, treba vyplniť registračný formulár. */
+export type EventSignupStatus = 'reserved' | 'already_registered' | 'interest' | 'closed' | 'needs_form'
 
 /** Výsledok „Prihlásiť sa" na podujatie (EventSignup na backende). */
 export interface EventSignupResult {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TicketAnswersRequest;
 use App\Http\Requests\TicketCheckinRequest;
 use App\Http\Requests\TicketingSettingsRequest;
 use App\Http\Resources\AdmissionResource;
@@ -14,6 +15,7 @@ use App\Models\Admission;
 use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\Questionnaire;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,7 +67,7 @@ class DashboardTicketController extends Controller
         $ticket = $this->ticketRepository->dashboardShow($id);
 
         return response()->json(new TicketDashboardResource(
-            $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
+            $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy', ...Questionnaire::TICKET_RELATIONS])
         ));
     }
 
@@ -113,6 +115,20 @@ class DashboardTicketController extends Controller
 
         return response()->json(new TicketDashboardResource(
             $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
+        ));
+    }
+
+    /** Úprava odpovedí dotazníka organizátorom. */
+    public function answers(TicketAnswersRequest $request, $id): JsonResponse
+    {
+        $ticket = $this->ticketRepository->updateAnswers(
+            $id,
+            $request->has('answers') ? (array) $request->input('answers') : null,
+            (array) $request->input('admissions', []),
+        );
+
+        return response()->json(new TicketDashboardResource(
+            $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy', ...Questionnaire::TICKET_RELATIONS])
         ));
     }
 

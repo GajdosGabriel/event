@@ -24,6 +24,22 @@ export function surnameFirst(name: string | null | undefined): string {
   return [parts[parts.length - 1], ...parts.slice(0, -1)].join(' ')
 }
 
+/**
+ * Meno na mieste objednávky. Miesto objednávateľa sa ukladá bez mena (meno je
+ * pri objednávke), takže prvé miesto bez mena patrí jemu. Ďalšie bezmenné
+ * miesta (staré objednávky „len počet") ostávajú bez mena — `null`.
+ */
+export function seatName(
+  ticket: { holderName?: string | null; admissions: { uuid: string; attendeeName: string | null }[] },
+  admission: { uuid: string; attendeeName: string | null },
+): string | null {
+  if (admission.attendeeName) return admission.attendeeName
+
+  const holderSeat = ticket.admissions.find(a => !a.attendeeName)
+
+  return holderSeat?.uuid === admission.uuid ? ticket.holderName || null : null
+}
+
 export function initials(name: string): string {
   const parts = name.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/).filter(Boolean)
   if (!parts.length) return '?'

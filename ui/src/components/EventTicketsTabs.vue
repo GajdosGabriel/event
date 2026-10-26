@@ -48,6 +48,7 @@ const publicPath = computed(() => publicEventPath({ id: props.eventId }))
 // karte aj na tlačidle na detaile podujatia a mení sa na jednom mieste.
 const tabs = computed<{ name: string; label: string; to: string; icon: IconName }[]>(() => [
   { name: 'settings', label: t('tickets.tabs.settings'), to: `${eventPath.value}/tickets`, icon: 'ticket' },
+  { name: 'questionnaire', label: t('questionnaire.tab'), to: `${eventPath.value}/dotaznik`, icon: 'clipboard' },
   { name: 'attendees', label: t('tickets.tabs.attendees'), to: `${eventPath.value}/attendees`, icon: 'users' },
   { name: 'checkin', label: t('tickets.tabs.checkin'), to: `${eventPath.value}/checkin`, icon: 'checkin' },
   { name: 'questions', label: t('questions.dashboard.tab'), to: `${eventPath.value}/otazky`, icon: 'question' },
@@ -55,6 +56,7 @@ const tabs = computed<{ name: string; label: string; to: string; icon: IconName 
 
 function isActive(name: string): boolean {
   if (name === 'settings') return String(route.name ?? '').startsWith('dashboard-events-tickets')
+  if (name === 'questionnaire') return route.name === 'dashboard-events-questionnaire'
   if (name === 'attendees') return route.name === 'dashboard-events-attendees'
   if (name === 'checkin') return route.name === 'dashboard-events-checkin'
   if (name === 'questions') return route.name === 'dashboard-events-questions'

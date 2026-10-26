@@ -676,6 +676,63 @@ export interface TicketTypeItem {
   createdAt?: string
 }
 
+// Dotazník k registrácii — otázky organizátora (strava, ubytovanie…).
+export type QuestionScope = 'order' | 'attendee'
+export type QuestionType = 'text' | 'textarea' | 'single_choice' | 'multi_choice' | 'checkbox' | 'number' | 'date'
+
+export interface QuestionOptionItem {
+  id?: number
+  label: string
+  /** Príplatok v centoch (null = bez príplatku). */
+  priceAmount: number | null
+  capacity: number | null
+  /** Obsadené miesta — len v dashboarde. */
+  takenCount?: number | null
+  remainingCapacity?: number | null
+  isActive: boolean
+}
+
+export interface QuestionItem {
+  id?: number
+  eventId?: number
+  scope: QuestionScope
+  type: QuestionType
+  label: string
+  help: string | null
+  isRequired: boolean
+  /** Pre ktoré typy lístkov; null = všetky hlavné (bez workshopov). */
+  ticketTypeIds: number[] | null
+  editableByAttendee: boolean
+  isActive: boolean
+  sortOrder: number
+  options: QuestionOptionItem[]
+}
+
+/** Hodnota odpovede vo formulári: text, číslo, zaškrtnutie, id možnosti alebo ich zoznam. */
+export type AnswerValue = string | number | boolean | number[] | null
+export type AnswerMap = Record<number, AnswerValue>
+
+/** Uložená odpoveď zoskupená po otázke (backend Questionnaire::present). */
+export interface TicketAnswerItem {
+  questionId: number
+  label: string
+  value: string | null
+  optionIds: number[]
+  /** Čitateľný text („Vegetariánska, Bezlepková"). */
+  display: string
+  priceAmount: number
+}
+
+export interface QuestionSummaryItem {
+  id: number
+  label: string
+  type: QuestionType
+  scope: QuestionScope
+  isActive: boolean
+  answeredCount: number | null
+  options: { id: number; label: string; count: number; capacity: number | null; revenue: number; isActive: boolean }[]
+}
+
 // Jednotlivá vstupenka (jedno miesto) s vlastným QR kódom.
 export interface AdmissionItem {
   id?: number
@@ -696,6 +753,8 @@ export interface AdmissionItem {
   ticketType?: { id: number; name: string; kind?: 'ticket' | 'workshop'; startsAt?: string | null } | null
   holderName?: string | null
   event?: { id: number; name: string } | null
+  /** Odpovede dotazníka za toto miesto. */
+  answers?: TicketAnswerItem[]
 }
 
 // Objednávka / registrácia (jeden nákup jedného kupujúceho).
@@ -720,6 +779,11 @@ export interface TicketItem {
   attendeeOnly?: boolean
   /** Token stránky /rsvp/{token}, kde účastník účasť potvrdí alebo zruší. */
   rsvpToken?: string | null
+  /** Odpovede dotazníka za objednávku (za miesta sú pri admissions). */
+  answers?: TicketAnswerItem[]
+  /** Smie účastník ešte meniť odpovede (verejná stránka lístka)? */
+  answersEditable?: boolean
+  answersEditableUntil?: string | null
   createdAt: string
   deletedAt?: string | null
   event?: EventItem

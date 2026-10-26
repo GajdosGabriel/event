@@ -335,6 +335,27 @@
               />
             </section>
 
+            <!-- Registrácia s dotazníkom. Otázok (strava, ubytovanie, poplatky…)
+                 býva veľa a pri viacerých miestach by sa do úzkeho bočného
+                 panela nezmestili — formulár preto stojí v hlavnom stĺpci,
+                 bočný panel ostáva s cenou a tlačidlom. -->
+            <section v-if="event.reservable && hasQuestionnaire" id="registracia" class="scroll-mt-24 rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80 md:p-8">
+              <h2 class="mb-4 flex items-center gap-3 text-xl font-extrabold tracking-tight text-slate-900">
+                <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
+                {{ t('public.event.registration') }}
+              </h2>
+              <TicketRequestForm
+                :event-id="event.id"
+                :types="ticketTypes"
+                :registration-deadline-at="event.registrationDeadlineAt"
+                :end-at="event.endAt"
+                :viewer-registered="viewerRegistered"
+                :questions="questions"
+                wide
+                @changed="onRegistrationChanged"
+              />
+            </section>
+
             <!-- Otázky a odpovede. Nástenka bola doteraz dostupná len cez QR
                  premietnutý v sále; zodpovedané otázky sú pritom presne to,
                  na čo sa ľudia pýtajú ešte doma — a čo googlia. -->
@@ -448,8 +469,21 @@
               </div>
             </section>
 
+            <!-- Registrácia s dotazníkom je v hlavnom stĺpci — tu len cena a skok na ňu. -->
+            <section v-if="event.reservable && hasQuestionnaire" class="rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80">
+              <h2 class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
+                </svg>
+                {{ t('public.event.registration') }}
+              </h2>
+              <p class="text-xl font-bold text-slate-900">{{ priceLabel }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ t('questionnaire.asideLead') }}</p>
+              <button type="button" class="btn btn-primary mt-3 w-full" @click="scrollToRegistration">{{ registerLabel }}</button>
+            </section>
+
             <!-- Lístok / registrácia -->
-            <section v-if="event.reservable" id="registracia" class="scroll-mt-24 rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80">
+            <section v-else-if="event.reservable" id="registracia" class="scroll-mt-24 rounded-3xl bg-white p-5 shadow-xl shadow-slate-900/10 ring-2 ring-slate-900/80">
               <h2 class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z"/>
@@ -462,6 +496,7 @@
                 :registration-deadline-at="event.registrationDeadlineAt"
                 :end-at="event.endAt"
                 :viewer-registered="viewerRegistered"
+                :questions="questions"
                 @changed="onRegistrationChanged"
               />
             </section>
@@ -653,8 +688,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { showPublicEvent, indexEvents } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
+import { hasOptionalExtras, publicQuestionnaire, requiredFee } from '@/api/questionnaire'
 import { useAuthStore } from '@/stores/auth'
-import type { EventItem, TicketTypeItem } from '@/types'
+import type { EventItem, QuestionItem, TicketTypeItem } from '@/types'
 import AppIcon from '@/components/AppIcon.vue'
 import ImageLightbox from '@/components/ImageLightbox.vue'
 import EventDateRange from '@/components/EventDateRange.vue'
@@ -689,6 +725,8 @@ const router = useRouter()
 const auth = useAuthStore()
 const event = ref<EventItem | null>(null)
 const ticketTypes = ref<TicketTypeItem[]>([])
+/** Dotazník k registrácii — platené možnosti menia, čo hlavička hlási ako cenu. */
+const questions = ref<QuestionItem[]>([])
 const relatedEvents = ref<EventItem[]>([])
 const viewerRegistered = ref(false)
 const workshopChangesLocked = ref(false)
@@ -770,7 +808,30 @@ const onlyPaidTickets = computed(
   () => mainTickets.value.length > 0 && mainTickets.value.every(t => (t.priceAmount ?? 0) > 0),
 )
 
+const hasQuestionnaire = computed(() => questions.value.length > 0)
+
+/** Povinné poplatky z dotazníka (napr. účastnícky) — patria do ceny podujatia. */
+const questionnaireFee = computed(() => requiredFee(questions.value))
+
+/**
+ * Cena v hlavičke: lístok + povinné poplatky z dotazníka. „+ príplatky" len
+ * vtedy, keď dotazník ponúka aj voliteľné platené možnosti (ubytovanie, obed…).
+ */
 const priceLabel = computed(() => {
+  const extras = hasOptionalExtras(questions.value) ? ` ${t('questionnaire.plusExtras')}` : ''
+  const fee = questionnaireFee.value
+  if (!fee) return basePriceLabel.value + extras
+
+  const tickets = mainTickets.value
+  const prices = onlyPaidTickets.value
+    ? tickets.map(x => x.priceAmount ?? 0)
+    : [tickets.length ? 0 : event.value?.priceAmount ?? 0]
+  const min = Math.min(...prices)
+  const label = formatPrice(min + fee, tickets[0]?.priceCurrency ?? event.value?.priceCurrency)
+  return (min === Math.max(...prices) ? label : `${t('public.event.priceFrom')} ${label}`) + extras
+})
+
+const basePriceLabel = computed(() => {
   const tickets = mainTickets.value
   if (!tickets.length) return formatPriceOrFree(event.value?.priceAmount, event.value?.priceCurrency)
   if (!onlyPaidTickets.value) return t('common.free')
@@ -781,7 +842,7 @@ const priceLabel = computed(() => {
 })
 
 const registerLabel = computed(() => t(onlyPaidTickets.value ? 'tickets.request.buy' : 'public.event.register'))
-const hasPaidPrice = computed(() => (event.value?.priceAmount ?? 0) > 0 || onlyPaidTickets.value)
+const hasPaidPrice = computed(() => (event.value?.priceAmount ?? 0) > 0 || onlyPaidTickets.value || questionnaireFee.value > 0)
 
 /** Porovnanie názvov bez ohľadu na diakritiku a veľkosť písmen. */
 const isSameLabel = (a: string, b: string) =>
@@ -894,6 +955,7 @@ function scrollToRegistration() {
 }
 
 async function loadTicketTypes(eventId: number) {
+  publicQuestionnaire(eventId).then(list => { questions.value = list }).catch(() => {})
   const result = await publicTicketTypes(eventId)
   ticketTypes.value = result.types
   viewerRegistered.value = result.viewerRegistered

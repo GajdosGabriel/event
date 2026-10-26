@@ -2,9 +2,18 @@
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
     <EventTicketsTabs :event-id="eventId" />
 
-    <div class="mb-4">
-      <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('tickets.attendees.title') }}</h1>
-      <p v-if="eventName" class="text-sm text-slate-500">{{ t('tickets.attendees.title') }}</p>
+    <!-- Akcie nad celým zoznamom stoja pri nadpise, nech sa filtre zmestia do jedného riadku. -->
+    <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('tickets.attendees.title') }}</h1>
+        <p v-if="eventName" class="text-sm text-slate-500">{{ t('tickets.attendees.title') }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn btn-secondary" :disabled="exporting" @click="onExport">
+          {{ exporting ? t('tickets.attendees.exporting') : t('tickets.attendees.export') }}
+        </button>
+        <button type="button" class="btn btn-secondary" @click="openBulk">{{ t('tickets.attendees.bulk') }}</button>
+      </div>
     </div>
 
     <!-- Zoznam je užší, vpravo stojí prehľad: pri vchode sa organizátor pozerá
@@ -18,14 +27,14 @@
             :status-options="statusOptions"
             :sort-options="[]"
             :extra-active="extraActive"
-            collapsible
             history-key="event-attendees"
             class="flex-1"
             @change="load(1)"
             @reset="resetExtraFilters"
           >
             <template #filters>
-              <select v-model="filters.ticketTypeId" class="form-input w-auto"
+              <!-- Pri jedinom type lístka by filter nič nefiltroval. -->
+              <select v-if="ticketTypes.length > 1" v-model="filters.ticketTypeId" class="form-input w-auto"
                 :title="t('filters.attendees.typeTitle')" @change="load(1)">
                 <option value="">{{ t('filters.attendees.allTypes') }}</option>
                 <option v-for="type in ticketTypes" :key="type.id" :value="String(type.id)">{{ type.name }}</option>
@@ -45,11 +54,6 @@
               </select>
             </template>
           </ResourceFilterBar>
-
-          <button type="button" class="btn btn-secondary" :disabled="exporting" @click="onExport">
-            {{ exporting ? t('tickets.attendees.exporting') : t('tickets.attendees.export') }}
-          </button>
-          <button type="button" class="btn btn-secondary" @click="openBulk">{{ t('tickets.attendees.bulk') }}</button>
         </div>
 
         <!-- Hromadný e-mail účastníkom -->
@@ -118,12 +122,15 @@
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <span class="rounded-full px-2 py-0.5 text-xs font-medium"
-                      :class="ticket.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">
+                    <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(ticket)">
                       {{ ticket.statusLabel }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-slate-600">{{ ticket.paymentStatusLabel }}</td>
+                  <td class="px-4 py-3">
+                    <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium" :class="paymentClass(ticket)">
+                      {{ ticket.paymentStatusLabel }}<template v-if="ticket.priceAmount"> · {{ formatPrice(ticket.priceAmount, ticket.priceCurrency) }}</template>
+                    </span>
+                  </td>
                   <td class="px-4 py-3 text-right whitespace-nowrap" @click.stop>
                     <div v-if="ticket.permissions?.update" class="flex justify-end">
                       <RowActions>
@@ -153,7 +160,7 @@
                       <div v-for="(adm, i) in ticket.admissions" :key="adm.uuid"
                         class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
                         <span class="text-sm font-medium text-slate-800">
-                          {{ adm.attendeeName ? surnameFirst(adm.attendeeName) : t('tickets.attendees.seat', { n: i + 1 }) }}
+                          {{ seatName(ticket, adm) ? surnameFirst(seatName(ticket, adm)) : t('tickets.attendees.seat', { n: i + 1 }) }}
                         </span>
                         <span v-if="adm.ticketType" class="text-xs"
                           :class="adm.ticketType.kind === 'workshop' ? 'rounded-full bg-violet-100 px-2 py-0.5 font-medium text-violet-700' : 'text-slate-500'">
@@ -179,6 +186,17 @@
                           </template>
                         </div>
                       </div>
+
+                      <!-- Odpovede dotazníka (strava, ubytovanie…) — organizátor ich môže opraviť. -->
+                      <TicketAnswersPanel
+                        v-if="questions.length || ticket.answers?.length"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2"
+                        :ticket="ticket"
+                        :questions="questions"
+                        organizer
+                        :save="payload => updateDashboardTicketAnswers(ticket.id!, payload)"
+                        @saved="onAnswersSaved"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -196,6 +214,15 @@
            tlačidlo Uložiť vždy dosiahnuteľné. -->
       <aside class="grid gap-3 self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
         <AttendeeStatsPanel v-if="summary" :summary="summary" />
+        <section v-if="answersSummary.length" class="rounded-2xl border border-slate-200 bg-white p-4">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <h2 class="text-sm font-semibold text-slate-800">{{ t('questionnaire.summaryTitle') }}</h2>
+            <RouterLink :to="{ name: 'dashboard-events-questionnaire', params: { id: eventId } }" class="text-xs text-blue-600 hover:underline">
+              {{ t('questionnaire.manage') }}
+            </RouterLink>
+          </div>
+          <QuestionnaireSummary :summary="answersSummary" compact />
+        </section>
         <RouterLink :to="{ name: 'dashboard-events-checkin', params: { id: eventId } }" class="btn btn-secondary">
           {{ t('tickets.stats.openScanner') }}
         </RouterLink>
@@ -226,6 +253,7 @@ import {
   exportAttendees,
   attendeeRecipientCount,
   emailAttendees,
+  updateDashboardTicketAnswers,
 } from '@/api/tickets'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import { showEvent } from '@/api/events'
@@ -234,11 +262,15 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import AttendeeStatsPanel from '@/components/stats/AttendeeStatsPanel.vue'
 import EventExtraSettingsPanel from '@/components/EventExtraSettingsPanel.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
+import QuestionnaireSummary from '@/components/QuestionnaireSummary.vue'
+import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
+import { indexQuestions, questionnaireSummary } from '@/api/questionnaire'
 import FormField from '@/components/FormField.vue'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import RowActions from '@/components/RowActions.vue'
-import { surnameFirst } from '@/utils/userDisplay'
-import type { AttendeeSummary, PaginatedResponse, TicketItem, TicketTypeItem } from '@/types'
+import { seatName, surnameFirst } from '@/utils/userDisplay'
+import { formatPrice } from '@/utils/money'
+import type { AttendeeSummary, PaginatedResponse, QuestionItem, QuestionSummaryItem, TicketItem, TicketTypeItem } from '@/types'
 import { currentLocale, useI18n } from '@/i18n'
 
 const { t, plural } = useI18n()
@@ -256,6 +288,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const page = ref(1)
 const expanded = ref<number | null>(null)
+const questions = ref<QuestionItem[]>([])
+const answersSummary = ref<QuestionSummaryItem[]>([])
 
 const filters = reactive({
   search: '',
@@ -319,6 +353,23 @@ function formatDateTime(d: string | null) {
   return new Date(d).toLocaleString(currentLocale(), { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+/** Stav objednávky: potvrdená modrou, rezervácia (čaká) jantárovou, zrušená červenou. */
+function statusClass(ticket: TicketItem): string {
+  if (ticket.status === 'cancelled') return 'bg-red-100 text-red-700'
+  if (ticket.status === 'reserved') return 'bg-amber-100 text-amber-800'
+  return 'bg-blue-100 text-blue-700'
+}
+
+/** Platba: uhradená zelenou, čakajúca jantárovou, zlyhaná červenou, ostatné sivou. */
+function paymentClass(ticket: TicketItem): string {
+  switch (ticket.paymentStatus) {
+    case 'paid': return 'bg-emerald-100 text-emerald-700'
+    case 'pending': return 'bg-amber-100 text-amber-800'
+    case 'failed': return 'bg-red-100 text-red-700'
+    default: return 'bg-slate-100 text-slate-600'
+  }
+}
+
 function toggle(id: number) {
   expanded.value = expanded.value === id ? null : id
 }
@@ -353,6 +404,14 @@ async function reload() {
 
 async function loadSummary() {
   summary.value = await attendeeStats(eventId).catch(() => summary.value)
+  answersSummary.value = await questionnaireSummary(eventId).catch(() => answersSummary.value)
+}
+
+/** Uložené odpovede nahradia objednávku v zozname; zmena ceny mení aj súhrn. */
+function onAnswersSaved(updated: TicketItem) {
+  tickets.value = tickets.value.map(ticket => (ticket.id === updated.id ? updated : ticket))
+  loadSummary()
+  toast.success(t('questionnaire.saved'))
 }
 
 /** Hláška z API (422) je zrozumiteľnejšia než všeobecné „nepodarilo sa". */
@@ -494,6 +553,7 @@ onMounted(() => {
   load(1)
   loadSummary()
   indexTicketTypes(eventId).then((types) => { ticketTypes.value = types }).catch(() => {})
+  indexQuestions(eventId).then((list) => { questions.value = list }).catch(() => {})
   showEvent('dashboard', eventId).then((e) => { eventName.value = e.name }).catch(() => {})
 })
 </script>

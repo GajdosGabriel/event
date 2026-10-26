@@ -4,6 +4,8 @@ namespace App\Services\Events;
 
 use App\Models\Admission;
 use App\Models\Event;
+use App\Models\EventQuestion;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -38,21 +40,25 @@ class AttendeeCsv
         'Objednané',
     ];
 
-    public function __construct(private readonly AttendeeDirectory $directory) {}
+    public function __construct(
+        private readonly AttendeeDirectory $directory,
+        private readonly Questionnaire $questionnaire,
+    ) {}
 
     public function response(Event $event): StreamedResponse
     {
         $rows = $this->directory->rows($event);
+        $questions = $this->questionColumns($event);
 
-        return response()->streamDownload(function () use ($rows) {
+        return response()->streamDownload(function () use ($rows, $questions) {
             $handle = fopen('php://output', 'wb');
 
             echo "\xEF\xBB\xBF";
 
-            fputcsv($handle, self::HEADER, self::DELIMITER);
+            fputcsv($handle, [...self::HEADER, ...$questions->pluck('label')->all()], self::DELIMITER);
 
             foreach ($rows as $admission) {
-                fputcsv($handle, $this->row($admission), self::DELIMITER);
+                fputcsv($handle, [...$this->row($admission), ...$this->answers($admission, $questions)], self::DELIMITER);
             }
 
             fclose($handle);
@@ -81,6 +87,37 @@ class AttendeeCsv
             $ticket?->payment_status?->label() ?? '',
             $this->dateTime($admission->created_at),
         ];
+    }
+
+    /**
+     * Stĺpce dotazníka za pevnými stĺpcami — jeden na otázku. Zmazaná otázka
+     * ostane, kým k nej existujú odpovede, aby export nestratil údaje.
+     *
+     * @return \Illuminate\Support\Collection<int, EventQuestion>
+     */
+    private function questionColumns(Event $event)
+    {
+        return $event->questions()
+            ->withTrashed()
+            ->where(fn ($q) => $q->whereNull('deleted_at')->orWhereHas('answers'))
+            ->get();
+    }
+
+    /**
+     * Odpoveď za objednávku sa opakuje pri každom mieste objednávky.
+     *
+     * @param  \Illuminate\Support\Collection<int, EventQuestion>  $questions
+     * @return array<int, string>
+     */
+    private function answers(Admission $admission, $questions): array
+    {
+        $own = $admission->ticket?->answers
+            ->filter(fn ($answer) => $answer->admission_id === null || (int) $answer->admission_id === (int) $admission->id)
+            ?? collect();
+
+        $display = collect($this->questionnaire->present($own))->pluck('display', 'question_id');
+
+        return $questions->map(fn (EventQuestion $question) => (string) ($display[$question->id] ?? ''))->all();
     }
 
     private function dateTime(?\DateTimeInterface $value): string

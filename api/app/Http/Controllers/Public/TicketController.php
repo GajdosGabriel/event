@@ -10,6 +10,7 @@ use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
 use App\Services\Tickets\AttendeeRegistrar;
 use App\Services\Tickets\EventSignup;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
 
@@ -44,7 +45,7 @@ class TicketController extends Controller
         }
 
         $ticket = $this->ticketRepository->issueForEvent($event, $properties);
-        $ticket->load(['event', 'admissions.ticketType']);
+        $ticket->load(['event', 'admissions.ticketType', ...Questionnaire::TICKET_RELATIONS]);
 
         // Najprv označíme cudzie vstupenky ako „čaká na potvrdenie" a pošleme
         // účastníkom žiadosti — až potom e-mail objednávateľovi, aby jeho lístok
@@ -96,7 +97,7 @@ class TicketController extends Controller
             abort(404);
         }
 
-        $ticket->load(['event', 'admissions.ticketType']);
+        $ticket->load(['event', 'admissions.ticketType', ...Questionnaire::TICKET_RELATIONS]);
 
         return response()->json(new TicketResource($ticket));
     }

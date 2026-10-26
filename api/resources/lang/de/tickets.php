@@ -35,7 +35,30 @@ return [
         'sale_starts_at' => 'Verkauf ab',
         'sale_ends_at' => 'Verkauf bis',
     ],
+    // Dotazník k registrácii (App\Enums\QuestionScope, QuestionType).
+    'question_scope' => [
+        'order' => 'Einmal pro Bestellung',
+        'attendee' => 'Für jeden Teilnehmer',
+    ],
+    // Zobrazenie zaškrtnutého poľa v odpovediach (zoznam, export, e-mail).
+    'answer_yes' => 'Ja',
+    'question_type' => [
+        'text' => 'Kurzer Text',
+        'textarea' => 'Längerer Text',
+        'single_choice' => 'Einfachauswahl',
+        'multi_choice' => 'Mehrfachauswahl',
+        'checkbox' => 'Kontrollkästchen',
+        'number' => 'Zahl',
+        'date' => 'Datum',
+    ],
     'errors' => [
+        'question_needs_options' => 'Eine Auswahlfrage braucht mindestens eine Option.',
+        'question_type_locked' => 'Diese Frage wurde bereits beantwortet — ihr Typ kann nicht geändert werden. Legen Sie eine neue Frage an.',
+        'answer_required' => 'Bitte füllen Sie „:label“ aus.',
+        'answer_invalid' => 'Ungültige Antwort.',
+        'answer_paid_locked' => 'Eine bezahlte Option kann nicht mehr geändert werden — bitte wenden Sie sich an den Veranstalter.',
+        'answers_locked' => 'Die Antworten können nicht mehr geändert werden.',
+        'signup_needs_form' => 'Vor der Anmeldung muss der Fragebogen ausgefüllt werden.',
         'kind_not_allowed' => 'Die gewählte Ticketart steht Ihnen nicht zur Verfügung.',
         'registration_disabled' => 'Die Anmeldung zu dieser Veranstaltung ist nicht erlaubt.',
         'event_finished' => 'Die Veranstaltung ist vorbei, eine Anmeldung ist nicht mehr möglich.',
@@ -65,6 +88,7 @@ return [
     ],
 
     'counts' => [
+        'option_remaining' => '{0} Die Option „:name“ ist bereits ausgebucht.|{1} Für die Option „:name“ ist nur noch :count Platz frei.|[2,*] Für die Option „:name“ sind nur noch :count Plätze frei.',
         'remaining' => '{1} Für „:name“ ist nur noch :count Platz frei.|[2,*] Für „:name“ sind nur noch :count Plätze frei.',
         'workshop_entitlement' => '{1} Für den Workshop „:name“ können Sie höchstens :count Platz bestellen — je nach Anzahl der Tickets für die Veranstaltung.|[2,*] Für den Workshop „:name“ können Sie höchstens :count Plätze bestellen — je nach Anzahl der Tickets für die Veranstaltung.',
     ],

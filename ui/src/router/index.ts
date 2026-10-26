@@ -170,6 +170,7 @@ const router = createRouter({
         { path: 'events/:id/tickets', name: 'dashboard-events-tickets', component: () => import('@/pages/events/EventTicketsSettingsPage.vue') },
         { path: 'events/:id/tickets/create', name: 'dashboard-events-tickets-create', component: () => import('@/pages/events/EventTicketTypeEditPage.vue') },
         { path: 'events/:id/tickets/:typeId/edit', name: 'dashboard-events-tickets-edit', component: () => import('@/pages/events/EventTicketTypeEditPage.vue') },
+        { path: 'events/:id/dotaznik', name: 'dashboard-events-questionnaire', component: () => import('@/pages/events/EventQuestionnairePage.vue') },
         { path: 'events/:id/attendees', name: 'dashboard-events-attendees', component: () => import('@/pages/events/EventAttendeesPage.vue') },
         { path: 'events/:id/checkin', name: 'dashboard-events-checkin', component: () => import('@/pages/events/EventCheckinScannerPage.vue') },
         { path: 'events/:id/otazky', name: 'dashboard-events-questions', component: () => import('@/pages/events/EventQuestionsPage.vue') },

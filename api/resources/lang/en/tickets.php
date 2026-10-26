@@ -35,7 +35,30 @@ return [
         'sale_starts_at' => 'On sale from',
         'sale_ends_at' => 'On sale until',
     ],
+    // Dotazník k registrácii (App\Enums\QuestionScope, QuestionType).
+    'question_scope' => [
+        'order' => 'Once per order',
+        'attendee' => 'For each attendee',
+    ],
+    // Zobrazenie zaškrtnutého poľa v odpovediach (zoznam, export, e-mail).
+    'answer_yes' => 'Yes',
+    'question_type' => [
+        'text' => 'Short text',
+        'textarea' => 'Long text',
+        'single_choice' => 'Single choice',
+        'multi_choice' => 'Multiple choice',
+        'checkbox' => 'Checkbox',
+        'number' => 'Number',
+        'date' => 'Date',
+    ],
     'errors' => [
+        'question_needs_options' => 'A choice question needs at least one option.',
+        'question_type_locked' => 'This question already has answers — its type cannot be changed. Create a new question instead.',
+        'answer_required' => 'Please fill in “:label”.',
+        'answer_invalid' => 'Invalid answer.',
+        'answer_paid_locked' => 'A paid option can no longer be changed — please contact the organiser.',
+        'answers_locked' => 'Answers can no longer be changed.',
+        'signup_needs_form' => 'Please fill in the questionnaire before registering.',
         'kind_not_allowed' => 'The selected ticket kind is not available to you.',
         'registration_disabled' => 'Registration for this event is not allowed.',
         'event_finished' => 'The event is over, registration is no longer possible.',
@@ -65,6 +88,7 @@ return [
     ],
 
     'counts' => [
+        'option_remaining' => '{0} The option “:name” is fully booked.|{1} Only :count place is left for “:name”.|[2,*] Only :count places are left for “:name”.',
         'remaining' => '{1} Only :count spot is left for “:name”.|[2,*] Only :count spots are left for “:name”.',
         'workshop_entitlement' => '{1} You can order at most :count spot for the workshop “:name” — based on the number of event tickets.|[2,*] You can order at most :count spots for the workshop “:name” — based on the number of event tickets.',
     ],

@@ -242,6 +242,14 @@ class Event extends Model implements HasQuestionBoard, Messageable
         return $this->hasMany(TicketType::class);
     }
 
+    /** Otázky dotazníka k registrácii (strava, ubytovanie…). */
+    public function questions()
+    {
+        return $this->hasMany(EventQuestion::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     /**
      * Odbery „Pripomeň mi" na tomto podujatí. Polymorfné, lebo tá istá tabuľka
      * nesie aj sledovanie organizátora — pozri App\Models\Subscription.

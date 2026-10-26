@@ -75,6 +75,16 @@
         </div>
 
         <p class="text-center text-xs text-slate-400">{{ t('public.ticket.qrHint') }}</p>
+
+        <!-- Dotazník (strava, ubytovanie…) — účastník si ho môže do uzávierky upraviť. -->
+        <TicketAnswersPanel
+          v-if="questions.length || ticket.answers?.length"
+          class="border-t border-slate-200 pt-4"
+          :ticket="ticket"
+          :questions="questions"
+          :save="payload => updateTicketAnswers(ticket!.uuid, payload)"
+          @saved="ticket = $event"
+        />
       </div>
     </div>
   </div>
@@ -83,8 +93,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { showTicket } from '@/api/tickets'
-import type { TicketItem } from '@/types'
+import { showTicket, updateTicketAnswers } from '@/api/tickets'
+import { publicQuestionnaire } from '@/api/questionnaire'
+import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
+import type { QuestionItem, TicketItem } from '@/types'
 import { formatPrice } from '@/utils/money'
 import { useI18n, localeTag } from '@/i18n'
 
@@ -93,6 +105,7 @@ const route = useRoute()
 const ticket = ref<TicketItem | null>(null)
 const loading = ref(false)
 const error = ref(false)
+const questions = ref<QuestionItem[]>([])
 
 const statusClass = computed(() => {
   switch (ticket.value?.status) {
@@ -111,6 +124,8 @@ onMounted(async () => {
   loading.value = true
   try {
     ticket.value = await showTicket(route.params.uuid as string)
+    const eventId = ticket.value.event?.id
+    if (eventId) questions.value = await publicQuestionnaire(eventId).catch(() => [])
   } catch {
     error.value = true
   } finally {

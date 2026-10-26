@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\User;
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -57,6 +58,7 @@ class AdmissionResource extends JsonResource
                 'kind' => $this->ticketType->kind,
                 'starts_at' => $this->ticketType->starts_at,
             ] : null),
+            'answers' => $this->whenLoaded('answers', fn () => app(Questionnaire::class)->present($this->answers)),
             // Údaje objednávateľa – užitočné pri kontrole na vchode.
             'holder_name' => $this->whenLoaded('ticket', fn () => $this->ticket?->holder_name),
             'event' => $this->whenLoaded('event', fn () => $this->event ? [

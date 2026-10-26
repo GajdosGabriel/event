@@ -29,7 +29,7 @@ class AttendeeDirectory
     {
         return Admission::query()
             ->where('event_id', $event->id)
-            ->with(['ticket', 'ticketType'])
+            ->with(['ticket.answers.question', 'ticket.answers.option', 'ticketType'])
             ->orderBy('ticket_id')
             ->orderBy('id')
             ->get();

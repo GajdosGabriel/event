@@ -34,6 +34,11 @@ class TicketStoreRequest extends FormRequest
             'items.*.attendees.*.name' => ['nullable', 'string', 'max:250'],
             'items.*.attendees.*.email' => ['nullable', 'email', 'max:190'],
 
+            // Dotazník: {question_id: hodnota} za objednávku a za každé miesto.
+            // Obsah overuje App\Services\Tickets\Questionnaire podľa otázok podujatia.
+            'answers' => ['sometimes', 'array'],
+            'items.*.attendees.*.answers' => ['sometimes', 'array'],
+
             // Spätná kompatibilita: len počet miest (default typ lístka).
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:20'],
         ];

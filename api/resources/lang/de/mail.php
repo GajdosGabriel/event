@@ -200,6 +200,8 @@ return [
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
+        'answers_title' => 'Ihre Antworten',
+        'answers_edit' => 'Ihre Angaben aus der Anmeldung können Sie bis zum Anmeldeschluss auf der Ticketseite ändern.',
         'subject' => 'Ihr Ticket für :event',
         'intro' => 'Ihr Ticket für **„:event"** wurde erfolgreich erstellt.',
         'quantity' => 'Reservierte Plätze: **:count**.',

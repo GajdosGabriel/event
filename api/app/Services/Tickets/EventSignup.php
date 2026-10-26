@@ -58,6 +58,9 @@ class EventSignup
 
     public const CLOSED = 'closed';
 
+    /** Podujatie má povinný dotazník — jedným klikom to nejde, treba formulár. */
+    public const NEEDS_FORM = 'needs_form';
+
     public function __construct(
         private TicketRepository $tickets,
         private AttendeeRegistrar $attendees,
@@ -100,6 +103,11 @@ class EventSignup
 
         if (! $this->isOpen($event)) {
             return ['status' => self::CLOSED, 'ticket' => null, 'event' => $event];
+        }
+
+        // Organizátor ešte nevie, čo nevyplnil — upovedomíme ho až po odoslaní formulára.
+        if (app(Questionnaire::class)->hasRequiredQuestions($event)) {
+            return ['status' => self::NEEDS_FORM, 'ticket' => null, 'event' => $event];
         }
 
         $ticket = $this->reserve($event, $user);

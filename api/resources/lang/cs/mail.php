@@ -200,6 +200,8 @@ return [
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
+        'answers_title' => 'Vaše odpovědi',
+        'answers_edit' => 'Odpovědi z registrace můžete do uzávěrky upravit na stránce vstupenky.',
         'subject' => 'Váš lístek na :event',
         'intro' => 'Váš lístek na akci **„:event"** byl úspěšně vytvořen.',
         'quantity' => 'Počet rezervovaných míst: **:count**.',

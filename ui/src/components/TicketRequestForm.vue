@@ -54,8 +54,10 @@
             <p class="text-sm font-semibold text-slate-800">{{ type.name }}</p>
             <p v-if="timeLabel(type)" class="text-xs font-medium text-blue-700">{{ timeLabel(type) }}</p>
             <p v-if="type.description" class="text-xs text-slate-500">{{ type.description }}</p>
-            <p class="mt-1 text-sm font-semibold" :class="type.priceAmount ? 'text-slate-800' : 'text-green-700'">
-              {{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : t('tickets.request.free') }}
+            <p class="mt-1 text-sm font-semibold" :class="unitPrice(type) ? 'text-slate-800' : 'text-green-700'">
+              {{ unitPrice(type) ? formatPrice(unitPrice(type), type.priceCurrency) : t('tickets.request.free') }}
+              <span v-if="unitPrice(type) && unitPrice(type) !== (type.priceAmount ?? 0)" class="ml-1 font-normal text-slate-500">{{ t('questionnaire.perPerson') }}</span>
+              <span v-if="hasExtras(type)" class="ml-1 font-normal text-slate-500">{{ t('questionnaire.plusExtras') }}</span>
             </p>
             <p v-if="type.remainingCapacity !== null && type.remainingCapacity !== undefined" class="text-xs text-slate-400">
               {{ t('tickets.request.remaining', { n: type.remainingCapacity }) }}
@@ -89,7 +91,8 @@
           <p v-if="qty(type) > 1" class="text-xs text-slate-500">
             {{ t('tickets.request.seatsHint') }}
           </p>
-          <div v-for="i in seatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2">
+          <div :class="wide ? 'grid items-start gap-3 md:grid-cols-2' : 'space-y-2'">
+          <div v-for="i in seatIndexes(type)" :key="i" class="space-y-2 rounded-lg bg-slate-50 p-2" :class="{ 'p-3': wide }">
             <div class="flex items-center justify-between gap-2">
               <p class="text-xs font-semibold text-slate-600">
                 {{ t('tickets.request.seat', { n: i + 1 }) }}
@@ -120,6 +123,24 @@
               <FormField v-model="attendee(type, i).name" required trim maxlength="250" :label="t('tickets.request.attendeeName')" :placeholder="t('tickets.request.attendeeName')" />
               <FormField v-model="attendee(type, i).email" type="email" required trim maxlength="190" :label="t('tickets.request.attendeeEmail')" :placeholder="t('tickets.request.attendeeEmail')" />
             </template>
+
+            <!-- Dotazník za účastníka (strava, ubytovanie…) -->
+            <QuestionnaireFields
+              v-if="seatQuestions(type).length"
+              class="border-t border-slate-200 pt-2"
+              :questions="seatQuestions(type)"
+              :model-value="seatAnswers(type, i)"
+              :errors="seatErrors(type, i)"
+              :currency="type.priceCurrency"
+              @update:model-value="setSeatAnswers(type, i, $event)"
+            />
+          </div>
+          </div>
+
+          <!-- Dotazník za objednávku (raz, nie za každého) -->
+          <div v-if="orderQs.length" class="space-y-2 rounded-lg bg-slate-50 p-2">
+            <p class="text-xs font-semibold text-slate-600">{{ t('questionnaire.orderTitle') }}</p>
+            <QuestionnaireFields v-model="orderAnswers" :questions="orderQs" :errors="orderErrors" :currency="type.priceCurrency" />
           </div>
 
           <!-- Prihlásený → one-click -->
@@ -133,6 +154,14 @@
             <FormField v-model="form.holder_email" type="email" :label="t('tickets.request.holderEmail')" required trim maxlength="190" />
             <FormField v-model="form.holder_phone" type="tel" :label="t('tickets.request.holderPhone')" trim maxlength="30" />
           </template>
+
+          <!-- Rozpis ceny — pri viacerých platených položkách nech je jasné, z čoho je súčet. -->
+          <ul v-if="breakdown(type).length > 1" class="space-y-1 border-t border-slate-200 pt-2 text-sm text-slate-600">
+            <li v-for="line in breakdown(type)" :key="line.key" class="flex items-baseline justify-between gap-3">
+              <span class="min-w-0">{{ line.label }}<span v-if="line.count > 1" class="text-slate-400"> × {{ line.count }}</span></span>
+              <span class="shrink-0 tabular-nums">{{ line.amount ? formatPrice(line.amount, type.priceCurrency) : t('tickets.request.free') }}</span>
+            </li>
+          </ul>
 
           <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold text-slate-800">
             <span>{{ t('tickets.request.total', { seats: plural('tickets.request.counts.seats', qty(type)) }) }}</span>
@@ -161,15 +190,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { requestTicket, cancelOwnRegistration } from '@/api/tickets'
+import { answerErrors, answersPrice, appliesToType, emptyAnswers, hasOptionalExtras, hasOptions, orderQuestions, publicQuestionnaire, requiredFee } from '@/api/questionnaire'
 import { t, plural } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { fmtDayTimeRange } from '@/utils/dateFormat'
 import { formatPrice } from '@/utils/money'
 import FormField from '@/components/FormField.vue'
-import type { TicketItem, TicketTypeItem } from '@/types'
+import QuestionnaireFields from '@/components/QuestionnaireFields.vue'
+import type { AnswerMap, QuestionItem, TicketItem, TicketTypeItem } from '@/types'
 
 const props = defineProps<{
   eventId: number
@@ -179,6 +210,10 @@ const props = defineProps<{
   endAt?: string | null
   /** Má prihlásený návštevník platnú registráciu na podujatie? */
   viewerRegistered?: boolean
+  /** Formulár stojí v hlavnom stĺpci (dlhý dotazník) — miesta sú vedľa seba. */
+  wide?: boolean
+  /** Dotazník, ak ho stránka už načítala (kvôli cene v hlavičke); inak si ho formulár načíta sám. */
+  questions?: QuestionItem[]
 }>()
 
 const emit = defineEmits<{ changed: [] }>()
@@ -222,6 +257,99 @@ async function cancelRegistration() {
 // Množstvá a údaje účastníkov podľa id typu.
 const quantities = reactive<Record<number, number>>({})
 const attendees = reactive<Record<number, { name: string; email: string }[]>>({})
+
+// Dotazník organizátora (strava, ubytovanie…): odpovede za každé miesto podľa
+// typu a poradia, odpovede za objednávku zvlášť. Chyby prídu zo servera.
+const loadedQuestions = ref<QuestionItem[]>([])
+const questions = computed(() => props.questions ?? loadedQuestions.value)
+const seatAnswerStore = reactive<Record<number, AnswerMap[]>>({})
+const orderQs = computed(() => orderQuestions(questions.value))
+const orderAnswers = ref<AnswerMap>({})
+const serverErrors = ref<Record<string, string[]>>({})
+
+onMounted(async () => {
+  if (props.questions) return
+  try {
+    loadedQuestions.value = await publicQuestionnaire(props.eventId)
+  } catch {
+    // Bez otázok sa dá registrovať ďalej; povinné aj tak stráži server.
+  }
+})
+
+// Otázky môžu prísť až po vykreslení (od stránky) — prázdne odpovede doplníme.
+watch(orderQs, qs => { orderAnswers.value = { ...emptyAnswers(qs), ...orderAnswers.value } }, { immediate: true })
+
+/** Cena typu nie je celá — dotazník k nemu ponúka platené možnosti. */
+function hasExtras(type: TicketTypeItem): boolean {
+  return hasOptionalExtras([...seatQuestions(type), ...orderQs.value])
+}
+
+/** Cena za osobu: lístok + povinné poplatky z dotazníka (napr. účastnícky). */
+function unitPrice(type: TicketTypeItem): number {
+  return (type.priceAmount ?? 0) + requiredFee(seatQuestions(type)) + requiredFee(orderQs.value)
+}
+
+interface BreakdownLine { key: string; label: string; count: number; amount: number }
+
+/** Rozpis objednávky: lístky a každá platená možnosť z dotazníka s počtom. */
+function breakdown(type: TicketTypeItem): BreakdownLine[] {
+  const lines: BreakdownLine[] = [{
+    key: 'type',
+    label: type.name,
+    count: qty(type),
+    amount: (type.priceAmount ?? 0) * qty(type),
+  }]
+  const extras = new Map<string, BreakdownLine>()
+
+  const add = (questions: QuestionItem[], answers: AnswerMap | undefined) => {
+    for (const question of questions.filter(hasOptions)) {
+      const value = answers?.[question.id!]
+      const ids = Array.isArray(value) ? value : value === null || value === undefined || value === '' ? [] : [Number(value)]
+      for (const id of ids) {
+        const option = question.options.find(o => o.id === id)
+        if (!option?.priceAmount) continue
+        const key = `${question.id}-${id}`
+        // Poplatok s jedinou možnosťou sa volá rovnako ako otázka — názov netreba opakovať.
+        const label = option.label === question.label ? question.label : `${question.label}: ${option.label}`
+        const line = extras.get(key) ?? { key, label, count: 0, amount: 0 }
+        line.count++
+        line.amount += option.priceAmount
+        extras.set(key, line)
+      }
+    }
+  }
+
+  for (const i of seatIndexes(type)) add(seatQuestions(type), seatAnswers(type, i))
+  add(orderQs.value, orderAnswers.value)
+
+  return [...lines, ...extras.values()]
+}
+
+function seatQuestions(type: TicketTypeItem): QuestionItem[] {
+  return questions.value.filter(q => appliesToType(q, type))
+}
+
+function seatAnswers(type: TicketTypeItem, index: number): AnswerMap {
+  const list = seatAnswerStore[type.id!] ?? (seatAnswerStore[type.id!] = [])
+  while (list.length <= index) list.push(emptyAnswers(seatQuestions(type)))
+  return list[index]
+}
+
+function setSeatAnswers(type: TicketTypeItem, index: number, value: AnswerMap) {
+  seatAnswers(type, index)
+  seatAnswerStore[type.id!][index] = value
+}
+
+/** Poradie typu v odosielaných `items` — podľa neho sú kľúče chýb zo servera. */
+function itemIndex(type: TicketTypeItem): number {
+  return orderableTypes.value.filter(t => qty(t) > 0).findIndex(t => t.id === type.id)
+}
+
+function seatErrors(type: TicketTypeItem, index: number): Record<number, string> {
+  return answerErrors(serverErrors.value, `items.${itemIndex(type)}.attendees.${index}.answers`)
+}
+
+const orderErrors = computed(() => answerErrors(serverErrors.value, 'answers'))
 
 const oneClick = computed(() => auth.isAuthenticated && !useOwnDetails.value)
 
@@ -305,8 +433,10 @@ function activate(type: TicketTypeItem) {
   if (!orderable(type)) return
   for (const id of Object.keys(quantities)) delete quantities[Number(id)]
   for (const id of Object.keys(attendees)) delete attendees[Number(id)]
+  for (const id of Object.keys(seatAnswerStore)) delete seatAnswerStore[Number(id)]
   quantities[type.id!] = minFor(type)
   error.value = null
+  serverErrors.value = {}
 }
 
 function inc(type: TicketTypeItem) {
@@ -325,6 +455,7 @@ function dec(type: TicketTypeItem) {
   if (next < minFor(type)) {
     quantities[type.id!] = 0
     delete attendees[type.id!]
+    delete seatAnswerStore[type.id!]
     return
   }
 
@@ -339,21 +470,27 @@ function removeSeat(type: TicketTypeItem, index: number) {
   const id = type.id!
   const list = attendees[id]
   if (list && index < list.length) list.splice(index, 1)
+  const answers = seatAnswerStore[id]
+  if (answers && index < answers.length) answers.splice(index, 1)
 
   const left = Math.max(0, qty(type) - 1)
   quantities[id] = left
-  if (left === 0) delete attendees[id]
+  if (left === 0) {
+    delete attendees[id]
+    delete seatAnswerStore[id]
+  }
 }
 
 const totalSeats = computed(() => Object.values(quantities).reduce((a, b) => a + (b || 0), 0))
 
-/** Cena za objednané miesta jedného typu. */
+/** Cena za objednané miesta jedného typu vrátane príplatkov z dotazníka. */
 function priceFor(type: TicketTypeItem): number {
-  return (type.priceAmount ?? 0) * qty(type)
+  const seats = seatIndexes(type).reduce((sum, i) => sum + answersPrice(seatQuestions(type), seatAnswers(type, i)), 0)
+  return (type.priceAmount ?? 0) * qty(type) + seats + answersPrice(orderQs.value, orderAnswers.value)
 }
 
 function submitLabel(type: TicketTypeItem): string {
-  return type.priceAmount ? t('tickets.request.submitPaid') : t('tickets.request.submitFree')
+  return priceFor(type) ? t('tickets.request.submitPaid') : t('tickets.request.submitFree')
 }
 
 async function submit() {
@@ -361,6 +498,7 @@ async function submit() {
   validation.markValidated()
   loading.value = true
   error.value = null
+  serverErrors.value = {}
   try {
     const items = orderableTypes.value
       .filter(t => qty(t) > 0)
@@ -369,27 +507,35 @@ async function submit() {
         return {
           ticket_type_id: t.id!,
           quantity: qty(t),
-          attendees: Array.from({ length: qty(t) }, (_, i) =>
-            i < start
+          attendees: Array.from({ length: qty(t) }, (_, i) => ({
+            ...(i < start
               ? { name: null, email: null }
-              : { name: attendee(t, i).name || null, email: attendee(t, i).email || null },
-          ),
+              : { name: attendee(t, i).name || null, email: attendee(t, i).email || null }),
+            answers: seatAnswers(t, i),
+          })),
         }
       })
 
+    const answers = orderAnswers.value
     const payload = oneClick.value
-      ? { items }
+      ? { items, answers }
       : {
           holder_name: form.holder_name,
           holder_email: form.holder_email,
           holder_phone: form.holder_phone || undefined,
           items,
+          answers,
         }
     sentEmail.value = oneClick.value ? '' : form.holder_email
     success.value = await requestTicket(props.eventId, payload)
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string } } }
-    error.value = err.response?.data?.message ?? t('tickets.request.failed')
+    const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+    serverErrors.value = err.response?.data?.errors ?? {}
+    // `answers` bez id otázky = obsadená kapacita možnosti — tá sa ukáže celá.
+    error.value = serverErrors.value['answers']?.[0]
+      ?? (Object.keys(serverErrors.value).some(k => k.includes('answers'))
+        ? t('questionnaire.fixErrors')
+        : err.response?.data?.message ?? t('tickets.request.failed'))
   } finally {
     loading.value = false
   }

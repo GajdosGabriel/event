@@ -35,9 +35,32 @@ return [
         'sale_starts_at' => 'Predaj od',
         'sale_ends_at' => 'Predaj do',
     ],
+    // Dotazník k registrácii (App\Enums\QuestionScope, QuestionType).
+    'question_scope' => [
+        'order' => 'Raz za objednávku',
+        'attendee' => 'Za každého účastníka',
+    ],
+    // Zobrazenie zaškrtnutého poľa v odpovediach (zoznam, export, e-mail).
+    'answer_yes' => 'Áno',
+    'question_type' => [
+        'text' => 'Krátky text',
+        'textarea' => 'Dlhší text',
+        'single_choice' => 'Výber jednej možnosti',
+        'multi_choice' => 'Výber viacerých možností',
+        'checkbox' => 'Zaškrtávacie pole',
+        'number' => 'Číslo',
+        'date' => 'Dátum',
+    ],
     // Hlášky objednávky a workshopov (App\Repositories\Eloquent\EloquentTicketRepository).
     // Vidí ich návštevník na verejnom detaile podujatia, preto sú v jeho jazyku.
     'errors' => [
+        'question_needs_options' => 'Otázka s výberom potrebuje aspoň jednu možnosť.',
+        'question_type_locked' => 'Na otázku už niekto odpovedal — jej typ sa nedá zmeniť. Vytvorte novú otázku.',
+        'answer_required' => 'Vyplňte prosím „:label“.',
+        'answer_invalid' => 'Neplatná odpoveď.',
+        'answer_paid_locked' => 'Uhradenú možnosť už nemôžete zmeniť — obráťte sa na organizátora.',
+        'answers_locked' => 'Odpovede sa už nedajú meniť.',
+        'signup_needs_form' => 'Pred registráciou treba vyplniť dotazník.',
         'kind_not_allowed' => 'Zvolený druh lístka nie je pre teba dostupný.',
         'registration_disabled' => 'Registrácia na tento event nie je povolená.',
         'event_finished' => 'Podujatie už prebehlo, registrácia nie je možná.',
@@ -69,6 +92,7 @@ return [
     // Tvary podľa počtu (trans_choice). Rozsahy sú zapísané explicitne, takže
     // platia rovnako vo všetkých štyroch jazykoch.
     'counts' => [
+        'option_remaining' => '{0} Možnosť „:name“ je už obsadená.|{1} Pre možnosť „:name“ ostáva už len :count miesto.|[2,4] Pre možnosť „:name“ ostávajú už len :count miesta.|[5,*] Pre možnosť „:name“ ostáva už len :count miest.',
         'remaining' => '{1} Pre „:name“ ostáva už len :count.|[2,4] Pre „:name“ ostávajú už len :count.|[5,*] Pre „:name“ ostáva už len :count.',
         'workshop_entitlement' => '{1} Na workshop „:name“ môžete objednať najviac :count miesto — podľa počtu vstupeniek na podujatie.|[2,4] Na workshop „:name“ môžete objednať najviac :count miesta — podľa počtu vstupeniek na podujatie.|[5,*] Na workshop „:name“ môžete objednať najviac :count miest — podľa počtu vstupeniek na podujatie.',
     ],

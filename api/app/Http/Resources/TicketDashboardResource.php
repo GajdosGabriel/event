@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Tickets\Questionnaire;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,7 @@ class TicketDashboardResource extends JsonResource
             'checked_in_count' => $this->checked_in_count,
             'admissions_total' => $this->admissions_total,
             'admissions' => AdmissionResource::collection($this->whenLoaded('admissions')),
+            'answers' => $this->whenLoaded('answers', fn () => app(Questionnaire::class)->present($this->answers->whereNull('admission_id'))),
             'created_at' => $this->created_at,
             'deleted_at' => $this->deleted_at,
             'permissions' => [

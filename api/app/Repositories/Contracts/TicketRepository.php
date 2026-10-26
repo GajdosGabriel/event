@@ -78,5 +78,13 @@ interface TicketRepository extends InterfaceRepository
     /** Ručné označenie platby ako uhradenej. */
     public function markPaid($id): Ticket;
 
+    /**
+     * Úprava odpovedí dotazníka organizátorom (aj platené možnosti a neaktívne otázky).
+     *
+     * @param  array<int|string, mixed>|null  $orderAnswers
+     * @param  array<int, array<int|string, mixed>>  $seatAnswers  admission_id => odpovede
+     */
+    public function updateAnswers($id, ?array $orderAnswers, array $seatAnswers): Ticket;
+
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator;
 }

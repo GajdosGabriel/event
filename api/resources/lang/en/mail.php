@@ -200,6 +200,8 @@ return [
 
     // App\Notifications\TicketIssued — objednávateľovi po vytvorení lístka.
     'ticket_issued' => [
+        'answers_title' => 'Your answers',
+        'answers_edit' => 'You can change your registration answers on the ticket page until the deadline.',
         'subject' => 'Your ticket for :event',
         'intro' => 'Your ticket for **":event"** has been created.',
         'quantity' => 'Seats reserved: **:count**.',
