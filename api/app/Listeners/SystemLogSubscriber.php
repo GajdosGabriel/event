@@ -48,9 +48,19 @@ class SystemLogSubscriber
         return [
             MessageSending::class => 'mailSending',
             MessageSent::class => 'mailSent',
-            JobProcessing::class => fn () => self::$inQueueJob = true,
-            JobProcessed::class => fn () => self::$inQueueJob = false,
-            Looping::class => fn () => self::$inQueueJob = false,
+            // Bloky, nie arrow funkcie: `fn () => self::$x = false` vráti false
+            // a Laravel to berie ako „zastav". Pri Looping tak daemon worker
+            // skončil pred prvým jobom (fronta od 21. 9. 2026 stála) a pri
+            // JobProcessed sa nedostalo na ďalšie listenery.
+            JobProcessing::class => function (): void {
+                self::$inQueueJob = true;
+            },
+            JobProcessed::class => function (): void {
+                self::$inQueueJob = false;
+            },
+            Looping::class => function (): void {
+                self::$inQueueJob = false;
+            },
             JobFailed::class => 'jobFailed',
             ScheduledTaskFailed::class => 'scheduledTaskFailed',
             Login::class => 'login',

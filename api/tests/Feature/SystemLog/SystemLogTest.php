@@ -7,7 +7,11 @@ use App\Models\User;
 use App\Notifications\PasswordResetLink;
 use App\Services\SystemLog\Recorder;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -152,5 +156,17 @@ class SystemLogTest extends TestCase
         $this->actingAs(User::factory()->create(), 'sanctum')
             ->getJson('/api/admin/system-logs')
             ->assertForbidden();
+    }
+
+    #[Test]
+    public function queue_event_listeners_do_not_stop_the_worker(): void
+    {
+        // Daemon worker sa pred každým jobom pýta Looping cez until(): false
+        // ho zastaví. Pri JobProcessed by false zastavilo ďalšie listenery.
+        $this->assertNotFalse(event(new Looping('database', 'default'), [], true));
+
+        $job = $this->createMock(Job::class);
+        $this->assertNotContains(false, event(new JobProcessing('database', $job)));
+        $this->assertNotContains(false, event(new JobProcessed('database', $job)));
     }
 }
