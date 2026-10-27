@@ -17,4 +17,4 @@ Disallow: /nahrat-plagat
 # User-Agent v .htaccess), priama adresa by bola len duplicita toho istého.
 Disallow: /api/prerender
 
-Sitemap: https://event.hlascirkvi.sk/sitemap.xml
+Sitemap: https://tixio.eu/sitemap.xml

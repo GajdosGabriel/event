@@ -447,7 +447,7 @@ return [
         'count' => '{1} Zatím je přihlášen **:count** účastník.|[2,4] Přihlášeni jsou už **:count** účastníci.|[5,*] Přihlášeno je už **:count** účastníků.',
         'contact' => 'Kontakt na účastníka: :email',
         'action' => 'Zobrazit seznam přihlášených',
-        'claim_intro' => 'Akci jsme zveřejnili na portálu event.hlascirkvi.sk pod kanálem **„:canal"**, který zatím nikdo nespravuje. Zpráva vám přišla na kontakt uvedený u akce.',
+        'claim_intro' => 'Akci jsme zveřejnili na portálu tixio.eu pod kanálem **„:canal"**, který zatím nikdo nespravuje. Zpráva vám přišla na kontakt uvedený u akce.',
         'claim_benefits' => 'Převzetí kanálu je zdarma. Uvidíte seznam přihlášených a jejich kontakty, budete moci upravovat tuto akci, přidávat další, nastavit kapacitu a na vstupu načítat QR kódy.',
         'claim_action' => 'Převzít kanál a zobrazit přihlášené',
         'claim_ignore' => 'Pokud nejste organizátorem této akce, tento e-mail klidně ignorujte.',

@@ -447,7 +447,7 @@ return [
         'count' => '{1} Bisher ist **:count** Person angemeldet.|[2,*] Bisher sind **:count** Personen angemeldet.',
         'contact' => 'Kontakt: :email',
         'action' => 'Teilnehmerliste anzeigen',
-        'claim_intro' => 'Die Veranstaltung ist auf event.hlascirkvi.sk unter dem Kanal **„:canal"** veröffentlicht, den noch niemand verwaltet. Diese Nachricht ging an den bei der Veranstaltung angegebenen Kontakt.',
+        'claim_intro' => 'Die Veranstaltung ist auf tixio.eu unter dem Kanal **„:canal"** veröffentlicht, den noch niemand verwaltet. Diese Nachricht ging an den bei der Veranstaltung angegebenen Kontakt.',
         'claim_benefits' => 'Die Übernahme des Kanals ist kostenlos. Sie sehen die Teilnehmerliste mit Kontakten, können die Veranstaltung bearbeiten, weitere hinzufügen, die Kapazität festlegen und am Eingang QR-Codes scannen.',
         'claim_action' => 'Kanal übernehmen und Teilnehmer ansehen',
         'claim_ignore' => 'Wenn Sie nicht der Veranstalter sind, können Sie diese E-Mail ignorieren.',

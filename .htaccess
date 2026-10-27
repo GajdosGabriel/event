@@ -1,4 +1,4 @@
-# Produkčný .htaccess subdomény (event.hlascirkvi.sk).
+# Produkčný .htaccess subdomény (tixio.eu, predtým event.hlascirkvi.sk).
 #
 # Docroot subdomény je KOREŇ REPOZITÁRA, nie ui/dist. Tento súbor preto robí
 # tri veci naraz:
@@ -15,6 +15,19 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # --- -1. stará adresa event.hlascirkvi.sk → tixio.eu -----------------
+    # Od 27. 10. 2026 je hlavná adresa tixio.eu (iný server, Websupport r6).
+    # Stará inštancia na r2 ostáva nasadená a pripája sa na tú istú databázu,
+    # takže presmerúvajú sa len stránky SPA (GET/HEAD): backend a widget
+    # ostávajú na starej adrese funkčné, lebo ich volajú cudzie weby a staré
+    # e-maily — POST by 301 nepreniesol a embed.js by sa načítal z presmerovania
+    # zbytočne. Existujúce súbory buildu sa servujú priamo.
+    RewriteCond %{HTTP_HOST} ^event\.hlascirkvi\.sk$ [NC]
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum|cron|storage|images|embed)(/|$)
+    RewriteCond %{DOCUMENT_ROOT}/ui/dist%{REQUEST_URI} !-f
+    RewriteRule ^(.*)$ https://tixio.eu/$1 [R=301,QSA,L]
 
     # --- 0. staré adresy podujatí ---------------------------------------
     # Podujatia sa presťahovali z /podujatia/{slug}-{id} na /akcie/{id}/{slug}.

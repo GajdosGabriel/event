@@ -447,7 +447,7 @@ return [
         'count' => '{1} So far **:count** attendee has signed up.|[2,*] **:count** attendees have signed up so far.',
         'contact' => 'Attendee contact: :email',
         'action' => 'View attendee list',
-        'claim_intro' => 'The event is listed on event.hlascirkvi.sk under the channel **":canal"**, which nobody manages yet. This message was sent to the contact given for the event.',
+        'claim_intro' => 'The event is listed on tixio.eu under the channel **":canal"**, which nobody manages yet. This message was sent to the contact given for the event.',
         'claim_benefits' => 'Taking over the channel is free. You will see the attendee list with contacts, can edit this event, add more, set capacity and scan QR codes at the entrance.',
         'claim_action' => 'Take over the channel and view attendees',
         'claim_ignore' => 'If you are not the organiser of this event, you can safely ignore this email.',
