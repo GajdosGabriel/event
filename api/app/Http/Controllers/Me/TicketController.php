@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Me;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MyTicketResource;
+use App\Services\Tickets\Questionnaire;
 use App\Services\Tickets\TicketOwnership;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -49,6 +50,8 @@ class TicketController extends Controller
                 'event.files',
                 'event.tags',
                 'admissions.ticketType',
+                // Odpovede dotazníka: zhrnutie v zozname, úprava do uzávierky.
+                ...Questionnaire::TICKET_RELATIONS,
             ])
             // Nadchádzajúce od najbližšieho termínu (čo je na rade, je hore),
             // história od najnovšieho. Objednávky bez termínu ide MySQL zoradiť

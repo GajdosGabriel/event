@@ -81,6 +81,38 @@ class MyTicketsTest extends EventSetupTest
         $this->assertStringNotContainsString($holderSeat->uuid, $response->getContent());
     }
 
+    /**
+     * Zhrnutie dotazníka v zozname: objednávateľ vidí odpovede za objednávku
+     * aj za miesta, účastník v cudzej objednávke len tie za svoje miesto.
+     */
+    #[Test]
+    public function list_includes_questionnaire_answers_without_leaking_order_answers_to_attendee(): void
+    {
+        $note = $this->futureEvent->questions()->create(['scope' => 'order', 'type' => 'text', 'label' => 'Faktúra na']);
+        $diet = $this->futureEvent->questions()->create(['scope' => 'attendee', 'type' => 'text', 'label' => 'Strava']);
+
+        $own = $this->ticketFor($this->futureEvent, ['user_id' => $this->user->id]);
+        $own->answers()->create(['question_id' => $note->id, 'value' => 'Farnosť X']);
+
+        $foreign = $this->ticketFor($this->futureEvent, ['user_id' => null]);
+        $seat = $foreign->admissions()->create([
+            'event_id' => $this->futureEvent->id,
+            'status' => AdmissionStatus::Valid->value,
+            'attendee_email' => $this->user->email,
+        ]);
+        $foreign->answers()->create(['question_id' => $note->id, 'value' => 'Tajná firma']);
+        $foreign->answers()->create(['question_id' => $diet->id, 'admission_id' => $seat->id, 'value' => 'Bezlepková']);
+
+        $response = $this->getJson('/api/me/tickets')->assertOk()->assertJsonCount(2, 'data');
+        $rows = collect($response->json('data'))->keyBy(fn ($row) => $row['attendee_only'] ? 'attendee' : 'holder');
+
+        $this->assertSame('Farnosť X', $rows['holder']['answers'][0]['display']);
+        $this->assertSame([], $rows['attendee']['answers']);
+        $this->assertSame('Bezlepková', $rows['attendee']['admissions'][0]['answers'][0]['display']);
+        $this->assertTrue($rows['attendee']['answers_editable']);
+        $this->assertStringNotContainsString('Tajná firma', $response->getContent());
+    }
+
     #[Test]
     public function declined_seat_of_a_foreign_order_moves_to_history(): void
     {

@@ -42,6 +42,8 @@ class MyTicketResource extends TicketResource
             'checked_in_count' => $mine->filter(fn (Admission $admission) => $admission->is_checked_in)->count(),
             'admissions_total' => $mine->count(),
             'admissions' => AdmissionResource::collection($mine),
+            // Odpovede za objednávku (ubytovanie, faktúra…) patria objednávateľovi.
+            'answers' => [],
             // Stránka /rsvp/{token}: potvrdenie, odmietnutie alebo zrušenie účasti.
             'rsvp_token' => $mine->first(fn (Admission $admission) => $admission->confirmation_token !== null)?->confirmation_token,
         ];

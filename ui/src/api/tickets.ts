@@ -128,6 +128,12 @@ export async function updateTicketAnswers(uuid: string, payload: TicketAnswersPa
   return mapTicket((data.data ?? data) as Record<string, unknown>)
 }
 
+/** Účastník v cudzej objednávke mení len odpovede za svoje miesto. */
+export async function updateAdmissionAnswers(uuid: string, answers: AnswerMap): Promise<AdmissionItem> {
+  const { data } = await http.put(`/admissions/${uuid}/answers`, { answers })
+  return mapAdmission((data.data ?? data) as Record<string, unknown>)
+}
+
 /** Úprava odpovedí organizátorom (aj uhradené možnosti a po uzávierke). */
 export async function updateDashboardTicketAnswers(id: number, payload: TicketAnswersPayload): Promise<TicketItem> {
   const { data } = await http.put(`/dashboard/tickets/${id}/answers`, payload)

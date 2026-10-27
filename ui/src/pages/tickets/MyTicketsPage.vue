@@ -100,6 +100,16 @@
               {{ cancelling === ticket.uuid ? t('myTickets.cancelling') : t('myTickets.cancel') }}
             </button>
           </div>
+
+          <!-- Dotazník: zhrnutie a do uzávierky úprava, bez odbočky na detail.
+               Účastník v cudzej objednávke vidí a mení len svoje miesto. -->
+          <TicketAnswersPanel
+            class="mt-4 border-t border-slate-100 pt-4"
+            :ticket="ticket"
+            :questions="questionsFor(ticket)"
+            :save="payload => saveAnswers(ticket, payload)"
+            @saved="updated => replaceTicket(ticket, updated)"
+          />
         </li>
       </ul>
 
@@ -150,15 +160,17 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
 import { myTickets, mySubscriptions, cancelMySubscription, type MySubscription } from '@/api/me'
-import { cancelOwnRegistration } from '@/api/tickets'
+import { cancelOwnRegistration, updateAdmissionAnswers, updateTicketAnswers, type TicketAnswersPayload } from '@/api/tickets'
+import { publicQuestionnaire } from '@/api/questionnaire'
 import { BASE_URL } from '@/api'
-import type { AdmissionItem, TicketItem } from '@/types'
+import type { AdmissionItem, QuestionItem, TicketItem } from '@/types'
 import { t, plural } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import { publicEventPath, PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { fmtDateLong } from '@/utils/dateFormat'
 import { formatPrice } from '@/utils/money'
 import AppPaginator from '@/components/AppPaginator.vue'
+import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,6 +204,56 @@ async function load() {
   } finally {
     loading.value = false
   }
+  loadQuestionnaires()
+}
+
+/**
+ * Otázky dotazníka podľa podujatia — panel podľa nich vie, ktoré miesta
+ * sa pýtajú a čo sa dá upraviť. Raz na podujatie, nie na každú objednávku.
+ */
+const questionnaires = ref<Record<number, QuestionItem[]>>({})
+
+function loadQuestionnaires() {
+  const eventIds = new Set(tickets.value.map(ticket => ticket.event?.id).filter((id): id is number => Boolean(id)))
+  for (const eventId of eventIds) {
+    if (eventId in questionnaires.value) continue
+    questionnaires.value[eventId] = []
+    publicQuestionnaire(eventId)
+      .then(questions => { questionnaires.value[eventId] = questions })
+      .catch(() => {})
+  }
+}
+
+function questionsFor(ticket: TicketItem): QuestionItem[] {
+  const questions = ticket.event?.id ? questionnaires.value[ticket.event.id] ?? [] : []
+  // Otázky za objednávku patria objednávateľovi, účastník ich nevidí.
+  return ticket.attendeeOnly ? questions.filter(q => q.scope !== 'order') : questions
+}
+
+async function saveAnswers(ticket: TicketItem, payload: TicketAnswersPayload): Promise<TicketItem> {
+  if (!ticket.attendeeOnly) return updateTicketAnswers(ticket.uuid, payload)
+
+  // Účastník: jedno miesto cez vlastný odkaz, objednávka zostáva bez zmeny.
+  const updated = await Promise.all(ticket.admissions
+    .filter(admission => admission.id && payload.admissions?.[admission.id])
+    .map(admission => updateAdmissionAnswers(admission.uuid, payload.admissions![admission.id!])))
+
+  return {
+    ...ticket,
+    admissions: ticket.admissions.map(admission => {
+      const fresh = updated.find(a => a.uuid === admission.uuid)
+      return fresh ? { ...admission, answers: fresh.answers } : admission
+    }),
+  }
+}
+
+function replaceTicket(ticket: TicketItem, updated: TicketItem) {
+  // Odpoveď API na úpravu objednávky je TicketResource — príznak účastníka
+  // a odkaz na potvrdenie si nesie len zoznam.
+  tickets.value = tickets.value.map(row => row === ticket
+    ? { ...updated, event: ticket.event, attendeeOnly: ticket.attendeeOnly, rsvpToken: ticket.rsvpToken }
+    : row)
+  toast.success(t('questionnaire.saved'))
 }
 
 async function loadSubscriptions() {

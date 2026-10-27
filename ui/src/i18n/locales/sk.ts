@@ -98,7 +98,7 @@ const sk = {
     register: 'Registrácia',
     logout: 'Odhlásiť sa',
     public: 'Verejná časť',
-    myTickets: 'Moje lístky',
+    myTickets: 'Moje objednávky',
     dashboard: 'Dashboard',
     admin: 'Admin',
     superAdmin: 'Super admin',
@@ -607,7 +607,7 @@ const sk = {
     needsFormLead: "Organizátor akcie {event} potrebuje pri registrácii vyplniť krátky dotazník (napr. strava či ubytovanie).",
     fillForm: "Vyplniť registráciu",
     showTicket: 'Zobraziť vstupenku',
-    myTickets: 'Moje lístky',
+    myTickets: 'Moje objednávky',
     backToEvent: 'Späť na akciu',
     failed: 'Prihlásenie na akciu sa nepodarilo. Skúste to znova.',
     verifiedLead: 'Teraz si môžete rezervovať miesto na akcii {event}. Odkaz sme vám poslali aj e-mailom.',
@@ -714,10 +714,10 @@ const sk = {
   // prihlásenia. Sekcia `seo` sú nadpisy a meta popisy landing stránok; tie
   // isté vety pre crawlerov skladá backend (PrerenderController), takže pri
   // zmene znenia patria obe miesta k sebe.
-  // Stránka /moje-listky — vlastné vstupenky a odbery prihláseného účtu.
+  // Stránka /moje-listky („Moje objednávky") — vlastné objednávky a odbery prihláseného účtu.
   myTickets: {
-    title: 'Moje lístky',
-    lead: 'Vstupenky, ktoré ste si objednali, a podujatia, na ktoré čakáte.',
+    title: 'Moje objednávky',
+    lead: 'Vaše objednávky a registrácie vrátane odpovedí z dotazníka a podujatia, na ktoré čakáte.',
     upcoming: 'Nadchádzajúce',
     past: 'História',
     emptyUpcoming: 'Zatiaľ tu nič nemáte',
