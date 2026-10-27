@@ -54,18 +54,15 @@ so zmenou v `ui/` spustí `npm run build` a `ui/dist` pridá do toho istého
 commitu. Na každom počítači ho treba raz zapnúť:
 `git config core.hooksPath .githooks` — bez neho sa nasadí starý build.
 
-Od 27. 10. 2026 je hlavná adresa **https://tixio.eu** (Websupport, server
-r6, `~/tixio.eu/web`). Pôvodná inštancia `event.hlascirkvi.sk` (server r2,
-`~/hlascirkvi.sk/sub/event`) ostáva nasadená a pripája sa na **tú istú
-databázu** — stránky presmeruje 301 na tixio.eu, ale API a widget na starej
-adrese ďalej slúžia cudzím webom a starým e-mailom. Po pushi preto treba
-nasadiť na **oba** servery ([`deploy/deploy.sh`](deploy/deploy.sh) na každom).
+Produkcia beží na **https://tixio.eu** (Websupport, server r6,
+`~/tixio.eu/web`); po pushi sa nasadzuje [`deploy/deploy.sh`](deploy/deploy.sh)
+priamo na serveri.
 
-Scheduler beží **len na tixio.eu**: CRON úloha vo Websupporte (Spustenie PHP 8.5
-súboru, každú minútu) spúšťa `~/tixio.eu/cron-schedule-run.php` mimo docrootu,
-ktorý zavolá `artisan schedule:run` a zapíše čas behu do
-`~/tixio.eu/cron-last-run.txt`. Na r2 sa scheduler spúšťať nesmie — pracoval
-by nad tou istou databázou druhýkrát (dvojité e-maily, importy).
+Scheduler spúšťa CRON úloha vo Websupporte (Spustenie PHP 8.5 súboru, každú
+minútu): `~/tixio.eu/cron-schedule-run.php` mimo docrootu zavolá
+`artisan schedule:run` a zapíše čas behu do `~/tixio.eu/cron-last-run.txt`.
+Frontu spracúva ten istý scheduler (`queue:work --stop-when-empty`), samostatný
+cron na ňu netreba.
 
 Webcron cez URL ostáva ako záloha pre hosting bez CRON úloh:
 
@@ -76,10 +73,10 @@ Oba endpointy sú chránené tokenom z `CRON_SECRET`. Bez bežiaceho scheduleru
 nefungujú importy, archivácia podujatí, expirácia vstupeniek ani fronta.
 
 Routovanie SPA rieši [`.htaccess`](.htaccess) v koreni repozitára — docroot
-subdomény je koreň repozitára, takže tento súbor je zároveň ten produkčný a
+webu je koreň repozitára, takže tento súbor je zároveň ten produkčný a
 nasadzuje sa `git pull`-om. [`ui/public/.htaccess`](ui/public/.htaccess) je len
 šablóna pre priečinok s buildom a na produkciu sa **nekopíruje**: chýba jej
-mapovanie do `ui/dist` a `api/public`, takže by subdoménu zhodila.
+mapovanie do `ui/dist` a `api/public`, takže by web zhodila.
 
 V koreňovom súbore sú aj pravidlá pre `sitemap.xml` a pre crawlerov;
 bez nich zdieľané odkazy nemajú náhľad a portál sa neindexuje. Postup a overenie:
