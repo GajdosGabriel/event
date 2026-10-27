@@ -758,6 +758,18 @@ export interface AdmissionItem {
 }
 
 // Objednávka / registrácia (jeden nákup jedného kupujúceho).
+/** Platobné údaje na úhradu prevodom; suma v centoch. */
+export interface PaymentInstructionsItem {
+  recipient: string
+  iban: string
+  swift: string | null
+  bankName: string | null
+  variableSymbol: string
+  amount: number
+  currency: string
+  note: string
+}
+
 export interface TicketItem {
   id?: number
   uuid: string
@@ -783,6 +795,8 @@ export interface TicketItem {
   answers?: TicketAnswerItem[]
   /** Platená a ešte neuhradená — QR vstupenky sa vydajú až po úhrade. */
   awaitsPayment?: boolean
+  /** Kam a s akým VS zaplatiť neuhradenú objednávku (účet organizácie); null = organizátor účet nemá. */
+  paymentInstructions?: PaymentInstructionsItem | null
   /** Smie účastník ešte meniť odpovede (verejná stránka lístka)? */
   answersEditable?: boolean
   answersEditableUntil?: string | null

@@ -200,7 +200,7 @@
             </FormField>
             <FormField v-model="account.bank_name" :label="t('organizations.billing.bank')" />
             <FormField v-model="account.iban" :label="t('organizations.billing.iban')" :error="errors['account.iban']"
-              placeholder="SK00 0000 0000 0000 0000 0000" />
+              placeholder="SK00 0000 0000 0000 0000 0000" :hint="t('organizations.billing.ibanHint')" />
             <FormField v-model="account.swift" :label="t('organizations.billing.swift')" :error="errors['account.swift']" />
           </div>
         </FormSection>

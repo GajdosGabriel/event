@@ -101,6 +101,12 @@
             </button>
           </div>
 
+          <PaymentInstructions
+            v-if="ticket.awaitsPayment && ticket.paymentInstructions"
+            class="mt-4"
+            :payment="ticket.paymentInstructions"
+          />
+
           <!-- Dotazník: zhrnutie a do uzávierky úprava, bez odbočky na detail.
                Účastník v cudzej objednávke vidí a mení len svoje miesto. -->
           <TicketAnswersPanel
@@ -171,6 +177,7 @@ import { fmtDateLong } from '@/utils/dateFormat'
 import { formatPrice } from '@/utils/money'
 import AppPaginator from '@/components/AppPaginator.vue'
 import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
+import PaymentInstructions from '@/components/PaymentInstructions.vue'
 
 const route = useRoute()
 const router = useRouter()

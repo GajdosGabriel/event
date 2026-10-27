@@ -44,6 +44,8 @@ class MyTicketResource extends TicketResource
             'admissions' => AdmissionResource::collection($mine),
             // Odpovede za objednávku (ubytovanie, faktúra…) patria objednávateľovi.
             'answers' => [],
+            // Platí objednávateľ, nie účastník.
+            'payment_instructions' => null,
             // Stránka /rsvp/{token}: potvrdenie, odmietnutie alebo zrušenie účasti.
             'rsvp_token' => $mine->first(fn (Admission $admission) => $admission->confirmation_token !== null)?->confirmation_token,
         ];

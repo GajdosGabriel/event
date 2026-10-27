@@ -7,6 +7,7 @@ use App\Http\Requests\TicketTypeStoreRequest;
 use App\Http\Resources\TicketTypeResource;
 use App\Models\Event;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Tickets\PaymentInstructions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -14,8 +15,10 @@ class DashboardTicketTypeController extends Controller
 {
     protected $ticketRepository;
 
-    public function __construct(TicketRepository $ticketRepository)
-    {
+    public function __construct(
+        TicketRepository $ticketRepository,
+        protected PaymentInstructions $paymentInstructions,
+    ) {
         $this->ticketRepository = $ticketRepository;
     }
 
@@ -31,7 +34,20 @@ class DashboardTicketTypeController extends Controller
             ? $type->setAttribute('waitlist_count', $this->ticketRepository->waitlistCount($type))
             : null);
 
-        return TicketTypeResource::collection($types);
+        // Platené typy bez IBAN-u organizácie: kupujúci by nevedel, kam zaplatiť.
+        // Account sa pýta, len keď je čo predávať za peniaze.
+        // Platiť sa dá aj zadarmo-vstupenku s platenou voľbou v dotazníku (ubytovanie…).
+        $paid = $types->contains(fn ($type) => (int) $type->price_amount > 0)
+            || $event->questions()->where('is_active', true)
+                ->whereHas('options', fn ($query) => $query->where('price_amount', '>', 0))
+                ->exists();
+        $event->loadMissing('canal');
+
+        return TicketTypeResource::collection($types)->additional(['meta' => [
+            'payment_account_ready' => $paid ? $this->paymentInstructions->accountReady($event) : null,
+            'organization_id' => $event->canal?->organization_id,
+            'canal_id' => $event->canal_id,
+        ]]);
     }
 
     public function store(TicketTypeStoreRequest $request, $eventId): JsonResponse

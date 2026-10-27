@@ -33,6 +33,7 @@
           <p class="font-semibold">{{ t('public.ticket.awaitsPaymentTitle', { amount: formatPrice(ticket.priceAmount ?? 0, ticket.priceCurrency) }) }}</p>
           <p class="mt-1">{{ t('public.ticket.awaitsPaymentLead') }}</p>
         </div>
+        <PaymentInstructions v-if="ticket.awaitsPayment && ticket.paymentInstructions" :payment="ticket.paymentInstructions" />
         <p v-else class="text-xs text-slate-500">{{ t('public.ticket.qrLead') }}</p>
 
         <!-- Jednotlivé vstupenky s vlastným QR -->
@@ -104,6 +105,7 @@ import { useRoute } from 'vue-router'
 import { showTicket, updateTicketAnswers } from '@/api/tickets'
 import { publicQuestionnaire } from '@/api/questionnaire'
 import TicketAnswersPanel from '@/components/TicketAnswersPanel.vue'
+import PaymentInstructions from '@/components/PaymentInstructions.vue'
 import { seatName } from '@/utils/userDisplay'
 import type { QuestionItem, TicketItem } from '@/types'
 import { formatPrice } from '@/utils/money'

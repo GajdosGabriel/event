@@ -76,9 +76,29 @@ export async function leaveWorkshop(eventId: number, typeId: number): Promise<vo
 
 /** Zoznam typov lístkov v dashboarde (vrátane neaktívnych). */
 export async function indexTicketTypes(eventId: number): Promise<TicketTypeItem[]> {
+  return (await indexTicketTypesWithMeta(eventId)).types
+}
+
+/** Stav účtu na úhradu platených vstupeniek (IBAN organizácie kanála). */
+export interface TicketTypesPaymentMeta {
+  /** null = akcia nemá platené typy, netreba riešiť. */
+  paymentAccountReady: boolean | null
+  organizationId: number | null
+  canalId: number | null
+}
+
+export async function indexTicketTypesWithMeta(eventId: number): Promise<{ types: TicketTypeItem[]; meta: TicketTypesPaymentMeta }> {
   const { data } = await http.get(`/dashboard/events/${eventId}/ticket-types`)
   const items = (data.data ?? data) as Record<string, unknown>[]
-  return items.map(mapTicketType)
+  const meta = (data.meta ?? {}) as Record<string, unknown>
+  return {
+    types: items.map(mapTicketType),
+    meta: {
+      paymentAccountReady: (meta['payment_account_ready'] as boolean | null) ?? null,
+      organizationId: (meta['organization_id'] as number | null) ?? null,
+      canalId: (meta['canal_id'] as number | null) ?? null,
+    },
+  }
 }
 
 export async function createTicketType(eventId: number, payload: TicketTypePayload): Promise<TicketTypeItem> {

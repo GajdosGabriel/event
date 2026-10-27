@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Tickets\PaymentInstructions;
 use App\Services\Tickets\Questionnaire;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -33,6 +34,8 @@ class TicketResource extends JsonResource
             'answers' => $this->whenLoaded('answers', fn () => app(Questionnaire::class)->present($this->answers->whereNull('admission_id'))),
             'answers_editable' => $this->whenLoaded('event', fn () => app(Questionnaire::class)->attendeeCanEdit($this->resource)),
             'answers_editable_until' => $this->whenLoaded('event', fn () => app(Questionnaire::class)->editableUntil($this->event)),
+            // Neuhradená objednávka: kam a s akým VS zaplatiť (účet organizácie), inak null.
+            'payment_instructions' => $this->whenLoaded('event', fn () => app(PaymentInstructions::class)->for($this->resource)),
             'created_at' => $this->created_at,
             'event' => new EventResource($this->whenLoaded('event')),
         ];

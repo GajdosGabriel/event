@@ -21,6 +21,21 @@
 
         <p class="mb-3 text-xs text-slate-500">{{ t('tickets.settings.lead') }}</p>
 
+        <!-- Platené typy bez IBAN-u organizácie: kupujúci by v e-maile nedostal, kam zaplatiť. -->
+        <div v-if="paymentMeta?.paymentAccountReady === false" class="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+          {{ t('tickets.settings.paymentMissing') }}
+          <RouterLink
+            v-if="paymentMeta.organizationId"
+            :to="{ name: 'dashboard-organizations-edit', params: { id: paymentMeta.organizationId } }"
+            class="ml-1 font-medium underline"
+          >{{ t('tickets.settings.paymentMissingOrg') }}</RouterLink>
+          <RouterLink
+            v-else-if="paymentMeta.canalId"
+            :to="{ name: 'dashboard-canals-edit', params: { id: paymentMeta.canalId } }"
+            class="ml-1 font-medium underline"
+          >{{ t('tickets.settings.paymentMissingCanal') }}</RouterLink>
+        </div>
+
         <p v-if="!types.length" class="text-sm text-slate-400">{{ t('tickets.settings.typesEmpty') }}</p>
 
         <div v-else class="overflow-x-auto rounded-xl border border-slate-200">
@@ -94,7 +109,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showEvent } from '@/api/events'
-import { indexTicketTypes, deleteTicketType } from '@/api/ticketTypes'
+import { indexTicketTypesWithMeta, deleteTicketType, type TicketTypesPaymentMeta } from '@/api/ticketTypes'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
@@ -117,8 +132,16 @@ const adding = ref(false)
 /** Po uložení sa formulár zahodí a vytvorí nanovo, aby začínal prázdny. */
 const formKey = ref(0)
 
+const paymentMeta = ref<TicketTypesPaymentMeta | null>(null)
+
+async function loadTypes() {
+  const result = await indexTicketTypesWithMeta(eventId)
+  types.value = result.types
+  paymentMeta.value = result.meta
+}
+
 async function onTypeSaved() {
-  types.value = await indexTicketTypes(eventId)
+  await loadTypes()
   adding.value = false
   formKey.value++
 }
@@ -129,7 +152,7 @@ async function loadAll() {
   try {
     const ev = await showEvent('dashboard', eventId)
     eventName.value = ev.name
-    types.value = await indexTicketTypes(eventId)
+    await loadTypes()
   } catch {
     loadError.value = t('tickets.settings.loadFailed')
   } finally {
@@ -141,7 +164,7 @@ async function remove(type: TicketTypeItem) {
   if (!type.id || !confirm(t('tickets.settings.removeConfirm', { name: type.name }))) return
   try {
     await deleteTicketType(eventId, type.id)
-    types.value = await indexTicketTypes(eventId)
+    await loadTypes()
     toast.success(t('tickets.settings.removed'))
   } catch {
     toast.error(t('tickets.settings.removeFailed'))

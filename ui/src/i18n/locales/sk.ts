@@ -518,6 +518,7 @@ const sk = {
       emailUnverified: 'Neoverený — na adresu sme poslali žiadosť o potvrdenie.',
       bank: 'Banka',
       iban: 'IBAN',
+      ibanHint: 'Tento účet uvidia kupujúci platených vstupeniek ako účet na úhradu.',
       swift: 'SWIFT / BIC',
       missing: 'Na vystavenie faktúry ešte chýba: {fields}.',
       missingShort: 'Chýba: {fields}',
@@ -714,6 +715,19 @@ const sk = {
   // prihlásenia. Sekcia `seo` sú nadpisy a meta popisy landing stránok; tie
   // isté vety pre crawlerov skladá backend (PrerenderController), takže pri
   // zmene znenia patria obe miesta k sebe.
+  // Platobné údaje neuhradenej objednávky (komponent PaymentInstructions).
+  payment: {
+    title: 'Ako zaplatiť',
+    recipient: 'Príjemca',
+    iban: 'IBAN',
+    swift: 'SWIFT',
+    variableSymbol: 'Variabilný symbol',
+    amount: 'Suma',
+    note: 'Správa pre príjemcu',
+    copy: 'Kopírovať',
+    copied: 'Skopírované',
+    after: 'Uveďte variabilný symbol, aby organizátor platbu spároval. Vstupenky s QR kódmi pošleme e-mailom po potvrdení platby.',
+  },
   // Stránka /moje-listky („Moje objednávky") — vlastné objednávky a odbery prihláseného účtu.
   myTickets: {
     title: 'Moje objednávky',
@@ -1856,6 +1870,9 @@ const sk = {
       typesTitle: 'Typy lístkov',
       typeNew: '+ Nový typ',
       typesEmpty: 'Zatiaľ žiadne typy lístkov. Pridajte prvý (napr. „Štandard“, „VIP“, „Zdarma“).',
+      paymentMissing: 'Akcia má platené vstupenky, ale organizácia kanála nemá vyplnený IBAN. Kupujúci nebudú vedieť, kam zaplatiť.',
+      paymentMissingOrg: 'Doplniť IBAN v organizácii',
+      paymentMissingCanal: 'Priradiť kanálu organizáciu',
       colName: 'Názov',
       colPrice: 'Cena',
       colCapacity: 'Kapacita',

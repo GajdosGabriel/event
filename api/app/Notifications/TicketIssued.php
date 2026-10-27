@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\AdmissionStatus;
 use App\Models\Ticket;
 use App\Services\Calendar\EventCalendarLinks;
+use App\Services\Tickets\PaymentInstructions;
 use App\Services\Tickets\QrCodeGenerator;
 use App\Services\Tickets\Questionnaire;
 use Illuminate\Bus\Queueable;
@@ -150,6 +151,8 @@ class TicketIssued extends Notification implements ShouldQueue
                     $this->ticket->answers()->whereNull('admission_id')->with(['question', 'option'])->get()
                 ),
                 'amount' => number_format((int) $this->ticket->price_amount / 100, 2, ',', ' ').' '.($this->ticket->price_currency ?? 'EUR'),
+                // Kam a s akým VS zaplatiť; bez účtu organizácie ostane všeobecná výzva.
+                'payment' => app(PaymentInstructions::class)->for($this->ticket),
                 'ticketUrl' => $ticketUrl,
             ]);
     }

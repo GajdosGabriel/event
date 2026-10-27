@@ -44,7 +44,9 @@ class TicketController extends Controller
             // takže bez nich by `preventLazyLoading()` spadol — a na produkcii
             // by namiesto toho ticho pribudlo pár dotazov na každý riadok.
             ->with([
-                'event.canal:id,name,website',
+                // organization_id + organization: účet na úhradu (PaymentInstructions).
+                'event.canal:id,name,website,organization_id',
+                'event.canal.organization',
                 'event.canal.files',
                 'event.venue',
                 'event.files',

@@ -6,6 +6,7 @@ import type {
   AttendeeSummary,
   CheckinStats,
   PaginatedResponse,
+  PaymentInstructionsItem,
   TicketCheckinResult,
   TicketItem,
 } from '@/types'
@@ -46,6 +47,22 @@ export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
   }
 }
 
+function mapPaymentInstructions(raw: unknown): PaymentInstructionsItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const data = raw as Record<string, unknown>
+
+  return {
+    recipient: data['recipient'] as string,
+    iban: data['iban'] as string,
+    swift: (data['swift'] as string) ?? null,
+    bankName: (data['bank_name'] as string) ?? null,
+    variableSymbol: data['variable_symbol'] as string,
+    amount: (data['amount'] as number) ?? 0,
+    currency: (data['currency'] as string) ?? 'EUR',
+    note: (data['note'] as string) ?? '',
+  }
+}
+
 export function mapTicket(raw: Record<string, unknown>): TicketItem {
   const permissions = raw['permissions'] as Record<string, boolean> | undefined
   const admissions = (raw['admissions'] as Record<string, unknown>[] | undefined) ?? []
@@ -72,6 +89,7 @@ export function mapTicket(raw: Record<string, unknown>): TicketItem {
     answers: raw['answers'] ? mapAnswers(raw['answers']) : undefined,
     answersEditable: raw['answers_editable'] === undefined ? undefined : Boolean(raw['answers_editable']),
     awaitsPayment: Boolean(raw['awaits_payment']),
+    paymentInstructions: mapPaymentInstructions(raw['payment_instructions']),
     answersEditableUntil: (raw['answers_editable_until'] as string) ?? null,
     createdAt: raw['created_at'] as string,
     deletedAt: (raw['deleted_at'] as string) ?? null,
