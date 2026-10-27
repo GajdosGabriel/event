@@ -5,6 +5,7 @@ namespace App\Services\Account;
 use App\Enums\MailingTrigger;
 use App\Jobs\CancelMailing;
 use App\Jobs\ReportMailingEvent;
+use App\Models\Canal;
 use App\Models\Ticket;
 use App\Support\DashboardUrl;
 use App\Support\EventDateRange;
@@ -82,6 +83,19 @@ class AccountMailing
         CancelMailing::dispatch('ticket', $ticket->uuid, [MailingTrigger::TicketCancelled->value])->afterCommit();
     }
 
+    /**
+     * Kanál prevzal organizátor: čakajúce ponuky prevzatia (MailingTrigger::Canal*)
+     * sa neodošlú.
+     */
+    public function cancelCanal(Canal $canal): void
+    {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        CancelMailing::dispatch('canal', (string) $canal->id)->afterCommit();
+    }
+
     /** Udalosti pre výber spúšťača v Accounte. */
     public function triggers(): array
     {
@@ -89,7 +103,7 @@ class AccountMailing
             'key' => $trigger->value,
             'label' => $trigger->label(),
             'short_label' => $trigger->shortLabel(),
-            'variables' => MailingTrigger::VARIABLES,
+            'variables' => $trigger->variables(),
         ], MailingTrigger::cases());
     }
 }

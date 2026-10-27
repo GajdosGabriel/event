@@ -31,8 +31,9 @@ class EmailUnsubscribeController extends Controller
                     context: ['source' => 'outreach', 'method' => $request->method()],
                 );
 
-                // Aby na adresu nepísal ani inbox v Accounte.
+                // Aby na adresu nepísal ani inbox, ani emailing v Accounte.
                 app(AccountClient::class)->suppress($email);
+                app(AccountClient::class)->unsubscribeMailing($email);
             }
         }
 

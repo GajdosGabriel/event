@@ -71,10 +71,14 @@ class CanalInviter
      * Na rozdiel od invite() nevybavenú pozvánku na tú istú adresu nezruší,
      * len jej predĺži platnosť: e-mail chodí pri každom prihlásení na akciu
      * a odkaz zo staršieho e-mailu musí fungovať aj naďalej.
+     *
+     * `$ttlDays` (predvolene TTL_DAYS) platnosť len predĺži, nikdy neskráti —
+     * oslovenie cez Account potrebuje dlhší odkaz než prihláška.
      */
-    public function ensureOwnerInvitation(Canal $canal, string $email): CanalInvitation
+    public function ensureOwnerInvitation(Canal $canal, string $email, ?int $ttlDays = null): CanalInvitation
     {
         $email = mb_strtolower(trim($email));
+        $expiresAt = now()->addDays($ttlDays ?? self::TTL_DAYS);
 
         $invitation = $canal->invitations()
             ->pending()
@@ -84,7 +88,9 @@ class CanalInviter
             ->first();
 
         if ($invitation) {
-            $invitation->forceFill(['expires_at' => now()->addDays(self::TTL_DAYS)])->save();
+            if ($invitation->expires_at !== null && $invitation->expires_at->lt($expiresAt)) {
+                $invitation->forceFill(['expires_at' => $expiresAt])->save();
+            }
 
             return $invitation;
         }
@@ -93,7 +99,7 @@ class CanalInviter
             'email' => $email,
             'role' => CanalRole::Owner->value,
             'invited_by_user_id' => null,
-            'expires_at' => now()->addDays(self::TTL_DAYS),
+            'expires_at' => $expiresAt,
         ]);
 
         $this->auditor->invitation($invitation, 'claim_created');

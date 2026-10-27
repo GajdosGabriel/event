@@ -29,12 +29,25 @@ return [
     // Kópia adminom odchádza vždy.
     'simulate_question_relay_mail' => (bool) env('CANAL_QUESTION_RELAY_MAIL_SIMULATE', true),
 
+    // Triggery: pred akciou, prah zobrazení, po akcii. Pri zapnutom
+    // ACCOUNT_MAILING ich Event hlási do Account Emailingu (text a oneskorenie
+    // sú v kampani); bez neho ide len „po akcii“ vlastným e-mailom.
     'outreach' => [
+        // Akcia začína najneskôr o toľko dní (trigger canal_event_upcoming).
+        'upcoming_days' => (int) env('CANAL_OUTREACH_UPCOMING_DAYS', 10),
+        // Prahy zobrazení akcie pred jej koncom (canal_views_milestone).
+        'view_milestones' => array_values(array_filter(array_map('intval',
+            explode(',', (string) env('CANAL_OUTREACH_VIEW_MILESTONES', '50,200'))))),
         // Akcia skončila aspoň pred `after_days` a najviac pred `window_days` dňami.
         'after_days' => (int) env('CANAL_OUTREACH_AFTER_DAYS', 1),
         'window_days' => (int) env('CANAL_OUTREACH_WINDOW_DAYS', 14),
-        // Ten istý kanál najviac raz za toľko dní.
+        // Ten istý kanál najviac `max_per_cooldown` oslovení za `cooldown_days`
+        // dní a medzi dvoma aspoň `min_gap_days` dní.
         'cooldown_days' => (int) env('CANAL_OUTREACH_COOLDOWN_DAYS', 90),
+        'max_per_cooldown' => (int) env('CANAL_OUTREACH_MAX_PER_COOLDOWN', 3),
+        'min_gap_days' => (int) env('CANAL_OUTREACH_MIN_GAP_DAYS', 5),
+        // Platnosť odkazu na prevzatie — musí prežiť oneskorenie kampane aj celú postupnosť.
+        'invitation_days' => (int) env('CANAL_OUTREACH_INVITATION_DAYS', 30),
         // Bez zobrazení nemáme čo ukázať — takú akciu nepíšeme.
         'min_views' => (int) env('CANAL_OUTREACH_MIN_VIEWS', 1),
         // Najviac oslovení za jeden beh.

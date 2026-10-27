@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Webhooks;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Services\Account\AccountClient;
+use App\Services\Account\AccountMailingWebhooks;
 use App\Services\Account\AccountMessages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,13 +19,15 @@ use Illuminate\Support\Facades\Log;
  *
  * Endpoint sa v Accounte registruje v „API a webhooky“ a musí odoberať
  * aspoň `organization.updated` a `organization.deleted`, pri zapnutom
- * `ACCOUNT_MESSAGING` aj `message.received` a `message.bounced`.
+ * `ACCOUNT_MESSAGING` aj `message.received` a `message.bounced`, pri zapnutom
+ * `ACCOUNT_MAILING` aj `mailing.unsubscribed` a `mailing.delivery.*`.
  */
 class AccountWebhookController extends Controller
 {
     public function __construct(
         private readonly AccountClient $account,
         private readonly AccountMessages $messages,
+        private readonly AccountMailingWebhooks $mailing,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -57,6 +60,13 @@ class AccountWebhookController extends Controller
                 (array) $request->input('data.conversation', []),
                 (array) $request->input('data.message', []),
             );
+
+            return response()->json(['ok' => true]);
+        }
+
+        // Emailing: odhlásenie z kampane, doručenie ponuky prevzatia kanála.
+        if (str_starts_with((string) $request->input('event'), 'mailing.')) {
+            $this->mailing->handle((string) $request->input('event'), (array) $request->input('data', []));
 
             return response()->json(['ok' => true]);
         }

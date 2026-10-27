@@ -110,7 +110,7 @@ class AccountMailingTest extends EventSetupTest
 
         Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
             && $request->url() === 'http://account.test/api/v1/mailing/triggers'
-            && collect($request['triggers'])->pluck('key')->all() === ['ticket_registered', 'ticket_cancelled', 'event_finished']
+            && collect($request['triggers'])->pluck('key')->all() === ['ticket_registered', 'ticket_cancelled', 'event_finished', 'canal_event_upcoming', 'canal_views_milestone', 'canal_event_finished']
             && in_array('odkaz_podujatia', $request['triggers'][0]['variables'], true));
     }
 

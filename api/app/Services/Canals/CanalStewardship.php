@@ -6,6 +6,7 @@ use App\Enums\CanalRole;
 use App\Models\Canal;
 use App\Models\CanalClaim;
 use App\Models\User;
+use App\Services\Account\AccountMailing;
 use App\Services\Imports\CollectionCanal;
 use App\Services\Imports\ImportedCanalManager;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,7 @@ class CanalStewardship
         private CanalMembership $membership,
         private ImportedCanalManager $imports,
         private CanalAuditor $auditor,
+        private AccountMailing $mailing,
     ) {}
 
     public function complete(Canal $canal, User $user, ?CanalClaim $claim = null): void
@@ -65,6 +67,9 @@ class CanalStewardship
         });
 
         $this->auditor->claimed($canal, $user, $removed, $claim);
+
+        // Ponuky prevzatia čakajúce v Account Emailingu už nemajú zmysel.
+        $this->mailing->cancelCanal($canal);
     }
 
     /**

@@ -69,8 +69,9 @@ return [
     | Emailing (kampane a automatizácie) v Accounte
     |
     | Zapnuté: Event hlási udalosti registrácií (registrácia, zrušenie,
-    | koniec podujatia) a kampane na ne sa nastavujú v Accounte v menu
-    | Emailing. Zoznam udalostí pošle `php artisan emailing:register-triggers`
+    | koniec podujatia) a ponuky prevzatia nespravovaných kanálov (pred
+    | akciou, prah zobrazení, po akcii – app:canal-outreach) a kampane na ne
+    | sa nastavujú v Accounte v menu Emailing. Zoznam udalostí pošle `php artisan emailing:register-triggers`
     | (pri nasadení). Token potrebuje `mailing:write`.
     */
     'mailing' => (bool) env('ACCOUNT_MAILING', false),

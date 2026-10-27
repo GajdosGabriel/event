@@ -246,6 +246,27 @@ class AccountClient
         }
     }
 
+    /**
+     * Odhlásenie v Evente prenesené do adresára Emailingu, aby Account
+     * neposlal zvyšok postupnosti ponúk. Najlepšia snaha ako suppress().
+     */
+    public function unsubscribeMailing(string $email): void
+    {
+        if (! $this->mailingEnabled()) {
+            return;
+        }
+
+        try {
+            $this->upsertMailingContacts([[
+                'email' => $email,
+                'unsubscribed' => true,
+                'changed_at' => now()->format(DATE_ATOM),
+            ]]);
+        } catch (\Throwable $e) {
+            Log::warning('Account: odhlasenie z emailingu sa nepodarilo nahlasit', ['email' => $email, 'error' => $e->getMessage()]);
+        }
+    }
+
     /* ---------------------------------------------------------------
      | Emailing (kampane sú v Accounte, Event hlási udalosti)
      |---------------------------------------------------------------*/

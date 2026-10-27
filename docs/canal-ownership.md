@@ -50,7 +50,8 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |
 | Pozvánka do tímu (`CanalInvitationSent`) | pozvaná adresa | pozvaná adresa |
 | Zmena vlastníka (`CanalOwnershipChanged`) | simulované, pozri vyššie | nikto |
-| Oslovenie po akcii (`CanalOutreachNotice`) | nikto | kontakt kanála, raz za 90 dní, simulované (fáza 4) |
+| Oslovenie po akcii (`CanalOutreachNotice`) | nikto | kontakt kanála, simulované (fáza 4); pri `ACCOUNT_MAILING` namiesto neho kampane v Accounte (fáza 5) |
+| Ponuka prevzatia pred akciou / pri zobrazeniach (Account Emailing) | nikto | kontakt kanála, najviac 3 za 90 dní (fáza 5) |
 
 ## Fáza 2: Príjemcovia notifikácií (hotové)
 - Témy (`CanalNotificationTopic`): `signups`, `messages`, `questions`, `reviews` (kontroly obsahu, atribútov, doplnený profil).
@@ -114,6 +115,28 @@ Každé prevzatie má záznam v `canal_claims` (`CanalClaims`). Záznamy sa nema
 - **Simulácia** `CANAL_OUTREACH_MAIL_SIMULATE` (predvolene `true`): e-mail ide len do denníka. Kým simulácia beží, neopakuje sa ani simulované oslovenie; ostrý beh potom počíta odstup len od skutočne odoslaných.
 - **Pred vypnutím simulácie** overiť súlad s § 116 zákona č. 452/2021 Z. z. a skontrolovať výstup `--dry-run`.
 - Organizátori podujatí v zbernom kanáli sa neoslovujú. Najprv ich treba presunúť do vlastného kanála (`EventOrganizerReassigner`).
+
+## Fáza 5: Ponuka prevzatia cez Account Emailing
+Oslovenie po akcii prichádzalo neskoro. Pri zapnutom `ACCOUNT_MAILING` ten istý príkaz `app:canal-outreach` (denne 10:15) hlási do Accountu udalosti a text, oneskorenie (`delay_hours`) aj zapnutie kampane spravuje operátor v Accounte (menu Emailing). Bez `ACCOUNT_MAILING` platí fáza 4 bez zmeny.
+
+- **Triggery** (`MailingTrigger`, poradie priority, v jednom behu najviac jeden na kanál):
+
+| Trigger | Kedy (`config/canals.php → outreach`) |
+|---|---|
+| `canal_event_upcoming` | zverejnená akcia začína najneskôr o `upcoming_days` (10) dní; importovaná neskôr dostane mail hneď |
+| `canal_views_milestone` | zverejnená akcia pred koncom dosiahla prah z `view_milestones` (50, 200); každý prah raz |
+| `canal_event_finished` | ako fáza 4: skončila pred 1–14 dňami, aspoň `min_views` zobrazení |
+
+- **Strop postupnosti:** najviac `max_per_cooldown` (3) oslovení za `cooldown_days` (90), medzi dvoma aspoň `min_gap_days` (5). Každý trigger k akcii len raz (`dedupe_key` `canal:{id}:{trigger}:{akcia}[:{prah}]`).
+- **Hlásenie** (`ReportCanalOutreach`, cez frontu): najprv kontakt do adresára (`POST /mailing/contacts`, štítok `canal_contact`, súhlas „verejný kontakt organizátora“), potom udalosť s `ref` `{type: canal}` — odpoveď sa v Inboxe spáruje s kanálom.
+- **Premenné do textu:** `{kanal}`, `{podujatie}`, `{termin}`, `{miesto}`, `{odkaz_podujatia}`, `{odkaz_kanala}`, `{odkaz_prevzatia}`, `{zobrazenia}`, `{ludia}`, `{prihlaseni}`, `{dni_do_zaciatku}`, `{prah_zobrazeni}`. Odkaz na prevzatie je systémová pozvánka s platnosťou `invitation_days` (30); ďalší mail ju len predĺži.
+- **Stavy** v `canal_outreach`: `reported` → `queued` (kampaň mail zaradila) / `not_queued` (žiadna aktívna kampaň — do stropu sa neráta a nahlási sa znova) → podľa webhooku `sent` / `failed` / `bounced`.
+- **Zastavenie:**
+  - prevzatie kanála (`CanalStewardship::complete`) zruší čakajúce maily (`/mailing/events/cancel`, ref `canal`),
+  - odhlásenie v kampani → webhook `mailing.unsubscribed` → `EmailSuppression`; odhlásenie v Evente sa nahlási do adresára (`unsubscribed: true`),
+  - nedoručiteľnosť → webhook `mailing.delivery.bounced` → `CanalEmails::recordBounce` (adresa je vyradená a v `EmailSuppression`).
+- **Nastavenie v Accounte:** po nasadení `php artisan emailing:register-triggers`; webhook Eventu musí odoberať `mailing.unsubscribed` a `mailing.delivery.*`. Kampaň na každý trigger (napr. `canal_event_upcoming` s `delay_hours` 0, `canal_event_finished` s 2 h). Simuláciu tu nahrádza stav kampane v Accounte a `MAILING_DRY_RUN`; `CANAL_OUTREACH_MAIL_SIMULATE` platí len pre cestu bez Accountu.
+- Parametre príkazu: `--dry-run`, `--limit=N`, `--trigger=canal_event_upcoming`.
 
 ## Prehľad prepínačov simulácie
 Všetky sú predvolene `true`, teda nič z nového neodchádza a všetko je v denníku ako `mail.simulated`.
