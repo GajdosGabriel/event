@@ -63,7 +63,7 @@ Možnosť (b) je fallback: Facebook aj Google presmerovanie nasledujú a riadia 
 ## Overenie
 
 ```bash
-curl -A "facebookexternalhit/1.1" https://event.hlascirkvi.sk/akcie/42/nazov | head -40
+curl -A "facebookexternalhit/1.1" https://tixio.eu/akcie/42/nazov | head -40
 ```
 
 Odpoveď musí obsahovať `og:title`, `og:image` a `application/ld+json`
@@ -72,17 +72,17 @@ Odpoveď musí obsahovať `og:title`, `og:image` a `application/ld+json`
 Stará adresa musí odpovedať `301` a `Location` na nový tvar:
 
 ```bash
-curl -sI https://event.hlascirkvi.sk/podujatia/nazov-42 | head -3
+curl -sI https://tixio.eu/podujatia/nazov-42 | head -3
 ```
 
 ```bash
-curl -s https://event.hlascirkvi.sk/sitemap.xml | head -20
+curl -s https://tixio.eu/sitemap.xml | head -20
 ```
 
 Musí vrátiť validné XML s `<urlset>` a len s publikovanými podujatiami.
 
 ```bash
-curl -sI https://event.hlascirkvi.sk/podujatia/nazov-42 | head -3
+curl -sI https://tixio.eu/podujatia/nazov-42 | head -3
 ```
 
 Bez crawler `User-Agent` musí prísť `index.html` (SPA), nie prerender.
@@ -94,7 +94,7 @@ adresu podujatia; v Search Console odoslať `sitemap.xml`.
 ## Súvisiace nastavenie
 
 `FRONTEND_URL` v `api/.env` musí byť **verejná adresa SPA hostu** (napr.
-`https://event.hlascirkvi.sk`). Z nej sa skladá `canonical`, `og:url` aj každá
+`https://tixio.eu`). Z nej sa skladá `canonical`, `og:url` aj každá
 adresa v `sitemap.xml` — pri zlej hodnote budú odkazy ukazovať mimo portál.
 
 ## Zmeny z 4. 9. 2026 (5.6 a 5.7)
