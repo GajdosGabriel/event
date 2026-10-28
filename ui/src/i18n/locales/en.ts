@@ -1002,6 +1002,14 @@ const en: Messages = {
       archiveDescription: 'Events that have already taken place — newest first.',
     },
   },
+  cookies: {
+    title: 'Cookies',
+    text: 'With your consent we use Google Analytics to measure traffic so we know what to improve. You can withdraw consent at any time in the footer.',
+    more: 'Learn more',
+    accept: 'Accept',
+    reject: 'Reject',
+    settings: 'Cookie settings',
+  },
   legal: {
     terms: 'Terms and Conditions',
     privacy: 'Privacy Notice',

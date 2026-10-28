@@ -115,6 +115,7 @@
         <RouterLink :to="publicArchivePath()" class="text-slate-600 hover:text-slate-900">{{ t('public.seo.archiveHeading') }}</RouterLink>
         <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
         <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
+        <button v-if="showCookieSettings" type="button" class="text-slate-600 hover:text-slate-900" @click="consentBannerOpen = true">{{ t('cookies.settings') }}</button>
       </nav>
     </footer>
   </div>
@@ -131,11 +132,13 @@ import LangSwitcher from '@/components/LangSwitcher.vue'
 import BrandLogo from '@/components/BrandLogo.vue'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 import { publicArchivePath } from '@/utils/publicUrl'
+import { analyticsAvailable, consentBannerOpen } from '@/utils/analytics'
 import { useI18n } from '@/i18n'
 
 const auth = useAuthStore()
 const route = useRoute()
 const { t } = useI18n()
+const showCookieSettings = analyticsAvailable || import.meta.env.DEV
 
 // Computed, nie konštanta — popisky sa musia prekresliť pri prepnutí jazyka.
 //

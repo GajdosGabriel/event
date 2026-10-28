@@ -1001,6 +1001,14 @@ const cs: Messages = {
       archiveDescription: 'Akce, které se už konaly — od nejnovějších.',
     },
   },
+  cookies: {
+    title: 'Soubory cookie',
+    text: 'Se souhlasem použijeme Google Analytics k měření návštěvnosti, abychom věděli, co na portálu zlepšit. Souhlas můžete kdykoli odvolat v patičce.',
+    more: 'Více informací',
+    accept: 'Souhlasím',
+    reject: 'Odmítám',
+    settings: 'Nastavení cookies',
+  },
   legal: {
     terms: 'Obchodní podmínky',
     privacy: 'Ochrana osobních údajů',

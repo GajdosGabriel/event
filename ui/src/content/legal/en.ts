@@ -207,7 +207,7 @@ const en: LegalDocuments = {
         heading: '9. Cookies and local storage',
         paragraphs: [
           'The Portal uses strictly necessary cookies and browser local storage for sign-in, security and remembering the chosen language. The Portal would not work without them, so no consent is required.',
-          'Should we deploy analytics or marketing cookies, we will ask for your consent in advance and it will be withdrawable at any time.',
+          'Only with your consent do we use analytics cookies of Google Analytics 4 (Google Ireland Limited) to measure traffic — which pages are visited, where visitors come from and which device they use. The legal basis is consent (Art. 6(1)(a) GDPR); data is retained for 14 months and may be transferred to the USA under the EU–US Data Privacy Framework. Advertising features are disabled. You give or withdraw consent via the “Cookie settings” link in the page footer.',
           'You can delete stored cookies at any time in your browser settings; some features of the Portal may then stop working.',
         ],
       },

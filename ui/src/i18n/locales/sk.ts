@@ -1061,6 +1061,14 @@ const sk = {
   },
   // Popisky okolo právnych dokumentov. Samotné znenie podmienok a zásad je
   // v ui/src/content/legal — sú to dokumenty, nie reťazce rozhrania.
+  cookies: {
+    title: 'Súbory cookie',
+    text: 'So súhlasom použijeme Google Analytics na meranie návštevnosti, aby sme vedeli, čo na portáli zlepšiť. Súhlas môžete kedykoľvek odvolať v pätičke.',
+    more: 'Viac informácií',
+    accept: 'Súhlasím',
+    reject: 'Odmietam',
+    settings: 'Nastavenia cookies',
+  },
   legal: {
     terms: 'Obchodné podmienky',
     privacy: 'Ochrana osobných údajov',

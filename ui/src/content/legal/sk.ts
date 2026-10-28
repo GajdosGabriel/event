@@ -210,7 +210,7 @@ const sk: LegalDocuments = {
         heading: '9. Súbory cookie a miestne úložisko',
         paragraphs: [
           'Portál používa nevyhnutné cookies a miestne úložisko prehliadača na prihlásenie, bezpečnosť a zapamätanie zvoleného jazyka. Bez nich by Portál nefungoval, preto sa na ne súhlas nevyžaduje.',
-          'Ak nasadíme analytické alebo marketingové cookies, vyžiadame si na ne váš súhlas vopred a bude sa dať kedykoľvek odvolať.',
+          'Len s vaším súhlasom používame analytické cookies služby Google Analytics 4 (Google Ireland Limited) na meranie návštevnosti — ktoré stránky sa navštevujú, odkiaľ návštevníci prichádzajú a aké zariadenie používajú. Právnym základom je súhlas (čl. 6 ods. 1 písm. a) GDPR); údaje sa uchovávajú 14 mesiacov a môžu sa prenášať do USA na základe rámca EÚ – USA pre ochranu osobných údajov. Reklamné funkcie sú vypnuté. Súhlas udelíte alebo odvoláte v lište, ktorú otvoríte odkazom „Nastavenia cookies“ v pätičke stránky.',
           'Uložené cookies môžete kedykoľvek vymazať v nastaveniach svojho prehliadača; niektoré funkcie Portálu potom nemusia fungovať.',
         ],
       },

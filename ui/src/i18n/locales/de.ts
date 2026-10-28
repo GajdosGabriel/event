@@ -1002,6 +1002,14 @@ const de: Messages = {
       archiveDescription: 'Bereits stattgefundene Veranstaltungen — die neuesten zuerst.',
     },
   },
+  cookies: {
+    title: 'Cookies',
+    text: 'Mit Ihrer Einwilligung nutzen wir Google Analytics zur Reichweitenmessung, um das Portal zu verbessern. Sie können die Einwilligung jederzeit in der Fußzeile widerrufen.',
+    more: 'Mehr erfahren',
+    accept: 'Zustimmen',
+    reject: 'Ablehnen',
+    settings: 'Cookie-Einstellungen',
+  },
   legal: {
     terms: 'Geschäftsbedingungen',
     privacy: 'Datenschutz',

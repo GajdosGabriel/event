@@ -207,7 +207,7 @@ const de: LegalDocuments = {
         heading: '9. Cookies und lokaler Speicher',
         paragraphs: [
           'Das Portal verwendet notwendige Cookies und den lokalen Speicher des Browsers für Anmeldung, Sicherheit und das Merken der gewählten Sprache. Ohne sie würde das Portal nicht funktionieren, daher ist hierfür keine Einwilligung erforderlich.',
-          'Sollten wir Analyse- oder Marketing-Cookies einsetzen, holen wir vorab Ihre Einwilligung ein; diese ist jederzeit widerrufbar.',
+          'Nur mit Ihrer Einwilligung verwenden wir Analyse-Cookies von Google Analytics 4 (Google Ireland Limited) zur Reichweitenmessung — welche Seiten besucht werden, woher Besucher kommen und welches Gerät sie nutzen. Rechtsgrundlage ist die Einwilligung (Art. 6 Abs. 1 lit. a DSGVO); die Daten werden 14 Monate gespeichert und können auf Grundlage des EU-US Data Privacy Framework in die USA übermittelt werden. Werbefunktionen sind deaktiviert. Die Einwilligung erteilen oder widerrufen Sie über den Link „Cookie-Einstellungen“ in der Fußzeile.',
           'Gespeicherte Cookies können Sie jederzeit in den Einstellungen Ihres Browsers löschen; einzelne Funktionen des Portals funktionieren dann möglicherweise nicht mehr.',
         ],
       },

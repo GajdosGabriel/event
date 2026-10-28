@@ -3,12 +3,17 @@
   <RouterView />
   <AppToast />
   <ImpersonationBar />
+  <CookieConsent />
 </template>
 
 <script setup lang="ts">
 import AppToast from '@/components/AppToast.vue'
 import ImpersonationBar from '@/components/ImpersonationBar.vue'
+import CookieConsent from '@/components/CookieConsent.vue'
+import { initAnalytics } from '@/utils/analytics'
 import { navigating } from '@/composables/useNavigationProgress'
+
+initAnalytics()
 </script>
 
 <style scoped>
