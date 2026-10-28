@@ -2336,7 +2336,6 @@ const cs: Messages = {
       canals_contact_changed: 'Kanál: změna kontaktního e-mailu',
       canals_contact_verified: 'Kanál: kontaktní e-mail ověřen',
       canals_outreach_sent: 'Oslovení kanálu odesláno',
-      canals_outreach_simulated: 'Oslovení kanálu simulováno (neodešlo)',
       canals_question_relayed: 'Otázka z publika odeslána kanálu',
     },
   },

@@ -5,11 +5,9 @@ namespace Tests\Feature\Canal;
 use App\Enums\CanalEmailStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
-use App\Models\Event;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Notifications\CanalContactNotice;
-use App\Notifications\CanalOutreachNotice;
 use App\Notifications\Channels\AccountMailChannel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -63,23 +61,6 @@ class CanalAccountMessagingTest extends TestCase
 
         Mail::assertNothingOutgoing();
         $this->assertTrue(SystemLog::where('event', 'mail.sent')->where('recipient', 'nova@divadlo.test')->exists());
-    }
-
-    #[Test]
-    public function outreach_keeps_one_click_unsubscribe_headers(): void
-    {
-        Http::fake(['account.test/*' => Http::response(['data' => ['conversation' => [], 'message' => []]], 202)]);
-
-        $canal = $this->canal('info@divadlo.test');
-        $event = Event::factory()->create(['canal_id' => $canal->id, 'user_id' => User::factory()->create()->id]);
-
-        Notification::route('mail', 'info@divadlo.test')->notify(new CanalOutreachNotice(
-            $canal, $event, ['event_views' => 10], 'https://event.test/prevziat', 'https://event.test/odhlasit',
-        ));
-
-        Http::assertSent(fn (Request $request) => $request['headers']['List-Unsubscribe'] === '<https://event.test/odhlasit>'
-            && $request['headers']['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click'
-            && $request['kind'] === 'canal.outreach');
     }
 
     #[Test]

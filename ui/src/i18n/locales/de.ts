@@ -2337,7 +2337,6 @@ const de: Messages = {
       canals_contact_changed: 'Kanal: Kontakt-E-Mail geändert',
       canals_contact_verified: 'Kanal: Kontakt-E-Mail bestätigt',
       canals_outreach_sent: 'Kanal-Ansprache gesendet',
-      canals_outreach_simulated: 'Kanal-Ansprache simuliert (nicht gesendet)',
       canals_question_relayed: 'Publikumsfrage an Kanal weitergeleitet',
     },
   },

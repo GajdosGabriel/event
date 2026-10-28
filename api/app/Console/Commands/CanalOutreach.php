@@ -10,9 +10,8 @@ use Illuminate\Console\Command;
  * Ponuka prevzatia importovaných kanálov (docs/canal-ownership.md, fázy 4 a 5).
  *
  * `--dry-run` len vypíše, koho by oslovil — nevytvorí pozvánku ani záznam.
- * Bez neho: pri ACCOUNT_MAILING sa udalosti hlásia do Account Emailingu,
- * inak e-maily idú cez MailSimulator (kým platí `canals.simulate_outreach_mail`,
- * len do denníka).
+ * Bez neho sa udalosti hlásia do Account Emailingu. Bez ACCOUNT_MAILING
+ * sa neoslovuje nikto.
  */
 class CanalOutreach extends Command
 {
@@ -25,6 +24,12 @@ class CanalOutreach extends Command
 
     public function handle(CanalOutreachSender $sender): int
     {
+        if (! $sender->viaAccount()) {
+            $this->warn('Emailing v Accounte je vypnutý (ACCOUNT_MAILING / ACCOUNT_TOKEN) – nikto sa neosloví.');
+
+            return self::SUCCESS;
+        }
+
         $only = null;
 
         if ($this->option('trigger') !== null) {
@@ -40,7 +45,6 @@ class CanalOutreach extends Command
         $limit = $this->option('limit') !== null ? max(1, (int) $this->option('limit')) : null;
         $candidates = $sender->candidates($limit, $only);
         $dryRun = (bool) $this->option('dry-run');
-        $mode = $sender->viaAccount() ? ' (Account)' : (config('canals.simulate_outreach_mail', true) ? ' (simulácia)' : '');
 
         foreach ($candidates as $c) {
             $this->line(sprintf('%s%s #%d %s → %s | akcia #%d %s | zobrazenia %d, ľudia %d, prihlásení %d',
@@ -56,7 +60,7 @@ class CanalOutreach extends Command
             }
         }
 
-        $this->info(sprintf('Oslovených: %d%s', $candidates->count(), $dryRun ? ' (dry-run)' : $mode));
+        $this->info(sprintf('Oslovených: %d%s', $candidates->count(), $dryRun ? ' (dry-run)' : ' (Account)'));
 
         return self::SUCCESS;
     }

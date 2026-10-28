@@ -13,17 +13,13 @@ use App\Models\CanalOutreach;
 use App\Models\EmailSuppression;
 use App\Models\Event;
 use App\Models\View;
-use App\Notifications\CanalOutreachNotice;
 use App\Services\Account\AccountClient;
 use App\Services\Imports\CollectionCanal;
-use App\Services\SystemLog\MailSimulator;
 use App\Services\SystemLog\Recorder;
 use App\Support\EventDateRange;
 use App\Support\PublicUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Ponuka prevzatia importovaného kanála (docs/canal-ownership.md, fázy 4 a 5).
@@ -42,12 +38,9 @@ use Illuminate\Support\Facades\URL;
  *  - kanál dostal za `cooldown_days` najviac `max_per_cooldown` oslovení,
  *    posledné aspoň pred `min_gap_days` dňami; jeden trigger k akcii len raz.
  *
- * Doručenie:
- *  - pri zapnutom ACCOUNT_MAILING sa udalosť nahlási do Account Emailingu
- *    (ReportCanalOutreach) — text a oneskorenie sú v kampani; kým kampaň
- *    nie je aktívna, nič neodíde (`not_queued`, nahlási sa znova),
- *  - inak len `canal_event_finished` vlastným CanalOutreachNotice. Kým platí
- *    `canals.simulate_outreach_mail`, len do denníka (`simulated`).
+ * Doručenie ide len cez Account Emailing (ReportCanalOutreach) — text
+ * a oneskorenie sú v kampani; kým kampaň nie je aktívna, nič neodíde
+ * (`not_queued`, nahlási sa znova). Bez ACCOUNT_MAILING sa neoslovuje.
  */
 class CanalOutreachSender
 {
@@ -91,13 +84,13 @@ class CanalOutreachSender
     }
 
     /**
-     * Pošle oslovenie jedného kandidáta: do Accountu, alebo vlastným e-mailom.
+     * Nahlási oslovenie jedného kandidáta do Account Emailingu.
      *
      * @param  array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string}  $c
      */
     public function send(array $c): CanalOutreach
     {
-        return $this->viaAccount() ? $this->report($c) : $this->mail($c);
+        return $this->report($c);
     }
 
     /**
@@ -127,11 +120,6 @@ class CanalOutreachSender
         ];
     }
 
-    public function unsubscribeUrl(string $email): string
-    {
-        return URL::signedRoute('public.email.unsubscribe', ['email' => mb_strtolower($email)]);
-    }
-
     /** Hlási sa do Account Emailingu? */
     public function viaAccount(): bool
     {
@@ -141,9 +129,7 @@ class CanalOutreachSender
     /** @return array<int, MailingTrigger> */
     public function triggers(): array
     {
-        return $this->viaAccount()
-            ? [MailingTrigger::CanalEventUpcoming, MailingTrigger::CanalViewsMilestone, MailingTrigger::CanalEventFinished]
-            : [MailingTrigger::CanalEventFinished];
+        return [MailingTrigger::CanalEventUpcoming, MailingTrigger::CanalViewsMilestone, MailingTrigger::CanalEventFinished];
     }
 
     /* ---------------------------------------------------------------
@@ -286,19 +272,15 @@ class CanalOutreachSender
 
     /**
      * Strop postupnosti: najviac `max_per_cooldown` oslovení za `cooldown_days`
-     * a medzi dvoma aspoň `min_gap_days`. Počas simulácie sa ráta aj simulované
-     * oslovenie (denník by sa každý deň plnil tým istým); ostré len skutočné.
+     * a medzi dvoma aspoň `min_gap_days`.
      */
     private function mayContact(Canal $canal): bool
     {
         $config = config('canals.outreach');
-        $statuses = $this->simulate() && ! $this->viaAccount()
-            ? [...CanalOutreach::COUNTED, CanalOutreach::SIMULATED]
-            : CanalOutreach::COUNTED;
 
         $recent = CanalOutreach::query()
             ->where('canal_id', $canal->id)
-            ->whereIn('status', $statuses)
+            ->whereIn('status', CanalOutreach::COUNTED)
             ->where('created_at', '>=', now()->subDays((int) $config['cooldown_days']));
 
         if ((clone $recent)->count() >= max(1, (int) $config['max_per_cooldown'])) {
@@ -393,38 +375,6 @@ class CanalOutreachSender
         return $outreach;
     }
 
-    /** @param  array<string, mixed>  $c */
-    private function mail(array $c): CanalOutreach
-    {
-        /** @var Canal $canal */
-        $canal = $c['canal'];
-        /** @var Event $event */
-        $event = $c['event'];
-        $simulate = $this->simulate();
-        $invitation = $this->inviter->ensureOwnerInvitation($canal, $c['email']);
-
-        MailSimulator::send(
-            [Notification::route('mail', $c['email'])],
-            new CanalOutreachNotice($canal, $event, $c['stats'], $this->claimUrl($invitation->token), $this->unsubscribeUrl($c['email'])),
-            $simulate,
-            $canal,
-        );
-
-        $outreach = CanalOutreach::query()->updateOrCreate(['dedupe_key' => $c['dedupe_key']], [
-            'canal_id' => $canal->id,
-            'event_id' => $event->id,
-            'trigger' => $c['trigger']->value,
-            'email' => $c['email'],
-            'status' => $simulate ? CanalOutreach::SIMULATED : CanalOutreach::SENT,
-            'stats' => $c['stats'],
-            'invitation_id' => $invitation->id,
-        ]);
-
-        $this->log($outreach, $canal, $event);
-
-        return $outreach;
-    }
-
     private function log(CanalOutreach $outreach, Canal $canal, Event $event): void
     {
         Recorder::info('canals', 'outreach_'.$outreach->status,
@@ -439,10 +389,5 @@ class CanalOutreachSender
     private function claimUrl(string $token): string
     {
         return rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$token;
-    }
-
-    private function simulate(): bool
-    {
-        return (bool) config('canals.simulate_outreach_mail', true);
     }
 }

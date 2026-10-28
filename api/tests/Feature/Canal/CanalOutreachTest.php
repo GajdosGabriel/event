@@ -13,18 +13,18 @@ use App\Models\Event;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Models\View;
-use App\Notifications\CanalOutreachNotice;
 use App\Services\Canals\CanalMembership;
 use App\Services\Canals\CanalOutreachSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Fáza 4: oslovenie organizátora po akcii (app:canal-outreach) — výber
- * kandidátov, simulácia, odstup medzi osloveniami a odhlásenie.
+ * Oslovenie organizátora (app:canal-outreach) — výber kandidátov, vypnutý
+ * emailing a odhlásenie. Doručenie cez Account: CanalOutreachMailingTest.
  */
 class CanalOutreachTest extends TestCase
 {
@@ -76,56 +76,25 @@ class CanalOutreachTest extends TestCase
     }
 
     #[Test]
-    public function command_simulates_the_mail_with_a_claim_link_and_does_not_repeat(): void
+    public function without_account_mailing_nobody_is_contacted(): void
     {
+        config(['account.mailing' => false]);
+
         $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
         $this->endedEvent($canal, 2, 3);
 
-        $this->artisan('app:canal-outreach', ['--dry-run' => true])->assertSuccessful();
+        $this->artisan('app:canal-outreach')->assertSuccessful();
+
         $this->assertSame(0, CanalOutreach::count());
         $this->assertSame(0, CanalInvitation::count());
-
-        $this->artisan('app:canal-outreach')->assertSuccessful();
-
-        $invitation = CanalInvitation::sole();
-        $mail = SystemLog::where('event', 'mail.simulated')->sole();
-        $this->assertSame('info@hajske.sk', $mail->recipient);
-        $this->assertSame(CanalOutreachNotice::class, $mail->context['class']);
-        $this->assertStringEndsWith('/pozvanka/'.$invitation->token, $mail->context['action']);
-        $this->assertSame(CanalOutreach::SIMULATED, CanalOutreach::sole()->status);
-        $this->assertTrue(SystemLog::where('event', 'canals.outreach_simulated')->exists());
         Notification::assertNothingSent();
-
-        // Druhý beh ten istý kanál neosloví.
-        $this->artisan('app:canal-outreach')->assertSuccessful();
-        $this->assertSame(1, CanalOutreach::count());
-    }
-
-    #[Test]
-    public function without_simulation_the_mail_goes_out_and_only_real_sends_count_for_cooldown(): void
-    {
-        $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
-        $this->endedEvent($canal, 2, 3);
-
-        // Simulované oslovenie ostrý beh neblokuje.
-        CanalOutreach::query()->create(['canal_id' => $canal->id, 'email' => 'info@hajske.sk', 'status' => CanalOutreach::SIMULATED]);
-        config(['canals.simulate_outreach_mail' => false]);
-
-        $this->artisan('app:canal-outreach')->assertSuccessful();
-
-        Notification::assertSentOnDemand(CanalOutreachNotice::class, function (CanalOutreachNotice $n, $c, $to) {
-            $mail = $n->toMail($to);
-
-            return $to->routes['mail'] === 'info@hajske.sk'
-                && str_contains(implode(' ', $mail->outroLines), '/api/email/unsubscribe');
-        });
-        $this->assertSame(1, CanalOutreach::where('status', CanalOutreach::SENT)->count());
+        Mail::assertNothingOutgoing();
     }
 
     #[Test]
     public function unsubscribe_link_suppresses_the_address_everywhere(): void
     {
-        $url = app(CanalOutreachSender::class)->unsubscribeUrl('Info@Hajske.sk');
+        $url = URL::signedRoute('public.email.unsubscribe', ['email' => 'info@hajske.sk']);
 
         $this->get(str_replace('info%40', 'iny%40', $url))->assertForbidden();
         $this->get($url)->assertRedirectContains('/odhlasenie');

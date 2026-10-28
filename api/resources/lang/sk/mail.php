@@ -147,18 +147,6 @@ return [
         'contest_action' => 'Nesúhlasím s prevzatím',
     ],
 
-    // App\Notifications\CanalOutreachNotice — oslovenie organizátora po akcii.
-    'canal_outreach' => [
-        'subject' => 'Vašu akciu :event si pozreli ľudia na :site',
-        'intro' => 'Akciu **„:event"** (:date) sme zverejnili na portáli :site.',
-        'views' => '{0} Zatiaľ si ju nikto nepozrel.|{1} Pozrel si ju **1** človek.|[2,4] Pozreli si ju **:visitors** ľudia (:views zobrazení).|[5,*] Pozrelo si ju **:visitors** ľudí (:views zobrazení).',
-        'signups' => '{1} Prihlásil sa **1** účastník.|[2,4] Prihlásili sa **:signups** účastníci.|[5,*] Prihlásilo sa **:signups** účastníkov.',
-        'offer' => 'Profil **„:canal"** vznikol automaticky z verejných zdrojov. Ak ho prevezmete, môžete zadarmo zverejňovať ďalšie akcie, upravovať údaje a dostávať prihlášky aj správy od návštevníkov.',
-        'action' => 'Prevziať profil',
-        'why' => 'Píšeme vám, lebo vaša adresa je uvedená pri akcii alebo profile organizátora. Viac vás nebudeme obťažovať, kým o to neprejavíte záujem.',
-        'unsubscribe' => 'Nechcete od nás takéto e-maily? [Odhlásiť sa](:url).',
-    ],
-
     // App\Notifications\CanalContactNotice — zmena kontaktného e-mailu kanála.
     'canal_contact' => [
         'verify' => [

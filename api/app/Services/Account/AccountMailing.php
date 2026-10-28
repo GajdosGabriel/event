@@ -197,9 +197,8 @@ class AccountMailing
             ->where('status', '!=', TicketStatus::Cancelled->value)
             ->latest('id')
             ->first();
-        // Simulované oslovenie do Accountu nešlo; prevzatý kanál už má správcu.
+        // Prevzatý kanál už má správcu.
         $outreach = CanalOutreach::query()->where('email', $email)
-            ->where('status', '!=', CanalOutreach::SIMULATED)
             ->whereHas('canal', fn ($canal) => $canal->whereNull('claimed_at'))
             ->with('canal')
             ->oldest('id')

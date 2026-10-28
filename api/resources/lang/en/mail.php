@@ -143,18 +143,6 @@ return [
         'contest_action' => 'I do not agree',
     ],
 
-    // App\Notifications\CanalOutreachNotice — oslovenie organizátora po akcii.
-    'canal_outreach' => [
-        'subject' => 'People viewed your event :event on :site',
-        'intro' => 'We published your event **":event"** (:date) on :site.',
-        'views' => '{0} Nobody has viewed it yet.|{1} **1** person viewed it.|[2,*] **:visitors** people viewed it (:views views).',
-        'signups' => '{1} **1** participant signed up.|[2,*] **:signups** participants signed up.',
-        'offer' => 'The profile **":canal"** was created automatically from public sources. If you take it over, you can publish further events for free, edit the details and receive sign-ups and messages from visitors.',
-        'action' => 'Take over the profile',
-        'why' => 'We are writing because your address is listed with the event or the organizer profile. We will not contact you again unless you show interest.',
-        'unsubscribe' => 'Do not want emails like this? [Unsubscribe](:url).',
-    ],
-
     // App\Notifications\CanalContactNotice — zmena kontaktného e-mailu kanála.
     'canal_contact' => [
         'verify' => [

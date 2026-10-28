@@ -19,19 +19,16 @@ return [
     // overenie na novú adresu, upozornenie na pôvodnú.
     'simulate_contact_mail' => (bool) env('CANAL_CONTACT_MAIL_SIMULATE', true),
 
-    // Oslovenie organizátorov po akcii (app:canal-outreach). Pred vypnutím
-    // simulácie overiť súlad s § 116 zákona č. 452/2021 Z. z.
-    'simulate_outreach_mail' => (bool) env('CANAL_OUTREACH_MAIL_SIMULATE', true),
-
     // Otázky návštevníkov preposielané organizátorom importovaných kanálov
     // (QuestionRelay). Ide o nevyžiadaný e-mail na verejnú adresu — pred
     // vypnutím simulácie overiť súlad s § 116 zákona č. 452/2021 Z. z.
     // Kópia adminom odchádza vždy.
     'simulate_question_relay_mail' => (bool) env('CANAL_QUESTION_RELAY_MAIL_SIMULATE', true),
 
-    // Triggery: pred akciou, prah zobrazení, po akcii. Pri zapnutom
-    // ACCOUNT_MAILING ich Event hlási do Account Emailingu (text a oneskorenie
-    // sú v kampani); bez neho ide len „po akcii“ vlastným e-mailom.
+    // Oslovenie organizátorov (app:canal-outreach) — triggery pred akciou,
+    // prah zobrazení, po akcii. Hlásia sa len do Account Emailingu (text
+    // a oneskorenie sú v kampani); bez ACCOUNT_MAILING sa neoslovuje. Pred
+    // zapnutím kampane overiť súlad s § 116 zákona č. 452/2021 Z. z.
     'outreach' => [
         // Akcia začína najneskôr o toľko dní (trigger canal_event_upcoming).
         'upcoming_days' => (int) env('CANAL_OUTREACH_UPCOMING_DAYS', 10),

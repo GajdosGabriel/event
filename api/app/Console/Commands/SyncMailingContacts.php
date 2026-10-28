@@ -32,7 +32,7 @@ class SyncMailingContacts extends Command
 
         $emails = User::query()->whereNotNull('email')->pluck('email')
             ->merge(Ticket::query()->whereNotNull('holder_email')->where('status', '!=', TicketStatus::Cancelled->value)->distinct()->pluck('holder_email'))
-            ->merge(CanalOutreach::query()->where('status', '!=', CanalOutreach::SIMULATED)->distinct()->pluck('email'))
+            ->merge(CanalOutreach::query()->distinct()->pluck('email'))
             ->map(fn ($email) => mb_strtolower(trim((string) $email)))
             ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
             ->unique()

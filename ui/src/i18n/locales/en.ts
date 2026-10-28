@@ -2337,7 +2337,6 @@ const en: Messages = {
       canals_contact_changed: 'Channel: contact email changed',
       canals_contact_verified: 'Channel: contact email verified',
       canals_outreach_sent: 'Channel outreach sent',
-      canals_outreach_simulated: 'Channel outreach simulated (not sent)',
       canals_question_relayed: 'Audience question forwarded to channel',
     },
   },

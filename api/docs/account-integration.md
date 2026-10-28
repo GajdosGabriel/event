@@ -263,11 +263,11 @@ tenká read-model tabuľka (`account_uuid`, `name`, `ico`, `synced_at`) plnená
 ## E-maily kanálom cez Account
 
 Pri `ACCOUNT_MESSAGING=true` odchádzajú e-maily na kontakt kanála cez schránku Eventu
-v Accounte, nie cez lokálne SMTP. Týka sa to štyroch notifikácií:
+v Accounte, nie cez lokálne SMTP. Týka sa to troch notifikácií (oslovenie kanálov
+ide cez Account Emailing, nie ako správa):
 
 | Notifikácia | `kind` v Accounte |
 |---|---|
-| `CanalOutreachNotice` (oslovenie po akcii, s List-Unsubscribe) | `canal.outreach` |
 | `CanalContactNotice` (overenie / zmena kontaktu) | `canal.contact_verify`, `canal.contact_changed` |
 | `CanalClaimNotice` – iba `verify` na kontakt kanála | `canal.claim_verify` |
 | `CanalInvitationSent` (pozvánka do tímu) | `canal.invitation` |

@@ -8,17 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Jedno oslovenie organizátora (App\Services\Canals\CanalOutreachSender).
  *
- * Vlastný e-mail Eventu: `sent` / `simulated`. Cez Account Emailing:
- * `reported` → `queued` (kampaň mail zaradila) alebo `not_queued` (žiadna
- * aktívna kampaň) → podľa webhooku `sent` / `failed` / `bounced`.
+ * Oslovenie ide cez Account Emailing: `reported` → `queued` (kampaň mail
+ * zaradila) alebo `not_queued` (žiadna aktívna kampaň) → podľa webhooku
+ * `sent` / `failed` / `bounced`.
  */
 class CanalOutreach extends Model
 {
     public const UPDATED_AT = null;
 
     public const SENT = 'sent';
-
-    public const SIMULATED = 'simulated';
 
     public const REPORTED = 'reported';
 

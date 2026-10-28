@@ -2443,7 +2443,6 @@ const sk = {
       canals_contact_changed: 'Kanál: zmena kontaktného e-mailu',
       canals_contact_verified: 'Kanál: kontaktný e-mail overený',
       canals_outreach_sent: 'Oslovenie kanála odoslané',
-      canals_outreach_simulated: 'Oslovenie kanála simulované (neodišlo)',
       canals_question_relayed: 'Otázka z publika odoslaná kanálu',
     },
   },

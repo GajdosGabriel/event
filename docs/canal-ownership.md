@@ -50,8 +50,7 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |
 | Pozvánka do tímu (`CanalInvitationSent`) | pozvaná adresa | pozvaná adresa |
 | Zmena vlastníka (`CanalOwnershipChanged`) | simulované, pozri vyššie | nikto |
-| Oslovenie po akcii (`CanalOutreachNotice`) | nikto | kontakt kanála, simulované (fáza 4); pri `ACCOUNT_MAILING` namiesto neho kampane v Accounte (fáza 5) |
-| Ponuka prevzatia pred akciou / pri zobrazeniach (Account Emailing) | nikto | kontakt kanála, najviac 3 za 90 dní (fáza 5) |
+| Ponuka prevzatia pred akciou / pri zobrazeniach / po akcii (Account Emailing) | nikto | kontakt kanála, najviac 3 za 90 dní (fáza 5) |
 
 ## Fáza 2: Príjemcovia notifikácií (hotové)
 - Témy (`CanalNotificationTopic`): `signups`, `messages`, `questions`, `reviews` (kontroly obsahu, atribútov, doplnený profil).
@@ -98,26 +97,18 @@ Každé prevzatie má záznam v `canal_claims` (`CanalClaims`). Záznamy sa nema
 | prevzatie | preberajúci + kontakt/adresa pozvánky (s odkazom na námietku) |
 | zmena kontaktu | nová adresa (overenie) + pôvodná (upozornenie) |
 
-## Fáza 4: Oslovenie po akcii (hotové, simulované)
-- Príkaz `app:canal-outreach` (`CanalOutreachSender`) beží denne o 10:15. Parametre: `--dry-run` len vypíše kandidátov, `--limit=N`.
+## Fáza 4: Výber kandidátov na oslovenie (hotové)
+Oslovenie samotné ide cez Account Emailing (fáza 5); tu je výber kandidátov a odhlásenie:
+- Príkaz `app:canal-outreach` (`CanalOutreachSender`) beží denne o 10:15.
 - **Kandidát** (`config/canals.php → outreach`):
-  - akcia skončila pred 1 až 14 dňami (`after_days`, `window_days`),
   - kanál je importovaný, neprevzatý, nie zberný, s platným kontaktom (`canals.email`, inak e-mail podujatia),
   - kontakt nie je v `email_suppressions`,
-  - kanál nebol oslovený posledných 90 dní (`cooldown_days`),
-  - akcia má aspoň `min_views` zobrazení; berie sa posledná akcia kanála, najviac `limit` kanálov za beh.
-- **E-mail** (`CanalOutreachNotice`):
-  - zobrazenia a počet ľudí z `views`, prihlásení z `admissions`,
-  - tlačidlo „Prevziať profil“ = systémová pozvánka (`ensureOwnerInvitation`), ktorú prijme ktorýkoľvek účet (fáza 3),
-  - vysvetlenie, prečo píšeme, a odhlásenie jedným klikom (podpísaný odkaz aj hlavičky `List-Unsubscribe` a `List-Unsubscribe-Post`).
+  - berie sa najviac jeden trigger na kanál a najviac `limit` kanálov za beh.
 - **Odhlásenie** (`GET/POST /api/email/unsubscribe`, podpísané) zapíše adresu do `email_suppressions`, zapíše `mail.unsubscribed` a presmeruje na `/odhlasenie`. Platí aj pre ponuku prevzatia pri prihláške (`EventSignup`).
-- **Evidencia** `canal_outreach`: kanál, akcia, adresa, čísla, pozvánka a stav `sent`/`simulated`. Denník: `canals.outreach_sent|outreach_simulated`.
-- **Simulácia** `CANAL_OUTREACH_MAIL_SIMULATE` (predvolene `true`): e-mail ide len do denníka. Kým simulácia beží, neopakuje sa ani simulované oslovenie; ostrý beh potom počíta odstup len od skutočne odoslaných.
-- **Pred vypnutím simulácie** overiť súlad s § 116 zákona č. 452/2021 Z. z. a skontrolovať výstup `--dry-run`.
 - Organizátori podujatí v zbernom kanáli sa neoslovujú. Najprv ich treba presunúť do vlastného kanála (`EventOrganizerReassigner`).
 
 ## Fáza 5: Ponuka prevzatia cez Account Emailing
-Oslovenie po akcii prichádzalo neskoro. Pri zapnutom `ACCOUNT_MAILING` ten istý príkaz `app:canal-outreach` (denne 10:15) hlási do Accountu udalosti a text, oneskorenie (`delay_hours`) aj zapnutie kampane spravuje operátor v Accounte (menu Emailing). Bez `ACCOUNT_MAILING` platí fáza 4 bez zmeny.
+Príkaz `app:canal-outreach` (denne 10:15) hlási do Accountu udalosti; text, oneskorenie (`delay_hours`) aj zapnutie kampane spravuje operátor v Accounte (menu Emailing). Bez `ACCOUNT_MAILING` sa neoslovuje nikto. Pred zapnutím kampane overiť súlad s § 116 zákona č. 452/2021 Z. z. a skontrolovať výstup `--dry-run`.
 
 - **Triggery** (`MailingTrigger`, poradie priority, v jednom behu najviac jeden na kanál):
 
@@ -125,7 +116,7 @@ Oslovenie po akcii prichádzalo neskoro. Pri zapnutom `ACCOUNT_MAILING` ten ist�
 |---|---|
 | `canal_event_upcoming` | zverejnená akcia začína najneskôr o `upcoming_days` (10) dní; importovaná neskôr dostane mail hneď |
 | `canal_views_milestone` | zverejnená akcia pred koncom dosiahla prah z `view_milestones` (50, 200); každý prah raz |
-| `canal_event_finished` | ako fáza 4: skončila pred 1–14 dňami, aspoň `min_views` zobrazení |
+| `canal_event_finished` | skončila pred 1–14 dňami (`after_days`, `window_days`), aspoň `min_views` zobrazení |
 
 - **Strop postupnosti:** najviac `max_per_cooldown` (3) oslovení za `cooldown_days` (90), medzi dvoma aspoň `min_gap_days` (5). Každý trigger k akcii len raz (`dedupe_key` `canal:{id}:{trigger}:{akcia}[:{prah}]`).
 - **Hlásenie** (`ReportCanalOutreach`, cez frontu): najprv kontakt do adresára (`POST /mailing/contacts`, štítok `canal_contact`, súhlas „verejný kontakt organizátora“), potom udalosť s `ref` `{type: canal}` — odpoveď sa v Inboxe spáruje s kanálom.
@@ -135,7 +126,7 @@ Oslovenie po akcii prichádzalo neskoro. Pri zapnutom `ACCOUNT_MAILING` ten ist�
   - prevzatie kanála (`CanalStewardship::complete`) zruší čakajúce maily (`/mailing/events/cancel`, ref `canal`),
   - odhlásenie v kampani → webhook `mailing.unsubscribed` → `EmailSuppression`; odhlásenie v Evente sa nahlási do adresára (`unsubscribed: true`),
   - nedoručiteľnosť → webhook `mailing.delivery.bounced` → `CanalEmails::recordBounce` (adresa je vyradená a v `EmailSuppression`).
-- **Nastavenie v Accounte:** po nasadení `php artisan emailing:register-triggers`; webhook Eventu musí odoberať `mailing.unsubscribed` a `mailing.delivery.*`. Kampaň na každý trigger (napr. `canal_event_upcoming` s `delay_hours` 0, `canal_event_finished` s 2 h). Simuláciu tu nahrádza stav kampane v Accounte a `MAILING_DRY_RUN`; `CANAL_OUTREACH_MAIL_SIMULATE` platí len pre cestu bez Accountu.
+- **Nastavenie v Accounte:** po nasadení `php artisan emailing:register-triggers`; webhook Eventu musí odoberať `mailing.unsubscribed` a `mailing.delivery.*`. Kampaň na každý trigger (napr. `canal_event_upcoming` s `delay_hours` 0, `canal_event_finished` s 2 h). Simuláciu tu nahrádza stav kampane v Accounte a `MAILING_DRY_RUN`.
 - Parametre príkazu: `--dry-run`, `--limit=N`, `--trigger=canal_event_upcoming`.
 
 ## Prehľad prepínačov simulácie
@@ -147,4 +138,3 @@ Všetky sú predvolene `true`, teda nič z nového neodchádza a všetko je v de
 | `CANAL_TEAM_NOTIFICATIONS_SIMULATE` | kópie notifikácií ďalším členom tímu (fáza 2) |
 | `CANAL_CLAIM_MAIL_SIMULATE` | žiadosti, potvrdenia, námietky, zamietnutia (fáza 3) |
 | `CANAL_CONTACT_MAIL_SIMULATE` | overenie zmeneného kontaktu (fáza 3) |
-| `CANAL_OUTREACH_MAIL_SIMULATE` | oslovenie po akcii (fáza 4) |
