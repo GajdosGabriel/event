@@ -339,10 +339,23 @@ class AccountClient
     }
 
     /**
-     * Kontakty so súhlasom so zasielaním ponúk (max. 1000 naraz).
-     * Odhláseného človeka to späť neprihlási.
+     * Štítky kontaktov (segmenty) pre výber adresátov v Accounte. Celý
+     * zoznam nahradí doterajší.
      *
-     * @param  array<int, array{email: string, name?: string, permission_note: string, permission_at?: string, organization_id?: string}>  $contacts
+     * @param  array<int, array{key: string, label: string, description?: string}>  $tags
+     */
+    public function registerMailingTags(array $tags): void
+    {
+        $this->assertWritesAllowed();
+
+        $this->request()->put('/api/v1/mailing/tags', ['tags' => $tags])->throw();
+    }
+
+    /**
+     * Kontakty do adresára Emailingu (max. 1000 naraz). Štítky a atribúty
+     * nahradia doterajšie; odhláseného človeka to späť neprihlási.
+     *
+     * @param  array<int, array{email: string, name?: ?string, tags?: array<int, string>, attributes?: array<string, scalar>, permission_note?: string, permission_at?: string, organization_id?: string}>  $contacts
      * @return array{added: int, updated: int}
      */
     public function upsertMailingContacts(array $contacts): array
@@ -350,6 +363,19 @@ class AccountClient
         $this->assertWritesAllowed();
 
         return $this->request()->post('/api/v1/mailing/contacts', ['contacts' => $contacts])->throw()->json('data');
+    }
+
+    /**
+     * Adresa už v Evente nič nemá – kontakt sa v Accounte skryje a jeho
+     * čakajúce maily sa neodošlú.
+     *
+     * @param  array<int, string>  $emails
+     */
+    public function removeMailingContacts(array $emails): void
+    {
+        $this->assertWritesAllowed();
+
+        $this->request()->post('/api/v1/mailing/contacts/remove', ['emails' => $emails])->throw();
     }
 
     /* ---------------------------------------------------------------

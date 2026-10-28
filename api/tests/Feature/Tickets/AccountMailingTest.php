@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Tickets;
 
+use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
+use App\Enums\RegistrationSource;
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Services\Canals\CanalMembership;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -33,6 +36,8 @@ class AccountMailingTest extends EventSetupTest
             'account.test/api/v1/mailing/events' => Http::response(['data' => ['queued' => 1]], 202),
             'account.test/api/v1/mailing/events/cancel' => Http::response(['data' => ['skipped' => 1]]),
             'account.test/api/v1/mailing/triggers' => Http::response(['data' => []]),
+            'account.test/api/v1/mailing/contacts' => Http::response(['data' => ['added' => 1, 'updated' => 0]], 201),
+            'account.test/*' => Http::response(['data' => []]),
         ]);
     }
 
@@ -110,8 +115,108 @@ class AccountMailingTest extends EventSetupTest
 
         Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
             && $request->url() === 'http://account.test/api/v1/mailing/triggers'
-            && collect($request['triggers'])->pluck('key')->all() === ['ticket_registered', 'ticket_cancelled', 'event_finished', 'canal_event_upcoming', 'canal_views_milestone', 'canal_event_finished']
-            && in_array('odkaz_podujatia', $request['triggers'][0]['variables'], true));
+            && collect($request['triggers'])->pluck('key')->all() === ['ticket_registered', 'ticket_cancelled', 'event_finished', 'event_published', 'canal_event_upcoming', 'canal_views_milestone', 'canal_event_finished']
+            && in_array('odkaz_podujatia', $request['triggers'][0]['variables'], true)
+            && in_array('odkaz_upravy', $request['triggers'][3]['variables'], true));
+
+        Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
+            && $request->url() === 'http://account.test/api/v1/mailing/tags'
+            && collect($request['tags'])->pluck('key')->all() === ['user', 'verified', 'organizer', 'canal_contact', 'attendee']);
+    }
+
+    #[Test]
+    public function registration_sends_attendee_contact_before_the_event(): void
+    {
+        $this->register('Kontakt@Example.com');
+
+        $urls = Http::recorded()->map(fn ($pair) => $pair[0]->url())
+            ->filter(fn ($url) => str_contains($url, '/mailing/contacts') || str_ends_with($url, '/mailing/events'))
+            ->values();
+
+        $this->assertSame('http://account.test/api/v1/mailing/contacts', $urls->first());
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/contacts'
+            && $request['contacts'][0]['email'] === 'kontakt@example.com'
+            && in_array('attendee', $request['contacts'][0]['tags'], true)
+            && $request['contacts'][0]['attributes']['meno'] === 'Ján Účastník');
+    }
+
+    #[Test]
+    public function publishing_event_reports_technical_mail_to_canal_owners(): void
+    {
+        $this->managedCanal();
+
+        $this->futureEvent->update(['status' => ModelStatus::Published->value, 'published_at' => now()]);
+
+        $email = mb_strtolower($this->user->email);
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/events'
+            && $request['event'] === 'event_published'
+            && $request['email'] === $email
+            && $request['ref'] === [
+                'type' => 'event',
+                'id' => (string) $this->futureEvent->id,
+                'label' => 'Akcia – '.$this->futureEvent->name,
+                'url' => rtrim((string) config('app.frontend_url'), '/').'/dashboard/events/'.$this->futureEvent->id,
+            ]
+            && $request['dedupe_key'] === 'event:'.$this->futureEvent->id
+            && $request['variables']['podujatie'] === $this->futureEvent->name
+            && str_ends_with($request['variables']['odkaz_upravy'], '/dashboard/events/'.$this->futureEvent->id.'/edit'));
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/contacts'
+            && $request['contacts'][0]['email'] === $email
+            && in_array('organizer', $request['contacts'][0]['tags'], true));
+    }
+
+    #[Test]
+    public function unpublishing_event_cancels_its_pending_mails(): void
+    {
+        $this->managedCanal();
+        $this->futureEvent->update(['status' => ModelStatus::Published->value, 'published_at' => now()]);
+
+        $this->futureEvent->update(['status' => ModelStatus::Draft->value]);
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/events/cancel'
+            && $request['ref'] === ['type' => 'event', 'id' => (string) $this->futureEvent->id]);
+    }
+
+    #[Test]
+    public function imported_event_and_unmanaged_canal_get_no_technical_mail(): void
+    {
+        $this->managedCanal();
+        $this->futureEvent->forceFill(['orginal_source' => 'https://obec.sk/akcie/1'])->saveQuietly();
+        $this->futureEvent->update(['status' => ModelStatus::Published->value, 'published_at' => now()]);
+
+        $this->canalPrimary->forceFill(['registration_source' => RegistrationSource::IMPORT->value, 'claimed_at' => null])->saveQuietly();
+        $this->pastEvent->update(['status' => ModelStatus::Published->value, 'published_at' => now()]);
+
+        Http::assertNotSent(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/events'
+            && $request['event'] === 'event_published');
+    }
+
+    #[Test]
+    public function sync_command_sends_directory_with_tags(): void
+    {
+        $this->managedCanal();
+        $this->register('ucastnik@example.com');
+        Http::fake(['account.test/*' => Http::response(['data' => ['added' => 1, 'updated' => 0]], 201)]);
+
+        $this->artisan('account:sync-mailing-contacts')->assertSuccessful();
+
+        $contacts = Http::recorded(fn (Request $request) => $request->url() === 'http://account.test/api/v1/mailing/contacts')
+            ->flatMap(fn ($pair) => $pair[0]['contacts'])
+            ->keyBy('email');
+
+        $this->assertContains('organizer', $contacts[mb_strtolower($this->user->email)]['tags']);
+        $this->assertContains('attendee', $contacts['ucastnik@example.com']['tags']);
+        $this->assertArrayNotHasKey('permission_note', $contacts['ucastnik@example.com']);
+    }
+
+    /** Hlavný kanál používateľa ako vlastný (nie import) a on jeho vlastníkom. */
+    private function managedCanal(): void
+    {
+        $this->canalPrimary->forceFill(['registration_source' => RegistrationSource::SELF->value])->saveQuietly();
+        app(CanalMembership::class)->attach($this->canalPrimary, $this->user, CanalRole::Owner);
     }
 
     private function register(string $email): Ticket

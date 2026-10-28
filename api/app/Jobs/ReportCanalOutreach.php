@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CanalOutreach;
 use App\Services\Account\AccountClient;
+use App\Services\Account\AccountMailing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -42,7 +43,7 @@ class ReportCanalOutreach implements ShouldQueue
         $this->occurredAt ??= now();
     }
 
-    public function handle(AccountClient $account): void
+    public function handle(AccountClient $account, AccountMailing $mailing): void
     {
         $outreach = CanalOutreach::find($this->outreachId);
 
@@ -51,7 +52,9 @@ class ReportCanalOutreach implements ShouldQueue
             return;
         }
 
-        $account->upsertMailingContacts([$this->contact]);
+        // Celý stav adresy (aj účet či registrácie), nech oslovenie neprepíše
+        // jej ostatné štítky; pribalený kontakt je len záloha.
+        $account->upsertMailingContacts([$mailing->contact((string) $this->contact['email']) ?? $this->contact]);
 
         $queued = $account->mailingEvent(
             $this->event,

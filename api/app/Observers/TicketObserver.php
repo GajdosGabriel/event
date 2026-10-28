@@ -29,5 +29,7 @@ class TicketObserver
     public function deleted(Ticket $ticket): void
     {
         $this->mailing->cancel($ticket);
+        // Bez platnej registrácie prichádza adresa o štítok `attendee`.
+        $this->mailing->syncContact($ticket->holder_email);
     }
 }

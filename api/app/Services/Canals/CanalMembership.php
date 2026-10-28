@@ -7,6 +7,7 @@ use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\CanalNotificationSetting;
 use App\Models\User;
+use App\Services\Account\AccountMailing;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
@@ -58,6 +59,8 @@ class CanalMembership
         $this->syncGlobalRoles($user);
 
         $this->auditor->memberChanged($canal, $user, $previous, $role);
+        // Štítok `organizer` v adresári Emailingu.
+        app(AccountMailing::class)->syncContact($user->email);
     }
 
     /**
@@ -92,6 +95,7 @@ class CanalMembership
         $this->syncGlobalRoles($user);
 
         $this->auditor->memberChanged($canal, $user, $previous, null);
+        app(AccountMailing::class)->syncContact($user->email);
     }
 
     /** Zmena role existujúceho člena. */

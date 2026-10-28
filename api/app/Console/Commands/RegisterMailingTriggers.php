@@ -14,7 +14,7 @@ class RegisterMailingTriggers extends Command
 {
     protected $signature = 'emailing:register-triggers';
 
-    protected $description = 'Zaregistruje udalosti registrácií pre automatizácie v Accounte.';
+    protected $description = 'Zaregistruje udalosti a štítky kontaktov pre Emailing v Accounte.';
 
     public function handle(AccountClient $account, AccountMailing $mailing): int
     {
@@ -25,8 +25,9 @@ class RegisterMailingTriggers extends Command
         }
 
         $account->registerMailingTriggers($triggers = $mailing->triggers());
+        $account->registerMailingTags($tags = $mailing->tags());
 
-        $this->info('Zaregistrovaných udalostí: '.count($triggers));
+        $this->info('Zaregistrovaných udalostí: '.count($triggers).', štítkov kontaktov: '.count($tags));
 
         return self::SUCCESS;
     }

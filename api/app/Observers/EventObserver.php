@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Subscription;
 use App\Models\Venue;
 use App\Notifications\EventChanged;
+use App\Services\Account\AccountMailing;
 use App\Services\Events\SubscriberDirectory;
 use App\Support\EventDateRange;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,9 @@ class EventObserver
      */
     public function created(Event $event): void
     {
-        //
+        if ($event->status === ModelStatus::Published) {
+            app(AccountMailing::class)->eventPublished($event);
+        }
     }
 
     /**
@@ -36,6 +39,8 @@ class EventObserver
      */
     public function updated(Event $event): void
     {
+        $this->reportToAccount($event);
+
         $cancelled = $this->becameCancelled($event);
         $changes = $cancelled ? [] : $this->describeChanges($event);
 
@@ -75,7 +80,7 @@ class EventObserver
      */
     public function deleted(Event $event): void
     {
-        //
+        app(AccountMailing::class)->cancelEvent($event);
     }
 
     /**
@@ -92,6 +97,27 @@ class EventObserver
     public function forceDeleted(Event $event): void
     {
         //
+    }
+
+    /**
+     * Emailing v Accounte: zverejnenie (z konceptu, plánu aj cez
+     * `app:events-publish-scheduled`) nahlási technický mail organizátorovi,
+     * stiahnutie zo zverejnenia zruší jeho čakajúce maily. Opätovné
+     * zverejnenie nič nezdvojí – kľúč udalosti je `event:{id}`.
+     */
+    private function reportToAccount(Event $event): void
+    {
+        if (! $event->wasChanged('status')) {
+            return;
+        }
+
+        $before = $event->getRawOriginal('status');
+
+        if ($event->status === ModelStatus::Published && ! in_array($before, ModelStatus::publiclyReadableValues(), true)) {
+            app(AccountMailing::class)->eventPublished($event);
+        } elseif ($this->becameCancelled($event)) {
+            app(AccountMailing::class)->cancelEvent($event);
+        }
     }
 
     /**

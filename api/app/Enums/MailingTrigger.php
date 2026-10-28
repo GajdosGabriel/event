@@ -24,6 +24,9 @@ enum MailingTrigger: string
     /** Podujatie skončilo – ide každému s platnou registráciou */
     case EventFinished = 'event_finished';
 
+    /** Akcia spravovaného kanála sa zverejnila – ide jeho vlastníkom (technický mail) */
+    case EventPublished = 'event_published';
+
     /** Akcia nespravovaného kanála začína o `canals.outreach.upcoming_days` dní */
     case CanalEventUpcoming = 'canal_event_upcoming';
 
@@ -39,6 +42,7 @@ enum MailingTrigger: string
             self::TicketRegistered => 'Po registrácii na podujatie',
             self::TicketCancelled => 'Po zrušení registrácie',
             self::EventFinished => 'Po skončení podujatia',
+            self::EventPublished => 'Po zverejnení akcie (organizátorovi)',
             self::CanalEventUpcoming => 'Pred začiatkom akcie nespravovaného kanála',
             self::CanalViewsMilestone => 'Akcia nespravovaného kanála dosiahla prah zobrazení',
             self::CanalEventFinished => 'Po skončení akcie nespravovaného kanála',
@@ -52,6 +56,7 @@ enum MailingTrigger: string
             self::TicketRegistered => 'Po registrácii',
             self::TicketCancelled => 'Po zrušení',
             self::EventFinished => 'Po podujatí',
+            self::EventPublished => 'Po zverejnení',
             self::CanalEventUpcoming => 'Pred akciou kanála',
             self::CanalViewsMilestone => 'Zobrazenia akcie kanála',
             self::CanalEventFinished => 'Po akcii kanála',
@@ -66,11 +71,18 @@ enum MailingTrigger: string
     /** @return array<int, string> premenné, ktoré pri udalosti idú do Accountu */
     public function variables(): array
     {
-        return $this->isCanal() ? self::CANAL_VARIABLES : self::VARIABLES;
+        return match (true) {
+            $this->isCanal() => self::CANAL_VARIABLES,
+            $this === self::EventPublished => self::ORGANIZER_VARIABLES,
+            default => self::VARIABLES,
+        };
     }
 
     /** Premenné, ktoré sa pri udalosti posielajú do Accountu (v texte kampane ako {kluc}). */
     public const VARIABLES = ['meno', 'podujatie', 'termin', 'miesto', 'pocet_miest', 'odkaz_podujatia', 'odkaz_vstupenky'];
+
+    /** Premenné technického mailu organizátorovi (EventPublished). */
+    public const ORGANIZER_VARIABLES = ['meno', 'kanal', 'podujatie', 'termin', 'miesto', 'odkaz_podujatia', 'odkaz_spravy', 'odkaz_upravy'];
 
     /** Premenné ponúk prevzatia kanála. */
     public const CANAL_VARIABLES = [

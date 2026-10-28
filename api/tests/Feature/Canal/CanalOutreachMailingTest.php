@@ -43,11 +43,13 @@ class CanalOutreachMailingTest extends TestCase
         config()->set('account.url', 'http://account.test');
         config()->set('account.token', 'acc_test');
         config()->set('account.webhook_secret', 'whsec_test');
-        config()->set('account.mailing', true);
         config()->set('canals.outreach.view_milestones', [50, 200]);
 
         $this->admin = User::factory()->create(['last_login_at' => now(), 'last_activity' => now()]);
         $this->admin->assignRole('super-admin');
+
+        // Až po admínovi – jeho účet by inak šiel do adresára pred Http::fake v teste.
+        config()->set('account.mailing', true);
     }
 
     #[Test]

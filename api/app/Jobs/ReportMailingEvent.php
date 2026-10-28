@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\Account\AccountClient;
+use App\Services\Account\AccountMailing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -42,8 +43,14 @@ class ReportMailingEvent implements ShouldQueue
         $this->occurredAt ??= now();
     }
 
-    public function handle(AccountClient $account): void
+    public function handle(AccountClient $account, AccountMailing $mailing): void
     {
+        // Bez kontaktu by Account kampaň (ponuku ani oznámenie) nezaradil.
+        // V tom istom jobe, aby ho udalosť nepredbehla ani pri opakovaní.
+        if ($contact = $mailing->contact($this->email)) {
+            $account->upsertMailingContacts([$contact]);
+        }
+
         $account->mailingEvent($this->event, $this->email, $this->ref, $this->variables, $this->dedupeKey, $this->occurredAt, $this->name, $this->threadId);
     }
 }

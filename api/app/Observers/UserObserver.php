@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\User;
+use App\Services\Account\AccountMailing;
 use App\Services\SystemLog\Recorder;
 use App\Services\Users\PersonalCanalProvisioner;
 
@@ -25,6 +26,8 @@ class UserObserver
         if ($user->email_verified_at !== null) {
             $this->ensureVerifiedCanal($user);
         }
+
+        app(AccountMailing::class)->syncContact($user->email);
     }
 
     /**
@@ -36,6 +39,22 @@ class UserObserver
         if ($wasUnverified && $user->email_verified_at !== null) {
             $this->ensureVerifiedCanal($user);
         }
+
+        // Adresár v Accounte: štítky `user`/`verified` (pri zmene adresy aj
+        // stará adresa, ktorá o účet prišla).
+        if ($user->wasChanged(['email', 'email_verified_at'])) {
+            $mailing = app(AccountMailing::class);
+            $mailing->syncContact($user->email);
+
+            if ($user->wasChanged('email')) {
+                $mailing->syncContact($user->getOriginal('email'));
+            }
+        }
+    }
+
+    public function deleted(User $user): void
+    {
+        app(AccountMailing::class)->syncContact($user->email);
     }
 
     protected function ensureVerifiedCanal(User $user): void
