@@ -197,7 +197,7 @@ useHead(computed(() => {
   const url = absoluteUrl(publicVenuePath(v))
 
   return {
-    title: `${v.name} | Event`,
+    title: `${v.name} | Tixio`,
     link: [{ rel: 'canonical', href: url }],
     meta: [
       { name: 'description', content: description },

@@ -92,7 +92,7 @@ const canonical = computed(() => {
 })
 
 useHead(computed(() => ({
-  title: `${title.value} | Event`,
+  title: `${title.value} | Tixio`,
   link: [{ rel: 'canonical', href: absoluteUrl(canonical.value) }],
   meta: [
     { name: 'description', content: description.value },

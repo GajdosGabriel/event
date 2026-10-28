@@ -13,7 +13,7 @@ const SECTION_KEYS: Record<string, MessageKey> = {
   files: 'nav.files',
   spravy: 'nav.messages',
   'navrhy-stitkov': 'nav.tagSuggestions',
-  // Admin — bez nich mala každá karta prehliadača titulok „Admin | Event".
+  // Admin — bez nich mala každá karta prehliadača titulok „Admin | Tixio".
   prevzatia: 'nav.canalClaims',
   vstupenky: 'nav.tickets',
   otazky: 'nav.questions',
@@ -26,7 +26,7 @@ const SECTION_KEYS: Record<string, MessageKey> = {
   settings: 'nav.settings',
 }
 
-/** Titulok „Sekcia · Oblasť | Event" a `noindex` pre prihlásené časti (dashboard, admin). */
+/** Titulok „Sekcia · Oblasť | Tixio" a `noindex` pre prihlásené časti (dashboard, admin). */
 export function useAreaHead(area: 'dashboard' | 'admin') {
   const route = useRoute()
 
@@ -34,7 +34,7 @@ export function useAreaHead(area: 'dashboard' | 'admin') {
     title: computed(() => {
       const areaLabel = area === 'admin' ? t('nav.admin') : t('nav.dashboard')
       const key = SECTION_KEYS[route.path.split('/').filter(Boolean)[1] ?? '']
-      return `${key ? `${t(key)} · ` : ''}${areaLabel} | Event`
+      return `${key ? `${t(key)} · ` : ''}${areaLabel} | Tixio`
     }),
     meta: [{ name: 'robots', content: 'noindex, nofollow' }],
   })

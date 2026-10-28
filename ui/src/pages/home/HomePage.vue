@@ -41,7 +41,7 @@ const description = computed(() => t('public.seo.homeDescription'))
 const websiteJsonLd = computed(() => ({
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'Event',
+  name: 'Tixio',
   url: absoluteUrl('/'),
   inLanguage: currentLocale(),
   potentialAction: {
@@ -55,7 +55,7 @@ const websiteJsonLd = computed(() => ({
 }))
 
 useHead(computed(() => ({
-  title: `${t('public.seo.homeTitle')} | Event`,
+  title: `${t('public.seo.homeTitle')} | Tixio`,
   link: [{ rel: 'canonical', href: canonical.value }],
   meta: [
     { name: 'description', content: description.value },

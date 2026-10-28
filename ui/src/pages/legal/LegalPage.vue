@@ -42,7 +42,7 @@ const counterpart = computed(() =>
 )
 
 useHead(computed(() => ({
-  title: `${doc.value.title} | Event`,
+  title: `${doc.value.title} | Tixio`,
   meta: [
     { name: 'description', content: doc.value.perex },
     // Právne dokumenty nepotrebujú návštevnosť z vyhľadávania a v indexe by

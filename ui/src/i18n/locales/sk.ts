@@ -759,7 +759,7 @@ const sk = {
   },
   // Widget na cudzom webe (`/embed/...`) a generátor kódu v dashboarde.
   embed: {
-    poweredBy: 'Podujatia beží na Evente',
+    poweredBy: 'Podujatia bežia na Tixiu',
     empty: 'Momentálne tu nie sú žiadne nadchádzajúce podujatia.',
     loadFailed: 'Program sa nepodarilo načítať.',
     detail: 'Zobraziť podujatie',

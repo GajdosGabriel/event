@@ -2,9 +2,9 @@
   <div class="layout-shell admin-layout" :class="{ collapsed }">
     <aside class="aside" :class="{ 'more-open': moreOpen }">
       <RouterLink to="/admin" class="aside-brand">
-        <span class="brand-mark">A</span>
+        <BrandMark class="brand-mark" />
         <span class="brand-copy">
-          <strong>Event</strong>
+          <strong>tixio<span class="text-rose-400">.</span></strong>
           <small>{{ t('nav.admin') }}</small>
         </span>
       </RouterLink>
@@ -122,7 +122,7 @@
       </main>
 
       <footer class="footer flex flex-wrap items-center justify-between gap-3 text-sm">
-        <span>© {{ new Date().getFullYear() }} Event</span>
+        <span>© {{ new Date().getFullYear() }} Tixio</span>
         <nav class="flex flex-wrap gap-4">
           <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
           <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
@@ -140,6 +140,7 @@ import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 import MunicipalityAside from '@/components/MunicipalityAside.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
+import BrandMark from '@/components/BrandMark.vue'
 import { useI18n } from '@/i18n'
 import { useAreaHead } from '@/composables/useAreaHead'
 import { supportSummary } from '@/api/support'
@@ -220,7 +221,7 @@ const munResource = computed(() => {
 .aside-brand {
   @apply flex shrink-0 items-center gap-3 rounded-lg px-2 py-2 text-white no-underline hover:bg-amber-200/12 overflow-hidden;
 }
-.brand-mark { @apply grid size-10 shrink-0 place-items-center rounded-lg bg-amber-300 text-sm font-black text-amber-950 shadow-sm; }
+.brand-mark { @apply size-10 shrink-0 rounded-lg shadow-sm; }
 .brand-copy { @apply min-w-0 overflow-hidden transition-all duration-200; }
 .brand-copy strong { @apply block truncate text-sm leading-tight text-white; }
 .brand-copy small { @apply mt-0.5 block text-xs text-amber-100/70; }

@@ -69,6 +69,16 @@ curl -A "facebookexternalhit/1.1" https://tixio.eu/akcie/42/nazov | head -40
 Odpoveď musí obsahovať `og:title`, `og:image` a `application/ld+json`
 **priamo v HTML**, nie až po JS.
 
+Crawler musí dostať `200` priamo na SPA adrese, **nie `302`** na
+`/api/prerender` — tú zakazuje robots.txt a Google by nezaindexoval nič
+(tak to bolo do 28. 10. 2026). Prepis je interný, cestu na routu prekladá
+`api/public/index.php` podľa značky `EVENT_PRERENDER`.
+
+```bash
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" -A "Googlebot/2.1" https://tixio.eu/akcie
+# → 200 (bez presmerovania)
+```
+
 Stará adresa musí odpovedať `301` a `Location` na nový tvar:
 
 ```bash

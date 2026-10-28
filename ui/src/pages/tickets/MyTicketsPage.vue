@@ -200,7 +200,7 @@ const listOptions = computed(() => [
   { value: 'past' as const, label: t('myTickets.past') },
 ])
 
-useHead({ title: `${t('myTickets.title')} | Event` })
+useHead({ title: `${t('myTickets.title')} | Tixio` })
 
 async function load() {
   loading.value = true

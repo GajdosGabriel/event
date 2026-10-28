@@ -16,6 +16,12 @@
     RewriteEngine On
     RewriteBase /
 
+    # --- 0a. jedna doména -------------------------------------------------
+    # www.tixio.eu vracala tú istú stránku s 200 — pre Google dva weby
+    # s duplicitným obsahom. Kanonická je doména bez www.
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
     # --- 0. staré adresy podujatí ---------------------------------------
     # Podujatia sa presťahovali z /podujatia/{slug}-{id} na /akcie/{id}/{slug}.
     # Staré adresy sú zaindexované a rozposlané v e-mailoch. Presmerovanie
@@ -47,12 +53,13 @@
     RewriteCond %{REQUEST_URI} !^/(api|sanctum|storage|images)/
     RewriteCond %{REQUEST_URI} !\.(js|mjs|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|map|txt|xml|pdf|webmanifest)$
     #
-    # Presmerovanie, nie interný prepis — možnosť (b) z deploy/htaccess.md.
-    # Interný prepis nemení REQUEST_URI, podľa ktorého Laravel smeruje, takže
-    # by crawler namiesto vykreslenej stránky dostal 404. Po presmerovaní je
-    # v adrese naozaj /api/prerender a routa sa trafí; späť na SPA adresu
-    # ukazujú `og:url` a `<link rel="canonical">` v odpovedi.
-    RewriteRule ^(.*)$ /api/prerender?path=/$1 [R=302,QSA,L]
+    # Interný prepis, NIE presmerovanie. Do 28. 10. 2026 tu bolo 302 na
+    # /api/prerender — lenže tú robots.txt zakazuje, takže Googlebot
+    # presmerovanie nasledoval do zakázanej adresy a nezaindexoval nič.
+    # Interný prepis nemení REQUEST_URI, podľa ktorého Laravel smeruje, preto
+    # značka EVENT_PRERENDER: api/public/index.php podľa nej požiadavku
+    # nasmeruje na routu /api/prerender s pôvodnou cestou v `?path=`.
+    RewriteRule ^ api/public/index.php [E=EVENT_PRERENDER:1,L]
 
     # --- 2b. widget pre cudzie weby -------------------------------------
     # Značka pre hlavičky nižšie. `-` neprepisuje a bez `L` sa pokračuje

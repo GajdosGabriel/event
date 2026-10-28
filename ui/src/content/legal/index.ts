@@ -33,7 +33,7 @@ export const LEGAL_EFFECTIVE_FROM = '14. 8. 2026'
  * DOPLNIŤ pred spustením do prevádzky.
  */
 export const operator = {
-  site: 'Event',
+  site: 'Tixio',
   name: '[DOPLNIŤ: obchodné meno prevádzkovateľa]',
   address: '[DOPLNIŤ: sídlo — ulica, PSČ, obec]',
   ico: '[DOPLNIŤ: IČO]',

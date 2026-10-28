@@ -172,7 +172,7 @@ useHead(computed(() => {
   const url = absoluteUrl(publicCanalPath(c))
 
   return {
-    title: `${c.name} | Event`,
+    title: `${c.name} | Tixio`,
     link: [{ rel: 'canonical', href: url }],
     meta: [
       { name: 'description', content: description },

@@ -1,6 +1,6 @@
 {
-  "name": "Event — podujatia a vstupenky",
-  "short_name": "Event",
+  "name": "Tixio — podujatia a vstupenky",
+  "short_name": "Tixio",
   "description": "Portál podujatí s registráciou, vstupenkami a QR check-inom.",
   "lang": "sk",
   "start_url": "/",

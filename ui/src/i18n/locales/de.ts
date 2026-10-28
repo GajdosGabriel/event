@@ -712,7 +712,7 @@ const de: Messages = {
     unsubscribeFailed: 'Das Abo konnte nicht beendet werden.',
   },
   embed: {
-    poweredBy: 'Veranstaltungen laufen auf Event',
+    poweredBy: 'Veranstaltungen laufen auf Tixio',
     empty: 'Derzeit gibt es keine bevorstehenden Veranstaltungen.',
     loadFailed: 'Das Programm konnte nicht geladen werden.',
     detail: 'Veranstaltung öffnen',

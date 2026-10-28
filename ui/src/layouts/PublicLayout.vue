@@ -10,7 +10,7 @@
     <header class="relative z-40 bg-slate-900 text-white">
       <div class="mx-auto flex w-full max-w-[1300px] items-center justify-between gap-3 px-4 py-3">
         <div class="flex min-w-0 items-center gap-6">
-          <RouterLink to="/" class="text-lg font-extrabold tracking-tight text-white no-underline">Event<span class="text-rose-500">.</span></RouterLink>
+          <RouterLink to="/" class="text-white no-underline" aria-label="Tixio"><BrandLogo /></RouterLink>
           <nav class="hidden items-center gap-5 md:flex">
             <RouterLink
               v-for="link in mainLinks"
@@ -107,7 +107,7 @@
     <!-- Odkazy na právne dokumenty musia byť dostupné z každej stránky, nielen
          z registrácie — spotrebiteľ si ich má vedieť nájsť kedykoľvek. -->
     <footer class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-6 text-sm text-slate-500">
-      <span>© {{ new Date().getFullYear() }} Event</span>
+      <span>© {{ new Date().getFullYear() }} Tixio</span>
       <nav class="flex flex-wrap gap-4">
         <!-- Archív. Skončené podujatia zmiznú z výpisov, ale ich stránky žijú
              ďalej kvôli odkazom z vyhľadávača a zo zdieľaní — pätička je to
@@ -128,6 +128,7 @@ import UserDropdown from '@/components/UserDropdown.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 import AnnouncementBar from '@/components/AnnouncementBar.vue'
 import LangSwitcher from '@/components/LangSwitcher.vue'
+import BrandLogo from '@/components/BrandLogo.vue'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 import { publicArchivePath } from '@/utils/publicUrl'
 import { useI18n } from '@/i18n'

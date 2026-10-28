@@ -711,7 +711,7 @@ const cs: Messages = {
     unsubscribeFailed: 'Odběr se nepodařilo zrušit.',
   },
   embed: {
-    poweredBy: 'Akce běží na Eventu',
+    poweredBy: 'Akce běží na Tixiu',
     empty: 'Momentálně tu nejsou žádné nadcházející akce.',
     loadFailed: 'Program se nepodařilo načíst.',
     detail: 'Zobrazit akci',

@@ -712,7 +712,7 @@ const en: Messages = {
     unsubscribeFailed: 'You could not be unsubscribed.',
   },
   embed: {
-    poweredBy: 'Events powered by Event',
+    poweredBy: 'Events powered by Tixio',
     empty: 'There are no upcoming events right now.',
     loadFailed: 'The programme could not be loaded.',
     detail: 'Open the event',

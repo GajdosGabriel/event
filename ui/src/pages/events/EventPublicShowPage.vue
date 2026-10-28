@@ -1177,7 +1177,7 @@ useHead(computed(() => {
   // podujatia urobilo v indexe niekoľko rôznych stránok.
   const url = canonicalUrl.value
   return {
-    title: `${title} | Event`,
+    title: `${title} | Tixio`,
     link: [{ rel: 'canonical', href: url }],
     meta: [
       { name: 'description', content: description },
