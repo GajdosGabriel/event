@@ -411,6 +411,8 @@ export interface VenueItem {
   id: number
   /** Server miesto nezaložil, ale použil existujúce (duplicita v tej istej obci). */
   reused?: boolean
+  /** Polia, ktoré sa pri použití existujúceho miesta doplnili zo zadania. */
+  filledFields?: string[]
   canalId: number | null
   /** Správca miesta (canal_venue.is_owner) — `null`, keď ho nemá a spravuje ho admin. */
   ownerCanalId: number | null

@@ -298,6 +298,8 @@
         <!-- Modál má vlastný stav validácie — červená sa v ňom rozsvieti až po
              kliknutí na „Vytvoriť miesto", nezávisle od hlavného formulára. -->
         <div class="grid gap-3">
+          <!-- Podujatie je rozpísané — existujúce miesto sa otvára v novej karte. -->
+          <SimilarRecords :scope="scope" resource="venues" :name="venueModal.form.name" :municipality="venueModal.form.village_id" :street="venueModal.form.street" new-tab />
           <FormField
             v-model="venueModal.form.name"
             :label="t('events.venueModal.name')"
@@ -367,6 +369,7 @@ import FormSection from '@/components/FormSection.vue'
 import ImageManager from '@/components/ImageManager.vue'
 import ImagePicker from '@/components/ImagePicker.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
+import SimilarRecords from '@/components/SimilarRecords.vue'
 import { createCanal } from '@/api/canals'
 import http from '@/api/index'
 import { fmtRowDateRange, toLocalInput } from '@/utils/dateFormat'
@@ -671,7 +674,7 @@ async function saveNewVenue() {
     createdHere.add(`venue:${created.id}`)
     form.value.venue_id = created.id
     venueModal.value.show = false
-    toast.success(t(created.reused ? 'events.venueModal.reused' : 'events.venueModal.created'))
+    toast.success(t(created.reused ? (created.filledFields?.length ? 'events.venueModal.reusedFilled' : 'events.venueModal.reused') : 'events.venueModal.created'))
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) venueModal.value.errors = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))

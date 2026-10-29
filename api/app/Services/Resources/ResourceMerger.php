@@ -2,6 +2,7 @@
 
 namespace App\Services\Resources;
 
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\SystemLog;
 use App\Models\Venue;
@@ -33,10 +34,9 @@ class ResourceMerger
                     $this->conflict('identity');
                 }
                 $this->sameLinks('canal_user', 'canal_id', $sourceId, $targetId, ['user_id', 'is_owner', 'status', 'role']);
-            } else {
-                // A merge must not silently grant a different channel access to a venue.
-                $this->sameLinks('canal_venue', 'venue_id', $sourceId, $targetId, ['canal_id', 'is_owner', 'status']);
             }
+            // A venue is a shared record of a real place: duplicates typically come from
+            // two different channels, so their links are united instead of compared (below).
             $supported = ['events', 'canal_venue'];
             if ($class === Canal::class) {
                 $supported = [...$supported, 'canal_user', 'users', 'canal_emails'];
@@ -68,18 +68,11 @@ class ResourceMerger
             $moved = [];
             $other = $key === 'canal_id' ? 'venue_id' : 'canal_id';
             $links = DB::table('canal_venue')->where($key, $sourceId)->lockForUpdate()->get();
-            foreach ($links as $link) {
-                $existing = DB::table('canal_venue')->where($key, $targetId)->where($other, $link->$other)->lockForUpdate()->first();
-                if ($existing && ($existing->is_owner != $link->is_owner || $existing->status !== $link->status)) {
-                    $this->conflict('links');
-                }
-                if (! $existing) {
-                    $copy = (array) $link;
-                    $copy[$key] = $targetId;
-                    DB::table('canal_venue')->insert($copy);
-                }
+            if ($class === Venue::class) {
+                $this->uniteVenueLinks($links, $targetId);
+            } else {
+                $this->copyCanalLinks($links, $key, $other, $targetId);
             }
-            $moved['canal_venue'] = $links->map(fn ($row) => (array) $row)->all();
             DB::table('canal_venue')->where($key, $sourceId)->delete();
             $moved['events'] = DB::table('events')->where($key, $sourceId)->lockForUpdate()->pluck('id')->all();
             DB::table('events')->where($key, $sourceId)->update([$key => $targetId, 'updated_at' => now()]);
@@ -106,6 +99,51 @@ class ResourceMerger
                 'context' => ['source_id' => $sourceId, 'target_id' => $targetId, 'resource' => $class, 'transferred' => $moved],
             ]);
         });
+    }
+
+    /** A merged canal keeps exactly the venue links it had; a differing duplicate link is a conflict. */
+    private function copyCanalLinks($links, string $key, string $other, int $targetId): void
+    {
+        foreach ($links as $link) {
+            $existing = DB::table('canal_venue')->where($key, $targetId)->where($other, $link->$other)->lockForUpdate()->first();
+            if ($existing && ($existing->is_owner != $link->is_owner || $existing->status !== $link->status)) {
+                $this->conflict('links');
+            }
+            if (! $existing) {
+                $copy = (array) $link;
+                $copy[$key] = $targetId;
+                DB::table('canal_venue')->insert($copy);
+            }
+        }
+    }
+
+    /**
+     * Every channel that used the source keeps using the same place through the target.
+     * The target's steward stays the steward; the source's steward takes over only when
+     * the target has none, otherwise it becomes a user (it can still pick the venue,
+     * no longer edit it). A published link wins over a draft one — that channel
+     * already saw the place.
+     */
+    private function uniteVenueLinks($links, int $targetId): void
+    {
+        $targetLinks = DB::table('canal_venue')->where('venue_id', $targetId)->lockForUpdate()->get()->keyBy('canal_id');
+        $hasOwner = $targetLinks->contains(fn ($link) => (bool) $link->is_owner);
+        foreach ($links as $link) {
+            $owner = (bool) $link->is_owner && ! $hasOwner;
+            $hasOwner = $hasOwner || $owner;
+            $existing = $targetLinks->get($link->canal_id);
+            if ($existing) {
+                $published = ModelStatus::Published->value;
+                DB::table('canal_venue')->where('venue_id', $targetId)->where('canal_id', $link->canal_id)->update([
+                    'is_owner' => (bool) $existing->is_owner || $owner,
+                    'status' => $existing->status === $published || $link->status === $published ? $published : $existing->status,
+                    'updated_at' => now(),
+                ]);
+
+                continue;
+            }
+            DB::table('canal_venue')->insert([...(array) $link, 'venue_id' => $targetId, 'is_owner' => $owner]);
+        }
     }
 
     private function sameLinks(string $table, string $key, int $source, int $target, array $fields): void

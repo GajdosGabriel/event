@@ -58,6 +58,20 @@ class RoadmapTest extends EventSetupTest
         $this->assertTrue(SystemLog::where('event', 'resource.merged')->where('user_id', $this->userSuperAdmin->id)->exists());
     }
 
+    public function test_venue_merge_unites_channels_and_keeps_the_target_steward(): void
+    {
+        $a = Canal::factory()->create();
+        $b = Canal::factory()->create();
+        $source = Venue::factory()->forCanal($a->id)->create(['status' => 'published']);
+        $target = Venue::factory()->forCanal($b->id)->create(['status' => 'published', 'name' => 'Survivor']);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        $this->postJson('/api/admin/venues/'.$source->id.'/merge', ['target_id' => $target->id])->assertOk();
+        $this->assertSoftDeleted('venues', ['id' => $source->id]);
+        $this->assertDatabaseHas('canal_venue', ['venue_id' => $target->id, 'canal_id' => $b->id, 'is_owner' => true]);
+        $this->assertDatabaseHas('canal_venue', ['venue_id' => $target->id, 'canal_id' => $a->id, 'is_owner' => false, 'status' => 'published']);
+        $this->assertDatabaseMissing('canal_venue', ['venue_id' => $source->id]);
+    }
+
     public function test_merge_rejects_conflicting_owners_without_changes_and_forbids_non_admin(): void
     {
         $a = Canal::factory()->withOwner($this->user)->create(['status' => 'draft', 'identity_mode' => 'personal']);

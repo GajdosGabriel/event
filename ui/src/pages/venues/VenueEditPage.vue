@@ -6,7 +6,7 @@
       <p v-if="serverError" ref="errorBanner" class="text-red-600 mt-2">{{ serverError }}</p>
 
       <form class="grid gap-4 mt-4" @submit.prevent="submit">
-        <SimilarRecords :scope="scope" resource="venues" :name="form.name" :exclude-id="route.params.id ? Number(route.params.id) : null" :municipality="address.municipalityId" />
+        <SimilarRecords :scope="scope" resource="venues" :name="form.name" :exclude-id="route.params.id ? Number(route.params.id) : null" :municipality="address.municipalityId" :street="address.street" />
         <fieldset class="field-group">
           <legend class="field-legend">{{ t('venues.sections.basic') }}</legend>
           <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -306,7 +306,7 @@ async function submit() {
         pending.forEach(f => fd.append('files[]', f))
         await uploadFiles(fd)
       }
-      toast.success(t(v.reused ? 'venues.form.reused' : 'venues.form.created'))
+      toast.success(t(v.reused ? (v.filledFields?.length ? 'venues.form.reusedFilled' : 'venues.form.reused') : 'venues.form.created'))
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
       await updateVenue(Number(route.params.id), payload(), scope.value)

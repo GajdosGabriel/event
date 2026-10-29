@@ -19,6 +19,7 @@ use App\Services\Files\FileManager;
 use App\Services\Imports\DuplicateResolver;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\RecordPublisher;
+use App\Support\NationwideCoordinates;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -106,6 +107,7 @@ class DashboardVenueController extends Controller
             isset($data['latitude']) ? (float) $data['latitude'] : null,
             isset($data['longitude']) ? (float) $data['longitude'] : null,
             $request->user()->dashboardCanalIds()->map(fn ($id) => (int) $id)->all(),
+            $data['coordinates_source'] ?? null,
         );
 
         if ($existing instanceof Venue) {
@@ -115,9 +117,14 @@ class DashboardVenueController extends Controller
                 }
             }
 
+            // Resolver vracia miesto len s porovnávanými stĺpcami — doplnenie musí
+            // vidieť všetky, inak by „prázdny" web či popis prepísalo.
+            $filled = $this->fillMissing($existing->fresh(), $data);
+
             return response()->json([
                 ...(new VenueResource($existing->fresh(['files', 'canals', 'municipality'])))->resolve($request),
                 'reused' => true,
+                'filled_fields' => $filled,
             ], 200);
         }
 
@@ -125,6 +132,46 @@ class DashboardVenueController extends Controller
         $duplicates->markCreated($venue);
 
         return response()->json(new VenueResource($venue), 201);
+    }
+
+    /**
+     * Údaje, ktoré zakladajúci zadal, sa pri použití existujúceho miesta
+     * nezahodia celé: doplnia sa polia, ktoré miesto ešte nemá. Vyplnené polia
+     * sa neprepisujú — miesto spravuje jeho správca, nie ten, kto ho len používa.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, string> doplnené polia
+     */
+    private function fillMissing(Venue $venue, array $data): array
+    {
+        $updates = [];
+
+        foreach (['street', 'postcode', 'body', 'website', 'email', 'phone', 'capacity'] as $field) {
+            $value = $data[$field] ?? null;
+            $current = $venue->getAttribute($field);
+
+            if ($value !== null && $value !== '' && ($current === null || $current === '')) {
+                $updates[$field] = $value;
+            }
+        }
+
+        // Presná poloha (budova, adresa, ručný pin) nahradí len odhad či stred obce.
+        $precise = in_array($data['coordinates_source'] ?? null, ['venue', 'address', 'manual'], true)
+            && isset($data['latitude'], $data['longitude']);
+        $vague = NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude)
+            || in_array($venue->coordinates_source, ['municipality', 'ai'], true);
+
+        if ($precise && $vague) {
+            $updates['latitude'] = (float) $data['latitude'];
+            $updates['longitude'] = (float) $data['longitude'];
+            $updates['coordinates_source'] = $data['coordinates_source'];
+        }
+
+        if ($updates !== []) {
+            $venue->update($updates);
+        }
+
+        return array_keys($updates);
     }
 
     /**

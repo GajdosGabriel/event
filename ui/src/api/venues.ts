@@ -37,6 +37,7 @@ function mapVenue(raw: Record<string, unknown>): VenueItem {
     villageId: (raw['village_id'] as number) ?? null,
     name: raw['name'] as string,
     reused: raw['reused'] === true,
+    filledFields: Array.isArray(raw['filled_fields']) ? (raw['filled_fields'] as string[]) : [],
     slug: (raw['slug'] as string) ?? '',
     street: (raw['street'] as string) ?? null,
     postcode: (raw['postcode'] as string) ?? null,

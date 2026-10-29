@@ -114,6 +114,56 @@ class SharedVenueTest extends EventSetupTest
     }
 
     #[Test]
+    public function reusing_a_venue_fills_only_what_it_is_missing(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $foreign = $this->foreignPublishedVenue([
+            'street' => null,
+            'website' => 'https://povodny.sk',
+            'latitude' => null,
+            'longitude' => null,
+            'coordinates_source' => null,
+        ]);
+
+        $response = $this->postJson('/api/dashboard/venues', [
+            'canal_id' => $this->canalPrimary->id,
+            'village_id' => $foreign->village_id,
+            'name' => 'Kultúrny dom Zvláštny názov',
+            'street' => 'Hlavná 5',
+            'website' => 'https://novy.sk',
+            'latitude' => 48.7208,
+            'longitude' => 21.2575,
+            'coordinates_source' => 'address',
+        ]);
+
+        $response->assertOk()->assertJsonPath('reused', true);
+        $this->assertEqualsCanonicalizing(['street', 'latitude', 'longitude', 'coordinates_source'], $response->json('filled_fields'));
+
+        $foreign->refresh();
+        $this->assertSame('Hlavná 5', $foreign->street);
+        $this->assertSame('address', $foreign->coordinates_source);
+        $this->assertStringContainsString('povodny.sk', (string) $foreign->website, 'Vyplnené pole sa neprepisuje.');
+    }
+
+    #[Test]
+    public function the_similarity_hint_finds_a_foreign_published_venue_by_its_address(): void
+    {
+        $foreign = $this->foreignPublishedVenue(['street' => 'Hlavná ulica 5']);
+        $this->foreignPublishedVenue(['name' => 'Iný koncept', 'street' => 'Hlavná 5', 'status' => ModelStatus::Draft->value]);
+
+        $response = $this->getJson('/api/dashboard/venues/similar?'.http_build_query([
+            'name' => 'Hlavná 5',
+            'municipality' => $foreign->village_id,
+        ]));
+
+        $response->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $foreign->id)
+            ->assertJsonPath('data.0.own', false)
+            ->assertJsonPath('data.0.street', 'Hlavná ulica 5');
+    }
+
+    #[Test]
     public function a_new_venue_in_another_town_is_created_normally(): void
     {
         config()->set('services.imports.dedupe_with_ai', false);

@@ -39,6 +39,18 @@ class DuplicateResolver
     private const SAME_PLACE_METERS = 120;
 
     /**
+     * Do akej vzdialenosti (m) sú dve presne umiestnené miesta kandidátom aj bez
+     * spoločného slova v názve — „Hlavná 5" a „Kultúrny dom" na tej istej budove.
+     */
+    private const SAME_POINT_METERS = 40;
+
+    /** Zdroje súradníc, ktoré ukazujú na budovu/adresu, nie na odhad či stred obce. */
+    private const PRECISE_COORDINATES = ['venue', 'address', 'manual'];
+
+    /** Slová ulice, ktoré nenesú identitu adresy („Hlavná ulica 5" = „Hlavná 5"). */
+    private const STREET_STOPWORDS = ['ulica', 'ul', 'trieda', 'tr', 'cesta'];
+
+    /**
      * Slová, ktoré nenesú identitu — bez nich by "Rímskokatolícka farnosť X"
      * a "Farnosť X" mali nízku zhodu tokenov.
      */
@@ -171,8 +183,9 @@ class DuplicateResolver
      *                                                   a miesta týchto kanálov (koncept cudzieho
      *                                                   kanála sa nesmie potichu pripojiť); null =
      *                                                   import, bez obmedzenia
+     * @param  string|null  $coordinatesSource  presnosť súradníc nového záznamu (venues.coordinates_source)
      */
-    public function findVenue(string $name, ?int $villageId, ?string $street = null, ?float $latitude = null, ?float $longitude = null, ?array $visibleToCanalIds = null): ?Venue
+    public function findVenue(string $name, ?int $villageId, ?string $street = null, ?float $latitude = null, ?float $longitude = null, ?array $visibleToCanalIds = null, ?string $coordinatesSource = null): ?Venue
     {
         $this->pendingUncertain = [];
         $inputKey = ImportedNameMatcher::baseSlug($name, $villageId !== null ? $this->municipalityName($villageId) : null);
@@ -188,6 +201,9 @@ class DuplicateResolver
         $village = $this->municipalityName($villageId);
         $newTokens = self::tokens($name);
         $hasPoint = $latitude !== null && $longitude !== null && ! NationwideCoordinates::needsLookup($latitude, $longitude);
+        $precisePoint = $hasPoint && in_array($coordinatesSource, self::PRECISE_COORDINATES, true);
+        // Kto miesto nepozná po mene, napíše často len adresu — aj do názvu.
+        $newAddresses = self::addressKeys($village, $street, $name);
         $candidates = [];
 
         $venues = Venue::query()
@@ -196,7 +212,7 @@ class DuplicateResolver
             ->when($visibleToCanalIds !== null, fn ($q) => $q->where(fn ($visible) => $visible
                 ->where('status', ModelStatus::Published->value)
                 ->orWhereHas('canals', fn ($canals) => $canals->whereIn('canals.id', $visibleToCanalIds))))
-            ->select(['id', 'name', 'street', 'latitude', 'longitude', 'village_id'])
+            ->select(['id', 'name', 'street', 'latitude', 'longitude', 'coordinates_source', 'village_id'])
             ->get();
 
         foreach ($venues as $venue) {
@@ -208,8 +224,14 @@ class DuplicateResolver
 
             $sharesName = self::similarTokens($newTokens, $tokens, 0.5);
             $samePlace = $distance !== null && $distance <= self::SAME_PLACE_METERS && array_intersect($newTokens, $tokens) !== [];
+            // Rovnaká adresa ani rovnaký bod nie sú dôkaz — v jednom dome býva
+            // viac podnikov. Len kandidát pre AI / kontrolu človekom, nikdy „istý".
+            $sameAddress = (int) $venue->village_id === $villageId
+                && array_intersect($newAddresses, self::addressKeys($village, $venue->street, (string) $venue->name)) !== [];
+            $samePoint = $precisePoint && $distance !== null && $distance <= self::SAME_POINT_METERS
+                && ! in_array($venue->coordinates_source, ['municipality', 'ai'], true);
 
-            if (! $sharesName && ! $samePlace) {
+            if (! $sharesName && ! $samePlace && ! $sameAddress && ! $samePoint) {
                 continue;
             }
 
@@ -377,6 +399,51 @@ class DuplicateResolver
             explode('-', $slug),
             static fn (string $token): bool => strlen($token) >= 3 && ! in_array($token, self::STOPWORDS, true),
         )));
+    }
+
+    /**
+     * Kľúče adresy (ulica + číslo) z ulice a z názvu: „Hlavná ulica 5" aj
+     * „hlavna 5" dajú `hlavna-5`. Bez čísla domu sa adresa neráta — celá ulica
+     * nie je jedno miesto. Obec bez ulíc má v adrese len súpisné číslo („1552"),
+     * to sa číta ako „Obec 1552".
+     *
+     * @param  string|null  $town  obec, v ktorej adresy ležia
+     * @return array<int, string>
+     */
+    public static function addressKeys(?string $town, ?string ...$values): array
+    {
+        $keys = [];
+
+        foreach ($values as $value) {
+            if ($value === null || ! preg_match('/\d/', $value)) {
+                continue;
+            }
+
+            if ($town !== null && preg_match('/^\s*\d[\d\/\s]*$/', $value)) {
+                $value = $town.' '.$value;
+            }
+
+            $words = [];
+
+            // Po prvé číslo — chvost „, Košice" či „/12" adresu nemení.
+            foreach (explode('-', Str::slug(ImportedNameMatcher::normalize($value))) as $token) {
+                if ($token === '' || in_array($token, self::STREET_STOPWORDS, true)) {
+                    continue;
+                }
+
+                if (ctype_digit($token)) {
+                    if ($words !== []) {
+                        $keys[] = implode('-', [...$words, $token]);
+                    }
+
+                    break;
+                }
+
+                $words[] = $token;
+            }
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**

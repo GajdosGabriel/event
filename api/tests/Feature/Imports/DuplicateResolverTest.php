@@ -248,6 +248,84 @@ class DuplicateResolverTest extends TestCase
     }
 
     #[Test]
+    public function a_venue_given_only_by_its_address_is_a_candidate_for_review(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $kosice = Municipality::query()->where('slug', 'kosice')->firstOrFail();
+
+        $existing = Venue::factory()->create([
+            'name' => 'Kultúrny dom',
+            'street' => 'Hlavná ulica 5',
+            'category' => null,
+            'village_id' => $kosice->id,
+        ]);
+
+        $resolver = app(DuplicateResolver::class);
+
+        // Rovnaká adresa nie je dôkaz — bez AI sa nezlúči, len čaká na kontrolu.
+        $this->assertNull($resolver->findVenue('Hlavná 5, Košice', $kosice->id));
+        $this->assertDatabaseHas('duplicate_decisions', [
+            'entity' => 'venue',
+            'candidate_id' => $existing->id,
+            'decision' => DuplicateDecision::UNCERTAIN,
+        ]);
+    }
+
+    #[Test]
+    public function a_venue_at_the_same_address_is_reused_on_a_confident_verdict(): void
+    {
+        $this->fakeJudge(true, 0.93, 'Rovnaká adresa, jediný objekt.');
+
+        $kosice = Municipality::query()->where('slug', 'kosice')->firstOrFail();
+
+        $existing = Venue::factory()->create([
+            'name' => 'Kultúrny dom',
+            'street' => 'Hlavná 5',
+            'category' => null,
+            'village_id' => $kosice->id,
+        ]);
+
+        $found = app(DuplicateResolver::class)->findVenue('Sála', $kosice->id, 'Hlavná ulica 5');
+
+        $this->assertSame($existing->id, $found?->id);
+    }
+
+    #[Test]
+    public function a_precise_point_next_to_a_venue_is_a_candidate_even_without_a_shared_word(): void
+    {
+        $this->fakeJudge(true, 0.9);
+
+        $kosice = Municipality::query()->where('slug', 'kosice')->firstOrFail();
+
+        $existing = Venue::factory()->create([
+            'name' => 'Kultúrny dom',
+            'street' => null,
+            'category' => null,
+            'village_id' => $kosice->id,
+            'latitude' => 48.72080,
+            'longitude' => 21.25750,
+            'coordinates_source' => 'venue',
+        ]);
+
+        $resolver = app(DuplicateResolver::class);
+
+        // Odhad polohy nestačí, presná adresa áno.
+        $this->assertNull($resolver->findVenue('Sála', $kosice->id, null, 48.72085, 21.25755, null, 'municipality'));
+        $this->assertSame($existing->id, $resolver->findVenue('Sála', $kosice->id, null, 48.72085, 21.25755, null, 'address')?->id);
+    }
+
+    #[Test]
+    public function address_keys_ignore_the_street_word_and_the_town_suffix(): void
+    {
+        $this->assertSame(['hlavna-5'], DuplicateResolver::addressKeys('Košice', 'Hlavná ulica 5, Košice'));
+        $this->assertSame(['hlavna-5'], DuplicateResolver::addressKeys(null, 'hlavna 5', 'Hlavná 5'));
+        $this->assertSame([], DuplicateResolver::addressKeys('Košice', 'Hlavná ulica', 'Kultúrny dom', null));
+        // Obec bez ulíc: súpisné číslo patrí obci.
+        $this->assertSame(['pecenice-1552'], DuplicateResolver::addressKeys('Pečenice', '1552', 'Pečenice 1552'));
+    }
+
+    #[Test]
     public function an_ai_failure_does_not_block_the_import(): void
     {
         config()->set('openai.api_key', 'test-key');
