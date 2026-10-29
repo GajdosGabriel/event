@@ -111,8 +111,26 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'contact@tixio.eu'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@tixio.eu'),
         'name' => env('MAIL_FROM_NAME', 'Tixio'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Predvolený Reply-To
+    |--------------------------------------------------------------------------
+    |
+    | Odosiela sa z noreply@, odpoveď človeka má ale kam prísť. Doplní ho
+    | App\Listeners\DefaultReplyTo len mailom bez vlastného Reply-To – správy
+    | medzi ľuďmi (MessageReceived, QuestionRelayed…) ostanú s odosielateľom.
+    | Zámerne nie kľúč `reply_to`: ten Laravel pridá ku každému mailu a
+    | s vlastným Reply-To by vznikli dve adresy.
+    |
+    */
+
+    'default_reply_to' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS', 'contact@tixio.eu'),
+        'name' => env('MAIL_REPLY_TO_NAME', 'Tixio'),
     ],
 
 ];
