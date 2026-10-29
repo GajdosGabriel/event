@@ -29,6 +29,9 @@ class DuplicateDecision extends Model
 
     public const SOURCE_AI = 'ai';
 
+    /** Rozhodol človek (admin vedome založil nový záznam napriek podozreniu). */
+    public const SOURCE_HUMAN = 'human';
+
     protected $guarded = [];
 
     protected $casts = [

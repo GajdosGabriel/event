@@ -81,8 +81,11 @@ class VenueStoreRequest extends FormRequest
                 $canalIds->push($this->input('owner_canal_id'));
             }
 
-            if ($canalIds->isEmpty() && $this->filled('canal_id')) {
-                $canalIds = collect([$this->input('canal_id')]);
+            // `canal_id` sa kontroluje vždy, keď príde — repozitár ho použije
+            // popri `owner_canal_id` a pri použití existujúceho miesta sa
+            // pripája popri všetkých ostatných.
+            if ($this->filled('canal_id')) {
+                $canalIds->push($this->input('canal_id'));
             }
 
             $unauthorizedCanalIds = $canalIds

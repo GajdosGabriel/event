@@ -119,7 +119,9 @@ class DashboardVenueController extends Controller
 
             // Resolver vracia miesto len s porovnávanými stĺpcami — doplnenie musí
             // vidieť všetky, inak by „prázdny" web či popis prepísalo.
-            $filled = $this->fillMissing($existing->fresh(), $data);
+            $existing = $existing->fresh();
+            $manages = $existing->ownerCanals()->whereIn('canals.id', $request->user()->dashboardCanalIds())->exists();
+            $filled = $this->fillMissing($existing, $data, $manages);
 
             return response()->json([
                 ...(new VenueResource($existing->fresh(['files', 'canals', 'municipality'])))->resolve($request),
@@ -139,14 +141,22 @@ class DashboardVenueController extends Controller
      * nezahodia celé: doplnia sa polia, ktoré miesto ešte nemá. Vyplnené polia
      * sa neprepisujú — miesto spravuje jeho správca, nie ten, kto ho len používa.
      *
+     * Kontakty, popis a kapacitu doplní len správca — inak by ktokoľvek
+     * s dashboardom vpísal cudziemu miestu svoj e-mail či web bez kontroly.
+     * Adresu a polohu môže doplniť aj kanál, ktorý miesto len používa.
+     *
      * @param  array<string, mixed>  $data
+     * @param  bool  $manages  zakladajúci je cez svoj kanál správcom miesta
      * @return array<int, string> doplnené polia
      */
-    private function fillMissing(Venue $venue, array $data): array
+    private function fillMissing(Venue $venue, array $data, bool $manages): array
     {
         $updates = [];
+        $fields = $manages
+            ? ['street', 'postcode', 'body', 'website', 'email', 'phone', 'capacity']
+            : ['street', 'postcode'];
 
-        foreach (['street', 'postcode', 'body', 'website', 'email', 'phone', 'capacity'] as $field) {
+        foreach ($fields as $field) {
             $value = $data[$field] ?? null;
             $current = $venue->getAttribute($field);
 

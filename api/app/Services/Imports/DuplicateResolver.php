@@ -270,6 +270,22 @@ class DuplicateResolver
     }
 
     /**
+     * Človek potvrdil, že nové miesto nie je $candidate. Zapíše sa `distinct`,
+     * ktoré prebije staršie `same` z cache — inak by ďalší import či dashboard
+     * s tým istým názvom pripojil podujatia ku kandidátovi napriek odmietnutiu.
+     */
+    public function rejectVenue(string $name, int $villageId, Venue $candidate): void
+    {
+        $inputKey = ImportedNameMatcher::baseSlug($name, $this->municipalityName($villageId));
+
+        if ($inputKey === '') {
+            return;
+        }
+
+        $this->record(DuplicateDecision::ENTITY_VENUE, $inputKey.'@'.$villageId, $name, $candidate, DuplicateDecision::DISTINCT, null, DuplicateDecision::SOURCE_HUMAN, 'Admin vedome založil nové miesto.');
+    }
+
+    /**
      * Doplní id nového záznamu k rozhodnutiam `uncertain`, ktoré vznikli pri
      * jeho posúdení — kontrolujúci človek tak vie, ktorý záznam je podozrivý.
      */

@@ -4,8 +4,10 @@ namespace Tests\Feature\Venues;
 
 use App\Enums\ModelStatus;
 use App\Models\Canal;
+use App\Models\DuplicateDecision;
 use App\Models\Municipality;
 use App\Models\Venue;
+use App\Services\Imports\DuplicateResolver;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -147,6 +149,75 @@ class SharedVenueTest extends EventSetupTest
     }
 
     #[Test]
+    public function reusing_a_foreign_venue_does_not_fill_its_contacts(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $foreign = $this->foreignPublishedVenue(['street' => null, 'website' => null, 'email' => null, 'phone' => null, 'body' => null]);
+
+        $response = $this->postJson('/api/dashboard/venues', [
+            'canal_id' => $this->canalPrimary->id,
+            'village_id' => $foreign->village_id,
+            'name' => 'Kultúrny dom Zvláštny názov',
+            'street' => 'Hlavná 5',
+            'website' => 'https://podvrh.sk',
+            'email' => 'podvrh@example.com',
+            'body' => '<p>Cudzí popis</p>',
+        ]);
+
+        $response->assertOk()->assertJsonPath('reused', true);
+        $this->assertSame(['street'], $response->json('filled_fields'));
+
+        $foreign->refresh();
+        $this->assertNull($foreign->website);
+        $this->assertNull($foreign->email);
+        $this->assertNull($foreign->body);
+    }
+
+    #[Test]
+    public function reusing_an_own_venue_fills_its_contacts(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $own = Venue::factory()->forCanal($this->canalPrimary->id)->create([
+            'name' => 'Kultúrny dom Zvláštny názov',
+            'category' => null,
+            'village_id' => Municipality::query()->where('slug', 'kosice')->firstOrFail()->id,
+            'status' => ModelStatus::Published->value,
+            'email' => null,
+        ]);
+
+        $response = $this->postJson('/api/dashboard/venues', [
+            'canal_id' => $this->canalPrimary->id,
+            'village_id' => $own->village_id,
+            'name' => 'Kultúrny dom Zvláštny názov',
+            'email' => 'spravca@example.com',
+        ]);
+
+        $response->assertOk()->assertJsonPath('id', $own->id);
+        $this->assertContains('email', $response->json('filled_fields'));
+        $this->assertSame('spravca@example.com', $own->fresh()->email);
+    }
+
+    #[Test]
+    public function a_foreign_canal_id_is_rejected_next_to_an_own_owner_canal(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $foreign = $this->foreignPublishedVenue();
+        $otherCanal = Canal::factory()->active()->create();
+
+        $this->postJson('/api/dashboard/venues', [
+            'owner_canal_id' => $this->canalPrimary->id,
+            'canal_id' => $otherCanal->id,
+            'village_id' => $foreign->village_id,
+            'name' => 'Kultúrny dom Zvláštny názov',
+        ])->assertStatus(422)->assertJsonValidationErrors('canal_ids');
+
+        $this->assertDatabaseMissing('canal_venue', ['canal_id' => $otherCanal->id]);
+    }
+
+    #[Test]
     public function the_similarity_hint_finds_a_foreign_published_venue_by_its_address(): void
     {
         $foreign = $this->foreignPublishedVenue(['street' => 'Hlavná ulica 5']);
@@ -179,6 +250,15 @@ class SharedVenueTest extends EventSetupTest
         $response = $this->postJson('/api/admin/venues', [...$payload, 'allow_duplicate' => true]);
         $response->assertCreated();
         $this->assertNotSame($foreign->id, $response->json('id'));
+
+        // Odmietnutie prebije staršie `same` — resolver kandidáta už nepoužije.
+        $this->assertDatabaseHas('duplicate_decisions', [
+            'entity' => DuplicateDecision::ENTITY_VENUE,
+            'candidate_id' => $foreign->id,
+            'decision' => DuplicateDecision::DISTINCT,
+            'source' => DuplicateDecision::SOURCE_HUMAN,
+        ]);
+        $this->assertNotSame($foreign->id, app(DuplicateResolver::class)->findVenue('Kultúrny dom Zvláštny názov', $foreign->village_id)?->id);
     }
 
     #[Test]
