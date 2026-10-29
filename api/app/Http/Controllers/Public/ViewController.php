@@ -7,8 +7,8 @@ use App\Repositories\Contracts\CanalRepository;
 use App\Repositories\Contracts\EventRepository;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Views\ViewRecorder;
-use Illuminate\Http\Response;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * Započítanie zobrazenia verejného detailu podujatia, miesta alebo kanála.
