@@ -21,7 +21,7 @@
  * zmaže pri aktivácii.
  */
 
-const CACHE = 'event-shell-v1'
+const CACHE = 'event-shell-v2'
 const SHELL = ['/', '/index.html', '/favicon.svg', '/icon-192.png']
 
 self.addEventListener('install', (event) => {

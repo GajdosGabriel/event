@@ -189,7 +189,7 @@ const munResource = computed(() => {
 .aside-brand {
   @apply flex shrink-0 items-center gap-3 rounded-lg px-2 py-2 text-white no-underline hover:bg-teal-200/12 overflow-hidden;
 }
-.brand-mark { @apply size-10 shrink-0 rounded-lg shadow-sm; }
+.brand-mark { @apply size-10 shrink-0 rounded-lg shadow-sm ring-1 ring-white/20; }
 .brand-copy { @apply min-w-0 overflow-hidden transition-all duration-200; }
 .brand-copy strong { @apply block truncate text-sm leading-tight text-white; }
 .brand-copy small { @apply mt-0.5 block text-xs text-teal-100/70; }
