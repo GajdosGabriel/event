@@ -16,6 +16,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
+use App\Services\Imports\DuplicateResolver;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
@@ -123,7 +124,34 @@ class VenueController extends Controller
     {
         $this->authorize('create', Venue::class);
 
-        $venue = $this->venueRepository->create($request->validated());
+        $data = $request->validated();
+        $duplicates = app(DuplicateResolver::class);
+
+        // Admin miesto nezlučuje potichu ako dashboard — o duplicite sa ho len
+        // spýta. Potvrdením (`allow_duplicate`) založí nový záznam vedome.
+        if (! $request->boolean('allow_duplicate')) {
+            $existing = $duplicates->findVenue(
+                (string) $data['name'],
+                (int) $data['village_id'],
+                $data['street'] ?? null,
+                isset($data['latitude']) ? (float) $data['latitude'] : null,
+                isset($data['longitude']) ? (float) $data['longitude'] : null,
+                null,
+                $data['coordinates_source'] ?? null,
+            );
+
+            if ($existing instanceof Venue) {
+                $existing = $existing->fresh();
+
+                return response()->json([
+                    'message' => __('venues.errors.duplicate', ['name' => $existing->name]),
+                    'duplicate' => ['id' => $existing->id, 'name' => $existing->name, 'street' => $existing->street],
+                ], 409);
+            }
+        }
+
+        $venue = $this->venueRepository->create($data);
+        $duplicates->markCreated($venue);
 
         return response()->json(new VenueResource($venue), 201);
     }

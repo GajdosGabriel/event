@@ -1268,6 +1268,7 @@ const sk = {
       created: 'Miesto vytvorené.',
       reused: 'Toto miesto už existuje – použili sme existujúci záznam.',
       reusedFilled: 'Toto miesto už existuje – použili sme ho a doplnili chýbajúce údaje.',
+      duplicateUse: '{message} Použiť existujúce miesto? (Zrušiť = založiť nové)',
       failed: 'Uloženie zlyhalo.',
     },
   },
@@ -1341,6 +1342,7 @@ const sk = {
       created: 'Miesto vytvorené.',
       reused: 'Toto miesto už existuje – použili sme existujúci záznam.',
       reusedFilled: 'Toto miesto už existuje – použili sme ho a doplnili chýbajúce údaje.',
+      duplicateConfirm: '{message} Chcete napriek tomu založiť nové miesto?',
       saved: 'Miesto uložené.',
     },
     sections: {

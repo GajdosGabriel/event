@@ -1201,6 +1201,7 @@ const cs: Messages = {
       created: 'Místo vytvořeno.',
       reused: 'Toto místo už existuje – použili jsme existující záznam.',
       reusedFilled: 'Toto místo už existuje – použili jsme ho a doplnili chybějící údaje.',
+      duplicateUse: '{message} Použít existující místo? (Zrušit = založit nové)',
       failed: 'Uložení selhalo.',
     },
   },
@@ -1267,6 +1268,7 @@ const cs: Messages = {
       created: 'Místo vytvořeno.',
       reused: 'Toto místo už existuje – použili jsme existující záznam.',
       reusedFilled: 'Toto místo už existuje – použili jsme ho a doplnili chybějící údaje.',
+      duplicateConfirm: '{message} Chcete přesto založit nové místo?',
       saved: 'Místo uloženo.',
     },
     sections: {

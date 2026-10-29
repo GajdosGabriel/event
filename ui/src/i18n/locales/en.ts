@@ -1202,6 +1202,7 @@ const en: Messages = {
       created: 'Venue created.',
       reused: 'This venue already exists – the existing record was used.',
       reusedFilled: 'This venue already exists – we used it and filled in the missing details.',
+      duplicateUse: '{message} Use the existing venue? (Cancel = create a new one)',
       failed: 'Saving failed.',
     },
   },
@@ -1268,6 +1269,7 @@ const en: Messages = {
       created: 'Venue created.',
       reused: 'This venue already exists – the existing record was used.',
       reusedFilled: 'This venue already exists – we used it and filled in the missing details.',
+      duplicateConfirm: '{message} Do you want to create a new venue anyway?',
       saved: 'Venue saved.',
     },
     sections: {

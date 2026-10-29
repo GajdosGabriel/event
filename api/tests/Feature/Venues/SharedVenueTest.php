@@ -164,6 +164,24 @@ class SharedVenueTest extends EventSetupTest
     }
 
     #[Test]
+    public function an_admin_is_asked_before_creating_a_duplicate(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+
+        $foreign = $this->foreignPublishedVenue();
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        $payload = ['village_id' => $foreign->village_id, 'name' => 'Kultúrny dom Zvláštny názov'];
+
+        $this->postJson('/api/admin/venues', $payload)
+            ->assertStatus(409)
+            ->assertJsonPath('duplicate.id', $foreign->id);
+
+        $response = $this->postJson('/api/admin/venues', [...$payload, 'allow_duplicate' => true]);
+        $response->assertCreated();
+        $this->assertNotSame($foreign->id, $response->json('id'));
+    }
+
+    #[Test]
     public function a_new_venue_in_another_town_is_created_normally(): void
     {
         config()->set('services.imports.dedupe_with_ai', false);

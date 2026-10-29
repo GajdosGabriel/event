@@ -291,12 +291,24 @@ function payload(): Record<string, unknown> {
   return { ...form.value, ...toAddressPayload(address.value, 'village_id') }
 }
 
+// Admin miesto nezlučuje — server pri podozrení na duplicitu vráti 409 a admin
+// rozhodne, či založí nový záznam napriek tomu.
+async function createVenueConfirmingDuplicate() {
+  try {
+    return await createVenue(payload(), scope.value)
+  } catch (e: unknown) {
+    const resp = (e as { response?: { status?: number; data?: { message?: string } } })?.response
+    if (resp?.status !== 409 || !window.confirm(t('venues.form.duplicateConfirm', { message: resp.data?.message ?? '' }))) throw e
+    return await createVenue({ ...payload(), allow_duplicate: true }, scope.value)
+  }
+}
+
 async function submit() {
   validation.markValidated()
   errors.value = {}; serverError.value = null; saving.value = true
   try {
     if (isCreate.value) {
-      const v = await createVenue(payload(), scope.value)
+      const v = await createVenueConfirmingDuplicate()
       savedId.value = v.id
       const pending = images.value?.pendingFiles ?? []
       if (pending.length && !v.reused) {

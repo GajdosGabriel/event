@@ -1202,6 +1202,7 @@ const de: Messages = {
       created: 'Ort erstellt.',
       reused: 'Dieser Ort existiert bereits – der vorhandene Eintrag wurde verwendet.',
       reusedFilled: 'Dieser Ort existiert bereits – wir haben ihn verwendet und fehlende Angaben ergänzt.',
+      duplicateUse: '{message} Den vorhandenen Ort verwenden? (Abbrechen = neuen anlegen)',
       failed: 'Speichern fehlgeschlagen.',
     },
   },
@@ -1268,6 +1269,7 @@ const de: Messages = {
       created: 'Ort erstellt.',
       reused: 'Dieser Ort existiert bereits – der vorhandene Eintrag wurde verwendet.',
       reusedFilled: 'Dieser Ort existiert bereits – wir haben ihn verwendet und fehlende Angaben ergänzt.',
+      duplicateConfirm: '{message} Möchten Sie trotzdem einen neuen Ort anlegen?',
       saved: 'Ort gespeichert.',
     },
     sections: {

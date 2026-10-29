@@ -209,13 +209,19 @@ class DuplicateResolver
         $venues = Venue::query()
             ->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback'))
             ->where(fn ($q) => $q->whereNull('village_id')->orWhere('village_id', $villageId))
-            ->when($visibleToCanalIds !== null, fn ($q) => $q->where(fn ($visible) => $visible
-                ->where('status', ModelStatus::Published->value)
-                ->orWhereHas('canals', fn ($canals) => $canals->whereIn('canals.id', $visibleToCanalIds))))
-            ->select(['id', 'name', 'street', 'latitude', 'longitude', 'coordinates_source', 'village_id'])
+            ->select(['id', 'name', 'street', 'latitude', 'longitude', 'coordinates_source', 'village_id', 'status'])
+            ->when($visibleToCanalIds !== null, fn ($q) => $q->withExists([
+                'canals as linked_to_requester' => fn ($canals) => $canals->whereIn('canals.id', $visibleToCanalIds),
+            ]))
             ->get();
 
         foreach ($venues as $venue) {
+            // Koncept cudzieho kanála sa nesmie potichu pripojiť, no zamlčať ho
+            // tiež nie — duplicita by sa nikdy neobjavila. Ide len na kontrolu.
+            $hidden = $visibleToCanalIds !== null
+                && $venue->status !== ModelStatus::Published
+                && ! $venue->linked_to_requester;
+
             $tokens = self::tokens((string) $venue->name);
             $distance = $hasPoint && $venue->latitude !== null && $venue->longitude !== null
                 && ! NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude)
@@ -244,6 +250,7 @@ class DuplicateResolver
                 'reason' => 'Rovnaký názov v tej istej obci.',
                 'score' => self::jaccard($newTokens, $tokens),
                 'distance' => $distance,
+                'hidden' => $hidden,
             ];
         }
 
@@ -276,7 +283,7 @@ class DuplicateResolver
     }
 
     /**
-     * @param  array<int, array{model: Model, sure: bool, score: float, distance?: float|null, reason?: string}>  $candidates
+     * @param  array<int, array{model: Model, sure: bool, score: float, distance?: float|null, reason?: string, hidden?: bool}>  $candidates
      * @param  array<string, string|null>  $newFields
      * @param  \Closure(Model, array): array<string, string|null>  $existingFields
      */
@@ -286,7 +293,8 @@ class DuplicateResolver
             return null;
         }
 
-        usort($candidates, fn (array $a, array $b): int => [(int) $b['sure'], $b['score']] <=> [(int) $a['sure'], $a['score']]);
+        // Skryté kandidáty idú až za viditeľné — nesmú im zabrať miesto v limite.
+        usort($candidates, fn (array $a, array $b): int => [(int) ! ($b['hidden'] ?? false), (int) $b['sure'], $b['score']] <=> [(int) ! ($a['hidden'] ?? false), (int) $a['sure'], $a['score']]);
 
         foreach (array_slice($candidates, 0, self::MAX_CANDIDATES) as $candidate) {
             /** @var Model $model */
@@ -298,6 +306,16 @@ class DuplicateResolver
                 ->where('candidate_id', $model->getKey())
                 ->latest('id')
                 ->first();
+
+            // Skrytý kandidát sa nikdy nepoužije (ani podľa staršieho rozhodnutia)
+            // a AI sa naň nepýta — len raz čaká na kontrolu človekom.
+            if ($candidate['hidden'] ?? false) {
+                if (! $known instanceof DuplicateDecision) {
+                    $this->record($entity, $inputKey, $name, $model, DuplicateDecision::UNCERTAIN, null, DuplicateDecision::SOURCE_RULE, 'Podobné miesto je nezverejnený koncept iného kanála.');
+                }
+
+                continue;
+            }
 
             if ($known instanceof DuplicateDecision) {
                 if ($known->decision === DuplicateDecision::SAME) {

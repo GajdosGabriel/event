@@ -668,7 +668,23 @@ async function saveNewVenue() {
     }
     // Zápis musí ísť do rovnakého scope ako zvyšok stránky — dashboard
     // endpoint vyžaduje vlastníctvo cez kanál a admin na ňom skončil na 403.
-    const created = await createVenue(payload, scope.value)
+    let created: Awaited<ReturnType<typeof createVenue>>
+    try {
+      created = await createVenue(payload, scope.value)
+    } catch (e: unknown) {
+      // Admin dostane pri podozrení na duplicitu 409: buď použije existujúce
+      // miesto (to podujatie zvyčajne chce), alebo vedome založí nové.
+      const resp = (e as { response?: { status?: number; data?: { message?: string; duplicate?: { id: number; name: string } } } })?.response
+      const duplicate = resp?.status === 409 ? resp.data?.duplicate : undefined
+      if (!duplicate) throw e
+      if (window.confirm(t('events.venueModal.duplicateUse', { message: resp?.data?.message ?? '' }))) {
+        selectedPlace.value = { id: duplicate.id, name: duplicate.name }
+        form.value.venue_id = duplicate.id
+        venueModal.value.show = false
+        return
+      }
+      created = await createVenue({ ...payload, allow_duplicate: true }, scope.value)
+    }
     venues.value.push({ id: created.id, name: created.name, canalIds: form.value.canal_id ? [form.value.canal_id] : [] })
     selectedPlace.value = { id: created.id, name: created.name }
     createdHere.add(`venue:${created.id}`)

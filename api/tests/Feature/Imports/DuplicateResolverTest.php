@@ -316,6 +316,35 @@ class DuplicateResolverTest extends TestCase
     }
 
     #[Test]
+    public function a_foreign_draft_is_never_reused_only_queued_for_review(): void
+    {
+        $this->fakeJudge(true, 0.99);
+
+        $kosice = Municipality::query()->where('slug', 'kosice')->firstOrFail();
+        $draft = Venue::factory()->forCanal(Canal::factory()->create()->id)->create([
+            'name' => 'Kultúrny dom',
+            'category' => null,
+            'village_id' => $kosice->id,
+            'status' => 'draft',
+        ]);
+        $mine = Canal::factory()->create();
+
+        $resolver = app(DuplicateResolver::class);
+
+        $this->assertNull($resolver->findVenue('Kultúrny dom', $kosice->id, null, null, null, [$mine->id]));
+        $this->assertDatabaseHas('duplicate_decisions', [
+            'entity' => 'venue',
+            'candidate_id' => $draft->id,
+            'decision' => DuplicateDecision::UNCERTAIN,
+        ]);
+        Http::assertNothingSent();
+
+        // Opakované zadanie nevytvorí ďalší záznam na kontrolu.
+        $resolver->findVenue('Kultúrny dom', $kosice->id, null, null, null, [$mine->id]);
+        $this->assertSame(1, DuplicateDecision::query()->where('candidate_id', $draft->id)->count());
+    }
+
+    #[Test]
     public function address_keys_ignore_the_street_word_and_the_town_suffix(): void
     {
         $this->assertSame(['hlavna-5'], DuplicateResolver::addressKeys('Košice', 'Hlavná ulica 5, Košice'));
