@@ -42,7 +42,7 @@ class TicketOwnership
             $q->where('tickets.user_id', $user->id);
 
             if ($email !== '') {
-                $q->orWhereRaw('LOWER(tickets.holder_email) = ?', [$email])
+                $q->orWhere('tickets.holder_email', $email)
                     // Vstupenka v cudzej objednávke: objednal ju niekto iný a
                     // účastníka uviedol e-mailom. Zvonček ho posiela na „Moje
                     // lístky", takže ju tam musí nájsť (viď MyTicketResource).
@@ -65,7 +65,7 @@ class TicketOwnership
 
     private function attendee(Builder $admissions, string $email, bool $validOnly = false): Builder
     {
-        $admissions->whereRaw('LOWER(attendee_email) = ?', [$email]);
+        $admissions->where('attendee_email', $email);
 
         return $validOnly
             ? $admissions->where('status', AdmissionStatus::Valid->value)
@@ -94,7 +94,7 @@ class TicketOwnership
                 $q->where('tickets.user_id', $user->id);
 
                 if ($email !== '') {
-                    $q->orWhereRaw('LOWER(tickets.holder_email) = ?', [$email])
+                    $q->orWhere('tickets.holder_email', $email)
                         ->orWhereHas('admissions', fn (Builder $a) => $this->attendee($a, $email, true));
                 }
             })

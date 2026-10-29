@@ -59,7 +59,7 @@ class SubscriptionController extends Controller
 
         return Subscription::query()
             ->active()
-            ->whereRaw('LOWER(email) = ?', [$email]);
+            ->where('email', $email);
     }
 
     /**

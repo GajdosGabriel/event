@@ -705,7 +705,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                             $qq->orWhere('user_id', $userId);
                         }
                         if ($email !== '') {
-                            $qq->orWhereRaw('LOWER(holder_email) = ?', [$email]);
+                            $qq->orWhere('holder_email', $email);
                         }
                     });
             })

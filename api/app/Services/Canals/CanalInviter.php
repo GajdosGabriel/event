@@ -35,7 +35,7 @@ class CanalInviter
     {
         $email = mb_strtolower(trim($email));
 
-        $existingMember = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+        $existingMember = User::query()->where('email', $email)->first();
 
         if ($existingMember && $canal->users()->where('users.id', $existingMember->id)->exists()) {
             throw ValidationException::withMessages([
@@ -47,7 +47,7 @@ class CanalInviter
         // najnovšia, inak by sa dala rola meniť tým, ktorý odkaz obeť použije.
         $canal->invitations()
             ->pending()
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('email', $email)
             ->update(['revoked_at' => now()]);
 
         $invitation = $canal->invitations()->create([
@@ -82,7 +82,7 @@ class CanalInviter
 
         $invitation = $canal->invitations()
             ->pending()
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('email', $email)
             ->where('role', CanalRole::Owner->value)
             ->latest('id')
             ->first();

@@ -64,6 +64,14 @@ class ResourceSimilarityController extends Controller
         $own = fn ($row) => ! $isVenue || $request->routeIs('admin.*') || $row->canals->pluck('id')->intersect($ids)->isNotEmpty();
         $sameAddress = fn ($row) => $addresses !== [] && $sameTown($row)
             && array_intersect($addresses, DuplicateResolver::addressKeys($town, $row->street, (string) $row->$label)) !== [];
+        // Predvýber v SQL, nech sa pri každom napísanom znaku neťahá celá tabuľka.
+        // Kolácia *_ci porovnáva bez diakritiky a veľkosti písmen; slová needle
+        // sa spájajú cez `%`, takže interpunkcia ani medzery nič nevynechajú.
+        // Presné porovnanie ostáva nižšie v PHP.
+        $words = array_filter(preg_split('/[^a-z0-9]+/', $needle) ?: [], fn ($word) => $word !== '');
+        $query->where(fn ($q) => $q
+            ->when($words !== [], fn ($q) => $q->where($label, 'like', '%'.implode('%', $words).'%'))
+            ->when($addresses !== [] && isset($input['municipality']), fn ($q) => $q->orWhere($municipality, $input['municipality'])));
         $matches = $query->where('id', '!=', $input['exclude_id'] ?? 0)->select($columns)->get()
             // Cudzie zverejnené miesto policy `view` nepustí, no verejne ho vidí každý.
             ->filter(fn ($row) => (str_contains(self::normalize($row->$label), $needle) || $sameAddress($row))

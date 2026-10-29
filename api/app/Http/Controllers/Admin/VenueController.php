@@ -127,35 +127,30 @@ class VenueController extends Controller
         $data = $request->validated();
         $duplicates = app(DuplicateResolver::class);
 
-        $find = fn (): ?Venue => $duplicates->findVenue(
+        // Admin miesto nezlučuje potichu ako dashboard — o duplicite sa ho len
+        // spýta, aj pri neistej zhode (adresa, bod, podobný názov) a bez AI.
+        // Potvrdením (`allow_duplicate`) založí nový záznam vedome a odmietnutí
+        // kandidáti sa zapíšu ako `distinct`, aby ich resolver neskôr nepoužil.
+        $suspects = $duplicates->suspectVenues(
             (string) $data['name'],
             (int) $data['village_id'],
             $data['street'] ?? null,
             isset($data['latitude']) ? (float) $data['latitude'] : null,
             isset($data['longitude']) ? (float) $data['longitude'] : null,
-            null,
             $data['coordinates_source'] ?? null,
         );
 
-        // Admin miesto nezlučuje potichu ako dashboard — o duplicite sa ho len
-        // spýta. Potvrdením (`allow_duplicate`) založí nový záznam vedome
-        // a odmietnutí kandidáti sa zapíšu ako `distinct`, aby ich resolver
-        // neskôr nepoužil. Kandidátov je najviac toľko, koľko posúdi resolver.
         if ($request->boolean('allow_duplicate')) {
-            for ($i = 0; $i < 3 && ($rejected = $find()) instanceof Venue; $i++) {
+            foreach ($suspects as $rejected) {
                 $duplicates->rejectVenue((string) $data['name'], (int) $data['village_id'], $rejected);
             }
-        } else {
-            $existing = $find();
+        } elseif ($suspects !== []) {
+            $existing = $suspects[0]->fresh();
 
-            if ($existing instanceof Venue) {
-                $existing = $existing->fresh();
-
-                return response()->json([
-                    'message' => __('venues.errors.duplicate', ['name' => $existing->name]),
-                    'duplicate' => ['id' => $existing->id, 'name' => $existing->name, 'street' => $existing->street],
-                ], 409);
-            }
+            return response()->json([
+                'message' => __('venues.errors.duplicate', ['name' => $existing->name]),
+                'duplicate' => ['id' => $existing->id, 'name' => $existing->name, 'street' => $existing->street],
+            ], 409);
         }
 
         $venue = $this->venueRepository->create($data);

@@ -59,7 +59,7 @@ class DuplicateResolver
         'zdruzenie', 'organizacia', 'spolocnost',
     ];
 
-    /** @var array<int, int> id rozhodnutí `uncertain` z posledného posúdenia, čakajúce na id nového záznamu */
+    /** @var array<int, int> id rozhodnutí `uncertain` (a odmietnutí človekom) z posledného posúdenia, čakajúce na id nového záznamu */
     private array $pendingUncertain = [];
 
     public function __construct(
@@ -87,7 +87,27 @@ class DuplicateResolver
         $newHost = self::host($website);
         $candidates = [];
 
-        foreach (Canal::query()->select(['id', 'name', 'website', 'municipality_id'])->get() as $canal) {
+        // Hrubý predvýber v SQL: kandidát musí mať s názvom spoločný token
+        // alebo rovnaký web. Kolácia *_ci porovnáva bez diakritiky, takže
+        // `LIKE %token%` nevynechá nič, čo by nižšie prešlo — len netreba
+        // pri každom článku ťahať všetky kanály.
+        if ($newTokens === [] && $newHost === null) {
+            return null;
+        }
+
+        $prefiltered = Canal::query()
+            ->select(['id', 'name', 'website', 'municipality_id'])
+            ->where(function ($q) use ($newTokens, $newHost): void {
+                foreach ($newTokens as $token) {
+                    $q->orWhere('name', 'like', '%'.addcslashes($token, '\\%_').'%');
+                }
+
+                if ($newHost !== null) {
+                    $q->orWhere('website', 'like', '%'.addcslashes($newHost, '\\%_').'%');
+                }
+            });
+
+        foreach ($prefiltered->get() as $canal) {
             $tokens = self::tokens((string) $canal->name);
             $sharesName = self::similarTokens($newTokens, $tokens, 0.6);
             $sameHost = $newHost !== null && self::host($canal->website) === $newHost;
@@ -188,16 +208,79 @@ class DuplicateResolver
     public function findVenue(string $name, ?int $villageId, ?string $street = null, ?float $latitude = null, ?float $longitude = null, ?array $visibleToCanalIds = null, ?string $coordinatesSource = null): ?Venue
     {
         $this->pendingUncertain = [];
-        $inputKey = ImportedNameMatcher::baseSlug($name, $villageId !== null ? $this->municipalityName($villageId) : null);
+        $baseSlug = $this->venueBaseSlug($name, $villageId);
 
-        // Bez obce nie je s čím porovnávať — názvy miest sa opakujú po celom
-        // Slovensku („Kostol Nanebovzatia Panny Márie").
-        if ($inputKey === '' || $villageId === null) {
+        if ($baseSlug === '') {
             return null;
         }
 
-        $baseSlug = $inputKey;
-        $inputKey .= '@'.$villageId;
+        $village = $this->municipalityName($villageId);
+
+        return $this->decide(
+            DuplicateDecision::ENTITY_VENUE,
+            $baseSlug.'@'.$villageId,
+            $name,
+            $this->venueCandidates($name, (int) $villageId, $baseSlug, $street, $latitude, $longitude, $visibleToCanalIds, $coordinatesSource),
+            ['Názov' => $name, 'Obec' => $village, 'Ulica' => $street],
+            fn (Venue $venue, array $candidate): array => [
+                'Názov' => (string) $venue->name,
+                'Obec' => $village,
+                'Ulica' => $venue->street,
+                'Vzdialenosť súradníc od nového záznamu' => isset($candidate['distance']) ? round($candidate['distance']).' m' : null,
+            ],
+        );
+    }
+
+    /**
+     * Miesta, na ktoré sa treba človeka spýtať, kým založí nové — aj neisté
+     * (rovnaká adresa, bod do 40 m, podobný názov). Na rozdiel od findVenue
+     * sa nepýta AI, nič nezapisuje a vynechá len kandidátov, ktorých už
+     * niekto (človek či AI) uznal za iné miesto.
+     *
+     * @return array<int, Venue> od najpravdepodobnejšieho
+     */
+    public function suspectVenues(string $name, int $villageId, ?string $street = null, ?float $latitude = null, ?float $longitude = null, ?string $coordinatesSource = null): array
+    {
+        $baseSlug = $this->venueBaseSlug($name, $villageId);
+
+        if ($baseSlug === '') {
+            return [];
+        }
+
+        $candidates = array_slice(self::rank($this->venueCandidates($name, $villageId, $baseSlug, $street, $latitude, $longitude, null, $coordinatesSource)), 0, self::MAX_CANDIDATES);
+        $ids = array_map(fn (array $candidate) => $candidate['model']->getKey(), $candidates);
+
+        // Platí posledné rozhodnutie o dvojici — `distinct` od človeka prebije staršie `same`.
+        $latest = DuplicateDecision::query()
+            ->where('entity', DuplicateDecision::ENTITY_VENUE)
+            ->where('input_key', $baseSlug.'@'.$villageId)
+            ->whereIn('candidate_id', $ids)
+            ->orderBy('id')
+            ->get()
+            ->keyBy('candidate_id');
+
+        return array_values(array_map(
+            fn (array $candidate) => $candidate['model'],
+            array_filter($candidates, fn (array $candidate) => $latest->get($candidate['model']->getKey())?->decision !== DuplicateDecision::DISTINCT),
+        ));
+    }
+
+    /**
+     * Kľúč vstupu miesta bez obce, alebo '' keď sa nemá s čím porovnávať —
+     * bez obce nie (názvy miest sa opakujú po celom Slovensku: „Kostol
+     * Nanebovzatia Panny Márie").
+     */
+    private function venueBaseSlug(string $name, ?int $villageId): string
+    {
+        return $villageId === null ? '' : ImportedNameMatcher::baseSlug($name, $this->municipalityName($villageId));
+    }
+
+    /**
+     * @param  array<int, int>|null  $visibleToCanalIds  viď findVenue
+     * @return array<int, array{model: Venue, sure: bool, reason: string, score: float, distance: float|null, hidden: bool}>
+     */
+    private function venueCandidates(string $name, int $villageId, string $baseSlug, ?string $street, ?float $latitude, ?float $longitude, ?array $visibleToCanalIds, ?string $coordinatesSource): array
+    {
         $village = $this->municipalityName($villageId);
         $newTokens = self::tokens($name);
         $hasPoint = $latitude !== null && $longitude !== null && ! NationwideCoordinates::needsLookup($latitude, $longitude);
@@ -254,19 +337,7 @@ class DuplicateResolver
             ];
         }
 
-        return $this->decide(
-            DuplicateDecision::ENTITY_VENUE,
-            $inputKey,
-            $name,
-            $candidates,
-            ['Názov' => $name, 'Obec' => $village, 'Ulica' => $street],
-            fn (Venue $venue, array $candidate): array => [
-                'Názov' => (string) $venue->name,
-                'Obec' => $village,
-                'Ulica' => $venue->street,
-                'Vzdialenosť súradníc od nového záznamu' => isset($candidate['distance']) ? round($candidate['distance']).' m' : null,
-            ],
-        );
+        return $candidates;
     }
 
     /**
@@ -276,13 +347,13 @@ class DuplicateResolver
      */
     public function rejectVenue(string $name, int $villageId, Venue $candidate): void
     {
-        $inputKey = ImportedNameMatcher::baseSlug($name, $this->municipalityName($villageId));
+        $baseSlug = $this->venueBaseSlug($name, $villageId);
 
-        if ($inputKey === '') {
+        if ($baseSlug === '') {
             return;
         }
 
-        $this->record(DuplicateDecision::ENTITY_VENUE, $inputKey.'@'.$villageId, $name, $candidate, DuplicateDecision::DISTINCT, null, DuplicateDecision::SOURCE_HUMAN, 'Admin vedome založil nové miesto.');
+        $this->record(DuplicateDecision::ENTITY_VENUE, $baseSlug.'@'.$villageId, $name, $candidate, DuplicateDecision::DISTINCT, null, DuplicateDecision::SOURCE_HUMAN, 'Admin vedome založil nové miesto.');
     }
 
     /**
@@ -309,10 +380,7 @@ class DuplicateResolver
             return null;
         }
 
-        // Skryté kandidáty idú až za viditeľné — nesmú im zabrať miesto v limite.
-        usort($candidates, fn (array $a, array $b): int => [(int) ! ($b['hidden'] ?? false), (int) $b['sure'], $b['score']] <=> [(int) ! ($a['hidden'] ?? false), (int) $a['sure'], $a['score']]);
-
-        foreach (array_slice($candidates, 0, self::MAX_CANDIDATES) as $candidate) {
+        foreach (array_slice(self::rank($candidates), 0, self::MAX_CANDIDATES) as $candidate) {
             /** @var Model $model */
             $model = $candidate['model'];
 
@@ -391,6 +459,22 @@ class DuplicateResolver
         return null;
     }
 
+    /**
+     * Poradie kandidátov: istí a s väčšou zhodou názvu skôr. Skryté kandidáty
+     * idú až za viditeľné — nesmú im zabrať miesto v limite.
+     *
+     * @template T of array{sure: bool, score: float, hidden?: bool}
+     *
+     * @param  array<int, T>  $candidates
+     * @return array<int, T>
+     */
+    private static function rank(array $candidates): array
+    {
+        usort($candidates, fn (array $a, array $b): int => [(int) ! ($b['hidden'] ?? false), (int) $b['sure'], $b['score']] <=> [(int) ! ($a['hidden'] ?? false), (int) $a['sure'], $a['score']]);
+
+        return $candidates;
+    }
+
     private function record(string $entity, string $inputKey, string $name, Model $candidate, string $decision, ?float $confidence, string $source, ?string $reason): void
     {
         $row = DuplicateDecision::query()->create([
@@ -405,7 +489,8 @@ class DuplicateResolver
             'reason' => $reason !== null && $reason !== '' ? $reason : null,
         ]);
 
-        if ($decision === DuplicateDecision::UNCERTAIN) {
+        // Aj odmietnutie človekom — z rozhodnutia má byť vidieť, čo vzniklo namiesto kandidáta.
+        if ($decision === DuplicateDecision::UNCERTAIN || $source === DuplicateDecision::SOURCE_HUMAN) {
             $this->pendingUncertain[] = $row->id;
         }
     }

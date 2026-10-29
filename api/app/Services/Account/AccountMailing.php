@@ -192,8 +192,8 @@ class AccountMailing
     public function contact(string $email): ?array
     {
         $email = (string) self::email($email);
-        $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        $ticket = Ticket::query()->whereRaw('LOWER(holder_email) = ?', [$email])
+        $user = User::query()->where('email', $email)->first();
+        $ticket = Ticket::query()->where('holder_email', $email)
             ->where('status', '!=', TicketStatus::Cancelled->value)
             ->latest('id')
             ->first();

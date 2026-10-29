@@ -302,7 +302,7 @@ class EventSignup
         }
 
         // Kontakt už v tíme kanála je (pozvánku prijal) → píšeme mu ako členovi.
-        $member = $canal->users()->whereRaw('LOWER(users.email) = ?', [$contact])->first();
+        $member = $canal->users()->where('users.email', $contact)->first();
 
         if ($member) {
             $this->safely(fn () => $member->notify($notice()));

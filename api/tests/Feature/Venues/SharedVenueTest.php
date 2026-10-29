@@ -8,6 +8,7 @@ use App\Models\DuplicateDecision;
 use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\Imports\DuplicateResolver;
+use App\Services\OpenAI\ChatGPT;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -259,6 +260,34 @@ class SharedVenueTest extends EventSetupTest
             'source' => DuplicateDecision::SOURCE_HUMAN,
         ]);
         $this->assertNotSame($foreign->id, app(DuplicateResolver::class)->findVenue('Kultúrny dom Zvláštny názov', $foreign->village_id)?->id);
+    }
+
+    #[Test]
+    public function an_admin_is_asked_about_a_venue_at_the_same_address_without_ai(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', true);
+        $this->mock(ChatGPT::class)->shouldNotReceive('judgeDuplicate');
+
+        $foreign = $this->foreignPublishedVenue(['street' => 'Hlavná 5']);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        $payload = ['village_id' => $foreign->village_id, 'name' => 'Spoločenská sála', 'street' => 'Hlavná ulica 5'];
+
+        $this->postJson('/api/admin/venues', $payload)
+            ->assertStatus(409)
+            ->assertJsonPath('duplicate.id', $foreign->id);
+        $this->assertDatabaseMissing('duplicate_decisions', ['candidate_id' => $foreign->id, 'decision' => DuplicateDecision::SAME]);
+
+        $created = $this->postJson('/api/admin/venues', [...$payload, 'allow_duplicate' => true])->assertCreated();
+        $this->assertDatabaseHas('duplicate_decisions', [
+            'candidate_id' => $foreign->id,
+            'decision' => DuplicateDecision::DISTINCT,
+            'created_id' => $created->json('id'),
+        ]);
+
+        // Odmietnutý kandidát sa už nepýta znova.
+        $this->postJson('/api/admin/venues', [...$payload, 'name' => 'Spoločenská sála'])
+            ->assertStatus(409)
+            ->assertJsonPath('duplicate.id', $created->json('id'));
     }
 
     #[Test]
