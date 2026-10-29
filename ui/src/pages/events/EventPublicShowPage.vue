@@ -732,6 +732,7 @@ import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
 import { useTilt } from '@/composables/useTilt'
 import { useCountdown } from '@/composables/useCountdown'
+import { useViewBeacon } from '@/composables/useViewBeacon'
 
 const { t, plural } = useI18n()
 const route = useRoute()
@@ -1203,6 +1204,8 @@ useHead(computed(() => {
   }
 }))
 
+const viewBeacon = useViewBeacon('events')
+
 async function load() {
   loading.value = true
   error.value = false
@@ -1228,6 +1231,7 @@ async function load() {
     } catch { /* non-fatal — formulár ukáže prázdny stav */ }
 
     event.value = ev
+    viewBeacon.start(ev.id)
     // Bez `await`: súvisiace podujatia sú doplnok, nemajú zdržiavať vykreslenie.
     void nextTick(() => loadRelated(ev))
   } catch (e: unknown) {

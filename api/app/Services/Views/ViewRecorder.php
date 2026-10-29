@@ -71,6 +71,10 @@ class ViewRecorder
             return false;
         }
 
+        if (! $this->comesFromOurPages($request)) {
+            return false;
+        }
+
         // Organizátor ani admin si vlastnú štatistiku nenafukujú. Právo `view`
         // majú na svojich záznamoch práve tí, čo k nim majú prístup v dashboarde.
         $user = auth('sanctum')->user();
@@ -80,5 +84,34 @@ class ViewRecorder
         }
 
         return true;
+    }
+
+    /**
+     * Zobrazenie posiela len náš front (vrátane embed iframe, ktorý beží na
+     * našej doméne). Prehliadač pri POST-e vždy pošle `Origin` a nový aj
+     * `Sec-Fetch-Site` — skript, ktorý endpoint volá priamo, ich väčšinou nemá.
+     * Podvrhnúť sa dajú, ale odfiltrujú naivné volania mimo stránky.
+     */
+    private function comesFromOurPages(Request $request): bool
+    {
+        $fetchSite = $request->header('Sec-Fetch-Site');
+
+        if ($fetchSite !== null && ! in_array($fetchSite, ['same-origin', 'same-site'], true)) {
+            return false;
+        }
+
+        $originHost = parse_url((string) $request->header('Origin'), PHP_URL_HOST);
+
+        if (! is_string($originHost) || $originHost === '') {
+            return false;
+        }
+
+        $ourHosts = array_filter([
+            $request->getHost(),
+            parse_url((string) config('app.url'), PHP_URL_HOST),
+            parse_url((string) config('app.frontend_url'), PHP_URL_HOST),
+        ]);
+
+        return in_array(strtolower($originHost), array_map('strtolower', $ourHosts), true);
     }
 }

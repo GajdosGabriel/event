@@ -63,6 +63,7 @@ import type { EventItem, TicketTypeItem } from '@/types'
 import { t } from '@/i18n'
 import { absoluteUrl, idFromRouteParam, publicEventPath } from '@/utils/publicUrl'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
+import { useViewBeacon } from '@/composables/useViewBeacon'
 
 const route = useRoute()
 const eventId = Number(idFromRouteParam(route.params.slugId as string))
@@ -92,9 +93,12 @@ async function loadTypes() {
   }
 }
 
+const viewBeacon = useViewBeacon('events')
+
 async function load() {
   try {
     event.value = await showPublicEvent(eventId)
+    viewBeacon.start(event.value.id)
     await loadTypes()
   } catch {
     event.value = null

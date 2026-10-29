@@ -70,6 +70,7 @@ use App\Http\Controllers\Public\TicketController as PublicTicketController;
 use App\Http\Controllers\Public\TicketQrController as PublicTicketQrController;
 use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeController;
 use App\Http\Controllers\Public\VenueController as PublicVenueController;
+use App\Http\Controllers\Public\ViewController as PublicViewController;
 use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
 use App\Http\Controllers\Webhooks\AccountWebhookController;
 use App\Http\Resources\UserResource;
@@ -322,6 +323,13 @@ Route::put('tickets/{uuid}/answers', [PublicTicketAnswerController::class, 'upda
 Route::put('admissions/{uuid}/answers', [PublicTicketAnswerController::class, 'updateAdmission'])
     ->name('public.admissions.answers')
     ->middleware('throttle:public-write');
+// Započítanie zobrazenia detailu — front ho posiela až po pár sekundách
+// viditeľnej stránky, GET detailu sám nič nepočíta (pozri Public\ViewController).
+Route::post('{resource}/{id}/view', PublicViewController::class)
+    ->whereIn('resource', ['events', 'venues', 'canals'])
+    ->whereNumber('id')
+    ->name('public.views.store')
+    ->middleware('throttle:views');
 Route::get('venues/{id}', [PublicVenueController::class, 'show'])->name('public.venues.show');
 Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name('public.venues.events');
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');

@@ -9,7 +9,6 @@ use App\Models\Event;
 use App\Repositories\Contracts\CanalRepository;
 use App\Services\Canals\CanalClaims;
 use App\Services\Canals\CanalContactVerifier;
-use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -40,15 +39,13 @@ class CanalController extends Controller
         );
     }
 
-    public function show($id, Request $request, ViewRecorder $viewRecorder)
+    public function show($id)
     {
         $canal = $this->canalRepository->publicShow($id);
 
         if (! $canal) {
             abort(404);
         }
-
-        $viewRecorder->record($canal, $request);
 
         $data = $canal->toArray();
         // Kontaktovateľné len ak má kanál aktívneho majiteľa (self/admin

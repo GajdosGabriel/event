@@ -9,7 +9,6 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Calendar\IcsGenerator;
-use App\Services\Views\ViewRecorder;
 use App\Support\EventDateRange;
 use App\Support\PublicEventFilters;
 use App\Support\PublicUrl;
@@ -63,15 +62,13 @@ class EventController extends Controller
         return PublicEventFilters::fromRequest($request);
     }
 
-    public function show($id, Request $request, ViewRecorder $viewRecorder, IcsGenerator $calendar)
+    public function show($id, IcsGenerator $calendar)
     {
         $event = $this->eventRepository->publicShow($id);
 
         if (! $event) {
             abort(404);
         }
-
-        $viewRecorder->record($event, $request);
 
         // Kanál a miesto načítané vopred a bez vlastných $appends: accessory
         // podujatia by si ich inak dopytovali pri každom použití a každý ich

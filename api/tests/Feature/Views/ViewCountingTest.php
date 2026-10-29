@@ -32,8 +32,21 @@ class ViewCountingTest extends EventSetupTest
     }
 
     /**
-     * Návštevník s bežným prehliadačovým user-agentom. ViewRecorder počíta
-     * pseudonym z IP a user-agenta, takže obe musia byť v teste stabilné.
+     * Hlavičky, ktoré pri POST-e z našej stránky pošle bežný prehliadač.
+     * ViewRecorder počíta pseudonym z IP a user-agenta, takže obe musia byť
+     * v teste stabilné.
+     */
+    private function browserHeaders(array $overrides = []): array
+    {
+        return array_merge([
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
+            'Origin' => config('app.url'),
+            'Sec-Fetch-Site' => 'same-origin',
+        ], $overrides);
+    }
+
+    /**
+     * Návštevník, ktorého front po pár sekundách na detaile ohlási cez POST.
      */
     private function visit(?Event $event = null, array $headers = [], bool $asGuest = true): \Illuminate\Testing\TestResponse
     {
@@ -43,9 +56,8 @@ class ViewCountingTest extends EventSetupTest
             $this->asGuest();
         }
 
-        return $this->withHeaders(array_merge([
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
-        ], $headers))->getJson('/api/events/'.$event->id);
+        return $this->withHeaders($this->browserHeaders($headers))
+            ->postJson('/api/events/'.$event->id.'/view');
     }
 
     private function viewsOf(?Event $event = null): int
@@ -56,18 +68,32 @@ class ViewCountingTest extends EventSetupTest
     #[Test]
     public function a_public_visit_is_counted(): void
     {
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
 
         $this->assertSame(1, $this->viewsOf());
         $this->assertDatabaseCount('views', 1);
     }
 
     #[Test]
+    public function loading_the_detail_alone_is_not_counted(): void
+    {
+        // Crawler bez JavaScriptu stiahne len dáta detailu — beacon nepošle.
+        $this->asGuest();
+
+        $this->withHeaders($this->browserHeaders())
+            ->getJson('/api/events/'.$this->futureEvent->id)
+            ->assertOk();
+
+        $this->assertSame(0, $this->viewsOf());
+        $this->assertDatabaseCount('views', 0);
+    }
+
+    #[Test]
     public function repeated_visits_on_the_same_day_are_not_counted(): void
     {
-        $this->visit()->assertOk();
-        $this->visit()->assertOk();
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
+        $this->visit()->assertNoContent();
+        $this->visit()->assertNoContent();
 
         // Obnovenie stránky nesmie štatistiku nafukovať.
         $this->assertSame(1, $this->viewsOf());
@@ -78,10 +104,10 @@ class ViewCountingTest extends EventSetupTest
     public function the_same_visitor_counts_again_the_next_day(): void
     {
         Carbon::setTestNow('2026-08-01 10:00:00');
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
 
         Carbon::setTestNow('2026-08-02 10:00:00');
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
 
         $this->assertSame(2, $this->viewsOf());
 
@@ -91,9 +117,9 @@ class ViewCountingTest extends EventSetupTest
     #[Test]
     public function different_visitors_are_counted_separately(): void
     {
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
         // Iný user-agent = iný pseudonym.
-        $this->visit(headers: ['User-Agent' => 'Mozilla/5.0 (Macintosh) Safari/17'])->assertOk();
+        $this->visit(headers: ['User-Agent' => 'Mozilla/5.0 (Macintosh) Safari/17'])->assertNoContent();
 
         $this->assertSame(2, $this->viewsOf());
     }
@@ -101,8 +127,8 @@ class ViewCountingTest extends EventSetupTest
     #[Test]
     public function bots_are_not_counted(): void
     {
-        $this->visit(headers: ['User-Agent' => 'Googlebot/2.1 (+http://www.google.com/bot.html)'])->assertOk();
-        $this->visit(headers: ['User-Agent' => 'facebookexternalhit/1.1'])->assertOk();
+        $this->visit(headers: ['User-Agent' => 'Googlebot/2.1 (+http://www.google.com/bot.html)'])->assertNoContent();
+        $this->visit(headers: ['User-Agent' => 'facebookexternalhit/1.1'])->assertNoContent();
 
         $this->assertSame(0, $this->viewsOf());
         $this->assertDatabaseCount('views', 0);
@@ -111,13 +137,60 @@ class ViewCountingTest extends EventSetupTest
     #[Test]
     public function a_missing_user_agent_is_not_counted(): void
     {
-        $this->asGuest();
-
-        $this->withHeaders(['User-Agent' => ''])
-            ->getJson('/api/events/'.$this->futureEvent->id)
-            ->assertOk();
+        $this->visit(headers: ['User-Agent' => ''])->assertNoContent();
 
         $this->assertSame(0, $this->viewsOf());
+    }
+
+    #[Test]
+    public function a_request_without_origin_is_not_counted(): void
+    {
+        // Skript, ktorý endpoint volá priamo (curl, requests…), Origin nepošle.
+        $this->visit(headers: ['Origin' => '', 'Sec-Fetch-Site' => ''])->assertNoContent();
+
+        $this->assertSame(0, $this->viewsOf());
+    }
+
+    #[Test]
+    public function a_request_from_a_foreign_site_is_not_counted(): void
+    {
+        $this->visit(headers: ['Origin' => 'https://evil.example'])->assertNoContent();
+        $this->visit(headers: ['Sec-Fetch-Site' => 'cross-site'])->assertNoContent();
+
+        $this->assertSame(0, $this->viewsOf());
+    }
+
+    #[Test]
+    public function an_unpublished_record_cannot_be_counted(): void
+    {
+        $this->futureEvent->update(['status' => ModelStatus::Draft->value]);
+
+        $this->visit()->assertNotFound();
+
+        $this->assertSame(0, $this->viewsOf());
+    }
+
+    #[Test]
+    public function venues_and_canals_are_counted_too(): void
+    {
+        $venue = $this->futureEvent->venue;
+        $canal = $this->futureEvent->canal;
+
+        $this->asGuest();
+
+        if ($venue) {
+            $venue->update(['status' => ModelStatus::Published->value]);
+            $this->withHeaders($this->browserHeaders())
+                ->postJson('/api/venues/'.$venue->id.'/view')
+                ->assertNoContent();
+            $this->assertSame(1, (int) $venue->fresh()->views_count);
+        }
+
+        $canal->update(['status' => ModelStatus::Published->value]);
+        $this->withHeaders($this->browserHeaders())
+            ->postJson('/api/canals/'.$canal->id.'/view')
+            ->assertNoContent();
+        $this->assertSame(1, (int) $canal->fresh()->views_count);
     }
 
     #[Test]
@@ -125,7 +198,7 @@ class ViewCountingTest extends EventSetupTest
     {
         // Prihlásený člen kanála má na podujatie právo `view` — jeho návšteva
         // je kontrola vlastného záznamu, nie záujem publika.
-        $this->visit(asGuest: false)->assertOk();
+        $this->visit(asGuest: false)->assertNoContent();
 
         $this->assertSame(0, $this->viewsOf());
     }
@@ -135,7 +208,9 @@ class ViewCountingTest extends EventSetupTest
     {
         $this->futureEvent->forceFill(['views_count' => 42])->save();
 
-        $payload = $this->visit()->assertOk()->json();
+        $this->asGuest();
+
+        $payload = $this->getJson('/api/events/'.$this->futureEvent->id)->assertOk()->json();
 
         $this->assertArrayNotHasKey('views_count', $payload);
     }
@@ -170,7 +245,7 @@ class ViewCountingTest extends EventSetupTest
     #[Test]
     public function prune_removes_only_old_rows(): void
     {
-        $this->visit()->assertOk();
+        $this->visit()->assertNoContent();
 
         DB::table('views')->insert([
             'viewable_type' => Event::class,

@@ -44,6 +44,7 @@ import { listCanalEvents, showCanalPublic, type CanalEventItem } from '@/api/can
 import { t } from '@/i18n'
 import { absoluteUrl, idFromRouteParam, publicEventPath } from '@/utils/publicUrl'
 import { fmtRowDateRange } from '@/utils/dateFormat'
+import { useViewBeacon } from '@/composables/useViewBeacon'
 
 /**
  * Program organizátora na jeho vlastnom webe.
@@ -75,6 +76,8 @@ function dateLabel(event: CanalEventItem): string | null {
   return fmtRowDateRange(event.startAt, event.endAt)
 }
 
+const viewBeacon = useViewBeacon('canals')
+
 async function load() {
   try {
     const [canal, list] = await Promise.all([
@@ -83,6 +86,7 @@ async function load() {
     ])
 
     canalName.value = canal?.name ?? ''
+    if (canal) viewBeacon.start(canal.id)
     // Verejný endpoint vracia len publikované podujatia; tu ich len skrátime
     // na počet, ktorý si organizátor vyžiadal v adrese.
     events.value = list.slice(0, limit.value)

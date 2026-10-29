@@ -143,6 +143,7 @@ import EventCard from '@/components/EventCard.vue'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
+import { useViewBeacon } from '@/composables/useViewBeacon'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -186,11 +187,14 @@ useHead(computed(() => {
   }
 }))
 
+const viewBeacon = useViewBeacon('canals')
+
 onMounted(async () => {
   const id = Number(idFromRouteParam(route.params.slugId))
   loading.value = true
   try {
     canal.value = await showCanalPublic(id)
+    viewBeacon.start(canal.value.id)
 
     const canonicalPath = publicCanalPath(canal.value)
     if (route.path !== canonicalPath) {

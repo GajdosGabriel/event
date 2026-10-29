@@ -8,23 +8,19 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Repositories\Contracts\VenueRepository;
-use App\Services\Views\ViewRecorder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class VenueController extends Controller
 {
     public function __construct(protected VenueRepository $venueRepository) {}
 
-    public function show($id, Request $request, ViewRecorder $viewRecorder)
+    public function show($id)
     {
         $venue = $this->venueRepository->publicShow($id);
 
         if (! $venue) {
             abort(404);
         }
-
-        $viewRecorder->record($venue, $request);
 
         // Bez obce ostala na detaile z adresy len ulica a PSČ. Tvar {id, name}
         // držíme rovnaký ako vo VenueResource — surová relácia nesie `fullname`,

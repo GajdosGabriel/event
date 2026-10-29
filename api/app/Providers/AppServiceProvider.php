@@ -118,6 +118,13 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->tooManyRequests('Priveľa požiadaviek. Skúste to o chvíľu znova.')),
         ]);
 
+        // Započítanie zobrazenia detailu. Človek ich za minútu nepošle veľa;
+        // nad limitom ide skôr o skript. Bez textu chyby — front odpoveď ignoruje.
+        RateLimiter::for('views', fn (Request $request) => [
+            Limit::perMinute(30)->by($request->ip())
+                ->response(fn () => response()->noContent(429)),
+        ]);
+
         // Správy môže posielať len overený používateľ, ale aj ten by inak mohol
         // spamovať neobmedzene.
         RateLimiter::for('messages', fn (Request $request) => [
