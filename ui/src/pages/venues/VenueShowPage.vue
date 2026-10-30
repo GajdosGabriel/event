@@ -103,7 +103,7 @@
             </div>
             <p v-if="eventsLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
             <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('events.index.empty') }}</p>
-            <ul v-else class="grid gap-1.5">
+            <ul v-else class="grid grid-cols-1 gap-1.5">
               <li v-for="ev in eventsPage.items.value" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="w-2 h-2 rounded-full shrink-0"

@@ -60,8 +60,9 @@
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <!-- Ľavý stĺpec -->
-        <div class="grid gap-4">
+        <!-- Ľavý stĺpec. grid-cols-1 tu aj v zozname nižšie: stĺpec bez šírky sa
+             rozťahuje podľa obsahu a dlhý názov by vytlačil kartu do bočného panela. -->
+        <div class="grid grid-cols-1 gap-4">
           <!-- Popis -->
           <div class="show-card">
             <div v-if="event.body">
@@ -118,13 +119,13 @@
               <RouterLink :to="`${prefix}/canals/${event.canal.id}`"
                 class="text-xs text-blue-600 hover:underline">{{ t('events.show.canalLink') }}</RouterLink>
             </div>
-            <ul class="grid gap-1.5">
+            <ul class="grid grid-cols-1 gap-1.5">
               <li v-for="ev in relatedEvents" :key="ev.id"
                 class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                 <span class="h-2 w-2 shrink-0 rounded-full"
                   :class="ev.status === 'published' ? 'bg-green-500' : ev.status === 'archived' ? 'bg-slate-400' : 'bg-amber-400'" />
                 <RouterLink :to="`${prefix}/events/${ev.id}`"
-                  class="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
+                  class="flex-1 min-w-0 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700" :title="ev.name">
                   {{ ev.name }}
                 </RouterLink>
                 <span v-if="ev.startAt" class="shrink-0 text-xs text-slate-500">{{ fmt(ev.startAt) }}</span>
