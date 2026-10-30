@@ -132,6 +132,13 @@ class AppServiceProvider extends ServiceProvider
                 ->response($this->tooManyRequests('Priveľa odoslaných správ. Skúste to neskôr.')),
         ]);
 
+        // Účastníkom podujatia sa píše aj jednotlivo, jedna požiadavka je často
+        // jeden človek — strop `messages` by organizátora zastavil uprostred práce.
+        RateLimiter::for('attendee-messages', fn (Request $request) => [
+            Limit::perHour(60)->by($this->identify($request))
+                ->response($this->tooManyRequests('Priveľa odoslaných správ. Skúste to neskôr.')),
+        ]);
+
         // Podpora: vlákno je rozhovor, takže voľnejšie než „Poslať správu" —
         // ale nie bez stropu, píše sa do schránky administrátorov.
         RateLimiter::for('support', fn (Request $request) => [

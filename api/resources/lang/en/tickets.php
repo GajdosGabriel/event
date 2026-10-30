@@ -85,6 +85,7 @@ return [
         'delete_not_cancelled_seat' => 'Only a cancelled ticket can be deleted.',
         'confirm_not_reserved' => 'Only a reservation awaiting confirmation can be confirmed.',
         'payment_not_pending' => 'This payment has already been settled.',
+        'refund_not_paid' => 'Only paid orders can be refunded.',
     ],
 
     'counts' => [

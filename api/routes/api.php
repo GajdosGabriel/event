@@ -571,9 +571,24 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::get('events/{event}/attendees/recipients', [DashboardAttendeeController::class, 'recipientCount'])
         ->name('events.attendees.recipients')
         ->middleware('permission:ticket.view');
+    Route::get('events/{event}/interests', [DashboardAttendeeController::class, 'interests'])
+        ->name('events.interests.index')
+        ->middleware('permission:ticket.view');
+    Route::delete('events/{event}/interests/{interest}', [DashboardAttendeeController::class, 'destroyInterest'])
+        ->name('events.interests.destroy')
+        ->middleware('permission:ticket.update');
     Route::post('events/{event}/attendees/email', [DashboardAttendeeController::class, 'email'])
         ->name('events.attendees.email')
-        ->middleware(['permission:event.update', 'throttle:messages']);
+        ->middleware(['permission:event.update', 'throttle:attendee-messages']);
+    Route::get('events/{event}/attendees/messages', [DashboardAttendeeController::class, 'messages'])
+        ->name('events.attendees.messages')
+        ->middleware('permission:ticket.view');
+    Route::post('events/{event}/attendees', [DashboardAttendeeController::class, 'store'])
+        ->name('events.attendees.store')
+        ->middleware('permission:ticket.update');
+    Route::post('events/{event}/tickets/bulk', [DashboardAttendeeController::class, 'bulk'])
+        ->name('events.tickets.bulk')
+        ->middleware('permission:ticket.update');
     Route::post('tickets/checkin', [DashboardTicketController::class, 'checkin'])
         ->name('tickets.checkin')
         ->middleware('permission:ticket.checkin');
@@ -588,6 +603,12 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->middleware('permission:ticket.view');
     Route::post('tickets/{id}', [DashboardTicketController::class, 'update'])
         ->name('tickets.update')
+        ->middleware('permission:ticket.update');
+    Route::put('tickets/{id}/contact', [DashboardTicketController::class, 'contact'])
+        ->name('tickets.contact')
+        ->middleware('permission:ticket.update');
+    Route::post('tickets/{id}/refunded', [DashboardTicketController::class, 'markRefunded'])
+        ->name('tickets.refunded')
         ->middleware('permission:ticket.update');
     Route::post('tickets/{id}/resend', [DashboardTicketController::class, 'resend'])
         ->name('tickets.resend')

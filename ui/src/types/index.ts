@@ -772,6 +772,26 @@ export interface PaymentInstructionsItem {
   note: string
 }
 
+/** Záujemca o podujatie, ktorému sa nedala vystaviť vstupenka. */
+export interface EventInterestItem {
+  id: number
+  name: string | null
+  email: string
+  createdAt: string
+}
+
+/** Záznam o správe organizátora účastníkom. */
+export interface EventMessageItem {
+  id: number
+  kind: 'announcement' | 'cancellation'
+  audience: string
+  subject: string
+  body: string | null
+  recipients: string[]
+  sender: string | null
+  createdAt: string
+}
+
 export interface TicketItem {
   id?: number
   uuid: string

@@ -86,5 +86,11 @@ interface TicketRepository extends InterfaceRepository
      */
     public function updateAnswers($id, ?array $orderAnswers, array $seatAnswers): Ticket;
 
+    /** Evidencia vrátenia peňazí za uhradenú objednávku. */
+    public function markRefunded($id): Ticket;
+
+    /** Oprava mena, e-mailu a telefónu objednávateľa. */
+    public function updateContact($id, array $contact): Ticket;
+
     public function dashboardIndexForEvent(Event $event, int $perPage = 15, array $filters = []): LengthAwarePaginator;
 }

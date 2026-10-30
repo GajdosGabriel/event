@@ -5,6 +5,8 @@ import type {
   AnswerMap,
   AttendeeSummary,
   CheckinStats,
+  EventInterestItem,
+  EventMessageItem,
   PaginatedResponse,
   PaymentInstructionsItem,
   TicketCheckinResult,
@@ -173,6 +175,21 @@ export interface AttendeeFilters {
   per_page?: number
 }
 
+export async function indexEventInterests(eventId: number): Promise<EventInterestItem[]> {
+  const { data } = await http.get(`/dashboard/events/${eventId}/interests`)
+
+  return ((data.data ?? []) as Record<string, unknown>[]).map(raw => ({
+    id: raw['id'] as number,
+    name: (raw['name'] as string) ?? null,
+    email: raw['email'] as string,
+    createdAt: raw['created_at'] as string,
+  }))
+}
+
+export async function deleteEventInterest(eventId: number, interestId: number): Promise<void> {
+  await http.delete(`/dashboard/events/${eventId}/interests/${interestId}`)
+}
+
 export async function indexEventTickets(
   eventId: number,
   params?: AttendeeFilters,
@@ -245,9 +262,56 @@ export async function attendeeStats(eventId: number): Promise<AttendeeSummary> {
   }
 }
 
-export async function cancelTicket(id: number): Promise<TicketItem> {
-  const { data } = await http.post(`/dashboard/tickets/${id}`)
+export async function cancelTicket(
+  id: number,
+  options: { notify?: boolean; message?: string | null } = {},
+): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/tickets/${id}`, options)
   return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+export async function markTicketRefunded(id: number): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/tickets/${id}/refunded`)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+export async function updateTicketContact(
+  id: number,
+  payload: { holder_name: string; holder_email: string; holder_phone: string | null },
+): Promise<TicketItem> {
+  const { data } = await http.put(`/dashboard/tickets/${id}/contact`, payload)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+export async function addEventAttendee(
+  eventId: number,
+  payload: { holder_name: string; holder_email: string; holder_phone: string | null; ticket_type_id: number; quantity: number; send_email: boolean },
+): Promise<TicketItem> {
+  const { data } = await http.post(`/dashboard/events/${eventId}/attendees`, payload)
+  return mapTicket((data.data ?? data) as Record<string, unknown>)
+}
+
+export async function bulkTicketAction(
+  eventId: number,
+  payload: { action: 'cancel' | 'confirm' | 'mark_paid'; ticket_ids: number[]; notify?: boolean; message?: string | null },
+): Promise<{ done: number; skipped: number }> {
+  const { data } = await http.post(`/dashboard/events/${eventId}/tickets/bulk`, payload)
+  return { done: Number(data.done ?? 0), skipped: Number(data.skipped ?? 0) }
+}
+
+export async function attendeeMessages(eventId: number): Promise<EventMessageItem[]> {
+  const { data } = await http.get(`/dashboard/events/${eventId}/attendees/messages`)
+
+  return ((data.data ?? []) as Record<string, unknown>[]).map(raw => ({
+    id: raw['id'] as number,
+    kind: raw['kind'] as EventMessageItem['kind'],
+    audience: raw['audience'] as string,
+    subject: raw['subject'] as string,
+    body: (raw['body'] as string) ?? null,
+    recipients: (raw['recipients'] as string[]) ?? [],
+    sender: (raw['sender'] as string) ?? null,
+    createdAt: raw['created_at'] as string,
+  }))
 }
 
 export async function cancelAdmission(admissionId: number): Promise<AdmissionItem> {
@@ -313,14 +377,21 @@ export async function exportAttendees(eventId: number): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
-export async function attendeeRecipientCount(eventId: number): Promise<number> {
-  const { data } = await http.get(`/dashboard/events/${eventId}/attendees/recipients`)
+/** Komu správa ide: všetkým, neuhradeným, jednému typu lístka alebo vybraným objednávkam. */
+export interface AttendeeScope {
+  audience?: 'all' | 'unpaid'
+  ticket_type_id?: number
+  ticket_ids?: number[]
+}
+
+export async function attendeeRecipientCount(eventId: number, scope: AttendeeScope = {}): Promise<number> {
+  const { data } = await http.get(`/dashboard/events/${eventId}/attendees/recipients`, { params: scope })
   return Number(data.recipients ?? 0)
 }
 
 export async function emailAttendees(
   eventId: number,
-  payload: { subject: string; body: string },
+  payload: { subject: string; body: string } & AttendeeScope,
 ): Promise<number> {
   const { data } = await http.post(`/dashboard/events/${eventId}/attendees/email`, payload)
   return Number(data.recipients ?? 0)

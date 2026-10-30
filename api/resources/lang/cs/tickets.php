@@ -85,6 +85,7 @@ return [
         'delete_not_cancelled_seat' => 'Smazat lze jen zrušenou vstupenku.',
         'confirm_not_reserved' => 'Potvrdit lze jen rezervaci čekající na potvrzení.',
         'payment_not_pending' => 'Platba už byla vyřízena.',
+        'refund_not_paid' => 'Vrátit lze pouze uhrazenou objednávku.',
     ],
 
     'counts' => [

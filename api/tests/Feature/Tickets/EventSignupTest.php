@@ -8,6 +8,7 @@ use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\CanalInvitation;
 use App\Models\Event;
+use App\Models\EventInterest;
 use App\Models\PendingRegistration;
 use App\Models\Ticket;
 use App\Models\User;
@@ -63,6 +64,15 @@ class EventSignupTest extends TestCase
             'email' => 'farnost@example.sk',
             ...$attributes,
         ]);
+    }
+
+    /** Dashboard ide cez práva v kanáli — podujatie presunieme do kanála nového vlastníka. */
+    private function ownerOf(Event $event): User
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $event->update(['canal_id' => $owner->canals()->firstOrFail()->id]);
+
+        return $owner;
     }
 
     private function registerAndVerify(Event $event, string $email = 'ucastnik@example.sk'): \Illuminate\Testing\TestResponse
@@ -240,6 +250,53 @@ class EventSignupTest extends TestCase
         $this->assertSame(0, $event->ticketTypes()->where('is_active', true)->count());
         Notification::assertSentOnDemand(EventInterestRecorded::class);
         Notification::assertSentTo($this->admin, EventSignupAdminNotice::class);
+
+        // Organizátor vidí v dashboarde, kto to bol — nielen v e-maile.
+        $this->actingAs($this->ownerOf($event), 'sanctum')
+            ->getJson("/api/dashboard/events/{$event->id}/interests")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.email', $user->email)
+            ->assertJsonPath('data.0.name', $user->displayName());
+    }
+
+    #[Test]
+    public function repeated_interest_is_kept_once_and_a_later_ticket_clears_it(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $type = $event->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => false]);
+        $user = User::factory()->create();
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+        $this->actingAs($user, 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+        $this->assertSame(1, EventInterest::where('event_id', $event->id)->count());
+
+        $type->update(['is_active' => true]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertJsonPath('data.status', 'reserved');
+        $this->assertSame(0, EventInterest::where('event_id', $event->id)->count());
+    }
+
+    #[Test]
+    public function interest_cannot_be_read_or_deleted_through_another_organizers_event(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $event->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => false]);
+        $this->actingAs(User::factory()->create(), 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+        $interest = EventInterest::where('event_id', $event->id)->firstOrFail();
+
+        $stranger = User::factory()->create();
+        $stranger->givePermissionTo(['ticket.view', 'ticket.update']);
+        $this->actingAs($stranger, 'sanctum')->getJson("/api/dashboard/events/{$event->id}/interests")->assertForbidden();
+        $this->actingAs($stranger, 'sanctum')->deleteJson("/api/dashboard/events/{$event->id}/interests/{$interest->id}")->assertForbidden();
+        $this->assertSame(1, EventInterest::where('event_id', $event->id)->count());
+
+        $this->actingAs($this->ownerOf($event), 'sanctum')->deleteJson("/api/dashboard/events/{$event->id}/interests/{$interest->id}")->assertOk();
+        $this->assertSame(0, EventInterest::where('event_id', $event->id)->count());
     }
 
     #[Test]

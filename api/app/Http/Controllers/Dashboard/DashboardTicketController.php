@@ -15,6 +15,7 @@ use App\Models\Admission;
 use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Events\AttendeeMessenger;
 use App\Services\Tickets\PaidTicketDelivery;
 use App\Services\Tickets\Questionnaire;
 use Carbon\Carbon;
@@ -72,9 +73,19 @@ class DashboardTicketController extends Controller
         ));
     }
 
-    public function update($id): JsonResponse
+    /** Zrušenie objednávky; organizátor sa rozhodne, či účastníkovi pošle e-mail s dôvodom. */
+    public function update(Request $request, AttendeeMessenger $messenger, $id): JsonResponse
     {
+        $data = $request->validate([
+            'notify' => ['sometimes', 'boolean'],
+            'message' => ['nullable', 'string', 'max:2000'],
+        ]);
+
         $ticket = $this->ticketRepository->cancel($id);
+
+        if ($data['notify'] ?? false) {
+            $messenger->cancellation($ticket, $request->user(), $data['message'] ?? null);
+        }
 
         return response()->json(new TicketDashboardResource(
             $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
@@ -116,6 +127,32 @@ class DashboardTicketController extends Controller
 
         // Až teraz dostanú objednávateľ a účastníci vstupenky s QR kódmi.
         app(PaidTicketDelivery::class)->deliver($ticket);
+
+        return response()->json(new TicketDashboardResource(
+            $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
+        ));
+    }
+
+    /** Vrátenie peňazí sa eviduje ručne — prevod robí organizátor mimo portálu. */
+    public function markRefunded($id): JsonResponse
+    {
+        $ticket = $this->ticketRepository->markRefunded($id);
+
+        return response()->json(new TicketDashboardResource(
+            $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])
+        ));
+    }
+
+    /** Oprava kontaktu objednávateľa (preklep v e-maile, nové číslo). */
+    public function contact(Request $request, $id): JsonResponse
+    {
+        $data = $request->validate([
+            'holder_name' => ['required', 'string', 'max:250'],
+            'holder_email' => ['required', 'email', 'max:190'],
+            'holder_phone' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $ticket = $this->ticketRepository->updateContact($id, $data);
 
         return response()->json(new TicketDashboardResource(
             $ticket->load(['event', 'admissions.ticketType', 'admissions.checkedInBy'])

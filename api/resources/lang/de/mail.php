@@ -485,4 +485,12 @@ return [
         'intro' => '**:name** hat die Reservierung für Ihre Veranstaltung **„:event"** storniert. Ein Platz ist frei geworden.',
     ],
 
+
+    // App\Notifications\TicketCancelledByOrganizer — zrušenie objednávky organizátorom.
+    'ticket_cancelled_by_organizer' => [
+        'subject' => 'Ihre Anmeldung für :event wurde storniert',
+        'intro' => 'Der Veranstalter hat Ihre Anmeldung für **„:event"** storniert.',
+        'reason' => 'Nachricht des Veranstalters: :reason',
+        'outro' => 'Das Ticket ist nicht mehr gültig. Bei Fragen antworten Sie bitte auf diese E-Mail.',
+    ],
 ];

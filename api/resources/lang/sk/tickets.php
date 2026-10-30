@@ -87,6 +87,7 @@ return [
         'delete_not_cancelled_seat' => 'Zmazať sa dá len zrušená vstupenka.',
         'confirm_not_reserved' => 'Potvrdiť sa dá len rezervácia čakajúca na potvrdenie.',
         'payment_not_pending' => 'Platba už bola vybavená.',
+        'refund_not_paid' => 'Vrátiť možno len uhradenú objednávku.',
     ],
 
     // Tvary podľa počtu (trans_choice). Rozsahy sú zapísané explicitne, takže

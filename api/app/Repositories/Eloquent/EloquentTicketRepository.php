@@ -1179,6 +1179,36 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
         return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
     }
 
+    public function markRefunded($id): Ticket
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->find($id);
+        Gate::authorize('update', $ticket);
+
+        if ($ticket->payment_status !== TicketPaymentStatus::Paid) {
+            abort(422, __('tickets.errors.refund_not_paid'));
+        }
+
+        $ticket->update(['payment_status' => TicketPaymentStatus::Refunded->value]);
+
+        return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
+    }
+
+    public function updateContact($id, array $contact): Ticket
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->find($id);
+        Gate::authorize('update', $ticket);
+
+        $ticket->update([
+            'holder_name' => trim($contact['holder_name']),
+            'holder_email' => trim($contact['holder_email']),
+            'holder_phone' => $contact['holder_phone'] ?? null,
+        ]);
+
+        return $ticket->fresh(['admissions.ticketType', 'admissions.checkedInBy']);
+    }
+
     public function updateAnswers($id, ?array $orderAnswers, array $seatAnswers): Ticket
     {
         /** @var Ticket $ticket */

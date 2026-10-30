@@ -11,6 +11,7 @@ use App\Models\Admission;
 use App\Models\Canal;
 use App\Models\EmailSuppression;
 use App\Models\Event;
+use App\Models\EventInterest;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Models\User;
@@ -114,6 +115,12 @@ class EventSignup
         $status = $ticket ? self::RESERVED : self::INTEREST;
 
         if (! $ticket) {
+            // Uložené pred e-mailami: organizátor má človeka v zozname, aj keď správa nedôjde.
+            EventInterest::query()->updateOrCreate(
+                ['event_id' => $event->id, 'email' => $user->email],
+                ['user_id' => $user->id, 'name' => $user->displayName()],
+            );
+
             $this->safely(fn () => Notification::route('mail', $user->email)
                 ->notify(new EventInterestRecorded($event)));
         }
@@ -131,6 +138,8 @@ class EventSignup
         if (! $event) {
             return;
         }
+
+        $this->forgetInterest($event, $ticket->holder_email);
 
         // Objednávka je už uložená — chyba pri upozornení nesmie vrátiť 500.
         try {
@@ -217,12 +226,23 @@ class EventSignup
             return null;
         }
 
+        $this->forgetInterest($event, $ticket->holder_email);
+
         $this->attendees->registerAndNotify($ticket);
 
         $this->safely(fn () => Notification::route('mail', $ticket->holder_email)
             ->notify(new TicketIssued($ticket->fresh(['event', 'admissions.ticketType']))));
 
         return $ticket;
+    }
+
+    /** Kto už vstupenku má, nie je záujemca — inak by bol v zozname dvakrát. */
+    private function forgetInterest(Event $event, ?string $email): void
+    {
+        EventInterest::query()
+            ->where('event_id', $event->id)
+            ->where('email', $email)
+            ->delete();
     }
 
     /**

@@ -62,7 +62,14 @@
                 <td class="px-4 py-3 text-slate-600">{{ type.priceAmount ? formatPrice(type.priceAmount, type.priceCurrency) : t('tickets.settings.free') }}</td>
                 <td class="px-4 py-3 text-slate-600">{{ type.capacity ?? '∞' }}</td>
                 <td class="px-4 py-3 text-slate-600">
-                  {{ type.soldCount ?? 0 }}
+                  <button
+                    v-if="type.soldCount || type.waitlistCount"
+                    type="button"
+                    class="font-medium text-blue-700 hover:underline"
+                    :title="t('tickets.settings.showAttendees')"
+                    @click="showAttendeesOf(type)"
+                  >{{ type.soldCount ?? 0 }}</button>
+                  <template v-else>0</template>
                   <span v-if="type.waitlistCount" class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                     {{ t('tickets.settings.waitlist', { n: type.waitlistCount }) }}
                   </span>
@@ -89,6 +96,12 @@
         </div>
       </section>
 
+      <!-- Práca s prihlásenými priamo pod typmi lístkov: tá istá časť ako na karte Prihlásení. -->
+      <section ref="attendeesSection" class="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 class="mb-3 text-lg font-semibold text-slate-800">{{ t('tickets.attendees.title') }}</h2>
+        <AttendeeWorkspace ref="workspace" :event-id="eventId" :event-name="eventName" @changed="loadTypes" />
+      </section>
+
       <!-- Nový typ sa zakladá tu, nie na ďalšej obrazovke: pri prázdnom
            zozname je formulár otvorený hneď, inak ho otvorí „+ Nový typ". -->
       <div v-if="adding || !types.length" class="mt-5">
@@ -112,6 +125,7 @@ import { showEvent } from '@/api/events'
 import { indexTicketTypesWithMeta, deleteTicketType, type TicketTypesPaymentMeta } from '@/api/ticketTypes'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import AttendeeWorkspace from '@/components/AttendeeWorkspace.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import RowActions from '@/components/RowActions.vue'
 import TicketTypeForm from '@/components/TicketTypeForm.vue'
@@ -134,6 +148,15 @@ const formKey = ref(0)
 
 const paymentMeta = ref<TicketTypesPaymentMeta | null>(null)
 
+const workspace = ref<InstanceType<typeof AttendeeWorkspace> | null>(null)
+const attendeesSection = ref<HTMLElement | null>(null)
+
+/** Počet pri type lístka vyfiltruje zoznam pod tabuľkou. */
+function showAttendeesOf(type: TicketTypeItem) {
+  workspace.value?.filterByType(types.value.length > 1 ? type.id : undefined)
+  attendeesSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 async function loadTypes() {
   const result = await indexTicketTypesWithMeta(eventId)
   types.value = result.types
@@ -142,6 +165,7 @@ async function loadTypes() {
 
 async function onTypeSaved() {
   await loadTypes()
+  workspace.value?.refreshTypes()
   adding.value = false
   formKey.value++
 }

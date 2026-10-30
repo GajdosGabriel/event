@@ -85,6 +85,7 @@ return [
         'delete_not_cancelled_seat' => 'Nur ein storniertes Ticket kann gelöscht werden.',
         'confirm_not_reserved' => 'Nur eine Reservierung, die auf Bestätigung wartet, kann bestätigt werden.',
         'payment_not_pending' => 'Die Zahlung wurde bereits abgewickelt.',
+        'refund_not_paid' => 'Nur bezahlte Bestellungen können erstattet werden.',
     ],
 
     'counts' => [
