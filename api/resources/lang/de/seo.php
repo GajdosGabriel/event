@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'home' => [
+        'title' => 'Veranstaltungen und Tickets in der Slowakei',
+        'heading' => 'Finden Sie eine Veranstaltung, die sich lohnt',
+        'description' => 'Veranstaltungen aus der ganzen Slowakei an einem Ort — von heute Abend bis zu Plänen für die nächsten Monate.',
+    ],
     'list' => [
         'heading' => 'Veranstaltungen',
         'title' => 'Veranstaltungen in der Slowakei',

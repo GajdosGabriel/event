@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'home' => [
+        'title' => 'Events and tickets in Slovakia',
+        'heading' => 'Find an event worth going to',
+        'description' => 'Events from all over Slovakia in one place — from tonight to plans for the months ahead.',
+    ],
     'list' => [
         'heading' => 'Events',
         'title' => 'Events in Slovakia',

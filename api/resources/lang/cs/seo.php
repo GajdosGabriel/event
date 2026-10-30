@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'home' => [
+        'title' => 'Akce a vstupenky na Slovensku',
+        'heading' => 'Najděte akci, která stojí za to',
+        'description' => 'Akce z celého Slovenska na jednom místě — od dnešního večera po plány na další měsíce.',
+    ],
     'list' => [
         'heading' => 'Akce',
         'title' => 'Akce na Slovensku',
