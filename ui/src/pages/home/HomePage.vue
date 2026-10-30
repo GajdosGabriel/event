@@ -25,14 +25,17 @@ import { useI18n, currentLocale, localeTag } from '@/i18n'
 const { t } = useI18n()
 
 /**
- * Homepage ukazuje ten istý katalóg ako `/podujatia`, len s hero sekciou.
+ * Homepage je kanonická sama na sebe, hoci ukazuje ten istý katalóg ako
+ * `/akcie`. Do 29. 10. 2026 smerovala na `/akcie` — koreň domény tak nebol
+ * v indexe a Google nemal kde nájsť `WebSite`, podľa ktorého vyberá názov webu
+ * vo výsledkoch. Duplicite s výpisom bráni iný titulok a popis.
  *
- * `canonical` preto smeruje na `/podujatia`: dve adresy s rovnakým zoznamom by
- * si inak konkurovali a vyhľadávač by si sám vybral, ktorú indexuje. Kanonická
- * je tá, ktorá má vlastný nadpis a na ktorú vedú landing stránky.
+ * Crawler túto stránku nevidí (dostane bot-render, `seo.home` v api/); znenie
+ * a JSON-LD tu musia s ním sedieť.
  */
-const canonical = computed(() => absoluteUrl(PUBLIC_EVENTS))
-const description = computed(() => t('public.seo.homeDescription'))
+const canonical = computed(() => absoluteUrl('/'))
+const description = computed(() => t('public.home.heroLead'))
+const organizationId = computed(() => `${absoluteUrl('/')}#organization`)
 
 /**
  * `WebSite` s `SearchAction` — vyhľadávaču povie, že portál má vlastné hľadanie
@@ -44,6 +47,7 @@ const websiteJsonLd = computed(() => ({
   name: 'Tixio',
   url: absoluteUrl('/'),
   inLanguage: currentLocale(),
+  publisher: { '@id': organizationId.value },
   potentialAction: {
     '@type': 'SearchAction',
     target: {
@@ -54,13 +58,22 @@ const websiteJsonLd = computed(() => ({
   },
 }))
 
+const organizationJsonLd = computed(() => ({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': organizationId.value,
+  name: 'Tixio',
+  url: absoluteUrl('/'),
+  logo: absoluteUrl('/icon-512.png'),
+}))
+
 useHead(computed(() => ({
-  title: `${t('public.seo.homeTitle')} | Tixio`,
+  title: `${t('public.seo.siteTitle')} | Tixio`,
   link: [{ rel: 'canonical', href: canonical.value }],
   meta: [
     { name: 'description', content: description.value },
     { property: 'og:type', content: 'website' },
-    { property: 'og:title', content: t('public.seo.homeTitle') },
+    { property: 'og:title', content: t('public.seo.siteTitle') },
     { property: 'og:description', content: description.value },
     { property: 'og:url', content: canonical.value },
     // og:locale chce podtržník, nie pomlčku („sk_SK“).
@@ -68,6 +81,7 @@ useHead(computed(() => ({
   ],
   script: [
     { key: 'website-jsonld', type: 'application/ld+json', innerHTML: JSON.stringify(websiteJsonLd.value) },
+    { key: 'organization-jsonld', type: 'application/ld+json', innerHTML: JSON.stringify(organizationJsonLd.value) },
   ],
 })))
 </script>

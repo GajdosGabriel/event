@@ -195,6 +195,32 @@ class PrerenderTest extends TestCase
         $this->assertGreaterThan(0, $schema['numberOfItems']);
     }
 
+    /**
+     * Koreň domény je kanonický sám na sebe a nesie `WebSite` — podľa neho
+     * Google vyberá názov webu nad výsledkom.
+     */
+    #[Test]
+    public function homepage_is_self_canonical_with_website_schema(): void
+    {
+        $response = $this->prerender('/');
+
+        $response->assertOk();
+        $response->assertSee('<link rel="canonical" href="'.PublicUrl::home().'">', false);
+        $response->assertSee('<title>Podujatia a vstupenky na Slovensku | '.config('app.name').'</title>', false);
+
+        preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $response->getContent(), $matches);
+        $schemas = collect($matches[1])->map(fn (string $json) => json_decode($json, true, flags: JSON_THROW_ON_ERROR));
+
+        $website = $schemas->firstWhere('@type', 'WebSite');
+        $organization = $schemas->firstWhere('@type', 'Organization');
+
+        $this->assertSame(config('app.name'), $website['name']);
+        $this->assertSame(PublicUrl::home(), $website['url']);
+        $this->assertSame($organization['@id'], $website['publisher']['@id']);
+        $this->assertSame(PublicUrl::absolute('icon-512.png'), $organization['logo']);
+        $this->assertNotNull($schemas->firstWhere('@type', 'ItemList'));
+    }
+
     #[Test]
     public function weekend_landing_page_renders(): void
     {

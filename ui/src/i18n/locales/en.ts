@@ -991,6 +991,8 @@ const en: Messages = {
     seo: {
       homeTitle: 'Events in Slovakia',
       homeDescription: 'An overview of upcoming concerts, theatre, workshops and other events.',
+      // Titulok homepage — iný než `homeTitle` výpisu, obe adresy sú kanonické.
+      siteTitle: 'Events and tickets in Slovakia',
       listHeading: 'Events',
       listHeadingWeekend: 'Events this weekend',
       listHeadingLabel: 'Events — {label}',

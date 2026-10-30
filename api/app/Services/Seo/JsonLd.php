@@ -56,6 +56,56 @@ class JsonLd
     }
 
     /**
+     * `WebSite` pre homepage. Google podľa neho vyberá názov webu, ktorý
+     * zobrazí nad výsledkom — musí byť na koreni domény a ten musí byť
+     * kanonický. `SearchAction` zrkadlí to isté, čo posiela SPA.
+     *
+     * @return array<string, mixed>
+     */
+    public function website(): array
+    {
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => config('app.name'),
+            'url' => PublicUrl::home(),
+            'inLanguage' => config('app.default_locale'),
+            'publisher' => ['@id' => $this->organizationId()],
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => [
+                    '@type' => 'EntryPoint',
+                    'urlTemplate' => PublicUrl::events().'?q={search_term_string}',
+                ],
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
+    }
+
+    /**
+     * Prevádzkovateľ portálu (nie organizátor podujatia — ten je `canal()`).
+     * `logo` je zdroj pre logo pri výsledkoch a v knowledge paneli.
+     *
+     * @return array<string, mixed>
+     */
+    public function organization(): array
+    {
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            '@id' => $this->organizationId(),
+            'name' => config('app.name'),
+            'url' => PublicUrl::home(),
+            'logo' => PublicUrl::absolute('icon-512.png'),
+        ];
+    }
+
+    private function organizationId(): string
+    {
+        return PublicUrl::home().'#organization';
+    }
+
+    /**
      * Zodpovedané otázky publika ako `FAQPage`.
      *
      * Toto je dôvod, prečo sa Q&A oplatí vystaviť na verejnom detaile a nenechať

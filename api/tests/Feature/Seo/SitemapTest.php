@@ -126,6 +126,7 @@ class SitemapTest extends TestCase
     {
         $this->get('/api/sitemap.xml')
             ->assertOk()
+            ->assertSee('<loc>'.PublicUrl::home().'</loc>', false)
             ->assertSee(PublicUrl::events(), false)
             ->assertSee(PublicUrl::thisWeekend(), false);
     }

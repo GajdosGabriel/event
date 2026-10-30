@@ -4,6 +4,14 @@
 // a resources/views/prerender). Znenie musí sedieť s `public.seo` v ui/src/i18n —
 // crawler aj návštevník majú vidieť tú istú stránku.
 return [
+    // Homepage. Titulok aj popis sa zámerne líšia od `list` — obe adresy sú
+    // kanonické samy na sebe a rovnaký titulok by vyzeral ako duplicita.
+    // Nadpis a popis sú z hero sekcie SPA (`public.home.heroTitle`, `heroLead`).
+    'home' => [
+        'title' => 'Podujatia a vstupenky na Slovensku',
+        'heading' => 'Nájdite podujatie, ktoré stojí za to',
+        'description' => 'Podujatia z celého Slovenska na jednom mieste — od dnešného večera po plány na ďalšie mesiace.',
+    ],
     'list' => [
         'heading' => 'Podujatia',
         'title' => 'Podujatia na Slovensku',

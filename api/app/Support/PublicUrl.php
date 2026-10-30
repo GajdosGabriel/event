@@ -130,6 +130,12 @@ final class PublicUrl
         return self::absolute(self::canalPath($canal));
     }
 
+    /** Koreň portálu — so záverečnou lomkou, tak ako ju vidí vyhľadávač. */
+    public static function home(): string
+    {
+        return self::base().'/';
+    }
+
     public static function eventsPath(): string
     {
         return self::EVENTS;

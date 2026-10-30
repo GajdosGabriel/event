@@ -990,6 +990,8 @@ const cs: Messages = {
     seo: {
       homeTitle: 'Akce na Slovensku',
       homeDescription: 'Přehled nadcházejících koncertů, divadel, workshopů a dalších akcí.',
+      // Titulok homepage — iný než `homeTitle` výpisu, obe adresy sú kanonické.
+      siteTitle: 'Akce a vstupenky na Slovensku',
       listHeading: 'Akce',
       listHeadingWeekend: 'Akce tento víkend',
       listHeadingLabel: 'Akce — {label}',

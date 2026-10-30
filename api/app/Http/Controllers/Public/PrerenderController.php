@@ -103,7 +103,7 @@ class PrerenderController extends Controller
         $first = $segments[0] ?? '';
 
         return match (true) {
-            $segments === [],
+            $segments === [] => $this->home($jsonLd),
             $first === PublicUrl::EVENTS,
             $first === PublicUrl::LEGACY_EVENTS => $this->eventsBranch($segments, $jsonLd),
             $first === PublicUrl::VENUES || $first === 'venues' => $this->venue($segments[1] ?? '', $jsonLd),
@@ -315,6 +315,33 @@ class PrerenderController extends Controller
             'structuredData' => [
                 $jsonLd->canal($canal),
                 $jsonLd->eventList($events, PublicUrl::canal($canal), __('seo.list.of_name', ['name' => $canal->name])),
+            ],
+        ]);
+    }
+
+    /**
+     * Homepage. Do 29. 10. 2026 crawler na `/` dostal výpis s canonical na
+     * `/akcie` — koreň domény tak v indexe nebol a chýbal mu `WebSite`, podľa
+     * ktorého Google určuje názov webu vo výsledkoch (inak ukáže holú doménu).
+     * Teraz je kanonická sama na sebe a od `/akcie` sa líši titulkom aj popisom.
+     */
+    private function home(JsonLd $jsonLd): View
+    {
+        $events = $this->upcomingEvents();
+
+        return view('prerender.list', [
+            'meta' => $this->meta(
+                title: __('seo.home.title'),
+                description: __('seo.home.description'),
+                canonical: PublicUrl::home(),
+                image: $this->listImage($events),
+            ),
+            'heading' => __('seo.home.heading'),
+            'events' => $events,
+            'structuredData' => [
+                $jsonLd->website(),
+                $jsonLd->organization(),
+                $jsonLd->eventList($events, PublicUrl::home(), __('seo.page.upcoming')),
             ],
         ]);
     }

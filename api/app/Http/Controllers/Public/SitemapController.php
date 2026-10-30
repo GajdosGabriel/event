@@ -53,6 +53,7 @@ class SitemapController extends Controller
     private function build(): string
     {
         $urls = collect()
+            ->push($this->url(PublicUrl::home(), null, 'hourly', '1.0'))
             ->push($this->url(PublicUrl::events(), null, 'hourly', '1.0'))
             ->push($this->url(PublicUrl::thisWeekend(), null, 'daily', '0.9'))
             ->push($this->url(PublicUrl::archive(), null, 'daily', '0.5'))

@@ -1048,6 +1048,8 @@ const sk = {
     seo: {
       homeTitle: 'Podujatia na Slovensku',
       homeDescription: 'Prehľad nadchádzajúcich koncertov, divadiel, workshopov a ďalších podujatí.',
+      // Titulok homepage — iný než `homeTitle` výpisu, obe adresy sú kanonické.
+      siteTitle: 'Podujatia a vstupenky na Slovensku',
       listHeading: 'Podujatia',
       listHeadingWeekend: 'Podujatia tento víkend',
       listHeadingLabel: 'Podujatia — {label}',

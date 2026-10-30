@@ -991,6 +991,8 @@ const de: Messages = {
     seo: {
       homeTitle: 'Veranstaltungen in der Slowakei',
       homeDescription: 'Übersicht kommender Konzerte, Theateraufführungen, Workshops und weiterer Veranstaltungen.',
+      // Titulok homepage — iný než `homeTitle` výpisu, obe adresy sú kanonické.
+      siteTitle: 'Veranstaltungen und Tickets in der Slowakei',
       listHeading: 'Veranstaltungen',
       listHeadingWeekend: 'Veranstaltungen an diesem Wochenende',
       listHeadingLabel: 'Veranstaltungen — {label}',
