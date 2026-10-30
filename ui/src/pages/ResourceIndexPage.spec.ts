@@ -35,6 +35,7 @@ function lastParams() {
 
 describe('ResourceIndexPage — stránkovanie v adrese', () => {
   beforeEach(() => {
+    localStorage.clear()
     get.mockReset()
     get.mockImplementation((_url: string, config: { params: { page: number } }) =>
       Promise.resolve(pagedResponse(config.params.page)))
@@ -105,11 +106,46 @@ describe('ResourceIndexPage — stránkovanie v adrese', () => {
     expect(lastParams()['page']).toBe(1)
     expect(router.currentRoute.value.query['page']).toBeUndefined()
   })
+
+  it('návrat na holú adresu obnoví naposledy použité filtre aj stranu', async () => {
+    const first = await mountAt('/dashboard/events?status=draft&page=2')
+    first.wrapper.unmount()
+
+    const { wrapper, router } = await mountAt('/dashboard/events')
+
+    expect(lastParams()['status']).toBe('draft')
+    expect(lastParams()['page']).toBe(2)
+    expect(router.currentRoute.value.query).toEqual({ status: 'draft', page: '2' })
+    wrapper.unmount()
+  })
+
+  it('zrušenie filtrov ich zabudne', async () => {
+    const first = await mountAt('/dashboard/events?status=draft')
+    await first.wrapper.get('.index-list button').trigger('click')
+    await flushPromises()
+    first.wrapper.unmount()
+
+    const { wrapper } = await mountAt('/dashboard/events')
+
+    expect(lastParams()).not.toHaveProperty('status')
+    wrapper.unmount()
+  })
+
+  it('odkaz s vlastnými filtrami má prednosť pred uloženými', async () => {
+    const first = await mountAt('/dashboard/events?status=draft')
+    first.wrapper.unmount()
+
+    const { wrapper } = await mountAt('/dashboard/events?phase=today')
+
+    expect(lastParams()).not.toHaveProperty('status')
+    expect(lastParams()['phase']).toBe('today')
+    wrapper.unmount()
+  })
 })
 
 // Regression coverage for refresh and empty-state behavior.
 describe('ResourceIndexPage — refresh', () => {
-  beforeEach(() => { get.mockReset() })
+  beforeEach(() => { localStorage.clear(); get.mockReset() })
   it('retains rows during refresh and after a failure, then offers retry', async () => {
     get.mockResolvedValueOnce({ data: { data: [{ id: 1, name: 'Existing event' }], meta: { current_page: 1, last_page: 2 } } })
     const { wrapper } = await mountAt('/dashboard/events')

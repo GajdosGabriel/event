@@ -117,7 +117,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import http from '@/api/index'
 import IndexRow from '@/components/IndexRow.vue'
 import EventRowDetail from '@/components/EventRowDetail.vue'
@@ -383,8 +383,7 @@ function filtersToQuery(): Record<string, string> {
   return q
 }
 
-function filtersFromQuery() {
-  const q = route.query
+function filtersFromQuery(q: LocationQuery = route.query) {
   search.value = typeof q.q === 'string' ? q.q : ''
   statusFilter.value = typeof q.status === 'string' ? q.status : ''
   phaseFilter.value = typeof q.phase === 'string' ? q.phase : ''
@@ -404,7 +403,38 @@ function filtersFromQuery() {
 }
 
 function syncQuery(page: number) {
-  replaceQuery(filtersToQuery(), page)
+  const query = filtersToQuery()
+  replaceQuery(query, page)
+  saveFilters(query, page)
+}
+
+/**
+ * Filtre si zoznam pamätá aj mimo adresy — „Späť" z detailu a odkaz v menu
+ * vedú na holé `/admin/events`, takže by sa „Koncepty" stratili. Uložené
+ * platia, kým ich človek nezruší; odkaz s vlastnými filtrami (dlaždica
+ * prehľadu) ich prepíše. Obec nie — tú nesie len odkaz z detailu obce.
+ */
+const storageKey = computed(() => `resource-index-filters:${scope.value}-${props.resource}`)
+
+function saveFilters(query: Record<string, string>, page: number) {
+  const { municipality: _municipality, ...saved } = query
+  try {
+    if (Object.keys(saved).length === 0 && page <= 1) {
+      localStorage.removeItem(storageKey.value)
+    } else {
+      localStorage.setItem(storageKey.value, JSON.stringify({ ...saved, ...(page > 1 ? { page: String(page) } : {}) }))
+    }
+  } catch { /* bez úložiska si zoznam filtre len nepamätá */ }
+}
+
+function savedFilters(): LocationQuery | null {
+  try {
+    const raw = localStorage.getItem(storageKey.value)
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' ? parsed as LocationQuery : null
+  } catch {
+    return null
+  }
 }
 
 // Sidebar links and browser history can change filters while Vue reuses this page.
@@ -491,11 +521,21 @@ watch(() => [props.resource, scope.value], () => {
   dateTo.value = ''
   canalFilter.value = null
   apiStatusOptions.value = []
-  load(1)
+  loadFromQueryOrSaved()
 })
 
-onMounted(() => {
+/** Adresa bez parametrov = návrat na zoznam, nie žiadosť o čistý výpis. */
+function loadFromQueryOrSaved() {
+  const saved = Object.keys(route.query).length === 0 ? savedFilters() : null
+  if (saved) {
+    filtersFromQuery(saved)
+    const savedPage = Number(saved['page'])
+    load(Number.isInteger(savedPage) && savedPage > 1 ? savedPage : 1)
+    return
+  }
   filtersFromQuery()
   load(pageFromQuery())
-})
+}
+
+onMounted(loadFromQueryOrSaved)
 </script>
