@@ -488,7 +488,6 @@ return [
         'intro' => '**:name** cancelled their reservation for your event **":event"**. A seat has been freed.',
     ],
 
-
     // App\Notifications\TicketCancelledByOrganizer — zrušenie objednávky organizátorom.
     'ticket_cancelled_by_organizer' => [
         'subject' => 'Your registration for :event was cancelled',

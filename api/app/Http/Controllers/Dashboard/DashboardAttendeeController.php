@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TicketDashboardResource;

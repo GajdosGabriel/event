@@ -485,7 +485,6 @@ return [
         'intro' => '**:name** zrušil(a) rezervaci na vaši akci **„:event"**. Místo se uvolnilo.',
     ],
 
-
     // App\Notifications\TicketCancelledByOrganizer — zrušenie objednávky organizátorom.
     'ticket_cancelled_by_organizer' => [
         'subject' => 'Vaše registrace na akci :event byla zrušena',
