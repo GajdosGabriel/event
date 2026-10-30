@@ -1,8 +1,34 @@
 #!/bin/sh
-# Build frontendu pred commitom — ui/dist sa commituje a nasadzuje cez git pull.
-# Spúšťa sa len vtedy, keď commit obsahuje zmeny v ui/ mimo ui/dist.
 # Zapnutie na počítači: git config core.hooksPath .githooks
 
+# Pint opraví PHP súbory v commite — CI ich kontroluje rovnako a pri chybe nespustí testy.
+# Súbor s nestagovanými zmenami sa preskočí, git add by ich pridal do commitu (zachytí ho CI).
+set --
+for file in $(git diff --cached --name-only --diff-filter=ACMR -- 'api/*.php' | grep -v '^api/vendor/'); do
+  if git diff --quiet -- "$file"; then
+    set -- "$@" "${file#api/}"
+  else
+    echo "pre-commit: $file má nestagované zmeny, Pint ho preskočil." >&2
+  fi
+done
+
+if [ $# -gt 0 ]; then
+  if [ -x api/vendor/bin/pint ]; then
+    echo "pre-commit: Pint..."
+    (cd api && vendor/bin/pint --quiet "$@") || {
+      echo "pre-commit: Pint zlyhal, commit zrušený." >&2
+      exit 1
+    }
+    for file in "$@"; do
+      git add "api/$file"
+    done
+  else
+    echo "pre-commit: chýba api/vendor/bin/pint, Pint preskočený (spusti composer install)." >&2
+  fi
+fi
+
+# Build frontendu pred commitom — ui/dist sa commituje a nasadzuje cez git pull.
+# Spúšťa sa len vtedy, keď commit obsahuje zmeny v ui/ mimo ui/dist.
 if git diff --cached --name-only | grep '^ui/' | grep -qv '^ui/dist/'; then
   echo "pre-commit: build frontendu (ui)..."
   (cd ui && npm run build) || {

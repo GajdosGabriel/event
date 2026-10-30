@@ -18,6 +18,11 @@
   držia scoping dashboard/admin; neobchádzaj ho surovým Eloquentom v kontroleri.
 - Pri zmene verejného API kontraktu (request/response atribúty) to výslovne
   uveď — konzumuje ho `ui/` aj embed widget.
+- Formátovanie PHP opravuje Pint v git hooku `.githooks/pre-commit` pri commite,
+  ručne ho spúšťaj len pri súbore s nestagovanými zmenami (hook ho preskočí).
+  CI inak spadne na Pinte a testy vôbec nespustí.
+- Pri zmene v `resources/lang` spusti `php artisan test --filter=LocaleTest`:
+  kontroluje úplnosť prekladov vo všetkých jazykoch a cielené testy ju nepokryjú.
 
 ## Frontend (`ui/`)
 
