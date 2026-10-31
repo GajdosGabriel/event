@@ -10,9 +10,10 @@ use App\Http\Resources\QuestionResource;
 use App\Models\Event;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Canals\CanalRelay;
+use App\Services\Canals\CanalTakeover;
 use App\Services\Questions\QuestionAlert;
 use App\Services\Questions\QuestionDraft;
-use App\Services\Questions\QuestionRelay;
 use App\Services\Questions\QuestionSubmitter;
 use App\Support\SubmissionTicket;
 use Illuminate\Database\Eloquent\Collection;
@@ -52,7 +53,8 @@ class EventQuestionController extends Controller
         protected EventRepository $eventRepository,
         private QuestionSubmitter $submitter,
         private QuestionAlert $organizerAlert,
-        private QuestionRelay $relay,
+        private CanalRelay $relay,
+        private CanalTakeover $takeover,
     ) {}
 
     public function index(int|string $event): JsonResponse
@@ -61,9 +63,9 @@ class EventQuestionController extends Controller
         $board = $this->boardFor($model);
 
         if ($board === null) {
-            // Importovaný kanál s overenou adresou: nástenku nemá, ale otázku mu
-            // vieme doručiť e-mailom (QuestionRelay). Bez verejného zoznamu.
-            if ($this->relay->addressFor($model) !== null) {
+            // Nespravovaný kanál s adresou: nástenku nemá, ale otázku mu vieme
+            // doručiť e-mailom (CanalRelay). Bez verejného zoznamu.
+            if ($this->takeover->addressFor($model) !== null) {
                 return response()->json([
                     'available' => true,
                     'relay' => true,
@@ -138,12 +140,12 @@ class EventQuestionController extends Controller
 
     /**
      * Otázka na podujatie bez nástenky: doručí sa e-mailom organizátorovi
-     * importovaného kanála (QuestionRelay). Ako proti spamu, tak proti
+     * nespravovaného kanála (CanalRelay). Ako proti spamu, tak proti
      * zneužitiu cudzej schránky smie len prihlásený s overeným účtom.
      */
     private function relayToOrganizer(QuestionStoreRequest $request, Event $event): JsonResponse
     {
-        if ($this->relay->addressFor($event) === null) {
+        if ($this->takeover->addressFor($event) === null) {
             abort(422, __('questions.errors.closed'));
         }
 
@@ -157,7 +159,7 @@ class EventQuestionController extends Controller
             abort(403, __('messages.errors.verified_required'));
         }
 
-        $this->relay->forward($event, $sender, $request->questionBody());
+        $this->relay->question($event, $sender, $request->questionBody());
 
         return response()->json(['relayed' => true, 'notify' => true], 201);
     }

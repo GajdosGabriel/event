@@ -19,11 +19,11 @@ return [
     // overenie na novú adresu, upozornenie na pôvodnú.
     'simulate_contact_mail' => (bool) env('CANAL_CONTACT_MAIL_SIMULATE', true),
 
-    // Otázky návštevníkov preposielané organizátorom importovaných kanálov
-    // (QuestionRelay). Ide o nevyžiadaný e-mail na verejnú adresu — pred
-    // vypnutím simulácie overiť súlad s § 116 zákona č. 452/2021 Z. z.
-    // Kópia adminom odchádza vždy.
-    'simulate_question_relay_mail' => (bool) env('CANAL_QUESTION_RELAY_MAIL_SIMULATE', true),
+    // Jediná brzda e-mailov na kontakt nespravovaného kanála (CanalTakeover):
+    // prihláška na akciu, otázka aj správa návštevníka. Ide o nevyžiadaný
+    // e-mail na verejnú adresu — súlad s § 116 zákona č. 452/2021 Z. z. overiť.
+    // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
+    'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
 
     // Oslovenie organizátorov (app:canal-outreach) — triggery pred akciou,
     // prah zobrazení, po akcii. Hlásia sa len do Account Emailingu (text

@@ -4,6 +4,7 @@ namespace App\Models\Traits;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Services\Canals\CanalTakeover;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -21,13 +22,17 @@ trait InteractsAsMessageable
     /**
      * Dá sa tomuto cieľu poslať správa z pohľadu daného návštevníka?
      * Cieľ musí mať aktívneho príjemcu (rieši messageRecipient) a návštevník
-     * nesmie byť ním samým — vlastník si neposiela správy sám sebe.
+     * nesmie byť ním samým — vlastník si neposiela správy sám sebe. Bez príjemcu
+     * stačí kontakt nespravovaného kanála (CanalRelay).
      */
     public function isContactableBy(?User $viewer): bool
     {
         $recipient = $this->messageRecipient();
 
-        return $recipient !== null
-            && ($viewer === null || $recipient->isNot($viewer));
+        if ($recipient === null) {
+            return app(CanalTakeover::class)->addressFor($this) !== null;
+        }
+
+        return $viewer === null || $recipient->isNot($viewer);
     }
 }

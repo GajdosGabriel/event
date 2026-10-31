@@ -356,7 +356,7 @@ return [
         'organizer' => [
             'subject' => 'Otázka k podujatiu :event',
             'intro' => 'Návštevník portálu :site sa pýta na podujatie **„:event"** organizátora **:canal**:',
-            'reply' => 'Odpovedzte priamo na tento e-mail — odpoveď dostane :name (:email).',
+            'reply' => 'Odpovedať môžete priamo na adresu pisateľa: :name, [:email](mailto::email).',
             'offer' => 'Profil **„:canal"** vznikol automaticky z verejných zdrojov. Ak ho prevezmete, budete dostávať otázky ľudí, ktorí majú záujem o vašu akciu, môžete im odpovedať a zdarma zverejňovať ďalšie akcie.',
             'action' => 'Prevziať profil',
             'why' => 'Píšeme vám, lebo vaša adresa je uvedená pri profile organizátora. Iné e-maily vám bez vášho záujmu neposielame.',
@@ -365,8 +365,23 @@ return [
         'admin' => [
             'subject' => 'Otázka pre organizátora: :event',
             'intro' => ':name (:email) sa pýta na podujatie **„:event"** kanála **:canal**:',
-            'sent_to' => 'Otázka bola preposlaná na overenú adresu kanála: :email.',
+            'sent_to' => 'Otázka bola preposlaná na adresu kanála: :email.',
             'action' => 'Otvoriť podujatie',
+        ],
+    ],
+
+    // App\Notifications\MessageRelayed — správa pre kanál bez správcu; spoločné texty sú v question_relayed.
+    'message_relayed' => [
+        'organizer' => [
+            'subject' => 'Správa od návštevníka: :target',
+            'intro' => 'Návštevník portálu :site vám posiela správu k **„:target"** (organizátor **:canal**):',
+            'offer' => 'Profil **„:canal"** vznikol automaticky z verejných zdrojov. Ak ho prevezmete, budete dostávať správy ľudí, ktorí majú záujem o vaše akcie, a môžete zdarma zverejňovať ďalšie akcie.',
+        ],
+        'admin' => [
+            'subject' => 'Správa pre organizátora: :target',
+            'intro' => ':name (:email) posiela správu k **„:target"** kanála **:canal**:',
+            'sent_to' => 'Správa bola preposlaná na adresu kanála: :email.',
+            'action' => 'Otvoriť',
         ],
     ],
 

@@ -30,8 +30,11 @@ class QuestionRelayTest extends EventSetupTest
         Notification::fake();
         Cache::flush();
 
-        $this->futureEvent->update(['status' => ModelStatus::Published]);
+        // Bez e-mailu podujatia — ten by inak nastúpil ako záložný kontakt.
+        $this->futureEvent->update(['status' => ModelStatus::Published, 'email' => null]);
         $this->futureEvent->canal->forceFill([
+            // Pevné meno: náhodné z factory môže vyzerať ako doména, a to je zberný kanál.
+            'name' => 'Organizátor',
             'registration_source' => RegistrationSource::IMPORT,
             'claimed_at' => null,
             'email' => 'Info@Organizator.sk',
@@ -113,6 +116,7 @@ class QuestionRelayTest extends EventSetupTest
     #[Test]
     public function a_verified_question_reaches_the_admin_and_the_organizer_is_only_simulated(): void
     {
+        config(['canals.simulate_takeover_mail' => true]);
         $admin = $this->admin();
         $this->actingAs($this->user, 'sanctum');
 
@@ -133,7 +137,6 @@ class QuestionRelayTest extends EventSetupTest
     #[Test]
     public function the_organizer_mail_is_sent_for_real_once_simulation_is_off(): void
     {
-        config(['canals.simulate_question_relay_mail' => false]);
         $this->actingAs($this->user, 'sanctum');
 
         $this->ask()->assertCreated();

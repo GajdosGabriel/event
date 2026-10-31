@@ -10,7 +10,6 @@ use App\Enums\TicketTypeKind;
 use App\Models\Admission;
 use App\Models\Canal;
 use App\Models\CanalInvitation;
-use App\Models\EmailSuppression;
 use App\Models\Event;
 use App\Models\EventInterest;
 use App\Models\Ticket;
@@ -24,9 +23,8 @@ use App\Notifications\EventSignupOrganizerNotice;
 use App\Notifications\RegistrationCancelled;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
-use App\Services\Canals\CanalInviter;
 use App\Services\Canals\CanalRecipients;
-use App\Services\Imports\CollectionCanal;
+use App\Services\Canals\CanalTakeover;
 use App\Support\EventTimeframe;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -70,7 +68,7 @@ class EventSignup
     public function __construct(
         private TicketRepository $tickets,
         private AttendeeRegistrar $attendees,
-        private CanalInviter $inviter,
+        private CanalTakeover $takeover,
         private DefaultReservation $defaultReservation,
         private CanalRecipients $recipients,
     ) {}
@@ -320,21 +318,10 @@ class EventSignup
                 : ['channel' => 'owner', 'email' => $recipients->pluck('email')->implode(', ')];
         }
 
-        $contact = $this->contactEmail($event, $canal);
+        ['reason' => $reason, 'email' => $contact] = $this->takeover->contact($canal, $event);
 
-        // Zberný kanál sa prevziať nedá (CanalStewardship) — pozvánka na jeho
-        // prevzatie by ponúkla organizátorovi jednej akcie aj všetky cudzie.
-        if (CollectionCanal::is($canal)) {
-            return ['channel' => 'collection', 'email' => null];
-        }
-
-        if (! $canal || $contact === null) {
-            return ['channel' => 'none', 'email' => null];
-        }
-
-        // Kontakt, ktorý si nevyžiadané e-maily odhlásil, ponuku prevzatia nedostane.
-        if (EmailSuppression::has($contact)) {
-            return ['channel' => 'suppressed', 'email' => $contact];
+        if ($reason !== null) {
+            return ['channel' => $reason, 'email' => $contact];
         }
 
         // Kontakt už v tíme kanála je (pozvánku prijal) → píšeme mu ako členovi.
@@ -346,16 +333,14 @@ class EventSignup
             return ['channel' => 'owner', 'email' => $contact];
         }
 
-        $invitation = $this->inviter->ensureOwnerInvitation($canal, $contact);
+        $invitation = $this->takeover->invitation($canal, $contact);
 
         if ($this->offeredRecently($contact)) {
             return ['channel' => 'throttled', 'email' => $contact];
         }
 
-        $this->safely(function () use ($contact, $invitation, $notice) {
-            Notification::route('mail', $contact)->notify($notice($invitation));
-            $invitation->forceFill(['signup_notified_at' => now()])->save();
-        });
+        $this->takeover->send($contact, $notice($invitation), $event);
+        $invitation->forceFill(['signup_notified_at' => now()])->save();
 
         return ['channel' => 'invitation', 'email' => $contact];
     }
@@ -383,20 +368,6 @@ class EventSignup
         }
 
         return $canal->owners()->whereNotNull('email')->get();
-    }
-
-    /**
-     * Kontakt na ponuku prevzatia: e-mail kanála, záložne z podujatia. Vyradenú
-     * adresu (vrátený e-mail, odhlásenie) preskočí; keď iná nie je, vráti ju,
-     * aby volajúci vedel povedať prečo sa nepíše.
-     */
-    private function contactEmail(Event $event, ?Canal $canal): ?string
-    {
-        $candidates = collect([$canal?->email, $event->email])
-            ->map(fn ($candidate) => mb_strtolower(trim((string) $candidate)))
-            ->filter(fn (string $candidate) => $candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL));
-
-        return $candidates->first(fn (string $candidate) => ! EmailSuppression::has($candidate)) ?? $candidates->first();
     }
 
     /** Počet platných hlavných vstupeniek — „prihlásených je už N ľudí". */

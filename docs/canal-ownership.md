@@ -46,11 +46,23 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 |---|---|---|
 | Prihláška na akciu (`EventSignupOrganizerNotice`) | všetci vlastníci | kontakt (`canal.email` → `event.email`, vyradené adresy sa preskočia) + odkaz na prevzatie, bez mena účastníka, najviac raz za 7 dní na adresu, cez Account kvôli nedoručeniam; pri zbernom kanáli nikto |
 | Prihláška na akciu (`EventSignupAdminNotice`) | super-admini | super-admini |
-| Správa od návštevníka (`MessageReceived`) | prvý vlastník, ktorý môže prijímať správy | nikto, formulár sa neponúkne |
+| Správa od návštevníka (`MessageReceived` / `MessageRelayed`) | prvý vlastník, ktorý môže prijímať správy | kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa; miesta (venue) nikto |
+| Otázka k akcii (`QuestionReceived` / `QuestionRelayed`) | tím podľa témy `questions` | kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa |
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |
 | Pozvánka do tímu (`CanalInvitationSent`) | pozvaná adresa | pozvaná adresa |
 | Zmena vlastníka (`CanalOwnershipChanged`) | simulované, pozri vyššie | nikto |
 | Ponuka prevzatia pred akciou / pri zobrazeniach / po akcii (Account Emailing) | nikto | kontakt kanála, najviac 3 za 90 dní (fáza 5) |
+
+### Jednotné pravidlá pre kanál bez správcu (`CanalTakeover`)
+Prihláška, otázka aj správa píšu na kontakt rovnako. Líši sa len to, čo je v e-maile a ako často chodí.
+
+| | Prihláška | Otázka | Správa |
+|---|---|---|---|
+| Spúšťač | prihlásenie na akciu | otázka na akciu bez nástenky | „Poslať správu" na kanáli alebo akcii |
+| Obsah e-mailu | počet prihlásených, bez mena účastníka | text a kontakt pisateľa | text a kontakt pisateľa |
+| Limit | 1 za 7 dní na adresu | 5 za hodinu na človeka, 10 za deň na kanál | spoločný s otázkou |
+
+Spoločné: kontakt `canal.email` → `event.email`, vyradené adresy sa preskočia, zberný kanál sa neoslovuje, odkaz na prevzatie a odhlásenie, odoslanie cez Account (vrátený e-mail vyradí adresu cez `CanalEmails::recordBounce`), jediný vypínač `CANAL_TAKEOVER_MAIL_SIMULATE`, kópia super-adminom. Account si Reply-To nastavuje sám, preto je kontakt pisateľa viditeľne v texte; odpoveď priamo na e-mail skončí v Inboxe Accountu.
 
 ## Fáza 2: Príjemcovia notifikácií (hotové)
 - Témy (`CanalNotificationTopic`): `signups`, `messages`, `questions`, `reviews` (kontroly obsahu, atribútov, doplnený profil).

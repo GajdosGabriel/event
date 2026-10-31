@@ -349,7 +349,7 @@ return [
         'organizer' => [
             'subject' => 'Question about :event',
             'intro' => 'A visitor of :site is asking about the event **“:event”** by **:canal**:',
-            'reply' => 'Reply directly to this e-mail — :name (:email) will receive your answer.',
+            'reply' => 'You can reply directly to the writer’s address: :name, [:email](mailto::email).',
             'offer' => 'The profile **“:canal”** was created automatically from public sources. If you claim it, you will receive questions from people interested in your event, can answer them and publish further events for free.',
             'action' => 'Claim the profile',
             'why' => 'We are writing because your address is listed on the organiser profile. We send you nothing else unless you show interest.',
@@ -358,8 +358,22 @@ return [
         'admin' => [
             'subject' => 'Question for the organiser: :event',
             'intro' => ':name (:email) is asking about the event **“:event”** of channel **:canal**:',
-            'sent_to' => 'The question was forwarded to the channel’s verified address: :email.',
+            'sent_to' => 'The question was forwarded to the channel’s address: :email.',
             'action' => 'Open the event',
+        ],
+    ],
+
+    'message_relayed' => [
+        'organizer' => [
+            'subject' => 'Message from a visitor: :target',
+            'intro' => 'A visitor of :site is sending you a message about **“:target”** (organiser **:canal**):',
+            'offer' => 'The profile **“:canal”** was created automatically from public sources. If you claim it, you will receive messages from people interested in your events and can publish further events for free.',
+        ],
+        'admin' => [
+            'subject' => 'Message for the organiser: :target',
+            'intro' => ':name (:email) is sending a message about **“:target”** of channel **:canal**:',
+            'sent_to' => 'The message was forwarded to the channel’s address: :email.',
+            'action' => 'Open',
         ],
     ],
 

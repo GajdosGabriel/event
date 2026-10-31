@@ -9,6 +9,8 @@ use App\Http\Requests\MessageStoreRequest;
 use App\Models\Message;
 use App\Notifications\MessageReceived;
 use App\Services\Canals\CanalRecipients;
+use App\Services\Canals\CanalRelay;
+use App\Services\Canals\CanalTakeover;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Notification;
@@ -25,6 +27,8 @@ class MessageController extends Controller
 {
     public function __construct(
         private CanalRecipients $recipients,
+        private CanalRelay $relay,
+        private CanalTakeover $takeover,
     ) {}
 
     public function store(MessageStoreRequest $request): JsonResponse
@@ -44,12 +48,18 @@ class MessageController extends Controller
 
         $target = $this->resolveTarget($data['target_type'], (int) $data['target_id']);
 
-        // Príjemcom je vlastník cieľa. Bez aktívneho vlastníka (alebo pri
-        // importovanom obsahu) nemá správu kam doručiť; tlačidlo sa vtedy na
-        // fronte ani neukáže.
+        // Príjemcom je vlastník cieľa. Kanál bez správcu nemá inbox — správa ide
+        // e-mailom na jeho kontakt s ponukou prevzatia (CanalRelay). Keď nie je
+        // kam doručiť, tlačidlo sa na fronte ani neukáže.
         $recipient = $target->messageRecipient();
         if (! $recipient) {
-            abort(422, __('messages.errors.not_contactable'));
+            if ($this->takeover->addressFor($target) === null) {
+                abort(422, __('messages.errors.not_contactable'));
+            }
+
+            $this->relay->message($target, $sender, $data['body']);
+
+            return response()->json(['status' => 'ok'], 201);
         }
 
         if ($recipient->is($sender)) {
