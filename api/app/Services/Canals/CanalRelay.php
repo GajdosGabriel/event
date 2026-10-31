@@ -3,8 +3,10 @@
 namespace App\Services\Canals;
 
 use App\Models\Canal;
+use App\Models\CanalRelayThread;
 use App\Models\Event;
 use App\Models\User;
+use App\Notifications\CanalRelayReplied;
 use App\Notifications\MessageRelayed;
 use App\Notifications\QuestionRelayed;
 use App\Services\SystemLog\Recorder;
@@ -19,12 +21,15 @@ use Illuminate\Support\Facades\URL;
  * Otázka alebo správa návštevníka pre kanál, ktorý nikto nespravuje.
  *
  * Nespravovaný kanál nemá inbox ani nástenku, a tak jediným nosičom je e-mail
- * na jeho kontakt (CanalTakeover) s ponukou prevziať profil. Nič sa neukladá.
- * Preto sú brzdy prísne: len prihlásený s overeným účtom (kontroluje volajúci),
+ * na jeho kontakt (CanalTakeover) s ponukou prevziať profil. Text sa neukladá,
+ * len väzba na pisateľa pre odpoveď (CanalRelayThread). Brzdy sú prísne: len prihlásený s overeným účtom (kontroluje volajúci),
  * limit na človeka aj na kanál a odmietnutie opakovaného textu.
  */
 class CanalRelay
 {
+    /** Typ referencie konverzácie v Accounte — jedna konverzácia na preposlanie. */
+    public const ACCOUNT_REF = 'canal_relay';
+
     /** Najviac e-mailov od jedného človeka za hodinu. */
     private const PER_USER_PER_HOUR = 5;
 
@@ -55,6 +60,37 @@ class CanalRelay
         ));
     }
 
+    /**
+     * Organizátor odpovedal do konverzácie v Accounte → odpoveď ide pisateľovi.
+     * Account webhook opakuje, preto ID správy strážime, aby nešla dvakrát.
+     *
+     * @param  array<string, mixed>  $message  `message` z webhooku `message.received`
+     */
+    public function forwardReply(CanalRelayThread $thread, array $message): void
+    {
+        $reply = trim((string) ($message['reply_text'] ?? $message['text'] ?? ''));
+        $from = CanalEmails::normalize($message['from'] ?? null);
+        $messageId = (string) ($message['id'] ?? '');
+
+        if ($reply === '' || $from === null
+            || ($messageId !== '' && ! Cache::add('canal-relay:reply:'.$messageId, 1, now()->addDays(7)))) {
+            return;
+        }
+
+        Notification::route('mail', $thread->asker_email)->notify(new CanalRelayReplied(
+            $thread, $reply, $from, $message['from_name'] ?? null, ! empty($message['attachments']),
+        ));
+
+        $thread->forceFill(['last_reply_at' => now()])->save();
+
+        Recorder::info('canals', 'relay_reply_forwarded', "Odpoveď organizátora preposlaná: {$thread->target_name}",
+            status: 'ok',
+            recipient: $thread->asker_email,
+            subject: $thread->canal,
+            context: ['thread_id' => $thread->id, 'kind' => $thread->kind, 'from' => $from],
+        );
+    }
+
     /** Brzdy zastavia výnimkou 422/429. */
     private function relay(Model $target, Canal $canal, User $sender, string $body, string $kind, Closure $notice): void
     {
@@ -79,7 +115,15 @@ class CanalRelay
 
         $claimUrl = $this->takeover->claimUrl($this->takeover->invitation($canal, $email));
         $unsubscribeUrl = URL::signedRoute('public.email.unsubscribe', ['email' => $email]);
-        $build = fn (string $audience) => $notice($audience, $email, $claimUrl, $unsubscribeUrl);
+        $thread = CanalRelayThread::query()->create([
+            'canal_id' => $canal->id,
+            'kind' => $kind,
+            'target_name' => (string) $target->name,
+            'asker_name' => $sender->displayName(),
+            'asker_email' => (string) $sender->email,
+            'organizer_email' => $email,
+        ]);
+        $build = fn (string $audience) => $notice($audience, $email, $claimUrl, $unsubscribeUrl)->forThread($thread->id);
 
         $this->takeover->send($email, $build(QuestionRelayed::ORGANIZER), $target);
 

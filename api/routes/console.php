@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CanalRelayThread;
 use App\Models\SystemLog;
 use App\Services\SystemLog\Recorder;
 use Carbon\Carbon;
@@ -109,6 +110,7 @@ $artisan('app:poster-drafts-prune')->dailyAt('03:40');
 // po troch (config/logging.php → system_log). Maže po dávkach.
 // Reťazec, nie pole — $artisan() z parametrov skladá meno úlohy.
 $artisan('model:prune', ['--model' => SystemLog::class])->dailyAt('03:25');
+$artisan('model:prune', ['--model' => CanalRelayThread::class])->dailyAt('03:27');
 // Každý zdroj má vlastný beh s vlastným časom. Kým išli všetky v jednom
 // príkaze za sebou, posledný z nich hladoval: 27. 7. 2026 zjedli ecav.sk a
 // tkkbs.sk 13 minút a na vyveska.sk sa už nedostalo — hosting nemá shell,

@@ -59,10 +59,12 @@ Prihláška, otázka aj správa píšu na kontakt rovnako. Líši sa len to, čo
 | | Prihláška | Otázka | Správa |
 |---|---|---|---|
 | Spúšťač | prihlásenie na akciu | otázka na akciu bez nástenky | „Poslať správu" na kanáli alebo akcii |
-| Obsah e-mailu | počet prihlásených, bez mena účastníka | text a kontakt pisateľa | text a kontakt pisateľa |
+| Obsah e-mailu | počet prihlásených, bez mena účastníka | text a meno pisateľa | text a meno pisateľa |
 | Limit | 1 za 7 dní na adresu | 5 za hodinu na človeka, 10 za deň na kanál | spoločný s otázkou |
 
-Spoločné: kontakt `canal.email` → `event.email`, vyradené adresy sa preskočia, zberný kanál sa neoslovuje, odkaz na prevzatie a odhlásenie, odoslanie cez Account (vrátený e-mail vyradí adresu cez `CanalEmails::recordBounce`), jediný vypínač `CANAL_TAKEOVER_MAIL_SIMULATE`, kópia super-adminom. Account si Reply-To nastavuje sám, preto je kontakt pisateľa viditeľne v texte; odpoveď priamo na e-mail skončí v Inboxe Accountu.
+Spoločné: kontakt `canal.email` → `event.email`, vyradené adresy sa preskočia, zberný kanál sa neoslovuje, odkaz na prevzatie a odhlásenie, odoslanie cez Account (vrátený e-mail vyradí adresu cez `CanalEmails::recordBounce`), jediný vypínač `CANAL_TAKEOVER_MAIL_SIMULATE`, kópia super-adminom.
+
+**Odpovede:** každé preposlanie má v Accounte vlastnú konverzáciu (ref `canal_relay`, záznam `CanalRelayThread`, maže sa po 180 dňoch). Organizátor odpovie na e-mail, odpoveď príde do Accountu a webhook `message.received` ju pošle pisateľovi (`CanalRelayReplied`) s Reply-To na organizátora. Adresa pisateľa preto organizátorovi v texte nechodí; vidí ju až po jeho odpovedi. Prílohy sa nepreposielajú, automatické odpovede Account neposiela.
 
 ## Fáza 2: Príjemcovia notifikácií (hotové)
 - Témy (`CanalNotificationTopic`): `signups`, `messages`, `questions`, `reviews` (kontroly obsahu, atribútov, doplnený profil).

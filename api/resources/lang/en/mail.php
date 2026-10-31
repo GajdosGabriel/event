@@ -349,7 +349,7 @@ return [
         'organizer' => [
             'subject' => 'Question about :event',
             'intro' => 'A visitor of :site is asking about the event **“:event”** by **:canal**:',
-            'reply' => 'You can reply directly to the writer’s address: :name, [:email](mailto::email).',
+            'reply' => 'Reply directly to this e-mail — we will deliver your answer to the writer (:name).',
             'offer' => 'The profile **“:canal”** was created automatically from public sources. If you claim it, you will receive questions from people interested in your event, can answer them and publish further events for free.',
             'action' => 'Claim the profile',
             'why' => 'We are writing because your address is listed on the organiser profile. We send you nothing else unless you show interest.',
@@ -361,6 +361,13 @@ return [
             'sent_to' => 'The question was forwarded to the channel’s address: :email.',
             'action' => 'Open the event',
         ],
+    ],
+
+    'canal_relay_replied' => [
+        'subject' => 'Reply from the organiser: :target',
+        'intro' => 'The organiser **:canal** replied to your message about **“:target”**:',
+        'attachments' => 'The organiser also included attachments, which we did not forward. If you need them, ask for them in your reply.',
+        'outro' => 'To continue, reply directly to this e-mail — it will go to the organiser.',
     ],
 
     'message_relayed' => [

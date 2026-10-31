@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Canal;
 use App\Notifications\Concerns\SendsViaAccount;
+use App\Services\Canals\CanalRelay;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -14,8 +15,9 @@ use Symfony\Component\Mime\Email;
  * Text návštevníka preposlaný kanálu bez správcu (CanalRelay).
  *
  *  - `organizer` — na kontakt kanála, s ponukou prevziať profil a odhlásením.
- *    Ide cez Account kvôli nedoručeniam. Account si Reply-To nastavuje sám,
- *    preto je adresa pisateľa viditeľne v texte; Reply-To platí len pri SMTP.
+ *    Ide cez Account kvôli nedoručeniam. Odpoveď príde do Accountu a odtiaľ ju
+ *    webhook prepošle pisateľovi (CanalRelay::forwardReply), preto jeho adresa
+ *    v texte nie je; Reply-To platí len pri SMTP bez Accountu.
  *  - `admin` — kópia správcovi portálu: kto píše, komu a čo.
  */
 abstract class RelayedToCanal extends Notification implements ShouldQueue
@@ -25,6 +27,9 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
     public const ORGANIZER = 'organizer';
 
     public const ADMIN = 'admin';
+
+    /** Záznam CanalRelayThread — z neho vznikne samostatná konverzácia v Accounte. */
+    public ?int $threadId = null;
 
     public function __construct(
         public readonly Canal $canal,
@@ -52,9 +57,20 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
         return $this->mailVia($notifiable);
     }
 
+    public function forThread(int $threadId): static
+    {
+        $this->threadId = $threadId;
+
+        return $this;
+    }
+
     public function accountRef(object $notifiable): array
     {
-        return $this->canalRef($this->canal);
+        $ref = $this->canalRef($this->canal);
+
+        return $this->threadId === null
+            ? $ref
+            : [...$ref, 'type' => CanalRelay::ACCOUNT_REF, 'id' => (string) $this->threadId];
     }
 
     public function toMail(object $notifiable): MailMessage

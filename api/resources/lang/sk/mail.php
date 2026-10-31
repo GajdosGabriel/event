@@ -356,7 +356,7 @@ return [
         'organizer' => [
             'subject' => 'Otázka k podujatiu :event',
             'intro' => 'Návštevník portálu :site sa pýta na podujatie **„:event"** organizátora **:canal**:',
-            'reply' => 'Odpovedať môžete priamo na adresu pisateľa: :name, [:email](mailto::email).',
+            'reply' => 'Odpovedzte priamo na tento e-mail — odpoveď doručíme pisateľovi (:name).',
             'offer' => 'Profil **„:canal"** vznikol automaticky z verejných zdrojov. Ak ho prevezmete, budete dostávať otázky ľudí, ktorí majú záujem o vašu akciu, môžete im odpovedať a zdarma zverejňovať ďalšie akcie.',
             'action' => 'Prevziať profil',
             'why' => 'Píšeme vám, lebo vaša adresa je uvedená pri profile organizátora. Iné e-maily vám bez vášho záujmu neposielame.',
@@ -368,6 +368,14 @@ return [
             'sent_to' => 'Otázka bola preposlaná na adresu kanála: :email.',
             'action' => 'Otvoriť podujatie',
         ],
+    ],
+
+    // App\Notifications\CanalRelayReplied — odpoveď organizátora pisateľovi.
+    'canal_relay_replied' => [
+        'subject' => 'Odpoveď organizátora: :target',
+        'intro' => 'Organizátor **:canal** odpovedal na vašu správu k **„:target"**:',
+        'attachments' => 'Organizátor priložil aj prílohy, ktoré sme nepreposlali. Ak ich potrebujete, vyžiadajte si ich odpoveďou.',
+        'outro' => 'Ak chcete pokračovať, odpovedzte priamo na tento e-mail — príde organizátorovi.',
     ],
 
     // App\Notifications\MessageRelayed — správa pre kanál bez správcu; spoločné texty sú v question_relayed.

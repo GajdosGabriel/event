@@ -349,7 +349,7 @@ return [
         'organizer' => [
             'subject' => 'Dotaz k akci :event',
             'intro' => 'Návštěvník portálu :site se ptá na akci **„:event"** organizátora **:canal**:',
-            'reply' => 'Odpovědět můžete přímo na adresu pisatele: :name, [:email](mailto::email).',
+            'reply' => 'Odpovězte přímo na tento e-mail — odpověď doručíme pisateli (:name).',
             'offer' => 'Profil **„:canal"** vznikl automaticky z veřejných zdrojů. Pokud jej převezmete, budete dostávat dotazy lidí, kteří mají zájem o vaši akci, můžete jim odpovídat a zdarma zveřejňovat další akce.',
             'action' => 'Převzít profil',
             'why' => 'Píšeme vám, protože vaše adresa je uvedena u profilu organizátora. Jiné e-maily vám bez vašeho zájmu neposíláme.',
@@ -361,6 +361,13 @@ return [
             'sent_to' => 'Dotaz byl přeposlán na adresu kanálu: :email.',
             'action' => 'Otevřít akci',
         ],
+    ],
+
+    'canal_relay_replied' => [
+        'subject' => 'Odpověď organizátora: :target',
+        'intro' => 'Organizátor **:canal** odpověděl na vaši zprávu k **„:target"**:',
+        'attachments' => 'Organizátor přiložil i přílohy, které jsme nepřeposlali. Pokud je potřebujete, vyžádejte si je odpovědí.',
+        'outro' => 'Pokud chcete pokračovat, odpovězte přímo na tento e-mail — přijde organizátorovi.',
     ],
 
     'message_relayed' => [

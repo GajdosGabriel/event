@@ -4,7 +4,9 @@ namespace App\Services\Account;
 
 use App\Models\Canal;
 use App\Models\CanalEmail;
+use App\Models\CanalRelayThread;
 use App\Services\Canals\CanalEmails;
+use App\Services\Canals\CanalRelay;
 use App\Services\SystemLog\Recorder;
 
 /**
@@ -19,7 +21,10 @@ use App\Services\SystemLog\Recorder;
  */
 class AccountMessages
 {
-    public function __construct(private readonly CanalEmails $emails) {}
+    public function __construct(
+        private readonly CanalEmails $emails,
+        private readonly CanalRelay $relay,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $conversation
@@ -27,11 +32,18 @@ class AccountMessages
      */
     public function handle(string $event, array $conversation, array $message): void
     {
-        if (($conversation['ref']['type'] ?? null) !== 'canal') {
-            return;
-        }
+        $id = $conversation['ref']['id'] ?? null;
 
-        $canal = Canal::find($conversation['ref']['id'] ?? null);
+        // Preposlaná otázka alebo správa: konverzácia patrí jednému pisateľovi.
+        $thread = ($conversation['ref']['type'] ?? null) === CanalRelay::ACCOUNT_REF
+            ? CanalRelayThread::find($id)
+            : null;
+
+        $canal = match ($conversation['ref']['type'] ?? null) {
+            'canal' => Canal::find($id),
+            CanalRelay::ACCOUNT_REF => $thread?->canal,
+            default => null,
+        };
 
         if (! $canal) {
             return;
@@ -44,6 +56,10 @@ class AccountMessages
             'message.bounced' => $this->bounced($canal, $contact, $message),
             default => null,
         };
+
+        if ($event === 'message.received' && $thread) {
+            $this->relay->forwardReply($thread, $message);
+        }
     }
 
     /** @param array<string, mixed> $message */

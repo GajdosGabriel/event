@@ -349,7 +349,7 @@ return [
         'organizer' => [
             'subject' => 'Frage zu :event',
             'intro' => 'Ein Besucher von :site fragt zur Veranstaltung **„:event"** von **:canal**:',
-            'reply' => 'Sie können direkt an die Adresse des Absenders antworten: :name, [:email](mailto::email).',
+            'reply' => 'Antworten Sie direkt auf diese E-Mail — wir leiten Ihre Antwort an den Absender weiter (:name).',
             'offer' => 'Das Profil **„:canal"** wurde automatisch aus öffentlichen Quellen erstellt. Wenn Sie es übernehmen, erhalten Sie Fragen von Menschen, die sich für Ihre Veranstaltung interessieren, können diese beantworten und weitere Veranstaltungen kostenlos veröffentlichen.',
             'action' => 'Profil übernehmen',
             'why' => 'Wir schreiben Ihnen, weil Ihre Adresse im Veranstalterprofil angegeben ist. Andere E-Mails senden wir Ihnen ohne Ihr Interesse nicht.',
@@ -361,6 +361,13 @@ return [
             'sent_to' => 'Die Frage wurde an die Adresse des Kanals weitergeleitet: :email.',
             'action' => 'Veranstaltung öffnen',
         ],
+    ],
+
+    'canal_relay_replied' => [
+        'subject' => 'Antwort des Veranstalters: :target',
+        'intro' => 'Der Veranstalter **:canal** hat auf Ihre Nachricht zu **„:target"** geantwortet:',
+        'attachments' => 'Der Veranstalter hat auch Anhänge beigefügt, die wir nicht weitergeleitet haben. Bei Bedarf fordern Sie diese per Antwort an.',
+        'outro' => 'Wenn Sie fortfahren möchten, antworten Sie direkt auf diese E-Mail — sie geht an den Veranstalter.',
     ],
 
     'message_relayed' => [
