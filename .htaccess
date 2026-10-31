@@ -84,6 +84,16 @@
     RewriteRule ^ ui/dist/index.html [L]
 </IfModule>
 
+# index.html sa musí pred každým použitím overiť (ETag, inak 304). Bez hlavičky
+# si ho prehliadač podľa Last-Modified nechal v cache a po nasadení ľudia ešte
+# chvíľu bežali na starom builde. Súbory v /assets majú hash v názve, tie sa týmto
+# nemenia.
+<IfModule mod_headers.c>
+    <FilesMatch "^index\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
 # Výpis priečinkov v koreni repozitára by ukázal zdrojáky.
 Options -Indexes
 
