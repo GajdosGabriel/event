@@ -63,7 +63,7 @@ class EventQuestionController extends Controller
         $board = $this->boardFor($model);
 
         if ($board === null) {
-            // Nespravovaný kanál s adresou: nástenku nemá, ale otázku mu vieme
+            // Nespravovaný kanál s overenou adresou: nástenku nemá, ale otázku mu vieme
             // doručiť e-mailom (CanalRelay). Bez verejného zoznamu.
             if ($this->takeover->addressFor($model) !== null) {
                 return response()->json([

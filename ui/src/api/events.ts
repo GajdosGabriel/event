@@ -139,6 +139,7 @@ export function mapEvent(raw: Record<string, unknown>): EventItem {
     additionalPhones: (raw['additional_phones'] as string[] | null) ?? [],
     attributeIssues: mapAttributeIssues(raw['attribute_issues']),
     contactable: Boolean(raw['contactable']),
+    organizerUnconfirmed: Boolean(raw['organizer_unconfirmed']),
     // Len verejný detail; vo výpisoch odkazy nie sú a tlačidlo sa nekreslí.
     calendarLinks: (raw['calendar_links'] as EventItem['calendarLinks']) ?? null,
     permissions: (() => {

@@ -14,5 +14,12 @@ export function useSystemLogLabels() {
     return translated === key ? event : translated
   }
 
-  return { eventLabel }
+  /** Stav môže prísť aj z Accountu (dôvod odmietnutia), neznámy sa ukáže surovo. */
+  function statusLabel(status: string): string {
+    const key = `systemLog.status.${status}`
+    const translated = t(key as Parameters<typeof t>[0])
+    return translated === key ? status : translated
+  }
+
+  return { eventLabel, statusLabel }
 }

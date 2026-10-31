@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
  * Prihláška na akciu (EventSignup), otázka aj správa návštevníka (CanalRelay)
  * sa správajú rovnako (docs/canal-ownership.md):
  *  - kontakt je e-mail kanála, záložne z podujatia; vyradené adresy sa preskočia,
+ *  - otázku a správu návštevníka prijíma len overený e-mail kanála (addressFor),
  *  - zberný kanál sa neoslovuje, lebo sa nedá prevziať,
  *  - e-mail ponúka prevzatie kanála a má odkaz na odhlásenie,
  *  - ide cez Account (SendsViaAccount), vrátený e-mail adresu vyradí
@@ -76,18 +77,36 @@ class CanalTakeover
         };
     }
 
-    /** Adresa nespravovaného kanála, alebo null, keď sa cieľu písať nedá. */
+    /**
+     * Adresa, na ktorú smie návštevník poslať otázku alebo správu, alebo null.
+     *
+     * Len overený kontakt kanála: schránka sa nám už ozvala (odpoveď, potvrdenie),
+     * takže návštevník môže čakať odpoveď. Neoverený e-mail z importu ani záložný
+     * e-mail podujatia túto istotu nedávajú.
+     */
     public function addressFor(Model $target): ?string
     {
         $canal = $this->canalOf($target);
 
-        if ($canal === null || $canal->isManaged()) {
+        if ($canal === null || $canal->isManaged() || $canal->email_verified_at === null) {
             return null;
         }
 
-        $contact = $this->contact($canal, $target instanceof Event ? $target : null);
+        $contact = $this->contact($canal);
 
         return $contact['reason'] === null ? $contact['email'] : null;
+    }
+
+    /**
+     * Kanál bez správcu a bez overeného kontaktu: e-mail o prihláške síce môže
+     * odísť, ale nevieme, či si ho niekto prečíta. Návštevník to má vedieť ešte
+     * pred rezerváciou.
+     */
+    public function organizerUnconfirmed(Event $event): bool
+    {
+        $canal = $this->canalOf($event);
+
+        return $canal === null || (! $canal->isManaged() && $this->addressFor($canal) === null);
     }
 
     public function invitation(Canal $canal, string $email): CanalInvitation

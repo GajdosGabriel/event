@@ -5,7 +5,7 @@ import http from './index'
  * prihlásenia, importy, cron. Len čítanie; staré záznamy maže backend sám.
  */
 export type SystemLogLevel = 'info' | 'warning' | 'error'
-export type SystemLogStatus = 'sent' | 'simulated' | 'failed' | 'skipped' | 'ok'
+export type SystemLogStatus = 'sent' | 'simulated' | 'failed' | 'skipped' | 'ok' | 'bounced' | 'replied' | 'hard' | 'soft'
 
 /** Odkaz na entitu, o ktorej záznam je (rozlúštený backendom aj s menom). */
 export interface SystemLogLink {

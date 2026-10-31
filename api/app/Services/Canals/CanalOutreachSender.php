@@ -377,8 +377,10 @@ class CanalOutreachSender
 
     private function log(CanalOutreach $outreach, Canal $canal, Event $event): void
     {
+        $trigger = MailingTrigger::tryFrom($outreach->trigger)?->label() ?? $outreach->trigger;
+
         Recorder::info('canals', 'outreach_'.$outreach->status,
-            "Kanál {$canal->name}: oslovenie ({$outreach->trigger}) k akcii {$event->name}",
+            "Kanál {$canal->name}: ponuka prevzatia k akcii {$event->name} odovzdaná e-mailingu v Accounte, e-mail ešte neodišiel ({$trigger})",
             status: 'ok',
             recipient: $outreach->email,
             subject: $canal,

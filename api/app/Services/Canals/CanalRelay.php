@@ -137,7 +137,10 @@ class CanalRelay
             Notification::send($admins, $build(QuestionRelayed::ADMIN));
         }
 
-        Recorder::info('canals', $kind.'_relayed', "E-mail návštevníka kanálu {$canal->name}: {$kind}",
+        $what = $kind === 'question' ? 'otázka návštevníka preposlaná' : 'správa návštevníka preposlaná';
+        $simulated = $this->takeover->simulated() ? ' (len simulované, e-mail neodišiel)' : '';
+
+        Recorder::info('canals', $kind.'_relayed', "Kanál {$canal->name} bez správcu: {$what} na kontaktnú adresu{$simulated}",
             status: 'ok',
             recipient: $email,
             userId: $sender->id,

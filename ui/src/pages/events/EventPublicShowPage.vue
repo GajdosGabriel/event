@@ -357,6 +357,7 @@
                   <AppIcon name="chevronDown" class="h-4 w-4 transition-transform" :class="{ 'rotate-180': registrationOpen }" />
                 </button>
               </div>
+              <p v-if="event.organizerUnconfirmed && !hasEnded" v-show="registrationOpen" class="mb-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">{{ t('public.event.organizerUnconfirmed') }}</p>
               <TicketRequestForm
                 v-show="registrationOpen"
                 id="registracia-form"
@@ -504,6 +505,7 @@
                 </svg>
                 {{ t('public.event.registration') }}
               </h2>
+              <p v-if="event.organizerUnconfirmed && !hasEnded" class="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">{{ t('public.event.organizerUnconfirmed') }}</p>
               <TicketRequestForm
                 :event-id="event.id"
                 :types="ticketTypes"

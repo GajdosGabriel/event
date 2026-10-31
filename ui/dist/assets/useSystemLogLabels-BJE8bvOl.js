@@ -1,0 +1,1 @@
+import{g as a}from"./index-B1sr0fvb.js";function c(){const{t:n}=a();function o(t){const e=`systemLog.ev.${t.replace(/\./g,"_")}`,s=n(e);return s===e?t:s}function r(t){const e=`systemLog.status.${t}`,s=n(e);return s===e?t:s}return{eventLabel:o,statusLabel:r}}export{c as u};

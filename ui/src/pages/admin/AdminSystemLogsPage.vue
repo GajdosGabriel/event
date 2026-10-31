@@ -84,7 +84,7 @@
               {{ eventLabel(row.event) }}
             </span>
             <span v-if="row.status" class="rounded-full px-2 py-0.5 font-medium" :class="statusClass[row.status]">
-              {{ t(`systemLog.status.${row.status}`) }}
+              {{ statusLabel(row.status) }}
             </span>
             <span class="text-slate-500" :title="row.createdAt ?? ''">{{ formatDateTime(row.createdAt) }}</span>
           </div>
@@ -147,7 +147,7 @@ import { useSystemLogLabels } from '@/composables/useSystemLogLabels'
 import { localeTag, useI18n } from '@/i18n'
 
 const { t } = useI18n()
-const { eventLabel } = useSystemLogLabels()
+const { eventLabel, statusLabel } = useSystemLogLabels()
 
 const linkIcon: Record<SystemLogLink['type'], string> = {
   canal: '📡',
@@ -197,6 +197,10 @@ const statusClass: Record<SystemLogStatus, string> = {
   ok: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-700',
   skipped: 'bg-amber-100 text-amber-800',
+  bounced: 'bg-red-100 text-red-700',
+  replied: 'bg-green-100 text-green-800',
+  hard: 'bg-red-100 text-red-700',
+  soft: 'bg-amber-100 text-amber-800',
 }
 
 type FilterKey = Exclude<keyof SystemLogParams, 'page'>

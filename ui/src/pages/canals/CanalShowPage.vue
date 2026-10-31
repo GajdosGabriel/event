@@ -238,7 +238,7 @@
                 :class="h.level === 'error' ? 'border-red-400' : h.level === 'warning' ? 'border-amber-400' : 'border-slate-200'">
                 <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                   <span class="font-medium text-slate-700" :title="h.event">{{ eventLabel(h.event) }}</span>
-                  <span v-if="h.status">· {{ t(`systemLog.status.${h.status}`) }}</span>
+                  <span v-if="h.status">· {{ statusLabel(h.status) }}</span>
                   <span class="ml-auto" :title="h.createdAt ?? ''">{{ formatDateTime(h.createdAt) }}</span>
                 </div>
                 <p v-if="h.message" class="break-words text-sm text-slate-800">{{ h.message }}</p>
@@ -277,7 +277,7 @@ const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { eventLabel } = useSystemLogLabels()
+const { eventLabel, statusLabel } = useSystemLogLabels()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)

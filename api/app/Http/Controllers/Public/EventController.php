@@ -9,6 +9,7 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Calendar\IcsGenerator;
+use App\Services\Canals\CanalTakeover;
 use App\Support\EventDateRange;
 use App\Support\PublicEventFilters;
 use App\Support\PublicUrl;
@@ -93,6 +94,9 @@ class EventController extends Controller
         // aktívneho vlastníka (a nie je importované, ani jeho vlastné). Samotný
         // e-mail verejne NEvystavujeme — front dostane len tento boolean.
         $data['contactable'] = $event->isContactableBy(auth('sanctum')->user());
+
+        // Upozornenie pri rezervácii: organizátor sa o nej nemusí dozvedieť.
+        $data['organizer_unconfirmed'] = app(CanalTakeover::class)->organizerUnconfirmed($event);
 
         // Ostatné termíny série — „toto isté hráme aj vo štvrtok". Len
         // publikované a len tie, ktoré ešte len budú: uplynulý termín

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\CanalOutreach;
 use App\Services\Account\AccountClient;
 use App\Services\Account\AccountMailing;
+use App\Services\SystemLog\Recorder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -70,5 +71,17 @@ class ReportCanalOutreach implements ShouldQueue
             'status' => $queued > 0 ? CanalOutreach::QUEUED : CanalOutreach::NOT_QUEUED,
             'account_queued' => $queued,
         ])->save();
+
+        $name = $outreach->canal?->name;
+
+        Recorder::info('canals', 'outreach_'.$outreach->status,
+            $queued > 0
+                ? "Kanál {$name}: ponuka prevzatia zaradená do kampane, e-mail čaká na odoslanie (oslovenie #{$outreach->id})"
+                : "Kanál {$name}: ponuka prevzatia nezaradená, na túto udalosť nie je aktívna kampaň, e-mail neodíde (oslovenie #{$outreach->id})",
+            status: 'ok',
+            recipient: $outreach->email,
+            subject: $outreach->canal,
+            context: ['outreach_id' => $outreach->id, 'event_id' => $outreach->event_id, 'trigger' => $outreach->trigger, 'account_queued' => $queued],
+        );
     }
 }

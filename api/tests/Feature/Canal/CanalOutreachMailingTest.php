@@ -10,6 +10,7 @@ use App\Models\Canal;
 use App\Models\CanalOutreach;
 use App\Models\EmailSuppression;
 use App\Models\Event;
+use App\Models\SystemLog;
 use App\Models\User;
 use App\Models\View;
 use App\Services\Canals\CanalMembership;
@@ -135,9 +136,11 @@ class CanalOutreachMailingTest extends TestCase
         $this->artisan('app:canal-outreach')->assertSuccessful();
         $this->assertSame(CanalOutreach::NOT_QUEUED, CanalOutreach::sole()->status);
         $this->assertCount(1, app(CanalOutreachSender::class)->candidates());
+        $this->assertStringContainsString('nie je aktívna kampaň', SystemLog::query()->where('event', 'canals.outreach_not_queued')->sole()->message);
 
         $this->artisan('app:canal-outreach')->assertSuccessful();
         $this->assertSame(CanalOutreach::QUEUED, CanalOutreach::sole()->status);
+        $this->assertStringContainsString('zaradená do kampane', SystemLog::query()->where('event', 'canals.outreach_queued')->sole()->message);
     }
 
     #[Test]

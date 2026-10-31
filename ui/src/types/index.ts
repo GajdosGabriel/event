@@ -267,6 +267,8 @@ export interface EventItem {
   attributeIssues: AttributeIssues | null
   /** Má podujatie organizátora s e-mailom, ktorému možno poslať správu? */
   contactable: boolean
+  /** Organizátor sa o rezervácii nemusí dozvedieť (kanál bez správcu a overeného kontaktu). Len verejný detail. */
+  organizerUnconfirmed: boolean
   /** Len na verejnom detaile; null pri podujatí bez termínu. */
   calendarLinks: CalendarLinks | null
   municipality: { id: number; name: string; fullname?: string } | null

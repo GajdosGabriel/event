@@ -75,7 +75,13 @@ class AccountMailingWebhooks
         }
 
         if ($outreach) {
-            Recorder::info('canals', 'outreach_'.$status, "Oslovenie #{$outreach->id}: {$status} (Account)",
+            $result = match ($status) {
+                CanalOutreach::SENT => 'e-mail odišiel',
+                CanalOutreach::FAILED => 'e-mail sa nepodarilo odoslať',
+                CanalOutreach::BOUNCED => 'e-mail sa vrátil ako nedoručiteľný',
+            };
+
+            Recorder::info('canals', 'outreach_'.$status, "Kanál {$outreach->canal?->name}: ponuka prevzatia — {$result} (oslovenie #{$outreach->id})",
                 status: $status,
                 recipient: $outreach->email,
                 subject: $outreach->canal,

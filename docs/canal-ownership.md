@@ -46,8 +46,8 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 |---|---|---|
 | Prihláška na akciu (`EventSignupOrganizerNotice`) | všetci vlastníci | kontakt (`canal.email` → `event.email`, vyradené adresy sa preskočia) + odkaz na prevzatie, bez mena účastníka, najviac raz za 7 dní na adresu, cez Account kvôli nedoručeniam; pri zbernom kanáli nikto |
 | Prihláška na akciu (`EventSignupAdminNotice`) | super-admini | super-admini |
-| Správa od návštevníka (`MessageReceived` / `MessageRelayed`) | prvý vlastník, ktorý môže prijímať správy | kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa; miesta (venue) nikto |
-| Otázka k akcii (`QuestionReceived` / `QuestionRelayed`) | tím podľa témy `questions` | kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa |
+| Správa od návštevníka (`MessageReceived` / `MessageRelayed`) | prvý vlastník, ktorý môže prijímať správy | len overený kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa; miesta (venue) nikto |
+| Otázka k akcii (`QuestionReceived` / `QuestionRelayed`) | tím podľa témy `questions` | len overený kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa |
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |
 | Pozvánka do tímu (`CanalInvitationSent`) | pozvaná adresa | pozvaná adresa |
 | Zmena vlastníka (`CanalOwnershipChanged`) | simulované, pozri vyššie | nikto |
@@ -62,7 +62,11 @@ Prihláška, otázka aj správa píšu na kontakt rovnako. Líši sa len to, čo
 | Obsah e-mailu | počet prihlásených, bez mena účastníka | text a meno pisateľa | text a meno pisateľa |
 | Limit | 1 za 7 dní na adresu | 5 za hodinu na človeka, 10 za deň na kanál | spoločný s otázkou |
 
-Spoločné: kontakt `canal.email` → `event.email`, vyradené adresy sa preskočia, zberný kanál sa neoslovuje, odkaz na prevzatie a odhlásenie, odoslanie cez Account (vrátený e-mail vyradí adresu cez `CanalEmails::recordBounce`), jediný vypínač `CANAL_TAKEOVER_MAIL_SIMULATE`, kópia super-adminom.
+**Otázka a správa len na overený kontakt** (`CanalTakeover::addressFor`): kanál musí mať `email_verified_at`, teda schránka sa už ozvala (odpoveď na e-mail, potvrdenie odkazu). Pri neoverenom kontakte sa „Opýtať sa organizátora" ani „Poslať správu" neponúkajú, lebo návštevník by nemal istotu odpovede. Záložný `event.email` tu neplatí. Adresu overí najmä odpoveď na ponuku prevzatia (fáza 5) alebo na e-mail o prihláške, ktoré na neoverený kontakt chodia ďalej.
+
+**Rezervácia ostáva otvorená** aj bez overeného kontaktu, lebo jej e-mail môže kontakt overiť. Verejný detail vtedy vracia `organizer_unconfirmed: true` a formulár upozorní, že organizátor sa o rezervácii nemusí dozvedieť.
+
+Spoločné: kontakt `canal.email` → `event.email` (pri otázke a správe len overený `canal.email`), vyradené adresy sa preskočia, zberný kanál sa neoslovuje, odkaz na prevzatie a odhlásenie, odoslanie cez Account (vrátený e-mail vyradí adresu cez `CanalEmails::recordBounce`), jediný vypínač `CANAL_TAKEOVER_MAIL_SIMULATE`, kópia super-adminom.
 
 **Odpovede:** každé preposlanie má v Accounte vlastnú konverzáciu (ref `canal_relay`, záznam `CanalRelayThread`, maže sa po 180 dňoch). Organizátor odpovie na e-mail, odpoveď príde do Accountu a webhook `message.received` ju pošle pisateľovi (`CanalRelayReplied`) s Reply-To na organizátora. Adresa pisateľa preto organizátorovi v texte nechodí; vidí ju až po jeho odpovedi. Prílohy sa nepreposielajú, automatické odpovede Account neposiela.
 

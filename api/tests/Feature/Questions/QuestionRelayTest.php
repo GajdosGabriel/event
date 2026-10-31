@@ -8,6 +8,7 @@ use App\Models\EmailSuppression;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Notifications\QuestionRelayed;
+use App\Services\Canals\CanalEmails;
 use App\Support\SubmissionTicket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
@@ -65,25 +66,63 @@ class QuestionRelayTest extends EventSetupTest
     }
 
     #[Test]
-    public function the_button_is_offered_for_an_imported_channel_with_an_address(): void
+    public function the_button_is_offered_only_for_a_verified_contact(): void
     {
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
             ->assertOk()->assertJsonPath('available', true)->assertJsonPath('relay', true);
 
         $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
 
-        // Overenie sa nevyžaduje — kým sa adresa nevráti ako zlá.
-
+        // Neoverená adresa: nevieme, či niekto odpovie.
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()->assertJsonPath('available', true);
+            ->assertOk()->assertJsonPath('available', false);
+    }
 
-        // Kanál bez akejkoľvek adresy — inak by po vymazaní primárnej nastúpila
-        // ďalšia zo zoznamu (CanalEmails), tu pôvodná adresa z factory.
-        $this->futureEvent->canal->emails()->delete();
-        $this->futureEvent->canal->forceFill(['email' => null])->save();
+    #[Test]
+    public function an_unverified_contact_cannot_be_reached_by_posting_directly(): void
+    {
+        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+        $this->actingAs($this->user, 'sanctum');
+
+        $this->ask()->assertStatus(422);
+
+        Notification::assertNothingSent();
+    }
+
+    #[Test]
+    public function the_events_own_e_mail_does_not_stand_in_for_a_verified_contact(): void
+    {
+        $this->futureEvent->update(['email' => 'akcia@organizator.sk']);
+        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
 
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
             ->assertOk()->assertJsonPath('available', false);
+    }
+
+    #[Test]
+    public function a_reply_from_the_contact_opens_the_questions(): void
+    {
+        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+
+        app(CanalEmails::class)->recordReply('info@organizator.sk');
+
+        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
+            ->assertOk()->assertJsonPath('relay', true);
+    }
+
+    #[Test]
+    public function the_public_detail_warns_only_when_the_organizer_is_unconfirmed(): void
+    {
+        $flag = fn () => $this->getJson("/api/events/{$this->futureEvent->id}")
+            ->assertOk()->json('organizer_unconfirmed');
+
+        $this->assertFalse($flag());
+
+        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+        $this->assertTrue($flag());
+
+        $this->futureEvent->canal->forceFill(['claimed_at' => now()])->save();
+        $this->assertFalse($flag());
     }
 
     #[Test]

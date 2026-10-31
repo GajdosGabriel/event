@@ -44,7 +44,19 @@ class CanalRelayMessageTest extends TestCase
             'status' => ModelStatus::Published->value,
             'published_at' => now(),
             'email' => 'farnost@example.sk',
+            'email_verified_at' => now(),
         ]);
+    }
+
+    #[Test]
+    public function an_unverified_contact_gets_no_message(): void
+    {
+        $this->canal->forceFill(['email_verified_at' => null])->save();
+        $this->actingAs($this->sender(), 'sanctum');
+
+        $this->send()->assertStatus(422);
+
+        Notification::assertNothingSent();
     }
 
     private function send(string $body = 'Kedy začína omša?'): \Illuminate\Testing\TestResponse

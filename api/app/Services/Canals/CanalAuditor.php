@@ -2,6 +2,7 @@
 
 namespace App\Services\Canals;
 
+use App\Enums\CanalClaimMethod;
 use App\Enums\CanalRole;
 use App\Models\Canal;
 use App\Models\CanalClaim;
@@ -115,7 +116,7 @@ class CanalAuditor
         $canal = $claim->canal()->first();
 
         Recorder::info('canals', 'claim_'.$action,
-            "Kanál {$canal?->name}: žiadosť o prevzatie — {$action} ({$claim->method->value})",
+            "Kanál {$canal?->name}: žiadosť o prevzatie {$this->claimStep($action)} ({$this->claimMethod($claim)})",
             status: 'ok',
             recipient: $claim->user?->email ?? $claim->contact_email,
             userId: $claim->user_id,
@@ -144,7 +145,7 @@ class CanalAuditor
         };
 
         Recorder::info('canals', 'invitation_'.$action,
-            "Kanál {$canal?->name}: {$what} ({$invitation->role->value})",
+            "Kanál {$canal?->name}: {$what} (rola {$this->roleName($invitation->role)})",
             status: 'ok',
             recipient: $invitation->email,
             userId: $user?->id,
@@ -161,9 +162,40 @@ class CanalAuditor
     private function describe(Canal $canal, string $event, ?CanalRole $from, ?CanalRole $to): string
     {
         return match ($event) {
-            'member_added' => "Kanál {$canal->name}: nový člen ({$to?->value})",
-            'member_removed' => "Kanál {$canal->name}: odobratý člen ({$from?->value})",
-            default => "Kanál {$canal->name}: zmena roly ({$from?->value} → {$to?->value})",
+            'member_added' => "Kanál {$canal->name}: nový člen (rola {$this->roleName($to)})",
+            'member_removed' => "Kanál {$canal->name}: odobratý člen (rola {$this->roleName($from)})",
+            default => "Kanál {$canal->name}: zmena roly ({$this->roleName($from)} → {$this->roleName($to)})",
+        };
+    }
+
+    /** Text denníka je po slovensky bez ohľadu na jazyk toho, kto zmenu urobil. */
+    private function roleName(?CanalRole $role): string
+    {
+        return $role ? __('canal_roles.'.$role->value, locale: 'sk') : '—';
+    }
+
+    private function claimStep(string $action): string
+    {
+        return match ($action) {
+            'requested' => 'podaná',
+            'confirmed' => 'potvrdená z kontaktnej schránky',
+            'accepted' => 'prijatá',
+            'approved' => 'schválená',
+            'rejected' => 'zamietnutá',
+            'contested' => 'napadnutá námietkou',
+            'reverted' => 'po námietke vrátená späť',
+            'contest_dismissed' => 'ostáva platná, námietka zamietnutá',
+            'expired' => 'vypršala',
+            default => $action,
+        };
+    }
+
+    private function claimMethod(CanalClaim $claim): string
+    {
+        return match ($claim->method) {
+            CanalClaimMethod::Invitation => 'cez pozvánku',
+            CanalClaimMethod::ContactEmail => 'cez kontaktný e-mail',
+            CanalClaimMethod::AdminReview => 'posudzuje administrátor',
         };
     }
 
