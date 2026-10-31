@@ -9,6 +9,7 @@ use App\Enums\TicketStatus;
 use App\Enums\TicketTypeKind;
 use App\Models\Admission;
 use App\Models\Canal;
+use App\Models\CanalInvitation;
 use App\Models\EmailSuppression;
 use App\Models\Event;
 use App\Models\EventInterest;
@@ -46,7 +47,8 @@ use Throwable;
  *     platené lístky (či je plno), zaznamená sa iba záujem.
  *  3. Pri každej rezervácii (aj cez bežný formulár, viď notifyAboutOrder)
  *     dostane e-mail organizátor — vlastník kanála priamo, importovaný kanál
- *     na kontakt z podujatia s pozvánkou kanál prevziať — a super-admini.
+ *     na kontakt kanála (záložne z podujatia) s pozvánkou kanál prevziať,
+ *     najviac raz za OFFER_COOLDOWN_DAYS — a super-admini.
  *     Cieľom je dostať organizátora na portál.
  */
 class EventSignup
@@ -61,6 +63,9 @@ class EventSignup
 
     /** Podujatie má povinný dotazník — jedným klikom to nejde, treba formulár. */
     public const NEEDS_FORM = 'needs_form';
+
+    /** Ako často smie jedna adresa dostať ponuku prevzatia pri prihláške. */
+    public const OFFER_COOLDOWN_DAYS = 7;
 
     public function __construct(
         private TicketRepository $tickets,
@@ -281,9 +286,12 @@ class EventSignup
 
     /**
      * Upovedomí organizátora. Vráti opis, komu správa odišla — pre e-mail
-     * super-adminom: `owner`, `invitation`, alebo `none` (niet koho osloviť).
+     * super-adminom: `owner`, `invitation`, alebo prečo neodišla nikomu —
+     * `muted` (vlastníci si prihlášky vypli), `collection` (zberný kanál),
+     * `suppressed` (kontakt je vyradený), `throttled` (ponuka odišla nedávno),
+     * `none` (chýba kanál či kontakt).
      *
-     * @return array{channel: 'owner'|'invitation'|'none', email: ?string}
+     * @return array{channel: 'owner'|'invitation'|'muted'|'collection'|'suppressed'|'throttled'|'none', email: ?string}
      */
     private function notifyOrganizer(Event $event, string $name, ?string $email, bool $reserved): array
     {
@@ -308,7 +316,7 @@ class EventSignup
             $this->safely(fn () => $this->recipients->fanOut($canal, CanalNotificationTopic::Signups, $notice(), $owners, $event));
 
             return $recipients->isEmpty()
-                ? ['channel' => 'none', 'email' => null]
+                ? ['channel' => 'muted', 'email' => null]
                 : ['channel' => 'owner', 'email' => $recipients->pluck('email')->implode(', ')];
         }
 
@@ -316,9 +324,17 @@ class EventSignup
 
         // Zberný kanál sa prevziať nedá (CanalStewardship) — pozvánka na jeho
         // prevzatie by ponúkla organizátorovi jednej akcie aj všetky cudzie.
-        // Kontakt, ktorý si nevyžiadané e-maily odhlásil, ponuku prevzatia nedostane.
-        if (! $canal || $contact === null || CollectionCanal::is($canal) || EmailSuppression::has($contact)) {
+        if (CollectionCanal::is($canal)) {
+            return ['channel' => 'collection', 'email' => null];
+        }
+
+        if (! $canal || $contact === null) {
             return ['channel' => 'none', 'email' => null];
+        }
+
+        // Kontakt, ktorý si nevyžiadané e-maily odhlásil, ponuku prevzatia nedostane.
+        if (EmailSuppression::has($contact)) {
+            return ['channel' => 'suppressed', 'email' => $contact];
         }
 
         // Kontakt už v tíme kanála je (pozvánku prijal) → píšeme mu ako členovi.
@@ -332,9 +348,25 @@ class EventSignup
 
         $invitation = $this->inviter->ensureOwnerInvitation($canal, $contact);
 
-        $this->safely(fn () => Notification::route('mail', $contact)->notify($notice($invitation)));
+        if ($this->offeredRecently($contact)) {
+            return ['channel' => 'throttled', 'email' => $contact];
+        }
+
+        $this->safely(function () use ($contact, $invitation, $notice) {
+            Notification::route('mail', $contact)->notify($notice($invitation));
+            $invitation->forceFill(['signup_notified_at' => now()])->save();
+        });
 
         return ['channel' => 'invitation', 'email' => $contact];
+    }
+
+    /** Dostala adresa ponuku prevzatia v posledných dňoch? Aj za iný kanál — schránka je jedna. */
+    private function offeredRecently(string $contact): bool
+    {
+        return CanalInvitation::query()
+            ->where('email', $contact)
+            ->where('signup_notified_at', '>', now()->subDays(self::OFFER_COOLDOWN_DAYS))
+            ->exists();
     }
 
     /**
@@ -353,17 +385,18 @@ class EventSignup
         return $canal->owners()->whereNotNull('email')->get();
     }
 
+    /**
+     * Kontakt na ponuku prevzatia: e-mail kanála, záložne z podujatia. Vyradenú
+     * adresu (vrátený e-mail, odhlásenie) preskočí; keď iná nie je, vráti ju,
+     * aby volajúci vedel povedať prečo sa nepíše.
+     */
     private function contactEmail(Event $event, ?Canal $canal): ?string
     {
-        foreach ([$event->email, $canal?->email] as $candidate) {
-            $candidate = mb_strtolower(trim((string) $candidate));
+        $candidates = collect([$canal?->email, $event->email])
+            ->map(fn ($candidate) => mb_strtolower(trim((string) $candidate)))
+            ->filter(fn (string $candidate) => $candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL));
 
-            if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
-                return $candidate;
-            }
-        }
-
-        return null;
+        return $candidates->first(fn (string $candidate) => ! EmailSuppression::has($candidate)) ?? $candidates->first();
     }
 
     /** Počet platných hlavných vstupeniek — „prihlásených je už N ľudí". */

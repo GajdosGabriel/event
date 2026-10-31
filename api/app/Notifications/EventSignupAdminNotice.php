@@ -12,8 +12,8 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Super-adminom: prehľad o každom prihlásení na akciu cez EventSignup — kto,
- * na čo, či dostal vstupenku a či sa podarilo osloviť organizátora. Pri
- * `none` treba organizátora kontaktovať ručne.
+ * na čo, či dostal vstupenku a či sa podarilo osloviť organizátora, prípadne
+ * prečo nie (EventSignup::notifyOrganizer).
  */
 class EventSignupAdminNotice extends Notification implements ShouldQueue
 {

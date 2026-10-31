@@ -19,6 +19,7 @@ class CanalInvitation extends Model
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'signup_notified_at' => 'datetime',
     ];
 
     protected $hidden = ['token'];

@@ -44,7 +44,7 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 ## Kto dostane aký e-mail (dnes)
 | Udalosť | Spravovaný kanál | Nespravovaný kanál |
 |---|---|---|
-| Prihláška na akciu (`EventSignupOrganizerNotice`) | všetci vlastníci | kontakt (`event.email` → `canal.email`) + odkaz na prevzatie; pri zbernom kanáli nikto |
+| Prihláška na akciu (`EventSignupOrganizerNotice`) | všetci vlastníci | kontakt (`canal.email` → `event.email`, vyradené adresy sa preskočia) + odkaz na prevzatie, bez mena účastníka, najviac raz za 7 dní na adresu, cez Account kvôli nedoručeniam; pri zbernom kanáli nikto |
 | Prihláška na akciu (`EventSignupAdminNotice`) | super-admini | super-admini |
 | Správa od návštevníka (`MessageReceived`) | prvý vlastník, ktorý môže prijímať správy | nikto, formulár sa neponúkne |
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |

@@ -2,16 +2,20 @@
 
 namespace Tests\Feature\Tickets;
 
+use App\Enums\CanalNotificationTopic;
 use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
+use App\Models\CanalEmail;
 use App\Models\CanalInvitation;
+use App\Models\EmailSuppression;
 use App\Models\Event;
 use App\Models\EventInterest;
 use App\Models\PendingRegistration;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Notifications\Channels\AccountMailChannel;
 use App\Notifications\Channels\BellChannel;
 use App\Notifications\EventCancellationOrganizerNotice;
 use App\Notifications\EventInterestRecorded;
@@ -21,7 +25,12 @@ use App\Notifications\EventSignupOrganizerNotice;
 use App\Notifications\PendingRegistrationVerification;
 use App\Notifications\RegistrationCancelled;
 use App\Notifications\TicketIssued;
+use App\Services\Account\AccountClient;
+use App\Services\Canals\CanalEmails;
+use App\Services\Canals\CanalInviter;
+use App\Services\Canals\CanalRecipients;
 use App\Services\Tickets\DefaultReservation;
+use App\Services\Tickets\EventSignup;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Notification;
@@ -213,6 +222,114 @@ class EventSignupTest extends TestCase
 
         Notification::assertSentOnDemand(EventSignupOrganizerNotice::class, fn ($n, $c, $notifiable) => $notifiable->routes['mail'] === 'farnost@example.sk');
         Notification::assertSentTo($this->admin, EventSignupAdminNotice::class);
+    }
+
+    #[Test]
+    public function admin_notice_says_why_the_organizer_got_nothing(): void
+    {
+        Notification::fake();
+
+        $missing = $this->importedEvent(['email' => null]);
+        $this->assertAdminToldOrganizer($missing, 'none');
+
+        $collection = $this->importedEvent();
+        $collection->canal()->first()->update(['name' => 'vyveska.sk']);
+        $this->assertAdminToldOrganizer($collection, 'collection');
+
+        EmailSuppression::add('odhlaseny@example.sk', 'unsubscribe');
+        $suppressed = $this->importedEvent(['email' => 'odhlaseny@example.sk']);
+        $this->assertAdminToldOrganizer($suppressed, 'suppressed', ['email' => 'odhlaseny@example.sk']);
+
+        $muted = $this->importedEvent();
+        $owner = $this->ownerOf($muted);
+        app(CanalRecipients::class)->set($muted->canal()->first(), $owner, CanalNotificationTopic::Signups, false);
+        $this->assertAdminToldOrganizer($muted, 'muted');
+    }
+
+    private function assertAdminToldOrganizer(Event $event, string $reason, array $replace = []): void
+    {
+        $this->actingAs(User::factory()->create(), 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertOk();
+
+        // Text skladáme až tu: požiadavka prepína jazyk podľa hlavičky.
+        Notification::assertSentTo(
+            $this->admin,
+            EventSignupAdminNotice::class,
+            fn (EventSignupAdminNotice $n) => str_contains((string) $n->toMail($this->admin)->subject, (string) $event->name)
+                && in_array(__('mail.event_signup_admin.organizer.'.$reason, $replace), $n->toMail($this->admin)->introLines, true),
+        );
+    }
+
+    #[Test]
+    public function takeover_offer_prefers_the_canal_email_and_hides_the_attendee(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $event->canal()->first()->update(['email' => 'kanal@example.sk']);
+
+        $this->actingAs(User::factory()->create(['email' => 'tajny.ucastnik@example.sk']), 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertOk();
+
+        Notification::assertSentOnDemand(EventSignupOrganizerNotice::class, function (EventSignupOrganizerNotice $n, $channels, $notifiable) {
+            $text = implode(' ', [...$n->toMail($notifiable)->introLines, ...$n->toMail($notifiable)->outroLines]);
+
+            return $notifiable->routes['mail'] === 'kanal@example.sk'
+                && ! str_contains($text, 'tajny.ucastnik')
+                && str_contains($text, 'email/unsubscribe');
+        });
+    }
+
+    #[Test]
+    public function bounced_canal_email_falls_back_to_the_event_contact(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $event->canal()->first()->update(['email' => 'zla@example.sk']);
+        app(CanalEmails::class)->recordBounce('zla@example.sk', CanalEmail::BOUNCE_HARD);
+
+        $this->actingAs(User::factory()->create(), 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertOk();
+
+        Notification::assertSentOnDemand(EventSignupOrganizerNotice::class, fn ($n, $c, $notifiable) => $notifiable->routes['mail'] === 'farnost@example.sk');
+        Notification::assertSentOnDemandTimes(EventSignupOrganizerNotice::class, 1);
+    }
+
+    #[Test]
+    public function takeover_offer_goes_at_most_once_in_the_cooldown(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $signup = fn () => $this->actingAs(User::factory()->create(), 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertOk();
+
+        $signup();
+        $signup();
+        Notification::assertSentOnDemandTimes(EventSignupOrganizerNotice::class, 1);
+        $this->assertAdminToldOrganizer($event, 'throttled', ['email' => 'farnost@example.sk']);
+
+        $this->travel(EventSignup::OFFER_COOLDOWN_DAYS + 1)->days();
+        $signup();
+        Notification::assertSentOnDemandTimes(EventSignupOrganizerNotice::class, 2);
+    }
+
+    #[Test]
+    public function takeover_offer_goes_through_account_when_messaging_is_on(): void
+    {
+        $notifiable = Notification::route('mail', 'farnost@example.sk');
+        $invitation = app(CanalInviter::class)->ensureOwnerInvitation(
+            ($event = $this->importedEvent())->canal()->first(),
+            'farnost@example.sk',
+        );
+        $notice = new EventSignupOrganizerNotice($event, 'X', 'x@example.sk', true, 1, $invitation);
+
+        $this->mock(AccountClient::class, fn ($mock) => $mock->shouldReceive('messagingEnabled')->andReturnTrue());
+
+        $this->assertContains(AccountMailChannel::class, $notice->via($notifiable));
+        $this->assertSame(['type' => 'canal', 'id' => (string) $event->canal_id], array_intersect_key($notice->accountRef($notifiable), ['type' => 1, 'id' => 1]));
     }
 
     #[Test]
