@@ -15,7 +15,7 @@
 
     <ul v-else class="grid gap-1.5">
       <li
-        v-for="occurrence in occurrences"
+        v-for="occurrence in occurrencesPage.items.value"
         :key="occurrence.id"
         class="flex items-center gap-3 rounded-lg border px-3 py-2"
         :class="occurrence.isCurrent ? 'border-blue-200 bg-blue-50' : 'border-slate-100 bg-slate-50'"
@@ -35,6 +35,7 @@
         </span>
       </li>
     </ul>
+    <AppPaginator v-if="!loading && !loadError" :current-page="occurrencesPage.page.value" :last-page="occurrencesPage.lastPage.value" @change="occurrencesPage.setPage" />
 
     <p v-if="occurrences.length" class="mt-3 text-xs text-slate-500">{{ t('events.series.sharedHint') }}</p>
 
@@ -55,6 +56,8 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { eventOccurrences, addEventOccurrence, detachEventFromSeries, type SeriesOccurrenceRow } from '@/api/events'
 import { t } from '@/i18n'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{
@@ -71,6 +74,7 @@ const router = useRouter()
 const toast = useToast()
 
 const occurrences = ref<SeriesOccurrenceRow[]>([])
+const occurrencesPage = useClientPagination(occurrences, 10)
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 let loadVersion = 0

@@ -53,6 +53,7 @@
           </template>
         </div>
       </article>
+      <AppPaginator :current-page="page" :last-page="lastPage" @change="load" />
     </div>
   </div>
 </template>
@@ -67,6 +68,7 @@ import {
   type AdminCanalClaim,
   type CanalClaimStatus,
 } from '@/api/canalClaims'
+import AppPaginator from '@/components/AppPaginator.vue'
 import { useToast } from '@/composables/useToast'
 import { currentLocale, t } from '@/i18n'
 
@@ -77,6 +79,8 @@ const filters: Filter[] = ['open', 'completed', 'rejected', 'reverted', 'expired
 const toast = useToast()
 const filter = ref<Filter>('open')
 const items = ref<AdminCanalClaim[]>([])
+const page = ref(1)
+const lastPage = ref(1)
 const loading = ref(false)
 const saving = ref<number | null>(null)
 const notes = reactive<Record<number, string>>({})
@@ -94,10 +98,15 @@ function formatDate(value: string | null): string {
   return value ? new Date(value).toLocaleString(currentLocale(), { dateStyle: 'short', timeStyle: 'short' }) : ''
 }
 
-async function load() {
+async function load(next = 1) {
   loading.value = true
   try {
-    items.value = await fetchAdminCanalClaims(filter.value === 'open' ? undefined : filter.value)
+    const result = await fetchAdminCanalClaims(filter.value === 'open' ? undefined : filter.value, next)
+    // Vybavením poslednej žiadosti sa stránka môže vyprázdniť.
+    if (!result.items.length && next > result.lastPage) return await load(result.lastPage)
+    items.value = result.items
+    page.value = next
+    lastPage.value = result.lastPage
   } finally {
     loading.value = false
   }
@@ -117,7 +126,7 @@ async function act(item: AdminCanalClaim, action: 'approve' | 'reject' | 'keep' 
     else if (action === 'reject') await rejectCanalClaim(item.id, note)
     else await resolveCanalClaim(item.id, action === 'revert', note)
     toast.success(t('canalClaim.admin.done'))
-    await load()
+    await load(page.value)
   } catch (e: unknown) {
     const res = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response
     toast.error(Object.values(res?.data?.errors ?? {})[0]?.[0] ?? res?.data?.message ?? t('canalClaim.failed'))
@@ -126,5 +135,5 @@ async function act(item: AdminCanalClaim, action: 'approve' | 'reject' | 'keep' 
   }
 }
 
-onMounted(load)
+onMounted(() => load())
 </script>

@@ -459,7 +459,7 @@
                   {{ t('public.series.title') }}
                 </p>
                 <ul class="mt-2 grid gap-1">
-                  <li v-for="occurrence in event.seriesOccurrences" :key="occurrence.id">
+                  <li v-for="occurrence in seriesPage.items.value" :key="occurrence.id">
                     <RouterLink
                       :to="publicEventPath({ id: occurrence.id, slug: occurrence.slug })"
                       class="text-sm text-blue-700 hover:underline"
@@ -468,6 +468,7 @@
                     </RouterLink>
                   </li>
                 </ul>
+                <AppPaginator :current-page="seriesPage.page.value" :last-page="seriesPage.lastPage.value" @change="seriesPage.setPage" />
               </div>
               <!-- Hneď pod „Pridať do kalendára": tam človek hľadá, čo si
                    s termínom počať. Kalendár si pripomenie sám (VALARM v .ics),
@@ -718,7 +719,9 @@ import EventQuestions from '@/components/EventQuestions.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import TicketRequestForm from '@/components/TicketRequestForm.vue'
 import ShareButtons from '@/components/ShareButtons.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
 import EventCard from '@/components/EventCard.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import BreadcrumbNav, { type BreadcrumbItem } from '@/components/BreadcrumbNav.vue'
 import { fmtDateLong, daysUntil, weekdayLabel, dayName, dateTile } from '@/utils/dateFormat'
 import { formatPrice, formatPriceOrFree } from '@/utils/money'
@@ -741,6 +744,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const event = ref<EventItem | null>(null)
+const seriesPage = useClientPagination(computed(() => event.value?.seriesOccurrences ?? []), 10)
 const ticketTypes = ref<TicketTypeItem[]>([])
 /** Dotazník k registrácii — platené možnosti menia, čo hlavička hlási ako cenu. */
 const questions = ref<QuestionItem[]>([])

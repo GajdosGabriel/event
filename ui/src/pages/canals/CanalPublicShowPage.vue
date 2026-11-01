@@ -60,7 +60,7 @@
               <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('public.canal.eventsEmpty') }}</p>
               <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <EventCard
-                  v-for="ev in events"
+                  v-for="ev in eventsPage.items.value"
                   :key="ev.id"
                   :id="ev.id"
                   :slug="ev.slug"
@@ -73,13 +73,14 @@
                   :ticket-cta="ev.ticketCta"
                 />
               </div>
+              <AppPaginator v-if="!eventsLoading" :current-page="eventsPage.page.value" :last-page="eventsPage.lastPage.value" @change="eventsPage.setPage" />
             </div>
 
             <!-- Miesta -->
             <div v-if="canal.venuesList.length" class="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('public.canal.venues') }}</h2>
               <ul class="grid gap-2">
-                <li v-for="v in canal.venuesList" :key="v.id"
+                <li v-for="v in venuesPage.items.value" :key="v.id"
                   class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
                   <RouterLink :to="`/venues/${v.id}`"
                     class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900 no-underline hover:text-blue-700">
@@ -87,6 +88,7 @@
                   </RouterLink>
                 </li>
               </ul>
+              <AppPaginator :current-page="venuesPage.page.value" :last-page="venuesPage.lastPage.value" @change="venuesPage.setPage" />
             </div>
           </div>
 
@@ -140,6 +142,8 @@ import ContactButton from '@/components/ContactButton.vue'
 import CanalClaimBox from '@/components/CanalClaimBox.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
@@ -158,6 +162,8 @@ const loading = ref(false)
 const error = ref(false)
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
+const eventsPage = useClientPagination(events, 12)
+const venuesPage = useClientPagination(computed(() => canal.value?.venuesList ?? []), 10)
 
 function formatDate(d: string) { return new Date(d).toLocaleDateString(localeTag()) }
 

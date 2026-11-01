@@ -70,7 +70,7 @@
               <p v-else-if="!events.length" class="text-sm text-slate-400">{{ t('public.venue.eventsEmpty') }}</p>
               <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <EventCard
-                  v-for="ev in events"
+                  v-for="ev in eventsPage.items.value"
                   :key="ev.id"
                   :id="ev.id"
                   :slug="ev.slug"
@@ -83,6 +83,7 @@
                   :ticket-cta="ev.ticketCta"
                 />
               </div>
+              <AppPaginator v-if="!eventsLoading" :current-page="eventsPage.page.value" :last-page="eventsPage.lastPage.value" @change="eventsPage.setPage" />
             </div>
           </div>
 
@@ -151,6 +152,8 @@ import ImageGallery from '@/components/ImageGallery.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { absoluteUrl, idFromRouteParam, publicCanalPath, publicVenuePath } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
 import { useI18n, localeTag } from '@/i18n'
@@ -166,6 +169,7 @@ const loading = ref(false)
 const error = ref(false)
 const events = ref<VenueEventItem[]>([])
 const eventsLoading = ref(false)
+const eventsPage = useClientPagination(events, 12)
 
 const hasCoords = computed(() => venue.value?.latitude != null && venue.value?.longitude != null)
 

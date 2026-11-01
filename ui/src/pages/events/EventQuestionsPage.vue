@@ -131,7 +131,7 @@
           </p>
 
           <ul v-else class="divide-y divide-slate-100">
-            <li v-for="question in questions" :key="question.id" class="py-3">
+            <li v-for="question in questionsPage.items.value" :key="question.id" class="py-3">
               <div class="flex flex-wrap items-center gap-2">
                 <!-- Súkromný vstup je iná vec než otázka na plátno a musí to
                      byť vidieť skôr, než organizátor začne čítať: podnet
@@ -219,6 +219,7 @@
               </p>
             </li>
           </ul>
+          <AppPaginator :current-page="questionsPage.page.value" :last-page="questionsPage.lastPage.value" @change="questionsPage.setPage" />
         </section>
       </template>
     </template>
@@ -228,9 +229,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import AppPaginator from '@/components/AppPaginator.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import FormField from '@/components/FormField.vue'
 import SlideStudio from '@/components/questions/SlideStudio.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { useToast } from '@/composables/useToast'
 import { useI18n } from '@/i18n'
 import { showEvent } from '@/api/events'
@@ -264,6 +267,7 @@ const enabling = ref(false)
 const saving = ref(false)
 
 const questions = ref<QuestionItem[]>([])
+const questionsPage = useClientPagination(questions, 20)
 const counts = ref<QuestionCounts>({ pending: 0, published: 0, hidden: 0, private: 0, privateOpen: 0 })
 
 /**
@@ -401,6 +405,7 @@ async function loadQuestions() {
 
 function setFilter(key: FilterKey) {
   activeFilter.value = key
+  questionsPage.setPage(1)
   void loadQuestions()
 }
 

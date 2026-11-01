@@ -106,6 +106,32 @@ class AiUsageTrackingTest extends TestCase
     }
 
     #[Test]
+    public function admin_overview_paginates_recent_calls(): void
+    {
+        foreach (range(1, 21) as $i) {
+            AiUsage::query()->create(['feature' => "feature-{$i}", 'model' => 'gpt-4o-mini', 'prompt_tokens' => 1, 'completion_tokens' => 1, 'cost_usd' => 0.01]);
+        }
+
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/ai-usage')
+            ->assertOk()
+            ->assertJsonCount(20, 'data.recent')
+            ->assertJsonCount(21, 'data.byFeature')
+            ->assertJsonPath('data.recentMeta.lastPage', 2)
+            ->assertJsonPath('data.recentMeta.total', 21);
+
+        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/ai-usage?page=2')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.recent')
+            ->assertJsonPath('data.recent.0.feature', 'feature-1')
+            ->assertJsonPath('data.recentMeta.currentPage', 2)
+            ->assertJsonPath('data.totals.period.calls', 21);
+    }
+
+    #[Test]
     public function regular_user_cannot_see_overview(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

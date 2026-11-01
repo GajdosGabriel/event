@@ -29,6 +29,7 @@ class AiUsageController extends Controller
     {
         $validated = $request->validate([
             'days' => ['nullable', 'integer', 'in:1,7,30,90,365'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $days = (int) ($validated['days'] ?? 30);
@@ -44,7 +45,7 @@ class AiUsageController extends Controller
                 'all' => $this->totals(DB::table('ai_usages')),
             ],
             'byFeature' => $this->grouped($period(), 'feature'),
-            'bySource' => $this->grouped($period(), 'source', 15),
+            'bySource' => $this->grouped($period(), 'source'),
             'byCanal' => $this->byCanal($period()),
             'byUser' => $this->byUser($period()),
             'byDay' => $period()
@@ -54,8 +55,7 @@ class AiUsageController extends Controller
                 ->orderBy('day')
                 ->get()
                 ->map(fn ($row) => ['day' => (string) $row->day] + $this->row($row)),
-            'recent' => $this->recent(),
-        ]]);
+        ] + $this->recent()]);
     }
 
     /**
@@ -63,15 +63,16 @@ class AiUsageController extends Controller
      * desiatich podujatí jedného kanála by inak vyzerala ako desať kontrol
      * toho istého kanála.
      *
-     * @return list<array<string, mixed>>
+     * @return array{recent: list<array<string, mixed>>, recentMeta: array{currentPage: int, lastPage: int, total: int}}
      */
     private function recent(): array
     {
-        $recent = AiUsage::query()
+        $page = AiUsage::query()
             ->with(['canal:id,name', 'user:id,email'])
             ->latest('id')
-            ->limit(50)
-            ->get();
+            ->paginate(20);
+
+        $recent = $page->getCollection();
 
         // Predmet je uložený ako class_basename, nie ako morph — mená sa
         // dotiahnu jedným dotazom na typ.
@@ -81,7 +82,7 @@ class AiUsageController extends Controller
             $names[$type] = $ids->isEmpty() ? collect() : $class::withTrashed()->whereIn('id', $ids)->pluck('name', 'id');
         }
 
-        return $recent->map(fn (AiUsage $usage) => [
+        $rows = $recent->map(fn (AiUsage $usage) => [
             'id' => $usage->id,
             'createdAt' => $usage->created_at?->toIso8601String(),
             'feature' => $usage->feature,
@@ -97,6 +98,11 @@ class AiUsageController extends Controller
             'subjectId' => $usage->subject_id,
             'subjectName' => $usage->subject_id !== null ? ($names[$usage->subject_type][$usage->subject_id] ?? null) : null,
         ])->all();
+
+        return [
+            'recent' => $rows,
+            'recentMeta' => ['currentPage' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()],
+        ];
     }
 
     private function sums(): string
@@ -127,14 +133,13 @@ class AiUsageController extends Controller
     }
 
     /** @return list<array<string, mixed>> */
-    private function grouped(Builder $query, string $column, ?int $limit = null): array
+    private function grouped(Builder $query, string $column): array
     {
         return $query
             ->select($column)
             ->selectRaw($this->sums())
             ->groupBy($column)
             ->orderByDesc('cost_usd')
-            ->when($limit, fn ($q) => $q->limit($limit))
             ->get()
             ->map(fn ($row) => ['key' => $row->{$column}] + $this->row($row))
             ->values()
@@ -149,7 +154,7 @@ class AiUsageController extends Controller
      */
     private function byCanal(Builder $query): array
     {
-        $rows = $this->grouped($query, 'canal_id', 20);
+        $rows = $this->grouped($query, 'canal_id');
         $names = Canal::withTrashed()
             ->whereIn('id', array_filter(array_column($rows, 'key')))
             ->pluck('name', 'id');
@@ -160,7 +165,7 @@ class AiUsageController extends Controller
     /** @return list<array<string, mixed>> */
     private function byUser(Builder $query): array
     {
-        $rows = $this->grouped($query, 'user_id', 20);
+        $rows = $this->grouped($query, 'user_id');
         $users = User::query()
             ->whereIn('id', array_filter(array_column($rows, 'key')))
             ->get(['id', 'email'])

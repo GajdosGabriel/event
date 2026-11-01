@@ -350,7 +350,7 @@
         </div>
         <p v-if="!history.items.length" class="text-sm text-slate-400">{{ t('tickets.workspace.historyEmpty') }}</p>
         <ul class="divide-y divide-slate-100">
-          <li v-for="item in history.items" :key="item.id" class="py-3 text-sm">
+          <li v-for="item in historyPage.items.value" :key="item.id" class="py-3 text-sm">
             <p class="font-medium text-slate-900">{{ item.subject }}</p>
             <p class="text-xs text-slate-500">
               {{ formatDateTime(item.createdAt) }}
@@ -360,6 +360,7 @@
             <p v-if="item.body" class="mt-1 whitespace-pre-line text-slate-600">{{ item.body }}</p>
           </li>
         </ul>
+        <AppPaginator :current-page="historyPage.page.value" :last-page="historyPage.lastPage.value" @change="historyPage.setPage" />
       </div>
     </div>
   </div>
@@ -369,6 +370,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import FormField from '@/components/FormField.vue'
 import ResourceFilterBar, { type FilterOption } from '@/components/ResourceFilterBar.vue'
 import RowActions from '@/components/RowActions.vue'
@@ -886,9 +888,11 @@ async function saveAdd() {
 }
 
 const history = reactive({ show: false, items: [] as EventMessageItem[] })
+const historyPage = useClientPagination(computed(() => history.items), 10)
 
 async function openHistory() {
   history.show = true
+  historyPage.setPage(1)
   history.items = await attendeeMessages(props.eventId).catch(() => [])
 }
 

@@ -47,9 +47,10 @@ export interface AiUsageOverview {
   byUser: AiUsageGroup[]
   byDay: AiUsageDay[]
   recent: AiUsageRecent[]
+  recentMeta: { currentPage: number; lastPage: number; total: number }
 }
 
-export async function fetchAiUsage(days: number): Promise<AiUsageOverview> {
-  const { data } = await http.get('/admin/ai-usage', { params: { days } })
+export async function fetchAiUsage(days: number, page = 1): Promise<AiUsageOverview> {
+  const { data } = await http.get('/admin/ai-usage', { params: { days, page } })
   return data.data as AiUsageOverview
 }

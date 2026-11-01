@@ -126,6 +126,7 @@
             </tbody>
           </table>
         </div>
+        <AppPaginator :current-page="data.recentMeta.currentPage" :last-page="data.recentMeta.lastPage" @change="load" />
       </div>
 
       <p class="text-xs text-slate-500">
@@ -137,8 +138,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, ref, type PropType } from 'vue'
+import { computed, defineComponent, h, onMounted, ref, toRef, type PropType } from 'vue'
 import { fetchAiUsage, type AiUsageGroup, type AiUsageOverview, type AiUsageRecent } from '@/api/aiUsage'
+import AppPaginator from '@/components/AppPaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
 import { useToast } from '@/composables/useToast'
 import { localeTag, useI18n } from '@/i18n'
 
@@ -150,12 +153,12 @@ const days = ref(30)
 const data = ref<AiUsageOverview | null>(null)
 const loading = ref(false)
 
-onMounted(load)
+onMounted(() => load())
 
-async function load() {
+async function load(page = 1) {
   loading.value = true
   try {
-    data.value = await fetchAiUsage(days.value)
+    data.value = await fetchAiUsage(days.value, page)
   } catch {
     toast.error(t('aiUsage.loadFailed'))
   } finally {
@@ -243,7 +246,9 @@ const UsageTable = defineComponent({
     totalCost: { type: Number, required: true },
   },
   setup(props) {
-    return () => h('div', { class: 'overflow-x-auto' }, [
+    const { page, lastPage, items, setPage } = useClientPagination(toRef(props, 'rows'), 10)
+
+    return () => h('div', [h('div', { class: 'overflow-x-auto' }, [
       h('table', { class: 'w-full text-sm' }, [
         h('thead', h('tr', { class: 'border-b border-slate-200 text-left text-xs uppercase text-slate-500' }, [
           h('th', { class: 'pb-2 pr-4' }, t('aiUsage.colName')),
@@ -252,8 +257,8 @@ const UsageTable = defineComponent({
           h('th', { class: 'pb-2 pr-4 text-right' }, t('aiUsage.colCost')),
           h('th', { class: 'pb-2 text-right' }, '%'),
         ])),
-        h('tbody', props.rows.length
-          ? props.rows.map(row => h('tr', { class: 'border-b border-slate-100 last:border-0' }, [
+        h('tbody', items.value.length
+          ? items.value.map(row => h('tr', { class: 'border-b border-slate-100 last:border-0' }, [
               h('td', { class: 'py-2 pr-4 font-medium text-slate-900' }, props.label(row.key, row)),
               h('td', { class: 'py-2 pr-4 text-right tabular-nums' }, [
                 String(row.calls),
@@ -266,7 +271,7 @@ const UsageTable = defineComponent({
             ]))
           : [h('tr', h('td', { colspan: 5, class: 'py-4 text-slate-500' }, t('aiUsage.empty')))]),
       ]),
-    ])
+    ]), h(AppPaginator, { currentPage: page.value, lastPage: lastPage.value, onChange: setPage })])
   },
 })
 </script>

@@ -78,9 +78,9 @@ export interface AdminCanalClaim {
   contestedAt: string | null
 }
 
-export async function fetchAdminCanalClaims(status?: CanalClaimStatus): Promise<AdminCanalClaim[]> {
-  const { data } = await http.get('/admin/canal-claims', { params: status ? { status } : {} })
-  return ((data['data'] as Record<string, unknown>[]) ?? []).map(row => ({
+export async function fetchAdminCanalClaims(status?: CanalClaimStatus, page = 1): Promise<{ items: AdminCanalClaim[]; lastPage: number }> {
+  const { data } = await http.get('/admin/canal-claims', { params: status ? { status, page } : { page } })
+  const items = ((data['data'] as Record<string, unknown>[]) ?? []).map(row => ({
     id: row['id'] as number,
     canal: (row['canal'] as AdminCanalClaim['canal']) ?? null,
     user: (row['user'] as AdminCanalClaim['user']) ?? null,
@@ -96,6 +96,8 @@ export async function fetchAdminCanalClaims(status?: CanalClaimStatus): Promise<
     completedAt: (row['completed_at'] as string) ?? null,
     contestedAt: (row['contested_at'] as string) ?? null,
   }))
+
+  return { items, lastPage: (data['last_page'] as number) ?? 1 }
 }
 
 export async function approveCanalClaim(id: number, note: string): Promise<void> {
