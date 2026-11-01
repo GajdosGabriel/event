@@ -80,6 +80,91 @@ class CanalOutreachMailingTest extends TestCase
     }
 
     #[Test]
+    public function new_event_is_reported_once_enabled(): void
+    {
+        $this->fakeAccount(queued: 1);
+        $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
+        $event = $this->event($canal, startsInDays: 30);
+        $event->forceFill(['published_at' => now()->subDay()])->save();
+
+        // Predvolene vypnutý: zapnutie je vedomé rozhodnutie spolu s kampaňou.
+        $this->assertCount(0, app(CanalOutreachSender::class)->candidates());
+
+        $this->enableCreatedTrigger();
+        $this->artisan('app:canal-outreach')->assertSuccessful();
+
+        $outreach = CanalOutreach::sole();
+        $this->assertSame(MailingTrigger::CanalEventCreated->value, $outreach->trigger);
+        $this->assertSame("canal:{$canal->id}:canal_event_created:{$event->id}", $outreach->dedupe_key);
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/api/v1/mailing/events')
+            && $r['event'] === 'canal_event_created'
+            && filled($r['variables']['odkaz_prevzatia']));
+    }
+
+    #[Test]
+    public function only_recently_published_future_events_count_as_new(): void
+    {
+        $this->fakeAccount(queued: 1);
+        $this->enableCreatedTrigger();
+        config()->set('canals.outreach.upcoming_days', 0);
+
+        $old = $this->event($this->imported('Stará', 'info@stara.sk'), startsInDays: 30);
+        $old->forceFill(['published_at' => now()->subDays(4)])->save();
+
+        $started = $this->event($this->imported('Začatá', 'info@zacata.sk'), startsInDays: -1);
+        $started->forceFill(['published_at' => now()->subDay(), 'end_at' => now()->addDay()])->save();
+
+        $draft = $this->event($this->imported('Koncept', 'info@koncept.sk'), startsInDays: 30);
+        $draft->forceFill(['published_at' => now()->subDay(), 'status' => ModelStatus::Draft->value])->save();
+
+        $fresh = $this->imported('Nová', 'info@nova.sk');
+        $this->event($fresh, startsInDays: 30)->forceFill(['published_at' => now()->subDay()])->save();
+
+        $candidates = app(CanalOutreachSender::class)->candidates();
+
+        $this->assertSame([$fresh->id], $candidates->pluck('canal.id')->all());
+    }
+
+    #[Test]
+    public function new_event_mail_goes_to_canal_once_and_leaves_room_for_others(): void
+    {
+        $this->fakeAccount(queued: 1);
+        $this->enableCreatedTrigger();
+        config()->set('canals.outreach.min_gap_days', 0);
+
+        $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
+        $this->event($canal, startsInDays: 30)->forceFill(['published_at' => now()->subDay()])->save();
+        $this->artisan('app:canal-outreach')->assertSuccessful();
+
+        // Ďalšia nová akcia už mail o vzniku nespustí, „pred akciou“ áno.
+        $second = $this->event($canal, startsInDays: 5);
+        $second->forceFill(['published_at' => now()->subDay()])->save();
+
+        $candidates = app(CanalOutreachSender::class)->candidates();
+
+        $this->assertSame([MailingTrigger::CanalEventUpcoming], $candidates->pluck('trigger')->all());
+    }
+
+    #[Test]
+    public function disabled_trigger_does_not_block_the_enabled_one(): void
+    {
+        $this->fakeAccount(queued: 1);
+        config()->set('canals.outreach.triggers', [MailingTrigger::CanalEventFinished->value]);
+
+        $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
+        $this->event($canal, startsInDays: 4);
+        $this->event($canal, startsInDays: -3, views: 2);
+
+        $candidates = app(CanalOutreachSender::class)->candidates();
+
+        $this->assertSame([MailingTrigger::CanalEventFinished], $candidates->pluck('trigger')->all());
+
+        // Výslovný --trigger platí aj pre nezapnutý.
+        $only = app(CanalOutreachSender::class)->candidates(only: MailingTrigger::CanalEventUpcoming);
+        $this->assertSame([MailingTrigger::CanalEventUpcoming], $only->pluck('trigger')->all());
+    }
+
+    #[Test]
     public function milestone_is_reported_once_per_threshold_and_sequence_is_capped(): void
     {
         $this->fakeAccount(queued: 1);
@@ -220,6 +305,11 @@ class CanalOutreachMailingTest extends TestCase
     }
 
     /* ------------------------------------------------------------- */
+
+    private function enableCreatedTrigger(): void
+    {
+        config()->set('canals.outreach.triggers', [...config('canals.outreach.triggers'), MailingTrigger::CanalEventCreated->value]);
+    }
 
     private function fakeAccount(int $queued): void
     {

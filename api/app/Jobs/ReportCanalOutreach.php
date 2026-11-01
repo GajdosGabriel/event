@@ -16,7 +16,8 @@ use Illuminate\Foundation\Queue\Queueable;
  * Najprv kontakt (bez neho automatizácia typu ponuka mail nezaradí), potom
  * udalosť. Opakovanie je bezpečné: kontakt sa len aktualizuje a udalosť
  * Account deduplikuje podľa `dedupeKey`. Výsledok sa zapíše do oslovenia —
- * `not_queued` znamená, že na trigger nie je aktívna kampaň.
+ * `not_queued` znamená, že Account nič nezaradil: na trigger nie je aktívna
+ * kampaň alebo jej kontakt nevyhovuje.
  */
 class ReportCanalOutreach implements ShouldQueue
 {
@@ -77,7 +78,7 @@ class ReportCanalOutreach implements ShouldQueue
         Recorder::info('canals', 'outreach_'.$outreach->status,
             $queued > 0
                 ? "Kanál {$name}: ponuka prevzatia zaradená do kampane, e-mail čaká na odoslanie (oslovenie #{$outreach->id})"
-                : "Kanál {$name}: ponuka prevzatia nezaradená, na túto udalosť nie je aktívna kampaň, e-mail neodíde (oslovenie #{$outreach->id})",
+                : "Kanál {$name}: ponuka prevzatia nezaradená, na túto udalosť nie je aktívna kampaň alebo jej kontakt nevyhovuje, e-mail neodíde (oslovenie #{$outreach->id})",
             status: 'ok',
             recipient: $outreach->email,
             subject: $outreach->canal,

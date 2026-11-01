@@ -18,9 +18,9 @@ class CanalOutreach extends Command
     protected $signature = 'app:canal-outreach
         {--dry-run : Iba vypísať, koho by oslovil}
         {--limit= : Najviac oslovení v tomto behu (predvolene canals.outreach.limit)}
-        {--trigger= : Len jeden trigger (canal_event_upcoming, canal_views_milestone, canal_event_finished)}';
+        {--trigger= : Len jeden trigger, aj nezapnutý (canal_event_created, canal_event_upcoming, canal_views_milestone, canal_event_finished)}';
 
-    protected $description = 'Ponúkne organizátorovi importovaného kanála jeho prevzatie (pred akciou, pri zobrazeniach, po akcii).';
+    protected $description = 'Ponúkne organizátorovi importovaného kanála jeho prevzatie (po vzniku akcie, pred akciou, pri zobrazeniach, po akcii).';
 
     public function handle(CanalOutreachSender $sender): int
     {

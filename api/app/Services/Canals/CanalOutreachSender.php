@@ -27,10 +27,15 @@ use Illuminate\Support\Collection;
  * Kanál, ktorý nikto nespravuje, dostane postupnosť e-mailov s odkazom na
  * prevzatie profilu (systémová pozvánka — prijme ju ktorýkoľvek účet, fáza 3).
  * Triggery v poradí priority (MailingTrigger::Canal*):
+ *  - `canal_event_created`   akcia sa zverejnila pred najviac `created_days` dňami
+ *    a ešte nezačala; kanálu najviac raz za `cooldown_days`,
  *  - `canal_event_upcoming`  akcia začína najneskôr o `upcoming_days` dní,
  *  - `canal_views_milestone` akcia pred koncom dosiahla prah `view_milestones`,
  *  - `canal_event_finished`  akcia skončila pred `after_days` až `window_days`
  *    dňami a mala aspoň `min_views` zobrazení.
+ *
+ * Vyberajú sa len triggery z `triggers` — poradie priority určuje tento zoznam,
+ * nie nastavenie.
  *
  * Spoločné pravidlá (config/canals.php → outreach):
  *  - kanál je importovaný, neprevzatý, nie zberný, s platným kontaktom,
@@ -60,11 +65,8 @@ class CanalOutreachSender
         $limit ??= (int) config('canals.outreach.limit');
         $result = collect();
 
-        foreach ($this->triggers() as $trigger) {
-            if ($only !== null && $only !== $trigger) {
-                continue;
-            }
-
+        // Výslovne vyžiadaný trigger (--trigger) platí aj mimo zapnutých.
+        foreach ($only !== null ? [$only] : $this->triggers() as $trigger) {
             foreach ($this->eventsFor($trigger) as $event) {
                 if ($result->count() >= $limit) {
                     return $result;
@@ -126,10 +128,15 @@ class CanalOutreachSender
         return $this->account->mailingEnabled();
     }
 
-    /** @return array<int, MailingTrigger> */
+    /** @return array<int, MailingTrigger> zapnuté triggery v poradí priority */
     public function triggers(): array
     {
-        return [MailingTrigger::CanalEventUpcoming, MailingTrigger::CanalViewsMilestone, MailingTrigger::CanalEventFinished];
+        $enabled = (array) config('canals.outreach.triggers');
+
+        return array_values(array_filter(
+            [MailingTrigger::CanalEventCreated, MailingTrigger::CanalEventUpcoming, MailingTrigger::CanalViewsMilestone, MailingTrigger::CanalEventFinished],
+            fn (MailingTrigger $trigger) => in_array($trigger->value, $enabled, true),
+        ));
     }
 
     /* ---------------------------------------------------------------
@@ -142,6 +149,15 @@ class CanalOutreachSender
         $config = config('canals.outreach');
 
         return match ($trigger) {
+            // Najstaršie v okne prvé: pri náraze z importu by inak tie, na ktoré
+            // nevyšiel limit behu, z okna vypadli bez oslovenia.
+            MailingTrigger::CanalEventCreated => $this->events()
+                ->where('status', ModelStatus::Published->value)
+                ->where('published_at', '>=', now()->subDays((int) $config['created_days']))
+                ->where('start_at', '>', now())
+                ->orderBy('published_at')
+                ->get(),
+
             MailingTrigger::CanalEventUpcoming => $this->events()
                 ->where('status', ModelStatus::Published->value)
                 ->whereBetween('start_at', [now(), now()->addDays((int) $config['upcoming_days'])])
@@ -224,6 +240,10 @@ class CanalOutreachSender
             return null;
         }
 
+        if ($trigger === MailingTrigger::CanalEventCreated && $this->wasToldAboutNewEvent($canal)) {
+            return null;
+        }
+
         $stats = $this->stats($canal, $event);
         $milestone = null;
 
@@ -290,6 +310,21 @@ class CanalOutreachSender
         $last = (clone $recent)->max('created_at');
 
         return $last === null || now()->subDays((int) $config['min_gap_days'])->gte($last);
+    }
+
+    /**
+     * Mail o novej akcii chodí kanálu najviac raz za `cooldown_days`: kanál
+     * s viacerými akciami by inak minul celý strop a neostal by priestor na
+     * mail po akcii, ktorý ako jediný ukazuje reálne zobrazenia.
+     */
+    private function wasToldAboutNewEvent(Canal $canal): bool
+    {
+        return CanalOutreach::query()
+            ->where('canal_id', $canal->id)
+            ->where('trigger', MailingTrigger::CanalEventCreated->value)
+            ->whereIn('status', CanalOutreach::COUNTED)
+            ->where('created_at', '>=', now()->subDays((int) config('canals.outreach.cooldown_days')))
+            ->exists();
     }
 
     /** Ten istý trigger k tej istej akcii už bol — okrem udalosti, ktorú žiadna kampaň nezaradila. */

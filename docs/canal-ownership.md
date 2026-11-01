@@ -132,19 +132,21 @@ Príkaz `app:canal-outreach` (denne 10:15) hlási do Accountu udalosti; text, on
 
 | Trigger | Kedy (`config/canals.php → outreach`) |
 |---|---|
+| `canal_event_created` | akcia sa zverejnila pred najviac `created_days` (3) dňami a ešte nezačala; kanálu najviac raz za `cooldown_days`; bez reálnych čísel, v texte nepoužívať `{zobrazenia}`, `{ludia}`, `{prihlaseni}` |
 | `canal_event_upcoming` | zverejnená akcia začína najneskôr o `upcoming_days` (10) dní; importovaná neskôr dostane mail hneď |
 | `canal_views_milestone` | zverejnená akcia pred koncom dosiahla prah z `view_milestones` (50, 200); každý prah raz |
 | `canal_event_finished` | skončila pred 1–14 dňami (`after_days`, `window_days`), aspoň `min_views` zobrazení |
 
+- **Zapnuté triggery:** `CANAL_OUTREACH_TRIGGERS` (čiarkou oddelený zoznam, predvolene všetky okrem `canal_event_created`). Má obsahovať len triggery so zapnutou kampaňou v Accounte: trigger bez kampane sa hlási každý deň znova, zaberá limit behu a kanálu blokuje triggery s nižšou prioritou. `--trigger` platí aj pre nezapnutý trigger.
 - **Strop postupnosti:** najviac `max_per_cooldown` (3) oslovení za `cooldown_days` (90), medzi dvoma aspoň `min_gap_days` (5). Každý trigger k akcii len raz (`dedupe_key` `canal:{id}:{trigger}:{akcia}[:{prah}]`).
 - **Hlásenie** (`ReportCanalOutreach`, cez frontu): najprv kontakt do adresára (`POST /mailing/contacts`, štítok `canal_contact`, súhlas „verejný kontakt organizátora“), potom udalosť s `ref` `{type: canal}` — odpoveď sa v Inboxe spáruje s kanálom.
 - **Premenné do textu:** `{kanal}`, `{podujatie}`, `{termin}`, `{miesto}`, `{odkaz_podujatia}`, `{odkaz_kanala}`, `{odkaz_prevzatia}`, `{zobrazenia}`, `{ludia}`, `{prihlaseni}`, `{dni_do_zaciatku}`, `{prah_zobrazeni}`. Odkaz na prevzatie je systémová pozvánka s platnosťou `invitation_days` (30); ďalší mail ju len predĺži.
-- **Stavy** v `canal_outreach`: `reported` → `queued` (kampaň mail zaradila) / `not_queued` (žiadna aktívna kampaň — do stropu sa neráta a nahlási sa znova) → podľa webhooku `sent` / `failed` / `bounced`.
+- **Stavy** v `canal_outreach`: `reported` → `queued` (kampaň mail zaradila) / `not_queued` (žiadna aktívna kampaň alebo jej kontakt nevyhovuje — do stropu sa neráta a nahlási sa znova) → podľa webhooku `sent` / `failed` / `bounced`.
 - **Zastavenie:**
   - prevzatie kanála (`CanalStewardship::complete`) zruší čakajúce maily (`/mailing/events/cancel`, ref `canal`),
   - odhlásenie v kampani → webhook `mailing.unsubscribed` → `EmailSuppression`; odhlásenie v Evente sa nahlási do adresára (`unsubscribed: true`),
   - nedoručiteľnosť → webhook `mailing.delivery.bounced` → `CanalEmails::recordBounce` (adresa je vyradená a v `EmailSuppression`).
-- **Nastavenie v Accounte:** po nasadení `php artisan emailing:register-triggers`; webhook Eventu musí odoberať `mailing.unsubscribed` a `mailing.delivery.*`. Kampaň na každý trigger (napr. `canal_event_upcoming` s `delay_hours` 0, `canal_event_finished` s 2 h). Simuláciu tu nahrádza stav kampane v Accounte a `MAILING_DRY_RUN`.
+- **Nastavenie v Accounte:** po nasadení `php artisan emailing:register-triggers`; webhook Eventu musí odoberať `mailing.unsubscribed` a `mailing.delivery.*`. Kampaň na každý trigger (napr. `canal_event_created` a `canal_event_upcoming` s `delay_hours` 0, `canal_event_finished` s 2 h). Simuláciu tu nahrádza stav kampane v Accounte a `MAILING_DRY_RUN`.
 - Parametre príkazu: `--dry-run`, `--limit=N`, `--trigger=canal_event_upcoming`.
 
 ## Prehľad prepínačov simulácie

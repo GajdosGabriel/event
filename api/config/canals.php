@@ -25,11 +25,19 @@ return [
     // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
     'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
 
-    // Oslovenie organizátorov (app:canal-outreach) — triggery pred akciou,
-    // prah zobrazení, po akcii. Hlásia sa len do Account Emailingu (text
-    // a oneskorenie sú v kampani); bez ACCOUNT_MAILING sa neoslovuje. Pred
+    // Oslovenie organizátorov (app:canal-outreach) — triggery po vzniku akcie,
+    // pred akciou, prah zobrazení, po akcii. Hlásia sa len do Account Emailingu
+    // (text a oneskorenie sú v kampani); bez ACCOUNT_MAILING sa neoslovuje. Pred
     // zapnutím kampane overiť súlad s § 116 zákona č. 452/2021 Z. z.
     'outreach' => [
+        // Ktoré triggery sa vyberajú — len tie so zapnutou kampaňou v Accounte.
+        // Trigger bez kampane by kanálu zaberal miesto v behu a vyššiu prioritu
+        // by držal pred ostatnými. canal_event_created treba zapnúť vedome.
+        'triggers' => array_values(array_filter(array_map('trim',
+            explode(',', (string) env('CANAL_OUTREACH_TRIGGERS', 'canal_event_upcoming,canal_views_milestone,canal_event_finished'))))),
+        // Akcia sa zverejnila pred najviac toľkými dňami (canal_event_created).
+        // Staršie sa neoslovujú, takže zapnutie nepošle e-mail k starým akciám.
+        'created_days' => (int) env('CANAL_OUTREACH_CREATED_DAYS', 3),
         // Akcia začína najneskôr o toľko dní (trigger canal_event_upcoming).
         'upcoming_days' => (int) env('CANAL_OUTREACH_UPCOMING_DAYS', 10),
         // Prahy zobrazení akcie pred jej koncom (canal_views_milestone).

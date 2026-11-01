@@ -27,6 +27,9 @@ enum MailingTrigger: string
     /** Akcia spravovaného kanála sa zverejnila – ide jeho vlastníkom (technický mail) */
     case EventPublished = 'event_published';
 
+    /** Akcia nespravovaného kanála sa zverejnila pred najviac `canals.outreach.created_days` dňami */
+    case CanalEventCreated = 'canal_event_created';
+
     /** Akcia nespravovaného kanála začína o `canals.outreach.upcoming_days` dní */
     case CanalEventUpcoming = 'canal_event_upcoming';
 
@@ -43,6 +46,7 @@ enum MailingTrigger: string
             self::TicketCancelled => 'Po zrušení registrácie',
             self::EventFinished => 'Po skončení podujatia',
             self::EventPublished => 'Po zverejnení akcie (organizátorovi)',
+            self::CanalEventCreated => 'Po vzniku akcie nespravovaného kanála',
             self::CanalEventUpcoming => 'Pred začiatkom akcie nespravovaného kanála',
             self::CanalViewsMilestone => 'Akcia nespravovaného kanála dosiahla prah zobrazení',
             self::CanalEventFinished => 'Po skončení akcie nespravovaného kanála',
@@ -57,6 +61,7 @@ enum MailingTrigger: string
             self::TicketCancelled => 'Po zrušení',
             self::EventFinished => 'Po podujatí',
             self::EventPublished => 'Po zverejnení',
+            self::CanalEventCreated => 'Nová akcia kanála',
             self::CanalEventUpcoming => 'Pred akciou kanála',
             self::CanalViewsMilestone => 'Zobrazenia akcie kanála',
             self::CanalEventFinished => 'Po akcii kanála',
