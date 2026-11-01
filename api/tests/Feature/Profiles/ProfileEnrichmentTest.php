@@ -210,6 +210,28 @@ class ProfileEnrichmentTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_monthly_budget_is_released_day_by_day(): void
+    {
+        config(['profile_enrichment.monthly_limit_usd' => 3]);
+        $service = app(ProfileEnricher::class);
+
+        // Desiaty deň tridsaťdňového mesiaca: uvoľnený je 1 USD z 3 USD.
+        $this->travelTo(now()->setDate(2026, 11, 10)->setTime(12, 0));
+        AiUsage::create(['feature' => ProfileResearch::FEATURE, 'model' => 'gpt-4.1-mini', 'cost_usd' => 0.9, 'prompt_tokens' => 0, 'completion_tokens' => 0, 'success' => true]);
+        $this->assertTrue($service->budgetAvailable());
+
+        AiUsage::create(['feature' => ProfileResearch::FEATURE, 'model' => 'gpt-4.1-mini', 'cost_usd' => 0.1, 'prompt_tokens' => 0, 'completion_tokens' => 0, 'success' => true]);
+        $this->assertFalse($service->budgetAvailable());
+
+        // Ďalší deň pribudne ďalšia tridsatina limitu.
+        $this->travelTo(now()->setDate(2026, 11, 11));
+        $this->assertTrue($service->budgetAvailable());
+
+        // Nový mesiac začína odznova.
+        $this->travelTo(now()->setDate(2026, 12, 1));
+        $this->assertTrue($service->budgetAvailable());
+    }
+
     public function test_no_result_completes_without_email_and_failure_is_backed_off(): void
     {
         $canal = $this->canal();

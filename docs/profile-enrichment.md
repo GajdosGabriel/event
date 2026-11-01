@@ -12,7 +12,7 @@ Pred uložením sa profil znovu načíta pod zámkom. Nové používateľské ho
 
 Používateľskému vlastníkovi ide jeden e-mail až po skutočnom doplnení, s prehľadom a odkazom na úpravu. Príjemca sa určuje cez `attributeIssueRecipient()` (téma „kontroly“ v nastaveniach tímu, viď canal-ownership.md); technickému vlastníkovi importovaného kanála e-mail neodíde. Chyba e-mailu nespúšťa platené vyhľadávanie znova; e-mail má najviac tri pokusy po hodine. Vyhľadávanie má najviac tri pokusy s odstupom šesť hodín. Úspešná kontrola bez výsledku sa neopakuje automaticky.
 
-Nastavenia: `PROFILE_ENRICHMENT_ENABLED` (predvolene true), `PROFILE_ENRICHMENT_MONTHLY_LIMIT_USD` (predvolene 1 USD; 0 bez limitu), `PROFILE_ENRICHMENT_MODEL` (gpt-4.1-mini), `PROFILE_ENRICHMENT_SEARCH_COST_USD` (odhad poplatku 0.01 USD za nástroj). Limit sa týka tejto funkcie a kontroluje sa pred volaním; posledné volanie ho môže prekročiť. Používa existujúci `OPENAI_API_KEY`.
+Nastavenia: `PROFILE_ENRICHMENT_ENABLED` (predvolene true), `PROFILE_ENRICHMENT_MONTHLY_LIMIT_USD` (predvolene 1 USD; 0 bez limitu), `PROFILE_ENRICHMENT_MODEL` (gpt-4.1-mini), `PROFILE_ENRICHMENT_SEARCH_COST_USD` (odhad poplatku 0.01 USD za nástroj). Limit sa týka tejto funkcie a kontroluje sa pred volaním; posledné volanie ho môže prekročiť. Uvoľňuje sa rovnomerne po dňoch mesiaca a nevyčerpaná časť sa prenáša ďalej, takže fronta profilov ho neminie naraz. Používa existujúci `OPENAI_API_KEY`.
 
 Nasadenie: spustiť migráciu `2026_09_27_150000_create_profile_enrichments_table.php` a bežný deployment aplikácie vrátane UI prekladov. Nevyžaduje nového démona ani cron mimo existujúceho plánovača.
 

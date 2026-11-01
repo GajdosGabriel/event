@@ -42,12 +42,17 @@ class ProfileEnricher
         return $fields;
     }
 
+    /**
+     * Mesačný limit sa uvoľňuje po dňoch, nevyčerpaná časť sa prenáša ďalej.
+     * Inak by ho fronta starých profilov minula hneď v prvú noc mesiaca.
+     */
     public function budgetAvailable(): bool
     {
         $limit = max(0, (float) config('profile_enrichment.monthly_limit_usd', 1));
+        $released = $limit * now()->day / now()->daysInMonth;
 
         return $limit === 0.0 || AiUsage::where('feature', ProfileResearch::FEATURE)
-            ->where('created_at', '>=', now()->startOfMonth())->sum('cost_usd') < $limit;
+            ->where('created_at', '>=', now()->startOfMonth())->sum('cost_usd') < $released;
     }
 
     public function run(Canal|Venue $subject): void
