@@ -15,7 +15,6 @@ use App\Models\Event;
 use App\Models\View;
 use App\Services\Account\AccountClient;
 use App\Services\Imports\CollectionCanal;
-use App\Services\SystemLog\Recorder;
 use App\Support\EventDateRange;
 use App\Support\PublicUrl;
 use Illuminate\Database\Eloquent\Builder;
@@ -405,22 +404,7 @@ class CanalOutreachSender
             $c['dedupe_key'],
         )->afterCommit();
 
-        $this->log($outreach, $canal, $event);
-
         return $outreach;
-    }
-
-    private function log(CanalOutreach $outreach, Canal $canal, Event $event): void
-    {
-        $trigger = MailingTrigger::tryFrom($outreach->trigger)?->label() ?? $outreach->trigger;
-
-        Recorder::info('canals', 'outreach_'.$outreach->status,
-            "Kanál {$canal->name}: ponuka prevzatia k akcii {$event->name} odovzdaná e-mailingu v Accounte, e-mail ešte neodišiel ({$trigger})",
-            status: 'ok',
-            recipient: $outreach->email,
-            subject: $canal,
-            context: ['outreach_id' => $outreach->id, 'event_id' => $event->id, 'trigger' => $outreach->trigger, 'stats' => $outreach->stats],
-        );
     }
 
     private function claimUrl(string $token): string
