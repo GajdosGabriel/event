@@ -133,8 +133,9 @@ class SystemLogTest extends TestCase
             ->getJson('/api/admin/system-logs?user_id='.$user->id)
             ->assertOk()
             // registrácia (observer) + vlastník osobného kanála (canals.member_added)
+            // + jeho adresa v kanáli (canals.email_owner_added, raz)
             // + mail podľa adresy + prihlásenie podľa user_id
-            ->assertJsonPath('meta.total', 4);
+            ->assertJsonPath('meta.total', 5);
     }
 
     #[Test]

@@ -223,6 +223,7 @@ class CanalEmails
 
         $verifiedAt = $owner->email_verified_at;
         $row = $canal->emails()->where('email', $email)->first();
+        $changed = true;
 
         if ($row === null) {
             if ($canal->emails()->count() >= self::MAX) {
@@ -230,7 +231,9 @@ class CanalEmails
             }
 
             $row = $this->create($canal, $email, CanalEmail::SOURCE_OWNER, $verifiedAt);
-        } elseif ($verifiedAt !== null && ! $row->isVerified()) {
+        } elseif (! ($verifiedAt !== null && ! $row->isVerified())) {
+            $changed = false;
+        } else {
             // Účet s touto adresou je overený — schránka teda žije.
             $row->forceFill([
                 'status' => CanalEmailStatus::Verified,
@@ -245,6 +248,12 @@ class CanalEmails
         $before = $this->primary($canal);
         $prefer = $before === null || $before->is($row) || ! $before->isUsable() || $this->yieldsToOwner($before);
         $after = $this->settle($canal, $prefer ? $email : null);
+
+        // Opakované volanie (napr. vnorené uloženie účtu pri registrácii)
+        // nič nezmenilo — denník by zbytočne hlásil tú istú adresu znova.
+        if (! $changed && $before?->is($after)) {
+            return;
+        }
 
         Recorder::info('canals', 'email_owner_added', "Kanál {$canal->name}: pribudla adresa vlastníka {$email}",
             status: 'ok',
