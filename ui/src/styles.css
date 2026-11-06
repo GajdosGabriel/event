@@ -267,8 +267,10 @@
    * by inak zrušil odrážky, nadpisy aj medzery medzi odstavcami. Farby
    * zvýraznení idú cez `currentColor`, aby text sedel aj na farebnom pruhu
    * oznamu.
+   * `anywhere` (nie `break-word`): dlhá URL v popise inak drží min-content
+   * šírku, roztiahne stĺpec gridu a vytlačí bočný panel mimo obrazovky.
    */
-  .prose { @apply text-base leading-relaxed; overflow-wrap: break-word; }
+  .prose { @apply text-base leading-relaxed; overflow-wrap: anywhere; }
   .prose > :first-child { @apply mt-0; }
   .prose > :last-child { @apply mb-0; }
   .prose p { @apply my-3; }

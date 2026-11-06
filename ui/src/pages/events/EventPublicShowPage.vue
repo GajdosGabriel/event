@@ -7,7 +7,7 @@
         <div class="h-96 w-full bg-slate-300 sm:rounded-[2rem] md:h-[30rem]" />
       </div>
       <div class="mx-auto w-full max-w-300 px-4 py-8">
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div class="space-y-6">
             <div class="h-56 rounded-2xl bg-slate-200" />
             <div class="h-40 rounded-2xl bg-slate-200" />
@@ -300,7 +300,7 @@
           >{{ t('public.event.endedCta') }}</RouterLink>
         </div>
 
-        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_340px]">
+        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <!-- Hlavný stĺpec -->
           <div class="space-y-6">
             <!-- Popis -->
@@ -309,7 +309,7 @@
                 <span class="h-6 w-1.5 rounded-full bg-linear-to-b from-rose-500 to-indigo-500" aria-hidden="true" />
                 {{ t('public.event.about') }}
               </h2>
-              <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="event.body" />
+              <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="bodyHtml" />
             </section>
 
             <!-- Workshopy (sub-akcie v rámci eventu) -->
@@ -734,6 +734,7 @@ import {
   PUBLIC_EVENTS,
 } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
+import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n, localeTag } from '@/i18n'
 import { useTilt } from '@/composables/useTilt'
 import { useCountdown } from '@/composables/useCountdown'
@@ -744,6 +745,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const event = ref<EventItem | null>(null)
+const bodyHtml = useBodyHtml(() => event.value?.body)
 const seriesPage = useClientPagination(computed(() => event.value?.seriesOccurrences ?? []), 10)
 const ticketTypes = ref<TicketTypeItem[]>([])
 /** Dotazník k registrácii — platené možnosti menia, čo hlavička hlási ako cenu. */

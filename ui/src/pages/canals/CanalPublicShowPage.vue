@@ -32,11 +32,11 @@
         </div>
         <RouterLink v-else to="/" class="mb-6 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           <!-- Main -->
           <div class="space-y-6">
             <div v-if="canal.body" class="rounded-2xl border border-slate-200 bg-white p-6">
-              <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="canal.body" />
+              <div class="prose prose-slate max-w-none leading-relaxed text-slate-700" v-html="bodyHtml" />
             </div>
             <div v-if="!canal.body" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
               {{ t('public.canal.noDescription') }}
@@ -146,6 +146,7 @@ import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
 import { htmlToText } from '@/utils/htmlToText'
+import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n, localeTag } from '@/i18n'
 import { useViewBeacon } from '@/composables/useViewBeacon'
 
@@ -158,6 +159,7 @@ const contactResult = route.query.kontakt === 'overeny' || route.query.kontakt =
   ? route.query.kontakt
   : null
 const canal = ref<CanalItem | null>(null)
+const bodyHtml = useBodyHtml(() => canal.value?.body)
 const loading = ref(false)
 const error = ref(false)
 const events = ref<CanalEventItem[]>([])

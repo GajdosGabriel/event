@@ -291,6 +291,7 @@ import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import RowActions from '@/components/RowActions.vue'
 import { useToast } from '@/composables/useToast'
 import { fmtDate } from '@/utils/dateFormat'
+import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n, localeTag } from '@/i18n'
 import { publicEventPath } from '@/utils/publicUrl'
 
@@ -334,19 +335,7 @@ async function duplicateRelated(id: number) {
   } catch { toast.error(t('events.copy.failed')) }
 }
 
-function withBlankLinks(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  doc.querySelectorAll('a').forEach(a => {
-    a.setAttribute('target', '_blank')
-    a.setAttribute('rel', 'noopener noreferrer')
-  })
-  return doc.body.innerHTML
-}
-
-const renderedBody = computed(() => {
-  const html = event.value?.body
-  return html ? withBlankLinks(html) : ''
-})
+const renderedBody = useBodyHtml(() => event.value?.body)
 
 function fmt(d: string | null) {
   return d ? fmtDate(d) : t('common.none')

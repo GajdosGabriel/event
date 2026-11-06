@@ -732,6 +732,7 @@ const en: Messages = {
     },
   },
   public: {
+    bodyLinks: { form: 'Form', document: 'Document', spreadsheet: 'Spreadsheet', presentation: 'Presentation', file: 'File', pdf: 'PDF document', video: 'Video', map: 'Map', meeting: 'Online meeting' },
     series: {
       title: 'Other dates',
       more: { one: 'and {n} more date', few: 'and {n} more dates', many: 'and {n} more dates' },

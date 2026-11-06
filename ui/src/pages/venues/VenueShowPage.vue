@@ -44,7 +44,7 @@
                 <p v-if="venue.category" class="mt-1 text-sm font-medium text-teal-700">{{ venue.category }}</p>
               </div>
             </div>
-            <div v-if="venue.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="venue.body" />
+            <div v-if="venue.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="bodyHtml" />
           </div>
 
           <!-- Poloha -->
@@ -207,6 +207,7 @@ import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { publicVenuePath } from '@/utils/publicUrl'
+import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n } from '@/i18n'
 import type { VenueItem } from '@/types'
 
@@ -219,6 +220,7 @@ const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/venues`)
 
 const venue = ref<VenueItem | null>(null)
+const bodyHtml = useBodyHtml(() => venue.value?.body)
 const loading = ref(false)
 const error = ref(false)
 const files = ref<FileItem[]>([])

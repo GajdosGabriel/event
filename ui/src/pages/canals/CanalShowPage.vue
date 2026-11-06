@@ -47,7 +47,7 @@
                 </p>
               </div>
             </div>
-            <div v-if="canal.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="canal.body" />
+            <div v-if="canal.body" class="prose prose-slate mt-4 max-w-none text-slate-700" v-html="bodyHtml" />
           </div>
 
           <!-- Mapa -->
@@ -270,6 +270,7 @@ import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, fmtTime } from '@/utils/dateFormat'
 import { useSystemLogLabels } from '@/composables/useSystemLogLabels'
+import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
 
@@ -283,6 +284,7 @@ const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)
 
 const canal = ref<CanalItem | null>(null)
+const bodyHtml = useBodyHtml(() => canal.value?.body)
 const loading = ref(false)
 const error = ref(false)
 const files = ref<FileItem[]>([])

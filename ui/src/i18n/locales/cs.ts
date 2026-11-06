@@ -731,6 +731,7 @@ const cs: Messages = {
     },
   },
   public: {
+    bodyLinks: { form: 'Formulář', document: 'Dokument', spreadsheet: 'Tabulka', presentation: 'Prezentace', file: 'Soubor', pdf: 'PDF dokument', video: 'Video', map: 'Mapa', meeting: 'Online schůzka' },
     series: {
       title: 'Další termíny',
       more: { one: 'a další {n} termín', few: 'a další {n} termíny', many: 'a dalších {n} termínů' },

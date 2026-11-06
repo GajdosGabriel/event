@@ -732,6 +732,7 @@ const de: Messages = {
     },
   },
   public: {
+    bodyLinks: { form: 'Formular', document: 'Dokument', spreadsheet: 'Tabelle', presentation: 'Präsentation', file: 'Datei', pdf: 'PDF-Dokument', video: 'Video', map: 'Karte', meeting: 'Online-Meeting' },
     series: {
       title: 'Weitere Termine',
       more: { one: 'und {n} weiterer Termin', few: 'und {n} weitere Termine', many: 'und {n} weitere Termine' },

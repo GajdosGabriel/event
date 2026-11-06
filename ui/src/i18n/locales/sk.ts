@@ -779,6 +779,8 @@ const sk = {
     },
   },
   public: {
+    // Odkaz v popise, ktorého text je holá URL, sa zobrazí pod krátkym názvom podľa typu.
+    bodyLinks: { form: 'Formulár', document: 'Dokument', spreadsheet: 'Tabuľka', presentation: 'Prezentácia', file: 'Súbor', pdf: 'PDF dokument', video: 'Video', map: 'Mapa', meeting: 'Online stretnutie' },
     // Ďalšie termíny série na verejnom detaile a odznak na karte vo výpise.
     series: {
       title: 'Ďalšie termíny',
