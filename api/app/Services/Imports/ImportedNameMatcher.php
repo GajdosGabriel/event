@@ -108,6 +108,12 @@ class ImportedNameMatcher
             $key = preg_replace('/ (svateho|svatej|svaty|svata|svate|svatych|sv) /', ' sv ', $key) ?? $key;
         }
 
+        // Rozpísaná skratka = skratka („Rada KBS" / „Rada … Konferencie biskupov
+        // Slovenska", „MV SR" / „Ministerstva vnútra Slovenskej republiky").
+        foreach (self::ABBREVIATIONS as $pattern => $abbreviation) {
+            $key = preg_replace("/ {$pattern} /", " {$abbreviation} ", $key) ?? $key;
+        }
+
         $key = preg_replace('/^ (rimsko katolicka|rimskokatolicka|rimskokatolicky|rimskokatolicke|katolicka|katolicke|katolicky|zdruzenie|spolok) /', ' ', $key) ?? $key;
         $key = preg_replace('/ (na slovensku|v slovenskej republike|v sr|sr|slovensko|slovakia) $/', ' ', $key) ?? $key;
 
@@ -139,6 +145,17 @@ class ImportedNameMatcher
 
         $wordsA = explode(' ', $a);
         $wordsB = explode(' ', $b);
+
+        // Tie isté slová v inom poradí („Rada KBS pre rodinu" / „Rada pre
+        // rodinu KBS") — AI skratku presúva podľa toho, ako ju napísal článok.
+        $sortedA = $wordsA;
+        $sortedB = $wordsB;
+        sort($sortedA);
+        sort($sortedB);
+
+        if (count($wordsA) >= 3 && $sortedA === $sortedB) {
+            return true;
+        }
 
         if (count($wordsA) !== count($wordsB) || min(strlen($a), strlen($b)) < 10) {
             return false;
@@ -183,6 +200,15 @@ class ImportedNameMatcher
 
         return array_intersect($words, self::CHURCH_WORDS) === [] || array_intersect($words, self::DEDICATION_WORDS) === [];
     }
+
+    /** Rozpísané tvary skratiek (v slugu) → skratka. */
+    private const ABBREVIATIONS = [
+        'konferenci[ae] biskupov slovenska' => 'kbs',
+        'ministerstv[oa] vnutra' => 'mv',
+        'slovenskej republiky' => 'sr',
+        'evanjelickej cirkvi augsburskeho vyznania' => 'ecav',
+        'evanjelicka cirkev augsburskeho vyznania' => 'ecav',
+    ];
 
     private const FILLER_WORDS = ['a', 'v', 'vo', 'na', 'pri', 'z', 'zo', 's', 'so', 'do', 'the', 'of', 'and'];
 

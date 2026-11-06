@@ -43,7 +43,7 @@ class DuplicateResolverTest extends TestCase
 
         $existing = Canal::factory()->create(['name' => 'Farnosť Nitra – Kalvária']);
 
-        $found = app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť');
+        $found = app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť Mlynárce');
 
         $this->assertNotNull($found);
         $this->assertSame($existing->id, $found->id);
@@ -63,9 +63,9 @@ class DuplicateResolverTest extends TestCase
         $existing = Canal::factory()->create(['name' => 'Farnosť Nitra – Kalvária']);
         $resolver = app(DuplicateResolver::class);
 
-        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť'));
+        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť Mlynárce'));
 
-        $created = Canal::factory()->create(['name' => 'Kalvária Nitra farnosť']);
+        $created = Canal::factory()->create(['name' => 'Kalvária Nitra farnosť Mlynárce']);
         $resolver->markCreated($created);
 
         $this->assertDatabaseHas('duplicate_decisions', [
@@ -84,11 +84,30 @@ class DuplicateResolverTest extends TestCase
         Canal::factory()->create(['name' => 'Farnosť Nitra – Kalvária']);
         $resolver = app(DuplicateResolver::class);
 
-        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť'));
-        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť'));
+        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť Mlynárce'));
+        $this->assertNull($resolver->findCanal('Kalvária Nitra farnosť Mlynárce'));
 
         Http::assertSentCount(1);
         $this->assertDatabaseHas('duplicate_decisions', ['decision' => DuplicateDecision::DISTINCT]);
+    }
+
+    #[Test]
+    public function written_out_abbreviation_in_another_order_reuses_the_canal_without_ai(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+        Http::fake();
+
+        $existing = Canal::factory()->create(['name' => 'Rada KBS pre rodinu']);
+
+        $found = app(DuplicateResolver::class)->findCanal('Rada pre rodinu Konferencie biskupov Slovenska');
+
+        $this->assertSame($existing->id, $found?->id);
+        Http::assertNothingSent();
+        $this->assertDatabaseHas('duplicate_decisions', [
+            'candidate_id' => $existing->id,
+            'decision' => DuplicateDecision::SAME,
+            'source' => DuplicateDecision::SOURCE_RULE,
+        ]);
     }
 
     #[Test]
@@ -99,7 +118,7 @@ class DuplicateResolverTest extends TestCase
 
         $existing = Canal::factory()->create(['name' => 'Farnosť Nitra – Kalvária']);
 
-        $this->assertNull(app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť'));
+        $this->assertNull(app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť Mlynárce'));
 
         Http::assertNothingSent();
         $this->assertDatabaseHas('duplicate_decisions', [
@@ -363,7 +382,7 @@ class DuplicateResolverTest extends TestCase
 
         Canal::factory()->create(['name' => 'Farnosť Nitra – Kalvária']);
 
-        $this->assertNull(app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť'));
+        $this->assertNull(app(DuplicateResolver::class)->findCanal('Kalvária Nitra farnosť Mlynárce'));
         $this->assertDatabaseCount('duplicate_decisions', 0);
     }
 

@@ -26,6 +26,13 @@ class CanalKeyTest extends TestCase
             'preklep' => ['Klub kresťanských lekárov a zdravotníkov Bratislava', 'Klub kresťanských lekárov a zdravotníkov Bratislave'],
             'vynechané písmená' => ['Pápežské misijné diela', 'Pápežské misjné diela'],
             'pomlčky' => ['Mesto Bardejov – oddelenie kultúry', 'Mesto Bardejov - oddelenie kultúry'],
+            // Kontrola 6. 11. 2026: rozpísaná skratka a iné poradie slov.
+            'SR / Slovenskej republiky' => ['Ministerstvo vnútra SR', 'Ministerstvo vnútra Slovenskej republiky'],
+            'MV SR / Ministerstva vnútra' => ['Úrad ekumenickej pastoračnej služby MV SR', 'Úrad ekumenickej pastoračnej služby Ministerstva vnútra Slovenskej republiky'],
+            'KBS / Konferencie biskupov Slovenska' => ['Rada pre spoločenské komunikačné prostriedky KBS', 'Rada pre spoločenské komunikačné prostriedky Konferencie biskupov Slovenska (KBS)'],
+            'skratka inde vo vete' => ['Rada KBS pre Rómov a menšiny', 'Rada pre Rómov a menšiny Konferencie biskupov Slovenska (KBS)'],
+            'iné poradie' => ['Rada pre spoločenské komunikačné prostriedky Konferencie biskupov Slovenska (KBS)', 'Rada Konferencie biskupov Slovenska (KBS) pre spoločenské komunikačné prostriedky'],
+            'ECAV' => ['Školský výbor ECAV', 'Školský výbor Evanjelickej cirkvi augsburského vyznania'],
         ];
     }
 
@@ -44,6 +51,8 @@ class CanalKeyTest extends TestCase
             'patrocínium bez obce' => ['Rímskokatolícka farnosť sv. Mikuláša', 'Farnosť svätého Mikuláša'],
             'patrocínium s preklepom' => ['Farnosť Kráľovnej rodiny', 'Farnosť Kráľovej rodiny'],
             'iný farský úrad' => ['Rímskokatolícky farský úrad v Bojnej', 'Rímskokatolícky farský úrad v Pozbe'],
+            'iná rada KBS' => ['Rada KBS pre rodinu', 'Rada KBS pre mládež a univerzity'],
+            'iné ministerstvo' => ['Ministerstvo vnútra SR', 'Ministerstvo kultúry SR'],
         ];
     }
 
