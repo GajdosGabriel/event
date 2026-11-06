@@ -3,10 +3,12 @@
 namespace App\Services\Canals;
 
 use App\Enums\CanalEmailStatus;
+use App\Enums\CanalIdentityMode;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\CanalEmail;
 use App\Models\EmailSuppression;
+use App\Models\User;
 use App\Services\SystemLog\Recorder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -26,7 +28,10 @@ use Illuminate\Support\Str;
  *  - vrátený e-mail (recordBounce) — adresa je nedoručiteľná a primárnou sa
  *    stane ďalšia najlepšia; ak žiadna nie je, kanál ostane bez kontaktu,
  *  - potvrdenie alebo odpoveď (confirm, recordReply) — overená adresa má
- *    prednosť pred neoverenou primárnou.
+ *    prednosť pred neoverenou primárnou aj pred adresou vlastníka,
+ *  - nový vlastník spravovaného kanála (recordOwner) — jeho e-mail z účtu
+ *    nahradí neoverenú adresu z importu či adresu predošlého vlastníka;
+ *    vrátené prevzatie adresy vlastníkov odoberie (forgetOwners).
  *
  * recordBounce() a recordReply() sú vstupy pre spracovanie schránky portálu.
  */
@@ -186,7 +191,9 @@ class CanalEmails
         EmailSuppression::query()->where('email', $email)->where('reason', 'bounced')->delete();
 
         $before = $this->primary($canal);
-        $after = $this->settle($canal, $before === null || ! $before->isVerified() ? $email : null);
+        // Overená schránka organizácie má prednosť aj pred adresou vlastníka.
+        $prefer = $before === null || ! $before->isVerified() || $before->source === CanalEmail::SOURCE_OWNER;
+        $after = $this->settle($canal, $prefer ? $email : null);
 
         Recorder::info('canals', 'email_confirmed', "Kanál {$canal->name}: adresa {$email} potvrdená",
             status: 'ok',
@@ -196,6 +203,121 @@ class CanalEmails
         );
 
         return true;
+    }
+
+    /**
+     * Vlastník spravovaného kanála (prevzatie, nový vlastník v tíme): jeho
+     * e-mail z účtu pribudne medzi adresy kanála, overený ako účet.
+     *
+     * Primárnou sa stane namiesto neoverenej adresy z importu a namiesto
+     * adresy predošlého vlastníka — tá ostáva ako ďalšia. Adresu, ktorú
+     * tím zadal ručne, a overenú schránku organizácie nenahrádza.
+     */
+    public function recordOwner(Canal $canal, User $owner): void
+    {
+        $email = self::normalize($owner->email);
+
+        if ($email === null || ! $this->ready()) {
+            return;
+        }
+
+        $verifiedAt = $owner->email_verified_at;
+        $row = $canal->emails()->where('email', $email)->first();
+
+        if ($row === null) {
+            if ($canal->emails()->count() >= self::MAX) {
+                return;
+            }
+
+            $row = $this->create($canal, $email, CanalEmail::SOURCE_OWNER, $verifiedAt);
+        } elseif ($verifiedAt !== null && ! $row->isVerified()) {
+            // Účet s touto adresou je overený — schránka teda žije.
+            $row->forceFill([
+                'status' => CanalEmailStatus::Verified,
+                'verified_at' => $verifiedAt,
+                'last_seen_at' => $verifiedAt,
+                'bounced_at' => null,
+                'bounce_type' => null,
+                'bounce_reason' => null,
+            ])->save();
+        }
+
+        $before = $this->primary($canal);
+        $prefer = $before === null || $before->is($row) || ! $before->isUsable() || $this->yieldsToOwner($before);
+        $after = $this->settle($canal, $prefer ? $email : null);
+
+        Recorder::info('canals', 'email_owner_added', "Kanál {$canal->name}: pribudla adresa vlastníka {$email}",
+            status: 'ok',
+            recipient: $email,
+            userId: $owner->id,
+            subject: $canal,
+            context: ['primary_from' => $before?->email, 'primary_to' => $after?->email],
+        );
+    }
+
+    /**
+     * Adresa účtu, ktorý v kanáli už nie je (zmazaný účet, zmenený e-mail).
+     * Odíde len adresa vlastníka; v osobnom kanáli aj ručná, lebo tam je
+     * kontaktom kanála práve e-mail účtu. Adresa organizácie z importu,
+     * ktorá sa s e-mailom účtu len zhoduje, ostáva.
+     */
+    public function forgetOwner(Canal $canal, ?string $email): void
+    {
+        $email = self::normalize($email);
+
+        if ($email === null || ! $this->ready()) {
+            return;
+        }
+
+        $sources = $canal->identity_mode === CanalIdentityMode::Personal
+            ? [CanalEmail::SOURCE_OWNER, CanalEmail::SOURCE_MANUAL]
+            : [CanalEmail::SOURCE_OWNER];
+
+        $deleted = $canal->emails()->where('email', $email)->whereIn('source', $sources)->delete();
+
+        if ($deleted === 0) {
+            return;
+        }
+
+        if ($this->settle($canal) === null && self::normalize($canal->email) === $email) {
+            $this->mirror($canal, null);
+        }
+
+        Recorder::info('canals', 'email_owner_removed', "Kanál {$canal->name}: odobratá adresa účtu {$email}",
+            status: 'ok',
+            recipient: $email,
+            subject: $canal,
+            context: ['primary_to' => $canal->email],
+        );
+    }
+
+    /**
+     * Prevzatie sa vrátilo — kanál znova nikto nespravuje, takže adresy
+     * vlastníkov z neho odídu (inak by na ne chodili otázky návštevníkov).
+     */
+    public function forgetOwners(Canal $canal): void
+    {
+        if (! $this->ready()) {
+            return;
+        }
+
+        $removed = $canal->emails()->where('source', CanalEmail::SOURCE_OWNER)->pluck('email');
+
+        if ($removed->isEmpty()) {
+            return;
+        }
+
+        $canal->emails()->where('source', CanalEmail::SOURCE_OWNER)->delete();
+
+        if ($this->settle($canal) === null && $removed->contains($canal->email)) {
+            $this->mirror($canal, null);
+        }
+
+        Recorder::info('canals', 'email_owners_removed', "Kanál {$canal->name}: odobraté adresy vlastníkov",
+            status: 'ok',
+            subject: $canal,
+            context: ['emails' => $removed->values()->all(), 'primary_to' => $canal->email],
+        );
     }
 
     /**
@@ -302,6 +424,13 @@ class CanalEmails
 
         $canal->newQueryWithoutScopes()->whereKey($canal->getKey())->toBase()->update($values);
         $canal->forceFill($values)->syncOriginalAttributes(array_keys($values));
+    }
+
+    /** Neoverená adresa z importu a adresa predošlého vlastníka ustúpia vlastníkovi. */
+    private function yieldsToOwner(CanalEmail $primary): bool
+    {
+        return $primary->source === CanalEmail::SOURCE_OWNER
+            || ($primary->source === CanalEmail::SOURCE_IMPORT && ! $primary->isVerified());
     }
 
     private function create(Canal $canal, string $email, string $source, mixed $verifiedAt = null): CanalEmail

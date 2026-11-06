@@ -68,6 +68,9 @@ class CanalStewardship
 
         $this->auditor->claimed($canal, $user, $removed, $claim);
 
+        // Až po upozornení — to ide na doterajší kontakt kanála.
+        app(CanalEmails::class)->recordOwner($canal, $user);
+
         // Ponuky prevzatia čakajúce v Account Emailingu už nemajú zmysel.
         $this->mailing->cancelCanal($canal);
     }
@@ -98,6 +101,8 @@ class CanalStewardship
             foreach ($canal->users()->where('users.id', '!=', $systemOwner->id)->get() as $member) {
                 $this->membership->detach($canal, $member);
             }
+
+            app(CanalEmails::class)->forgetOwners($canal);
         });
     }
 

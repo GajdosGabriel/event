@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\User;
 use App\Services\Account\AccountMailing;
+use App\Services\Canals\CanalOwnerAccounts;
 use App\Services\SystemLog\Recorder;
 use App\Services\Users\PersonalCanalProvisioner;
 
@@ -35,9 +36,18 @@ class UserObserver
      */
     public function updated(User $user): void
     {
+        // Nová adresa účtu nahradí starú v jeho kanáloch (CanalOwnerAccounts).
+        if ($user->wasChanged('email')) {
+            app(CanalOwnerAccounts::class)->emailChanged($user, $user->getOriginal('email'));
+        }
+
         $wasUnverified = $user->getOriginal('email_verified_at') === null;
         if ($wasUnverified && $user->email_verified_at !== null) {
-            $this->ensureVerifiedCanal($user);
+            $created = app(PersonalCanalProvisioner::class)->ensureFor($user);
+
+            // Účet z prihlášky / správy dostal kanál ešte neoverený — teraz
+            // je jeho adresa overená aj v kanáloch, ktoré vlastní.
+            app(CanalOwnerAccounts::class)->verified($user, except: $created);
         }
 
         // Adresár v Accounte: štítky `user`/`verified` (pri zmene adresy aj
@@ -54,6 +64,17 @@ class UserObserver
 
     public function deleted(User $user): void
     {
+        // Pri trvalom zmazaní členstvá zmizli spolu s účtom — niet čo prispôsobiť.
+        if (! $user->isForceDeleting()) {
+            app(CanalOwnerAccounts::class)->deleted($user);
+        }
+
+        app(AccountMailing::class)->syncContact($user->email);
+    }
+
+    public function restored(User $user): void
+    {
+        app(CanalOwnerAccounts::class)->restored($user);
         app(AccountMailing::class)->syncContact($user->email);
     }
 

@@ -61,6 +61,12 @@ class CanalMembership
         $this->auditor->memberChanged($canal, $user, $previous, $role);
         // Štítok `organizer` v adresári Emailingu.
         app(AccountMailing::class)->syncContact($user->email);
+
+        // Nový vlastník spravovaného kanála. Pri prevzatí kanál ešte spravovaný
+        // nie je — adresu tam zapíše CanalStewardship::complete().
+        if ($role->isOwner() && ! ($previous?->isOwner() ?? false) && $canal->isManaged()) {
+            app(CanalEmails::class)->recordOwner($canal, $user);
+        }
     }
 
     /**

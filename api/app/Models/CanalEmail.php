@@ -25,6 +25,9 @@ class CanalEmail extends Model
     /** Adresa sa pridala sama tým, že niečo potvrdila (pozvánka, prevzatie). */
     public const SOURCE_CONFIRMED = 'confirmed';
 
+    /** E-mail účtu vlastníka spravovaného kanála (prevzatie, nový vlastník v tíme). */
+    public const SOURCE_OWNER = 'owner';
+
     protected $guarded = [];
 
     protected $casts = [

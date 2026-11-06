@@ -81,6 +81,7 @@ class CanalAuditTest extends TestCase
             'canals.member_removed',        // technický vlastník odchádza
             'canals.claimed',
             'mail.simulated',               // potvrdenie organizátorovi
+            'canals.email_owner_added',     // e-mail účtu vlastníka medzi adresy kanála
             'canals.email_confirmed',       // pozvánka prišla z tej schránky (CanalEmails)
             'canals.invitation_accepted',
         ], $events);

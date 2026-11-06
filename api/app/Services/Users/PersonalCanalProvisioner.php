@@ -10,6 +10,7 @@ use App\Jobs\ImportSocialAvatarJob;
 use App\Models\Canal;
 use App\Models\User;
 use App\Services\Canals\CanalAuditor;
+use App\Services\Canals\CanalEmails;
 use App\Services\Canals\CanalMembership;
 use Illuminate\Support\Str;
 
@@ -61,6 +62,9 @@ class PersonalCanalProvisioner
         app(CanalMembership::class)->syncGlobalRoles($user);
 
         app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'personal_canal']);
+
+        // Adresa kanála je e-mail účtu — overená, ak je overený účet.
+        app(CanalEmails::class)->recordOwner($canal, $user);
 
         $user->canal_id = $canal->id;
         $user->save();

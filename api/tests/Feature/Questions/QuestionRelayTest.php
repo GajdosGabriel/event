@@ -33,6 +33,10 @@ class QuestionRelayTest extends EventSetupTest
 
         // Bez e-mailu podujatia — ten by inak nastúpil ako záložný kontakt.
         $this->futureEvent->update(['status' => ModelStatus::Published, 'email' => null]);
+        // Fixtúra je osobný kanál používateľa s overenou adresou účtu — test
+        // potrebuje importovaný kanál, ktorého overenie príde s jeho kontaktom.
+        $this->futureEvent->canal->emails()->delete();
+        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->saveQuietly();
         $this->futureEvent->canal->forceFill([
             // Pevné meno: náhodné z factory môže vyzerať ako doména, a to je zberný kanál.
             'name' => 'Organizátor',
