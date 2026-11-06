@@ -447,6 +447,18 @@ return [
         'ignore' => 'Ak ste plagát nenahrávali vy, tento e-mail pokojne ignorujte — bez potvrdenia sa nikde nič nezverejní.',
     ],
 
+    // App\Notifications\PosterEmailReply — odpoveď na pozvánku poslanú e-mailom.
+    'poster_email' => [
+        'subject' => 'Vaša pozvánka — podujatie máme pripravené',
+        'intro' => 'Ďakujeme za pozvánku. Takto sme ju pochopili:',
+        'missing' => 'Ešte nám chýba: :fields.',
+        'reply_hint' => 'Stačí odpísať na tento e-mail — údaje doplníme a pošleme vám súhrn znova. Alebo ich doplňte rovno v koncepte.',
+        'complete' => 'Všetko potrebné máme. Podujatie skontrolujte a uložte — ak tu ešte účet nemáte, vytvoríte si ho pri ukladaní.',
+        'action' => 'Skontrolovať podujatie',
+        'expires' => 'Koncept podujatia vám držíme do **:date**.',
+        'ignore' => 'Bez vášho potvrdenia sa nikde nič nezverejní. Ak ste chceli niečo iné, odpíšte — správu si prečíta človek.',
+    ],
+
     // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
     'openai_billing' => [
         'subject' => 'OpenAI: došiel kredit, AI funkcie nefungujú',

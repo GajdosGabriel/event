@@ -51,6 +51,8 @@ class AccountMailChannel
             'subject' => $subject,
             'html' => (string) $mail->render(),
             'ref' => $notification->accountRef($notifiable),
+            // Odpoveď na nepriradený e-mail si jeho konverzáciu priradí (PosterEmailReply).
+            'conversation' => method_exists($notification, 'accountConversation') ? $notification->accountConversation() : null,
             'kind' => method_exists($notification, 'accountKind') ? $notification->accountKind() : null,
             'meta' => ['notification' => class_basename($notification)],
             'headers' => $this->headers($mail),

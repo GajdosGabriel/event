@@ -94,6 +94,16 @@ export async function analyzePoster(input: File | string): Promise<PosterDraft> 
   return data.draft as PosterDraft
 }
 
+/** Adresa, na ktorú sa dá pozvánka poslať e-mailom; null, keď je príjem vypnutý. */
+export async function fetchPosterInbox(): Promise<string | null> {
+  try {
+    const { data } = await http.get('/poster/inbox')
+    return typeof data?.email === 'string' && data.email !== '' ? data.email : null
+  } catch {
+    return null
+  }
+}
+
 export async function fetchPosterDraft(id: string, token: string): Promise<PosterDraft> {
   const { data } = await http.get(`/poster/drafts/${id}`, { params: { token } })
   return data.draft as PosterDraft

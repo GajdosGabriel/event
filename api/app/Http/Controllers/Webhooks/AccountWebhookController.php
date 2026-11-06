@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Log;
  *
  * Endpoint sa v Accounte registruje v „API a webhooky“ a musí odoberať
  * aspoň `organization.updated` a `organization.deleted`, pri zapnutom
- * `ACCOUNT_MESSAGING` aj `message.received` a `message.bounced`, pri zapnutom
+ * `ACCOUNT_MESSAGING` aj `message.received` a `message.bounced` (pri
+ * `POSTER_EMAIL_INTAKE` aj `message.unassigned`), pri zapnutom
  * `ACCOUNT_MAILING` aj `mailing.unsubscribed` a `mailing.delivery.*`.
  */
 class AccountWebhookController extends Controller

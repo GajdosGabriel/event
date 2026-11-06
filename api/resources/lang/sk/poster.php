@@ -39,4 +39,9 @@ return [
         'not_found' => 'Rozpracovaný plagát sa nenašiel.',
         'expired' => 'Platnosť rozpracovaného plagátu vypršala. Nahrajte ho prosím znova.',
     ],
+
+    // Podujatie z e-mailu (App\Services\Posters\PosterEmailIntake).
+    'email' => [
+        'addition_heading' => 'Doplnenie:',
+    ],
 ];

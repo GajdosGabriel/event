@@ -2,11 +2,13 @@
 
 namespace App\Services\Account;
 
+use App\Jobs\ProcessPosterEmail;
 use App\Models\Canal;
 use App\Models\CanalEmail;
 use App\Models\CanalRelayThread;
 use App\Services\Canals\CanalEmails;
 use App\Services\Canals\CanalRelay;
+use App\Services\Posters\PosterEmailIntake;
 use App\Services\SystemLog\Recorder;
 
 /**
@@ -33,6 +35,24 @@ class AccountMessages
     public function handle(string $event, array $conversation, array $message): void
     {
         $id = $conversation['ref']['id'] ?? null;
+
+        // Nový e-mail na kontakt mimo konverzácie — možno pozvánka na zverejnenie.
+        if ($event === 'message.unassigned') {
+            if (app(PosterEmailIntake::class)->enabled()) {
+                ProcessPosterEmail::dispatch('unassigned', $conversation, $message);
+            }
+
+            return;
+        }
+
+        // Odpoveď na otázky ku konceptu podujatia z e-mailu.
+        if (($conversation['ref']['type'] ?? null) === PosterEmailIntake::ACCOUNT_REF) {
+            if ($event === 'message.received' && is_string($id)) {
+                ProcessPosterEmail::dispatch('received', $conversation, $message, $id);
+            }
+
+            return;
+        }
 
         // Preposlaná otázka alebo správa: konverzácia patrí jednému pisateľovi.
         $thread = ($conversation['ref']['type'] ?? null) === CanalRelay::ACCOUNT_REF

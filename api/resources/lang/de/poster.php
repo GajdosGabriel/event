@@ -34,4 +34,9 @@ return [
         'not_found' => 'Das begonnene Plakat wurde nicht gefunden.',
         'expired' => 'Das begonnene Plakat ist abgelaufen. Bitte laden Sie es erneut hoch.',
     ],
+
+    // Podujatie z e-mailu (App\Services\Posters\PosterEmailIntake).
+    'email' => [
+        'addition_heading' => 'Ergänzung:',
+    ],
 ];

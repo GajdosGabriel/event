@@ -173,6 +173,9 @@ Route::get('municipalities', [PublicMunicipalityController::class, 'index'])
     ->name('public.municipalities.index');
 Route::get('municipalities/{slug}', [PublicMunicipalityController::class, 'show'])
     ->name('public.municipalities.show');
+// Adresa na pozvánky e-mailom („alebo pošlite e-mail na…"), null pri vypnutom príjme.
+Route::get('poster/inbox', [PublicPosterController::class, 'inbox'])
+    ->name('public.poster.inbox');
 Route::post('poster/analyze', [PublicPosterController::class, 'analyze'])
     ->name('public.poster.analyze')
     ->middleware('throttle:ai');

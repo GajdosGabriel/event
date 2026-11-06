@@ -19,6 +19,7 @@ vi.mock('@/api/posters', () => ({
   rememberPosterDraft: mocks.rememberPosterDraft,
   claimPosterDraft: mocks.claimPosterDraft,
   fetchPosterDraft: mocks.fetchPosterDraft,
+  fetchPosterInbox: () => Promise.resolve(null),
 }))
 vi.mock('@/api/municipalities', () => ({ listPublicMunicipalities: () => Promise.resolve([{ id: 1, name: 'Bratislava' }]) }))
 vi.mock('@/api/auth', () => ({ register: mocks.register }))
@@ -79,7 +80,7 @@ async function click(w: VueWrapper, label: string) {
 }
 
 async function analyzeText(w: VueWrapper) {
-  await click(w, t('poster.wizard.textToggleOff'))
+  await click(w, t('poster.wizard.tabText'))
   await w.get('textarea').setValue('Pozývame vás na koncert 1. mája 2030 o 18:00 v Dome kultúry v Bratislave.')
   await click(w, t('poster.wizard.textSubmit'))
 }

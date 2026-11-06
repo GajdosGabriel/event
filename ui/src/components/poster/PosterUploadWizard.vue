@@ -18,7 +18,29 @@
 
     <!-- 1. Nahratie -->
     <section v-if="step === 'upload'">
+      <!-- Dve rovnocenné cesty: súbor (plagát, PDF, Word) alebo vložený text
+           pozvánky či celého e-mailu. Tretia — e-mail — je pod nimi. -->
+      <div class="mb-4 inline-flex rounded-lg bg-slate-100 p-1 text-sm font-medium" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="!textMode"
+          class="rounded-md px-3 py-1.5 transition"
+          :class="!textMode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
+          @click="textMode = false"
+        >{{ t('poster.wizard.tabFile') }}</button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="textMode"
+          class="rounded-md px-3 py-1.5 transition"
+          :class="textMode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
+          @click="textMode = true"
+        >{{ t('poster.wizard.tabText') }}</button>
+      </div>
+
       <div
+        v-if="!textMode"
         class="rounded-xl border-2 border-dashed p-8 text-center transition-colors"
         :class="dragging ? 'border-slate-900 bg-slate-50' : 'border-slate-200'"
         @dragover.prevent="dragging = true"
@@ -41,15 +63,12 @@
         />
       </div>
 
-      <div class="mt-4">
-        <button type="button" class="text-sm font-medium text-slate-600 underline hover:text-slate-900" @click="textMode = !textMode">
-          {{ textMode ? t('poster.wizard.textToggleOn') : t('poster.wizard.textToggleOff') }}
-        </button>
-
-        <div v-if="textMode" class="mt-3 grid gap-2">
+      <div>
+        <div v-if="textMode" class="grid gap-2">
+          <p class="text-sm text-slate-600">{{ t('poster.wizard.textLead') }}</p>
           <textarea
             v-model="pastedText"
-            rows="6"
+            rows="10"
             class="form-input h-auto py-2"
             :placeholder="t('poster.wizard.textPlaceholder')"
           ></textarea>
@@ -63,6 +82,13 @@
           </div>
         </div>
       </div>
+
+      <!-- Tretia cesta: e-mail na kontaktnú adresu. Len keď je príjem zapnutý. -->
+      <p v-if="inbox" class="mt-4 text-sm text-slate-600">
+        {{ t('poster.wizard.emailLead') }}
+        <a :href="`mailto:${inbox}`" class="font-semibold text-slate-900 underline">{{ inbox }}</a>
+        {{ t('poster.wizard.emailNote') }}
+      </p>
 
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
     </section>
@@ -321,6 +347,7 @@ import {
   analyzePoster,
   claimPosterDraft,
   fetchPosterDraft,
+  fetchPosterInbox,
   rememberPosterDraft,
   type PosterDraft,
   type PosterField,
@@ -356,8 +383,10 @@ const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 const busy = ref(false)
 const dragging = ref(false)
-const textMode = ref(false)
+// `?mode=text` z homepage otvorí rovno vloženie textu.
+const textMode = ref(route.query.mode === 'text')
 const pastedText = ref('')
+const inbox = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const createdEventId = ref<number | null>(null)
 const progressMessage = ref(t('poster.wizard.progress.readPoster'))
@@ -820,6 +849,7 @@ async function loadMunicipalities() {
 // Číselník musí byť načítaný skôr, než sa pokúsime napárovať mesto z konceptu,
 // inak by `matchMunicipality()` hľadala v prázdnom poli a pole ostalo prázdne.
 onMounted(async () => {
+  void fetchPosterInbox().then((email) => { inbox.value = email })
   await loadMunicipalities()
   await restore()
 })

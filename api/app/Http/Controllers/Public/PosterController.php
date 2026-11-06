@@ -11,6 +11,7 @@ use App\Notifications\PosterDraftSaved;
 use App\Services\OpenAI\Detector;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterDraftMaterializer;
+use App\Services\Posters\PosterEmailIntake;
 use App\Services\Posters\PosterExtraction;
 use App\Services\Posters\PosterExtractionException;
 use App\Services\Posters\PosterTextExtractor;
@@ -123,6 +124,12 @@ class PosterController extends Controller
             'success' => true,
             'draft' => $this->draftPayload($draft, $token),
         ], 201);
+    }
+
+    /** Kontaktná adresa, na ktorú sa dá pozvánka poslať e-mailom (PosterEmailIntake). */
+    public function inbox(PosterEmailIntake $intake): JsonResponse
+    {
+        return response()->json(['email' => $intake->inbox()]);
     }
 
     public function show(Request $request, string $draft, PosterAnalysisReport $report): JsonResponse

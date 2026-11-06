@@ -438,6 +438,18 @@ return [
         'ignore' => 'Falls Sie das Plakat nicht hochgeladen haben, ignorieren Sie diese E-Mail ruhig — ohne Bestätigung wird nirgends etwas veröffentlicht.',
     ],
 
+    // App\Notifications\PosterEmailReply — odpoveď na pozvánku poslanú e-mailom.
+    'poster_email' => [
+        'subject' => 'Ihre Einladung — die Veranstaltung ist vorbereitet',
+        'intro' => 'Danke für die Einladung. So haben wir sie verstanden:',
+        'missing' => 'Es fehlt uns noch: :fields.',
+        'reply_hint' => 'Antworten Sie einfach auf diese E-Mail — wir ergänzen die Angaben und schicken Ihnen die Zusammenfassung erneut. Oder ergänzen Sie sie direkt im Entwurf.',
+        'complete' => 'Wir haben alles, was wir brauchen. Prüfen und speichern Sie die Veranstaltung — falls Sie hier noch kein Konto haben, legen Sie es beim Speichern an.',
+        'action' => 'Veranstaltung prüfen',
+        'expires' => 'Wir halten den Entwurf für Sie bis **:date** bereit.',
+        'ignore' => 'Ohne Ihre Bestätigung wird nirgends etwas veröffentlicht. Wenn Sie etwas anderes wollten, antworten Sie — ein Mensch liest es.',
+    ],
+
     // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
     'openai_billing' => [
         'subject' => 'OpenAI: Guthaben aufgebraucht, KI-Funktionen ausgefallen',

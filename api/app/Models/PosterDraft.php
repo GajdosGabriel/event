@@ -33,7 +33,15 @@ class PosterDraft extends Model
         'expires_at',
     ];
 
+    /** Koncept z formulára na webe. */
+    public const CHANNEL_WEB = 'web';
+
+    /** Koncept z e-mailu na kontaktnú adresu (PosterEmailIntake). */
+    public const CHANNEL_EMAIL = 'email';
+
     protected $casts = [
+        'email_token' => 'encrypted',
+        'email_rounds' => 'integer',
         'detection' => 'array',
         'analysis' => 'array',
         'overrides' => 'array',
@@ -41,7 +49,7 @@ class PosterDraft extends Model
         'expires_at' => 'datetime',
     ];
 
-    protected $hidden = ['token', 'detection', 'extracted_text'];
+    protected $hidden = ['token', 'email_token', 'detection', 'extracted_text'];
 
     protected static function booted(): void
     {

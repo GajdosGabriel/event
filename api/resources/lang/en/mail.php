@@ -438,6 +438,18 @@ return [
         'ignore' => 'If you did not upload the poster, feel free to ignore this e-mail — nothing is published anywhere without confirmation.',
     ],
 
+    // App\Notifications\PosterEmailReply — odpoveď na pozvánku poslanú e-mailom.
+    'poster_email' => [
+        'subject' => 'Your invitation — the event is ready',
+        'intro' => 'Thank you for the invitation. This is how we understood it:',
+        'missing' => 'We are still missing: :fields.',
+        'reply_hint' => 'Just reply to this e-mail — we will add the details and send you the summary again. Or fill them in right in the draft.',
+        'complete' => 'We have everything we need. Review and save the event — if you do not have an account here yet, you create one while saving.',
+        'action' => 'Review event',
+        'expires' => 'We keep the draft event for you until **:date**.',
+        'ignore' => 'Nothing is published anywhere without your confirmation. If you meant something else, reply — a person will read it.',
+    ],
+
     // App\Notifications\OpenAiBillingIssue — super-adminom, keď v OpenAI došiel kredit.
     'openai_billing' => [
         'subject' => 'OpenAI: out of credits, AI features are down',

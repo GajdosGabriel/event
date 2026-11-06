@@ -114,4 +114,21 @@ return [
         ],
     ],
 
+    // Podujatie poslané e-mailom na kontaktnú adresu (PosterEmailIntake).
+    // Nový e-mail mimo konverzácie (`message.unassigned` z Accountu), v ktorom
+    // AI rozpozná pozvánku, dostane koncept ako nahratý plagát a odpoveď
+    // s tým, čo chýba. Ostatná pošta ostáva v inboxe Accountu operátorovi.
+    // Treba ACCOUNT_MESSAGING a odber `message.unassigned` vo webhooku.
+    'poster_email' => [
+        'enabled' => (bool) env('POSTER_EMAIL_INTAKE', false),
+        // Adresa, ktorú ukážeme na webe („alebo pošlite e-mail na…"). Spracúva
+        // sa len pošta doručená do tejto schránky.
+        'inbox' => env('POSTER_EMAIL_INBOX'),
+        // Koľko konceptov z e-mailu za deň: na odosielateľa a spolu (AI stojí peniaze).
+        'per_sender_daily' => (int) env('POSTER_EMAIL_PER_SENDER_DAILY', 3),
+        'daily' => (int) env('POSTER_EMAIL_DAILY', 30),
+        // Koľkokrát sa pýtame na chýbajúce údaje, potom to prevezme operátor.
+        'max_rounds' => (int) env('POSTER_EMAIL_MAX_ROUNDS', 3),
+    ],
+
 ];

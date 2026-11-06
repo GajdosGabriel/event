@@ -34,4 +34,9 @@ return [
         'not_found' => 'The draft poster was not found.',
         'expired' => 'The draft poster has expired. Please upload it again.',
     ],
+
+    // Podujatie z e-mailu (App\Services\Posters\PosterEmailIntake).
+    'email' => [
+        'addition_heading' => 'Addition:',
+    ],
 ];

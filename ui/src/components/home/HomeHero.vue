@@ -105,13 +105,22 @@
           </ol>
         </div>
 
-        <RouterLink
-          to="/nahrat-plagat"
-          class="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-900 no-underline shadow-lg transition hover:bg-emerald-300"
-        >
-          <AppIcon name="upload" class="h-4 w-4" />
-          {{ t('poster.hero.cta') }}
-        </RouterLink>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <RouterLink
+            to="/nahrat-plagat"
+            class="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-900 no-underline shadow-lg transition hover:bg-emerald-300"
+          >
+            <AppIcon name="upload" class="h-4 w-4" />
+            {{ t('poster.hero.cta') }}
+          </RouterLink>
+          <!-- Bez plagátu: text pozvánky alebo celého e-mailu. -->
+          <RouterLink
+            :to="{ path: '/nahrat-plagat', query: { mode: 'text' } }"
+            class="inline-flex h-11 items-center rounded-xl px-4 text-sm font-semibold text-white no-underline ring-1 ring-inset ring-white/30 transition hover:bg-white/10"
+          >
+            {{ t('poster.hero.ctaText') }}
+          </RouterLink>
+        </div>
       </div>
     </div>
   </section>
