@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setLocale, t } from '@/i18n'
+import { takeRememberedRedirect } from '@/utils/authRedirect'
 import RegisterPage from './RegisterPage.vue'
 
 const { register } = vi.hoisted(() => ({ register: vi.fn() }))
@@ -15,9 +16,9 @@ beforeEach(() => {
   setLocale('sk')
 })
 
-async function page() {
-  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/login', name: 'login', component: { template: '<div />' } }, { path: '/:pathMatch(.*)*', component: { template: '<div />' } }] })
-  await router.push('/registracia')
+async function page(url = '/registracia') {
+  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/login', name: 'login', component: { template: '<div />' } }, { path: '/overenie', name: 'verify-email', component: { template: '<div />' } }, { path: '/:pathMatch(.*)*', component: { template: '<div />' } }] })
+  await router.push(url)
   return mount(RegisterPage, { global: { plugins: [router, createPinia()], stubs: { GoogleSignInButton: true } } })
 }
 
@@ -37,6 +38,22 @@ describe('registration', () => {
     expect(register).not.toHaveBeenCalled()
     expect(field(w, t('auth.register.password')).props('error')).toBe(t('auth.register.passwordTooShort'))
     expect(field(w, t('auth.register.passwordConfirm')).props('error')).toBeFalsy()
+  })
+
+  it('remembers where to return after the e-mail is verified', async () => {
+    localStorage.clear()
+    register.mockResolvedValue({})
+    const w = await page('/registracia?redirect=/organizatori/5')
+    await field(w, t('auth.register.name')).find('input').setValue('Jana')
+    await field(w, t('auth.register.email')).find('input').setValue('jana@example.test')
+    await field(w, t('auth.register.password')).find('input').setValue('dlhe-heslo')
+    await field(w, t('auth.register.passwordConfirm')).find('input').setValue('dlhe-heslo')
+    await w.get('input[type="checkbox"]').setValue(true)
+    await w.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(register).toHaveBeenCalled()
+    expect(takeRememberedRedirect()).toBe('/organizatori/5')
   })
 
   it('names the terms checkbox by its label text', async () => {

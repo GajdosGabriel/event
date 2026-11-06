@@ -34,7 +34,7 @@
         </div>
       </template>
 
-      <small>{{ t('auth.register.hasAccount') }} <RouterLink :to="{ name: 'login', query: eventId ? { event: eventId } : undefined }">{{ t('auth.register.loginLink') }}</RouterLink></small>
+      <small>{{ t('auth.register.hasAccount') }} <RouterLink :to="{ name: 'login', query: eventId ? { event: eventId } : redirect ? { redirect } : undefined }">{{ t('auth.register.loginLink') }}</RouterLink></small>
     </div>
   </div>
 </template>
@@ -46,6 +46,7 @@ import { register } from '@/api/auth'
 import { showPublicEvent } from '@/api/events'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
+import { internalRedirect, rememberRedirect } from '@/utils/authRedirect'
 import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
@@ -70,6 +71,10 @@ const form = ref({ display_name: '', email: prefillEmail, password: '', password
 // prihlásený, ide rovno na rezerváciu jedným klikom.
 const eventId = typeof route.query.event === 'string' && /^\d+$/.test(route.query.event) ? route.query.event : null
 const eventName = ref<string | null>(null)
+
+// `?redirect=` z prihlásenia (napr. „Prihlásiť sa a požiadať" pri kanáli).
+// Overovací odkaz z e-mailu ho nenesie, tak ho po registrácii odložíme.
+const redirect = internalRedirect(route.query.redirect)
 const eventLabel = computed(() => (eventName.value ? `„${eventName.value}"` : t('eventSignup.eventFallback')))
 
 onMounted(async () => {
@@ -128,6 +133,7 @@ async function submit() {
   loading.value = true
   try {
     const result = await register(eventId ? { ...form.value, event_id: Number(eventId) } : form.value)
+    rememberRedirect(redirect)
     if (result?.already_pending) {
       await router.push({ name: 'verify-email', query: { ...route.query, email: form.value.email.trim().toLowerCase() } })
       return
@@ -158,7 +164,7 @@ async function onGoogleCredential(credential: string) {
   try {
     await auth.socialLogin('register', 'google', { id_token: credential, terms_accepted: true })
     // Google e-mail overil — na akciu sa hlási hneď.
-    router.push(eventId ? { name: 'event-signup', params: { id: eventId } } : '/dashboard')
+    router.push(eventId ? { name: 'event-signup', params: { id: eventId } } : redirect ?? '/dashboard')
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('auth.register.failed')
   } finally {

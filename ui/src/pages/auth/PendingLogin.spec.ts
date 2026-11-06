@@ -2,14 +2,17 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import LoginPage from './LoginPage.vue'
 
-const { login, push } = vi.hoisted(() => ({ login: vi.fn(), push: vi.fn() }))
+const { login, push, route } = vi.hoisted(() => ({ login: vi.fn(), push: vi.fn(), route: { query: {} as Record<string, string> } }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ login }) }))
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => ({ query: { event: '42' } }) }))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => route }))
 vi.mock('@/i18n', () => ({ t: (key: string) => key }))
 vi.mock('@vueuse/head', () => ({ useHead: vi.fn() }))
 vi.mock('@/composables/useFormValidation', () => ({ provideFormValidation: () => ({ markValidated: vi.fn() }) }))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  route.query = { event: '42' }
+})
 function page() {
   return mount(LoginPage, { global: { stubs: {
     RouterLink: true, GoogleSignInButton: true, TermsConsentField: true,
@@ -34,5 +37,10 @@ describe('pending login', () => {
     await flushPromises()
     expect(push).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('Invalid login details')
+  })
+  it('passes the redirect on to registration', () => {
+    route.query = { redirect: '/organizatori/5' }
+    const targets = page().findAllComponents({ name: 'RouterLink' }).map(l => l.vm.$attrs.to as { name?: string })
+    expect(targets.find(to => to?.name === 'register')).toEqual({ name: 'register', query: { redirect: '/organizatori/5' } })
   })
 })

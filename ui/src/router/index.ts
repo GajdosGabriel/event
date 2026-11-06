@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { idFromRouteParam, PUBLIC_EVENTS } from '@/utils/publicUrl'
+import { internalRedirect } from '@/utils/authRedirect'
 import { endNavigation, startNavigation } from '@/composables/useNavigationProgress'
 
 const ResourceIndex = () => import('@/pages/ResourceIndexPage.vue')
@@ -269,10 +270,7 @@ router.beforeEach(async (to) => {
   // Prihlásený nemá čo robiť na /login a /register. Rešpektuje sa `redirect`,
   // ale len vnútorná cesta — inak by to bolo otvorené presmerovanie.
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    const redirect = to.query.redirect
-    return typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
-      ? redirect
-      : { name: 'dashboard' }
+    return internalRedirect(to.query.redirect) ?? { name: 'dashboard' }
   }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {

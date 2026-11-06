@@ -15,7 +15,7 @@
           </p>
           <RouterLink :to="{ name: 'event-signup', params: { id: reserveEvent.id } }" class="btn btn-primary">{{ t('eventSignup.reserveNow') }}</RouterLink>
         </template>
-        <RouterLink v-else to="/login" class="btn btn-primary">{{ t('auth.verifyLink.login') }}</RouterLink>
+        <RouterLink v-else :to="{ path: '/login', query: redirect ? { redirect } : undefined }" class="btn btn-primary">{{ t('auth.verifyLink.login') }}</RouterLink>
       </template>
 
       <template v-else>
@@ -33,11 +33,14 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { verifyRegistrationLink } from '@/api/auth'
 import { t } from '@/i18n'
+import { takeRememberedRedirect } from '@/utils/authRedirect'
 
 const route = useRoute()
 const status = ref<'loading' | 'success' | 'error'>('loading')
 const message = ref('')
 const reserveEvent = ref<{ id: number; name: string | null } | null>(null)
+// Kam chcel pred registráciou ísť (napr. požiadať o prevzatie kanála).
+const redirect = ref<string | null>(null)
 
 onMounted(async () => {
   const token = route.params.token as string
@@ -46,6 +49,7 @@ onMounted(async () => {
     // API odpovedá po anglicky — návštevníkovi ukážeme preloženú vetu.
     message.value = t('auth.verifyLink.successFallback')
     reserveEvent.value = res.reserveEvent
+    redirect.value = takeRememberedRedirect()
     status.value = 'success'
   } catch {
     message.value = t('auth.verifyLink.failedFallback')
