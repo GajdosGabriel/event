@@ -34,8 +34,10 @@ class RemoteAttachmentPersister
         return $attachments->values()->map(function (array $attachment, int $index) use ($model, $type, $disk, $storageDirectory, $makePrimary, $meta) {
             $url = (string) $attachment['url'];
 
+            // Wikimedia generický „bot" User-Agent škrtí (429) — volajúci smie
+            // poslať vlastný, popisný.
             $response = Http::timeout(60)
-                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; Event API Bot)'])
+                ->withHeaders(['User-Agent' => (string) ($attachment['user_agent'] ?? 'Mozilla/5.0 (compatible; Event API Bot)')])
                 ->get($url);
 
             if (! $response->successful()) {
