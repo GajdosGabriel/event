@@ -22,6 +22,7 @@
           <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" :error="passwordError" />
 
           <TermsConsentField v-model="form.terms_accepted" :error="termsError" />
+          <BotGuard ref="botGuard" v-model="guard" />
 
           <button type="submit" class="btn btn-primary" :disabled="loading">
             {{ loading ? t('auth.register.submitting') : t('auth.register.submit') }}
@@ -40,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { register } from '@/api/auth'
 import { showPublicEvent } from '@/api/events'
@@ -52,6 +53,8 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
 import TermsConsentField from '@/components/TermsConsentField.vue'
+import BotGuard from '@/components/auth/BotGuard.vue'
+import type { BotGuardPayload } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,6 +111,9 @@ const passwordError = ref<string | null>(null)
 const passwordLengthError = ref<string | null>(null)
 const MIN_PASSWORD_LENGTH = 8
 
+const guard = ref<BotGuardPayload>({ website: '', turnstile_token: '' })
+const botGuard = useTemplateRef<InstanceType<typeof BotGuard>>('botGuard')
+
 async function submit() {
   validation.markValidated()
   error.value = null
@@ -132,7 +138,8 @@ async function submit() {
 
   loading.value = true
   try {
-    const result = await register(eventId ? { ...form.value, event_id: Number(eventId) } : form.value)
+    const payload = { ...form.value, ...guard.value }
+    const result = await register(eventId ? { ...payload, event_id: Number(eventId) } : payload)
     rememberRedirect(redirect)
     if (result?.already_pending) {
       await router.push({ name: 'verify-email', query: { ...route.query, email: form.value.email.trim().toLowerCase() } })
@@ -140,6 +147,8 @@ async function submit() {
     }
     success.value = true
   } catch (e: unknown) {
+    // Token Turnstile je jednorazový — ďalší pokus potrebuje nový.
+    botGuard.value?.reset()
     const response = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response
     if (response?.data?.errors?.['terms_accepted']) termsError.value = t('auth.register.termsRequired')
     passwordLengthError.value = response?.data?.errors?.['password']?.[0] ?? null

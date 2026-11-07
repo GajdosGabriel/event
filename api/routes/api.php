@@ -104,10 +104,10 @@ Route::middleware('throttle:auth')->group(function () {
 
 // Registrácia: zakladá účty a posiela e-maily, preto vlastný limit.
 Route::middleware('throttle:register')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
+    Route::post('/register', [AuthController::class, 'register'])->name('auth.register')->middleware('bot-guard');
     Route::post('/register/google', [AuthController::class, 'googleAuth'])->name('auth.register.google');
     Route::post('/register/facebook', [AuthController::class, 'facebookAuth'])->name('auth.register.facebook');
-    Route::post('/register/resend', [AuthController::class, 'resendRegistrationVerification'])->name('auth.register.resend');
+    Route::post('/register/resend', [AuthController::class, 'resendRegistrationVerification'])->name('auth.register.resend')->middleware('bot-guard');
     Route::post('/register/verify', [AuthController::class, 'verifyRegistration'])->name('auth.register.verify');
 });
 
@@ -117,7 +117,7 @@ Route::get('/register/verify/{token}', [AuthController::class, 'verifyRegistrati
 // vlastný limiter; `reset` ho zdieľa, lebo skúšanie tokenov je to isté hádanie
 // ako skúšanie hesiel. Odpoveď na `forgot` je vždy rovnaká — viď controller.
 Route::middleware('throttle:password-reset')->group(function () {
-    Route::post('/password/forgot', [PasswordResetController::class, 'forgot'])->name('auth.password.forgot');
+    Route::post('/password/forgot', [PasswordResetController::class, 'forgot'])->name('auth.password.forgot')->middleware('bot-guard');
     Route::post('/password/reset', [PasswordResetController::class, 'reset'])->name('auth.password.reset');
 });
 

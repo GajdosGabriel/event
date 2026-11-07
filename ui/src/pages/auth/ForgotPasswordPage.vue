@@ -18,6 +18,7 @@
 
       <form v-else class="grid gap-3" @submit.prevent="submit">
         <FormField v-model="email" type="email" :label="t('auth.forgot.email')" required autocomplete="email" />
+        <BotGuard ref="botGuard" v-model="guard" />
         <button type="submit" class="btn btn-primary" :disabled="loading">
           {{ loading ? t('auth.forgot.submitting') : t('auth.forgot.submit') }}
         </button>
@@ -29,13 +30,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { forgotPassword } from '@/api/auth'
 import { t } from '@/i18n'
 import { usePrivatePageHead } from '@/composables/usePrivatePageHead'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
+import BotGuard from '@/components/auth/BotGuard.vue'
+import type { BotGuardPayload } from '@/types'
 
 const route = useRoute()
 usePrivatePageHead(() => t('auth.forgot.title'))
@@ -47,15 +50,18 @@ const email = ref(typeof route.query.email === 'string' ? route.query.email : ''
 const sent = ref(false)
 const error = ref<string | null>(null)
 const loading = ref(false)
+const guard = ref<BotGuardPayload>({ website: '', turnstile_token: '' })
+const botGuard = useTemplateRef<InstanceType<typeof BotGuard>>('botGuard')
 
 async function submit() {
   validation.markValidated()
   error.value = null
   loading.value = true
   try {
-    await forgotPassword(email.value)
+    await forgotPassword(email.value, guard.value)
     sent.value = true
   } catch (e: unknown) {
+    botGuard.value?.reset()
     // Sem sa dostane len zamietnutie limiterom alebo výpadok — samotné
     // „adresa neexistuje" backend nikdy nevráti.
     error.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message

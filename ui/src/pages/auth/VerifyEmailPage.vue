@@ -9,6 +9,7 @@
 
       <form class="grid gap-3" @submit.prevent="resend">
         <FormField v-model="email" type="email" :label="t('auth.verify.email')" required />
+        <BotGuard ref="botGuard" v-model="guard" />
         <button type="submit" class="btn btn-secondary" :disabled="loading">
           {{ loading ? t('auth.verify.resending') : t('auth.verify.resend') }}
         </button>
@@ -20,12 +21,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { resendVerification } from '@/api/auth'
 import { t } from '@/i18n'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import FormField from '@/components/FormField.vue'
+import BotGuard from '@/components/auth/BotGuard.vue'
+import type { BotGuardPayload } from '@/types'
 
 const validation = provideFormValidation()
 
@@ -34,6 +37,8 @@ const email = ref(typeof route.query.email === 'string' ? route.query.email : ''
 const message = ref<string | null>(null)
 const error = ref<string | null>(null)
 const loading = ref(false)
+const guard = ref<BotGuardPayload>({ website: '', turnstile_token: '' })
+const botGuard = useTemplateRef<InstanceType<typeof BotGuard>>('botGuard')
 
 async function resend() {
   validation.markValidated()
@@ -41,11 +46,14 @@ async function resend() {
   message.value = null
   loading.value = true
   try {
-    await resendVerification(email.value)
+    await resendVerification(email.value, guard.value)
     message.value = t('auth.verify.sent')
-  } catch {
-    error.value = t('auth.verify.failed')
+  } catch (e: unknown) {
+    error.value = (e as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors?.['turnstile_token']?.[0]
+      ?? t('auth.verify.failed')
   } finally {
+    // Token Turnstile je jednorazový — aj po úspechu, ďalšie odoslanie potrebuje nový.
+    botGuard.value?.reset()
     loading.value = false
   }
 }

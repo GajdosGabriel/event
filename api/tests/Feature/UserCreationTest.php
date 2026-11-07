@@ -183,4 +183,30 @@ class UserCreationTest extends TestCase
         $this->assertDatabaseMissing('pending_registrations', ['email' => 'bezsuhlasu@example.sk']);
         Notification::assertNothingSent();
     }
+
+    /**
+     * `registered_via=google` na /register kedysi založil rovno overený účet
+     * na ľubovoľnú adresu s heslom od volajúceho — bez akéhokoľvek tokenu.
+     */
+    #[Test]
+    public function register_endpoint_cannot_create_a_verified_social_account(): void
+    {
+        Notification::fake();
+
+        foreach (['google', 'facebook'] as $provider) {
+            $this->postJson('/api/register', [
+                'email' => "obet-{$provider}@example.sk",
+                'password' => 'Utocnik-heslo-1',
+                'password_confirmation' => 'Utocnik-heslo-1',
+                'display_name' => 'Útočník',
+                'registered_via' => $provider,
+                'terms_accepted' => true,
+            ])->assertStatus(422)->assertJsonValidationErrors(['registered_via']);
+
+            $this->assertDatabaseMissing('users', ['email' => "obet-{$provider}@example.sk"]);
+        }
+
+        $this->postJson('/api/login', ['email' => 'obet-google@example.sk', 'password' => 'Utocnik-heslo-1'])
+            ->assertUnauthorized();
+    }
 }

@@ -171,6 +171,15 @@ export interface LoginPayload {
   password: string
 }
 
+/**
+ * Polia ochrany pred botmi (BotGuard.vue → GuardAgainstBots v API):
+ * honeypot `website` musí ostať prázdny, `turnstile_token` je z Cloudflare.
+ */
+export interface BotGuardPayload {
+  website: string
+  turnstile_token: string
+}
+
 export interface RegisterPayload {
   display_name: string
   email: string

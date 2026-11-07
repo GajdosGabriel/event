@@ -17,5 +17,6 @@ return [
     'invalid_login' => 'Incorrect email or password.',
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+    'bot_check_failed' => 'We could not verify that you are not a robot. Reload the page and try again.',
 
 ];

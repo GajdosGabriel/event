@@ -1,6 +1,6 @@
 import http from './index'
 import { beginImpersonation, clearAuthToken, endImpersonation, setAuthToken } from './authToken'
-import type { AuthIdentity, LoginPayload, RegisterPayload } from '@/types'
+import type { AuthIdentity, BotGuardPayload, LoginPayload, RegisterPayload } from '@/types'
 
 const CSRF_URL = '/sanctum/csrf-cookie'
 
@@ -42,7 +42,7 @@ export async function login(payload: LoginPayload): Promise<AuthIdentity> {
   return identity
 }
 
-export async function register(payload: RegisterPayload): Promise<{ already_pending?: boolean }> {
+export async function register(payload: RegisterPayload & Partial<BotGuardPayload>): Promise<{ already_pending?: boolean }> {
   await csrf()
   const { data } = await http.post('/register', payload)
   return data
@@ -59,9 +59,9 @@ export async function fetchMe(): Promise<AuthIdentity | null> {
   return unwrapIdentity(data)
 }
 
-export async function resendVerification(email: string): Promise<void> {
+export async function resendVerification(email: string, guard?: BotGuardPayload): Promise<void> {
   await csrf()
-  await http.post('/register/resend', { email })
+  await http.post('/register/resend', { email, ...guard })
 }
 
 /**
@@ -69,9 +69,9 @@ export async function resendVerification(email: string): Promise<void> {
  * takže z návratovej hodnoty sa nedá (a nemá) zistiť, či účet existuje —
  * stránka ukazuje to isté potvrdenie v oboch prípadoch.
  */
-export async function forgotPassword(email: string): Promise<void> {
+export async function forgotPassword(email: string, guard?: BotGuardPayload): Promise<void> {
   await csrf()
-  await http.post('/password/forgot', { email })
+  await http.post('/password/forgot', { email, ...guard })
 }
 
 export interface ResetPasswordPayload {

@@ -25,7 +25,7 @@ class AuthRegisterRequest extends FormRequest
             'email' => [
                 'required',
                 'string',
-                'email',
+                config('registration.check_email_dns') ? 'email:rfc,dns' : 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
             ],
@@ -33,9 +33,12 @@ class AuthRegisterRequest extends FormRequest
             // registračný formulár pýta heslo dvakrát, a bez tohto pravidla by
             // sa druhé pole nikde neporovnávalo — preklep by ticho založil účet
             // s heslom, ktoré si človek nepamätá.
-            'password' => 'required_if:registered_via,local|string|min:8|confirmed',
-            'registered_via' => 'sometimes|string|in:local,google,facebook',
-            'display_name' => 'required_if:registered_via,local|string|max:255',
+            'password' => 'required|string|min:8|confirmed',
+            // Len `local`: Google a Facebook majú vlastné endpointy, ktoré overia
+            // token poskytovateľa. Hodnota `google` tu kedysi zakladala rovno
+            // overený účet na ľubovoľnú adresu s heslom od volajúceho.
+            'registered_via' => 'sometimes|string|in:local',
+            'display_name' => 'required|string|max:255',
             // Súhlas s obchodnými podmienkami je podmienkou vzniku účtu, preto
             // `accepted` (musí prísť true/1/"on"), nie obyčajný boolean —
             // hodnota false alebo chýbajúce pole registráciu zastaví.

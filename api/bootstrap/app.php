@@ -53,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'bot-guard' => \App\Http\Middleware\GuardAgainstBots::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

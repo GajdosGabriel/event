@@ -39,6 +39,12 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
+    // Cloudflare Turnstile pred registráciou a zabudnutým heslom
+    // (App\Services\Security\Turnstile). Prázdny kľúč = vypnuté.
+    'turnstile' => [
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
     'facebook' => [
         'app_id' => env('FACEBOOK_APP_ID'),
         'app_secret' => env('FACEBOOK_APP_SECRET'),

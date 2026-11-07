@@ -66,66 +66,44 @@ class AuthController extends Controller
 
     public function register(AuthRegisterRequest $request)
     {
-        $registeredVia = $request->input('registered_via', 'local');
+        // Len e-mail a heslo s overením cez odkaz. Google a Facebook majú
+        // vlastné endpointy, ktoré overia token poskytovateľa — účet bez
+        // overenia sa tu založiť nedá (AuthRegisterRequest púšťa len `local`).
         $consent = $this->termsConsent();
 
-        if ($registeredVia === 'local') {
-            $existing = PendingRegistration::where('email', $request->input('email'))->first();
-            if ($existing && $existing->expires_at?->isFuture()) {
-                return response()->json([
-                    'message' => 'Registration awaits email confirmation. Original details are unchanged.',
-                    'already_pending' => true,
-                    'verification_required' => true,
-                ], 201);
-            }
-            $rawToken = Str::random(64);
-            $hashedToken = hash('sha256', $rawToken);
-
-            $ttlHours = (int) config('registration.verification_ttl_hours', 48);
-
-            // Registrácia z tlačidla „Prihlásiť sa" pri podujatí — miesto sa
-            // rezervuje až po overení e-mailu (verifyRegistrationToken).
-            $event = app(EventSignup::class)->findOpenEvent($request->input('event_id'));
-
-            $pending = PendingRegistration::updateOrCreate(['email' => $request->input('email')], [
-                'password' => Hash::make($request->input('password')),
-                'display_name' => $request->input('display_name'),
-                'event_id' => $event?->id,
-                'registered_via' => $registeredVia,
-                'verification_token' => $hashedToken,
-                'expires_at' => now()->addHours($ttlHours),
-                ...$consent,
-            ]);
-
-            $this->sendPendingConfirmation($pending);
-
+        $existing = PendingRegistration::where('email', $request->input('email'))->first();
+        if ($existing && $existing->expires_at?->isFuture()) {
             return response()->json([
-                'message' => 'Registration created. Please verify your email.',
-                'event' => $event ? ['id' => $event->id, 'name' => $event->name] : null,
+                'message' => 'Registration awaits email confirmation. Original details are unchanged.',
+                'already_pending' => true,
+                'verification_required' => true,
             ], 201);
         }
+        $rawToken = Str::random(64);
+        $hashedToken = hash('sha256', $rawToken);
 
-        $password = $request->input('password') ?? Str::random(32);
+        $ttlHours = (int) config('registration.verification_ttl_hours', 48);
 
-        $user = User::create([
-            'email' => $request->input('email'),
-            'password' => Hash::make($password),
-            'registered_via' => $registeredVia,
+        // Registrácia z tlačidla „Prihlásiť sa" pri podujatí — miesto sa
+        // rezervuje až po overení e-mailu (verifyRegistrationToken).
+        $event = app(EventSignup::class)->findOpenEvent($request->input('event_id'));
+
+        $pending = PendingRegistration::updateOrCreate(['email' => $request->input('email')], [
+            'password' => Hash::make($request->input('password')),
+            'display_name' => $request->input('display_name'),
+            'event_id' => $event?->id,
+            'registered_via' => 'local',
+            'verification_token' => $hashedToken,
+            'expires_at' => now()->addHours($ttlHours),
             ...$consent,
         ]);
 
-        if ($request->filled('display_name')) {
-            PendingProfile::create([
-                'user_id' => $user->id,
-                'display_name' => $request->input('display_name'),
-            ]);
-        }
+        $this->sendPendingConfirmation($pending);
 
-        $user->forceFill(['email_verified_at' => now()])->save();
-
-        $this->assignSuperAdminIfFirstUser($user);
-
-        return response()->json($user, 201);
+        return response()->json([
+            'message' => 'Registration created. Please verify your email.',
+            'event' => $event ? ['id' => $event->id, 'name' => $event->name] : null,
+        ], 201);
     }
 
     public function googleAuth(GoogleAuthRequest $request)

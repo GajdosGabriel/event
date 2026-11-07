@@ -285,6 +285,7 @@
           v-model="account.termsAccepted"
           :validated="accountValidated"
         />
+        <BotGuard v-if="account.mode === 'register'" ref="botGuard" v-model="guard" />
       </div>
 
       <p v-if="error" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -329,14 +330,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormField from '@/components/FormField.vue'
 import TermsConsentField from '@/components/TermsConsentField.vue'
+import BotGuard from '@/components/auth/BotGuard.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { listPublicMunicipalities } from '@/api/municipalities'
-import type { LookupOption } from '@/types'
+import type { BotGuardPayload, LookupOption } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { register as registerAccount } from '@/api/auth'
 import { t } from '@/i18n'
@@ -440,6 +442,8 @@ const account = reactive({
   termsAccepted: false,
   mode: 'register' as 'register' | 'login',
 })
+const guard = ref<BotGuardPayload>({ website: '', turnstile_token: '' })
+const botGuard = useTemplateRef<InstanceType<typeof BotGuard>>('botGuard')
 
 /** Pod tento počet znakov AI nemá z čoho čítať (rovnaké minimum ako na serveri). */
 const MIN_TEXT_LENGTH = 30
@@ -728,6 +732,7 @@ async function finish() {
           password: account.password,
           password_confirmation: account.passwordConfirmation,
           terms_accepted: account.termsAccepted,
+          ...guard.value,
         })
         persist()
         step.value = 'verify'
@@ -739,6 +744,8 @@ async function finish() {
 
     await claim()
   } catch (e: unknown) {
+    // Token Turnstile je jednorazový — ďalší pokus potrebuje nový.
+    botGuard.value?.reset()
     // Rovnaký stav ako na /login: server vráti 409 `email_not_verified` s anglickou
     // hláškou, ktorú človeku neukazujeme — vysvetlíme to po našom a ponúkneme odkaz.
     if ((e as { response?: { data?: { code?: string } } })?.response?.data?.code === 'email_not_verified') {
