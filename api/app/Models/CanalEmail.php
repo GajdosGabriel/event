@@ -36,6 +36,8 @@ class CanalEmail extends Model
     protected $casts = [
         'is_primary' => 'boolean',
         'status' => CanalEmailStatus::class,
+        'pending_at' => 'datetime',
+        'pending_primary' => 'boolean',
         'verified_at' => 'datetime',
         'last_seen_at' => 'datetime',
         'bounced_at' => 'datetime',
@@ -55,5 +57,11 @@ class CanalEmail extends Model
     public function isVerified(): bool
     {
         return $this->status === CanalEmailStatus::Verified;
+    }
+
+    /** Pridal ju tím a ešte ju nepotvrdil — kanál ju nepoužíva (CanalEmails::request). */
+    public function isPending(): bool
+    {
+        return $this->pending_at !== null;
     }
 }

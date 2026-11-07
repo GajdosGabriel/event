@@ -198,11 +198,28 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         $oldEmail = $canal->email;
 
+        // Novú adresu od tímu kanál nepoužíva, kým ju schránka nepotvrdí
+        // (CanalEmails::request). Super-admin a systém (bez prihláseného
+        // používateľa) ju menia hneď.
+        $actor = auth('sanctum')->user();
+        $requested = $actor instanceof User && ! $actor->hasRole('super-admin')
+            && (array_key_exists('email', $properties) || $additionalEmails !== null);
+
+        if ($requested) {
+            $requestedEmail = array_key_exists('email', $properties) ? $properties['email'] : $canal->email;
+            unset($properties['email'], $properties['email_verified_at']);
+        }
+
         $canal->update($properties);
 
-        // Formulár posiela celý zoznam adries; bez neho (staršie volania)
-        // sa mení len primárna a ostatné ostávajú (CanalEmails::adopt).
-        if ($additionalEmails !== null) {
+        if ($requested) {
+            app(CanalContactVerifier::class)->requested(
+                $canal,
+                app(CanalEmails::class)->request($canal, $requestedEmail, $additionalEmails),
+            );
+        } elseif ($additionalEmails !== null) {
+            // Formulár posiela celý zoznam adries; bez neho (staršie volania)
+            // sa mení len primárna a ostatné ostávajú (CanalEmails::adopt).
             app(CanalEmails::class)->sync(
                 $canal,
                 array_key_exists('email', $properties) ? $properties['email'] : $canal->email,

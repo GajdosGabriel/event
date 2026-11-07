@@ -1448,6 +1448,11 @@ const sk = {
       saveFailed: 'Uloženie zlyhalo.',
       created: 'Kanál vytvorený.',
       saved: 'Kanál uložený.',
+      emailPending: 'Adresa {email} čaká na potvrdenie. Kým nepotvrdí odkaz z e-mailu, kontaktom kanála ostáva {current}.',
+      emailPendingNoCurrent: 'Adresa {email} čaká na potvrdenie. Kým nepotvrdí odkaz z e-mailu, kanál kontaktný e-mail nemá.',
+      emailResend: 'Poslať odkaz znova',
+      emailResent: 'Odkaz na potvrdenie sme poslali znova.',
+      emailResendFailed: 'Odkaz sa nepodarilo poslať.',
     },
     sections: {
       basic: 'Základné info',

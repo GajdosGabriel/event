@@ -12,9 +12,12 @@ use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Repositories\Contracts\CanalRepository;
+use App\Services\Canals\CanalContactVerifier;
 use App\Services\Publishing\RecordPublisher;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
 
 class DashboardCanalController extends Controller
 {
@@ -85,6 +88,21 @@ class DashboardCanalController extends Controller
             new CanalResource($this->canalRepository->dashboardShow($id)),
             200
         );
+    }
+
+    /** Odkaz na potvrdenie nepotvrdenej adresy kanála znova (CanalContactVerifier::resend). */
+    public function resendEmailVerification(string $id, Request $request, CanalContactVerifier $verifier): JsonResponse
+    {
+        $canal = $this->canalRepository->dashboardShow($id);
+        $this->authorize('update', $canal);
+
+        $data = $request->validate(['email' => 'required|email:filter|max:191']);
+
+        if (! $verifier->resend($canal, $data['email'])) {
+            throw ValidationException::withMessages(['email' => __('canals.errors.email_not_awaiting_verification')]);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function store(CanalStoreRequest $request): JsonResponse

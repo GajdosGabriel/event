@@ -51,6 +51,10 @@ class CanalResource extends JsonResource
                 'is_primary' => $email->is_primary,
                 'status' => $email->status->value,
                 'verified_at' => $email->verified_at,
+                // Pridal ju tím a čaká na potvrdenie odkazom; `pending_primary`
+                // = po potvrdení sa stane primárnou (CanalEmails::request).
+                'pending' => $email->isPending(),
+                'pending_primary' => $email->isPending() && $email->pending_primary,
                 'bounced_at' => $email->bounced_at,
                 'bounce_type' => $email->bounce_type,
                 'bounce_reason' => $email->bounce_reason,

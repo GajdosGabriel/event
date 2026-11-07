@@ -27,6 +27,8 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
       email: e['email'] as string,
       isPrimary: Boolean(e['is_primary']),
       status: (e['status'] as CanalItem['emails'][number]['status']) ?? 'unverified',
+      pending: Boolean(e['pending']),
+      pendingPrimary: Boolean(e['pending_primary']),
       bouncedAt: (e['bounced_at'] as string) ?? null,
       bounceReason: (e['bounce_reason'] as string) ?? null,
     })),
@@ -124,6 +126,11 @@ export async function updateCanal(id: number, payload: FormData | Record<string,
     ? await http.post(`${baseUrl(scope)}/${id}`, payload)
     : await http.put(`${baseUrl(scope)}/${id}`, payload)
   return mapCanal((data.data ?? data) as Record<string, unknown>)
+}
+
+/** Odkaz na potvrdenie čakajúcej adresy kanála znova (len dashboard — super-admin ju mení hneď). */
+export async function resendCanalEmailVerification(id: number, email: string): Promise<void> {
+  await http.post(`/dashboard/canals/${id}/emails/verification`, { email })
 }
 
 export async function deleteCanal(id: number, scope: Scope = 'dashboard'): Promise<void> {

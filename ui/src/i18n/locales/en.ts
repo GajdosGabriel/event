@@ -1370,6 +1370,11 @@ const en: Messages = {
       saveFailed: 'Saving failed.',
       created: 'Channel created.',
       saved: 'Channel saved.',
+      emailPending: 'The address {email} is awaiting confirmation. Until the link in the email is confirmed, {current} remains the channel contact.',
+      emailPendingNoCurrent: 'The address {email} is awaiting confirmation. Until the link in the email is confirmed, the channel has no contact email.',
+      emailResend: 'Resend link',
+      emailResent: 'We sent the confirmation link again.',
+      emailResendFailed: 'The link could not be sent.',
     },
     sections: {
       basic: 'Basic info',

@@ -336,6 +336,10 @@ export interface CanalEmailItem {
   isPrimary: boolean
   /** `undeliverable` = e-mail sa vrátil a na adresu sa nepíše. */
   status: 'unverified' | 'verified' | 'undeliverable'
+  /** Pridal ju tím a kanál ju nepoužíva, kým ju schránka nepotvrdí odkazom. */
+  pending: boolean
+  /** Po potvrdení sa stane primárnou. */
+  pendingPrimary: boolean
   bouncedAt: string | null
   bounceReason: string | null
 }

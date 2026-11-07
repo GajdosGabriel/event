@@ -1369,6 +1369,11 @@ const cs: Messages = {
       saveFailed: 'Uložení selhalo.',
       created: 'Kanál vytvořen.',
       saved: 'Kanál uložen.',
+      emailPending: 'Adresa {email} čeká na potvrzení. Dokud nepotvrdí odkaz z e-mailu, kontaktem kanálu zůstává {current}.',
+      emailPendingNoCurrent: 'Adresa {email} čeká na potvrzení. Dokud nepotvrdí odkaz z e-mailu, kanál kontaktní e-mail nemá.',
+      emailResend: 'Poslat odkaz znovu',
+      emailResent: 'Odkaz pro potvrzení jsme poslali znovu.',
+      emailResendFailed: 'Odkaz se nepodařilo odeslat.',
     },
     sections: {
       basic: 'Základní info',

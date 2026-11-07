@@ -27,6 +27,16 @@
         <ContactFieldset v-model:email="form.email" v-model:phone="form.phone" v-model:website="form.website"
           kind="canals" :errors="errors" :website-issue="websiteIssue" />
 
+        <!-- Novú adresu od tímu kanál nepoužíva, kým ju schránka nepotvrdí
+             (CanalEmails::request na backende). Super-admin ju mení hneď. -->
+        <div v-if="pendingEmail" class="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <span>{{ currentEmail
+            ? t('canals.form.emailPending', { email: pendingEmail, current: currentEmail })
+            : t('canals.form.emailPendingNoCurrent', { email: pendingEmail }) }}</span>
+          <button v-if="scope === 'dashboard'" type="button" class="font-semibold underline disabled:opacity-50"
+            :disabled="resending" @click="resendVerification">{{ t('canals.form.emailResend') }}</button>
+        </div>
+
         <RecordFormActions kind="canals" :saving="saving" :cancel-to="indexRoute" />
       </form>
     </div>
@@ -49,7 +59,8 @@ import SimilarRecords from '@/components/SimilarRecords.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'
-import { showCanal, createCanal, updateCanal } from '@/api/canals'
+import { showCanal, createCanal, updateCanal, resendCanalEmailVerification } from '@/api/canals'
+import type { CanalItem } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
@@ -134,6 +145,36 @@ const saving = ref(false)
  */
 const unpublishBlockedReason = ref<string | null>(null)
 
+/** Adresa, ktorá čaká na potvrdenie, a kontakt, ktorý dovtedy platí. */
+const pendingEmail = ref<string | null>(null)
+const currentEmail = ref<string | null>(null)
+const resending = ref(false)
+
+/**
+ * V dashboarde ostáva v poli čakajúca adresa — ďalšie uloženie formulára
+ * by inak žiadosť o zmenu zrušilo. Admin vidí platnú adresu; keď do poľa
+ * dá čakajúcu, uložením ju schváli.
+ */
+function applyEmails(c: CanalItem) {
+  pendingEmail.value = c.emails.find(e => e.pendingPrimary)?.email ?? null
+  currentEmail.value = c.email
+  if (pendingEmail.value && scope.value === 'dashboard') form.value.email = pendingEmail.value
+}
+
+async function resendVerification() {
+  const id = fileableId.value
+  if (!id || !pendingEmail.value) return
+  resending.value = true
+  try {
+    await resendCanalEmailVerification(id, pendingEmail.value)
+    toast.success(t('canals.form.emailResent'))
+  } catch {
+    toast.error(t('canals.form.emailResendFailed'))
+  } finally {
+    resending.value = false
+  }
+}
+
 /** Po uložení sa upozornenie na web načíta znova — adresa sa mohla zmeniť. */
 async function reloadWebsiteIssue() {
   const id = fileableId.value
@@ -160,6 +201,7 @@ onMounted(async () => {
         body: c.body ?? '',
       }
       unpublishBlockedReason.value = c.unpublishBlockedReason
+      applyEmails(c)
       address.value = addressFrom(c)
       applyWebsiteIssue(c)
     } catch { serverError.value = t('canals.form.loadFailed') }
@@ -189,7 +231,7 @@ async function submit() {
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
-      await updateCanal(Number(route.params.id), payload(), scope.value)
+      applyEmails(await updateCanal(Number(route.params.id), payload(), scope.value))
       toast.success(t('canals.form.saved'))
       await reloadWebsiteIssue()
     }

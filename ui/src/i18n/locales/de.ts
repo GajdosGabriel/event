@@ -1370,6 +1370,11 @@ const de: Messages = {
       saveFailed: 'Speichern fehlgeschlagen.',
       created: 'Kanal erstellt.',
       saved: 'Kanal gespeichert.',
+      emailPending: 'Die Adresse {email} wartet auf Bestätigung. Bis der Link aus der E-Mail bestätigt ist, bleibt {current} der Kontakt des Kanals.',
+      emailPendingNoCurrent: 'Die Adresse {email} wartet auf Bestätigung. Bis der Link aus der E-Mail bestätigt ist, hat der Kanal keine Kontakt-E-Mail.',
+      emailResend: 'Link erneut senden',
+      emailResent: 'Der Bestätigungslink wurde erneut gesendet.',
+      emailResendFailed: 'Der Link konnte nicht gesendet werden.',
     },
     sections: {
       basic: 'Grunddaten',

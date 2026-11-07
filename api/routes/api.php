@@ -399,6 +399,11 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
         ->name('canals.events')
         ->middleware('permission:canal.view');
 
+    // Odkaz na potvrdenie adresy kanála znova (čakajúca adresa tímu, CanalEmails::request).
+    Route::post('canals/{canal}/emails/verification', [DashboardCanalController::class, 'resendEmailVerification'])
+        ->name('canals.emails.verification')
+        ->middleware(['permission:canal.update', 'throttle:messages']);
+
     // Tím kanála. Bez `permission:` middlewaru — právo je per kanál a rieši ho
     // CanalPolicy (viewTeam / manageTeam), nie globálna rola používateľa.
     Route::get('canals/{canal}/team', [DashboardCanalTeamController::class, 'index'])

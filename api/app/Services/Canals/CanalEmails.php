@@ -24,7 +24,9 @@ use Illuminate\Support\Str;
  * prevzatie, prihlášky), takže vždy píše na najlepšiu adresu, akú poznáme.
  *
  * Primárnu adresu mení:
- *  - človek vo formulári kanála (sync),
+ *  - super-admin vo formulári kanála (sync) — hneď,
+ *  - tím kanála vo formulári (request) — adresu, ktorú kanál už má, hneď;
+ *    novú až po potvrdení odkazom z e-mailu (čakajúca adresa, `pending_at`),
  *  - zápis do `canals.email` odinakiaľ, napr. import (adopt, cez CanalObserver),
  *  - vrátený e-mail (recordBounce) — adresa je nedoručiteľná a primárnou sa
  *    stane ďalšia najlepšia; ak žiadna nie je, kanál ostane bez kontaktu
@@ -69,8 +71,9 @@ class CanalEmails
     }
 
     /**
-     * Zoznam z formulára: čo v ňom nie je, sa zmaže. Nedoručiteľná adresa,
-     * ktorú človek sám vybral za primárnu, dostane novú šancu.
+     * Zoznam z formulára super-admina (alebo systému): čo v ňom nie je, sa
+     * zmaže a zmena platí hneď. Nedoručiteľná adresa, ktorú človek sám vybral
+     * za primárnu, dostane novú šancu; čakajúcu adresu tímu tým schváli.
      *
      * @param  array<int, mixed>  $additional
      */
@@ -81,12 +84,7 @@ class CanalEmails
         }
 
         $primary = self::normalize($primary);
-        $wanted = collect([$primary, ...$additional])
-            ->map(fn ($email) => self::normalize(is_string($email) ? $email : null))
-            ->filter()
-            ->unique()
-            ->take(self::MAX)
-            ->values();
+        $wanted = $this->wanted([$primary, ...$additional]);
 
         $canal->emails()->whereNotIn('email', $wanted->all())->delete();
         $known = $canal->emails()->get()->keyBy('email');
@@ -97,11 +95,116 @@ class CanalEmails
             }
         }
 
+        if ($primary !== null && $known[$primary]->isPending()) {
+            $canal->emails()->where('pending_primary', true)->update(['pending_primary' => false]);
+            $this->clearPending($known[$primary]);
+        }
+
         if ($primary !== null && ! $known[$primary]->isUsable()) {
             $this->reactivate($known[$primary]);
         }
 
         $this->settle($canal, $primary);
+    }
+
+    /**
+     * Zmena adries z formulára, ktorú robí tím kanála (nie super-admin).
+     *
+     * Adresa, ktorú kanál ešte nemal, pribudne ako čakajúca: primárnou sa
+     * stane — ak ju tím za primárnu chce — až keď ju schránka potvrdí odkazom
+     * (CanalContactVerifier). Inak by si tím mohol nastaviť cudziu alebo
+     * preklepnutú adresu a cez ňu by kanál, keď ho tím opustí, mohol prevziať
+     * ktokoľvek (CanalClaims, oslovenie). Adresu, ktorú kanál už má, si tím
+     * za primárnu vyberie hneď.
+     *
+     * @param  array<int, mixed>|null  $additional  null = formulár posiela len primárnu, ostatné adresy ostávajú
+     * @return Collection<int, CanalEmail> adresy, ktorým treba poslať odkaz na potvrdenie
+     */
+    public function request(Canal $canal, ?string $primary, ?array $additional): Collection
+    {
+        if (! $this->ready()) {
+            return collect();
+        }
+
+        $primary = self::normalize($primary);
+
+        if ($additional === null) {
+            // Prázdne pole kontaktu adresu maže, ako pri zápise do stĺpca (adopt).
+            if ($primary === null) {
+                $canal->emails()->where('is_primary', true)->delete();
+            }
+
+            $additional = $canal->emails()->pluck('email')->all();
+        }
+
+        $wanted = $this->wanted([$primary, ...$additional]);
+
+        $canal->emails()->whereNotIn('email', $wanted->all())->delete();
+        $known = $canal->emails()->get()->keyBy('email');
+        $notify = collect();
+
+        foreach ($wanted as $email) {
+            if (! $known->has($email)) {
+                $row = $this->create($canal, $email, CanalEmail::SOURCE_MANUAL);
+                $row->forceFill(['pending_at' => now(), 'pending_primary' => false])->save();
+                $known[$email] = $row;
+                $notify->push($row);
+            }
+        }
+
+        $preferred = null;
+
+        if ($primary !== null) {
+            $row = $known[$primary];
+
+            if ($row->isPending()) {
+                // Čakajúca adresa, ktorú tím teraz prvý raz chce za primárnu — odkaz znova.
+                if (! $row->pending_primary && ! $notify->contains(fn (CanalEmail $n) => $n->is($row))) {
+                    $notify->push($row);
+                }
+            } else {
+                if (! $row->isUsable()) {
+                    $this->reactivate($row);
+                }
+
+                $preferred = $primary;
+            }
+        }
+
+        // Želaná primárna je najviac jedna — a len čakajúca.
+        foreach ($known as $email => $row) {
+            $wants = $email === $primary && $row->isPending();
+
+            if ((bool) $row->pending_primary !== $wants) {
+                $row->forceFill(['pending_primary' => $wants])->save();
+            }
+        }
+
+        $this->settle($canal, $preferred);
+
+        return $notify->values();
+    }
+
+    /** Čakajúca adresa, ktorú tím za primárnu chce (najviac jedna). */
+    public function pendingPrimary(Canal $canal): ?CanalEmail
+    {
+        return $this->ready()
+            ? $canal->emails()->whereNotNull('pending_at')->where('pending_primary', true)->first()
+            : null;
+    }
+
+    /**
+     * @param  array<int, mixed>  $emails
+     * @return Collection<int, string>
+     */
+    private function wanted(array $emails): Collection
+    {
+        return collect($emails)
+            ->map(fn ($email) => self::normalize(is_string($email) ? $email : null))
+            ->filter()
+            ->unique()
+            ->take(self::MAX)
+            ->values();
     }
 
     /**
@@ -146,6 +249,11 @@ class CanalEmails
             ])->save();
         }
 
+        // Zápis do stĺpca robí systém (import, migrácia), nie tím — čakajúcu adresu tým schváli.
+        if ($row->isPending()) {
+            $this->clearPending($row);
+        }
+
         $this->settle($canal, $email);
     }
 
@@ -181,10 +289,15 @@ class CanalEmails
             $row = $this->create($canal, $email, CanalEmail::SOURCE_CONFIRMED);
         }
 
+        // Tím ju chcel za primárnu a teraz ju schránka potvrdila.
+        $requested = $row->isPending() && $row->pending_primary;
+
         $row->forceFill([
             'status' => CanalEmailStatus::Verified,
             'verified_at' => now(),
             'last_seen_at' => now(),
+            'pending_at' => null,
+            'pending_primary' => false,
             'bounced_at' => null,
             'bounce_type' => null,
             'bounce_reason' => null,
@@ -196,7 +309,7 @@ class CanalEmails
 
         $before = $this->primary($canal);
         // Overená schránka organizácie má prednosť aj pred adresou vlastníka.
-        $prefer = $before === null || ! $before->isVerified() || $before->source === CanalEmail::SOURCE_OWNER;
+        $prefer = $requested || $before === null || ! $before->isVerified() || $before->source === CanalEmail::SOURCE_OWNER;
         $after = $this->settle($canal, $prefer ? $email : null);
 
         Recorder::info('canals', 'email_confirmed', "Kanál {$canal->name}: adresa {$email} potvrdená",
@@ -243,6 +356,8 @@ class CanalEmails
                 'status' => CanalEmailStatus::Verified,
                 'verified_at' => $verifiedAt,
                 'last_seen_at' => $verifiedAt,
+                'pending_at' => null,
+                'pending_primary' => false,
                 'bounced_at' => null,
                 'bounce_type' => null,
                 'bounce_reason' => null,
@@ -307,6 +422,8 @@ class CanalEmails
     /**
      * Prevzatie sa vrátilo — kanál znova nikto nespravuje, takže adresy
      * vlastníkov z neho odídu (inak by na ne chodili otázky návštevníkov).
+     * Odídu aj nepotvrdené adresy, ktoré pridal tím: cez ne by sa kanál dal
+     * prevziať znova bez toho, aby schránka čokoľvek potvrdila.
      */
     public function forgetOwners(Canal $canal): void
     {
@@ -314,13 +431,16 @@ class CanalEmails
             return;
         }
 
-        $removed = $canal->emails()->where('source', CanalEmail::SOURCE_OWNER)->pluck('email');
+        $leaving = fn () => $canal->emails()->where(fn ($q) => $q
+            ->where('source', CanalEmail::SOURCE_OWNER)
+            ->orWhereNotNull('pending_at'));
+        $removed = $leaving()->pluck('email');
 
         if ($removed->isEmpty()) {
             return;
         }
 
-        $canal->emails()->where('source', CanalEmail::SOURCE_OWNER)->delete();
+        $leaving()->delete();
 
         if ($this->settle($canal) === null && $removed->contains($canal->email)) {
             $this->mirror($canal, null);
@@ -480,7 +600,8 @@ class CanalEmails
             return null;
         }
 
-        $usable = $rows->filter(fn (CanalEmail $row) => $row->isUsable());
+        // Čakajúca adresa tímu primárna nebude, kým ju schránka nepotvrdí.
+        $usable = $rows->filter(fn (CanalEmail $row) => $row->isUsable() && ! $row->isPending());
 
         $chosen = ($preferred !== null ? $usable->firstWhere('email', $preferred) : null)
             ?? $usable->firstWhere('is_primary', true)
@@ -538,6 +659,11 @@ class CanalEmails
             'verified_at' => $verifiedAt,
             'last_seen_at' => $verifiedAt,
         ]);
+    }
+
+    private function clearPending(CanalEmail $row): void
+    {
+        $row->forceFill(['pending_at' => null, 'pending_primary' => false])->save();
     }
 
     private function reactivate(CanalEmail $row): void

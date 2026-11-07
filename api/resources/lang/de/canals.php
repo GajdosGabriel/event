@@ -6,5 +6,6 @@ return [
         'blocked_by_venues' => 'Der Kanal kann nicht gelöscht werden, er besitzt :count Ort(e).',
         'blocked_by_users' => 'Der Kanal kann nicht gelöscht werden, :count Benutzer haben ihn ausgewählt.',
         'unpublish_blocked_by_events' => 'Der Kanal kann nicht zurückgezogen werden, :count Veranstaltung(en) gehören dazu.',
+        'email_not_awaiting_verification' => 'Diese Adresse wartet nicht auf eine Bestätigung.',
     ],
 ];

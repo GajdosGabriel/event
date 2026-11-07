@@ -168,7 +168,7 @@ class CanalEmailFinder
 
     private function hasUsableEmail(Canal $canal): bool
     {
-        return $canal->emails()->where('status', '!=', CanalEmailStatus::Undeliverable->value)->exists()
+        return $canal->emails()->where('status', '!=', CanalEmailStatus::Undeliverable->value)->whereNull('pending_at')->exists()
             || CanalEmails::normalize($canal->email) !== null;
     }
 
