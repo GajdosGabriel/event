@@ -21,6 +21,7 @@
         <ActionButton :to="indexRoute" :label="t('common.back')" />
         <PublicPreviewLink class="ml-auto" :to="publicVenuePath(venue)" />
         <ResourceActionsMenu
+          bordered
           resource="venue"
           :scope="scope"
           :item="venue"

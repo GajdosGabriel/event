@@ -10,7 +10,7 @@
     kde ho používateľ hľadá: vo formulári pri voľbe stavu (zamknutá voľba
     „Koncept" s hintom) a v hláške z API, keď akciu spustí inou cestou.
   -->
-  <RowActions v-if="hasAnyAction">
+  <RowActions v-if="hasAnyAction" :bordered="bordered">
     <RouterLink v-if="canView" :to="base" class="row-menu-item">{{ t('common.view') }}</RouterLink>
     <RouterLink v-if="canUpdate" :to="`${base}/edit`" class="row-menu-item">{{ t('common.edit') }}</RouterLink>
     <button
@@ -72,7 +72,9 @@ const props = withDefaults(defineProps<{
   showView?: boolean
   /** Detail podujatia publikuje cez formulár, nie z menu. */
   showPublish?: boolean
-}>(), { showView: true, showPublish: true })
+  /** V pruhu nad detailom — tlačidlo s rámikom ako susedia (RowActions). */
+  bordered?: boolean
+}>(), { showView: true, showPublish: true, bordered: false })
 
 /**
  * `changed` = záznam ostal, len sa zmenil (publikovanie, obnova).

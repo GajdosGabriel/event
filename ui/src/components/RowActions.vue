@@ -1,7 +1,12 @@
 <template>
   <div class="relative" ref="rootEl">
+    <!-- `bordered`: v pruhu nad detailom stojí vedľa tlačidiel (`action-btn`)
+         a musí im sedieť výškou aj rámikom; v riadku tabuľky ostáva nenápadné. -->
     <button
-      class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+      class="flex cursor-pointer items-center justify-center"
+      :class="bordered
+        ? 'h-[34px] w-[34px] rounded border border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+        : 'h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700'"
       @click.stop="open = !open"
       aria-label="Akcie"
     >
@@ -24,6 +29,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+
+defineProps<{ bordered?: boolean }>()
 
 const open = ref(false)
 const rootEl = ref<HTMLElement | null>(null)

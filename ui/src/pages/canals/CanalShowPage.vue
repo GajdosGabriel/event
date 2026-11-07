@@ -13,6 +13,7 @@
         <ActionButton :to="indexRoute" :label="t('common.back')" />
         <PublicPreviewLink class="ml-auto" :to="publicCanalPath(canal)" />
         <ResourceActionsMenu
+          bordered
           resource="canal"
           :scope="scope"
           :item="canal"
@@ -34,12 +35,9 @@
               <img v-if="canal.imageUrl" :src="canal.imageUrl" :alt="canal.name"
                 class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
               <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <h1 class="text-3xl font-bold text-slate-900">{{ canal.name }}</h1>
-                  <span v-if="canal.identityModeLabel" class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
-                    {{ canal.identityModeLabel }}
-                  </span>
-                </div>
+                <!-- Typ pod názvom ako kategória pri mieste (VenueShowPage). -->
+                <h1 class="text-3xl font-bold text-slate-900">{{ canal.name }}</h1>
+                <p v-if="canal.identityModeLabel" class="mt-1 text-sm font-medium text-teal-700">{{ canal.identityModeLabel }}</p>
                 <p v-if="canal.titlePrefix || canal.titleSuffix" class="mt-1 text-sm text-slate-500">
                   <span v-if="canal.titlePrefix">{{ canal.titlePrefix }} </span>
                   {{ canal.name }}

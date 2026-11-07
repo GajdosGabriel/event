@@ -43,6 +43,7 @@
              odsadené doprava — a otvára sa v novej karte. -->
         <PublicPreviewLink class="ml-auto" :to="publicEventPath(event)" />
         <ResourceActionsMenu
+          bordered
           resource="event"
           :scope="scope"
           :item="event"
