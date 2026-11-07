@@ -7,8 +7,19 @@
     </div>
 
     <template v-else-if="canal">
+      <!-- Návrat + akcie: ten istý pruh ako nad podujatím a miestom — menu
+           stojí vpravo na rovnakom mieste bez ohľadu na dĺžku názvu. -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <RouterLink :to="indexRoute" class="action-btn">{{ t('common.back') }}</RouterLink>
+        <ActionButton :to="indexRoute" :label="t('common.back')" />
+        <PublicPreviewLink class="ml-auto" :to="publicCanalPath(canal)" />
+        <ResourceActionsMenu
+          resource="canal"
+          :scope="scope"
+          :item="canal"
+          :show-view="false"
+          @changed="reload"
+          @removed="router.push(indexRoute)"
+        />
       </div>
 
       <!-- Dva stĺpce až od `xl`: na `lg` po odpočítaní bočného menu ostávalo
@@ -23,22 +34,11 @@
               <img v-if="canal.imageUrl" :src="canal.imageUrl" :alt="canal.name"
                 class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
               <div class="min-w-0 flex-1">
-                <!-- Akcie sedia na riadku s názvom: úpravy, publikovanie aj
-                     mazanie sú tie isté ako vo výpise — jedno ovládanie, jedny práva. -->
                 <div class="flex flex-wrap items-center gap-2">
                   <h1 class="text-3xl font-bold text-slate-900">{{ canal.name }}</h1>
                   <span v-if="canal.identityModeLabel" class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
                     {{ canal.identityModeLabel }}
                   </span>
-                  <ResourceActionsMenu
-                    class="ml-auto shrink-0"
-                    resource="canal"
-                    :scope="scope"
-                    :item="canal"
-                    :show-view="false"
-                    @changed="reload"
-                    @removed="router.push(indexRoute)"
-                  />
                 </div>
                 <p v-if="canal.titlePrefix || canal.titleSuffix" class="mt-1 text-sm text-slate-500">
                   <span v-if="canal.titlePrefix">{{ canal.titlePrefix }} </span>
@@ -263,7 +263,10 @@ import { showCanal, listCanalEvents, listCanalHistory, type CanalEventItem, type
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import EmbedSnippetPanel from '@/components/EmbedSnippetPanel.vue'
+import ActionButton from '@/components/ActionButton.vue'
+import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
+import { publicCanalPath } from '@/utils/publicUrl'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
