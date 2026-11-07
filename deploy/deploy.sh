@@ -20,15 +20,22 @@ echo "==> migrácie"
 php artisan migrate --force
 
 echo "==> cache"
-php artisan config:clear
-php artisan cache:clear
-php artisan route:clear
+# Zámerne bez `cache:clear`: cache beží v DB (CACHE_STORE=database) a drží aj
+# stav, ktorý nasadenie musí prežiť — zámky withoutOverlapping (bežiaci import
+# či queue:work by sa spustil druhýkrát), ochranu proti duplicitám v CanalRelay
+# (zopakovaný webhook by odpoveď preposlal znova) a cooldowny upozornení.
+# config:cache a route:cache staré súbory aj tak prepíšu.
 php artisan view:clear
 
 php artisan config:cache
 php artisan route:cache
 
-echo "==> reštart queue workera"
-php artisan queue:restart
+# Trvalý queue worker na hostingu nebeží (fronta ide cez webcron s
+# --stop-when-empty), takže queue:restart tu nemá koho reštartovať.
+
+echo "==> Emailing: udalosti a štítky v Accounte"
+# Po pridaní case do MailingTrigger (docs/canal-ownership.md). Pri vypnutom
+# Emailingu nič nerobí; výpadok Accountu nasadenie nezastaví.
+php artisan emailing:register-triggers || echo "!! emailing:register-triggers zlyhal — spusti ho neskôr ručne." >&2
 
 echo "==> hotovo"

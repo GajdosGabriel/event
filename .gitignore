@@ -6,6 +6,7 @@ vendor/
 # Frontend build output
 build/
 .vite/
+*.tsbuildinfo
 
 # Environment and local configuration
 .env
