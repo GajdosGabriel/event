@@ -28,6 +28,9 @@ class CanalEmail extends Model
     /** E-mail účtu vlastníka spravovaného kanála (prevzatie, nový vlastník v tíme). */
     public const SOURCE_OWNER = 'owner';
 
+    /** Nájdená po vrátení e-mailu (podujatia kanála, jeho web, vyhľadávanie) — viď `found_on`. */
+    public const SOURCE_DISCOVERED = 'discovered';
+
     protected $guarded = [];
 
     protected $casts = [

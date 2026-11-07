@@ -111,7 +111,10 @@ class CanalEmailsTest extends TestCase
     {
         $canal = $this->canal('plna@divadlo.test', verified: true);
 
-        $this->emails->recordBounce('plna@divadlo.test', CanalEmail::BOUNCE_SOFT, 'mailbox full');
+        // Plná schránka vyradí adresu až po opakovaní (canals.emails.soft_bounce_limit).
+        foreach (range(1, 3) as $attempt) {
+            $this->emails->recordBounce('plna@divadlo.test', CanalEmail::BOUNCE_SOFT, 'mailbox full');
+        }
 
         $canal->refresh();
         $this->assertNull($canal->email);

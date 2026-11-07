@@ -18,12 +18,15 @@ class ProfileResearch
 
     public const FIELDS = ['website', 'email', 'phone', 'street', 'postcode', 'country', 'body'];
 
-    public function research(Canal|Venue $subject, array $missing): array
+    /**
+     * @param  array<string, mixed>  $hints  ďalšie dáta pre model, napr. `undeliverable_emails`
+     */
+    public function research(Canal|Venue $subject, array $missing, array $hints = []): array
     {
         $model = (string) config('profile_enrichment.model');
         $recorder = app(AiUsageRecorder::class);
 
-        return $recorder->within($subject, function () use ($subject, $missing, $model, $recorder) {
+        return $recorder->within($subject, function () use ($subject, $missing, $hints, $model, $recorder) {
             $recorded = false;
             try {
                 $response = Http::connectTimeout(5)->timeout((int) config('profile_enrichment.request_timeout', 30))
@@ -40,7 +43,7 @@ class ProfileResearch
                             'city' => $subject->municipality?->fullname,
                             'known' => $subject->only(self::FIELDS),
                             'missing' => $missing,
-                        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                        ] + $hints, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                     ]);
                 if (! $response->successful()) {
                     app(OpenAiBillingAlert::class)->reportIfBillingError($response);
@@ -111,6 +114,7 @@ Použi oficiálny web, oficiálny profil prevádzkovateľa alebo adresár zriaď
 Organizátor: verejný organizačný kontakt a jeho skutočné sídlo, NIE adresa jedného z jeho podujatí.
 Miesto: konkrétna prevádzka alebo budova, NIE sídlo jej vlastníka či organizátora. Pri viacerých pobočkách musí súhlasiť obec.
 Pri farnosti hľadaj farský úrad; pri kultúrnom centre prevádzku, pri spolku sekretariát. Typ určuje čo hľadať, nikdy hodnoty.
+Adresy v undeliverable_emails sa vrátili ako nedoručiteľné — nevracaj ich ani ich obmeny.
 Nevymýšľaj e-mail info@, web, telefón, adresu, obec ani typické údaje. Neuvádzaj súkromné kontakty osôb.
 Pri neistote, rozpore alebo nejasnej identite nechaj údaj chýbať. Zadané údaje neprepisuj. Nepotvrdzuj vlastníctvo ani overenie e-mailu.
 body: vecný slovenský popis v 2–4 vetách, čo je to, kde pôsobí a čomu slúži, výlučne podľa zdroja. Bez reklamy, HTML či Markdown.

@@ -25,6 +25,31 @@ return [
     // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
     'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
 
+    // Adresy kanála (CanalEmails) a hľadanie náhradnej (app:canal-emails-find).
+    'emails' => [
+        // Dočasné vrátenie (plná schránka) vyradí adresu až po toľkých
+        // opakovaniach v okne `soft_bounce_days` dní.
+        'soft_bounce_limit' => (int) env('CANAL_EMAIL_SOFT_BOUNCE_LIMIT', 3),
+        'soft_bounce_days' => (int) env('CANAL_EMAIL_SOFT_BOUNCE_DAYS', 30),
+        'discovery' => [
+            'enabled' => (bool) env('CANAL_EMAIL_DISCOVERY', true),
+            // Kanálov v jednom behu a časový strop behu — beží vo webcrone.
+            'batch' => (int) env('CANAL_EMAIL_DISCOVERY_BATCH', 3),
+            'max_seconds' => 40,
+            // Neúspešné hľadanie sa zopakuje po toľkých dňoch, najviac `max_attempts`-krát.
+            'retry_days' => 30,
+            'max_attempts' => 3,
+            // Najviac toľko nájdených adries naraz (ďalšie sú záloha pri vrátení).
+            'keep' => 3,
+            // Stránky webu kanála: titulná + najviac toľko kontaktných podstránok.
+            'pages' => 2,
+            'timeout' => 8,
+            // Keď podujatia ani web nič nedajú — vyhľadávanie cez OpenAI
+            // (ProfileResearch, rozpočet `profile_enrichment.monthly_limit_usd`).
+            'ai' => (bool) env('CANAL_EMAIL_DISCOVERY_AI', true),
+        ],
+    ],
+
     // Oslovenie organizátorov (app:canal-outreach) — triggery po vzniku akcie,
     // pred akciou, prah zobrazení, po akcii. Hlásia sa len do Account Emailingu
     // (text a oneskorenie sú v kampani); bez ACCOUNT_MAILING sa neoslovuje. Pred

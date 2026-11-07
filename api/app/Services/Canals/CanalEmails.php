@@ -7,6 +7,7 @@ use App\Enums\CanalIdentityMode;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\CanalEmail;
+use App\Models\CanalEmailSearch;
 use App\Models\EmailSuppression;
 use App\Models\User;
 use App\Services\SystemLog\Recorder;
@@ -26,7 +27,10 @@ use Illuminate\Support\Str;
  *  - človek vo formulári kanála (sync),
  *  - zápis do `canals.email` odinakiaľ, napr. import (adopt, cez CanalObserver),
  *  - vrátený e-mail (recordBounce) — adresa je nedoručiteľná a primárnou sa
- *    stane ďalšia najlepšia; ak žiadna nie je, kanál ostane bez kontaktu,
+ *    stane ďalšia najlepšia; ak žiadna nie je, kanál ostane bez kontaktu
+ *    a čaká na hľadanie novej (CanalEmailFinder). Dočasné vrátenie (soft)
+ *    adresu vyradí až po opakovaní (`canals.emails.soft_bounce_*`),
+ *  - nájdená náhradná adresa (discover) — len keď kanál nemá použiteľnú,
  *  - potvrdenie alebo odpoveď (confirm, recordReply) — overená adresa má
  *    prednosť pred neoverenou primárnou aj pred adresou vlastníka,
  *  - nový vlastník spravovaného kanála (recordOwner) — jeho e-mail z účtu
@@ -359,24 +363,107 @@ class CanalEmails
 
         return $this->eachCanalOf($email, function (Canal $canal, string $email, CanalEmail $row) use ($type, $reason) {
             $wasPrimary = $row->is_primary;
+            $count = $this->bounceCount($row, $type);
+            // Plná schránka býva dočasná — adresa ostáva v hre, kým sa
+            // vrátenie neopakuje `soft_bounce_limit`-krát za `soft_bounce_days`.
+            $undeliverable = $type === CanalEmail::BOUNCE_HARD
+                || ! $row->isUsable()
+                || $count >= max(1, (int) config('canals.emails.soft_bounce_limit', 3));
 
             $row->forceFill([
-                'status' => CanalEmailStatus::Undeliverable,
+                'status' => $undeliverable ? CanalEmailStatus::Undeliverable : $row->status,
                 'bounced_at' => now(),
                 'bounce_type' => $type,
                 'bounce_reason' => $reason !== null && trim($reason) !== '' ? Str::limit(trim($reason), 240, '') : null,
-                'bounce_count' => $row->bounce_count + 1,
+                'bounce_count' => $count,
             ])->save();
 
             $next = $this->settle($canal);
 
-            Recorder::warning('canals', 'email_bounced', "Kanál {$canal->name}: e-mail na {$email} sa vrátil",
+            Recorder::warning('canals', 'email_bounced', $undeliverable
+                ? "Kanál {$canal->name}: e-mail na {$email} sa vrátil"
+                : "Kanál {$canal->name}: e-mail na {$email} sa dočasne vrátil ({$count}×), adresa ostáva",
                 status: $type,
                 recipient: $email,
                 subject: $canal,
-                context: ['reason' => $row->bounce_reason, 'was_primary' => $wasPrimary, 'primary_to' => $next?->email],
+                context: [
+                    'reason' => $row->bounce_reason, 'was_primary' => $wasPrimary, 'primary_to' => $next?->email,
+                    'undeliverable' => $undeliverable, 'bounce_count' => $count,
+                ],
             );
+
+            // Kanál bez použiteľnej adresy si zaslúži hľadanie náhradnej (CanalEmailFinder).
+            if ($undeliverable && $next === null) {
+                CanalEmailSearch::requestFor($canal);
+            }
         });
+    }
+
+    /**
+     * Pridá adresy nájdené inde (podujatia kanála, jeho web, vyhľadávanie)
+     * ako neoverené, najlepšia prvá. Primárnou sa stane, len keď kanál
+     * žiadnu použiteľnú adresu nemá. Adresy, ktoré kanál už pozná (aj
+     * nedoručiteľné) alebo ktoré sú v EmailSuppression, sa preskočia.
+     *
+     * @param  array<int, array{email: string, found_on: ?string}>  $candidates
+     * @return Collection<int, CanalEmail> pridané adresy
+     */
+    public function discover(Canal $canal, array $candidates, string $via): Collection
+    {
+        if (! $this->ready()) {
+            return collect();
+        }
+
+        $known = $canal->emails()->pluck('email')->all();
+        $added = collect();
+
+        foreach ($candidates as $candidate) {
+            $email = self::normalize($candidate['email'] ?? null);
+
+            if ($email === null || in_array($email, $known, true) || EmailSuppression::has($email)
+                || count($known) >= self::MAX) {
+                continue;
+            }
+
+            $row = $this->create($canal, $email, CanalEmail::SOURCE_DISCOVERED);
+            $row->forceFill(['found_on' => isset($candidate['found_on']) ? Str::limit((string) $candidate['found_on'], 250, '') : null])->save();
+            $known[] = $email;
+            $added->push($row);
+        }
+
+        if ($added->isEmpty()) {
+            return $added;
+        }
+
+        $before = $this->primary($canal);
+        $after = $this->settle($canal, $before === null ? $added->first()->email : null);
+
+        Recorder::info('canals', 'email_discovered', "Kanál {$canal->name}: nájdené adresy ".$added->pluck('email')->implode(', '),
+            status: 'ok',
+            recipient: $added->first()->email,
+            subject: $canal,
+            context: [
+                'via' => $via,
+                'emails' => $added->map(fn (CanalEmail $row) => ['email' => $row->email, 'found_on' => $row->found_on])->all(),
+                'primary_from' => $before?->email,
+                'primary_to' => $after?->email,
+            ],
+        );
+
+        return $added;
+    }
+
+    /** Opakované dočasné vrátenie v okne sa sčíta, inak sa počíta odznova. */
+    private function bounceCount(CanalEmail $row, string $type): int
+    {
+        if ($type === CanalEmail::BOUNCE_HARD) {
+            return $row->bounce_count + 1;
+        }
+
+        $recent = $row->bounce_type === CanalEmail::BOUNCE_SOFT && $row->bounced_at !== null
+            && $row->bounced_at->gte(now()->subDays(max(1, (int) config('canals.emails.soft_bounce_days', 30))));
+
+        return $recent ? $row->bounce_count + 1 : 1;
     }
 
     /**
@@ -473,8 +560,10 @@ class CanalEmails
             return 0;
         }
 
+        // Zmazaný (aj zlúčený) kanál už nikto nekontaktuje — zmena by len
+        // pridala do denníka druhý záznam o tom istom e-maile.
         $rows = CanalEmail::query()->with('canal')->where('email', $email)->get()
-            ->filter(fn (CanalEmail $row) => $row->canal !== null);
+            ->filter(fn (CanalEmail $row) => $row->canal !== null && ! $row->canal->trashed());
 
         foreach ($rows as $row) {
             $callback($row->canal, $email, $row);

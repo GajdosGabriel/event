@@ -98,6 +98,9 @@ $artisan('app:attribute-checks-run')->everyFiveMinutes()->withoutOverlapping(10)
 $artisan('app:content-reviews-run')->everyTenMinutes()->withoutOverlapping(15);
 // Kontakty a presná poloha po dvojhodinovom odstupe, v krátkej dávke pre webcron.
 $artisan('app:profiles-enrich')->everyFifteenMinutes()->withoutOverlapping(5);
+// Náhradná adresa kanálov bez kontaktu (po vrátenom e-maile prednostne).
+// Malá dávka: každý kanál sú až tri cudzie HTTP dotazy, po vrátení aj OpenAI.
+$artisan('app:canal-emails-find')->everyFifteenMinutes()->withoutOverlapping(10);
 // Oslovenie organizátorov kanálov — dopoludnia, aby e-mail neprišiel v noci.
 // Hlási sa do Account Emailingu; bez ACCOUNT_MAILING sa neoslovuje.
 $artisan('app:canal-outreach')->dailyAt('10:15')->withoutOverlapping(30);
