@@ -54,25 +54,13 @@ class CanalContactVerifier
             return;
         }
 
-        $simulate = (bool) config('canals.simulate_contact_mail', true);
-
         // Adresa, ktorú kanál už mal overenú, sa znova nepotvrdzuje.
         if ($new !== null && $canal->email_verified_at === null) {
-            MailSimulator::send(
-                [Notification::route('mail', $new)],
-                new CanalContactNotice($canal, CanalContactNotice::VERIFY, $new, $this->verifyUrl($canal, $new)),
-                $simulate,
-                $canal,
-            );
+            $this->sendVerification($canal, $new);
         }
 
         if ($old !== null) {
-            MailSimulator::send(
-                [Notification::route('mail', $old)],
-                new CanalContactNotice($canal, CanalContactNotice::CHANGED, $new),
-                $simulate,
-                $canal,
-            );
+            $this->mail($canal, $old, new CanalContactNotice($canal, CanalContactNotice::CHANGED, $new));
         }
     }
 
@@ -136,12 +124,7 @@ class CanalContactVerifier
         $after = $this->normalize($canal->email);
 
         if ($before !== null && $after !== $before && $canal->isManaged()) {
-            MailSimulator::send(
-                [Notification::route('mail', $before)],
-                new CanalContactNotice($canal, CanalContactNotice::CHANGED, $after),
-                (bool) config('canals.simulate_contact_mail', true),
-                $canal,
-            );
+            $this->mail($canal, $before, new CanalContactNotice($canal, CanalContactNotice::CHANGED, $after));
         }
 
         return true;
@@ -149,12 +132,16 @@ class CanalContactVerifier
 
     private function sendVerification(Canal $canal, string $email): void
     {
-        MailSimulator::send(
-            [Notification::route('mail', $email)],
-            new CanalContactNotice($canal, CanalContactNotice::VERIFY, $email, $this->verifyUrl($canal, $email)),
-            (bool) config('canals.simulate_contact_mail', true),
-            $canal,
-        );
+        $this->mail($canal, $email, new CanalContactNotice($canal, CanalContactNotice::VERIFY, $email, $this->verifyUrl($canal, $email)));
+    }
+
+    /**
+     * E-mail vždy naozaj odchádza. MailSimulator tu slúži len ako poistka:
+     * zlyhanie odoslania zapíše do denníka a nezhodí zmenu kontaktu.
+     */
+    private function mail(Canal $canal, string $email, CanalContactNotice $notice): void
+    {
+        MailSimulator::send([Notification::route('mail', $email)], $notice, false, $canal);
     }
 
     public function verifyUrl(Canal $canal, string $email): string

@@ -10,11 +10,13 @@ use App\Models\Canal;
 use App\Models\CanalClaim;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Notifications\CanalContactNotice;
 use App\Services\Canals\CanalClaims;
 use App\Services\Canals\CanalContactVerifier;
 use App\Services\Canals\CanalInviter;
 use App\Services\Canals\CanalMembership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
@@ -255,8 +257,10 @@ class CanalClaimsTest extends TestCase
         $canal->refresh();
         $this->assertNull($canal->email_verified_at);
         $this->assertTrue(SystemLog::where('event', 'canals.contact_changed')->exists());
-        $mails = SystemLog::where('event', 'mail.simulated')->orderBy('id')->get();
-        $this->assertSame(['novy@divadlo.test', 'stary@divadlo.test'], $mails->pluck('recipient')->all());
+        // Kontaktné e-maily odchádzajú naozaj — nie sú len v denníku.
+        $mails = Notification::sentNotifications()[AnonymousNotifiable::class][''][CanalContactNotice::class] ?? [];
+        $this->assertSame(['novy@divadlo.test', 'stary@divadlo.test'], array_map(fn ($m) => $m['notifiable']->routes['mail'], $mails));
+        $this->assertFalse(SystemLog::where('event', 'mail.simulated')->exists());
 
         // Pozmenený odkaz neprejde, podpísaný áno.
         $url = app(CanalContactVerifier::class)->verifyUrl($canal, 'novy@divadlo.test');

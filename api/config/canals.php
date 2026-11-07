@@ -15,10 +15,6 @@ return [
     // Kým je true, idú len do denníka — odkaz na potvrdenie je v jeho kontexte.
     'simulate_claim_mail' => (bool) env('CANAL_CLAIM_MAIL_SIMULATE', true),
 
-    // E-maily po zmene kontaktného e-mailu kanála (CanalContactNotice):
-    // overenie na novú adresu, upozornenie na pôvodnú.
-    'simulate_contact_mail' => (bool) env('CANAL_CONTACT_MAIL_SIMULATE', true),
-
     // Jediná brzda e-mailov na kontakt nespravovaného kanála (CanalTakeover):
     // prihláška na akciu, otázka aj správa návštevníka. Ide o nevyžiadaný
     // e-mail na verejnú adresu — súlad s § 116 zákona č. 452/2021 Z. z. overiť.

@@ -8,10 +8,12 @@ use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Notifications\CanalContactNotice;
 use App\Services\Canals\CanalContactVerifier;
 use App\Services\Canals\CanalEmails;
 use App\Services\Canals\CanalMembership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -37,7 +39,6 @@ class CanalContactPendingTest extends TestCase
         Notification::fake();
         Mail::fake();
         Http::fake(['*' => Http::response([])]);
-        config(['canals.simulate_contact_mail' => true]);
 
         $this->owner = User::factory()->create(['email' => 'owner@divadlo.test', 'email_verified_at' => now(), 'last_login_at' => now(), 'last_activity' => now()]);
         $this->canal = Canal::factory()->active()->create([
@@ -68,11 +69,11 @@ class CanalContactPendingTest extends TestCase
         $this->assertNotNull($this->canal->fresh()->email_verified_at);
         $this->assertTrue(SystemLog::where('event', 'canals.contact_requested')->exists());
         // Odkaz ide na novú adresu; pôvodná sa dozvie až o skutočnej zmene.
-        $this->assertSame(['novy@divadlo.test'], $this->simulatedTo());
+        $this->assertSame(['novy@divadlo.test'], $this->mailedTo());
 
         // Ďalšie uloženie formulára (pole ostáva na čakajúcej adrese) nič znova neposiela.
         $this->putJson("/api/dashboard/canals/{$this->canal->id}", $this->form('novy@divadlo.test'))->assertOk();
-        $this->assertSame(['novy@divadlo.test'], $this->simulatedTo());
+        $this->assertSame(['novy@divadlo.test'], $this->mailedTo());
 
         $this->app['auth']->forgetGuards();
         $this->get(app(CanalContactVerifier::class)->verifyUrl($this->canal, 'novy@divadlo.test'))
@@ -82,7 +83,7 @@ class CanalContactPendingTest extends TestCase
         $this->assertSame('novy@divadlo.test', $canal->email);
         $this->assertNotNull($canal->email_verified_at);
         $this->assertFalse($canal->emails()->where('email', 'novy@divadlo.test')->sole()->isPending());
-        $this->assertSame(['novy@divadlo.test', 'stary@divadlo.test'], $this->simulatedTo());
+        $this->assertSame(['novy@divadlo.test', 'stary@divadlo.test'], $this->mailedTo());
     }
 
     #[Test]
@@ -133,7 +134,7 @@ class CanalContactPendingTest extends TestCase
             ->putJson("/api/dashboard/canals/{$this->canal->id}", $this->form('novy@divadlo.test'))->assertOk();
 
         $this->postJson("/api/dashboard/canals/{$this->canal->id}/emails/verification", ['email' => 'novy@divadlo.test'])->assertOk();
-        $this->assertSame(['novy@divadlo.test', 'novy@divadlo.test'], $this->simulatedTo());
+        $this->assertSame(['novy@divadlo.test', 'novy@divadlo.test'], $this->mailedTo());
 
         $this->postJson("/api/dashboard/canals/{$this->canal->id}/emails/verification", ['email' => 'stary@divadlo.test'])
             ->assertJsonValidationErrors('email');
@@ -163,9 +164,11 @@ class CanalContactPendingTest extends TestCase
         ];
     }
 
-    /** @return array<int, string> */
-    private function simulatedTo(): array
+    /** @return array<int, string> adresáti odoslaných kontaktných e-mailov v poradí */
+    private function mailedTo(): array
     {
-        return SystemLog::where('event', 'mail.simulated')->orderBy('id')->pluck('recipient')->all();
+        $sent = Notification::sentNotifications()[AnonymousNotifiable::class][''][CanalContactNotice::class] ?? [];
+
+        return array_map(fn (array $m) => $m['notifiable']->routes['mail'], $sent);
     }
 }
