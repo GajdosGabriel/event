@@ -88,6 +88,16 @@ class FindVenueImagesCommandTest extends TestCase
     }
 
     #[Test]
+    public function an_inflected_generic_name_needs_a_very_close_item(): void
+    {
+        $this->fakeWikimedia([
+            $this->item('Q20', 'kostol', 0.3, image: 'Nejaky_kostol.jpg'),
+        ]);
+
+        $this->assertSame([], app(VenueImageFinder::class)->find($this->venue('Kostolnej')));
+    }
+
+    #[Test]
     public function inflected_names_and_a_closer_item_win(): void
     {
         $this->fakeWikimedia([

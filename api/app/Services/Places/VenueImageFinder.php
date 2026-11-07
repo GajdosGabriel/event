@@ -203,7 +203,7 @@ class VenueImageFinder
         $ratio = count($matched) / count($venueTokens);
         $reverse = count(array_filter($labelTokens, fn (string $token) => $this->contains($venueTokens, $token))) / count($labelTokens);
 
-        $distinctive = array_values(array_diff($venueTokens, self::GENERIC_WORDS));
+        $distinctive = $this->distinctive($venueTokens);
 
         if ($distinctive === []) {
             $limit = $approximate ? self::RADIUS_MUNICIPALITY_KM : 0.15;
@@ -213,7 +213,7 @@ class VenueImageFinder
 
         // Väčšina odlišujúcich slov miesta musí sedieť — inak „Spišské
         // diecézne múzeum" nájde diecézne múzeum v Nitre.
-        $distinctiveMatched = array_values(array_diff($matched, self::GENERIC_WORDS));
+        $distinctiveMatched = $this->distinctive($matched);
 
         if ($distinctiveMatched === [] || count($distinctiveMatched) / count($distinctive) < 0.6) {
             return null;
@@ -230,7 +230,7 @@ class VenueImageFinder
 
         // Odlišujúce slová objektu, ktoré v názve miesta nie sú, znamenajú
         // iný objekt („Kostol sv. Martina" × „Kostol sv. Mikuláša").
-        $labelDistinctive = array_values(array_diff($labelTokens, self::GENERIC_WORDS));
+        $labelDistinctive = $this->distinctive($labelTokens);
         $labelDistinctiveMatched = array_filter($labelDistinctive, fn (string $token) => $this->contains($venueTokens, $token));
 
         if ($labelDistinctive !== [] && count($labelDistinctiveMatched) / count($labelDistinctive) < 0.5) {
@@ -238,6 +238,18 @@ class VenueImageFinder
         }
 
         return $ratio >= 0.6 ? ($ratio + $reverse) / 2 : null;
+    }
+
+    /**
+     * Slová, ktoré miesto odlišujú. Aj skloňované všeobecné slovo je všeobecné
+     * — „Kostolnej", „Evanjelickom kostole" nie sú názvom konkrétneho kostola.
+     *
+     * @param  array<int, string>  $tokens
+     * @return array<int, string>
+     */
+    private function distinctive(array $tokens): array
+    {
+        return array_values(array_filter($tokens, fn (string $token) => ! $this->contains(self::GENERIC_WORDS, $token)));
     }
 
     /** @param  array<int, string>  $tokens */
