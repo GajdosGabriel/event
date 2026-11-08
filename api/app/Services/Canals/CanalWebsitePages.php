@@ -3,11 +3,12 @@
 namespace App\Services\Canals;
 
 use App\Support\Url;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
- * Stiahne verejnú stránku webu kanála pre CanalEmailFinder.
+ * Stiahne verejnú stránku webu kanála pre CanalEmailFinder a CanalLogoFinder.
  *
  * Adresu zadal cudzí človek alebo import, takže každá zastávka presmerovania
  * sa kontroluje rovnako ako v sonde webov (Url::isSafeToProbe) — inak by sa
@@ -22,6 +23,49 @@ class CanalWebsitePages
     /** HTML stránky, alebo null, keď sa nedá stiahnuť. */
     public function fetch(string $url): ?string
     {
+        return $this->fetchPage($url)['body'] ?? null;
+    }
+
+    /**
+     * HTML stránky spolu s adresou, na ktorej po presmerovaniach skončila —
+     * relatívne odkazy (logo, obrázky) treba skladať od nej, nie od zadanej.
+     *
+     * @return array{url: string, body: string}|null
+     */
+    public function fetchPage(string $url): ?array
+    {
+        $result = $this->get($url, 'text/html,*/*;q=0.5');
+
+        return $result === null ? null : ['url' => $result['url'], 'body' => substr($result['response']->body(), 0, self::MAX_BYTES)];
+    }
+
+    /**
+     * Obrázok z webu (logo kanála) s rovnakou kontrolou presmerovaní ako stránka.
+     *
+     * @return array{url: string, body: string, mime: string}|null
+     */
+    public function fetchImage(string $url, int $maxBytes): ?array
+    {
+        $result = $this->get($url, 'image/webp,image/png,image/*;q=0.8');
+
+        if ($result === null) {
+            return null;
+        }
+
+        $body = $result['response']->body();
+
+        if ($body === '' || strlen($body) > $maxBytes) {
+            return null;
+        }
+
+        $mime = strtolower(trim(explode(';', (string) $result['response']->header('Content-Type'))[0]));
+
+        return ['url' => $result['url'], 'body' => $body, 'mime' => $mime];
+    }
+
+    /** @return array{url: string, response: Response}|null */
+    private function get(string $url, string $accept): ?array
+    {
         $url = Url::normalize($url) ?? $url;
 
         for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
@@ -32,7 +76,7 @@ class CanalWebsitePages
             try {
                 $timeout = max(1, (int) config('canals.emails.discovery.timeout', 8));
                 $response = Http::withUserAgent((string) config('attribute_checks.user_agent'))
-                    ->withHeaders(['Accept' => 'text/html,*/*;q=0.5'])
+                    ->withHeaders(['Accept' => $accept])
                     ->timeout($timeout)->connectTimeout($timeout)
                     ->withoutRedirecting()
                     ->get($url);
@@ -50,11 +94,7 @@ class CanalWebsitePages
                 continue;
             }
 
-            if (! $response->successful()) {
-                return null;
-            }
-
-            return substr($response->body(), 0, self::MAX_BYTES);
+            return $response->successful() ? ['url' => $url, 'response' => $response] : null;
         }
 
         return null;
