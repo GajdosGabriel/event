@@ -40,6 +40,16 @@ class CanalPhotoFinder
 
     private const NOT_PHOTO = '/logo|icon|ikon|favicon|sprite|avatar|emoji|placeholder|loader|spinner|banner|pozvank|plagat|poster|letak|flyer|demo\d|\/themes\/|partner|sponsor|sponzor|button|badge|flag|vlajk|qr[-_]?code|pixel|blank|spacer|facebook|instagram|youtube|twitter|linkedin|whatsapp|tiktok|google|apple|play[-_]?store|mapa|map[-_]/i';
 
+    /**
+     * Obrázky, ktoré fotkou organizácie nie sú, hoci tak vyzerajú: QR kódy
+     * na dary, ilustračné fotky z fotobánk, obálky kníh z e-shopu a
+     * predvolený obrázok na zdieľanie (býva to len logo na farebnom pozadí).
+     */
+    private const NOT_OWN_PHOTO = '/(^|[^a-z])qr([^a-z]|$)|unsplash|adobestock|shutterstock|stockcake|pexels|pixabay|istock|depositphotos|freepik|dreamstime|\/books?\/|book[-_]?cover|obalka|og[-_]?default|default[-_]?(social|share|og)|social[-_]?share|share[-_]?image/i';
+
+    /** Náhľady videí — nie sú to fotky webu. */
+    private const VIDEO_HOSTS = '/(^|\.)(ytimg\.com|youtube\.com|youtu\.be|vimeocdn\.com|vimeo\.com)$/i';
+
     private const HERO = '/hero|slider|slide|carousel|swiper|cover|jumbotron|intro|uvod|featured|header-image|page-header/i';
 
     public function __construct(
@@ -183,7 +193,10 @@ class CanalPhotoFinder
                 return;
             }
 
-            if (preg_match(self::NOT_PHOTO, (string) parse_url($url, PHP_URL_PATH))) {
+            $path = rawurldecode((string) parse_url($url, PHP_URL_PATH));
+
+            if (preg_match(self::NOT_PHOTO, $path) || preg_match(self::NOT_OWN_PHOTO, $path)
+                || preg_match(self::VIDEO_HOSTS, (string) parse_url($url, PHP_URL_HOST))) {
                 return;
             }
 

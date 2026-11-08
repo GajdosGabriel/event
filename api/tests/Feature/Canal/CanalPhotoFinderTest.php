@@ -83,6 +83,27 @@ class CanalPhotoFinderTest extends TestCase
     }
 
     #[Test]
+    public function video_thumbnails_qr_codes_stock_photos_and_book_covers_are_not_candidates(): void
+    {
+        $html = <<<'HTML'
+            <meta property="og:image" content="/img/og-default.jpg">
+            <main>
+              <img src="https://i.ytimg.com/vi/abc/maxresdefault.jpg">
+              <img src="/images/QR%20dary-9.png">
+              <img src="/uploads/ben-white-unsplash-1024x684.jpg">
+              <img src="/uploads/o-nas-AdobeStock_313889232-s.jpg">
+              <img src="/files/books/2025-04/kniha.jpg">
+              <img src="/uploads/put-na-kalvariu.jpg">
+            </main>
+            HTML;
+
+        $this->assertSame(
+            ['https://farnost.test/uploads/put-na-kalvariu.jpg'],
+            array_column(app(CanalPhotoFinder::class)->candidates('https://farnost.test/', $html), 'url'),
+        );
+    }
+
+    #[Test]
     public function command_adds_photos_to_the_gallery_and_keeps_the_logo_primary(): void
     {
         $canal = $this->canal();
