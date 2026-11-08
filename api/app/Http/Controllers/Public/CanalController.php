@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Public;
 
 use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FileResource;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Repositories\Contracts\CanalRepository;
 use App\Services\Canals\CanalClaims;
 use App\Services\Canals\CanalContactVerifier;
+use App\Services\Canals\CanalLogoFinder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -77,7 +79,38 @@ class CanalController extends Controller
             ])->values()->all();
         }
 
+        // Logo z webu (app:canals-find-logos) je štvorec s okrajom — do
+        // širokého pásu cez celú stránku sa nehodí, ide k názvu. Pás berie
+        // fotku: hlavný obrázok, ak to logo nie je, inak prvú z galérie.
+        $images = $canal->images()->orderByDesc('is_primary')->orderBy('sort_order')->orderBy('id')->get();
+        $primary = $images->firstWhere('is_primary', true);
+        $isLogo = fn ($file) => data_get($file?->meta, 'origin') === CanalLogoFinder::ORIGIN;
+        $hero = $primary && ! $isLogo($primary) ? $primary : $images->first(fn ($file) => ! $isLogo($file));
+        $data['logo_image'] = $primary && $isLogo($primary) ? $primary->thumb_image_url : null;
+        $data['hero_image'] = $hero?->large_image_url;
+        $data['gallery_count'] = $this->galleryFiles($canal)->count();
+
         return response()->json($data);
+    }
+
+    /** Galéria verejného profilu — súbory kanála bez loga z webu. */
+    public function files($id): JsonResponse
+    {
+        $canal = Canal::query()
+            ->whereIn('status', ModelStatus::publiclyReadableValues())
+            ->findOrFail($id);
+
+        return response()->json(FileResource::collection(
+            $this->galleryFiles($canal)->orderBy('sort_order')->orderBy('id')->get(),
+        ));
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\MorphMany<\App\Models\File, Canal> */
+    private function galleryFiles(Canal $canal)
+    {
+        return $canal->files()->where(fn ($q) => $q
+            ->whereNull('meta->origin')
+            ->orWhere('meta->origin', '<>', CanalLogoFinder::ORIGIN));
     }
 
     /**

@@ -59,6 +59,9 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     contactable: Boolean(raw['contactable']),
     claimable: Boolean(raw['claimable']),
     claimContact: Boolean(raw['claim_contact']),
+    logoImageUrl: (raw['logo_image'] as string) ?? null,
+    heroImageUrl: (raw['hero_image'] as string) ?? null,
+    galleryCount: Number(raw['gallery_count'] ?? 0),
   }
 }
 

@@ -35,6 +35,9 @@ use Illuminate\Http\UploadedFile;
  */
 class CanalLogoFinder
 {
+    /** `meta.origin` uloženého loga — podľa neho ho verejný profil nedáva do pásu ani galérie. */
+    public const ORIGIN = 'canal_website_logo';
+
     public const SOURCE_JSON_LD = 'json_ld';
 
     public const SOURCE_IMG = 'img';
@@ -180,7 +183,7 @@ class CanalLogoFinder
                 type: FileType::IMAGE,
                 makePrimary: true,
                 meta: [
-                    'origin' => 'canal_website_logo',
+                    'origin' => self::ORIGIN,
                     'logo_source' => $found['source'],
                     'source_url' => $found['url'],
                     'source_page' => $found['page'],

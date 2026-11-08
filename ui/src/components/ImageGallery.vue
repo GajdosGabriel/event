@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { listFiles, listPublicEventFiles, listPublicVenueFiles, type FileItem } from '@/api/files'
+import { listFiles, listPublicCanalFiles, listPublicEventFiles, listPublicVenueFiles, type FileItem } from '@/api/files'
 import { isImageFile as isImage, extensionLabel, openOriginal, useFilePreview } from '@/composables/useFilePreview'
 import ImageLightbox from '@/components/ImageLightbox.vue'
 
@@ -77,7 +77,9 @@ onMounted(async () => {
     const files = props.public
       ? props.fileableType === 'venue'
         ? await listPublicVenueFiles(props.fileableId)
-        : await listPublicEventFiles(props.fileableId)
+        : props.fileableType === 'canal'
+          ? await listPublicCanalFiles(props.fileableId)
+          : await listPublicEventFiles(props.fileableId)
       : await listFiles({ fileable_type: props.fileableType, fileable_id: props.fileableId })
     allFiles.value = [...files].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
   } catch { /* ignore */ }

@@ -338,6 +338,7 @@ Route::get('venues/{id}/events', [PublicVenueController::class, 'events'])->name
 Route::get('venues/{id}/files', [PublicVenueController::class, 'files'])->name('public.venues.files');
 
 Route::get('canals/{id}/events', [PublicCanalController::class, 'events'])->name('public.canals.events');
+Route::get('canals/{id}/files', [PublicCanalController::class, 'files'])->name('public.canals.files');
 Route::get('canals/{canal}/contact/verify', [PublicCanalController::class, 'verifyContact'])
     ->name('public.canals.contact.verify')
     ->middleware(['signed', 'throttle:public-write']);

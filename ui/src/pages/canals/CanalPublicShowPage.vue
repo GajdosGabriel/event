@@ -1,11 +1,14 @@
 <template>
   <div>
     <!-- Hero -->
-    <div v-if="canal?.imageUrl" class="relative h-64 w-full overflow-hidden md:h-80">
-      <img :src="canal.imageUrl" :alt="canal.name" class="h-full w-full object-cover" />
+    <!-- Pás len s fotkou: logo z webu by sa v ňom orezalo a rozmazalo. -->
+    <div v-if="canal?.heroImageUrl" class="relative h-64 w-full overflow-hidden md:h-80">
+      <img :src="canal.heroImageUrl" :alt="canal.name" class="h-full w-full object-cover" />
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       <div class="absolute bottom-0 left-0 right-0 px-6 pb-6 text-white">
-        <div class="mx-auto max-w-[1200px]">
+        <div class="mx-auto flex max-w-[1200px] items-end gap-4">
+          <img v-if="canal.logoImageUrl" :src="canal.logoImageUrl" alt=""
+            class="h-16 w-16 shrink-0 rounded-xl border border-white/70 bg-white object-contain shadow md:h-20 md:w-20" />
           <h1 class="text-3xl font-bold leading-tight md:text-4xl">{{ canal.name }}</h1>
         </div>
       </div>
@@ -26,9 +29,13 @@
           :class="contactResult === 'overeny' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'">
           {{ contactResult === 'overeny' ? t('public.canal.contactVerified') : t('public.canal.contactInvalid') }}
         </p>
-        <div v-if="!canal.imageUrl" class="mb-6">
+        <div v-if="!canal.heroImageUrl" class="mb-6">
           <RouterLink to="/" class="mb-3 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
-          <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">{{ canal.name }}</h1>
+          <div class="flex items-center gap-4">
+            <img v-if="canal.logoImageUrl" :src="canal.logoImageUrl" alt=""
+              class="h-16 w-16 shrink-0 rounded-xl border border-slate-200 bg-white object-contain md:h-20 md:w-20" />
+            <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">{{ canal.name }}</h1>
+          </div>
         </div>
         <RouterLink v-else to="/" class="mb-6 inline-block text-sm text-blue-600 hover:underline">{{ t('common.back') }}</RouterLink>
 
@@ -40,6 +47,11 @@
             </div>
             <div v-if="!canal.body" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
               {{ t('public.canal.noDescription') }}
+            </div>
+
+            <div v-if="canal.galleryCount" class="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 class="mb-4 text-base font-semibold text-slate-800">{{ t('common.photos') }}</h2>
+              <ImageGallery fileable-type="canal" :fileable-id="canal.id" :public="true" />
             </div>
 
             <!-- Mapa -->
@@ -142,6 +154,7 @@ import ContactButton from '@/components/ContactButton.vue'
 import CanalClaimBox from '@/components/CanalClaimBox.vue'
 import ExternalLink from '@/components/ExternalLink.vue'
 import EventCard from '@/components/EventCard.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { absoluteUrl, idFromRouteParam, publicCanalPath } from '@/utils/publicUrl'
@@ -189,8 +202,9 @@ useHead(computed(() => {
       { property: 'og:title', content: c.name },
       { property: 'og:description', content: description },
       { property: 'og:url', content: url },
-      ...(c.imageUrl ? [{ property: 'og:image', content: c.imageUrl }] : []),
-      { name: 'twitter:card', content: c.imageUrl ? 'summary_large_image' : 'summary' },
+      // Zdieľanie: fotka z pásu vo veľkom, inak hlavný obrázok (logo) ako malá karta.
+      ...((c.heroImageUrl ?? c.imageUrl) ? [{ property: 'og:image', content: c.heroImageUrl ?? c.imageUrl }] : []),
+      { name: 'twitter:card', content: c.heroImageUrl ? 'summary_large_image' : 'summary' },
     ],
   }
 }))

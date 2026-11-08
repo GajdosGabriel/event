@@ -394,6 +394,12 @@ export interface CanalItem {
   claimable?: boolean
   /** Dá sa prevzatie overiť cez kontaktný e-mail kanála? */
   claimContact?: boolean
+  /** Verejný profil: logo z webu kanála (k názvu, nie do pásu). */
+  logoImageUrl?: string | null
+  /** Verejný profil: fotka do širokého pásu — nikdy logo. */
+  heroImageUrl?: string | null
+  /** Verejný profil: počet súborov v galérii (bez loga). */
+  galleryCount?: number
 }
 
 // Venue
