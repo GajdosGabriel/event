@@ -115,6 +115,25 @@ class CanalLogoFinderTest extends TestCase
     }
 
     #[Test]
+    public function a_white_transparent_logo_gets_a_dark_canvas(): void
+    {
+        $canal = $this->canal('https://farnost.test');
+        $this->pages['https://farnost.test'] = '<header><img src="/logo-biele.png" class="logo"></header>';
+        $this->images['https://farnost.test/logo-biele.png'] = ['body' => $this->whiteTransparentPng(), 'mime' => 'image/png'];
+
+        $this->artisan('app:canals-find-logos')->assertSuccessful();
+
+        $canvas = imagecreatefromstring(Storage::disk($canal->images()->sole()->disk)->get($canal->images()->sole()->path));
+        $corner = imagecolorsforindex($canvas, imagecolorat($canvas, 2, 2));
+        $this->assertLessThan(80, $corner['red']);
+
+        // Tmavé logo ostáva na bielom.
+        $finder = app(CanalLogoFinder::class);
+        $this->assertFalse($finder->isLight(imagecreatefromstring($this->png(100, 100))));
+        $this->assertTrue($finder->isLight(imagecreatefromstring($this->whiteTransparentPng())));
+    }
+
+    #[Test]
     public function canals_with_an_image_shared_website_or_personal_identity_are_left_alone(): void
     {
         $withImage = $this->canal('https://ma-obrazok.test');
@@ -155,6 +174,20 @@ class CanalLogoFinderTest extends TestCase
             'website' => $website,
             'claimed_at' => null,
         ]);
+    }
+
+    /** Biely kruh na priehľadnom pozadí — logo pre tmavú hlavičku webu. */
+    private function whiteTransparentPng(): string
+    {
+        $image = imagecreatetruecolor(200, 200);
+        imagesavealpha($image, true);
+        imagealphablending($image, false);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+        imagefilledellipse($image, 100, 100, 120, 120, imagecolorallocatealpha($image, 255, 255, 255, 0));
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
     }
 
     private function png(int $width, int $height): string

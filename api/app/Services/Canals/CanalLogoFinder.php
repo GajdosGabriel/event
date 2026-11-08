@@ -30,7 +30,8 @@ use Illuminate\Http\UploadedFile;
  * skript a variantový generátor ho nevie) a nie je priveľmi malý. Logo
  * sa položí na biely štvorec s okrajom: zoznamy obrázok orezávajú na
  * výrez, takže široké logo by inak prišlo o okraje a priehľadné by na
- * tmavom pozadí zmizlo. Fotka z og:image ide bez úprav.
+ * tmavom pozadí zmizlo. Biele logo (pre tmavú hlavičku webu) dostane
+ * tmavý štvorec. Fotka z og:image ide bez úprav.
  */
 class CanalLogoFinder
 {
@@ -54,6 +55,11 @@ class CanalLogoFinder
     private const MIN_PHOTO_EDGE = 200;
 
     private const CANVAS = 512;
+
+    /** Pozadie pre biele/svetlé logo (tmavá hlavička webu). */
+    private const DARK_BACKGROUND = [31, 41, 55];
+
+    private const LIGHT_LUMINANCE = 200;
 
     private const RASTER_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -394,7 +400,8 @@ class CanalLogoFinder
         $newHeight = max(1, (int) round($height * $ratio));
 
         $canvas = imagecreatetruecolor(self::CANVAS, self::CANVAS);
-        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+        [$r, $g, $b] = $this->isLight($source) ? self::DARK_BACKGROUND : [255, 255, 255];
+        imagefill($canvas, 0, 0, imagecolorallocate($canvas, $r, $g, $b));
         imagealphablending($canvas, true);
         imagecopyresampled(
             $canvas, $source,
@@ -406,6 +413,39 @@ class CanalLogoFinder
         imagepng($canvas, null, 6);
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Je logo svetlé (biele logo pre tmavú hlavičku webu)? Rozhodujú len
+     * viditeľné body — priehľadné pozadie by priemer stiahlo k nule.
+     */
+    public function isLight(\GdImage $image): bool
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $step = max(1, intdiv(max($width, $height), 120));
+        $sum = 0.0;
+        $count = 0;
+
+        for ($x = 0; $x < $width; $x += $step) {
+            for ($y = 0; $y < $height; $y += $step) {
+                $rgba = imagecolorsforindex($image, imagecolorat($image, $x, $y));
+
+                if ($rgba['alpha'] > 100) {
+                    continue;
+                }
+
+                $sum += 0.299 * $rgba['red'] + 0.587 * $rgba['green'] + 0.114 * $rgba['blue'];
+                $count++;
+            }
+        }
+
+        // Úplne nepriehľadné svetlé logo má okolo seba vlastné pozadie,
+        // tmavý štvorec by z neho urobil biely obdĺžnik — preto len pri
+        // obrázku s priehľadnosťou.
+        $opaqueShare = $count / max(1, intdiv($width + $step - 1, $step) * intdiv($height + $step - 1, $step));
+
+        return $count > 0 && $opaqueShare < 0.9 && $sum / $count > self::LIGHT_LUMINANCE;
     }
 
     private function bareHost(?string $url): ?string
