@@ -13,6 +13,7 @@ use App\Models\Venue;
 use App\Notifications\ProfileCompleted;
 use App\Services\Canals\CanalRecipients;
 use App\Services\SystemLog\Recorder;
+use App\Support\AppSettings;
 use App\Support\PlaceholderNames;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +46,7 @@ class ProfileEnricher
     /** Dopĺňanie profilov beží (zapnuté, s kľúčom OpenAI). */
     public function enabled(): bool
     {
-        return (bool) config('profile_enrichment.enabled', true) && (string) config('openai.api_key') !== '';
+        return (bool) AppSettings::get('profile_enrichment.enabled', true) && (string) config('openai.api_key') !== '';
     }
 
     /** Profil ešte len čaká na doplnenie — nedokončené a pokusy neminuté. */
@@ -67,11 +68,28 @@ class ProfileEnricher
      */
     public function budgetAvailable(): bool
     {
-        $limit = max(0, (float) config('profile_enrichment.monthly_limit_usd', 1));
-        $released = $limit * now()->day / now()->daysInMonth;
+        return $this->budget()['available'];
+    }
 
-        return $limit === 0.0 || AiUsage::where('feature', ProfileResearch::FEATURE)
-            ->where('created_at', '>=', now()->startOfMonth())->sum('cost_usd') < $released;
+    /**
+     * Stav mesačného rozpočtu vyhľadávania. Míňa ho dopĺňanie profilov aj
+     * hľadanie e-mailov kanálov (oboje cez ProfileResearch). Limit 0 = bez limitu.
+     *
+     * @return array{limitUsd: float, spentUsd: float, releasedUsd: float, available: bool}
+     */
+    public function budget(): array
+    {
+        $limit = max(0, (float) AppSettings::get('profile_enrichment.monthly_limit_usd', 1));
+        $released = $limit * now()->day / now()->daysInMonth;
+        $spent = (float) AiUsage::where('feature', ProfileResearch::FEATURE)
+            ->where('created_at', '>=', now()->startOfMonth())->sum('cost_usd');
+
+        return [
+            'limitUsd' => $limit,
+            'spentUsd' => round($spent, 6),
+            'releasedUsd' => round($released, 6),
+            'available' => $limit === 0.0 || $spent < $released,
+        ];
     }
 
     public function run(Canal|Venue $subject): void
@@ -92,7 +110,7 @@ class ProfileEnricher
 
                 return;
             }
-            if (! config('profile_enrichment.enabled', true) || $audit->retry_at?->isFuture()
+            if (! AppSettings::get('profile_enrichment.enabled', true) || $audit->retry_at?->isFuture()
                 || $audit->attempts >= (int) config('profile_enrichment.max_attempts', 3)) {
                 return;
             }

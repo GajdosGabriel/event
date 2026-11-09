@@ -14,6 +14,7 @@ use App\Services\Imports\CollectionCanal;
 use App\Services\Profiles\ProfileEnricher;
 use App\Services\Profiles\ProfileResearch;
 use App\Services\SystemLog\Recorder;
+use App\Support\AppSettings;
 use App\Support\Url;
 use DOMDocument;
 use DOMXPath;
@@ -364,7 +365,7 @@ class CanalEmailFinder
 
     private function aiAvailable(): bool
     {
-        return (bool) config('canals.emails.discovery.ai', true)
+        return (bool) AppSettings::get('canals.emails.discovery.ai', true)
             && (string) config('openai.api_key') !== ''
             && app(ProfileEnricher::class)->budgetAvailable();
     }

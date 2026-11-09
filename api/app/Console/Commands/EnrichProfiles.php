@@ -8,6 +8,7 @@ use App\Models\Canal;
 use App\Models\ProfileEnrichment;
 use App\Models\Venue;
 use App\Services\Profiles\ProfileEnricher;
+use App\Support\AppSettings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -42,7 +43,7 @@ class EnrichProfiles extends Command
                     return self::SUCCESS;
                 }
             }
-            if (! config('profile_enrichment.enabled', true)) {
+            if (! AppSettings::get('profile_enrichment.enabled', true)) {
                 return self::SUCCESS;
             }
             $candidates = collect();

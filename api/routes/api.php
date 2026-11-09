@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminToolsController;
+use App\Http\Controllers\Admin\AiLimitsController as AdminAiLimitsController;
 use App\Http\Controllers\Admin\AiUsageController as AdminAiUsageController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CanalClaimController as AdminCanalClaimController;
@@ -765,8 +766,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::post('canal-claims/{claim}/resolve', [AdminCanalClaimController::class, 'resolve'])->name('canal-claims.resolve');
     Route::get('tag-suggestions', [AdminTagSuggestionController::class, 'index'])->name('tag-suggestions.index');
     Route::patch('tag-suggestions/{tagSuggestion}', [AdminTagSuggestionController::class, 'update'])->name('tag-suggestions.update');
-    // Spotreba OpenAI — len prehľad, bez vypínača.
+    // Spotreba OpenAI — prehľad; limity a vypínače len pre AI vyhľadávanie.
     Route::get('ai-usage', [AdminAiUsageController::class, 'index'])->name('ai-usage.index');
+    Route::get('ai-usage/limits', [AdminAiLimitsController::class, 'show'])->name('ai-usage.limits.show');
+    Route::put('ai-usage/limits', [AdminAiLimitsController::class, 'update'])->name('ai-usage.limits.update');
     // Denník udalostí — maily, prihlásenia, importy, cron. Len čítanie.
     Route::get('system-logs', [AdminSystemLogController::class, 'index'])->name('system-logs.index');
     // Všetky vstupenky/rezervácie a otázky z publika naprieč podujatiami. Len čítanie.

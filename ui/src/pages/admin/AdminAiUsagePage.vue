@@ -35,6 +35,8 @@
         </div>
       </div>
 
+      <AiLimitsCard />
+
       <!-- Po dňoch — jednoduché stĺpce podľa ceny -->
       <div v-if="data.byDay.length" class="panel-card">
         <h2 class="mb-3 font-semibold text-slate-900">{{ t('aiUsage.byDay') }}</h2>
@@ -141,6 +143,7 @@
 import { computed, defineComponent, h, onMounted, ref, toRef, type PropType } from 'vue'
 import { fetchAiUsage, type AiUsageGroup, type AiUsageOverview, type AiUsageRecent } from '@/api/aiUsage'
 import AppPaginator from '@/components/AppPaginator.vue'
+import AiLimitsCard from '@/components/ai/AiLimitsCard.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { useToast } from '@/composables/useToast'
 import { localeTag, useI18n } from '@/i18n'

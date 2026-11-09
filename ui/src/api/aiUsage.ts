@@ -50,6 +50,29 @@ export interface AiUsageOverview {
   recentMeta: { currentPage: number; lastPage: number; total: number }
 }
 
+/** Limity AI vyhľadávania (Admin\AiLimitsController) — prepisujú config/.env. */
+export interface AiLimitsInput {
+  profileEnrichment: boolean
+  emailDiscoveryAi: boolean
+  monthlyLimitUsd: number
+}
+
+export interface AiLimits extends AiLimitsInput {
+  apiKey: boolean
+  /** Spoločný rozpočet; uvoľňuje sa po dňoch. limitUsd 0 = bez limitu (len z configu). */
+  budget: { limitUsd: number; spentUsd: number; releasedUsd: number; available: boolean }
+}
+
+export async function fetchAiLimits(): Promise<AiLimits> {
+  const { data } = await http.get('/admin/ai-usage/limits')
+  return data.data as AiLimits
+}
+
+export async function updateAiLimits(input: AiLimitsInput): Promise<AiLimits> {
+  const { data } = await http.put('/admin/ai-usage/limits', input)
+  return data.data as AiLimits
+}
+
 export async function fetchAiUsage(days: number, page = 1): Promise<AiUsageOverview> {
   const { data } = await http.get('/admin/ai-usage', { params: { days, page } })
   return data.data as AiUsageOverview
