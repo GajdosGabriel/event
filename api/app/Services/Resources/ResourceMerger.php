@@ -14,7 +14,15 @@ use Illuminate\Validation\ValidationException;
 /** Deliberately conservative: an unknown reference blocks the whole transaction. */
 class ResourceMerger
 {
-    public function merge(string $kind, int $sourceId, int $targetId, int $actorId): void
+    /**
+     * History that describes the source itself and stays attached to the soft-deleted
+     * source: logs, checks and reviews of its content, AI cost records and profile
+     * enrichment audits, raw page views. They must not describe the target, whose
+     * content is preserved.
+     */
+    private const HISTORY = ['system_logs', 'attribute_checks', 'ai_usages', 'content_reviews', 'views', 'profile_enrichments'];
+
+    public function merge(string $kind, int $sourceId, int $targetId, ?int $actorId): void
     {
         if ($sourceId === $targetId) {
             $this->conflict('same');
@@ -39,13 +47,13 @@ class ResourceMerger
             // two different channels, so their links are united instead of compared (below).
             $supported = ['events', 'canal_venue'];
             if ($class === Canal::class) {
-                $supported = [...$supported, 'canal_user', 'users', 'canal_emails'];
+                $supported = [...$supported, 'canal_user', 'users', 'canal_emails', 'canal_email_searches'];
             }
             // Include legacy non-FK references and morph aliases as well as class names.
             foreach (Schema::getTables() as $table) {
                 $name = $table['name'];
                 $columns = Schema::getColumnListing($name);
-                if (in_array($key, $columns, true) && ! in_array($name, $supported, true)
+                if (in_array($key, $columns, true) && ! in_array($name, [...$supported, ...self::HISTORY], true)
                     && DB::table($name)->where($key, $sourceId)->lockForUpdate()->exists()) {
                     $this->conflict('dependency', $name);
                 }
@@ -54,9 +62,7 @@ class ResourceMerger
                         continue;
                     }
                     $idColumn = substr($column, 0, -5).'_id';
-                    // History and source-content checks remain attached to the soft-deleted source.
-                    // They must not describe the target, whose content is preserved.
-                    if (in_array($name, ['system_logs', 'attribute_checks', 'ai_usages'], true) || ! in_array($idColumn, $columns, true)) {
+                    if (in_array($name, self::HISTORY, true) || ! in_array($idColumn, $columns, true)) {
                         continue;
                     }
                     if (DB::table($name)->whereIn($column, [$class, $source->getMorphClass()])
@@ -84,6 +90,8 @@ class ResourceMerger
                 $moved['canal_emails'] = DB::table('canal_emails')->where('canal_id', $sourceId)->whereNotIn('email', $known)->lockForUpdate()->pluck('id')->all();
                 DB::table('canal_emails')->whereIn('id', $moved['canal_emails'])->update(['canal_id' => $targetId, 'is_primary' => false]);
                 DB::table('canal_emails')->where('canal_id', $sourceId)->delete();
+                // Derived state of the address search (CanalEmailFinder) — the target keeps its own.
+                DB::table('canal_email_searches')->where('canal_id', $sourceId)->delete();
                 app(CanalEmails::class)->refresh($target);
                 $moved['canal_user'] = DB::table('canal_user')->where('canal_id', $sourceId)->get()->map(fn ($row) => (array) $row)->all();
                 DB::table('canal_user')->where('canal_id', $sourceId)->delete();

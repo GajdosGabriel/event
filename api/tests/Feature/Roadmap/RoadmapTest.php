@@ -111,6 +111,32 @@ class RoadmapTest extends EventSetupTest
         $this->assertDatabaseMissing('system_logs', ['event' => 'resource.merged', 'subject_id' => $target->id]);
     }
 
+    public function test_canal_merge_keeps_history_with_source_and_drops_address_search_state(): void
+    {
+        $source = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        $target = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        // Riadky, ktoré o zdroji vytvoria automatické úlohy — predtým zlúčenie blokovali.
+        DB::table('ai_usages')->insert(['feature' => 'profile_research', 'model' => 'test', 'canal_id' => $source->id,
+            'subject_type' => $source->getMorphClass(), 'subject_id' => $source->id, 'cost_usd' => 0.01, 'created_at' => now()]);
+        DB::table('content_reviews')->insert(['reviewable_type' => $source->getMorphClass(), 'reviewable_id' => $source->id,
+            'content_hash' => 'x', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('views')->insert(['viewable_type' => $source->getMorphClass(), 'viewable_id' => $source->id,
+            'visitor_hash' => 'v', 'viewed_on' => now()->toDateString(), 'created_at' => now()]);
+        DB::table('canal_email_searches')->insert(['canal_id' => $source->id, 'attempts' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('profile_enrichments')->insert(['subject_type' => $source->getMorphClass(), 'subject_id' => $source->id,
+            'attempts' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+
+        $this->postJson('/api/admin/canals/'.$source->id.'/merge', ['target_id' => $target->id])->assertOk();
+
+        $this->assertSoftDeleted('canals', ['id' => $source->id, 'merged_into_id' => $target->id]);
+        $this->assertDatabaseHas('ai_usages', ['canal_id' => $source->id]);
+        $this->assertDatabaseHas('content_reviews', ['reviewable_id' => $source->id]);
+        $this->assertDatabaseHas('views', ['viewable_id' => $source->id]);
+        $this->assertDatabaseHas('profile_enrichments', ['subject_id' => $source->id]);
+        $this->assertDatabaseMissing('canal_email_searches', ['canal_id' => $source->id]);
+    }
+
     public function test_canal_merge_preserves_identical_memberships_and_rejects_repeat_and_self(): void
     {
         $source = Canal::factory()->withOwner($this->user)->create(['status' => 'draft', 'identity_mode' => 'personal']);
