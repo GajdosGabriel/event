@@ -60,6 +60,15 @@ class Venue extends Model implements Messageable
             ->where('canal_venue.status', ModelStatus::Published->value));
     }
 
+    /**
+     * Miesta, kde sa koná aktuálna akcia (rovnaké okno ako Canal::scopeWithCurrentEvent).
+     * Len im sa dopĺňa profil cez AI — rozpočet má ísť na to, čo ľudia práve hľadajú.
+     */
+    public function scopeWithCurrentEvent($query)
+    {
+        return $query->whereExists(fn ($q) => Canal::currentEvents($q->selectRaw('1'), 'venue_id', 'venues.id'));
+    }
+
     public function municipality()
     {
         return $this->belongsTo(Municipality::class, 'village_id');

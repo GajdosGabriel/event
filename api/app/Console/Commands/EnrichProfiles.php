@@ -64,7 +64,9 @@ class EnrichProfiles extends Command
                     $query->where('identity_mode', CanalIdentityMode::Organization->value)
                         ->whereNull('claimed_at')->withCurrentEvent()->orderByCurrentEvent();
                 } else {
-                    $query->where(fn ($q) => $q->whereNull('category')->orWhere('category', '<>', 'fallback'));
+                    // Len miesta s aktuálnou akciou — ostatné by míňali rozpočet kanálov.
+                    $query->where(fn ($q) => $q->whereNull('category')->orWhere('category', '<>', 'fallback'))
+                        ->withCurrentEvent();
                 }
                 $candidates = $candidates->concat($query->oldest('created_at')->oldest('id')->limit($limit)->get());
             }

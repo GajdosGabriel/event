@@ -254,8 +254,8 @@ class ProfileEnrichmentTest extends TestCase
     public function test_scheduler_processes_both_models_and_does_not_repeat_finished_profiles(): void
     {
         $canal = $this->canal(['registration_source' => RegistrationSource::IMPORT]);
-        $this->currentEvent($canal);
         $venue = $this->venue($canal);
+        $this->currentEvent($canal, venue: $venue);
         $this->mock(ProfileResearch::class)->shouldReceive('research')->twice()->andReturn(['email' => $this->entry('kontakt@example.sk')]);
         $this->artisan('app:profiles-enrich')->assertSuccessful();
         $this->artisan('app:profiles-enrich')->assertSuccessful();
@@ -287,12 +287,30 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertEqualsCanonicalizing([$soon->id, $later->id], ProfileEnrichment::pluck('subject_id')->all());
     }
 
-    private function currentEvent(Canal $canal, ?\DateTimeInterface $start = null): \App\Models\Event
+    public function test_command_enriches_only_venues_hosting_a_current_event(): void
+    {
+        $canal = $this->canal(['registration_source' => RegistrationSource::IMPORT, 'email' => 'kanal@example.sk', 'website' => 'https://example.sk',
+            'phone' => '+421 900 000 000', 'street' => 'Hlavná 1', 'postcode' => '900 01', 'country' => 'Slovensko', 'body' => 'Popis.']);
+        $idle = $this->venue($canal, ['name' => 'Bez akcie']);
+        $busy = $this->venue($canal, ['name' => 'S akciou']);
+        $this->currentEvent($canal, venue: $busy);
+        $past = $this->venue($canal, ['name' => 'Stará akcia']);
+        $this->currentEvent($canal, now()->subDays(30), $past);
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->andReturn([]);
+
+        $this->artisan('app:profiles-enrich', ['--limit' => 10])->assertSuccessful();
+
+        $venues = ProfileEnrichment::where('subject_type', $busy->getMorphClass())->pluck('subject_id')->all();
+        $this->assertSame([$busy->id], $venues);
+    }
+
+    private function currentEvent(Canal $canal, ?\DateTimeInterface $start = null, ?Venue $venue = null): \App\Models\Event
     {
         $start ??= now()->addDays(5);
 
         return \App\Models\Event::factory()->create([
             'canal_id' => $canal->id, 'user_id' => User::factory(), 'status' => ModelStatus::Published->value,
+            'venue_id' => $venue?->id,
             'published_at' => now()->subDay(), 'start_at' => $start, 'end_at' => (clone $start)->modify('+2 hours'),
             'email' => null, 'additional_emails' => null,
         ]);

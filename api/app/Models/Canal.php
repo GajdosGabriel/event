@@ -206,11 +206,15 @@ class Canal extends Model implements Messageable
         return $query->orderBy(fn ($q) => self::currentEvents($q->selectRaw('MIN(events.start_at)')));
     }
 
-    /** @param  \Illuminate\Database\Query\Builder  $q */
-    public static function currentEvents($q)
+    /**
+     * Aktuálne akcie kanála — alebo miesta, keď sa zavolá s `venue_id`/`venues.id`.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $q
+     */
+    public static function currentEvents($q, string $foreignKey = 'canal_id', string $ownerKey = 'canals.id')
     {
         return $q->from('events')
-            ->whereColumn('events.canal_id', 'canals.id')
+            ->whereColumn('events.'.$foreignKey, $ownerKey)
             ->whereNull('events.deleted_at')
             ->whereIn('events.status', [ModelStatus::Published->value, ModelStatus::Archived->value])
             ->whereRaw('COALESCE(events.end_at, events.start_at) >= ?', [now()->subDays((int) config('canals.outreach.window_days', 14))]);
