@@ -120,7 +120,8 @@ function percent(value: number): string {
 }
 
 function usd(value: number): string {
-  const digits = value > 0 && value < 1 ? 4 : 2
+  // Dve desatinné miesta ako pri limite; viac len vtedy, keby sa nenulová suma zaokrúhlila na $0,00.
+  const digits = value > 0 && value < 0.01 ? 4 : 2
   return `$${value.toLocaleString(localeTag(), { minimumFractionDigits: digits, maximumFractionDigits: digits })}`
 }
 </script>
