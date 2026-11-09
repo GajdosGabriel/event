@@ -148,6 +148,14 @@ class CanalEmailFinderTest extends TestCase
     }
 
     #[Test]
+    public function addresses_are_found_on_a_windows_1250_page(): void
+    {
+        $html = iconv('UTF-8', 'Windows-1250', '<p>Farský úrad – kontakt: fara [at] obec.sk, mailto:info%40obec.sk %E9</p>');
+
+        $this->assertEqualsCanonicalizing(['fara@obec.sk', 'info@obec.sk'], app(CanalEmailFinder::class)->extract($html));
+    }
+
+    #[Test]
     public function a_website_shared_by_several_canals_is_not_searched(): void
     {
         $canal = $this->canal(null, website: 'https://www.cirkev.test');

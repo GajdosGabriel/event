@@ -239,15 +239,18 @@ final class Url
      */
     public static function resolve(string $host): array
     {
-        $records = @dns_get_record(self::toAscii($host), DNS_A + DNS_AAAA) ?: [];
-
+        $host = self::toAscii($host);
         $addresses = [];
 
-        foreach ($records as $record) {
-            $addresses[] = $record['ip'] ?? $record['ipv6'] ?? null;
+        // A a AAAA zvlášť: spoločný dotaz zlyhá celý, keď DNS server na AAAA
+        // neodpovie (doména bez IPv6) — web by vyzeral ako neexistujúci.
+        foreach ([DNS_A, DNS_AAAA] as $type) {
+            foreach (@dns_get_record($host, $type) ?: [] as $record) {
+                $addresses[] = $record['ip'] ?? $record['ipv6'] ?? null;
+            }
         }
 
-        return array_values(array_filter($addresses));
+        return array_values(array_unique(array_filter($addresses)));
     }
 
     public static function isPublicAddress(string $address): bool

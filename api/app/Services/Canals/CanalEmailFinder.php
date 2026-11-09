@@ -451,8 +451,15 @@ class CanalEmailFinder
      */
     public function extract(string $html): array
     {
+        // Staršie slovenské weby (napr. tkkbs.sk) posielajú windows-1250 — regex s /u
+        // by na neplatnom UTF-8 vrátil null a stránka by nedala žiadnu adresu.
+        if (! mb_check_encoding($html, 'UTF-8')) {
+            $html = (string) @iconv('Windows-1250', 'UTF-8//IGNORE', $html);
+        }
+
         $text = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = rawurldecode(preg_replace('/%(?![0-9a-f]{2})/i', '%25', $text));
+        // %xx z odkazov môže dať bajty mimo UTF-8 — tie sa zahodia, adresy sú ASCII.
+        $text = mb_scrub(rawurldecode(preg_replace('/%(?![0-9a-f]{2})/i', '%25', $text)), 'UTF-8');
         $text = preg_replace('/\s*[\[\(\{]\s*(at|zavin[aá][cč]|@)\s*[\]\)\}]\s*/iu', '@', $text);
         $text = preg_replace('/\s*[\[\(\{]\s*(dot|bodka|\.)\s*[\]\)\}]\s*/iu', '.', $text);
 
