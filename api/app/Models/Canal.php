@@ -19,6 +19,7 @@ use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\ProtectsReferencedRecords;
 use App\Models\Traits\SanitizesHtmlBody;
 use App\Services\Canals\CanalRecipients;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -183,6 +184,36 @@ class Canal extends Model implements Messageable
     public function events()
     {
         return $this->hasMany(Event::class);
+    }
+
+    /**
+     * Kanály s aktuálnou akciou — zverejnenou (či archivovanou), ktorá ešte
+     * neskončila alebo skončila najviac pred `canals.outreach.window_days` dňami.
+     * Len k nim môže prísť ponuka prevzatia (CanalOutreachSender), preto sa
+     * len im dopĺňa profil a hľadá kontakt.
+     */
+    public function scopeWithCurrentEvent(Builder $query): Builder
+    {
+        return $query->whereExists(fn ($q) => self::currentEvents($q->selectRaw('1')));
+    }
+
+    /**
+     * Najskorší začiatok aktuálnej akcie — kanál s bližšou akciou má prednosť,
+     * okná oslovenia sú krátke.
+     */
+    public function scopeOrderByCurrentEvent(Builder $query): Builder
+    {
+        return $query->orderBy(fn ($q) => self::currentEvents($q->selectRaw('MIN(events.start_at)')));
+    }
+
+    /** @param  \Illuminate\Database\Query\Builder  $q */
+    public static function currentEvents($q)
+    {
+        return $q->from('events')
+            ->whereColumn('events.canal_id', 'canals.id')
+            ->whereNull('events.deleted_at')
+            ->whereIn('events.status', [ModelStatus::Published->value, ModelStatus::Archived->value])
+            ->whereRaw('COALESCE(events.end_at, events.start_at) >= ?', [now()->subDays((int) config('canals.outreach.window_days', 14))]);
     }
 
     public function venue()

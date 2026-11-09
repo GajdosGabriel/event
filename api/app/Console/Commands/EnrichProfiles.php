@@ -59,13 +59,17 @@ class EnrichProfiles extends Command
                                 ->orWhere('retry_at', '>', now()));
                     });
                 if ($model instanceof Canal) {
-                    $query->where('identity_mode', CanalIdentityMode::Organization->value);
+                    // Len neprevzaté kanály s aktuálnou akciou — tým ide ponuka prevzatia
+                    // a doplnený profil (najmä web) pomôže nájsť im kontakt. Bližšia akcia prvá.
+                    $query->where('identity_mode', CanalIdentityMode::Organization->value)
+                        ->whereNull('claimed_at')->withCurrentEvent()->orderByCurrentEvent();
                 } else {
                     $query->where(fn ($q) => $q->whereNull('category')->orWhere('category', '<>', 'fallback'));
                 }
                 $candidates = $candidates->concat($query->oldest('created_at')->oldest('id')->limit($limit)->get());
             }
-            foreach ($candidates->sortBy('created_at')->take($limit) as $subject) {
+            // Kanály pred miestami — ich kontakt čaká na oslovenie s krátkym oknom.
+            foreach ($candidates->take($limit) as $subject) {
                 $service->run($subject);
                 if (microtime(true) - $start >= $seconds) {
                     break;

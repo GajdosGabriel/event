@@ -254,6 +254,7 @@ class ProfileEnrichmentTest extends TestCase
     public function test_scheduler_processes_both_models_and_does_not_repeat_finished_profiles(): void
     {
         $canal = $this->canal(['registration_source' => RegistrationSource::IMPORT]);
+        $this->currentEvent($canal);
         $venue = $this->venue($canal);
         $this->mock(ProfileResearch::class)->shouldReceive('research')->twice()->andReturn(['email' => $this->entry('kontakt@example.sk')]);
         $this->artisan('app:profiles-enrich')->assertSuccessful();
@@ -262,6 +263,39 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertSame('kontakt@example.sk', $venue->fresh()->email);
         $this->assertDatabaseCount('profile_enrichments', 2);
         Notification::assertNothingSent();
+    }
+
+    public function test_command_enriches_only_unclaimed_canals_with_a_current_event_nearest_first(): void
+    {
+        config(['profile_enrichment.batch' => 1]);
+        $idle = $this->canal(['name' => 'Bez akcie', 'registration_source' => RegistrationSource::IMPORT]);
+        $old = $this->canal(['name' => 'Stará akcia', 'registration_source' => RegistrationSource::IMPORT]);
+        $this->currentEvent($old, now()->subDays(30));
+        $claimed = $this->canal(['name' => 'Prevzatý', 'registration_source' => RegistrationSource::IMPORT, 'claimed_at' => now()]);
+        $this->currentEvent($claimed);
+        $later = $this->canal(['name' => 'Neskôr', 'registration_source' => RegistrationSource::IMPORT]);
+        $this->currentEvent($later, now()->addDays(20));
+        $soon = $this->canal(['name' => 'Čoskoro', 'registration_source' => RegistrationSource::IMPORT]);
+        $this->currentEvent($soon, now()->addDays(2));
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->twice()->andReturn([]);
+
+        $this->artisan('app:profiles-enrich')->assertSuccessful();
+        $this->assertSame([$soon->id], ProfileEnrichment::pluck('subject_id')->all());
+
+        $this->artisan('app:profiles-enrich')->assertSuccessful();
+        $this->artisan('app:profiles-enrich')->assertSuccessful();
+        $this->assertEqualsCanonicalizing([$soon->id, $later->id], ProfileEnrichment::pluck('subject_id')->all());
+    }
+
+    private function currentEvent(Canal $canal, ?\DateTimeInterface $start = null): \App\Models\Event
+    {
+        $start ??= now()->addDays(5);
+
+        return \App\Models\Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => User::factory(), 'status' => ModelStatus::Published->value,
+            'published_at' => now()->subDay(), 'start_at' => $start, 'end_at' => (clone $start)->modify('+2 hours'),
+            'email' => null, 'additional_emails' => null,
+        ]);
     }
 
     public function test_mail_failure_is_retried_after_one_hour_without_paid_research(): void

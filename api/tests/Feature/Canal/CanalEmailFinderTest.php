@@ -11,6 +11,7 @@ use App\Models\CanalEmail;
 use App\Models\CanalEmailSearch;
 use App\Models\EmailSuppression;
 use App\Models\Event;
+use App\Models\ProfileEnrichment;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Services\Canals\CanalEmailFinder;
@@ -211,12 +212,104 @@ class CanalEmailFinderTest extends TestCase
     {
         config(['openai.api_key' => 'test']);
         $canal = $this->canal(null, website: null);
+        $this->enriched($canal);
         $this->fakeResearch('nova@farnost.test', 'https://dieceza.test/farnosti', fail: true);
 
         $this->assertSame(CanalEmailSearch::NONE, app(CanalEmailFinder::class)->run($canal));
         $this->assertNotNull(CanalEmailSearch::where('canal_id', $canal->id)->value('retry_at'));
         // Kým neuplynie opakovanie, kanál nie je na rade.
         $this->assertFalse(app(CanalEmailFinder::class)->dueQuery()->whereKey($canal->id)->exists());
+    }
+
+    #[Test]
+    public function a_canal_without_website_waits_for_profile_enrichment(): void
+    {
+        config(['openai.api_key' => 'test']);
+        $canal = $this->canal(null, website: null);
+        $finder = app(CanalEmailFinder::class);
+
+        $this->assertFalse($finder->dueQuery()->whereKey($canal->id)->exists());
+        $this->assertSame('awaiting_profile', $finder->skipReason($canal));
+        $this->assertSame(CanalEmailSearch::SKIPPED, $finder->run($canal));
+        // Čakanie nie je pokus a nič neodkladá.
+        $this->assertNull(CanalEmailSearch::where('canal_id', $canal->id)->value('retry_at'));
+        $this->assertFalse(SystemLog::where('event', 'canals.email_not_found')->exists());
+
+        $this->enriched($canal);
+
+        $this->assertTrue($finder->dueQuery()->whereKey($canal->id)->exists());
+        $this->assertNull($finder->skipReason($canal));
+    }
+
+    #[Test]
+    public function a_new_website_cancels_the_retry_delay(): void
+    {
+        $canal = $this->canal(null, website: null);
+        $this->assertSame(CanalEmailSearch::NONE, app(CanalEmailFinder::class)->run($canal));
+        $this->assertFalse(app(CanalEmailFinder::class)->dueQuery()->whereKey($canal->id)->exists());
+
+        $this->pages = ['https://www.fara.test' => '<a href="mailto:farnost@fara.test">Napíšte nám</a>'];
+        $canal->update(['website' => 'https://www.fara.test']);
+
+        $search = CanalEmailSearch::where('canal_id', $canal->id)->sole();
+        $this->assertNull($search->retry_at);
+        $this->assertSame(0, $search->attempts);
+
+        $this->artisan('app:canal-emails-find')->assertSuccessful();
+
+        $this->assertSame('farnost@fara.test', $canal->fresh()->email);
+    }
+
+    #[Test]
+    public function only_canals_with_a_current_event_or_a_bounce_are_searched(): void
+    {
+        $idle = $this->canal(null, currentEvent: false);
+        $past = $this->canal(null, currentEvent: false);
+        Event::factory()->create([
+            'canal_id' => $past->id, 'user_id' => User::factory(), 'status' => ModelStatus::Archived->value,
+            'start_at' => now()->subDays(40), 'end_at' => now()->subDays(40), 'email' => null, 'additional_emails' => null,
+        ]);
+        $bounced = $this->canal('zla@farnost.test', currentEvent: false);
+        $this->emails->recordBounce('zla@farnost.test', CanalEmail::BOUNCE_HARD, '550 5.1.1');
+        $finder = app(CanalEmailFinder::class);
+
+        $this->assertEqualsCanonicalizing([$bounced->id], $finder->dueQuery()->whereKey([$idle->id, $past->id, $bounced->id])->pluck('id')->all());
+        $this->assertSame('no_current_event', $finder->skipReason($idle));
+        $this->assertSame(CanalEmailSearch::SKIPPED, $finder->run($idle));
+        $this->assertNull(CanalEmailSearch::where('canal_id', $idle->id)->value('retry_at'));
+    }
+
+    #[Test]
+    public function waiting_for_the_profile_ends_after_the_limit_or_without_budget(): void
+    {
+        config(['openai.api_key' => 'test', 'canals.emails.discovery.profile_wait_hours' => 48]);
+        $finder = app(CanalEmailFinder::class);
+
+        $stale = $this->canal(null, website: null, currentEvent: false);
+        $this->currentEvent($stale, now()->subHours(49));
+        $this->assertTrue($finder->dueQuery()->whereKey($stale->id)->exists());
+        $this->assertNull($finder->skipReason($stale));
+
+        $fresh = $this->canal(null, website: null);
+        $this->assertSame('awaiting_profile', $finder->skipReason($fresh));
+
+        \App\Models\AiUsage::create([
+            'feature' => ProfileResearch::FEATURE, 'model' => 'test', 'cost_usd' => 5,
+            'prompt_tokens' => 0, 'completion_tokens' => 0,
+        ]);
+        $this->assertTrue($finder->dueQuery()->whereKey($fresh->id)->exists());
+        $this->assertNull($finder->skipReason($fresh));
+    }
+
+    private function enriched(Canal $canal): void
+    {
+        ProfileEnrichment::create([
+            'subject_type' => $canal->getMorphClass(),
+            'subject_id' => $canal->id,
+            'attempts' => 1,
+            'completed_at' => now(),
+            'notification_completed_at' => now(),
+        ]);
     }
 
     private function fakeResearch(string $email, string $source, bool $fail = false): void
@@ -241,8 +334,9 @@ class CanalEmailFinderTest extends TestCase
         ?string $website = 'https://farnost.test',
         RegistrationSource $source = RegistrationSource::IMPORT,
         CanalIdentityMode $identity = CanalIdentityMode::Organization,
+        bool $currentEvent = true,
     ): Canal {
-        return Canal::factory()->active()->create([
+        $canal = Canal::factory()->active()->create([
             'registration_source' => $source->value,
             'identity_mode' => $identity->value,
             'name' => 'Farnosť '.fake()->unique()->city(),
@@ -250,6 +344,27 @@ class CanalEmailFinderTest extends TestCase
             'email_verified_at' => null,
             'website' => $website,
             'claimed_at' => null,
+        ]);
+
+        if ($currentEvent) {
+            $this->currentEvent($canal);
+        }
+
+        return $canal;
+    }
+
+    /** Zverejnená akcia bez e-mailu, ktorá ešte nezačala. */
+    private function currentEvent(Canal $canal, ?\DateTimeInterface $published = null): Event
+    {
+        return Event::factory()->create([
+            'canal_id' => $canal->id,
+            'user_id' => User::factory(),
+            'status' => ModelStatus::Published->value,
+            'published_at' => $published ?? now()->subHour(),
+            'start_at' => now()->addDays(5),
+            'end_at' => now()->addDays(5)->addHours(2),
+            'email' => null,
+            'additional_emails' => null,
         ]);
     }
 

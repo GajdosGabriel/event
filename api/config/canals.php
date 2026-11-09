@@ -43,6 +43,9 @@ return [
             // Keď podujatia ani web nič nedajú — vyhľadávanie cez OpenAI
             // (ProfileResearch, rozpočet `profile_enrichment.monthly_limit_usd`).
             'ai' => (bool) env('CANAL_EMAIL_DISCOVERY_AI', true),
+            // Kanál bez webu čaká na doplnenie profilu (môže mu nájsť web) najviac
+            // toľko hodín od zverejnenia aktuálnej akcie — okno oslovenia je krátke.
+            'profile_wait_hours' => (int) env('CANAL_EMAIL_DISCOVERY_PROFILE_WAIT_HOURS', 48),
         ],
     ],
 

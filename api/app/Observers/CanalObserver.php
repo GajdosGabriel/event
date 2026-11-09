@@ -3,7 +3,9 @@
 namespace App\Observers;
 
 use App\Models\Canal;
+use App\Models\CanalEmailSearch;
 use App\Services\Canals\CanalEmails;
+use App\Support\Url;
 
 class CanalObserver
 {
@@ -31,6 +33,11 @@ class CanalObserver
     {
         if ($canal->wasRecentlyCreated || $canal->wasChanged(['email', 'email_verified_at'])) {
             app(CanalEmails::class)->adopt($canal);
+        }
+
+        // Nový web je nový zdroj kontaktu — hľadanie adresy nečaká na odklad.
+        if ($canal->wasChanged('website') && Url::normalize($canal->website) !== null) {
+            CanalEmailSearch::retryFor($canal);
         }
     }
 

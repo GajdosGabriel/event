@@ -45,4 +45,18 @@ class CanalEmailSearch extends Model
 
         self::query()->updateOrCreate(['canal_id' => $canal->id], ['requested_at' => now(), 'attempts' => 0, 'retry_at' => null]);
     }
+
+    /**
+     * Kanál dostal nový zdroj kontaktu (web) — ak sa mu už hľadalo bez
+     * úspechu, pôjde na rad hneď, s novými pokusmi.
+     */
+    public static function retryFor(Canal $canal): void
+    {
+        if (! (self::$ready = self::$ready || Schema::hasTable('canal_email_searches'))) {
+            return;
+        }
+
+        self::query()->where('canal_id', $canal->id)->where('result', '!=', self::FOUND)
+            ->update(['attempts' => 0, 'retry_at' => null]);
+    }
 }

@@ -42,6 +42,25 @@ class ProfileEnricher
         return $fields;
     }
 
+    /** Dopĺňanie profilov beží (zapnuté, s kľúčom OpenAI). */
+    public function enabled(): bool
+    {
+        return (bool) config('profile_enrichment.enabled', true) && (string) config('openai.api_key') !== '';
+    }
+
+    /** Profil ešte len čaká na doplnenie — nedokončené a pokusy neminuté. */
+    public function pending(Canal|Venue $subject): bool
+    {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        $audit = ProfileEnrichment::query()->where('subject_type', $subject->getMorphClass())->where('subject_id', $subject->id)->first();
+
+        return $audit === null
+            || ($audit->completed_at === null && $audit->attempts < (int) config('profile_enrichment.max_attempts', 3));
+    }
+
     /**
      * Mesačný limit sa uvoľňuje po dňoch, nevyčerpaná časť sa prenáša ďalej.
      * Inak by ho fronta starých profilov minula hneď v prvú noc mesiaca.

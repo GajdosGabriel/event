@@ -33,6 +33,15 @@ use Throwable;
  *     OpenAI (ProfileResearch). Adresa sa prijme, len keď na zdrojovej
  *     stránke doslova je — model ju nesmie vymyslieť.
  *
+ * Hľadá sa len kanálom s aktuálnou akciou (Canal::scopeWithCurrentEvent) —
+ * len tým môže prísť ponuka prevzatia — a kanálom po vrátenom e-maile.
+ *
+ * Kanál bez webu počká, kým ho prejde dopĺňanie profilu (app:profiles-enrich)
+ * — to mu web často nájde a bez neho by 2. krok nemal kam ísť. Čaká sa len
+ * pri voľnom rozpočte AI a najviac `profile_wait_hours` od zverejnenia akcie,
+ * aby kontakt stihol okno oslovenia. Po vrátenom e-maile sa nečaká, tam hľadá
+ * aj AI. Keď kanál web dostane neskôr, CanalObserver zruší odklad a hľadá sa znova.
+ *
  * Nájdené adresy pribudnú ako neoverené (CanalEmails::discover), najlepšia
  * ako primárna; ďalšie sú záloha pre prípad, že sa vráti aj tá. Hľadá sa
  * len pri nespravovanom kanáli organizácie — spravovaný kanál má tím, ktorý
@@ -54,6 +63,7 @@ class CanalEmailFinder
     public function __construct(
         private readonly CanalEmails $emails,
         private readonly CanalWebsitePages $pages,
+        private readonly ProfileEnricher $enricher,
     ) {}
 
     /** Prečo sa kanálu adresa nehľadá; null = hľadá sa. */
@@ -66,13 +76,16 @@ class CanalEmailFinder
             $canal->isManaged() => 'managed',
             CollectionCanal::is($canal) => 'collection',
             $this->hasUsableEmail($canal) => 'has_email',
+            ! $this->requested($canal) && ! Canal::query()->whereKey($canal->id)->withCurrentEvent()->exists() => 'no_current_event',
+            $this->awaitsProfile($canal) => 'awaiting_profile',
             default => null,
         };
     }
 
     /**
      * Kanály na rad: najprv tie po vrátenom e-maile (`requested_at`), potom
-     * ostatné bez kontaktu, ktoré sa ešte nehľadali alebo im uplynulo opakovanie.
+     * ostatné bez kontaktu s aktuálnou akciou, ktoré sa ešte nehľadali alebo
+     * im uplynulo opakovanie — bližšia akcia prvá.
      *
      * @return Builder<Canal>
      */
@@ -94,7 +107,10 @@ class CanalEmailFinder
                 ->orWhereNotExists(fn ($s) => $s->selectRaw('1')->from('canal_email_searches')
                     ->whereColumn('canal_email_searches.canal_id', 'canals.id')
                     ->where(fn ($w) => $w->where('attempts', '>=', $maxAttempts)->orWhere('retry_at', '>', now()))))
+            ->where(fn ($q) => $q->withCurrentEvent()->orWhereExists(fn ($s) => $this->requestedSearch($s)))
+            ->where(fn ($q) => $this->profileSettled($q))
             ->orderByRaw('(select requested_at from canal_email_searches where canal_email_searches.canal_id = canals.id) is null')
+            ->orderByCurrentEvent()
             ->orderBy('id');
     }
 
@@ -111,6 +127,11 @@ class CanalEmailFinder
         // Adresy kanála sa mohli zmeniť priamo v tabuľke — primárna sa dorovná skôr, než sa hľadá.
         $this->emails->refresh($canal);
         $reason = $this->skipReason($canal);
+
+        // Čakanie na akciu či doplnenie profilu nie je pokus — odklad by kanál zbytočne podržal.
+        if (in_array($reason, ['no_current_event', 'awaiting_profile'], true)) {
+            return CanalEmailSearch::SKIPPED;
+        }
 
         if ($reason !== null) {
             $this->finish($search, CanalEmailSearch::SKIPPED, null, $reason);
@@ -164,6 +185,78 @@ class CanalEmailFinder
             'found_via' => $via,
             'last_error' => $error,
         ])->save();
+    }
+
+    /** Kanálu sa vrátil e-mail a hľadanie si vyžiadal (CanalEmailSearch::requestFor). */
+    private function requested(Canal $canal): bool
+    {
+        return CanalEmailSearch::query()->where('canal_id', $canal->id)->whereNotNull('requested_at')->exists();
+    }
+
+    /** @param  \Illuminate\Database\Query\Builder  $s */
+    private function requestedSearch($s): void
+    {
+        $s->selectRaw('1')->from('canal_email_searches')
+            ->whereColumn('canal_email_searches.canal_id', 'canals.id')->whereNotNull('requested_at');
+    }
+
+    /** Čakanie na profil má zmysel: dopĺňanie beží a má rozpočet. */
+    private function profileCanWait(): bool
+    {
+        return $this->enricher->enabled() && $this->enricher->budgetAvailable();
+    }
+
+    /** Hranica čakania: akcia zverejnená skôr už na profil nečaká. */
+    private function waitLimit(): \Carbon\CarbonInterface
+    {
+        return now()->subHours(max(0, (int) config('canals.emails.discovery.profile_wait_hours', 48)));
+    }
+
+    /**
+     * Kanál bez webu, ktorému ešte len dopĺňanie profilu môže web nájsť —
+     * kým jeho aktuálna akcia nie je staršia než `profile_wait_hours`.
+     */
+    private function awaitsProfile(Canal $canal): bool
+    {
+        return Url::normalize($canal->website) === null
+            && ! $this->requested($canal)
+            && $this->profileCanWait()
+            && $this->enricher->pending($canal)
+            && ! Canal::query()->whereKey($canal->id)->whereExists(fn ($q) => $this->staleCurrentEvent($q))->exists();
+    }
+
+    /**
+     * SQL náprotivok awaitsProfile(): kanál má web, vrátil sa mu e-mail,
+     * dopĺňanie profilu skončilo (či vyčerpalo pokusy), alebo už čakal dosť.
+     *
+     * @param  Builder<Canal>  $q
+     */
+    private function profileSettled(Builder $q): void
+    {
+        if (! $this->profileCanWait()) {
+            return;
+        }
+
+        $maxAttempts = (int) config('profile_enrichment.max_attempts', 3);
+
+        $q->where(fn ($w) => $w->whereNotNull('website')->where('website', '!=', ''))
+            ->orWhereExists(fn ($s) => $this->requestedSearch($s))
+            ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('profile_enrichments')
+                ->where('subject_type', (new Canal)->getMorphClass())
+                ->whereColumn('profile_enrichments.subject_id', 'canals.id')
+                ->where(fn ($w) => $w->whereNotNull('completed_at')->orWhere('attempts', '>=', $maxAttempts)))
+            ->orWhereExists(fn ($s) => $this->staleCurrentEvent($s));
+    }
+
+    /**
+     * Aktuálna akcia zverejnená pred viac než `profile_wait_hours`.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $q
+     */
+    private function staleCurrentEvent($q): void
+    {
+        Canal::currentEvents($q->selectRaw('1'))
+            ->whereRaw('COALESCE(events.published_at, events.created_at) <= ?', [$this->waitLimit()]);
     }
 
     private function hasUsableEmail(Canal $canal): bool
