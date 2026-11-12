@@ -478,6 +478,21 @@ return [
         'claim_ignore' => 'If you are not the organiser of this event, you can safely ignore this email.',
     ],
 
+    'canal_event_offer' => [
+        'new_event' => [
+            'subject' => 'We have published your event ":event"',
+            'intro' => 'On :site we have published the event **":event"** under the channel **":canal"**, which nobody manages yet.',
+        ],
+        'new_canal' => [
+            'subject' => 'We have created your channel ":canal" and published ":event"',
+            'intro' => 'On :site we have created the channel **":canal"** for you and published the event **":event"** in it. Nobody manages the channel yet.',
+        ],
+        'when' => 'Date: :when',
+        'where' => 'Venue: :where',
+        'event_link' => 'Event: :url',
+        'contact_note' => 'This message was sent to the contact listed with the channel or the event.',
+        'action' => 'Take over the channel',
+    ],
     'event_signup_admin' => [
         'subject' => 'Event sign-up: :event',
         'intro' => '**:name** (:email) signed up for **":event"**.',

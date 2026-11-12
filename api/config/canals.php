@@ -16,7 +16,8 @@ return [
     'simulate_claim_mail' => (bool) env('CANAL_CLAIM_MAIL_SIMULATE', true),
 
     // Jediná brzda e-mailov na kontakt nespravovaného kanála (CanalTakeover):
-    // prihláška na akciu, otázka aj správa návštevníka. Ide o nevyžiadaný
+    // prihláška na akciu, zverejnená akcia (CanalEventOffer), otázka aj správa
+    // návštevníka. Ide o nevyžiadaný
     // e-mail na verejnú adresu — súlad s § 116 zákona č. 452/2021 Z. z. overiť.
     // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
     'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
@@ -57,7 +58,8 @@ return [
     'outreach' => [
         // Ktoré triggery sa vyberajú — len tie so zapnutou kampaňou v Accounte.
         // Trigger bez kampane by kanálu zaberal miesto v behu a vyššiu prioritu
-        // by držal pred ostatnými. canal_event_created treba zapnúť vedome.
+        // by držal pred ostatnými. canal_event_created nezapínať: o novej akcii
+        // píše technický e-mail CanalEventOffer, kampaň by poslala druhý.
         'triggers' => array_values(array_filter(array_map('trim',
             explode(',', (string) env('CANAL_OUTREACH_TRIGGERS', 'canal_event_upcoming,canal_views_milestone,canal_event_finished'))))),
         // Akcia sa zverejnila pred najviac toľkými dňami (canal_event_created).

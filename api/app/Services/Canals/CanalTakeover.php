@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
 /**
  * Jedno miesto pre e-maily na kontakt kanála, ktorý nikto nespravuje.
  *
- * Prihláška na akciu (EventSignup), otázka aj správa návštevníka (CanalRelay)
- * sa správajú rovnako (docs/canal-ownership.md):
+ * Prihláška na akciu (EventSignup), zverejnená akcia (CanalEventOffer), otázka
+ * aj správa návštevníka (CanalRelay) sa správajú rovnako (docs/canal-ownership.md):
  *  - kontakt je e-mail kanála, záložne z podujatia; vyradené adresy sa preskočia,
  *  - otázku a správu návštevníka prijíma len overený e-mail kanála (addressFor),
  *  - zberný kanál sa neoslovuje, lebo sa nedá prevziať,

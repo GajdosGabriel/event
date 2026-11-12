@@ -46,6 +46,7 @@ Zapisuje `CanalAuditor`, volajú ho `CanalMembership`, `CanalInviter` a `CanalSt
 |---|---|---|
 | Prihláška na akciu (`EventSignupOrganizerNotice`) | všetci vlastníci | kontakt (`canal.email` → `event.email`, vyradené adresy sa preskočia) + odkaz na prevzatie, bez mena účastníka, najviac raz za 7 dní na adresu, cez Account kvôli nedoručeniam; pri zbernom kanáli nikto |
 | Prihláška na akciu (`EventSignupAdminNotice`) | super-admini | super-admini |
+| Zverejnená akcia (`CanalEventPublishedOffer`, `CanalEventOffer`) | nikto (vlastníkom ide `event_published` z Emailingu) | kontakt (`canal.email` → `event.email`, vyradené adresy sa preskočia, overenie netreba) + odkaz na prevzatie; technický e-mail, nie kampaň; pri každej akcii, ku každej raz (`events.takeover_notified_at`); prvá akcia nového kanála hovorí „vytvorili sme váš kanál“; len budúce akcie; brzda `simulate_takeover_mail` |
 | Správa od návštevníka (`MessageReceived` / `MessageRelayed`) | prvý vlastník, ktorý môže prijímať správy | len overený kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa; miesta (venue) nikto |
 | Otázka k akcii (`QuestionReceived` / `QuestionRelayed`) | tím podľa témy `questions` | len overený kontakt kanála + odkaz na prevzatie (`CanalRelay`), neukladá sa |
 | Doplnený profil (`ProfileCompleted`) | ako správa | nikto |
@@ -134,7 +135,7 @@ Príkaz `app:canal-outreach` (denne 10:15) hlási do Accountu udalosti; text, on
 
 | Trigger | Kedy (`config/canals.php → outreach`) |
 |---|---|
-| `canal_event_created` | akcia sa zverejnila pred najviac `created_days` (3) dňami a ešte nezačala; kanálu najviac raz za `cooldown_days`; bez reálnych čísel, v texte nepoužívať `{zobrazenia}`, `{ludia}`, `{prihlaseni}` |
+| `canal_event_created` | **nezapínať** — o novej akcii píše technický e-mail `CanalEventOffer`. Akcia sa zverejnila pred najviac `created_days` (3) dňami a ešte nezačala; kanálu najviac raz za `cooldown_days`; bez reálnych čísel, v texte nepoužívať `{zobrazenia}`, `{ludia}`, `{prihlaseni}` |
 | `canal_event_upcoming` | zverejnená akcia začína najneskôr o `upcoming_days` (10) dní; importovaná neskôr dostane mail hneď |
 | `canal_views_milestone` | zverejnená akcia pred koncom dosiahla prah z `view_milestones` (50, 200); každý prah raz |
 | `canal_event_finished` | skončila pred 1–14 dňami (`after_days`, `window_days`), aspoň `min_views` zobrazení |

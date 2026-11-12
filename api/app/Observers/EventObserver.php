@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Enums\ModelStatus;
+use App\Jobs\OfferCanalForPublishedEvent;
 use App\Models\Event;
 use App\Models\Subscription;
 use App\Models\Venue;
@@ -22,6 +23,7 @@ class EventObserver
     {
         if ($event->status === ModelStatus::Published) {
             app(AccountMailing::class)->eventPublished($event);
+            $this->offerCanal($event);
         }
     }
 
@@ -115,9 +117,24 @@ class EventObserver
 
         if ($event->status === ModelStatus::Published && ! in_array($before, ModelStatus::publiclyReadableValues(), true)) {
             app(AccountMailing::class)->eventPublished($event);
+            $this->offerCanal($event);
         } elseif ($this->becameCancelled($event)) {
             app(AccountMailing::class)->cancelEvent($event);
         }
+    }
+
+    /**
+     * Akcia kanála, ktorý nikto nespravuje: technický e-mail jeho kontaktu
+     * s ponukou prevzatia (CanalEventOffer). Až po commite a cez frontu —
+     * import kanálu e-mail dopĺňa až po založení akcie.
+     */
+    private function offerCanal(Event $event): void
+    {
+        if ($event->canal_id === null) {
+            return;
+        }
+
+        OfferCanalForPublishedEvent::dispatch((int) $event->id)->afterCommit();
     }
 
     /**

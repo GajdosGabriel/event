@@ -488,6 +488,23 @@ return [
         'claim_ignore' => 'Ak nie ste organizátorom tejto akcie, tento e-mail pokojne ignorujte.',
     ],
 
+    // App\Notifications\CanalEventPublishedOffer — kontaktu nespravovaného kanála pri zverejnení akcie.
+    'canal_event_offer' => [
+        'new_event' => [
+            'subject' => 'Zverejnili sme vašu akciu „:event"',
+            'intro' => 'Na portáli :site sme zverejnili akciu **„:event"** pod kanálom **„:canal"**, ktorý zatiaľ nikto nespravuje.',
+        ],
+        'new_canal' => [
+            'subject' => 'Vytvorili sme váš kanál „:canal" a zverejnili akciu „:event"',
+            'intro' => 'Na portáli :site sme pre vás vytvorili kanál **„:canal"** a zverejnili v ňom akciu **„:event"**. Kanál zatiaľ nikto nespravuje.',
+        ],
+        'when' => 'Termín: :when',
+        'where' => 'Miesto: :where',
+        'event_link' => 'Akcia: :url',
+        'contact_note' => 'Správa vám prišla na kontakt uvedený pri kanáli alebo akcii.',
+        'action' => 'Prevziať kanál',
+    ],
+
     // App\Notifications\EventSignupAdminNotice — super-adminom pri každom prihlásení.
     'event_signup_admin' => [
         'subject' => 'Prihlásenie na akciu: :event',

@@ -477,6 +477,21 @@ return [
         'claim_action' => 'Kanal übernehmen und Teilnehmer ansehen',
         'claim_ignore' => 'Wenn Sie nicht der Veranstalter sind, können Sie diese E-Mail ignorieren.',
     ],
+    'canal_event_offer' => [
+        'new_event' => [
+            'subject' => 'Wir haben Ihre Veranstaltung „:event" veröffentlicht',
+            'intro' => 'Auf dem Portal :site haben wir die Veranstaltung **„:event"** im Kanal **„:canal"** veröffentlicht, der noch von niemandem verwaltet wird.',
+        ],
+        'new_canal' => [
+            'subject' => 'Wir haben Ihren Kanal „:canal" erstellt und „:event" veröffentlicht',
+            'intro' => 'Auf dem Portal :site haben wir für Sie den Kanal **„:canal"** erstellt und darin die Veranstaltung **„:event"** veröffentlicht. Der Kanal wird noch von niemandem verwaltet.',
+        ],
+        'when' => 'Termin: :when',
+        'where' => 'Ort: :where',
+        'event_link' => 'Veranstaltung: :url',
+        'contact_note' => 'Diese Nachricht ging an die beim Kanal oder bei der Veranstaltung angegebene Kontaktadresse.',
+        'action' => 'Kanal übernehmen',
+    ],
     'event_signup_admin' => [
         'subject' => 'Anmeldung: :event',
         'intro' => '**:name** (:email) hat sich zu **„:event"** angemeldet.',

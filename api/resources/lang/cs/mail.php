@@ -477,6 +477,21 @@ return [
         'claim_action' => 'Převzít kanál a zobrazit přihlášené',
         'claim_ignore' => 'Pokud nejste organizátorem této akce, tento e-mail klidně ignorujte.',
     ],
+    'canal_event_offer' => [
+        'new_event' => [
+            'subject' => 'Zveřejnili jsme vaši akci „:event"',
+            'intro' => 'Na portálu :site jsme zveřejnili akci **„:event"** pod kanálem **„:canal"**, který zatím nikdo nespravuje.',
+        ],
+        'new_canal' => [
+            'subject' => 'Vytvořili jsme váš kanál „:canal" a zveřejnili akci „:event"',
+            'intro' => 'Na portálu :site jsme pro vás vytvořili kanál **„:canal"** a zveřejnili v něm akci **„:event"**. Kanál zatím nikdo nespravuje.',
+        ],
+        'when' => 'Termín: :when',
+        'where' => 'Místo: :where',
+        'event_link' => 'Akce: :url',
+        'contact_note' => 'Zpráva vám přišla na kontakt uvedený u kanálu nebo akce.',
+        'action' => 'Převzít kanál',
+    ],
     'event_signup_admin' => [
         'subject' => 'Přihlášení na akci: :event',
         'intro' => '**:name** (:email) se přihlásil(a) na akci **„:event"**.',
