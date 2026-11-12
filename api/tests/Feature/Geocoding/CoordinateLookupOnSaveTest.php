@@ -4,10 +4,12 @@ namespace Tests\Feature\Geocoding;
 
 use App\Jobs\BackfillPlaceCoordinates;
 use App\Models\Canal;
+use App\Models\CoordinateLookup;
 use App\Models\Municipality;
 use App\Models\Venue;
 use App\Repositories\Contracts\CanalRepository;
 use App\Repositories\Contracts\VenueRepository;
+use App\Services\Geocoding\PlaceCoordinateBackfill;
 use App\Support\NationwideCoordinates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -74,11 +76,51 @@ class CoordinateLookupOnSaveTest extends TestCase
             '*' => Http::response([], 500),
         ]);
 
-        (new BackfillPlaceCoordinates(Canal::class, $canal->id))->handle(app(\App\Services\Geocoding\PlaceCoordinateBackfill::class));
+        (new BackfillPlaceCoordinates(Canal::class, $canal->id))->handle(app(PlaceCoordinateBackfill::class));
 
         $fresh = $canal->fresh();
         $this->assertFalse(NationwideCoordinates::isPlaceholder($fresh->latitude, $fresh->longitude));
         $this->assertNotNull($fresh->coordinates_source);
+    }
+
+    #[Test]
+    public function the_same_inputs_are_not_geocoded_twice(): void
+    {
+        $canal = $this->canalWithoutLocation();
+        Http::fake(['*' => Http::response([])]);
+        $backfill = app(PlaceCoordinateBackfill::class);
+
+        $backfill->backfill($canal);
+        $first = CoordinateLookup::for($canal)->looked_up_at;
+        $this->assertNull(CoordinateLookup::for($canal)->source);
+
+        // Nič sa nenašlo a podklady sú tie isté — znova sa nehľadá.
+        $this->travel(5)->minutes();
+        $backfill->backfill($canal->fresh());
+        $this->assertTrue($first->equalTo(CoordinateLookup::for($canal)->looked_up_at));
+
+        // Nová adresa je nový podklad.
+        $canal->forceFill(['street' => 'Hlavná 12'])->save();
+        $backfill->backfill($canal->fresh());
+        $second = CoordinateLookup::for($canal)->looked_up_at;
+        $this->assertTrue($second->greaterThan($first));
+
+        // Ručné spustenie odtlačok ignoruje.
+        $this->travel(5)->minutes();
+        $backfill->backfill($canal->fresh(), force: true);
+        $this->assertTrue(CoordinateLookup::for($canal)->looked_up_at->greaterThan($second));
+    }
+
+    #[Test]
+    public function a_canal_is_never_geocoded_by_ai_or_by_its_name(): void
+    {
+        $canal = $this->canalWithoutLocation();
+        Http::fake(['*' => Http::response([])]);
+
+        app(PlaceCoordinateBackfill::class)->backfill($canal);
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'openai'));
+        Http::assertNotSent(fn ($request) => str_contains(urldecode($request->url()), $canal->name));
     }
 
     private function canalWithoutLocation(): Canal

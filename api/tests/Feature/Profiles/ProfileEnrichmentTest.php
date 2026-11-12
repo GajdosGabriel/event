@@ -12,6 +12,7 @@ use App\Models\ProfileEnrichment;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\ProfileCompleted;
+use App\Repositories\Contracts\CanalRepository;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Profiles\ProfileCoordinates;
 use App\Services\Profiles\ProfileEnricher;
@@ -380,5 +381,38 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertSame([], app(ProfileResearch::class)->verifiedFields($payload, [], ['email']));
         $payload['identity_match'] = false;
         $this->assertSame([], app(ProfileResearch::class)->verifiedFields($payload, [$entry['source_url']], ['email']));
+    }
+
+    public function test_finished_profile_is_reopened_only_by_new_inputs(): void
+    {
+        $canal = $this->canal();
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->once()->andReturn([]);
+        app(ProfileEnricher::class)->run($canal);
+        $this->assertNotNull(ProfileEnrichment::sole()->completed_at);
+        $this->assertNotNull(ProfileEnrichment::sole()->inputs_hash);
+
+        // Telefón výskum nepoužíva — s rovnakými podkladmi by našiel to isté.
+        app(CanalRepository::class)->update($canal->id, ['phone' => '+421 900 111 222']);
+        $this->assertNotNull(ProfileEnrichment::sole()->completed_at);
+
+        // Nový web je nový podklad: dopĺňanie sa otvorí a vezme ho najbližší beh.
+        app(CanalRepository::class)->update($canal->id, ['website' => 'https://organizator.example.sk']);
+        $audit = ProfileEnrichment::sole();
+        $this->assertNull($audit->completed_at);
+        $this->assertSame(0, $audit->attempts);
+    }
+
+    public function test_manual_run_ignores_the_delay_and_finished_state(): void
+    {
+        $canal = $this->canal(['created_at' => now()]);
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->once()->andReturn(['website' => $this->entry('https://example.sk/novy')]);
+        ProfileEnrichment::create([
+            'subject_type' => $canal->getMorphClass(), 'subject_id' => $canal->id, 'attempts' => 3,
+            'completed_at' => now(), 'notification_completed_at' => now(),
+        ]);
+
+        app(ProfileEnricher::class)->force($canal);
+
+        $this->assertSame('https://example.sk/novy', $canal->fresh()->website);
     }
 }

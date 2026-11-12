@@ -4,13 +4,13 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
-use App\Jobs\BackfillPlaceCoordinates;
 use App\Models\Municipality;
 use App\Models\Venue;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\PlaceCoordinateBackfill;
+use App\Services\Lookups\PlaceLookups;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
 use App\Support\NationwideCoordinates;
@@ -187,7 +187,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
         /** @var Venue $venue */
         $venue = parent::create($properties);
-        $this->queueCoordinateLookup($venue);
+        $this->queueLookups($venue);
         $venue->syncCanalAssignments($canalIds, true, $ownerCanalId ?: null);
 
         $this->syncVenueFiles($venue, $filePayload);
@@ -213,7 +213,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         }
 
         $venue->update($properties);
-        $this->queueCoordinateLookup($venue);
+        $this->queueLookups($venue);
 
         // Formulár posiela len správcu: mení sa vlastníctvo, väzby „používa"
         // (kanály, ktorých podujatia sa tu konajú) ostávajú nedotknuté.
@@ -373,15 +373,12 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     }
 
     /**
-     * Chýbajúcu polohu doplní fronta (BackfillPlaceCoordinates) — rebrík
-     * zdrojov (adresa -> budova -> AI -> stred obce) čaká na Nominatim aj AI
-     * a uloženie formulára naň čakať nemá.
+     * Polohu a profil hľadá fronta, a to len s novými podkladmi (PlaceLookups)
+     * — uloženie formulára na geokóder čakať nemá.
      */
-    private function queueCoordinateLookup(Venue $venue): void
+    private function queueLookups(Venue $venue): void
     {
-        if ($this->coordinateBackfill->shouldLookupAfterSave($venue)) {
-            BackfillPlaceCoordinates::dispatch($venue::class, (int) $venue->getKey());
-        }
+        app(PlaceLookups::class)->afterSave($venue);
     }
 
     private function syncVenueFiles(Venue $venue, array $filePayload): void

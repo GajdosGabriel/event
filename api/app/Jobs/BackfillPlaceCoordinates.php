@@ -20,17 +20,19 @@ class BackfillPlaceCoordinates implements ShouldQueue
 
     /**
      * Geokóder chyby nevyhadzuje, vráti len prázdny výsledok. Opakovanie by
-     * znova čakalo na Nominatim aj AI a nedalo by iný výsledok — ďalší pokus
-     * príde s ďalším uložením záznamu.
+     * znova čakalo na Nominatim a nedalo by iný výsledok — ďalší pokus príde
+     * s novými podkladmi (LookupInputs).
      */
     public int $tries = 1;
 
     /**
      * @param  class-string<Canal|Venue>  $modelClass
+     * @param  bool  $force  ručné spustenie z adminu — ignoruje odtlačok podkladov
      */
     public function __construct(
         public readonly string $modelClass,
         public readonly int $modelId,
+        public readonly bool $force = false,
     ) {
         // Job nesmie predbehnúť commit transakcie, v ktorej sa záznam uložil.
         $this->afterCommit();
@@ -42,7 +44,7 @@ class BackfillPlaceCoordinates implements ShouldQueue
         $model = $this->modelClass::query()->withTrashed()->find($this->modelId);
 
         if ($model !== null) {
-            $backfill->backfill($model);
+            $backfill->backfill($model, $this->force);
         }
     }
 }

@@ -309,6 +309,55 @@ class CanalEmailFinderTest extends TestCase
         $this->assertNull($finder->skipReason($fresh));
     }
 
+    #[Test]
+    public function without_new_inputs_the_search_is_not_repeated(): void
+    {
+        $canal = $this->canal(null);
+        $finder = app(CanalEmailFinder::class);
+
+        $this->assertSame(CanalEmailSearch::NONE, $finder->run($canal));
+        CanalEmailSearch::where('canal_id', $canal->id)->update(['retry_at' => now()->subDay()]);
+
+        // Ten istý web a tie isté podujatia — hľadanie sa nezopakuje ani nezapočíta.
+        $this->assertSame(CanalEmailSearch::SKIPPED, $finder->run($canal));
+        $search = CanalEmailSearch::where('canal_id', $canal->id)->sole();
+        $this->assertSame(1, $search->attempts);
+        $this->assertSame(CanalEmailSearch::NONE, $search->result);
+        $this->assertTrue($search->retry_at->isFuture());
+
+        // Nový podklad (adresa na podujatí) hľadanie znova pustí.
+        $this->event($canal, 'fara@farnost.test');
+        CanalEmailSearch::where('canal_id', $canal->id)->update(['retry_at' => now()->subDay()]);
+
+        $this->assertSame(CanalEmailSearch::FOUND, $finder->run($canal));
+        $this->assertSame('fara@farnost.test', $canal->fresh()->email);
+    }
+
+    #[Test]
+    public function a_manual_search_skips_the_waiting_and_may_ask_ai(): void
+    {
+        config(['openai.api_key' => 'test', 'canals.emails.discovery.ai' => true]);
+        $canal = $this->canal(null, website: null, source: RegistrationSource::ADMIN, currentEvent: false);
+        $this->fakeResearch('nova@farnost.test', 'https://dieceza.test/farnosti');
+        $this->pages = ['https://dieceza.test/farnosti' => '<p>Farnosť: nova@farnost.test</p>'];
+        $finder = app(CanalEmailFinder::class);
+
+        $this->assertSame('managed', $finder->skipReason($canal));
+        $this->assertNull($finder->manualSkipReason($canal));
+        $this->assertSame(CanalEmailSearch::FOUND, $finder->run($canal, manual: true));
+        $this->assertSame('ai', CanalEmailSearch::where('canal_id', $canal->id)->value('found_via'));
+        $this->assertSame('nova@farnost.test', $canal->emails()->sole()->email);
+    }
+
+    #[Test]
+    public function a_manual_search_is_refused_for_a_verified_address(): void
+    {
+        $canal = $this->canal('overena@farnost.test');
+        $canal->emails()->update(['status' => CanalEmailStatus::Verified->value, 'verified_at' => now()]);
+
+        $this->assertSame('verified_email', app(CanalEmailFinder::class)->manualSkipReason($canal->fresh()));
+    }
+
     private function enriched(Canal $canal): void
     {
         ProfileEnrichment::create([

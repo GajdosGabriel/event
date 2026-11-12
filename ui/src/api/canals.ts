@@ -156,6 +156,54 @@ export async function canalsMunicipalitiesOverview(scope: Scope): Promise<Munici
 
 export type CanalHistoryEntry = Pick<SystemLogEntry, 'id' | 'createdAt' | 'level' | 'channel' | 'event' | 'status' | 'message' | 'recipient'>
 
+export type CanalLookupKind = 'profile' | 'coordinates' | 'email'
+
+/** Stav dopĺňania údajov kanála — len admin (Admin\CanalLookupController). */
+export interface CanalLookups {
+  profile: {
+    missing: string[]
+    completedAt: string | null
+    attempts: number
+    retryAt: string | null
+    lastError: string | null
+    changedFields: string[]
+    inputsChanged: boolean
+    blocker: string | null
+    running: boolean
+  }
+  coordinates: {
+    coordinatesSource: string | null
+    missing: boolean
+    lookedUpAt: string | null
+    foundSource: string | null
+    inputsChanged: boolean
+    blocker: string | null
+    running: boolean
+  }
+  email: {
+    result: 'found' | 'none' | 'skipped' | null
+    foundVia: string | null
+    searchedAt: string | null
+    retryAt: string | null
+    attempts: number
+    lastError: string | null
+    autoSkipReason: string | null
+    blocker: string | null
+    running: boolean
+  }
+}
+
+export async function getCanalLookups(canalId: number): Promise<CanalLookups> {
+  const { data } = await http.get(`/admin/canals/${canalId}/lookups`)
+  return data.data as CanalLookups
+}
+
+/** Ručné spustenie kroku; hľadanie beží vo fronte, stav treba sledovať cez getCanalLookups. */
+export async function runCanalLookup(canalId: number, kind: CanalLookupKind): Promise<CanalLookups> {
+  const { data } = await http.post(`/admin/canals/${canalId}/lookups/${kind}`)
+  return data.data as CanalLookups
+}
+
 /** Posledné záznamy z denníka o kanáli — len admin (Admin\CanalController::history). */
 export async function listCanalHistory(canalId: number): Promise<CanalHistoryEntry[]> {
   const { data } = await http.get(`/admin/canals/${canalId}/history`)

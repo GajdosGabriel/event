@@ -5,7 +5,6 @@ namespace App\Repositories\Eloquent;
 use App\Enums\CanalRole;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
-use App\Jobs\BackfillPlaceCoordinates;
 use App\Models\Canal;
 use App\Models\User;
 use App\Repositories\AbstractRepository;
@@ -14,7 +13,7 @@ use App\Services\Canals\CanalAuditor;
 use App\Services\Canals\CanalContactVerifier;
 use App\Services\Canals\CanalEmails;
 use App\Services\Files\FileManager;
-use App\Services\Geocoding\PlaceCoordinateBackfill;
+use App\Services\Lookups\PlaceLookups;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,7 +27,6 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
-        private readonly PlaceCoordinateBackfill $coordinateBackfill = new PlaceCoordinateBackfill,
     ) {
         parent::__construct();
     }
@@ -152,7 +150,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $additionalEmails = $this->extractAdditionalEmails($properties);
 
         $canal = $this->model()->create($properties);
-        $this->queueCoordinateLookup($canal);
+        $this->queueLookups($canal);
 
         if ($additionalEmails !== null) {
             app(CanalEmails::class)->sync($canal, $canal->email, $additionalEmails);
@@ -210,7 +208,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         }
 
         $canal->update($properties);
-        $this->queueCoordinateLookup($canal);
+        $this->queueLookups($canal);
 
         if ($requested) {
             app(CanalContactVerifier::class)->requested(
@@ -237,14 +235,12 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     }
 
     /**
-     * Chýbajúcu polohu doplní fronta (BackfillPlaceCoordinates). Geokóder
-     * čaká na Nominatim aj AI — uloženie kanála naň na produkcii čakalo 32 s.
+     * Polohu a profil hľadá fronta, a to len s novými podkladmi (PlaceLookups).
+     * Uloženie kanála na geokóder na produkcii čakalo 32 s.
      */
-    private function queueCoordinateLookup(Canal $canal): void
+    private function queueLookups(Canal $canal): void
     {
-        if ($this->coordinateBackfill->shouldLookupAfterSave($canal)) {
-            BackfillPlaceCoordinates::dispatch($canal::class, (int) $canal->getKey());
-        }
+        app(PlaceLookups::class)->afterSave($canal);
     }
 
     /**

@@ -6,11 +6,12 @@ use App\Services\OpenAI\ChatGPT;
 use App\Support\OnlineVenue;
 
 /**
- * Fail-safe doplnenie GPS suradnic miesta alebo kanalu pri ukladani.
+ * Fail-safe doplnenie GPS suradnic miesta alebo kanalu (z fronty, viď
+ * PlaceCoordinateBackfill).
  *
- * Samotny rebrik zdrojov (budova -> adresa -> AI -> stred obce) drzi
- * VenueCoordinateResolver; tato trieda je len tenka vrstva pre volajucich,
- * ktori maju po ruke model, nie vysledok detekcie.
+ * Samotny rebrik zdrojov drzi VenueCoordinateResolver; tato trieda je len
+ * tenka vrstva pre volajucich, ktori maju po ruke model, nie vysledok
+ * detekcie. Pouziva len Nominatim (adresa -> budova -> stred obce), AI nie.
  *
  * Nikdy nevyhadzuje vynimku -- pri chybe vrati null suradnice, aby ulozenie
  * miesta/kanalu nikdy nezlyhalo kvoli geokodovaniu.
@@ -37,6 +38,7 @@ class PlaceCoordinateResolver
         ?string $country = null,
         ?string $street = null,
         ?string $postcode = null,
+        bool $matchBuilding = true,
     ): array {
         $name = $this->clean($name);
         $city = $this->clean($city);
@@ -64,9 +66,15 @@ class PlaceCoordinateResolver
 
         // Zhoda budovy je prvy stupen rebrika. Kontrolu nazvu, ktoru robi
         // detekcia, tu neaplikujeme -- nazov v DB uz je ten spravny a
-        // porovnavat ho nie je s cim.
-        $venue = $this->lookupVenue($name ?? $city, $city ?? '', $country);
+        // porovnavat ho nie je s cim. Kanál je organizátor, nie budova —
+        // ten ju nehľadá (desiatky dotazov s odstupom by nič nedali).
+        $venue = $matchBuilding && $name !== null
+            ? $this->lookupVenue($name, $city ?? '', $country)
+            : ['latitude' => null, 'longitude' => null];
 
+        // AI sa tu nepýta: z holého názvu a obce odhaduje naslepo a platí sa
+        // za to pri každom pokuse. Adresu a web dohľadá dopĺňanie profilu
+        // (ProfileEnricher) a polohu z nich potom určí Nominatim.
         return $this->venueCoordinateResolver->resolve(
             venueLat: $venue['latitude'],
             venueLng: $venue['longitude'],
@@ -75,7 +83,7 @@ class PlaceCoordinateResolver
             postcode: $postcode,
             city: $city,
             country: $country,
-            askAi: true,
+            askAi: false,
         );
     }
 

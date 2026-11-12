@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AiUsageController as AdminAiUsageController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CanalClaimController as AdminCanalClaimController;
 use App\Http\Controllers\Admin\CanalController as AdminCanalController;
+use App\Http\Controllers\Admin\CanalLookupController as AdminCanalLookupController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\FileController as AdminFileController;
@@ -75,6 +76,7 @@ use App\Http\Controllers\Public\ViewController as PublicViewController;
 use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
 use App\Http\Controllers\Webhooks\AccountWebhookController;
 use App\Http\Resources\UserResource;
+use App\Services\Lookups\ManualLookups;
 use App\Support\CronToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -811,6 +813,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('canals/{canal}/history', [AdminCanalController::class, 'history'])
         ->name('canals.history')
         ->middleware('permission:canal.view');
+    // Doplnenie údajov (profil, poloha, e-mail) — stav a ručné spustenie.
+    Route::get('canals/{canal}/lookups', [AdminCanalLookupController::class, 'show'])
+        ->name('canals.lookups.show')
+        ->middleware('permission:canal.view');
+    Route::post('canals/{canal}/lookups/{kind}', [AdminCanalLookupController::class, 'run'])
+        ->name('canals.lookups.run')
+        ->whereIn('kind', ManualLookups::KINDS)
+        ->middleware(['permission:canal.update', 'throttle:10,1']);
 
     Route::get('events/municipalities-overview', [AdminEventController::class, 'municipalitiesOverview'])
         ->name('events.municipalities.overview')

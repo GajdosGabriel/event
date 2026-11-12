@@ -14,6 +14,7 @@ use App\Notifications\ProfileCompleted;
 use App\Services\Canals\CanalRecipients;
 use App\Services\SystemLog\Recorder;
 use App\Support\AppSettings;
+use App\Support\LookupInputs;
 use App\Support\PlaceholderNames;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -23,12 +24,50 @@ class ProfileEnricher
 {
     public function __construct(private ProfileResearch $research, private ProfileCoordinates $coordinates) {}
 
-    public function eligible(Canal|Venue $subject): bool
+    /** `$ignoreDelay`: ručné spustenie z adminu nečaká na odklad po založení. */
+    public function eligible(Canal|Venue $subject, bool $ignoreDelay = false): bool
     {
         return ! $subject->trashed()
             && in_array($subject->status, [ModelStatus::Published, ModelStatus::Draft], true)
             && ($subject instanceof Canal ? $subject->identity_mode === CanalIdentityMode::Organization : $subject->category !== 'fallback')
-            && $subject->created_at?->lte(now()->subMinutes((int) config('profile_enrichment.delay_minutes', 120)));
+            && ($ignoreDelay || $subject->created_at?->lte(now()->subMinutes((int) config('profile_enrichment.delay_minutes', 120))));
+    }
+
+    /**
+     * Pribudli nové podklady (web, adresa, obec, názov) a profilu ešte niečo
+     * chýba? Dokončené dopĺňanie sa otvorí znova a vezme ho najbližší beh
+     * app:profiles-enrich. S rovnakými podkladmi by výskum vrátil to isté —
+     * preto dokončené dopĺňanie inak ostáva zatvorené.
+     */
+    public function reopenIfInputsChanged(Canal|Venue $subject): void
+    {
+        $audit = $this->audit($subject);
+
+        if ($audit?->completed_at === null || $this->missing($subject) === []
+            || $audit->inputs_hash === LookupInputs::profile($subject)) {
+            return;
+        }
+
+        $audit->update(['completed_at' => null, 'attempts' => 0, 'retry_at' => null, 'last_error' => null]);
+    }
+
+    /**
+     * Ručné spustenie z adminu: ignoruje odklad po založení, počet pokusov aj
+     * odtlačok podkladov. Vypínač dopĺňania a rozpočet AI platia ďalej.
+     */
+    public function force(Canal|Venue $subject): void
+    {
+        $this->audit($subject)?->update(['completed_at' => null, 'attempts' => 0, 'retry_at' => null, 'last_error' => null]);
+
+        $this->run($subject, ignoreDelay: true);
+    }
+
+    public function audit(Canal|Venue $subject): ?ProfileEnrichment
+    {
+        return ProfileEnrichment::query()
+            ->where('subject_type', $subject->getMorphClass())
+            ->where('subject_id', $subject->getKey())
+            ->first();
     }
 
     public function missing(Canal|Venue $subject): array
@@ -92,11 +131,11 @@ class ProfileEnricher
         ];
     }
 
-    public function run(Canal|Venue $subject): void
+    public function run(Canal|Venue $subject, bool $ignoreDelay = false): void
     {
-        Cache::lock('profile-enrichment:'.$subject->getMorphClass().':'.$subject->id, 180)->get(function () use ($subject) {
+        Cache::lock('profile-enrichment:'.$subject->getMorphClass().':'.$subject->id, 180)->get(function () use ($subject, $ignoreDelay) {
             $subject = $subject->fresh();
-            if (! $subject || ! $this->eligible($subject)) {
+            if (! $subject || ! $this->eligible($subject, $ignoreDelay)) {
                 return;
             }
             $audit = ProfileEnrichment::firstOrCreate(['subject_type' => $subject->getMorphClass(), 'subject_id' => $subject->id]);
@@ -122,9 +161,9 @@ class ProfileEnricher
             try {
                 $found = $missing !== [] ? $this->research->research($subject, $missing) : [];
                 $position = $this->coordinates->resolve($subject, $found);
-                DB::transaction(function () use ($subject, $audit, $found, $position) {
+                DB::transaction(function () use ($subject, $audit, $found, $position, $ignoreDelay) {
                     $current = $subject->newQuery()->whereKey($subject->id)->lockForUpdate()->first();
-                    if (! $current || ! $this->eligible($current)) {
+                    if (! $current || ! $this->eligible($current, $ignoreDelay)) {
                         $audit->update(['completed_at' => now(), 'notification_completed_at' => now()]);
 
                         return;
@@ -175,6 +214,8 @@ class ProfileEnricher
                     }
                     $recipient = $changes !== [] ? $current->attributeIssueRecipient() : null;
                     $audit->update([
+                        // Podklady po doplnení — znova sa hľadá, až keď pribudnú ďalšie.
+                        'inputs_hash' => LookupInputs::profile($current),
                         'completed_at' => now(), 'last_error' => null,
                         'changes' => $changes, 'evidence' => $evidence, 'recipient_id' => $recipient?->id,
                         'notification_completed_at' => $recipient ? null : now(),

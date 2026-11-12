@@ -221,6 +221,9 @@
             </dl>
           </div>
 
+          <!-- Doplnenie údajov: profil → poloha → e-mail, stav a ručné spustenie. -->
+          <CanalLookupsPanel v-if="scope === 'admin'" :canal-id="canal.id" @changed="reloadAfterLookup" />
+
           <!-- História z denníka udalostí (tím, prevzatia, maily na kontakt). -->
           <div v-if="scope === 'admin'" class="show-card">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -267,6 +270,7 @@ import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import { publicCanalPath } from '@/utils/publicUrl'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import CanalLookupsPanel from '@/components/CanalLookupsPanel.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, fmtTime } from '@/utils/dateFormat'
@@ -327,6 +331,12 @@ async function reload() {
   } catch {
     error.value = true
   }
+}
+
+/** Hľadanie mohlo doplniť web, adresu, polohu či e-maily — aj záznam do denníka. */
+async function reloadAfterLookup() {
+  await reload()
+  if (canal.value) void loadHistory(canal.value.id)
 }
 
 onMounted(async () => {

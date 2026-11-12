@@ -15,6 +15,7 @@ use App\Services\Profiles\ProfileEnricher;
 use App\Services\Profiles\ProfileResearch;
 use App\Services\SystemLog\Recorder;
 use App\Support\AppSettings;
+use App\Support\LookupInputs;
 use App\Support\Url;
 use DOMDocument;
 use DOMXPath;
@@ -115,19 +116,42 @@ class CanalEmailFinder
             ->orderBy('id');
     }
 
-    /** @return string CanalEmailSearch::FOUND | NONE | SKIPPED */
-    public function run(Canal $canal): string
+    /**
+     * Dôvody, ktoré ručné spustenie z adminu obíde: čakanie na akciu či
+     * profil, tím kanála (nájdené adresy sú preň len neoverený návrh,
+     * primárnu nemenia) a použiteľnú, no neoverenú adresu (hľadá sa záloha).
+     */
+    private const MANUAL_OVERRIDES = ['no_current_event', 'awaiting_profile', 'managed', 'has_email'];
+
+    /**
+     * @param  bool  $manual  ručné spustenie z adminu: obíde MANUAL_OVERRIDES,
+     *                        odtlačok podkladov aj limit pokusov a smie použiť AI
+     * @return string CanalEmailSearch::FOUND | NONE | SKIPPED
+     */
+    public function run(Canal $canal, bool $manual = false): string
     {
-        return Cache::lock('canal-email-find:'.$canal->id, 300)->get(fn () => $this->search($canal)) ?? CanalEmailSearch::SKIPPED;
+        return Cache::lock('canal-email-find:'.$canal->id, 300)->get(fn () => $this->search($canal, $manual)) ?? CanalEmailSearch::SKIPPED;
     }
 
-    private function search(Canal $canal): string
+    /** Prečo ručné hľadanie nemá zmysel; null = smie sa spustiť. */
+    public function manualSkipReason(Canal $canal): ?string
+    {
+        $reason = $this->skipReason($canal);
+
+        if ($reason === 'has_email' && $this->hasVerifiedEmail($canal)) {
+            return 'verified_email';
+        }
+
+        return in_array($reason, self::MANUAL_OVERRIDES, true) ? null : $reason;
+    }
+
+    private function search(Canal $canal, bool $manual): string
     {
         $search = CanalEmailSearch::query()->firstOrCreate(['canal_id' => $canal->id], ['attempts' => 0]);
         $afterBounce = $search->requested_at !== null;
         // Adresy kanála sa mohli zmeniť priamo v tabuľke — primárna sa dorovná skôr, než sa hľadá.
         $this->emails->refresh($canal);
-        $reason = $this->skipReason($canal);
+        $reason = $manual ? $this->manualSkipReason($canal) : $this->skipReason($canal);
 
         // Čakanie na akciu či doplnenie profilu nie je pokus — odklad by kanál zbytočne podržal.
         if (in_array($reason, ['no_current_event', 'awaiting_profile'], true)) {
@@ -140,12 +164,24 @@ class CanalEmailFinder
             return CanalEmailSearch::SKIPPED;
         }
 
+        $fromEvents = $this->fromEvents($canal);
+        $inputs = LookupInputs::email($canal, array_keys($fromEvents));
+
+        // S tými istými podkladmi (web, adresy z podujatí) by hľadanie vrátilo
+        // to isté. Nové podklady, vrátený e-mail alebo ručné spustenie áno.
+        // Výsledok ostáva „nič" — odklad sa len posunie, pokus sa nepočíta.
+        if (! $manual && ! $afterBounce && $search->result === CanalEmailSearch::NONE && $search->inputs_hash === $inputs) {
+            $search->forceFill(['retry_at' => $this->retryAt()])->save();
+
+            return CanalEmailSearch::SKIPPED;
+        }
+
         $error = null;
         $via = null;
         $added = collect();
 
         try {
-            foreach (['events' => fn () => $this->fromEvents($canal), 'website' => fn () => $this->fromWebsite($canal)] as $step => $find) {
+            foreach (['events' => fn () => $fromEvents, 'website' => fn () => $this->fromWebsite($canal)] as $step => $find) {
                 $added = $this->emails->discover($canal, $this->best($canal, $find()), $step);
 
                 if ($added->isNotEmpty()) {
@@ -154,7 +190,8 @@ class CanalEmailFinder
                 }
             }
 
-            if ($added->isEmpty() && $afterBounce && $this->aiAvailable()) {
+            // AI stojí peniaze — automaticky len po vrátenom e-maile, inak na pokyn admina.
+            if ($added->isEmpty() && ($afterBounce || $manual) && $this->aiAvailable()) {
                 $added = $this->emails->discover($canal, $this->fromResearch($canal), 'ai');
                 $via = $added->isNotEmpty() ? 'ai' : null;
             }
@@ -165,7 +202,7 @@ class CanalEmailFinder
         }
 
         $result = $added->isNotEmpty() ? CanalEmailSearch::FOUND : CanalEmailSearch::NONE;
-        $this->finish($search, $result, $via, $error);
+        $this->finish($search, $result, $via, $error, $inputs);
 
         if ($result === CanalEmailSearch::NONE && $error === null) {
             Recorder::info('canals', 'email_not_found', "Kanál {$canal->name}: náhradná adresa sa nenašla",
@@ -175,17 +212,29 @@ class CanalEmailFinder
         return $result;
     }
 
-    private function finish(CanalEmailSearch $search, string $result, ?string $via, ?string $error): void
+    private function finish(CanalEmailSearch $search, string $result, ?string $via, ?string $error, ?string $inputs = null): void
     {
         $search->forceFill([
             'attempts' => $result === CanalEmailSearch::SKIPPED ? $search->attempts : $search->attempts + 1,
             'requested_at' => null,
             'searched_at' => now(),
-            'retry_at' => $result === CanalEmailSearch::FOUND ? null : now()->addDays(max(1, (int) config('canals.emails.discovery.retry_days', 30))),
+            'retry_at' => $result === CanalEmailSearch::FOUND ? null : $this->retryAt(),
             'result' => $result,
             'found_via' => $via,
             'last_error' => $error,
+            // Chyba (výpadok webu) nie je výsledok — s tými istými podkladmi sa skúsi znova.
+            'inputs_hash' => $error === null ? ($inputs ?? $search->inputs_hash) : null,
         ])->save();
+    }
+
+    private function retryAt(): \Carbon\CarbonInterface
+    {
+        return now()->addDays(max(1, (int) config('canals.emails.discovery.retry_days', 30)));
+    }
+
+    private function hasVerifiedEmail(Canal $canal): bool
+    {
+        return $canal->emails()->where('status', CanalEmailStatus::Verified->value)->whereNull('pending_at')->exists();
     }
 
     /** Kanálu sa vrátil e-mail a hľadanie si vyžiadal (CanalEmailSearch::requestFor). */

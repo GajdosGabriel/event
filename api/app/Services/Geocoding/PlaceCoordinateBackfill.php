@@ -3,8 +3,10 @@
 namespace App\Services\Geocoding;
 
 use App\Models\Canal;
+use App\Models\CoordinateLookup;
 use App\Models\Municipality;
 use App\Models\Venue;
+use App\Support\LookupInputs;
 use App\Support\NationwideCoordinates;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,10 +14,12 @@ use Illuminate\Database\Eloquent\Model;
  * Doplnenie GPS súradníc kanálu alebo miestu, ktorému chýba poloha.
  *
  * Volá sa z fronty (BackfillPlaceCoordinates), nie pri uložení formulára:
- * rebrík zdrojov (adresa -> budova v OSM -> AI -> stred obce) čaká na
- * Nominatim s povinným odstupom a na OpenAI a jedno uloženie kanála tak na
- * produkcii trvalo 32 s. Chyba geokódovania nie je fatálna — záznam si
- * zástupný stred Slovenska drží ďalej (AlwaysHasCoordinates).
+ * Nominatim vyžaduje odstup medzi dotazmi a jedno uloženie kanála tak na
+ * produkcii trvalo 32 s. Používa len Nominatim (adresa -> budova pri mieste
+ * -> stred obce), AI nie — z holého názvu by hádala naslepo. Lepšie podklady
+ * (adresu, web) dohľadá dopĺňanie profilu a ich zmena hľadanie spustí znova.
+ * Chyba geokódovania nie je fatálna — záznam si zástupný stred Slovenska
+ * drží ďalej (AlwaysHasCoordinates).
  */
 class PlaceCoordinateBackfill
 {
@@ -37,7 +41,7 @@ class PlaceCoordinateBackfill
      * Treba po uložení formulára hľadať polohu? Len pri novom zázname alebo
      * keď sa zmenilo niečo, z čoho sa poloha odvodzuje. Uloženie webu či
      * popisu záznamu, ktorému geokóder polohu raz nenašiel, ho nespúšťa
-     * nanovo — vrátil by to isté a zaplatilo by sa za AI.
+     * nanovo — vrátil by to isté.
      *
      * Volať hneď po save(): neskorší save (napr. zmena e-mailu) by
      * wasChanged() prepísal.
@@ -51,44 +55,54 @@ class PlaceCoordinateBackfill
         ]));
     }
 
-    public function backfill(Canal|Venue $model): void
+    /**
+     * Hľadá len s novými podkladmi: s rovnakou adresou a obcou by Nominatim
+     * vrátil to isté. `$force` (ručné spustenie z adminu) odtlačok ignoruje.
+     */
+    public function backfill(Canal|Venue $model, bool $force = false): void
     {
         if (! $this->needsLookup($model)) {
             return;
         }
 
-        $model instanceof Canal ? $this->backfillCanal($model) : $this->backfillVenue($model);
+        $inputs = LookupInputs::coordinates($model);
+
+        if (! $force && CoordinateLookup::for($model)?->inputs_hash === $inputs) {
+            return;
+        }
+
+        $coords = $model instanceof Canal ? $this->resolveCanal($model) : $this->resolveVenue($model);
+        $this->apply($model, $coords);
+
+        CoordinateLookup::query()->updateOrCreate(
+            ['subject_type' => $model->getMorphClass(), 'subject_id' => $model->getKey()],
+            ['inputs_hash' => $inputs, 'source' => $coords['latitude'] !== null ? $coords['source'] : null, 'looked_up_at' => now()],
+        );
     }
 
-    private function backfillCanal(Canal $canal): void
+    /** @return array{latitude: float|null, longitude: float|null, source: string|null} */
+    private function resolveCanal(Canal $canal): array
     {
         $city = $this->municipalityName($canal->municipality_id);
         $country = trim((string) $canal->country) !== '' ? $canal->country : 'Slovensko';
 
-        // Rozpísaná adresa má prednosť pred holým názvom kanála — odkedy ju
-        // editor zbiera, je to najpresnejší vstup, aký geokóder dostane.
-        $coords = $this->resolver->resolve($canal->name, $city, $country, $canal->street, $canal->postcode);
-
-        // Kanál je často organizátor (nie fyzické miesto) — ak sa podľa názvu
-        // nič nenájde, použi aspoň stred obce, aby sa mapa dala zobraziť.
-        if (($coords['latitude'] === null || $coords['longitude'] === null) && $city !== null) {
-            $coords = $this->resolver->resolve(null, $city, $country);
-        }
-
-        $this->apply($canal, $coords);
+        // Kanál je organizátor, nie budova: poloha je jeho adresa, a keď ju
+        // nepoznáme, stred obce. Adresu mu neskôr nájde dopĺňanie profilu.
+        return $this->resolver->resolve(
+            $canal->name, $city, $country, $canal->street, $canal->postcode, matchBuilding: false,
+        );
     }
 
-    private function backfillVenue(Venue $venue): void
+    /** @return array{latitude: float|null, longitude: float|null, source: string|null} */
+    private function resolveVenue(Venue $venue): array
     {
-        $coords = $this->resolver->resolve(
+        return $this->resolver->resolve(
             $venue->name,
             $this->municipalityName($venue->village_id),
             $venue->country,
             $venue->street,
             $venue->postcode,
         );
-
-        $this->apply($venue, $coords);
     }
 
     /**
