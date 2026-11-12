@@ -4,11 +4,14 @@ namespace Tests\Feature\OpenAI;
 
 use App\Models\AiUsage;
 use App\Models\Canal;
+use App\Models\Event;
 use App\Models\User;
 use App\Services\OpenAI\AiUsageRecorder;
 use App\Services\OpenAI\ChatGPT;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +31,18 @@ class AiUsageTrackingTest extends TestCase
 
         config()->set('openai.api_key', 'test-key');
         Sleep::fake();
+    }
+
+    /**
+     * Mimo testov Laravel preposiela udalosti príkazov (CommandStarting…) vždy,
+     * v testoch nie — bez nich AiUsageSource nevie, ktorý príkaz beží.
+     */
+    private function routeCommandEvents(): void
+    {
+        $kernel = $this->app->make(ConsoleKernel::class);
+        $kernel->rerouteSymfonyCommandEvents();
+        // Artisan aplikácia si dispatcher berie pri vzniku.
+        $kernel->setArtisan(null);
     }
 
     private function fakeOpenAi(string $content, array $usage = ['prompt_tokens' => 1000, 'completion_tokens' => 200]): void
@@ -82,6 +97,74 @@ class AiUsageTrackingTest extends TestCase
         $usage = AiUsage::query()->sole();
         $this->assertSame($canal->id, (int) $usage->canal_id);
         $this->assertSame('Canal', $usage->subject_type);
+    }
+
+    #[Test]
+    public function source_is_innermost_command_with_import_host(): void
+    {
+        $this->routeCommandEvents();
+        $this->fakeOpenAi(json_encode(['improved_text' => '<p>Text</p>', 'changes_summary' => 'Úprava']));
+
+        Artisan::command('test:ai-inner {--url=}', fn () => (new ChatGPT)->extractTextEdit('Vnútri.', ['grammar']));
+        // Ako schedule:run: vonkajší príkaz púšťa vnútorný v tom istom procese.
+        Artisan::command('test:ai-outer', function () {
+            Artisan::call('test:ai-inner', ['--url' => 'https://www.vyveska.sk/zoznam-podujati/']);
+            (new ChatGPT)->extractTextEdit('Vonku.', ['grammar']);
+        });
+
+        Artisan::call('test:ai-outer');
+
+        $this->assertSame(
+            ['test:ai-inner vyveska.sk', 'test:ai-outer'],
+            AiUsage::query()->orderBy('id')->pluck('source')->all(),
+        );
+    }
+
+    #[Test]
+    public function subject_set_by_one_command_does_not_leak_into_the_next(): void
+    {
+        $this->routeCommandEvents();
+        $this->fakeOpenAi(json_encode(['improved_text' => '<p>Text</p>', 'changes_summary' => 'Úprava']));
+        $canal = Canal::factory()->create();
+
+        Artisan::command('test:ai-with-subject', function () use ($canal) {
+            app(AiUsageRecorder::class)->setSubject($canal);
+            (new ChatGPT)->extractTextEdit('S predmetom.', ['grammar']);
+        });
+        Artisan::command('test:ai-without-subject', fn () => (new ChatGPT)->extractTextEdit('Bez predmetu.', ['grammar']));
+
+        Artisan::call('test:ai-with-subject');
+        Artisan::call('test:ai-without-subject');
+
+        $this->assertSame([$canal->id, null], AiUsage::query()->orderBy('id')->pluck('canal_id')->map(fn ($id) => $id === null ? null : (int) $id)->all());
+    }
+
+    #[Test]
+    public function collected_calls_get_subject_once_it_exists(): void
+    {
+        $this->fakeOpenAi(json_encode(['improved_text' => '<p>Text</p>', 'changes_summary' => 'Úprava']));
+        $otherCanal = Canal::factory()->create();
+        $recorder = app(AiUsageRecorder::class);
+
+        $event = $recorder->collectUnassigned(function () use ($recorder, $otherCanal) {
+            (new ChatGPT)->extractTextEdit('Článok.', ['grammar']);
+            // Volanie s vlastným predmetom sa neprepisuje.
+            $recorder->within($otherCanal, fn () => (new ChatGPT)->extractTextEdit('Kanál.', ['grammar']));
+
+            $event = Event::factory()->create(['user_id' => User::factory()]);
+            $recorder->assignCollected($event);
+
+            return $event;
+        });
+
+        // Mimo zberu sa už nič dodatočne nepriraďuje.
+        (new ChatGPT)->extractTextEdit('Potom.', ['grammar']);
+
+        $rows = AiUsage::query()->orderBy('id')->get();
+        $this->assertSame(['Event', 'Canal', null], $rows->pluck('subject_type')->all());
+        $this->assertSame($event->id, (int) $rows[0]->subject_id);
+        $this->assertSame($event->canal_id, (int) $rows[0]->canal_id);
+        $this->assertSame($otherCanal->id, (int) $rows[1]->canal_id);
     }
 
     #[Test]

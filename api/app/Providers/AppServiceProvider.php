@@ -13,11 +13,19 @@ use App\Observers\EventObserver;
 use App\Observers\MunicipalityObserver;
 use App\Observers\TicketObserver;
 use App\Observers\UserObserver;
+use App\Services\OpenAI\AiUsageRecorder;
+use App\Services\OpenAI\AiUsageSource;
 use App\Support\SchemaCache;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -31,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Predmet volaní (within) platí len v rámci jednej požiadavky / úlohy.
         $this->app->scoped(\App\Services\OpenAI\AiUsageRecorder::class);
+        $this->app->singleton(\App\Services\OpenAI\AiUsageSource::class);
     }
 
     /**
@@ -56,7 +65,36 @@ class AppServiceProvider extends ServiceProvider
         // z prehliadnutého dotazu spravila 500 namiesto pomalšej odpovede.
         Model::preventLazyLoading(! $this->app->isProduction());
 
+        $this->trackAiUsageSource();
+
         $this->configureRateLimiting();
+    }
+
+    /**
+     * Zdroj volaní OpenAI pre prehľad spotreby: príkaz alebo job, nie len
+     * argv procesu (viď AiUsageSource).
+     */
+    private function trackAiUsageSource(): void
+    {
+        $events = \Illuminate\Support\Facades\Event::getFacadeRoot();
+        $source = fn (): AiUsageSource => $this->app->make(AiUsageSource::class);
+
+        $events->listen(CommandStarting::class, function (CommandStarting $event) use ($source) {
+            $source()->commandStarting($event);
+            // Plánovač púšťa príkazy v jednom procese a recorder je počas neho
+            // ten istý: predmet nastavený jedným príkazom (AiDetector::setSubject)
+            // by inak dostali aj volania nasledujúcich príkazov.
+            $this->app->make(AiUsageRecorder::class)->setSubject(null);
+        });
+        $events->listen(CommandFinished::class, function (CommandFinished $event) use ($source) {
+            $source()->commandFinished($event);
+            $this->app->make(AiUsageRecorder::class)->setSubject(null);
+        });
+        $events->listen(JobProcessing::class, fn (JobProcessing $event) => $source()->jobProcessing($event));
+        $events->listen(
+            [JobProcessed::class, JobFailed::class, JobExceptionOccurred::class],
+            fn (JobProcessed|JobFailed|JobExceptionOccurred $event) => $source()->jobFinished($event),
+        );
     }
 
     /**

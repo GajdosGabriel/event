@@ -237,8 +237,33 @@ function userLabel(key: AiUsageGroup['key'], row?: AiUsageGroup): string {
   return key === null ? t('aiUsage.noUser') : (row?.name ?? `#${key}`)
 }
 
+/**
+ * Príkaz alebo job, z ktorého volanie išlo (backend: AiUsageSource), po slovensky.
+ * Neznámy zdroj (napr. názov route) sa ukáže tak, ako je.
+ */
+const SOURCE_KEYS: Record<string, string> = {
+  'artisan schedule:run': 'scheduler',
+  'app:ai-detector': 'aiDetector',
+  'app:ai-detect-from-text': 'aiDetectFromText',
+  'app:events-ai-tag': 'tagging',
+  'app:content-reviews-run': 'contentReviews',
+  'app:canal-emails-find': 'canalEmails',
+  'app:profiles-enrich': 'profilesEnrich',
+  'job:ImportEventSourcesJob': 'importManual',
+  'job:ProcessPosterEmail': 'posterEmail',
+  'job:RunManualLookup': 'manualLookup',
+  'job:BackfillPlaceCoordinates': 'coordinateBackfill',
+}
+
 function sourceLabel(key: AiUsageGroup['key'] | undefined): string {
-  return key === null || key === undefined || key === '' ? '—' : String(key)
+  if (key === null || key === undefined || key === '') return '—'
+  const source = String(key)
+  const importMatch = /^app:import-event-sources(?: (.+))?$/.exec(source)
+  if (importMatch) {
+    return importMatch[1] ? t('aiUsage.source.import', { host: importMatch[1] }) : t('aiUsage.source.importAll')
+  }
+  const labelKey = SOURCE_KEYS[source]
+  return labelKey ? t(`aiUsage.source.${labelKey}` as Parameters<typeof t>[0]) : source
 }
 
 /** Tabuľka skupiny: popis, volania, tokeny, cena a podiel na cene obdobia. */

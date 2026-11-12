@@ -9,6 +9,7 @@ use App\Repositories\Contracts\EventRepository;
 use App\Services\Canals\CanalSeatDeriver;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\GoogleMapsLinkResolver;
+use App\Services\OpenAI\AiUsageRecorder;
 use App\Services\Publishing\EventDependencyPublisher;
 use App\Services\SystemLog\Recorder;
 use App\Support\ImportedText;
@@ -84,7 +85,19 @@ class EventImportService
         return $summary;
     }
 
+    /**
+     * Volania AI pri čítaní článku (podujatie, organizátor, miesto, popisy)
+     * idú skôr, než podujatie existuje — v prehľade spotreby sa mu priradia
+     * až po založení, aby nevisela bez kanála (viď AiUsageRecorder).
+     */
     public function importArticle(string $articleUrl, bool $force = false): string
+    {
+        return app(AiUsageRecorder::class)->collectUnassigned(
+            fn () => $this->importArticleNow($articleUrl, $force),
+        );
+    }
+
+    private function importArticleNow(string $articleUrl, bool $force): string
     {
         // Cheap early exit: if this exact source URL was already imported and the
         // resulting event has everything it needs, skip before doing any expensive
@@ -280,6 +293,8 @@ class EventImportService
             $event = $this->eventRepository->create($payload);
             $status = 'imported';
         }
+
+        app(AiUsageRecorder::class)->assignCollected($event);
 
         // Import zakladá miesta ako koncept (ImportedVenueManager), lebo pri
         // ich vzniku ešte nevie, či bude článok kompletný. Keď z neho vyjde

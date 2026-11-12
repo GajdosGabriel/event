@@ -36,6 +36,13 @@ class AiUsageRecorder
     private ?Model $subject = null;
 
     /**
+     * Id záznamov bez predmetu zapísaných v collectUnassigned(); null mimo neho.
+     *
+     * @var list<int>|null
+     */
+    private ?array $collected = null;
+
+    /**
      * Spustí $callback s predmetom, ku ktorému sa volania v ňom priradia.
      *
      * @template T
@@ -66,6 +73,56 @@ class AiUsageRecorder
     }
 
     /**
+     * Spustí $callback a volania bez predmetu z neho si zapamätá, aby ich
+     * assignCollected() mohol priradiť dodatočne.
+     *
+     * Pre import: AI číta článok skôr, než podujatie, jeho kanál či miesto
+     * existuje — predmet sa nedá nastaviť vopred, len doplniť po založení.
+     * Keď podujatie nevznikne, záznamy ostanú bez predmetu.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public function collectUnassigned(callable $callback): mixed
+    {
+        $previous = $this->collected;
+        $this->collected = [];
+
+        try {
+            return $callback();
+        } finally {
+            $this->collected = $previous;
+        }
+    }
+
+    /** Priradí predmet (a jeho kanál) volaniam zapamätaným v collectUnassigned(). */
+    public function assignCollected(Model $subject): void
+    {
+        if ($this->collected === null || $this->collected === []) {
+            return;
+        }
+
+        $previous = $this->subject;
+        $this->subject = $subject;
+
+        try {
+            AiUsage::query()->whereKey($this->collected)->update([
+                'canal_id' => $this->canalId(),
+                'subject_type' => class_basename($subject),
+                'subject_id' => $subject->getKey(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Spotrebu OpenAI sa nepodarilo priradiť.', ['error' => $e->getMessage()]);
+        } finally {
+            $this->subject = $previous;
+        }
+
+        $this->collected = [];
+    }
+
+    /**
      * Zapíše volanie. Evidencia nesmie zhodiť samotnú AI operáciu — chyba
      * zápisu sa len zaloguje.
      *
@@ -77,7 +134,7 @@ class AiUsageRecorder
             $prompt = (int) ($usage['prompt_tokens'] ?? 0);
             $completion = (int) ($usage['completion_tokens'] ?? 0);
 
-            AiUsage::query()->create([
+            $row = AiUsage::query()->create([
                 'feature' => $feature,
                 'source' => $this->source(),
                 'model' => $model,
@@ -90,6 +147,10 @@ class AiUsageRecorder
                 'subject_type' => $this->subject ? class_basename($this->subject) : null,
                 'subject_id' => $this->subject?->getKey(),
             ]);
+
+            if ($this->subject === null && $this->collected !== null) {
+                $this->collected[] = (int) $row->getKey();
+            }
         } catch (\Throwable $e) {
             Log::warning('Spotrebu OpenAI sa nepodarilo zapísať.', ['error' => $e->getMessage()]);
         }
@@ -125,6 +186,13 @@ class AiUsageRecorder
     private function source(): ?string
     {
         if (app()->runningInConsole()) {
+            // Príkaz či job, ktorý volanie spustil — argv by pri plánovači
+            // hlásil pri všetkom len „schedule:run" (viď AiUsageSource).
+            $current = app(AiUsageSource::class)->current();
+            if ($current !== null) {
+                return $current;
+            }
+
             $argv = $_SERVER['argv'] ?? [];
 
             return isset($argv[1]) ? mb_substr('artisan '.$argv[1], 0, 120) : 'console';
