@@ -144,6 +144,22 @@ class CanalEventOfferTest extends TestCase
     }
 
     #[Test]
+    public function import_sources_with_many_events_get_nothing(): void
+    {
+        $this->publish($this->importedCanal(['email' => 'reporter@tkkbs.sk']));
+        $this->publish($this->importedCanal(['email' => 'media@ecav.sk']));
+        $this->publish($this->importedCanal(['email' => 'info@vyveska.sk']));
+        $this->publish($this->importedCanal(['email' => 'zbor@modra.ecav.sk']));
+
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 0);
+
+        // Podobná, ale iná doména sa nevylučuje.
+        $this->publish($this->importedCanal(['email' => 'sekretariat@vdecav.sk']));
+
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 1);
+    }
+
+    #[Test]
     public function contact_already_in_the_team_gets_nothing(): void
     {
         $canal = $this->importedCanal();

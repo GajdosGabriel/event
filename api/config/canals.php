@@ -22,6 +22,11 @@ return [
     // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
     'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
 
+    // Domény, na ktoré technický e-mail o zverejnenej akcii (CanalEventOffer)
+    // nechodí — zdroje importu s množstvom akcií. Platí aj pre subdomény.
+    'event_offer_excluded_domains' => array_values(array_filter(array_map('trim',
+        explode(',', (string) env('CANAL_EVENT_OFFER_EXCLUDED_DOMAINS', 'ecav.sk,vyveska.sk,tkkbs.sk'))))),
+
     // Adresy kanála (CanalEmails) a hľadanie náhradnej (app:canal-emails-find).
     'emails' => [
         // Dočasné vrátenie (plná schránka) vyradí adresu až po toľkých

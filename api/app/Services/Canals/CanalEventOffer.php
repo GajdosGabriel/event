@@ -35,7 +35,7 @@ class CanalEventOffer
         $canal = $event->canal;
         ['reason' => $reason, 'email' => $contact] = $this->takeover->contact($canal, $event);
 
-        if ($reason !== null) {
+        if ($reason !== null || self::excludedDomain($contact)) {
             return;
         }
 
@@ -61,6 +61,30 @@ class CanalEventOffer
         $invitation = $this->takeover->invitation($canal, $contact);
 
         $this->takeover->send($contact, new CanalEventPublishedOffer($event, $invitation, $newCanal), $event);
+    }
+
+    /**
+     * Adresa na doméne (alebo jej subdoméne) zo zoznamu
+     * `canals.event_offer_excluded_domains` — zdroje importu s množstvom akcií,
+     * ktorým by šiel e-mail pri každej z nich.
+     */
+    public static function excludedDomain(?string $email): bool
+    {
+        $domain = mb_strtolower((string) substr(strrchr((string) $email, '@') ?: '', 1));
+
+        if ($domain === '') {
+            return false;
+        }
+
+        foreach ((array) config('canals.event_offer_excluded_domains', []) as $excluded) {
+            $excluded = mb_strtolower(trim((string) $excluded));
+
+            if ($excluded !== '' && ($domain === $excluded || str_ends_with($domain, '.'.$excluded))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function eligible(Event $event): bool
