@@ -101,6 +101,49 @@ class MergeDuplicateEventsCommandTest extends TestCase
     }
 
     /**
+     * Organizátor uverejní na vyveska.sk tú istú akciu viackrát a každému
+     * článku dá iné „Kedy" (dni pripomienky), koniec je však skutočný. Ostáva
+     * článok s najneskorším začiatkom — to je termín akcie.
+     */
+    #[Test]
+    public function it_merges_reposts_that_share_the_end_but_not_the_start(): void
+    {
+        [, $organizer, $venue] = $this->fixtures();
+
+        $base = 'https://www.vyveska.sk/silvestrovica';
+        $reminders = [
+            $this->importedEvent($organizer, $venue, $base.'/', 'Popis.', '2026-11-29 16:00:00', '2027-01-02 14:00:00'),
+            $this->importedEvent($organizer, $venue, $base.'-2/', 'Oveľa dlhší popis, ktorý by inak vyhral.', '2026-11-15 16:00:00', '2027-01-02 14:00:00'),
+        ];
+        $real = $this->importedEvent($organizer, $venue, $base.'-3/', 'Popis.', '2026-12-30 16:00:00', '2027-01-02 14:00:00');
+
+        $this->artisan('app:events-merge-duplicates', ['--apply' => true])->assertSuccessful();
+
+        $this->assertSame([$real->id], Event::query()->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$base.'/', $base.'-2/'], $real->refresh()->meta['merged_sources'] ?? []);
+
+        foreach ($reminders as $reminder) {
+            $this->assertSame($real->id, EventSourceLookup::find((string) $reminder->orginal_source)?->id);
+        }
+    }
+
+    /** Rovnaký koniec na dvoch miestach je náhoda, nie repost. */
+    #[Test]
+    public function it_skips_reposts_with_the_same_end_at_different_venues(): void
+    {
+        [$collection, $organizer, $venue] = $this->fixtures();
+
+        $other = Venue::factory()->create(['canal_id' => $collection->id]);
+
+        $this->importedEvent($organizer, $venue, 'https://www.vyveska.sk/a', 'Popis.', '2026-11-29 16:00:00', '2027-01-02 14:00:00');
+        $this->importedEvent($organizer, $other, 'https://www.vyveska.sk/b', 'Popis.', '2026-12-30 16:00:00', '2027-01-02 14:00:00');
+
+        $this->artisan('app:events-merge-duplicates', ['--apply' => true])->assertSuccessful();
+
+        $this->assertSame(2, Event::query()->count());
+    }
+
+    /**
      * @return array{0: Canal, 1: Canal, 2: Venue}
      */
     private function fixtures(): array
@@ -120,9 +163,15 @@ class MergeDuplicateEventsCommandTest extends TestCase
         return [$collection, $organizer, Venue::factory()->create(['canal_id' => $collection->id])];
     }
 
-    private function importedEvent(Canal $canal, Venue $venue, string $source, string $body = 'Popis.'): Event
-    {
-        return Event::factory()->create([
+    private function importedEvent(
+        Canal $canal,
+        Venue $venue,
+        string $source,
+        string $body = 'Popis.',
+        string $start = self::START,
+        string $end = '2026-10-09 12:00:00',
+    ): Event {
+        $event = Event::factory()->create([
             'name' => 'Tréning zručností tvorby komunity',
             // Factory si slug odvádza z vlastného náhodného mena, nie z toho,
             // čo mu podstrčíme — a zhoda slugov je celý predmet tohto testu.
@@ -132,10 +181,16 @@ class MergeDuplicateEventsCommandTest extends TestCase
             'venue_id' => $venue->id,
             'status' => ModelStatus::Published->value,
             'published_at' => now(),
-            'start_at' => self::START,
-            'end_at' => '2026-10-09 12:00:00',
+            'start_at' => $start,
+            'end_at' => $end,
             'body' => $body,
             'orginal_source' => $source,
         ]);
+
+        // Factory odvodí kanál z miesta (to patrí zbernému kanálu), takže by
+        // obe kópie skončili v ňom a prednosť kanála organizátora by sa netestovala.
+        $event->forceFill(['canal_id' => $canal->id])->saveQuietly();
+
+        return $event;
     }
 }

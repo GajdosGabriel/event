@@ -2739,7 +2739,7 @@ const cs: Messages = {
       aiLead: '— zpracuje jednu akci s original_source URL pomocí AI.',
       aiRun: 'Spustit AI detektor',
       duplicatesTitle: 'Duplicitní akce',
-      duplicatesLead: '— najde tutéž akci naimportovanou dvakrát (stejný název, čas i místo).',
+      duplicatesLead: '— najde tutéž akci naimportovanou vícekrát (stejný název, místo a začátek nebo konec).',
       duplicatesApply: 'Sloučit nalezené dvojice (zahozený záznam jde do koše)',
       duplicatesRun: 'Vypsat duplicity',
       duplicatesMerge: 'Sloučit duplicity',

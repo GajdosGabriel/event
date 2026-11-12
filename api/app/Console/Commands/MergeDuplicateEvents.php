@@ -25,7 +25,7 @@ class MergeDuplicateEvents extends Command
     /**
      * @var string
      */
-    protected $description = 'Nájde podujatia naimportované dvakrát (rovnaký názov, čas a miesto) a zlúči ich do jedného';
+    protected $description = 'Nájde podujatia naimportované viackrát (rovnaký názov, miesto a začiatok alebo koniec) a zlúči ich do jedného';
 
     public function handle(DuplicateEventMerger $merger): int
     {

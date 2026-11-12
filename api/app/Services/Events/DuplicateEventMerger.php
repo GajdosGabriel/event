@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use App\Services\Imports\CollectionCanal;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -25,6 +26,12 @@ use Illuminate\Support\Collection;
  * ňom ešte neexistuje: rovnaký slug, rovnaký začiatok A rovnaké miesto. Dve
  * farnosti majú dve rôzne miesta, takže sa nezlúčia. Rozhoduje človek —
  * príkaz `app:events-merge-duplicates` bez `--apply` len vypíše, čo by urobil.
+ *
+ * Druhá zhoda: rovnaký slug, rovnaký KONIEC a rovnaké miesto, ale iný začiatok.
+ * Organizátor na vyveska.sk uverejní tú istú akciu viackrát (`…-2/`, `…-3/`)
+ * a každému článku dá iné „Kedy" (dni pripomienky registrácie), koniec ale
+ * ostáva skutočný. Ostáva článok s najneskorším začiatkom — skorší začiatok
+ * pri rovnakom konci je pripomienka, nie termín akcie.
  */
 class DuplicateEventMerger
 {
@@ -35,36 +42,66 @@ class DuplicateEventMerger
      */
     public function candidates(int $limit = 50): array
     {
-        $groups = Event::query()
-            ->selectRaw('slug, start_at')
-            ->whereNotNull('orginal_source')
-            ->whereNotNull('start_at')
-            ->whereNotNull('slug')
-            ->groupBy('slug', 'start_at')
-            ->havingRaw('count(*) > 1')
-            ->orderByDesc('start_at')
-            ->limit($limit)
-            ->get();
-
         $result = [];
+        $seen = [];
 
-        foreach ($groups as $group) {
-            $events = Event::query()
-                ->with(['canal', 'venue'])
-                ->whereNotNull('orginal_source')
-                ->where('slug', $group->slug)
-                ->where('start_at', $group->start_at)
-                ->orderBy('id')
-                ->get();
+        foreach (['start_at', 'end_at'] as $column) {
+            foreach ($this->groups($column, $limit) as $group) {
+                if (count($result) >= $limit) {
+                    return $result;
+                }
 
-            if ($events->count() < 2) {
-                continue;
+                $events = $this->imported()
+                    ->with(['canal', 'venue'])
+                    ->where('slug', $group->slug)
+                    ->where($column, $group->{$column})
+                    ->orderBy('id')
+                    ->get();
+
+                // Podujatie z prvej skupiny sa do druhej nedostane: po jej
+                // zlúčení by už neexistovalo. Zvyšok chytí ďalší beh.
+                $events = $events->reject(fn (Event $event) => isset($seen[$event->id]))->values();
+
+                if ($events->count() < 2) {
+                    continue;
+                }
+
+                foreach ($events as $event) {
+                    $seen[$event->id] = true;
+                }
+
+                $result[] = $this->describeGroup($events);
             }
-
-            $result[] = $this->describeGroup($events);
         }
 
         return $result;
+    }
+
+    /**
+     * Skupiny podľa slugu a začiatku, resp. konca. Pri konci len tie, ktoré
+     * majú rôzne začiatky — rovnaké začiatky sú prvá zhoda.
+     *
+     * @return Collection<int, Event>
+     */
+    private function groups(string $column, int $limit): Collection
+    {
+        return $this->imported()
+            ->selectRaw('slug, '.$column)
+            ->whereNotNull('start_at')
+            ->whereNotNull($column)
+            ->groupBy('slug', $column)
+            ->havingRaw($column === 'start_at' ? 'count(*) > 1' : 'count(distinct start_at) > 1')
+            ->orderByDesc($column)
+            ->limit($limit)
+            ->get();
+    }
+
+    /** @return Builder<Event> */
+    private function imported(): Builder
+    {
+        return Event::query()
+            ->whereNotNull('orginal_source')
+            ->whereNotNull('slug');
     }
 
     /**
@@ -88,19 +125,26 @@ class DuplicateEventMerger
      *
      * 1. kanál skutočného organizátora pred zberným kanálom zdroja — presne
      *    kvôli tomu sa duplicity riešia,
-     * 2. dlhší popis — ten istý článok býva na jednom zdroji orezaný,
-     * 3. nižšie id, nech je výsledok pri opakovanom behu rovnaký.
+     * 2. najneskorší začiatok — pri zhode podľa konca je skorší začiatok len
+     *    pripomienka; pri zhode podľa začiatku nerozhoduje,
+     * 3. dlhší popis — ten istý článok býva na jednom zdroji orezaný,
+     * 4. nižšie id, nech je výsledok pri opakovanom behu rovnaký.
      *
      * @param  Collection<int, Event>  $events
      */
     private function survivor(Collection $events): Event
     {
+        // sortBy([...]) volá closures ako porovnávače ($a, $b), nie ako kľúče —
+        // preto kľúč a jedno porovnanie poľa.
+        $key = fn (Event $event): array => [
+            CollectionCanal::is($event->canal) ? 1 : 0,
+            -($event->start_at?->getTimestamp() ?? 0),
+            -mb_strlen((string) $event->body),
+            $event->id,
+        ];
+
         return $events
-            ->sortBy([
-                fn (Event $event) => CollectionCanal::is($event->canal) ? 1 : 0,
-                fn (Event $event) => -mb_strlen((string) $event->body),
-                fn (Event $event) => $event->id,
-            ])
+            ->sort(fn (Event $a, Event $b) => $key($a) <=> $key($b))
             ->first();
     }
 

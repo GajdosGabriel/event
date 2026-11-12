@@ -2740,7 +2740,7 @@ const en: Messages = {
       aiRun: 'Run the AI detector',
       aiLead: '— processes one event with an original_source URL using AI.',
       duplicatesTitle: 'Duplicate events',
-      duplicatesLead: '— finds the same event imported twice (same name, time and venue).',
+      duplicatesLead: '— finds the same event imported more than once (same name, venue and start or end).',
       duplicatesApply: 'Merge the pairs found (the dropped record goes to the trash)',
       duplicatesRun: 'List duplicates',
       duplicatesMerge: 'Merge duplicates',

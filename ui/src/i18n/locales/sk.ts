@@ -2857,7 +2857,7 @@ const sk = {
       aiLead: '— spracuje jeden event s original_source URL pomocou AI.',
       aiRun: 'Spustiť AI detektor',
       duplicatesTitle: 'Duplicitné podujatia',
-      duplicatesLead: '— nájde tú istú akciu naimportovanú dvakrát (rovnaký názov, čas aj miesto).',
+      duplicatesLead: '— nájde tú istú akciu naimportovanú viackrát (rovnaký názov, miesto a začiatok alebo koniec).',
       duplicatesApply: 'Zlúčiť nájdené dvojice (zahodený záznam ide do koša)',
       duplicatesRun: 'Vypísať duplicity',
       duplicatesMerge: 'Zlúčiť duplicity',

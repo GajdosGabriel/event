@@ -2740,7 +2740,7 @@ const de: Messages = {
       aiLead: '— verarbeitet eine Veranstaltung mit original_source-URL per KI.',
       aiRun: 'KI-Detektor starten',
       duplicatesTitle: 'Doppelte Veranstaltungen',
-      duplicatesLead: '— findet dieselbe Veranstaltung, die zweimal importiert wurde (gleicher Name, Zeit und Ort).',
+      duplicatesLead: '— findet dieselbe Veranstaltung, die mehrfach importiert wurde (gleicher Name, Ort und Beginn oder Ende).',
       duplicatesApply: 'Gefundene Paare zusammenführen (der verworfene Eintrag landet im Papierkorb)',
       duplicatesRun: 'Duplikate auflisten',
       duplicatesMerge: 'Duplikate zusammenführen',
