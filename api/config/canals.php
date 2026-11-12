@@ -24,8 +24,10 @@ return [
 
     // Domény, na ktoré technický e-mail o zverejnenej akcii (CanalEventOffer)
     // nechodí — zdroje importu s množstvom akcií. Platí aj pre subdomény.
+    // ecav.sk tu nie je: na nej majú adresy aj jednotlivé cirkevné zbory;
+    // samotnej ECAV vypína e-mail prepínač v kanáli (event_offer_disabled).
     'event_offer_excluded_domains' => array_values(array_filter(array_map('trim',
-        explode(',', (string) env('CANAL_EVENT_OFFER_EXCLUDED_DOMAINS', 'ecav.sk,vyveska.sk,tkkbs.sk'))))),
+        explode(',', (string) env('CANAL_EVENT_OFFER_EXCLUDED_DOMAINS', 'vyveska.sk,tkkbs.sk'))))),
 
     // Adresy kanála (CanalEmails) a hľadanie náhradnej (app:canal-emails-find).
     'emails' => [

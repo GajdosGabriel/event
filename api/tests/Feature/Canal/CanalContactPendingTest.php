@@ -162,7 +162,7 @@ class CanalContactPendingTest extends TestCase
         $admin->assignRole('super-admin');
 
         $this->actingAs($admin, 'sanctum')
-            ->putJson("/api/admin/canals/{$this->canal->id}", $this->form('media@ecav.sk') + ['event_offer_disabled' => true])
+            ->putJson("/api/admin/canals/{$this->canal->id}", $this->form('reporter@tkkbs.sk') + ['event_offer_disabled' => true])
             ->assertOk()
             ->assertJsonPath('event_offer_disabled', true)
             ->assertJsonPath('event_offer_domain_excluded', true);

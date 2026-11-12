@@ -1469,7 +1469,7 @@ const de: Messages = {
     fields: {
       eventOfferDisabled: 'Keine technischen E-Mails zu veröffentlichten Veranstaltungen senden',
       eventOfferDisabledHint: 'Der Kanalkontakt erhält nicht bei jeder veröffentlichten Veranstaltung eine E-Mail mit Übernahmeangebot. Für Importquellen mit sehr vielen Veranstaltungen.',
-      eventOfferDomainExcluded: 'Der Kanalkontakt liegt auf einer Domain einer Importquelle (ecav.sk, vyveska.sk, tkkbs.sk) — er erhält auch ohne Häkchen keine E-Mails zu Veranstaltungen.',
+      eventOfferDomainExcluded: 'Der Kanalkontakt liegt auf einer Domain einer Importquelle (vyveska.sk, tkkbs.sk) — er erhält auch ohne Häkchen keine E-Mails zu Veranstaltungen.',
       name: 'Name',
       titlePrefix: 'Namenspräfix',
       titlePrefixPlaceholder: 'z. B. Gesellschaft',

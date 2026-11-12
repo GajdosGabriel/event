@@ -1469,7 +1469,7 @@ const en: Messages = {
     fields: {
       eventOfferDisabled: 'Do not send technical emails about published events',
       eventOfferDisabledHint: 'The channel contact will not get an email offering takeover for every published event. For import sources with very many events.',
-      eventOfferDomainExcluded: 'The channel contact is on an import source domain (ecav.sk, vyveska.sk, tkkbs.sk) — it gets no event emails even without this box ticked.',
+      eventOfferDomainExcluded: 'The channel contact is on an import source domain (vyveska.sk, tkkbs.sk) — it gets no event emails even without this box ticked.',
       name: 'Name',
       titlePrefix: 'Name prefix',
       titlePrefixPlaceholder: 'e.g. Company',

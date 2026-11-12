@@ -1468,7 +1468,7 @@ const cs: Messages = {
     fields: {
       eventOfferDisabled: 'Neposílat technické e-maily o zveřejněných akcích',
       eventOfferDisabledHint: 'Kontakt kanálu nedostane e-mail s nabídkou převzetí při každé zveřejněné akci. Pro zdroje importu s množstvím akcí.',
-      eventOfferDomainExcluded: 'Kontakt kanálu je na doméně zdroje importu (ecav.sk, vyveska.sk, tkkbs.sk) — e-mail o akcích mu nechodí ani bez zaškrtnutí.',
+      eventOfferDomainExcluded: 'Kontakt kanálu je na doméně zdroje importu (vyveska.sk, tkkbs.sk) — e-mail o akcích mu nechodí ani bez zaškrtnutí.',
       name: 'Název',
       titlePrefix: 'Předpona názvu',
       titlePrefixPlaceholder: 'např. Společnost',

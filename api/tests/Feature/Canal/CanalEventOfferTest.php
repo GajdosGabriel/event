@@ -147,16 +147,18 @@ class CanalEventOfferTest extends TestCase
     public function import_sources_with_many_events_get_nothing(): void
     {
         $this->publish($this->importedCanal(['email' => 'reporter@tkkbs.sk']));
-        $this->publish($this->importedCanal(['email' => 'media@ecav.sk']));
         $this->publish($this->importedCanal(['email' => 'info@vyveska.sk']));
-        $this->publish($this->importedCanal(['email' => 'zbor@modra.ecav.sk']));
+        $this->publish($this->importedCanal(['email' => 'redakcia@www.vyveska.sk']));
+        // ECAV ako zdroj má vypnutý prepínač v kanáli, nie celú doménu.
+        $this->publish($this->importedCanal(['email' => 'media@ecav.sk', 'event_offer_disabled' => true]));
 
         Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 0);
 
-        // Podobná, ale iná doména sa nevylučuje.
+        // Cirkevný zbor na ecav.sk a podobná doména dostanú e-mail normálne.
+        $this->publish($this->importedCanal(['email' => 'turany@ecav.sk']));
         $this->publish($this->importedCanal(['email' => 'sekretariat@vdecav.sk']));
 
-        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 1);
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 2);
     }
 
     #[Test]

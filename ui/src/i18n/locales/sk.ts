@@ -1547,7 +1547,7 @@ const sk = {
     fields: {
       eventOfferDisabled: 'Neposielať technické e-maily o zverejnených akciách',
       eventOfferDisabledHint: 'Kontakt kanála nedostane e-mail s ponukou prevzatia pri každej zverejnenej akcii. Pre zdroje importu s množstvom akcií.',
-      eventOfferDomainExcluded: 'Kontakt kanála je na doméne zdroja importu (ecav.sk, vyveska.sk, tkkbs.sk) — e-mail o akciách mu nechodí ani bez zaškrtnutia.',
+      eventOfferDomainExcluded: 'Kontakt kanála je na doméne zdroja importu (vyveska.sk, tkkbs.sk) — e-mail o akciách mu nechodí ani bez zaškrtnutia.',
       name: 'Názov',
       titlePrefix: 'Predpona názvu',
       titlePrefixPlaceholder: 'napr. Spoločnosť',

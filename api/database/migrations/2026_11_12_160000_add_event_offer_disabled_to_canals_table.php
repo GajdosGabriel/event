@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Schema;
  * (CanalEventOffer) — zdroje importu s množstvom akcií. Vidno to v úprave
  * kanála v admine.
  *
- * Kanály s adresou na doménach zdrojov (ecav.sk, vyveska.sk, tkkbs.sk aj
+ * Kanály s adresou na doménach zdrojov (vyveska.sk, tkkbs.sk aj
  * subdomény), ktoré vylučuje `canals.event_offer_excluded_domains`, dostanú
  * príznak hneď, aby to bolo v administrácii vidieť.
  */
 return new class extends Migration
 {
-    private const DOMAINS = ['ecav.sk', 'vyveska.sk', 'tkkbs.sk'];
+    private const DOMAINS = ['vyveska.sk', 'tkkbs.sk'];
 
     public function up(): void
     {
