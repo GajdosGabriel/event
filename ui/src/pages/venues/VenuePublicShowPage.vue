@@ -1,11 +1,13 @@
 <template>
   <div>
     <!-- Hero -->
-    <div v-if="venue?.imageUrl" class="relative h-64 w-full overflow-hidden md:h-80">
-      <img :src="venue.imageUrl" :alt="venue.name" class="h-full w-full object-cover" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-      <div class="absolute bottom-0 left-0 right-0 px-6 pb-6 text-white">
-        <div class="mx-auto max-w-[1200px]">
+    <!-- Obal drží pás v rovnakej šírke (max-w-[1200px] + px-4) ako obsah pod ním,
+         rovnako ako hlavička podujatia. -->
+    <div v-if="venue?.imageUrl" class="mx-auto w-full max-w-[1200px] sm:px-4 sm:pt-4">
+      <div class="relative h-64 w-full overflow-hidden sm:rounded-2xl md:h-80">
+        <img :src="venue.imageUrl" :alt="venue.name" class="h-full w-full object-cover" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div class="absolute bottom-0 left-0 right-0 px-6 pb-6 text-white">
           <h1 class="text-3xl font-bold leading-tight md:text-4xl">{{ venue.name }}</h1>
         </div>
       </div>
