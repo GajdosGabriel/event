@@ -23,6 +23,9 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     titleSuffix: (raw['title_suffix'] as string) ?? null,
     email: (raw['email'] as string) ?? null,
     emailVerifiedAt: (raw['email_verified_at'] as string) ?? null,
+    // Len super-admin — inak pole v odpovedi chýba a formulár prepínač neukáže.
+    eventOfferDisabled: typeof raw['event_offer_disabled'] === 'boolean' ? raw['event_offer_disabled'] : undefined,
+    eventOfferDomainExcluded: raw['event_offer_domain_excluded'] === true,
     emails: ((raw['emails'] as Record<string, unknown>[]) ?? []).map(e => ({
       email: e['email'] as string,
       isPrimary: Boolean(e['is_primary']),

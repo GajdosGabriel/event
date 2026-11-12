@@ -7,6 +7,7 @@ use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
 use App\Services\Canals\CanalEmails;
+use App\Services\Canals\CanalEventOffer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,6 +38,12 @@ class CanalResource extends JsonResource
             $data['email'] = $this->email;
             $data['email_verified_at'] = $this->email_verified_at;
             $data['claimed_by_user_id'] = $this->claimed_by_user_id;
+        }
+
+        // Technický e-mail o zverejnenej akcii (CanalEventOffer) — len super-admin.
+        if ($user?->hasRole('super-admin')) {
+            $data['event_offer_disabled'] = (bool) $this->event_offer_disabled;
+            $data['event_offer_domain_excluded'] = CanalEventOffer::excludedDomain($this->email);
         }
 
         $isPublished = $this->status === ModelStatus::Published;

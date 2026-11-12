@@ -358,6 +358,10 @@ export interface CanalItem {
   email: string | null
   /** Kedy vlastník potvrdil kontaktný e-mail; `null` = neoverený. */
   emailVerifiedAt: string | null
+  /** Len super-admin: kanálu nechodí technický e-mail o zverejnenej akcii (CanalEventOffer). */
+  eventOfferDisabled?: boolean
+  /** Len super-admin: kontakt je na doméne vylúčenej v `canals.event_offer_excluded_domains`. */
+  eventOfferDomainExcluded?: boolean
   /** Všetky adresy kanála so stavom; len pre toho, kto kanál upravuje. Primárna je v `email`. */
   emails: CanalEmailItem[]
   /** Údaje, ktoré pri overovaní neprešli; `null` = všetko v poriadku. */

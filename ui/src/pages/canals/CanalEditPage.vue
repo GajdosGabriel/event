@@ -37,6 +37,15 @@
             :disabled="resending" @click="resendVerification">{{ t('canals.form.emailResend') }}</button>
         </div>
 
+        <!-- Len super-admin (backend pole inak nevracia ani neprijme): zdroje
+             importu s množstvom akcií nemajú dostávať e-mail pri každej z nich. -->
+        <fieldset v-if="eventOfferEditable" class="field-group">
+          <legend class="field-legend">{{ t('canals.sections.mailing') }}</legend>
+          <FormField v-model="eventOfferDisabled" type="checkbox" :label="t('canals.fields.eventOfferDisabled')"
+            :hint="t('canals.fields.eventOfferDisabledHint')" :error="errors.event_offer_disabled" />
+          <p v-if="eventOfferDomainExcluded" class="form-hint mt-2">{{ t('canals.fields.eventOfferDomainExcluded') }}</p>
+        </fieldset>
+
         <RecordFormActions kind="canals" :saving="saving" :cancel-to="indexRoute" />
       </form>
     </div>
@@ -150,6 +159,17 @@ const pendingEmail = ref<string | null>(null)
 const currentEmail = ref<string | null>(null)
 const resending = ref(false)
 
+/** Technický e-mail o zverejnenej akcii — prepínač vidí a mení len super-admin. */
+const eventOfferEditable = ref(false)
+const eventOfferDisabled = ref(false)
+const eventOfferDomainExcluded = ref(false)
+
+function applyEventOffer(c: CanalItem) {
+  eventOfferEditable.value = scope.value === 'admin' && c.eventOfferDisabled !== undefined
+  eventOfferDisabled.value = c.eventOfferDisabled ?? false
+  eventOfferDomainExcluded.value = c.eventOfferDomainExcluded ?? false
+}
+
 /**
  * V dashboarde ostáva v poli čakajúca adresa — ďalšie uloženie formulára
  * by inak žiadosť o zmenu zrušilo. Admin vidí platnú adresu; keď do poľa
@@ -202,6 +222,7 @@ onMounted(async () => {
       }
       unpublishBlockedReason.value = c.unpublishBlockedReason
       applyEmails(c)
+      applyEventOffer(c)
       address.value = addressFrom(c)
       applyWebsiteIssue(c)
     } catch { serverError.value = t('canals.form.loadFailed') }
@@ -209,7 +230,11 @@ onMounted(async () => {
 })
 
 function payload() {
-  return { ...form.value, ...toAddressPayload(address.value, 'municipality_id') }
+  return {
+    ...form.value,
+    ...toAddressPayload(address.value, 'municipality_id'),
+    ...(eventOfferEditable.value ? { event_offer_disabled: eventOfferDisabled.value } : {}),
+  }
 }
 
 async function submit() {
@@ -231,7 +256,9 @@ async function submit() {
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
-      applyEmails(await updateCanal(Number(route.params.id), payload(), scope.value))
+      const updated = await updateCanal(Number(route.params.id), payload(), scope.value)
+      applyEmails(updated)
+      applyEventOffer(updated)
       toast.success(t('canals.form.saved'))
       await reloadWebsiteIssue()
     }

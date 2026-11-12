@@ -62,6 +62,9 @@ class CanalStoreRequest extends FormRequest
                 ModelStatus::allowedForUser($this->user()),
                 'value'
             ))],
+            // Len super-admin: vypnutie technického e-mailu o zverejnenej akcii
+            // (CanalEventOffer). Organizátorovi sa pole nezobrazuje ani neprijíma.
+            'event_offer_disabled' => ['sometimes', 'boolean', Rule::prohibitedIf(! $this->user()?->hasRole('super-admin'))],
             'identity_mode' => ['sometimes', 'string', Rule::enum(CanalIdentityMode::class)],
             'files' => ['sometimes', 'array'],
             'files.*' => FileStoreRequest::FILE_RULES,

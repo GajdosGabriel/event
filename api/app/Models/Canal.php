@@ -53,13 +53,14 @@ class Canal extends Model implements Messageable
      *
      * @var list<string>
      */
-    protected $hidden = ['email', 'email_verified_at', 'claimed_by_user_id'];
+    protected $hidden = ['email', 'email_verified_at', 'claimed_by_user_id', 'event_offer_disabled'];
 
     protected $casts = [
         'name' => StringLength250::class,
         'website' => Website::class,
         'published_at' => 'datetime',
         'email_verified_at' => 'datetime',
+        'event_offer_disabled' => 'boolean',
         'status' => ModelStatus::class,
         'registration_source' => \App\Enums\RegistrationSource::class,
         'identity_mode' => CanalIdentityMode::class,

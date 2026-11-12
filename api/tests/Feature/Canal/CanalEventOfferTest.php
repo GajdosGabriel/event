@@ -160,6 +160,14 @@ class CanalEventOfferTest extends TestCase
     }
 
     #[Test]
+    public function canal_switched_off_in_admin_gets_nothing(): void
+    {
+        $this->publish($this->importedCanal(['event_offer_disabled' => true]));
+
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 0);
+    }
+
+    #[Test]
     public function contact_already_in_the_team_gets_nothing(): void
     {
         $canal = $this->importedCanal();

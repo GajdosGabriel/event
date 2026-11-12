@@ -14,7 +14,9 @@ use App\Notifications\CanalEventPublishedOffer;
  * Nejde cez Account Emailing (kampane), ale ako ostatné e-maily na kontakt
  * kanála cez CanalTakeover: rovnaký výber adresy (kanál, záložne akcia),
  * vyradené adresy sa preskočia, brzdou je `canals.simulate_takeover_mail`.
- * Adresa nemusí byť overená. Píše sa pri každej akcii, ku každej najviac raz
+ * Adresa nemusí byť overená. Nepíše sa kanálom s `event_offer_disabled`
+ * (prepínač v úprave kanála v admine) ani na domény zo zoznamu
+ * `canals.event_offer_excluded_domains`. Píše sa pri každej akcii, ku každej najviac raz
  * (`events.takeover_notified_at`).
  */
 class CanalEventOffer
@@ -94,6 +96,7 @@ class CanalEventOffer
 
         return $canal !== null
             && ! $canal->isManaged()
+            && ! $canal->event_offer_disabled
             && $event->status === ModelStatus::Published
             && $event->takeover_notified_at === null
             && ($end === null || $end->isFuture());

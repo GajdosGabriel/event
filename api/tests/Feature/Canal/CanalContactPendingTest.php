@@ -155,6 +155,33 @@ class CanalContactPendingTest extends TestCase
     }
 
     /** @return array<string, mixed> */
+    #[Test]
+    public function only_super_admin_sees_and_sets_the_event_offer_switch(): void
+    {
+        $admin = User::factory()->create(['email_verified_at' => now(), 'last_login_at' => now(), 'last_activity' => now()]);
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/admin/canals/{$this->canal->id}", $this->form('media@ecav.sk') + ['event_offer_disabled' => true])
+            ->assertOk()
+            ->assertJsonPath('event_offer_disabled', true)
+            ->assertJsonPath('event_offer_domain_excluded', true);
+
+        $this->assertTrue($this->canal->fresh()->event_offer_disabled);
+
+        $this->actingAs($this->owner, 'sanctum')
+            ->putJson("/api/dashboard/canals/{$this->canal->id}", $this->form('stary@divadlo.test') + ['event_offer_disabled' => false])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('event_offer_disabled');
+
+        $this->actingAs($this->owner, 'sanctum')
+            ->getJson("/api/dashboard/canals/{$this->canal->id}")
+            ->assertOk()
+            ->assertJsonMissingPath('event_offer_disabled');
+
+        $this->getJson("/api/canals/{$this->canal->slug}")->assertJsonMissingPath('event_offer_disabled');
+    }
+
     private function form(string $email): array
     {
         return [
