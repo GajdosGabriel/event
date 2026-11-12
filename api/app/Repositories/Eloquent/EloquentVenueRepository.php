@@ -4,12 +4,13 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Jobs\BackfillPlaceCoordinates;
 use App\Models\Municipality;
 use App\Models\Venue;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\VenueRepository;
 use App\Services\Files\FileManager;
-use App\Services\Geocoding\PlaceCoordinateResolver;
+use App\Services\Geocoding\PlaceCoordinateBackfill;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
 use App\Support\NationwideCoordinates;
@@ -22,7 +23,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
-        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver,
+        private readonly PlaceCoordinateBackfill $coordinateBackfill = new PlaceCoordinateBackfill,
     ) {
         parent::__construct();
     }
@@ -186,9 +187,9 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
 
         /** @var Venue $venue */
         $venue = parent::create($properties);
+        $this->queueCoordinateLookup($venue);
         $venue->syncCanalAssignments($canalIds, true, $ownerCanalId ?: null);
 
-        $this->backfillCoordinates($venue);
         $this->syncVenueFiles($venue, $filePayload);
 
         return $venue->fresh(['files', 'canals']);
@@ -212,6 +213,7 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         }
 
         $venue->update($properties);
+        $this->queueCoordinateLookup($venue);
 
         // Formulár posiela len správcu: mení sa vlastníctvo, väzby „používa"
         // (kanály, ktorých podujatia sa tu konajú) ostávajú nedotknuté.
@@ -226,7 +228,6 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             $venue->syncCanalAssignments($canalIds, false, $ownerCanalId);
         }
 
-        $this->backfillCoordinates($venue);
         $this->syncVenueFiles($venue, $filePayload);
 
         return $venue->fresh(['files', 'canals']);
@@ -357,7 +358,8 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
             ->each(function (Venue $venue) use (&$summary, $onEach) {
                 $summary['processed']++;
 
-                $this->backfillCoordinates($venue);
+                // Hromadný príkaz beží v konzole — tu sa na geokóder čakať smie.
+                $this->coordinateBackfill->backfill($venue);
 
                 $updated = ! NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude);
                 $summary[$updated ? 'updated' : 'skipped']++;
@@ -371,56 +373,15 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     }
 
     /**
-     * Ak mistu chybaju GPS suradnice, skus ich automaticky doplnit rebrikom
-     * zdrojov (budova -> adresa -> AI -> stred obce), aby sa na detaile a v
-     * evente zobrazila mapa. Chyba geokodovania nie je fatalna.
+     * Chýbajúcu polohu doplní fronta (BackfillPlaceCoordinates) — rebrík
+     * zdrojov (adresa -> budova -> AI -> stred obce) čaká na Nominatim aj AI
+     * a uloženie formulára naň čakať nemá.
      */
-    private function backfillCoordinates(Venue $venue): void
+    private function queueCoordinateLookup(Venue $venue): void
     {
-        // Model sa bez súradníc neuloží (AlwaysHasCoordinates), takže prázdne
-        // tu už nebývajú — chýbajúcu polohu zastupuje stred Slovenska.
-        if (! NationwideCoordinates::needsLookup($venue->latitude, $venue->longitude)
-            || (int) $venue->village_id === Municipality::nationwideId()) {
-            return;
+        if ($this->coordinateBackfill->shouldLookupAfterSave($venue)) {
+            BackfillPlaceCoordinates::dispatch($venue::class, (int) $venue->getKey());
         }
-
-        $coords = $this->coordinateResolver->resolve(
-            $venue->name,
-            $this->resolveMunicipalityName($venue->village_id),
-            $venue->country,
-            $venue->street,
-            $venue->postcode,
-        );
-
-        if ($coords['latitude'] === null || $coords['longitude'] === null) {
-            return;
-        }
-
-        $venue->forceFill([
-            'latitude' => $coords['latitude'],
-            'longitude' => $coords['longitude'],
-            // Bez zdroja by sa priblizna poloha (stred obce) navonok nelisila
-            // od presnej a nikto by uz nevedel, ktore miesta treba upresnit.
-            'coordinates_source' => $coords['source'],
-        ])->save();
-    }
-
-    private function resolveMunicipalityName(mixed $villageId): ?string
-    {
-        if ($villageId === null || $villageId === '') {
-            return null;
-        }
-
-        $municipality = Municipality::query()->find($villageId, ['shortname', 'fullname']);
-
-        $name = trim((string) ($municipality?->shortname ?? ''));
-        if ($name !== '') {
-            return $name;
-        }
-
-        $fullname = trim((string) ($municipality?->fullname ?? ''));
-
-        return $fullname !== '' ? $fullname : null;
     }
 
     private function syncVenueFiles(Venue $venue, array $filePayload): void

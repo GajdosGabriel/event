@@ -5,8 +5,8 @@ namespace App\Repositories\Eloquent;
 use App\Enums\CanalRole;
 use App\Enums\FileType;
 use App\Enums\ModelStatus;
+use App\Jobs\BackfillPlaceCoordinates;
 use App\Models\Canal;
-use App\Models\Municipality;
 use App\Models\User;
 use App\Repositories\AbstractRepository;
 use App\Repositories\Contracts\CanalRepository;
@@ -14,10 +14,9 @@ use App\Services\Canals\CanalAuditor;
 use App\Services\Canals\CanalContactVerifier;
 use App\Services\Canals\CanalEmails;
 use App\Services\Files\FileManager;
-use App\Services\Geocoding\PlaceCoordinateResolver;
+use App\Services\Geocoding\PlaceCoordinateBackfill;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
-use App\Support\NationwideCoordinates;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -29,7 +28,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
     public function __construct(
         private readonly FileManager $fileManager,
         private readonly MunicipalityOverviewQuery $municipalityOverviewQuery,
-        private readonly PlaceCoordinateResolver $coordinateResolver = new PlaceCoordinateResolver,
+        private readonly PlaceCoordinateBackfill $coordinateBackfill = new PlaceCoordinateBackfill,
     ) {
         parent::__construct();
     }
@@ -153,6 +152,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         $additionalEmails = $this->extractAdditionalEmails($properties);
 
         $canal = $this->model()->create($properties);
+        $this->queueCoordinateLookup($canal);
 
         if ($additionalEmails !== null) {
             app(CanalEmails::class)->sync($canal, $canal->email, $additionalEmails);
@@ -176,7 +176,6 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'canal_created']);
 
-        $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
 
         return $canal->fresh(['files']);
@@ -211,6 +210,7 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         }
 
         $canal->update($properties);
+        $this->queueCoordinateLookup($canal);
 
         if ($requested) {
             app(CanalContactVerifier::class)->requested(
@@ -231,74 +231,20 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
         // — porovnáva adresy sám, primárnu vie zmeniť aj zoznam adries.
         app(CanalContactVerifier::class)->changed($canal, $oldEmail);
 
-        $this->backfillCoordinates($canal);
         $this->syncCanalFiles($canal, $filePayload);
 
         return $canal->fresh(['files']);
     }
 
     /**
-     * Ak kanalu chybaju GPS suradnice, skus ich doplnit cez AI/Nominatim podla
-     * nazvu kanalu a jeho obce, aby sa na detaile zobrazila mapa.
-     * Chyba geokodovania nie je fatalna.
+     * Chýbajúcu polohu doplní fronta (BackfillPlaceCoordinates). Geokóder
+     * čaká na Nominatim aj AI — uloženie kanála naň na produkcii čakalo 32 s.
      */
-    private function backfillCoordinates(Canal $canal): void
+    private function queueCoordinateLookup(Canal $canal): void
     {
-        // Zástupný stred Slovenska je chýbajúca poloha (AlwaysHasCoordinates);
-        // kanálu zo zberného „Celé Slovensko" však patrí právom.
-        if (! NationwideCoordinates::needsLookup($canal->latitude, $canal->longitude)
-            || (int) $canal->municipality_id === Municipality::nationwideId()) {
-            return;
+        if ($this->coordinateBackfill->shouldLookupAfterSave($canal)) {
+            BackfillPlaceCoordinates::dispatch($canal::class, (int) $canal->getKey());
         }
-
-        $city = $this->resolveMunicipalityName($canal->municipality_id);
-        $country = trim((string) $canal->country) !== '' ? $canal->country : 'Slovensko';
-
-        // Rozpisana adresa ma prednost pred holym nazvom kanalu — odkedy ju
-        // editor zbiera, je to najpresnejsi vstup, aky geokoder dostane.
-        $coords = $this->coordinateResolver->resolve(
-            $canal->name,
-            $city,
-            $country,
-            $canal->street,
-            $canal->postcode,
-        );
-
-        // Kanal je casto organizator (nie fyzicke miesto) - ak sa podla nazvu nic
-        // nenajde, pouzi aspon stred obce, aby sa mapa dala zobrazit.
-        if (($coords['latitude'] === null || $coords['longitude'] === null) && $city !== null) {
-            $coords = $this->coordinateResolver->resolve(null, $city, $country);
-        }
-
-        if ($coords['latitude'] === null || $coords['longitude'] === null) {
-            return;
-        }
-
-        $canal->forceFill([
-            'latitude' => $coords['latitude'],
-            'longitude' => $coords['longitude'],
-            // Bez zdroja by sa priblizna poloha (stred obce) navonok nelisila
-            // od presnej — rovnako to drzi EloquentVenueRepository.
-            'coordinates_source' => $coords['source'],
-        ])->save();
-    }
-
-    private function resolveMunicipalityName(mixed $municipalityId): ?string
-    {
-        if ($municipalityId === null || $municipalityId === '') {
-            return null;
-        }
-
-        $municipality = Municipality::query()->find($municipalityId, ['shortname', 'fullname']);
-
-        $name = trim((string) ($municipality?->shortname ?? ''));
-        if ($name !== '') {
-            return $name;
-        }
-
-        $fullname = trim((string) ($municipality?->fullname ?? ''));
-
-        return $fullname !== '' ? $fullname : null;
     }
 
     /**
