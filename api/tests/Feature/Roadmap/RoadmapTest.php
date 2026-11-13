@@ -98,17 +98,47 @@ class RoadmapTest extends EventSetupTest
         $this->getJson('/api/dashboard/next-actions')->assertOk()->assertJsonCount(0, 'data.upcoming');
     }
 
-    public function test_unsupported_file_dependency_blocks_merge_without_losing_any_data(): void
+    public function test_merge_moves_files_to_target_and_keeps_its_primary_picture(): void
+    {
+        $source = Venue::factory()->create(['status' => 'published']);
+        $target = Venue::factory()->create(['status' => 'published']);
+        $target->canals()->detach();
+        foreach ($source->canals()->get() as $canal) {
+            $target->canals()->attach($canal->id, ['is_owner' => $canal->pivot->is_owner, 'status' => $canal->pivot->status]);
+        }
+        $file = fn (int $id, string $path, bool $primary, int $order, string $sum) => DB::table('files')->insertGetId([
+            'fileable_type' => Venue::class, 'fileable_id' => $id, 'original_name' => $path, 'size' => 1,
+            'mime_type' => 'image/jpeg', 'path' => $path, 'type' => 'image', 'is_primary' => $primary,
+            'sort_order' => $order, 'checksum' => $sum,
+        ]);
+        $targetMain = $file($target->id, 'target.jpg', true, 0, 'a');
+        $sourceMain = $file($source->id, 'source.jpg', true, 0, 'b');
+        $sourceSecond = $file($source->id, 'second.jpg', false, 1, 'c');
+        $duplicate = $file($source->id, 'same-as-target.jpg', false, 2, 'a');
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        $this->postJson('/api/admin/venues/'.$source->id.'/merge', ['target_id' => $target->id])->assertOk();
+        $this->assertSoftDeleted('venues', ['id' => $source->id]);
+        $this->assertDatabaseHas('files', ['id' => $targetMain, 'fileable_id' => $target->id, 'is_primary' => true]);
+        $this->assertDatabaseHas('files', ['id' => $sourceMain, 'fileable_id' => $target->id, 'is_primary' => false, 'path' => 'source.jpg']);
+        $this->assertDatabaseHas('files', ['id' => $sourceSecond, 'fileable_id' => $target->id, 'is_primary' => false]);
+        // The target already has the same picture: the copy stays with the soft-deleted source.
+        $this->assertDatabaseHas('files', ['id' => $duplicate, 'fileable_id' => $source->id]);
+        $this->assertSame(1, DB::table('files')->where('fileable_type', Venue::class)->where('fileable_id', $target->id)->where('is_primary', true)->count());
+        $log = SystemLog::where('event', 'resource.merged')->where('subject_id', $target->id)->firstOrFail();
+        $this->assertEqualsCanonicalizing([$sourceMain, $sourceSecond], $log->context['transferred']['files']);
+    }
+
+    public function test_merge_promotes_source_picture_when_target_has_none(): void
     {
         $source = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'personal']);
         $target = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'personal']);
-        DB::table('files')->insert(['fileable_type' => Canal::class, 'fileable_id' => $source->id,
-            'original_name' => 'keep.txt', 'size' => 1, 'mime_type' => 'text/plain', 'path' => 'keep.txt']);
+        $id = DB::table('files')->insertGetId(['fileable_type' => Canal::class, 'fileable_id' => $source->id,
+            'original_name' => 'keep.jpg', 'size' => 1, 'mime_type' => 'image/jpeg', 'path' => 'keep.jpg',
+            'type' => 'image', 'is_primary' => true]);
         $this->actingAs($this->userSuperAdmin, 'sanctum');
-        $this->postJson('/api/admin/canals/'.$source->id.'/merge', ['target_id' => $target->id])->assertUnprocessable();
-        $this->assertNotSoftDeleted('canals', ['id' => $source->id]);
-        $this->assertDatabaseHas('files', ['fileable_id' => $source->id, 'path' => 'keep.txt']);
-        $this->assertDatabaseMissing('system_logs', ['event' => 'resource.merged', 'subject_id' => $target->id]);
+        $this->postJson('/api/admin/canals/'.$source->id.'/merge', ['target_id' => $target->id])->assertOk();
+        $this->assertSoftDeleted('canals', ['id' => $source->id, 'merged_into_id' => $target->id]);
+        $this->assertDatabaseHas('files', ['id' => $id, 'fileable_id' => $target->id, 'is_primary' => true, 'path' => 'keep.jpg']);
     }
 
     public function test_canal_merge_keeps_history_with_source_and_drops_address_search_state(): void

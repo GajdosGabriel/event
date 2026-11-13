@@ -62,7 +62,8 @@ class ResourceMerger
                         continue;
                     }
                     $idColumn = substr($column, 0, -5).'_id';
-                    if (in_array($name, self::HISTORY, true) || ! in_array($idColumn, $columns, true)) {
+                    // Files are moved to the target below (moveFiles).
+                    if ($name === 'files' || in_array($name, self::HISTORY, true) || ! in_array($idColumn, $columns, true)) {
                         continue;
                     }
                     if (DB::table($name)->whereIn($column, [$class, $source->getMorphClass()])
@@ -82,6 +83,7 @@ class ResourceMerger
             DB::table('canal_venue')->where($key, $sourceId)->delete();
             $moved['events'] = DB::table('events')->where($key, $sourceId)->lockForUpdate()->pluck('id')->all();
             DB::table('events')->where($key, $sourceId)->update([$key => $targetId, 'updated_at' => now()]);
+            $moved['files'] = $this->moveFiles([$class, $source->getMorphClass()], $sourceId, $targetId);
             if ($class === Canal::class) {
                 $moved['users'] = DB::table('users')->where('canal_id', $sourceId)->lockForUpdate()->pluck('id')->all();
                 DB::table('users')->where('canal_id', $sourceId)->update(['canal_id' => $targetId]);
@@ -152,6 +154,42 @@ class ResourceMerger
             }
             DB::table('canal_venue')->insert([...(array) $link, 'venue_id' => $targetId, 'is_owner' => $owner]);
         }
+    }
+
+    /**
+     * Pictures and attachments of the source continue on the target; only the database
+     * reference changes, the stored objects stay where they are. The target keeps its
+     * own primary picture and order — moved files are appended after them. A file the
+     * target already has (same checksum) stays with the soft-deleted source.
+     *
+     * @param  array<int, string>  $types
+     * @return array<int, int>
+     */
+    private function moveFiles(array $types, int $sourceId, int $targetId): array
+    {
+        $own = DB::table('files')->whereIn('fileable_type', $types)->where('fileable_id', $targetId)->lockForUpdate()->get();
+        $checksums = $own->pluck('checksum')->filter()->all();
+        $order = (int) $own->max('sort_order');
+        $moved = [];
+        $files = DB::table('files')->whereIn('fileable_type', $types)->where('fileable_id', $sourceId)
+            ->orderBy('sort_order')->orderBy('id')->lockForUpdate()->get();
+        foreach ($files as $file) {
+            if ($file->checksum !== null && in_array($file->checksum, $checksums, true)) {
+                continue;
+            }
+            // One primary per type among the target's live files.
+            $hasPrimary = $own->contains(fn ($f) => $f->type === $file->type && $f->is_primary && $f->deleted_at === null);
+            $primary = (bool) $file->is_primary && $file->deleted_at === null && ! $hasPrimary;
+            DB::table('files')->where('id', $file->id)->update([
+                'fileable_id' => $targetId, 'is_primary' => $primary, 'sort_order' => ++$order, 'updated_at' => now(),
+            ]);
+            $file->is_primary = $primary;
+            $own->push($file);
+            $checksums[] = $file->checksum;
+            $moved[] = $file->id;
+        }
+
+        return $moved;
     }
 
     private function sameLinks(string $table, string $key, int $source, int $target, array $fields): void
