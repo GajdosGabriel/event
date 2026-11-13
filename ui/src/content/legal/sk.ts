@@ -14,9 +14,9 @@ const sk: LegalDocuments = {
       {
         heading: 'Čl. 1 — Prevádzkovateľ',
         paragraphs: [
-          '1.1 Prevádzkovateľom portálu {site} (ďalej len „Portál“) je {name}, so sídlom {address}, IČO: {ico}, {dic}, {registration} (ďalej len „Prevádzkovateľ“).',
-          '1.2 Kontaktné údaje: e-mail {email}, telefón {phone}.',
-          '1.3 Orgánom dozoru je Slovenská obchodná inšpekcia — {soi}.',
+          '1.1 Portál {site} (ďalej len „Portál“) prevádzkujú dobrovoľníci ako nekomerčnú a bezodplatnú dobrovoľnícku činnosť (ďalej len „Prevádzkovateľ“). Prevádzkovateľ nie je podnikateľom a za služby Portálu si od Používateľov neúčtuje žiadnu odplatu.',
+          '1.2 Kontaktné údaje: e-mail {email}.',
+          '1.3 Predávajúcim vstupeniek a usporiadateľom podujatí je vždy príslušný Organizátor (čl. 5), nie Prevádzkovateľ.',
         ],
       },
       {
@@ -101,7 +101,7 @@ const sk: LegalDocuments = {
         heading: 'Čl. 10 — Alternatívne riešenie sporov',
         paragraphs: [
           '10.1 Spotrebiteľ, ktorý nie je spokojný so spôsobom vybavenia reklamácie alebo sa domnieva, že Prevádzkovateľ porušil jeho práva, môže požiadať o nápravu na {email}.',
-          '10.2 Ak Prevádzkovateľ na žiadosť odpovie zamietavo alebo na ňu neodpovie do 30 dní, spotrebiteľ má právo podať návrh na začatie alternatívneho riešenia sporu podľa zákona č. 391/2015 Z. z. o alternatívnom riešení spotrebiteľských sporov.',
+          '10.2 Spory zo zmluvy o účasti na podujatí rieši Návštevník s Organizátorom. Ak je Organizátor podnikateľom a na žiadosť o nápravu odpovie zamietavo alebo na ňu neodpovie do 30 dní, spotrebiteľ má voči nemu právo podať návrh na začatie alternatívneho riešenia sporu podľa zákona č. 391/2015 Z. z. o alternatívnom riešení spotrebiteľských sporov.',
           '10.3 Príslušným subjektom je Slovenská obchodná inšpekcia (Ústredný inšpektorát SOI, Bajkalská 21/A, 827 99 Bratislava, www.soi.sk) alebo iná oprávnená právnická osoba zapísaná v zozname subjektov alternatívneho riešenia sporov, ktorý vedie Ministerstvo hospodárstva SR. Spotrebiteľ si môže vybrať, na ktorý z nich sa obráti.',
           '10.4 Alternatívne riešenie sporu je pre spotrebiteľa bezplatné alebo spoplatnené sumou najviac 5 eur. Právo obrátiť sa na súd tým nie je dotknuté.',
         ],
@@ -130,8 +130,8 @@ const sk: LegalDocuments = {
       {
         heading: '1. Kto údaje spracúva',
         paragraphs: [
-          'Prevádzkovateľom v zmysle GDPR je {name}, so sídlom {address}, IČO: {ico}, {registration}.',
-          'Vo veciach ochrany osobných údajov nás kontaktujte na {email} alebo písomne na adrese sídla.',
+          'Prevádzkovateľom v zmysle GDPR sú dobrovoľníci, ktorí portál {site} prevádzkujú ako nekomerčnú dobrovoľnícku činnosť.',
+          'Vo veciach ochrany osobných údajov nás kontaktujte na {email}.',
         ],
       },
       {

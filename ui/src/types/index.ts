@@ -775,7 +775,9 @@ export interface AdmissionItem {
   isCheckedIn: boolean
   checkedInAt: string | null
   /** Kto vstupenku označil pri dverách — meno pribudlo kvôli check-inu na viacerých zariadeniach. */
-  checkedInBy?: { id: number; name?: string } | null
+  checkedInBy?: { id: number | null; name?: string | null } | null
+  /** Pustil dobrovoľník cez odkaz na skener (bez účtu) — jeho pomenovanie. */
+  checkedInLink?: { id: number; label: string | null } | null
   qrUrl: string
   ticketType?: { id: number; name: string; kind?: 'ticket' | 'workshop'; startsAt?: string | null } | null
   holderName?: string | null

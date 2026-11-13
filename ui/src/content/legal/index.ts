@@ -20,29 +20,19 @@ import en from './en'
  * tá hodnota sa ukladá ku každému súhlasu, takže po zmene textu treba
  * zvýšiť obe naraz, inak sa staré súhlasy tvária ako nové.
  */
-export const LEGAL_VERSION = '2026-08-14'
+export const LEGAL_VERSION = '2026-11-13'
 
 /** Deň, od ktorého je aktuálne znenie účinné. */
-export const LEGAL_EFFECTIVE_FROM = '14. 8. 2026'
+export const LEGAL_EFFECTIVE_FROM = '13. 11. 2026'
 
 /**
- * Identifikačné údaje prevádzkovateľa. Zákon o ochrane spotrebiteľa aj GDPR
- * vyžadujú, aby ich spotrebiteľ našiel pred uzavretím zmluvy — dokumenty sa
- * bez nich nedajú považovať za úplné.
- *
- * DOPLNIŤ pred spustením do prevádzky.
+ * Údaje prevádzkovateľa dosádzané do textov. Portál prevádzkujú dobrovoľníci
+ * ako nekomerčnú činnosť, preto tu nie je obchodné meno, sídlo ani IČO
+ * (čl. 1 podmienok). Predávajúcim vstupeniek je vždy organizátor podujatia.
  */
 export const operator = {
   site: 'Tixio',
-  name: '[DOPLNIŤ: obchodné meno prevádzkovateľa]',
-  address: '[DOPLNIŤ: sídlo — ulica, PSČ, obec]',
-  ico: '[DOPLNIŤ: IČO]',
-  dic: '[DOPLNIŤ: DIČ / IČ DPH alebo „neplatiteľ DPH“]',
-  registration: '[DOPLNIŤ: zápis v OR SR, oddiel a vložka / číslo živnostenského registra]',
-  email: '[DOPLNIŤ: kontaktný e-mail]',
-  phone: '[DOPLNIŤ: telefón]',
-  /** Miestne príslušný inšpektorát SOI podľa sídla prevádzkovateľa. */
-  soi: '[DOPLNIŤ: Inšpektorát SOI pre … kraj, adresa]',
+  email: 'contact@tixio.eu',
 } as const
 
 export type { LegalSection, LegalDocument, LegalDocuments, LegalKind }

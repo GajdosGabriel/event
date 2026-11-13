@@ -11,9 +11,9 @@ const de: LegalDocuments = {
       {
         heading: 'Art. 1 — Betreiber',
         paragraphs: [
-          '1.1 Betreiber des Portals {site} (nachfolgend „Portal“) ist {name}, Sitz {address}, Ident.-Nr. (IČO): {ico}, {dic}, {registration} (nachfolgend „Betreiber“).',
-          '1.2 Kontakt: E-Mail {email}, Telefon {phone}.',
-          '1.3 Aufsichtsbehörde ist die Slowakische Handelsinspektion (Slovenská obchodná inšpekcia) — {soi}.',
+          '1.1 Das Portal {site} (nachfolgend „Portal“) wird von Freiwilligen als nichtkommerzielle, unentgeltliche ehrenamtliche Tätigkeit betrieben (nachfolgend „Betreiber“). Der Betreiber ist kein Unternehmer und verlangt von den Nutzern für die Dienste des Portals kein Entgelt.',
+          '1.2 Kontakt: E-Mail {email}.',
+          '1.3 Verkäufer der Tickets und Ausrichter der Veranstaltungen ist stets der jeweilige Veranstalter (Art. 5), nicht der Betreiber.',
         ],
       },
       {
@@ -98,7 +98,7 @@ const de: LegalDocuments = {
         heading: 'Art. 10 — Alternative Streitbeilegung',
         paragraphs: [
           '10.1 Ein Verbraucher, der mit der Erledigung seiner Reklamation nicht zufrieden ist oder der Ansicht ist, der Betreiber habe seine Rechte verletzt, kann unter {email} Abhilfe verlangen.',
-          '10.2 Antwortet der Betreiber ablehnend oder innerhalb von 30 Tagen gar nicht, hat der Verbraucher das Recht, einen Antrag auf alternative Streitbeilegung nach dem Gesetz Nr. 391/2015 Slg. über die alternative Beilegung von Verbraucherstreitigkeiten zu stellen.',
+          '10.2 Streitigkeiten aus dem Vertrag über die Teilnahme an einer Veranstaltung klärt der Besucher mit dem Veranstalter. Ist der Veranstalter Unternehmer und antwortet er auf ein Abhilfeersuchen ablehnend oder innerhalb von 30 Tagen gar nicht, hat der Verbraucher ihm gegenüber das Recht, einen Antrag auf alternative Streitbeilegung nach dem Gesetz Nr. 391/2015 Slg. über die alternative Beilegung von Verbraucherstreitigkeiten zu stellen.',
           '10.3 Zuständige Stelle ist die Slowakische Handelsinspektion (Ústredný inšpektorát SOI, Bajkalská 21/A, 827 99 Bratislava, www.soi.sk) oder eine andere befugte juristische Person, die in der vom Wirtschaftsministerium der Slowakischen Republik geführten Liste der Stellen zur alternativen Streitbeilegung eingetragen ist. Der Verbraucher kann wählen, an wen er sich wendet.',
           '10.4 Die alternative Streitbeilegung ist für den Verbraucher unentgeltlich oder mit höchstens 5 Euro bepreist. Das Recht, ein Gericht anzurufen, bleibt unberührt.',
         ],
@@ -127,8 +127,8 @@ const de: LegalDocuments = {
       {
         heading: '1. Wer die Daten verarbeitet',
         paragraphs: [
-          'Verantwortlicher im Sinne der DSGVO ist {name}, Sitz {address}, Ident.-Nr. (IČO): {ico}, {registration}.',
-          'In Datenschutzangelegenheiten erreichen Sie uns unter {email} oder schriftlich an der Anschrift des Sitzes.',
+          'Verantwortliche im Sinne der DSGVO sind die Freiwilligen, die das Portal {site} als nichtkommerzielle ehrenamtliche Tätigkeit betreiben.',
+          'In Datenschutzangelegenheiten erreichen Sie uns unter {email}.',
         ],
       },
       {

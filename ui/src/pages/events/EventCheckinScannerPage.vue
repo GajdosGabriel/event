@@ -1,17 +1,25 @@
 <template>
   <div class="mx-auto my-5 w-full max-w-[1320px] px-4">
-    <EventTicketsTabs :event-id="eventId" />
+    <EventTicketsTabs v-if="!linkToken" :event-id="eventId" />
 
     <div class="mb-4">
       <h1 class="text-2xl font-semibold text-slate-900">{{ eventName || t('checkin.title') }}</h1>
-      <p v-if="eventName" class="text-sm text-slate-500">{{ t('checkin.title') }}</p>
+      <p v-if="eventName" class="text-sm text-slate-500">
+        {{ t('checkin.title') }}<template v-if="linkLabel"> · {{ linkLabel }}</template>
+      </p>
     </div>
+
+    <!-- Odkaz pre dobrovoľníkov už neplatí (zrušený, po termíne, preklep). -->
+    <section v-if="linkError" class="mx-auto max-w-[28rem] rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+      <p class="font-semibold text-slate-800">{{ t('checkin.volunteer.invalidTitle') }}</p>
+      <p class="mt-2 text-sm text-slate-600">{{ t('checkin.volunteer.invalidLead') }}</p>
+    </section>
 
     <!-- Rovnaké rozloženie ako zoznam prihlásených: obsah vľavo, panel vpravo.
          Úzky ostáva len samotný skener (mieri na mobil) — stropom je karta, nie
          stĺpec, inak by sa obraz z kamery roztiahol cez pol obrazovky. -->
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div class="min-w-0 max-w-[28rem]">
+    <div v-else class="grid gap-4" :class="{ 'lg:grid-cols-[minmax(0,1fr)_20rem]': !linkToken }">
+      <div class="min-w-0 max-w-[28rem]" :class="{ 'mx-auto w-full': linkToken }">
         <p v-if="typesLoading" class="text-slate-500">{{ t('common.loading') }}</p>
 
         <!-- Bez typu lístka nevznikne žiadna vstupenka, takže niet čo skenovať —
@@ -19,7 +27,7 @@
         <section v-else-if="!hasTypes" class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
           <p class="font-semibold text-slate-800">{{ t('checkin.noTypesTitle') }}</p>
           <p class="mt-2 text-sm text-slate-600">{{ t('checkin.noTypesLead') }}</p>
-          <RouterLink :to="{ name: 'dashboard-events-tickets-create', params: { id: eventId } }" class="btn btn-primary mt-4">
+          <RouterLink v-if="!linkToken" :to="{ name: 'dashboard-events-tickets-create', params: { id: eventId } }" class="btn btn-primary mt-4">
             {{ t('checkin.noTypesCta') }}
           </RouterLink>
         </section>
@@ -84,7 +92,8 @@
       <!-- Panel drží to, čo sa rieši práve pri príchode ľudí: kto smie skenovať
            (rola v tíme kanála). Doplnkové nastavenia podujatia sú pri zozname
            účastníkov, ktorých sa týkajú. -->
-      <aside class="grid gap-3 self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+      <aside v-if="!linkToken" class="grid gap-3 self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+        <CheckinLinksPanel :event-id="eventId" />
         <template v-if="canal">
           <p class="text-xs text-slate-500">{{ t('checkin.whoCanScan') }}</p>
           <CanalTeamPanel
@@ -104,19 +113,39 @@ import { useRoute } from 'vue-router'
 import QrScanner from 'qr-scanner'
 import QrScannerWorkerPath from 'qr-scanner/qr-scanner-worker.min.js?url'
 import { checkinTicket, checkinStats } from '@/api/tickets'
+import { checkinLinkStats, openCheckinLink, scanViaLink } from '@/api/checkinLinks'
 import { enqueue, pending, remove, isSupported as queueSupported } from '@/utils/checkinQueue'
 import { showEvent } from '@/api/events'
 import { indexTicketTypes } from '@/api/ticketTypes'
 import { currentLocale, t } from '@/i18n'
 import { formatPrice } from '@/utils/money'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
+import CheckinLinksPanel from '@/components/CheckinLinksPanel.vue'
 import EventTicketsTabs from '@/components/EventTicketsTabs.vue'
 import type { CheckinStats, TicketCheckinResult } from '@/types'
+
+/**
+ * `linkToken` = skener pre dobrovoľníkov (`/vstup/{token}`), bez účtu. Skenuje
+ * sa rovnako, vrátane offline fronty — len API ide cez token odkazu a chýba
+ * všetko, čo patrí organizátorovi (karty podujatia, tím, správa odkazov).
+ */
+const props = defineProps<{ linkToken?: string }>()
 
 QrScanner.WORKER_PATH = QrScannerWorkerPath
 
 const route = useRoute()
-const eventId = Number(route.params.id)
+// Pri odkaze sa id podujatia dozvieme až zo servera — potrebuje ho fronta skenov.
+const eventId = ref(Number(route.params.id) || 0)
+const linkLabel = ref<string | null>(null)
+const linkError = ref(false)
+
+function sendScan(token: string, scannedAt?: string): Promise<TicketCheckinResult> {
+  return props.linkToken ? scanViaLink(props.linkToken, token, scannedAt) : checkinTicket(token, scannedAt)
+}
+
+function fetchStats(): Promise<CheckinStats> {
+  return props.linkToken ? checkinLinkStats(props.linkToken) : checkinStats(eventId.value)
+}
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 const cameraError = ref<string | null>(null)
@@ -143,7 +172,7 @@ let flushing = false
 
 async function refreshQueue() {
   if (!queueSupported()) return
-  queued.value = (await pending(eventId)).length
+  queued.value = (await pending(eventId.value)).length
 }
 
 /**
@@ -156,9 +185,9 @@ async function flushQueue() {
 
   flushing = true
   try {
-    for (const scan of await pending(eventId)) {
+    for (const scan of await pending(eventId.value)) {
       try {
-        await checkinTicket(scan.token, scan.scannedAt)
+        await sendScan(scan.token, scan.scannedAt)
         await remove(scan.id)
       } catch {
         // Spojenie je späť len napoly — zvyšok fronty počká na ďalší pokus.
@@ -218,7 +247,7 @@ function extractToken(scanned: string): string {
 
 async function loadStats() {
   try {
-    stats.value = await checkinStats(eventId)
+    stats.value = await fetchStats()
   } catch {
     // ignore
   }
@@ -233,7 +262,7 @@ async function handleToken(token: string) {
       return
     }
 
-    result.value = await checkinTicket(token)
+    result.value = await sendScan(token)
     if (result.value.status === 'checked_in') await loadStats()
   } catch (e: unknown) {
     // Bez odpovede servera nevieme, či bola vstupenka platná — a hádať pri
@@ -255,7 +284,7 @@ async function handleToken(token: string) {
 
 /** Zaradí sken do fronty a povie to obsluhe — s vlastným, nie chybovým stavom. */
 async function queueScan(token: string) {
-  await enqueue(eventId, token)
+  await enqueue(eventId.value, token)
   await refreshQueue()
   result.value = { status: 'queued', reason: null, admission: null }
 }
@@ -290,6 +319,7 @@ const resultTitle = computed(() => {
       // Meno obsluhy je tu to podstatné: pri dvoch zariadeniach na dverách
       // hovorí „pustil ho kolega", nie „niekto to skúša druhýkrát".
       const by = admission?.checkedInBy?.name
+        || (admission?.checkedInLink ? admission.checkedInLink.label || t('checkin.volunteer.someone') : null)
 
       if (time && by) return t('checkin.usedAtBy', { time, name: by })
       if (time) return t('checkin.usedAt', { time })
@@ -314,24 +344,42 @@ onMounted(async () => {
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
 
+  if (props.linkToken) {
+    try {
+      const session = await openCheckinLink(props.linkToken)
+      eventId.value = session.event.id
+      eventName.value = session.event.name
+      linkLabel.value = session.label
+      hasTypes.value = session.hasTypes
+      stats.value = session.stats
+    } catch {
+      linkError.value = true
+      return
+    } finally {
+      typesLoading.value = false
+    }
+  } else {
+    showEvent('dashboard', eventId.value)
+      .then((e) => {
+        eventName.value = e.name
+        if (e.canalId) canal.value = { id: e.canalId, name: e.canalName }
+      })
+      .catch(() => {})
+
+    try {
+      hasTypes.value = (await indexTicketTypes(eventId.value)).length > 0
+    } catch {
+      // Keď sa zoznam nepodarí načítať, radšej ponúkneme skener než prázdny stav.
+      hasTypes.value = true
+    } finally {
+      typesLoading.value = false
+    }
+  }
+
   // Fronta mohla ostať z minulého behu — zavretá karta, vybitý telefón.
+  // Až teraz: pri odkaze sa id podujatia (kľúč fronty) práve dozvedelo.
   refreshQueue().then(flushQueue)
 
-  showEvent('dashboard', eventId)
-    .then((e) => {
-      eventName.value = e.name
-      if (e.canalId) canal.value = { id: e.canalId, name: e.canalName }
-    })
-    .catch(() => {})
-
-  try {
-    hasTypes.value = (await indexTicketTypes(eventId)).length > 0
-  } catch {
-    // Keď sa zoznam nepodarí načítať, radšej ponúkneme skener než prázdny stav.
-    hasTypes.value = true
-  } finally {
-    typesLoading.value = false
-  }
   if (!hasTypes.value) return
 
   loadStats()

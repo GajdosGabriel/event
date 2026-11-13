@@ -26,6 +26,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Dashboard\DashboardAttendeeController;
 use App\Http\Controllers\Dashboard\DashboardCanalController;
 use App\Http\Controllers\Dashboard\DashboardCanalTeamController;
+use App\Http\Controllers\Dashboard\DashboardCheckinLinkController;
 use App\Http\Controllers\Dashboard\DashboardEventController;
 use App\Http\Controllers\Dashboard\DashboardEventQuestionController;
 use App\Http\Controllers\Dashboard\DashboardFileController;
@@ -51,6 +52,7 @@ use App\Http\Controllers\Public\BrokenLinkReportController;
 use App\Http\Controllers\Public\CanalClaimController as PublicCanalClaimController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\CheckinLinkController as PublicCheckinLinkController;
 use App\Http\Controllers\Public\EmailUnsubscribeController as PublicEmailUnsubscribeController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
@@ -289,6 +291,19 @@ Route::get('q/{token}/qr.png', [PublicQuestionSlideController::class, 'qr'])
 Route::get('q/{token}/slide.pptx', [PublicQuestionSlideController::class, 'pptx'])
     ->name('public.questions.slide.pptx')
     ->middleware('throttle:render');
+
+// Skener pre dobrovoľníkov pri vchode (CheckinLink). Token v adrese je
+// autorizácia, rovnako ako pri `/q/{token}` vyššie. Limit sken pokryje aj
+// rýchly rad pri dverách a prehratie offline fronty, hádanie tokenov nie.
+Route::get('checkin/{token}', [PublicCheckinLinkController::class, 'show'])
+    ->name('public.checkin.show')
+    ->middleware('throttle:60,1');
+Route::get('checkin/{token}/stats', [PublicCheckinLinkController::class, 'stats'])
+    ->name('public.checkin.stats')
+    ->middleware('throttle:60,1');
+Route::post('checkin/{token}/scan', [PublicCheckinLinkController::class, 'scan'])
+    ->name('public.checkin.scan')
+    ->middleware('throttle:120,1');
 
 // Pozvánka do tímu kanála z e-mailu. Detail je verejný (autorizuje token
 // v odkaze), prijatie vyžaduje prihlásený účet s rovnakou adresou.
@@ -601,6 +616,17 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
     Route::post('events/{event}/tickets/bulk', [DashboardAttendeeController::class, 'bulk'])
         ->name('events.tickets.bulk')
         ->middleware('permission:ticket.update');
+    // Odkazy na skener pre dobrovoľníkov — púšťajú ľudí v mene organizátora,
+    // preto `event.update` (policy to dorieši per podujatie).
+    Route::get('events/{event}/checkin-links', [DashboardCheckinLinkController::class, 'index'])
+        ->name('events.checkin-links.index')
+        ->middleware('permission:event.update');
+    Route::post('events/{event}/checkin-links', [DashboardCheckinLinkController::class, 'store'])
+        ->name('events.checkin-links.store')
+        ->middleware('permission:event.update');
+    Route::delete('events/{event}/checkin-links/{link}', [DashboardCheckinLinkController::class, 'destroy'])
+        ->name('events.checkin-links.destroy')
+        ->middleware('permission:event.update');
     Route::post('tickets/checkin', [DashboardTicketController::class, 'checkin'])
         ->name('tickets.checkin')
         ->middleware('permission:ticket.checkin');

@@ -17,5 +17,5 @@ return [
     |
     */
 
-    'version' => env('LEGAL_VERSION', '2026-08-14'),
+    'version' => env('LEGAL_VERSION', '2026-11-13'),
 ];

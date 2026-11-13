@@ -138,6 +138,15 @@ const router = createRouter({
       ],
     },
 
+    // Skener pre dobrovoľníkov pri vchode — bez účtu a bez navigácie portálu,
+    // aby na mobile pri dverách nič nezavadzalo. Token odkazu je autorizácia.
+    {
+      path: '/vstup/:token',
+      name: 'checkin-volunteer',
+      component: () => import('@/pages/events/EventCheckinScannerPage.vue'),
+      props: (to) => ({ linkToken: String(to.params.token) }),
+    },
+
     // Embed — widget na cudzom webe. Vlastný layout bez hlavičky a pätičky;
     // stránky bežia nad tým istým verejným API ako portál.
     {

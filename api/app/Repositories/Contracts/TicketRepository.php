@@ -26,8 +26,17 @@ interface TicketRepository extends InterfaceRepository
     /** Zrušenie check-inu (omylom naskenované). */
     public function undoCheckIn(int $admissionId, User $staff): array;
 
+    /**
+     * Check-in cez odkaz pre dobrovoľníkov — len vstupenky podujatia, ku
+     * ktorému odkaz patrí. Platnosť odkazu overuje volajúci.
+     */
+    public function checkInViaLink(\App\Models\CheckinLink $link, string $qrToken, ?\Carbon\Carbon $scannedAt = null): array;
+
     /** Štatistika príchodov pre podujatie. */
     public function checkinStats(Event $event): array;
+
+    /** Tá istá štatistika bez autorizácie používateľa — pre odkaz pre dobrovoľníkov. */
+    public function checkinStatsViaLink(\App\Models\CheckinLink $link): array;
 
     /** Prehľad prihlásených pre bočný panel (príchody, objednávky, platby, typy). */
     public function attendeeSummary(Event $event): array;

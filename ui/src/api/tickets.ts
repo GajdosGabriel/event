@@ -15,7 +15,8 @@ import type {
 import { mapAnswers } from './questionnaire'
 
 export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
-  const checkedInBy = raw['checked_in_by'] as { id: number; name?: string } | null
+  const checkedInBy = raw['checked_in_by'] as { id: number | null; name?: string | null } | null
+  const checkedInLink = raw['checked_in_link'] as { id: number; label: string | null } | null
   const rawType = raw['ticket_type'] as Record<string, unknown> | null
   const ticketType: AdmissionItem['ticketType'] = rawType
     ? {
@@ -41,6 +42,7 @@ export function mapAdmission(raw: Record<string, unknown>): AdmissionItem {
     isCheckedIn: Boolean(raw['is_checked_in']),
     checkedInAt: (raw['checked_in_at'] as string) ?? null,
     checkedInBy: checkedInBy ?? null,
+    checkedInLink: checkedInLink ?? null,
     qrUrl: admissionQrImageUrl(raw['uuid'] as string),
     ticketType: ticketType ?? null,
     holderName: (raw['holder_name'] as string) ?? null,
@@ -202,7 +204,7 @@ export async function indexEventTickets(
   }
 }
 
-function mapCheckinResult(data: Record<string, unknown>): TicketCheckinResult {
+export function mapCheckinResult(data: Record<string, unknown>): TicketCheckinResult {
   return {
     status: data['status'] as TicketCheckinResult['status'],
     reason: (data['reason'] as TicketCheckinResult['reason']) ?? null,

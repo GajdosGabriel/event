@@ -11,9 +11,9 @@ const en: LegalDocuments = {
       {
         heading: 'Art. 1 — Operator',
         paragraphs: [
-          '1.1 The {site} portal (the “Portal”) is operated by {name}, registered office {address}, Company ID: {ico}, {dic}, {registration} (the “Operator”).',
-          '1.2 Contact details: e-mail {email}, phone {phone}.',
-          '1.3 The supervisory authority is the Slovak Trade Inspection (Slovenská obchodná inšpekcia) — {soi}.',
+          '1.1 The {site} portal (the “Portal”) is run by volunteers as a non-commercial, unpaid voluntary activity (the “Operator”). The Operator is not a trader and charges Users nothing for the Portal’s services.',
+          '1.2 Contact details: e-mail {email}.',
+          '1.3 The seller of tickets and the organiser of events is always the respective Organiser (Art. 5), not the Operator.',
         ],
       },
       {
@@ -98,7 +98,7 @@ const en: LegalDocuments = {
         heading: 'Art. 10 — Alternative dispute resolution',
         paragraphs: [
           '10.1 A consumer dissatisfied with the way a complaint was handled, or who believes the Operator has infringed their rights, may request redress at {email}.',
-          '10.2 If the Operator rejects the request or fails to reply within 30 days, the consumer has the right to file a proposal to initiate alternative dispute resolution under Act No. 391/2015 Coll. on alternative resolution of consumer disputes.',
+          '10.2 Disputes arising from the contract to attend an event are settled between the Visitor and the Organiser. If the Organiser is a trader and rejects a request for redress or fails to reply within 30 days, the consumer has the right to file a proposal against them to initiate alternative dispute resolution under Act No. 391/2015 Coll. on alternative resolution of consumer disputes.',
           '10.3 The competent body is the Slovak Trade Inspection (Ústredný inšpektorát SOI, Bajkalská 21/A, 827 99 Bratislava, www.soi.sk) or another authorised entity listed in the register of alternative dispute resolution entities maintained by the Ministry of Economy of the Slovak Republic. The consumer may choose which one to approach.',
           '10.4 Alternative dispute resolution is free of charge for the consumer or subject to a fee of no more than EUR 5. The right to bring the matter before a court is not affected.',
         ],
@@ -127,8 +127,8 @@ const en: LegalDocuments = {
       {
         heading: '1. Who processes the data',
         paragraphs: [
-          'The controller within the meaning of the GDPR is {name}, registered office {address}, Company ID: {ico}, {registration}.',
-          'For data protection matters, contact us at {email} or in writing at the registered office address.',
+          'The controllers within the meaning of the GDPR are the volunteers who run the {site} portal as a non-commercial voluntary activity.',
+          'For data protection matters, contact us at {email}.',
         ],
       },
       {

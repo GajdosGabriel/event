@@ -1706,6 +1706,32 @@ const sk = {
   },
   // Skener QR pri vstupe.
   checkin: {
+    // Odkaz na skener pre dobrovoľníkov (CheckinLinksPanel, /vstup/{token}).
+    links: {
+      title: "Odkaz pre dobrovoľníkov",
+      lead: "Pošlite pomocníkom pri vchode odkaz na skener. Nepotrebujú účet ani miesto v tíme; odkaz platí len pre túto akciu a deň po jej skončení.",
+      loadFailed: "Odkazy sa nepodarilo načítať.",
+      unnamed: "Bez názvu",
+      revoke: "Zrušiť",
+      revokeConfirm: "Zrušiť odkaz? Kto ho má, už nebude môcť skenovať.",
+      revokeFailed: "Odkaz sa nepodarilo zrušiť.",
+      validUntil: "platí do {date}",
+      lastUsed: "naposledy {date}",
+      copy: "Kopírovať odkaz",
+      copied: "Skopírované ✓",
+      share: "Poslať…",
+      shareTitle: "Skener vstupeniek",
+      labelPlaceholder: "Názov, napr. Vchod A (nepovinné)",
+      create: "Vytvoriť odkaz",
+      creating: "Vytváram…",
+      createFailed: "Odkaz sa nepodarilo vytvoriť.",
+      privacy: "Cez odkaz sa dajú len overovať vstupenky. Zoznam prihlásených ani ich kontakty dobrovoľník neuvidí.",
+    },
+    volunteer: {
+      invalidTitle: "Odkaz už neplatí",
+      invalidLead: "Organizátor ho zrušil alebo akcia už skončila. Požiadajte ho o nový odkaz.",
+      someone: "dobrovoľník",
+    },
       paymentDue: "Neuhradená objednávka — vybrať {amount}",
       usedAtBy: 'Už použité o {time} — označil(a) {name}',
       offline: 'Bez pripojenia — skeny sa ukladajú',

@@ -133,6 +133,12 @@ final class PublicUrl
         return self::absolute(self::canalPath($canal));
     }
 
+    /** Skener pre dobrovoľníkov pri vchode (CheckinLink) — mimo sitemapy, token je autorizácia. */
+    public static function checkinLink(string $token): string
+    {
+        return self::absolute('/vstup/'.$token);
+    }
+
     public static function forOrganizers(): string
     {
         return self::absolute('/'.self::FOR_ORGANIZERS);

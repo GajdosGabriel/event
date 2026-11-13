@@ -9,6 +9,7 @@ use App\Enums\TicketPaymentStatus;
 use App\Enums\TicketStatus;
 use App\Enums\TicketTypeKind;
 use App\Models\Admission;
+use App\Models\CheckinLink;
 use App\Models\Event;
 use App\Models\Ticket;
 use App\Models\TicketType;
@@ -796,7 +797,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             }
 
             if ($admission->checked_in_at !== null) {
-                return ['status' => 'already_checked_in', 'admission' => $admission->fresh(['checkedInBy', 'ticket', 'ticketType'])];
+                return ['status' => 'already_checked_in', 'admission' => $admission->fresh(['checkedInBy', 'checkedInLink', 'ticket', 'ticketType'])];
             }
 
             $admission->update([
@@ -804,7 +805,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
                 'checked_in_by' => $staff->id,
             ]);
 
-            return ['status' => 'checked_in', 'admission' => $admission->fresh(['checkedInBy', 'ticket', 'ticketType'])];
+            return ['status' => 'checked_in', 'admission' => $admission->fresh(['checkedInBy', 'checkedInLink', 'ticket', 'ticketType'])];
         });
     }
 
@@ -836,7 +837,7 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             }
 
             if ($admission->checked_in_at !== null) {
-                return ['status' => 'already_checked_in', 'admission' => $admission->fresh(['checkedInBy', 'ticket', 'ticketType'])];
+                return ['status' => 'already_checked_in', 'admission' => $admission->fresh(['checkedInBy', 'checkedInLink', 'ticket', 'ticketType'])];
             }
 
             $admission->update([
@@ -864,9 +865,61 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
             $admission->update([
                 'checked_in_at' => null,
                 'checked_in_by' => null,
+                'checked_in_link_id' => null,
             ]);
 
             return ['status' => 'reverted', 'admission' => $admission->fresh(['ticket', 'ticketType'])];
+        });
+    }
+
+    /**
+     * Check-in cez odkaz pre dobrovoľníkov. Pravidlá sú tie isté ako pri
+     * obsluhe (zrušená, náhradník, nepotvrdená, už prišiel), líši sa len
+     * hľadanie — výlučne v podujatí odkazu. Vstupenka iného podujatia je pre
+     * držiteľa odkazu „neplatná"; nesmie sa dozvedieť ani to, že existuje.
+     */
+    public function checkInViaLink(CheckinLink $link, string $qrToken, ?Carbon $scannedAt = null): array
+    {
+        return DB::transaction(function () use ($link, $qrToken, $scannedAt) {
+            $relations = ['checkedInBy', 'checkedInLink', 'ticket', 'ticketType'];
+
+            /** @var Admission|null $admission */
+            $admission = Admission::query()
+                ->where('qr_token', $qrToken)
+                ->where('event_id', $link->event_id)
+                ->lockForUpdate()
+                ->first();
+
+            $link->forceFill(['last_used_at' => now()])->save();
+
+            if (! $admission) {
+                return ['status' => 'invalid', 'reason' => 'not_found', 'admission' => null];
+            }
+
+            $admission->loadMissing('event', 'ticket', 'ticketType');
+
+            if ($admission->status === AdmissionStatus::Cancelled) {
+                return ['status' => 'invalid', 'reason' => 'cancelled', 'admission' => $admission];
+            }
+
+            if ($admission->status === AdmissionStatus::Waitlisted) {
+                return ['status' => 'invalid', 'reason' => 'waitlisted', 'admission' => $admission];
+            }
+
+            if ($admission->isPendingConfirmation()) {
+                return ['status' => 'invalid', 'reason' => 'unconfirmed', 'admission' => $admission];
+            }
+
+            if ($admission->checked_in_at !== null) {
+                return ['status' => 'already_checked_in', 'admission' => $admission->fresh($relations)];
+            }
+
+            $admission->update([
+                'checked_in_at' => $scannedAt ?? now(),
+                'checked_in_link_id' => $link->id,
+            ]);
+
+            return ['status' => 'checked_in', 'admission' => $admission->fresh($relations)];
         });
     }
 
@@ -874,8 +927,19 @@ class EloquentTicketRepository extends AbstractRepository implements TicketRepos
     {
         Gate::authorize('view', $event);
 
+        return $this->arrivals($event->id);
+    }
+
+    public function checkinStatsViaLink(CheckinLink $link): array
+    {
+        return $this->arrivals($link->event_id);
+    }
+
+    /** @return array{total: int, arrived: int, remaining: int} */
+    private function arrivals(int $eventId): array
+    {
         $base = Admission::query()
-            ->where('event_id', $event->id)
+            ->where('event_id', $eventId)
             ->where('status', AdmissionStatus::Valid->value);
 
         $total = (int) (clone $base)->count();

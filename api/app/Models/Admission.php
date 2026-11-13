@@ -69,6 +69,12 @@ class Admission extends Model
         return $this->belongsTo(User::class, 'checked_in_by');
     }
 
+    /** Odkaz pre dobrovoľníkov, ktorým vstupenka prešla (bez účtu obsluhy). */
+    public function checkedInLink()
+    {
+        return $this->belongsTo(CheckinLink::class, 'checked_in_link_id');
+    }
+
     public function getIsCheckedInAttribute(): bool
     {
         return $this->checked_in_at !== null;

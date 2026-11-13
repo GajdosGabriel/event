@@ -51,6 +51,12 @@ class AdmissionResource extends JsonResource
                 'id' => $this->checkedInBy->id,
                 'name' => self::staffName($this->checkedInBy),
             ] : null),
+            // Pustil dobrovoľník cez odkaz (bez účtu) — front ukáže jeho
+            // pomenovanie („Vchod A"), prípadne všeobecné „dobrovoľník".
+            'checked_in_link' => $this->whenLoaded('checkedInLink', fn () => $this->checkedInLink ? [
+                'id' => $this->checkedInLink->id,
+                'label' => $this->checkedInLink->label,
+            ] : null),
             'qr_url' => route('public.admissions.qr', $this->uuid),
             'ticket_type' => $this->whenLoaded('ticketType', fn () => $this->ticketType ? [
                 'id' => $this->ticketType->id,

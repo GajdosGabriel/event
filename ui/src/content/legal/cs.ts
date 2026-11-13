@@ -11,9 +11,9 @@ const cs: LegalDocuments = {
       {
         heading: 'Čl. 1 — Provozovatel',
         paragraphs: [
-          '1.1 Provozovatelem portálu {site} (dále jen „Portál“) je {name}, se sídlem {address}, IČO: {ico}, {dic}, {registration} (dále jen „Provozovatel“).',
-          '1.2 Kontaktní údaje: e-mail {email}, telefon {phone}.',
-          '1.3 Orgánem dozoru je Slovenská obchodní inspekce — {soi}.',
+          '1.1 Portál {site} (dále jen „Portál“) provozují dobrovolníci jako nekomerční a bezúplatnou dobrovolnickou činnost (dále jen „Provozovatel“). Provozovatel není podnikatelem a za služby Portálu si od Uživatelů neúčtuje žádnou úplatu.',
+          '1.2 Kontaktní údaje: e-mail {email}.',
+          '1.3 Prodávajícím vstupenek a pořadatelem akcí je vždy příslušný Pořadatel (čl. 5), nikoli Provozovatel.',
         ],
       },
       {
@@ -98,7 +98,7 @@ const cs: LegalDocuments = {
         heading: 'Čl. 10 — Alternativní řešení sporů',
         paragraphs: [
           '10.1 Spotřebitel, který není spokojen se způsobem vyřízení reklamace nebo se domnívá, že Provozovatel porušil jeho práva, může požádat o nápravu na {email}.',
-          '10.2 Odpoví-li Provozovatel na žádost zamítavě nebo neodpoví-li do 30 dnů, má spotřebitel právo podat návrh na zahájení alternativního řešení sporu podle zákona č. 391/2015 Z. z. o alternativním řešení spotřebitelských sporů.',
+          '10.2 Spory ze smlouvy o účasti na akci řeší Návštěvník s Pořadatelem. Je-li Pořadatel podnikatelem a odpoví-li na žádost o nápravu zamítavě nebo neodpoví-li do 30 dnů, má spotřebitel vůči němu právo podat návrh na zahájení alternativního řešení sporu podle zákona č. 391/2015 Z. z. o alternativním řešení spotřebitelských sporů.',
           '10.3 Příslušným subjektem je Slovenská obchodní inspekce (Ústredný inšpektorát SOI, Bajkalská 21/A, 827 99 Bratislava, www.soi.sk) nebo jiná oprávněná právnická osoba zapsaná v seznamu subjektů alternativního řešení sporů, který vede Ministerstvo hospodářství SR. Spotřebitel si může vybrat, na který z nich se obrátí.',
           '10.4 Alternativní řešení sporu je pro spotřebitele bezplatné nebo zpoplatněné částkou nejvýše 5 eur. Právo obrátit se na soud tím není dotčeno.',
         ],
@@ -127,8 +127,8 @@ const cs: LegalDocuments = {
       {
         heading: '1. Kdo údaje zpracovává',
         paragraphs: [
-          'Správcem ve smyslu GDPR je {name}, se sídlem {address}, IČO: {ico}, {registration}.',
-          'Ve věcech ochrany osobních údajů nás kontaktujte na {email} nebo písemně na adrese sídla.',
+          'Správcem ve smyslu GDPR jsou dobrovolníci, kteří portál {site} provozují jako nekomerční dobrovolnickou činnost.',
+          'Ve věcech ochrany osobních údajů nás kontaktujte na {email}.',
         ],
       },
       {
