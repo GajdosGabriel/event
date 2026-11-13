@@ -128,6 +128,20 @@ class RoadmapTest extends EventSetupTest
         $this->assertEqualsCanonicalizing([$sourceMain, $sourceSecond], $log->context['transferred']['files']);
     }
 
+    public function test_archived_duplicate_merges_into_published_place_but_not_the_other_way(): void
+    {
+        $archived = Venue::factory()->create(['status' => 'archived']);
+        $live = Venue::factory()->create(['status' => 'published']);
+        $other = Venue::factory()->create(['status' => 'published']);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+        // A live place never disappears into an archived one.
+        $this->postJson('/api/admin/venues/'.$other->id.'/merge', ['target_id' => $archived->id])->assertUnprocessable();
+        $this->assertNotSoftDeleted('venues', ['id' => $other->id]);
+        $this->postJson('/api/admin/venues/'.$archived->id.'/merge', ['target_id' => $live->id])->assertOk();
+        $this->assertSoftDeleted('venues', ['id' => $archived->id]);
+        $this->assertSame(ModelStatus::Published, $live->fresh()->status);
+    }
+
     public function test_merge_promotes_source_picture_when_target_has_none(): void
     {
         $source = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'personal']);

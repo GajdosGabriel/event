@@ -34,7 +34,9 @@ class ResourceMerger
             abort_unless($rows->count() === 2, 404);
             $source = $rows[$sourceId];
             $target = $rows[$targetId];
-            if ($source->status !== $target->status) {
+            // An archived duplicate (only past events) may flow into a live record:
+            // its history moves to the target, which keeps its own status.
+            if ($source->status !== $target->status && $source->status !== ModelStatus::Archived) {
                 $this->conflict('status');
             }
             if ($class === Canal::class) {
