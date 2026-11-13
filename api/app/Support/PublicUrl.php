@@ -34,6 +34,9 @@ final class PublicUrl
     /** Prvý segment podujatí. */
     public const EVENTS = 'akcie';
 
+    /** Stránka „Pre organizátorov“ (ui ForOrganizersPage). */
+    public const FOR_ORGANIZERS = 'pre-organizatorov';
+
     /**
      * Predchádzajúci prvý segment podujatí. Adresy `/podujatia/*` sú
      * zaindexované a rozposlané, takže ich prerender aj SPA musia naďalej
@@ -128,6 +131,11 @@ final class PublicUrl
     public static function canal(Canal $canal): string
     {
         return self::absolute(self::canalPath($canal));
+    }
+
+    public static function forOrganizers(): string
+    {
+        return self::absolute('/'.self::FOR_ORGANIZERS);
     }
 
     /** Koreň portálu — so záverečnou lomkou, tak ako ju vidí vyhľadávač. */

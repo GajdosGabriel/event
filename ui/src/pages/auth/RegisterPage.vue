@@ -3,6 +3,9 @@
     <div class="auth-card">
       <h1>{{ t('auth.register.title') }}</h1>
       <p>{{ t('auth.register.lead') }}</p>
+      <p class="text-sm">
+        <RouterLink to="/pre-organizatorov" class="text-blue-600 hover:underline">{{ t('forOrganizers.registerHint') }}</RouterLink>
+      </p>
 
       <div v-if="eventId && !success" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
         {{ t('eventSignup.registerBanner', { event: eventLabel }) }}

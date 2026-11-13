@@ -6,6 +6,7 @@ use App\Models\CanalInvitation;
 use App\Models\Event;
 use App\Notifications\Concerns\SendsViaAccount;
 use App\Support\DashboardUrl;
+use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -111,6 +112,7 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
             ->line(__('mail.event_signup_organizer.claim_intro', ['canal' => $canal]))
             ->line(__('mail.event_signup_organizer.claim_benefits'))
             ->action(__('mail.event_signup_organizer.claim_action'), $url)
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
             ->line(__('mail.canal_invitation.email_note', ['email' => $this->invitation->email]))
             ->line(__('mail.event_signup_organizer.claim_ignore'))
             ->line(__('mail.event_signup_organizer.claim_unsubscribe', ['url' => $unsubscribe]))

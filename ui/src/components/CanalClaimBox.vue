@@ -4,6 +4,7 @@
   <div id="prevzatie" ref="root" class="scroll-mt-24 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
     <p class="text-sm font-semibold text-slate-900">{{ t('canalClaim.boxTitle') }}</p>
     <p class="mt-1 text-xs text-slate-600">{{ t('canalClaim.boxLead') }}</p>
+    <RouterLink to="/pre-organizatorov" class="mt-1 inline-block text-xs font-semibold text-blue-700 hover:underline">{{ t('forOrganizers.claimBenefits') }}</RouterLink>
 
     <p v-if="sent" class="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-800">{{ sent }}</p>
 

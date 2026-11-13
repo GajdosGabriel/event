@@ -89,7 +89,8 @@ class CanalRelayMessageTest extends TestCase
                 && str_contains($text, 'Kedy začína omša?')
                 && ! str_contains($text, 'pisatel@example.sk')
                 && str_contains($text, 'email/unsubscribe')
-                && str_contains((string) $mail->actionUrl, '/pozvanka/');
+                && str_contains((string) $mail->actionUrl, '/pozvanka/')
+                && str_contains($text, '/pre-organizatorov');
         });
 
         $this->assertSame(1, CanalInvitation::where('canal_id', $this->canal->id)->pending()->count());

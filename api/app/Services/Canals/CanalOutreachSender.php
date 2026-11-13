@@ -395,6 +395,7 @@ class CanalOutreachSender
                 'odkaz_podujatia' => PublicUrl::event($event),
                 'odkaz_kanala' => PublicUrl::canal($canal),
                 'odkaz_prevzatia' => $this->claimUrl($invitation->token),
+                'odkaz_pre_organizatorov' => PublicUrl::forOrganizers(),
                 'zobrazenia' => $c['stats']['event_views'],
                 'ludia' => $c['stats']['event_visitors'],
                 'prihlaseni' => $c['stats']['signups'],

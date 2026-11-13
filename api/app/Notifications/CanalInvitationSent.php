@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CanalInvitation;
 use App\Notifications\Concerns\SendsViaAccount;
+use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -55,7 +56,8 @@ class CanalInvitationSent extends Notification implements ShouldQueue
                 : __('mail.canal_invitation.intro', ['canal' => $canalName]))
             ->line(__('mail.canal_invitation.role', ['role' => $this->invitation->role->label()]))
             ->line(__('mail.canal_invitation.role_note.'.$this->invitation->role->value))
-            ->action(__('mail.canal_invitation.action'), $url);
+            ->action(__('mail.canal_invitation.action'), $url)
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]));
 
         if ($this->invitation->expires_at !== null) {
             $mail->line(__('mail.canal_invitation.expires', [

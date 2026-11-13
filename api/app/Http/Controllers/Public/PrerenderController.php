@@ -109,6 +109,7 @@ class PrerenderController extends Controller
             $first === PublicUrl::VENUES || $first === 'venues' => $this->venue($segments[1] ?? '', $jsonLd),
             $first === PublicUrl::CANALS || $first === 'canals' => $this->canal($segments[1] ?? '', $jsonLd),
             $first === 'events' => $this->event($segments[1] ?? '', $jsonLd),
+            $path === PublicUrl::FOR_ORGANIZERS => $this->forOrganizers(),
             default => null,
         };
     }
@@ -325,6 +326,21 @@ class PrerenderController extends Controller
      * ktorého Google určuje názov webu vo výsledkoch (inak ukáže holú doménu).
      * Teraz je kanonická sama na sebe a od `/akcie` sa líši titulkom aj popisom.
      */
+    private function forOrganizers(): View
+    {
+        return view('prerender.organizers', [
+            'meta' => $this->meta(
+                title: __('seo.organizers.title'),
+                description: __('seo.organizers.description'),
+                canonical: PublicUrl::forOrganizers(),
+            ),
+            'heading' => __('seo.organizers.heading'),
+            'features' => __('seo.organizers.features'),
+            'cta' => __('seo.organizers.cta'),
+            'structuredData' => [],
+        ]);
+    }
+
     private function home(JsonLd $jsonLd): View
     {
         $events = $this->upcomingEvents();

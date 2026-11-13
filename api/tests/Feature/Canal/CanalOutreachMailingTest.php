@@ -98,7 +98,8 @@ class CanalOutreachMailingTest extends TestCase
         $this->assertSame("canal:{$canal->id}:canal_event_created:{$event->id}", $outreach->dedupe_key);
         Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/api/v1/mailing/events')
             && $r['event'] === 'canal_event_created'
-            && filled($r['variables']['odkaz_prevzatia']));
+            && filled($r['variables']['odkaz_prevzatia'])
+            && str_ends_with($r['variables']['odkaz_pre_organizatorov'], '/pre-organizatorov'));
     }
 
     #[Test]

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Notifications\Channels\AccountMailChannel;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterEmailIntake;
+use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -95,7 +96,9 @@ class PosterEmailReply extends Notification implements ShouldQueue
             $mail->line(__('mail.poster_email.expires', ['date' => $this->expiresAt->format('d. m. Y')]));
         }
 
-        return $mail->line(__('mail.poster_email.ignore'));
+        return $mail
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
+            ->line(__('mail.poster_email.ignore'));
     }
 
     private function title(): ?string

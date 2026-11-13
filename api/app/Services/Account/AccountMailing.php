@@ -122,6 +122,7 @@ class AccountMailing
                     'odkaz_podujatia' => PublicUrl::event($event),
                     'odkaz_spravy' => DashboardUrl::base().'/events/'.$event->id,
                     'odkaz_upravy' => DashboardUrl::base().'/events/'.$event->id.'/edit',
+                    'odkaz_pre_organizatorov' => PublicUrl::forOrganizers(),
                 ],
                 'event:'.$event->id,
                 $at,

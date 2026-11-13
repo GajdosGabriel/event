@@ -113,6 +113,7 @@
              ďalej kvôli odkazom z vyhľadávača a zo zdieľaní — pätička je to
              miesto, odkiaľ na ne vedie odkaz z celého portálu. -->
         <RouterLink :to="publicArchivePath()" class="text-slate-600 hover:text-slate-900">{{ t('public.seo.archiveHeading') }}</RouterLink>
+        <RouterLink to="/pre-organizatorov" class="text-slate-600 hover:text-slate-900">{{ t('nav.forOrganizers') }}</RouterLink>
         <RouterLink to="/obchodne-podmienky" class="text-slate-600 hover:text-slate-900">{{ t('legal.terms') }}</RouterLink>
         <RouterLink to="/ochrana-osobnych-udajov" class="text-slate-600 hover:text-slate-900">{{ t('legal.privacy') }}</RouterLink>
         <button v-if="showCookieSettings" type="button" class="text-slate-600 hover:text-slate-900" @click="consentBannerOpen = true">{{ t('cookies.settings') }}</button>
@@ -149,6 +150,8 @@ const showCookieSettings = analyticsAvailable || import.meta.env.DEV
 // ikona tak vyzerá v navigácii rovnako ako všade inde v aplikácii.
 const mainLinks = computed<Array<{ to: string; label: string; icon: IconName }>>(() => [
   { to: '/nahrat-plagat', label: t('nav.uploadPoster'), icon: 'upload' },
+  // Vstup pre organizátorov z každej stránky — portál chce, aby si ho osvojili.
+  { to: '/pre-organizatorov', label: t('nav.forOrganizers'), icon: 'users' },
 ])
 
 /**

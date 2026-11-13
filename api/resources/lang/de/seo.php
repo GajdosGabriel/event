@@ -1,6 +1,23 @@
 <?php
 
 return [
+    // Stránka „Pre organizátorov“ — skrátená verzia ui/src/content/organizers.
+    'organizers' => [
+        'title' => 'Für Veranstalter — Veranstaltung kostenlos veröffentlichen',
+        'heading' => 'Ihre Veranstaltungen für alle, unkompliziert und kostenlos',
+        'description' => 'Veröffentlichen Sie Ihre Veranstaltung kostenlos aus einem Plakat, nehmen Sie Anmeldungen an, verkaufen Sie Tickets, prüfen Sie sie am Eingang per QR-Code und zeigen Sie Ihre Veranstaltungen auf Ihrer Website.',
+        'features' => [
+            'Veranstaltung aus dem Plakat: Name, Termin, Ort und Beschreibung füllen wir aus.',
+            'Kostenlose Reservierungen und bezahlte Tickets, das Geld geht auf Ihr Konto.',
+            'Ticketkontrolle per QR-Code mit dem Handy, auch ohne Empfang.',
+            'Teilnehmerliste, Export und Rundmail.',
+            'Fragebogen zur Anmeldung und Fragen aus dem Publikum.',
+            'Erinnerungen an Teilnehmer und Wiederholungstermine.',
+            'Liste Ihrer Veranstaltungen auf Ihrer Website.',
+            'Team, Rollen und Aufrufstatistiken.',
+        ],
+        'cta' => 'Plakat hochladen',
+    ],
     'home' => [
         'title' => 'Veranstaltungen und Tickets in der Slowakei',
         'heading' => 'Finden Sie eine Veranstaltung, die sich lohnt',

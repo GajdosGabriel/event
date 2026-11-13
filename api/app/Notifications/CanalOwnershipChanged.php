@@ -7,6 +7,7 @@ use App\Models\Canal;
 use App\Models\CanalClaim;
 use App\Models\User;
 use App\Support\DashboardUrl;
+use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -77,7 +78,12 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
             return $mail->line(__('mail.canal_ownership.not_you'));
         }
 
-        return $mail->action(__('mail.canal_ownership.action'), DashboardUrl::base().'/canals/'.$this->canal->id);
+        $mail->action(__('mail.canal_ownership.action'), DashboardUrl::base().'/canals/'.$this->canal->id);
+
+        // Nový správca prevzatého kanála: čo všetko teraz môže robiť.
+        return $this->change === self::CLAIMED
+            ? $mail->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
+            : $mail;
     }
 
     /** `member` (dotknutý), `contact` (adresa kanála bez účtu), inak `owners`. */

@@ -205,6 +205,7 @@ class CanalEventOfferTest extends TestCase
             $this->assertStringContainsString('Farnosť Lamač', $text);
             $this->assertStringContainsString('/pozvanka/', (string) $mail->actionUrl);
             $this->assertStringContainsString('odhlásiť', $text);
+            $this->assertStringContainsString('/pre-organizatorov', $text);
 
             return true;
         });

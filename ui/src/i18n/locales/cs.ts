@@ -92,6 +92,7 @@ const cs: Messages = {
     browse: 'Akce',
     weekend: 'Tento víkend',
     uploadPoster: 'Nahrát plakát',
+    forOrganizers: 'Pro pořadatele',
     menu: 'Menu',
     login: 'Přihlášení',
     register: 'Registrace',
@@ -2566,6 +2567,12 @@ const cs: Messages = {
     title: 'Odhlášeno',
     lead: 'Další nabídky ani přehledy o vašich akcích vám posílat nebudeme. E-maily, o které jste si sami požádali (například vstupenky), chodí dál.',
     home: 'Zpět na portál',
+  },
+  // Odkazy na stránku „Pre organizátorov“ (ui/src/content/organizers).
+  forOrganizers: {
+    learnMore: 'Co všechno portál nabízí pořadatelům',
+    registerHint: 'Pořádáte akce? Podívejte se, co všechno u nás zvládnete.',
+    claimBenefits: 'Co převzetím získáte →',
   },
   canalClaim: {
     boxTitle: 'Spravujete tento kanál?',

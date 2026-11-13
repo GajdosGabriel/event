@@ -82,6 +82,7 @@ class CanalEventPublishedOffer extends Notification implements ShouldQueue
             ->line(__('mail.canal_event_offer.contact_note'))
             ->line(__('mail.event_signup_organizer.claim_benefits'))
             ->action(__('mail.canal_event_offer.action'), $url)
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
             ->line(__('mail.canal_invitation.email_note', ['email' => $this->invitation->email]))
             ->line(__('mail.event_signup_organizer.claim_ignore'))
             ->line(__('mail.event_signup_organizer.claim_unsubscribe', ['url' => $unsubscribe]))

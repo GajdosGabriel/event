@@ -95,6 +95,7 @@ const sk = {
     browse: 'Podujatia',
     weekend: 'Tento víkend',
     uploadPoster: 'Nahrať plagát',
+    forOrganizers: 'Pre organizátorov',
     menu: 'Menu',
     login: 'Prihlásenie',
     register: 'Registrácia',
@@ -2674,6 +2675,12 @@ const sk = {
     title: 'Odhlásené',
     lead: 'Ďalšie ponuky ani prehľady o vašich akciách vám posielať nebudeme. E-maily, o ktoré ste si sami požiadali (napríklad lístky), chodia ďalej.',
     home: 'Späť na portál',
+  },
+  // Odkazy na stránku „Pre organizátorov“ (ui/src/content/organizers).
+  forOrganizers: {
+    learnMore: 'Čo všetko portál ponúka organizátorom',
+    registerHint: 'Organizujete akcie? Pozrite si, čo všetko u nás zvládnete.',
+    claimBenefits: 'Čo získate prevzatím →',
   },
   canalClaim: {
     boxTitle: 'Spravujete tento kanál?',

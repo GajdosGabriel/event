@@ -103,6 +103,9 @@
               {{ step }}
             </li>
           </ol>
+          <RouterLink to="/pre-organizatorov" class="mt-1.5 inline-block text-sm font-semibold text-emerald-300 no-underline hover:text-emerald-200">
+            {{ t('forOrganizers.learnMore') }} →
+          </RouterLink>
         </div>
 
         <div class="flex shrink-0 flex-wrap items-center gap-2">

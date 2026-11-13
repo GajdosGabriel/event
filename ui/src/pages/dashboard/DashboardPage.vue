@@ -4,6 +4,9 @@
       <div>
         <h1 class="text-3xl">{{ t('dashboard.title') }}</h1>
         <p class="text-slate-500">{{ t('dashboard.greeting', { name: auth.displayName || auth.canalName || t('dashboard.fallbackName') }) }}</p>
+        <!-- Prehľad toho, čo portál vie — nový organizátor tu inak vidí len
+             prázdny zoznam a nevie, čo všetko môže skúsiť. -->
+        <RouterLink to="/pre-organizatorov" class="text-sm text-blue-600 hover:underline">{{ t('forOrganizers.learnMore') }} →</RouterLink>
       </div>
 
       <nav class="flex flex-wrap gap-2">

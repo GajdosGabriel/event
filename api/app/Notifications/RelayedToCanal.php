@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Canal;
 use App\Notifications\Concerns\SendsViaAccount;
 use App\Services\Canals\CanalRelay;
+use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -104,6 +105,7 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
             ->line(__($shared.'.reply', $params))
             ->line(__($key.'.offer', $params))
             ->action(__($shared.'.action'), $this->claimUrl)
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
             ->line(__($shared.'.why', $params))
             ->line(__($shared.'.unsubscribe', ['url' => $unsubscribe]))
             ->withSymfonyMessage(function (Email $message) use ($unsubscribe) {

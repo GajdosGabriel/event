@@ -92,6 +92,7 @@ const en: Messages = {
     browse: 'Events',
     weekend: 'This weekend',
     uploadPoster: 'Upload poster',
+    forOrganizers: 'For organisers',
     menu: 'Menu',
     login: 'Sign in',
     register: 'Sign up',
@@ -2567,6 +2568,12 @@ const en: Messages = {
     title: 'Unsubscribed',
     lead: 'We will not send you further offers or summaries about your events. Emails you requested yourself (such as tickets) still arrive.',
     home: 'Back to the portal',
+  },
+  // Odkazy na stránku „Pre organizátorov“ (ui/src/content/organizers).
+  forOrganizers: {
+    learnMore: 'What the portal offers organisers',
+    registerHint: 'Do you organise events? See everything you can do here.',
+    claimBenefits: 'What you get by taking over →',
   },
   canalClaim: {
     boxTitle: 'Do you manage this channel?',

@@ -1,6 +1,23 @@
 <?php
 
 return [
+    // Stránka „Pre organizátorov“ — skrátená verzia ui/src/content/organizers.
+    'organizers' => [
+        'title' => 'Pro pořadatele — zveřejněte akci zdarma',
+        'heading' => 'Vaše akce lidem, bez starostí a zdarma',
+        'description' => 'Zveřejněte akci zdarma z plakátu, přijímejte přihlášky a prodávejte vstupenky, kontrolujte je QR kódem u vstupu a vložte své akce na vlastní web.',
+        'features' => [
+            'Akce z plakátu: název, termín, místo i popis vyplníme za vás.',
+            'Bezplatné rezervace i placené vstupenky, peníze jdou na váš účet.',
+            'Kontrola vstupenek QR kódem mobilem, i bez signálu.',
+            'Seznam účastníků, export a hromadný e-mail.',
+            'Dotazník k přihlášce a otázky z publika.',
+            'Připomínky účastníkům a opakované termíny.',
+            'Seznam vašich akcí na vlastním webu.',
+            'Tým, role a statistiky zobrazení.',
+        ],
+        'cta' => 'Nahrát plakát',
+    ],
     'home' => [
         'title' => 'Akce a vstupenky na Slovensku',
         'heading' => 'Najděte akci, která stojí za to',

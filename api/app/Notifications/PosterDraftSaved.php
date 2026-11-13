@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -59,6 +60,8 @@ class PosterDraftSaved extends Notification implements ShouldQueue
             ]));
         }
 
-        return $mail->line(__('mail.poster_draft.ignore'));
+        return $mail
+            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
+            ->line(__('mail.poster_draft.ignore'));
     }
 }

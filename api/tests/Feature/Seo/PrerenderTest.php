@@ -90,6 +90,16 @@ class PrerenderTest extends TestCase
     }
 
     #[Test]
+    public function for_organizers_page_is_rendered_for_crawlers(): void
+    {
+        $this->prerender('/pre-organizatorov/')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="'.PublicUrl::forOrganizers().'">', false)
+            ->assertSee(__('seo.organizers.heading'))
+            ->assertSee(__('seo.organizers.features')[0]);
+    }
+
+    #[Test]
     public function unknown_path_returns_not_found(): void
     {
         $this->prerender('/nieco-co-neexistuje')->assertNotFound();

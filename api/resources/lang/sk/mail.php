@@ -8,6 +8,8 @@ return [
 
     // Texty zdieľané viacerými e-mailami.
     'common' => [
+        // Odkaz na stránku „Pre organizátorov" v e-mailoch organizátorom.
+        'for_organizers' => 'Čo všetko portál organizátorom ponúka, nájdete na stránke [Pre organizátorov](:url).',
         'greeting' => 'Dobrý deň!',
         'greeting_named' => 'Dobrý deň, :name!',
         'event_fallback' => 'podujatie',

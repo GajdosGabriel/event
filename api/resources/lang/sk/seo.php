@@ -7,6 +7,23 @@ return [
     // Homepage. Titulok aj popis sa zámerne líšia od `list` — obe adresy sú
     // kanonické samy na sebe a rovnaký titulok by vyzeral ako duplicita.
     // Nadpis a popis sú z hero sekcie SPA (`public.home.heroTitle`, `heroLead`).
+    // Stránka „Pre organizátorov“ — skrátená verzia ui/src/content/organizers.
+    'organizers' => [
+        'title' => 'Pre organizátorov — zverejnite akciu zadarmo',
+        'heading' => 'Vaše akcie ľuďom, bez starostí a zadarmo',
+        'description' => 'Zverejnite podujatie zadarmo z plagátu, prijímajte prihlášky a predávajte vstupenky, kontrolujte ich QR kódom pri vstupe a vložte svoje akcie na vlastný web.',
+        'features' => [
+            'Akcia z plagátu: názov, termín, miesto aj popis vyplníme za vás.',
+            'Bezplatné rezervácie aj platené vstupenky, peniaze idú na váš účet.',
+            'Kontrola vstupeniek QR kódom mobilom, aj bez signálu.',
+            'Zoznam účastníkov, export a hromadný e-mail.',
+            'Dotazník k prihláške a otázky z publika.',
+            'Pripomienky účastníkom a opakované termíny.',
+            'Zoznam vašich akcií na vlastnom webe.',
+            'Tím, roly a štatistiky zobrazení.',
+        ],
+        'cta' => 'Nahrať plagát',
+    ],
     'home' => [
         'title' => 'Podujatia a vstupenky na Slovensku',
         'heading' => 'Nájdite podujatie, ktoré stojí za to',

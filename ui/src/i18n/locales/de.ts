@@ -92,6 +92,7 @@ const de: Messages = {
     browse: 'Veranstaltungen',
     weekend: 'Dieses Wochenende',
     uploadPoster: 'Plakat hochladen',
+    forOrganizers: 'Für Veranstalter',
     menu: 'Menü',
     login: 'Anmelden',
     register: 'Registrieren',
@@ -2567,6 +2568,12 @@ const de: Messages = {
     title: 'Abgemeldet',
     lead: 'Wir senden Ihnen keine weiteren Angebote oder Übersichten zu Ihren Veranstaltungen. E-Mails, die Sie selbst angefordert haben (z. B. Tickets), kommen weiterhin.',
     home: 'Zurück zum Portal',
+  },
+  // Odkazy na stránku „Pre organizátorov“ (ui/src/content/organizers).
+  forOrganizers: {
+    learnMore: 'Was das Portal Veranstaltern bietet',
+    registerHint: 'Sie organisieren Veranstaltungen? Sehen Sie, was Sie bei uns alles erledigen.',
+    claimBenefits: 'Was Sie mit der Übernahme bekommen →',
   },
   canalClaim: {
     boxTitle: 'Verwalten Sie diesen Kanal?',

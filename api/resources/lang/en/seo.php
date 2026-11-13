@@ -1,6 +1,23 @@
 <?php
 
 return [
+    // Stránka „Pre organizátorov“ — skrátená verzia ui/src/content/organizers.
+    'organizers' => [
+        'title' => 'For organisers — publish your event for free',
+        'heading' => 'Your events in front of people, hassle-free and free of charge',
+        'description' => 'Publish your event for free from a poster, take sign-ups and sell tickets, check them at the door with a QR code and show your events on your own website.',
+        'features' => [
+            'Event from a poster: we fill in the name, date, place and description.',
+            'Free reservations and paid tickets, the money goes to your account.',
+            'QR code ticket check with your phone, even offline.',
+            'Attendee list, export and group email.',
+            'Sign-up questionnaire and audience questions.',
+            'Attendee reminders and recurring dates.',
+            'A list of your events on your own website.',
+            'Team, roles and view statistics.',
+        ],
+        'cta' => 'Upload a poster',
+    ],
     'home' => [
         'title' => 'Events and tickets in Slovakia',
         'heading' => 'Find an event worth going to',

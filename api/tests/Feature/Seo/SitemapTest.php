@@ -63,6 +63,12 @@ class SitemapTest extends TestCase
     }
 
     #[Test]
+    public function sitemap_lists_the_for_organizers_page(): void
+    {
+        $this->get('/api/sitemap.xml')->assertOk()->assertSee('<loc>'.PublicUrl::forOrganizers().'</loc>', false);
+    }
+
+    #[Test]
     public function sitemap_is_valid_xml(): void
     {
         $response = $this->get('/api/sitemap.xml');

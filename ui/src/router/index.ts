@@ -113,6 +113,9 @@ const router = createRouter({
         { path: 'odhlasenie', name: 'unsubscribed', component: () => import('@/pages/UnsubscribedPage.vue') },
         { path: 'prevzatie/namietka/:token', name: 'canal-claim-contest', component: () => import('@/pages/canals/CanalClaimPage.vue'), props: { mode: 'contest' } },
         { path: 'prevzatie/:token', name: 'canal-claim-confirm', component: () => import('@/pages/canals/CanalClaimPage.vue'), props: { mode: 'confirm' } },
+        // Čo portál ponúka organizátorom. Adresa chodí v e-mailoch a v textoch
+        // kampaní ({odkaz_pre_organizatorov}), takže sa nesmie meniť.
+        { path: 'pre-organizatorov', name: 'for-organizers', component: () => import('@/pages/organizers/ForOrganizersPage.vue') },
         // Právne dokumenty. Adresy sú súčasťou súhlasu pri registrácii a chodia
         // v pätičke e-mailov, takže sa nesmú meniť — pri zmene znenia sa mení
         // len obsah a verzia (ui/src/content/legal), nie URL.

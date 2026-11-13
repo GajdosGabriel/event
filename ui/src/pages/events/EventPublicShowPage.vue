@@ -607,6 +607,7 @@
                   :to="{ path: publicCanalPath({ id: event.canal.id }), query: { prevziat: '1' } }"
                   class="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-blue-700"
                 >{{ t('public.event.claim.cta') }}</RouterLink>
+                <RouterLink to="/pre-organizatorov" class="mt-2 block text-xs font-semibold text-blue-700 hover:underline">{{ t('forOrganizers.learnMore') }} →</RouterLink>
               </div>
             </section>
 

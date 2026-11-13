@@ -87,11 +87,11 @@ enum MailingTrigger: string
     public const VARIABLES = ['meno', 'podujatie', 'termin', 'miesto', 'pocet_miest', 'odkaz_podujatia', 'odkaz_vstupenky'];
 
     /** Premenné technického mailu organizátorovi (EventPublished). */
-    public const ORGANIZER_VARIABLES = ['meno', 'kanal', 'podujatie', 'termin', 'miesto', 'odkaz_podujatia', 'odkaz_spravy', 'odkaz_upravy'];
+    public const ORGANIZER_VARIABLES = ['meno', 'kanal', 'podujatie', 'termin', 'miesto', 'odkaz_podujatia', 'odkaz_spravy', 'odkaz_upravy', 'odkaz_pre_organizatorov'];
 
     /** Premenné ponúk prevzatia kanála. */
     public const CANAL_VARIABLES = [
         'kanal', 'podujatie', 'termin', 'miesto', 'odkaz_podujatia', 'odkaz_kanala', 'odkaz_prevzatia',
-        'zobrazenia', 'ludia', 'prihlaseni', 'dni_do_zaciatku', 'prah_zobrazeni',
+        'odkaz_pre_organizatorov', 'zobrazenia', 'ludia', 'prihlaseni', 'dni_do_zaciatku', 'prah_zobrazeni',
     ];
 }
