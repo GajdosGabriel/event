@@ -898,6 +898,11 @@ const cs: Messages = {
       deadline: 'Registrace do:',
       registration: 'Registrace',
       organizerUnconfirmed: 'Organizátor tuto akci na portálu zatím nespravuje a o vaší rezervaci se nemusí dozvědět. Pokud je pro vás místo důležité, ověřte si ho přímo u něj.',
+      claim: {
+        title: 'Pořádáte tuto akci?',
+        lead: 'Profil pořadatele vznikl z veřejných zdrojů. Převezměte ho zdarma: budete ho moci upravovat, uvidíte, kolik lidí si vaše akce prohlédlo, a přihlášky a zprávy budou chodit přímo vám.',
+        cta: 'Převzít profil zdarma',
+      },
       place: 'Místo',
       openingHours: 'Otevírací doba',
       organizer: 'Pořadatel',

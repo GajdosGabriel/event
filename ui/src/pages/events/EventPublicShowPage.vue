@@ -596,6 +596,18 @@
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
               <ExternalLink v-if="event.canal.website" :href="event.canal.website" target="canal"
                 :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">{{ t('public.web') }}</ExternalLink>
+              <!-- Výzva na prevzatie. Detail akcie má oveľa viac návštev než
+                   profil kanála, takže organizátor sa o správe dozvie najmä
+                   tu. Samotná žiadosť ostáva na profile (CanalClaimBox) —
+                   `prevziat=1` ju tam rovno otvorí. -->
+              <div v-if="event.canal.claimable" class="mt-4 rounded-2xl bg-blue-50/70 p-4 ring-1 ring-inset ring-blue-100">
+                <p class="text-sm font-semibold text-slate-900">{{ t('public.event.claim.title') }}</p>
+                <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ t('public.event.claim.lead') }}</p>
+                <RouterLink
+                  :to="{ path: publicCanalPath({ id: event.canal.id }), query: { prevziat: '1' } }"
+                  class="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-blue-700"
+                >{{ t('public.event.claim.cta') }}</RouterLink>
+              </div>
             </section>
 
             <!-- Kontakt -->

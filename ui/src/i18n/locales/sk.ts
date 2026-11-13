@@ -954,6 +954,11 @@ const sk = {
       deadline: 'Registrácia do:',
       registration: 'Registrácia',
       organizerUnconfirmed: 'Organizátor toto podujatie na portáli zatiaľ nespravuje a o vašej rezervácii sa nemusí dozvedieť. Ak je pre vás miesto dôležité, overte si ho priamo u neho.',
+      claim: {
+        title: 'Organizujete túto akciu?',
+        lead: 'Profil organizátora vznikol z verejných zdrojov. Prevezmite ho zadarmo: budete ho môcť upravovať, uvidíte, koľko ľudí si vaše akcie pozrelo, a prihlášky a správy budú chodiť priamo vám.',
+        cta: 'Prevziať profil zadarmo',
+      },
       place: 'Miesto',
       openingHours: 'Otváracie hodiny',
       organizer: 'Organizátor',

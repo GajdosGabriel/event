@@ -899,6 +899,11 @@ const de: Messages = {
       deadline: 'Anmeldung bis:',
       registration: 'Anmeldung',
       organizerUnconfirmed: 'Der Veranstalter verwaltet diese Veranstaltung noch nicht auf dem Portal und erfährt möglicherweise nichts von Ihrer Reservierung. Wenn Ihnen der Platz wichtig ist, klären Sie ihn direkt mit ihm.',
+      claim: {
+        title: 'Veranstalten Sie diese Veranstaltung?',
+        lead: 'Das Veranstalterprofil wurde aus öffentlichen Quellen erstellt. Übernehmen Sie es kostenlos: Sie können es bearbeiten, sehen, wie viele Menschen Ihre Veranstaltungen angesehen haben, und Anmeldungen sowie Nachrichten gehen direkt an Sie.',
+        cta: 'Profil kostenlos übernehmen',
+      },
       place: 'Ort',
       openingHours: 'Öffnungszeiten',
       organizer: 'Veranstalter',

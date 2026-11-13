@@ -899,6 +899,11 @@ const en: Messages = {
       deadline: 'Registration until:',
       registration: 'Registration',
       organizerUnconfirmed: 'The organiser does not manage this event on the portal yet and may not learn about your reservation. If the place matters to you, confirm it with them directly.',
+      claim: {
+        title: 'Are you organising this event?',
+        lead: 'This organiser profile was created from public sources. Take it over for free: you can edit it, see how many people viewed your events, and sign-ups and messages will come straight to you.',
+        cta: 'Take over the profile for free',
+      },
       place: 'Venue',
       openingHours: 'Opening hours',
       organizer: 'Organiser',

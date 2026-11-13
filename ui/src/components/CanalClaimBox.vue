@@ -1,13 +1,13 @@
 <template>
   <!-- „Spravujete tento kanál?" — len pri kanáli, ktorý nikto nespravuje
        (importovaný profil). Server rozhodol cez `claimable`. -->
-  <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+  <div id="prevzatie" ref="root" class="scroll-mt-24 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
     <p class="text-sm font-semibold text-slate-900">{{ t('canalClaim.boxTitle') }}</p>
     <p class="mt-1 text-xs text-slate-600">{{ t('canalClaim.boxLead') }}</p>
 
     <p v-if="sent" class="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-800">{{ sent }}</p>
 
-    <RouterLink v-else-if="!auth.isAuthenticated" :to="{ name: 'login', query: { redirect: route.fullPath } }"
+    <RouterLink v-else-if="!auth.isAuthenticated" :to="{ name: 'login', query: { redirect: loginRedirect } }"
       class="mt-3 inline-block rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-blue-700">
       {{ t('canalClaim.login') }}
     </RouterLink>
@@ -58,16 +58,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { requestCanalClaim } from '@/api/canalClaims'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
 
-const props = defineProps<{ canalId: number; claimContact: boolean }>()
+const props = defineProps<{ canalId: number; claimContact: boolean; autoOpen?: boolean }>()
 
 const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 
 const open = ref(false)
 const busy = ref(false)
@@ -76,6 +77,20 @@ const sent = ref<string | null>(null)
 const message = ref('')
 // Overenie cez kontakt je rýchlejšie — ponúkame ho prvé, keď existuje.
 const method = ref<'contact_email' | 'admin_review'>(props.claimContact ? 'contact_email' : 'admin_review')
+
+const root = ref<HTMLElement | null>(null)
+
+// Po prihlásení sa človek vráti s `prevziat=1` — klikol „Prihlásiť sa
+// a požiadať", takže formulár žiadosti má čakať rovno otvorený.
+const loginRedirect = router.resolve({ path: route.path, query: { ...route.query, prevziat: '1' } }).fullPath
+
+// Príchod z výzvy na detaile akcie alebo z prihlásenia (`autoOpen`): box sa
+// rovno otvorí a posunie do zábera.
+onMounted(() => {
+  if (!props.autoOpen) return
+  if (auth.isAuthenticated) open.value = true
+  root.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
 
 async function submit() {
   busy.value = true

@@ -8,6 +8,7 @@ use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\CanalClaim;
+use App\Models\Event;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Notifications\CanalContactNotice;
@@ -105,6 +106,26 @@ class CanalClaimsTest extends TestCase
         // Druhá námietka už nejde.
         $this->postJson('/api/canal-claims/contest/'.$claim->contest_token)->assertUnprocessable();
         Notification::assertNothingSent();
+    }
+
+    #[Test]
+    public function public_event_detail_offers_takeover_only_for_unmanaged_canal(): void
+    {
+        $event = Event::factory()->create([
+            'canal_id' => $this->canal->id,
+            'status' => ModelStatus::Published->value,
+            'published_at' => now(),
+        ]);
+
+        $this->getJson("/api/events/{$event->id}")->assertOk()
+            ->assertJsonPath('canal.claimable', true)
+            // Kontaktná adresa kanála verejne nechodí ani spolu s príznakom.
+            ->assertJsonMissingPath('canal.email');
+
+        $this->canal->forceFill(['claimed_at' => now(), 'claimed_by_user_id' => $this->admin->id])->save();
+
+        $this->getJson("/api/events/{$event->id}")->assertOk()
+            ->assertJsonPath('canal.claimable', false);
     }
 
     #[Test]

@@ -281,7 +281,7 @@ export interface EventItem {
   /** Len na verejnom detaile; null pri podujatí bez termínu. */
   calendarLinks: CalendarLinks | null
   municipality: { id: number; name: string; fullname?: string } | null
-  canal: { id: number; name: string; thumbImage?: string; website?: string | null } | null
+  canal: { id: number; name: string; thumbImage?: string; website?: string | null; claimable?: boolean } | null
   venue: {
     id: number
     name: string

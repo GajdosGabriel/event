@@ -130,7 +130,7 @@
                 :class="{ 'mt-3': canal.phone || canal.website }" />
             </div>
 
-            <CanalClaimBox v-if="canal.claimable" :canal-id="canal.id" :claim-contact="Boolean(canal.claimContact)" />
+            <CanalClaimBox v-if="canal.claimable" :canal-id="canal.id" :claim-contact="Boolean(canal.claimContact)" :auto-open="claimRequested" />
 
             <div v-if="canal.municipality" class="rounded-2xl border border-slate-200 bg-white p-5">
               <div class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('public.canal.activeIn') }}</div>
@@ -175,6 +175,9 @@ const router = useRouter()
 const contactResult = route.query.kontakt === 'overeny' || route.query.kontakt === 'neplatny'
   ? route.query.kontakt
   : null
+// Príchod z výzvy „Organizujete túto akciu?" na detaile akcie — z rovnakého
+// dôvodu odložené hneď; box prevzatia sa potom rovno otvorí.
+const claimRequested = route.query.prevziat === '1'
 const canal = ref<CanalItem | null>(null)
 const bodyHtml = useBodyHtml(() => canal.value?.body)
 const loading = ref(false)

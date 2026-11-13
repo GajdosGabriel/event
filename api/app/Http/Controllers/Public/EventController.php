@@ -9,6 +9,7 @@ use App\Http\Resources\FileResource;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Calendar\IcsGenerator;
+use App\Services\Canals\CanalClaims;
 use App\Services\Canals\CanalTakeover;
 use App\Support\EventDateRange;
 use App\Support\PublicEventFilters;
@@ -84,6 +85,13 @@ class EventController extends Controller
         // kontaktný e-mail kanála a miesta, ktorý front nikde neukazuje.
         $data['canal'] = EventResource::canalSummary($event->getRelation('canal'));
         $data['venue'] = EventResource::venueSummary($event->getRelation('venue'));
+
+        // „Organizujete túto akciu?" — detail akcie navštívi oveľa viac ľudí
+        // než profil kanála, takže výzva na prevzatie musí byť aj tu. Zberný
+        // kanál (vyveska.sk…) sa prevziať nedá, rieši to isClaimable().
+        if ($data['canal'] !== null) {
+            $data['canal']['claimable'] = app(CanalClaims::class)->isClaimable($event->getRelation('canal'));
+        }
 
         // „Pridať do kalendára" — súbor `.ics` aj odkazy do webových kalendárov.
         // Skladá ich backend, aby termín, miesto aj popis boli všade rovnaké
