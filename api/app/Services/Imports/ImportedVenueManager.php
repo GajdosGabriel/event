@@ -117,16 +117,7 @@ class ImportedVenueManager
                         // Založenie a priradenie kanála spolu: keby zlyhalo až
                         // assignCanal, catch nižšie by pustil vetvu s obcou a tá
                         // by to isté miesto založila druhýkrát.
-                        $venue = DB::transaction(function () use ($payload, $canal): Venue {
-                            $venue = Venue::create($payload);
-                            // Kto miesto priniesol, ten ho aj vlastní — VenuePolicy
-                            // sa pýta výhradne na `ownerCanals()`, takže bez toho
-                            // importované miesto v dashboarde neupraví nikto okrem
-                            // super-admina. Viď backfill_venue_owner_canal.
-                            $venue->assignCanal($canal, isOwner: true);
-
-                            return $venue;
-                        });
+                        $venue = $this->createForCanal($payload, $canal);
                         $this->duplicates->markCreated($venue);
 
                         return $venue;
@@ -177,8 +168,7 @@ class ImportedVenueManager
                 }
             }
 
-            // Rovnako v transakcii ako vo vetve s detekciou.
-            $venue = DB::transaction(fn (): Venue => tap(Venue::create([
+            $venue = $this->createForCanal([
                 'village_id' => $municipality['village_id'],
                 'name' => Str::limit($name, 250, ''),
                 'street' => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
@@ -190,14 +180,61 @@ class ImportedVenueManager
                 // Pin z článku má prednosť pred súradnicami z geokódera.
                 'latitude' => $hasCoordinates ? $latitude : $municipality['latitude'],
                 'longitude' => $hasCoordinates ? $longitude : $municipality['longitude'],
-                // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
-            ]), fn (Venue $venue) => $venue->assignCanal($canal, isOwner: true)));
+            ], $canal);
             $this->duplicates->markCreated($venue);
 
             return $venue;
         }
 
         return $this->resolveFallbackVenueForCanal($canal);
+    }
+
+    /**
+     * Založí miesto a pripojí ho ku kanálu v jednej transakcii: keby zlyhalo
+     * až pripojenie, vetva s detekciou by spadla do catch a vetva s obcou by
+     * to isté miesto založila druhýkrát.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createForCanal(array $attributes, Canal $canal): Venue
+    {
+        return DB::transaction(function () use ($attributes, $canal): Venue {
+            $venue = Venue::create($attributes);
+            $venue->assignCanal($canal, isOwner: $this->isCanalsOwnVenue($canal, $venue));
+
+            return $venue;
+        });
+    }
+
+    /**
+     * Vlastníkom importovaného miesta sa kanál stane, len keď je to zjavne
+     * jeho miesto — rovnaký názov ako kanál („Dom kultúry Ladce“) alebo
+     * rovnaká adresa v tej istej obci.
+     *
+     * Nestačí, že ho priniesol: dom kultúry či katedrála sú spoločné pre
+     * mnoho organizátorov a po prevzatí kanála by ich nový vlastník mohol
+     * upravovať. Miesto bez vlastníka upraví (VenuePolicy sa pýta výhradne
+     * na `ownerCanals()`) len super-admin, ktorý mu vlastníka môže prideliť.
+     */
+    private function isCanalsOwnVenue(Canal $canal, Venue $venue): bool
+    {
+        $canalName = trim((string) $canal->name);
+        $venueName = trim((string) $venue->name);
+
+        if ($canalName !== '' && $venueName !== '' && ImportedNameMatcher::canalKeysMatch(
+            ImportedNameMatcher::canalKey($canalName),
+            ImportedNameMatcher::canalKey($venueName),
+        )) {
+            return true;
+        }
+
+        $canalStreet = Str::slug((string) $canal->street);
+        $venueStreet = Str::slug((string) $venue->street);
+
+        return $canalStreet !== ''
+            && $canalStreet === $venueStreet
+            && $canal->municipality_id !== null
+            && (int) $canal->municipality_id === (int) $venue->village_id;
     }
 
     public function resolveFallbackVenueForCanal(Canal $canal): Venue
