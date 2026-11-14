@@ -7,6 +7,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Údržbový režim počas pull/composer/migrácií: kým composer vymieňa vendor/,
+# autoloader odkazuje na súbory, ktoré práve nie sú, a požiadavky padali na
+# PHP Fatal error. public/index.php kontroluje maintenance.php ešte pred
+# autoloaderom, takže klient dostane 503 s Retry-After. `up` beží aj pri
+# chybe nasadenia; ak aplikácia nenabehne, ostane stránka v údržbe.
+echo "==> údržbový režim"
+(cd api && php artisan down --retry=15)
+trap '(cd "$(git rev-parse --show-toplevel)/api" && php artisan up) || echo "!! php artisan up zlyhal — stránka ostáva v údržbe." >&2' EXIT
+
 echo "==> git pull"
 git pull --ff-only origin main
 git log --oneline -1
