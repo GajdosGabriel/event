@@ -164,7 +164,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { myTickets, mySubscriptions, cancelMySubscription, type MySubscription } from '@/api/me'
 import { cancelOwnRegistration, updateAdmissionAnswers, updateTicketAnswers, type TicketAnswersPayload } from '@/api/tickets'
 import { publicQuestionnaire } from '@/api/questionnaire'

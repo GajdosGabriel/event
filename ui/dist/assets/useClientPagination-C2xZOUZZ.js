@@ -1,0 +1,1 @@
+import{et as e,mt as t,p as n}from"./i18n-Bc1VuSF3.js";function r(r,i=20){let a=t(1),o=n(()=>Math.max(1,Math.ceil(r.value.length/i))),s=n(()=>r.value.slice((a.value-1)*i,a.value*i));e(o,e=>{a.value>e&&(a.value=e)});function c(e){a.value=Math.min(Math.max(1,e),o.value)}return{page:a,lastPage:o,items:s,setPage:c}}export{r as t};

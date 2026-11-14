@@ -7,7 +7,7 @@ import { useSettings } from '@/composables/useSettings'
 import { t } from '@/i18n'
 
 vi.mock('@/api/events', () => ({ indexEvents: vi.fn(), indexEventMapPoints: vi.fn() }))
-vi.mock('@vueuse/head', () => ({ useHead: vi.fn() }))
+vi.mock('@unhead/vue', () => ({ useHead: vi.fn() }))
 
 async function mountList(path = '/akcie') {
   const router = createRouter({

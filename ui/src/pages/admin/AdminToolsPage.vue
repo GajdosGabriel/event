@@ -76,13 +76,36 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { defineComponent, h, onBeforeUnmount, ref } from 'vue'
 import { runAdminTool, startEventImport, getEventImportStatus } from '@/api/events'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
 import FormField from '@/components/FormField.vue'
 
 const toast = useToast()
+
+const ToolRunButton = defineComponent({
+  props: { label: String, running: Boolean },
+  emits: ['run'],
+  setup(props, { emit }) {
+    return () => h('button', {
+      type: 'button',
+      class: `btn btn-primary w-fit ${props.running ? 'opacity-60 cursor-not-allowed' : ''}`,
+      disabled: props.running,
+      onClick: () => emit('run'),
+    }, props.running ? t('admin.tools.running') : props.label)
+  },
+})
+
+const ToolOutput = defineComponent({
+  props: { output: String },
+  setup(props) {
+    return () => props.output
+      ? h('pre', { class: 'whitespace-pre-wrap rounded-lg bg-slate-900 p-3 text-xs text-green-400 overflow-x-auto' }, props.output)
+      : null
+  },
+})
+
 
 const importUrls = ref('')
 // Vymazané číselné pole je `null` — pri spustení sa doplní rozumná predvoľba.
@@ -158,33 +181,4 @@ async function runTool(tool: ToolKey) {
 }
 
 onBeforeUnmount(() => clearTimeout(pollTimer))
-</script>
-
-<script lang="ts">
-import { defineComponent, h } from 'vue'
-import { t as translate } from '@/i18n'
-
-const ToolRunButton = defineComponent({
-  props: { label: String, running: Boolean },
-  emits: ['run'],
-  setup(props, { emit }) {
-    return () => h('button', {
-      type: 'button',
-      class: `btn btn-primary w-fit ${props.running ? 'opacity-60 cursor-not-allowed' : ''}`,
-      disabled: props.running,
-      onClick: () => emit('run'),
-    }, props.running ? translate('admin.tools.running') : props.label)
-  },
-})
-
-const ToolOutput = defineComponent({
-  props: { output: String },
-  setup(props) {
-    return () => props.output
-      ? h('pre', { class: 'whitespace-pre-wrap rounded-lg bg-slate-900 p-3 text-xs text-green-400 overflow-x-auto' }, props.output)
-      : null
-  },
-})
-
-export default { components: { ToolRunButton, ToolOutput } }
 </script>

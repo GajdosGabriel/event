@@ -24,6 +24,9 @@ async function openForm(scope: 'dashboard' | 'admin' = 'dashboard') {
   await router.push(`/${scope}/events/create`)
   const wrapper = mount(EventEditPage, {
     props: { scope },
+    // jsdom 31+ nepočíta štýly odpojených elementov, takže isVisible() by
+    // bez pripojenia do dokumentu nevidel v-show.
+    attachTo: document.body,
     global: {
       plugins: [router, createPinia()],
       stubs: {

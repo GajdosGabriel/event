@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import PublicEventList from '@/components/PublicEventList.vue'
 import { showPublicMunicipality } from '@/api/municipalities'
 import { indexTags } from '@/api/tags'

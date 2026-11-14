@@ -1,0 +1,1 @@
+function e(e){if(!e||typeof e!=`object`)return null;let t=e,n={};for(let e of[`website`]){let r=t[e];if(!r||typeof r!=`object`)continue;let i=r;n[e]={status:`failed`,reason:i.reason??null,httpStatus:i.http_status??null,failures:Number(i.failures??0),checkedAt:i.checked_at??null,notifiedAt:i.notified_at??null}}return Object.keys(n).length>0?n:null}export{e as t};

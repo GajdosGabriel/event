@@ -24,7 +24,7 @@
  * `legal-terms` a `legal-privacy`).
  */
 import { computed } from 'vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { legalDocument, type LegalKind } from '@/content/legal'
 import { useI18n } from '@/i18n'
 

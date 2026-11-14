@@ -151,7 +151,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { showCanalPublic, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import ContactButton from '@/components/ContactButton.vue'

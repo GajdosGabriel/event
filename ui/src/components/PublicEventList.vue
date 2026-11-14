@@ -237,7 +237,7 @@
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { indexEventMapPoints, indexEvents, type EventMapPoint } from '@/api/events'
 import type { EventItem } from '@/types'
 import EventCard from '@/components/EventCard.vue'

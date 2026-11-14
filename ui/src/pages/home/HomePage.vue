@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import PublicEventList from '@/components/PublicEventList.vue'
 import HomeHero, { HERO_FILTERS_ID } from '@/components/home/HomeHero.vue'
 import { absoluteUrl, PUBLIC_EVENTS } from '@/utils/publicUrl'

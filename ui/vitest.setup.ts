@@ -19,7 +19,7 @@ function memoryStorage(): Storage {
 }
 
 for (const name of ['localStorage', 'sessionStorage'] as const) {
-  let usable = false
+  let usable: boolean
   try {
     usable = typeof globalThis[name]?.getItem === 'function'
   } catch {
@@ -33,3 +33,12 @@ for (const name of ['localStorage', 'sessionStorage'] as const) {
     })
   }
 }
+
+/**
+ * `useHead` z @unhead/vue bez nainštalovanej hlavičky hádže chybu (v aplikácii
+ * ju pridáva main.ts). Pri mountovaní stránok v testoch ju preto dosadíme vždy.
+ */
+import { config } from '@vue/test-utils'
+import { createHead } from '@unhead/vue/client'
+
+config.global.plugins.push({ install: (app) => app.use(createHead()) })

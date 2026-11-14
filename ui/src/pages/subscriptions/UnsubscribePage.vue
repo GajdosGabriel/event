@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { showSubscription, unsubscribe, type SubscriptionInfo } from '@/api/subscriptions'
 import { PUBLIC_EVENTS } from '@/utils/publicUrl'
 import { t } from '@/i18n'

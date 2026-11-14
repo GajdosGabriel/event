@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import PosterUploadWizard from '@/components/poster/PosterUploadWizard.vue'
 import { t } from '@/i18n'
 

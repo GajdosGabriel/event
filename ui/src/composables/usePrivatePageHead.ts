@@ -1,4 +1,4 @@
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 
 /** Titulok a `noindex` pre stránky, ktoré nemajú byť vo vyhľadávačoch (prihlásenie, reset hesla...). */
 export function usePrivatePageHead(title: () => string) {

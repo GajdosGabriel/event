@@ -1,0 +1,1 @@
+function e(e){let t=e?.response?.data?.errors;return t?Object.fromEntries(Object.entries(t).map(([e,t])=>[e,t[0]]).filter(([,e])=>typeof e==`string`)):{}}export{e as t};

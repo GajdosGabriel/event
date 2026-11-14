@@ -99,7 +99,7 @@
  * (`mail.common.for_organizers`, premenná kampaní `{odkaz_pre_organizatorov}`).
  */
 import { computed } from 'vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import type { RouteLocationRaw } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import { FOR_ORGANIZERS_PATH, organizersPage, type OrganizersAction } from '@/content/organizers'

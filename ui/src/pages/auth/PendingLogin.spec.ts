@@ -6,7 +6,7 @@ const { login, push, route } = vi.hoisted(() => ({ login: vi.fn(), push: vi.fn()
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ login }) }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => route }))
 vi.mock('@/i18n', () => ({ t: (key: string) => key }))
-vi.mock('@vueuse/head', () => ({ useHead: vi.fn() }))
+vi.mock('@unhead/vue', () => ({ useHead: vi.fn() }))
 vi.mock('@/composables/useFormValidation', () => ({ provideFormValidation: () => ({ markValidated: vi.fn() }) }))
 
 beforeEach(() => {

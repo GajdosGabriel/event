@@ -147,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { showVenuePublic, listVenueEvents, type VenueEventItem } from '@/api/venues'
 import type { VenueItem } from '@/types'
 import ImageGallery from '@/components/ImageGallery.vue'

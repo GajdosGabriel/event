@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { t, type MessageKey } from '@/i18n'
 
 // Segment URL → kľúč popisky bočného panela. Neznáme segmenty ostanú pri názve oblasti.

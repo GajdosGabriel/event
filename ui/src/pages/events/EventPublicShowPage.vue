@@ -715,7 +715,7 @@
 import { tagLabel } from '@/utils/tagLabel'
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 import { showPublicEvent, indexEvents } from '@/api/events'
 import { publicTicketTypes, joinWorkshop, leaveWorkshop } from '@/api/ticketTypes'
 import { hasOptionalExtras, publicQuestionnaire, requiredFee } from '@/api/questionnaire'
@@ -1216,10 +1216,10 @@ useHead(computed(() => {
     ],
     script: [
       ...(eventJsonLd.value
-        ? [{ key: 'event-jsonld', type: 'application/ld+json', innerHTML: JSON.stringify(eventJsonLd.value) }]
+        ? [{ key: 'event-jsonld', type: 'application/ld+json' as const, innerHTML: JSON.stringify(eventJsonLd.value) }]
         : []),
       ...(breadcrumbJsonLd.value
-        ? [{ key: 'breadcrumb-jsonld', type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd.value) }]
+        ? [{ key: 'breadcrumb-jsonld', type: 'application/ld+json' as const, innerHTML: JSON.stringify(breadcrumbJsonLd.value) }]
         : []),
     ],
   }
