@@ -37,4 +37,34 @@ abstract class TestCase extends BaseTestCase
         // ktoré závisí od poradia testov.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
+
+    /**
+     * Každý host sa „preloží" na verejnú IP — bez skutočného DNS. Potrebné
+     * pre všetko, čo ide cez SafeRemoteFetcher (`*.test` by inak neprešlo
+     * a skutočné domény by test spomalili dotazmi do siete).
+     */
+    protected function fakePublicDns(): void
+    {
+        Url::resolveHostsUsing(fn (string $host) => ['93.184.216.34']);
+    }
+
+    /**
+     * Skutočný malý obrázok — prílohy sa overujú podľa obsahu, text
+     * s hlavičkou `image/jpeg` neprejde. Iný $seed = iný obsah (checksum).
+     */
+    protected function fakeImage(string $format = 'jpeg', string $seed = ''): string
+    {
+        $image = imagecreatetruecolor(2, 2);
+        imagefill($image, 0, 0, crc32($seed) & 0xFFFFFF);
+
+        ob_start();
+        match ($format) {
+            'png' => imagepng($image),
+            'gif' => imagegif($image),
+            'webp' => imagewebp($image),
+            default => imagejpeg($image),
+        };
+
+        return (string) ob_get_clean();
+    }
 }

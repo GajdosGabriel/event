@@ -22,6 +22,13 @@ class RemoteAttachmentPartialFailureTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakePublicDns();
+    }
+
     /** EventFactory nechá `user_id` prázdne, a ten stĺpec je NOT NULL. */
     private function event(): Event
     {
@@ -38,9 +45,9 @@ class RemoteAttachmentPartialFailureTest extends TestCase
         Log::spy();
 
         Http::fake([
-            'https://zdroj.test/prvy.pdf' => Http::response('prvý', 200, ['Content-Type' => 'application/pdf']),
+            'https://zdroj.test/prvy.pdf' => Http::response("%PDF-1.4\n% prvý\n%%EOF\n", 200, ['Content-Type' => 'application/pdf']),
             'https://zdroj.test/druhy.pdf' => Http::response('', 404),
-            'https://zdroj.test/treti.pdf' => Http::response('tretí', 200, ['Content-Type' => 'application/pdf']),
+            'https://zdroj.test/treti.pdf' => Http::response("%PDF-1.4\n% tretí\n%%EOF\n", 200, ['Content-Type' => 'application/pdf']),
         ]);
 
         $event = $this->event();
@@ -95,7 +102,7 @@ class RemoteAttachmentPartialFailureTest extends TestCase
 
         Http::fake([
             'https://zdroj.test/a.png' => Http::response('', 404),
-            'https://zdroj.test/b.png' => Http::response('obrázok b', 200, ['Content-Type' => 'image/png']),
+            'https://zdroj.test/b.png' => Http::response($this->fakeImage('png'), 200, ['Content-Type' => 'image/png']),
         ]);
 
         $event = $this->event();

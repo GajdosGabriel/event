@@ -4,10 +4,11 @@ namespace App\Services\Files;
 
 use App\Enums\FileType;
 use App\Jobs\GenerateFileVariantsJob;
+use App\Services\Security\RemoteFetchRefused;
 use App\Services\Security\SafeRemoteFetcher;
+use finfo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -80,11 +81,23 @@ class RemoteAttachmentPersister
     {
         $url = (string) $attachment['url'];
 
+        // Adresy prichádzajú z článkov a od používateľov, preto cez
+        // SafeRemoteFetcher: každé presmerovanie sa kontroluje proti vnútornej
+        // sieti a sťahovanie sa preruší nad limitom veľkosti.
         // Wikimedia generický „bot" User-Agent škrtí (429) — volajúci smie
         // poslať vlastný, popisný.
-        $response = Http::timeout(60)
-            ->withHeaders(['User-Agent' => (string) ($attachment['user_agent'] ?? 'Mozilla/5.0 (compatible; Event API Bot)')])
-            ->get($url);
+        try {
+            $response = $this->fetcher->get(
+                $url,
+                accept: $this->isImageType($type) ? 'image/webp,image/png,image/*;q=0.8' : '*/*',
+                userAgent: (string) ($attachment['user_agent'] ?? 'Mozilla/5.0 (compatible; Event API Bot)'),
+                timeout: 60,
+                connectTimeout: 15,
+                maxBytes: $this->maxBytes($type),
+            )['response'];
+        } catch (RemoteFetchRefused $e) {
+            throw new RemoteAttachmentRejected($e->getMessage(), previous: $e);
+        }
 
         if (! $response->successful()) {
             throw new InvalidArgumentException('Failed to download remote file: '.$url);
@@ -97,14 +110,16 @@ class RemoteAttachmentPersister
 
         $originalName = $this->resolveOriginalName($attachment);
         $safeOriginalName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('remote_file_'.time());
-        $extension = strtolower((string) pathinfo($safeOriginalName, PATHINFO_EXTENSION));
+        $nameExtension = strtolower((string) pathinfo($safeOriginalName, PATHINFO_EXTENSION));
 
-        $mimeType = (string) $response->header('Content-Type', 'application/octet-stream');
-        if ($mimeType !== '' && str_contains($mimeType, ';')) {
-            $mimeType = trim((string) Str::before($mimeType, ';'));
+        // Typ aj prípona sa určia z obsahu — hlavička Content-Type aj text
+        // odkazu sú pod kontrolou cudzieho servera.
+        [$mimeType, $extension] = $this->validateRemoteContent($type, $nameExtension, $content, $url);
+
+        if ($nameExtension !== $extension) {
+            $base = $nameExtension !== '' ? Str::beforeLast($safeOriginalName, '.') : $safeOriginalName;
+            $safeOriginalName = ($base !== '' ? $base : 'remote_file_'.time()).'.'.$extension;
         }
-
-        $this->validateRemoteContent($type, $mimeType, $content, $url);
 
         return new RemoteAttachmentDownload(
             attachment: $attachment,
@@ -153,13 +168,6 @@ class RemoteAttachmentPersister
             }
 
             return $existingFile->fresh();
-        }
-
-        if ($extension === '') {
-            $extension = $this->extensionFromMimeType($mimeType);
-            if ($extension !== '') {
-                $safeOriginalName .= '.'.$extension;
-            }
         }
 
         // Ten istý plagát visí pri viacerých podujatiach — v produkcii bol
@@ -286,31 +294,50 @@ class RemoteAttachmentPersister
             return $name;
         }
 
-        return 'remote_file_'.time().'.bin';
+        // Bez prípony — tú doplní obsah (validateRemoteContent).
+        return 'remote_file_'.time();
     }
 
-    private function extensionFromMimeType(string $mimeType): string
+    private function isImageType(FileType $type): bool
     {
-        return match (strtolower($mimeType)) {
-            'application/pdf' => 'pdf',
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'image/gif' => 'gif',
-            'text/plain' => 'txt',
-            default => '',
-        };
+        return $type === FileType::IMAGE || $type === FileType::CARD;
     }
 
-    private function validateRemoteContent(FileType $type, string $mimeType, string $content, string $url): void
+    private function maxBytes(FileType $type): int
     {
-        if ($type !== FileType::IMAGE) {
-            return;
+        return $this->isImageType($type)
+            ? max(1, (int) config('services.venue_detection.attach.max_bytes', 10485760))
+            : max(1, (int) config('services.remote_attachments.max_bytes', 20971520));
+    }
+
+    /**
+     * Overí obsah a vráti [MIME, príponu], ktoré sa uložia.
+     *
+     * @return array{0: string, 1: string}
+     *
+     * @throws RemoteAttachmentRejected
+     */
+    private function validateRemoteContent(FileType $type, string $nameExtension, string $content, string $url): array
+    {
+        if (strlen($content) > $this->maxBytes($type)) {
+            throw new RemoteAttachmentRejected('Remote file is too large: '.$url);
         }
 
-        $normalizedMime = strtolower(trim($mimeType));
-        if ($normalizedMime === '' || ! str_starts_with($normalizedMime, 'image/')) {
-            throw new InvalidArgumentException('Remote file is not an image: '.$url);
+        return $this->isImageType($type)
+            ? $this->validateImage($nameExtension, $content, $url)
+            : $this->validateFile($nameExtension, $content, $url);
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function validateImage(string $nameExtension, string $content, string $url): array
+    {
+        // getimagesizefromstring číta hlavičku formátu; HTML, SVG ani iný
+        // text s hlavičkou `image/jpeg` ním neprejde.
+        $info = @getimagesizefromstring($content);
+        $normalizedMime = is_array($info) ? strtolower((string) ($info['mime'] ?? '')) : '';
+
+        if (! isset(self::IMAGE_EXTENSIONS[$normalizedMime])) {
+            throw new RemoteAttachmentRejected('Remote file is not an image: '.$url);
         }
 
         $allowedMimes = config('services.venue_detection.attach.allowed_mime_types', [
@@ -328,13 +355,54 @@ class RemoteAttachmentPersister
             $allowedMimes = array_map(fn ($item) => strtolower((string) $item), $allowedMimes);
 
             if (! in_array($normalizedMime, $allowedMimes, true)) {
-                throw new InvalidArgumentException('Remote image mime type is not allowed: '.$normalizedMime);
+                throw new RemoteAttachmentRejected('Remote image mime type is not allowed: '.$normalizedMime);
             }
         }
 
-        $maxBytes = max(1, (int) config('services.venue_detection.attach.max_bytes', 10485760));
-        if (strlen($content) > $maxBytes) {
-            throw new InvalidArgumentException('Remote image is too large: '.$url);
+        $extensions = self::IMAGE_EXTENSIONS[$normalizedMime];
+
+        return [$normalizedMime, in_array($nameExtension, $extensions, true) ? $nameExtension : $extensions[0]];
+    }
+
+    /**
+     * Príloha (FileType::FILE): len prípony z whitelistu a obsah, ktorý
+     * k prípone sedí. HTML ani SVG sa z nášho úložiska servírovať nesmú.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function validateFile(string $nameExtension, string $content, string $url): array
+    {
+        $allowed = config('services.remote_attachments.allowed_extensions', 'pdf,doc,docx,xls,xlsx,odt,txt');
+        $allowed = is_string($allowed) ? explode(',', $allowed) : (array) $allowed;
+        $allowed = array_values(array_intersect(
+            array_map(fn ($item) => strtolower(trim((string) $item)), $allowed),
+            array_keys(self::FILE_TYPES),
+        ));
+
+        if ($nameExtension !== '' && ! in_array($nameExtension, $allowed, true)) {
+            throw new RemoteAttachmentRejected('Remote file extension is not allowed: '.$nameExtension);
         }
+
+        $sniffed = strtolower((string) (new finfo(FILEINFO_MIME_TYPE))->buffer($content));
+
+        if ($nameExtension === '') {
+            // Prípona chýba (odkaz „Prihláška") — určí ju obsah. Presná zhoda
+            // MIME má prednosť pred všeobecným ZIP/OLE kontajnerom.
+            foreach ($allowed as $candidate) {
+                if (self::FILE_TYPES[$candidate][0] === $sniffed) {
+                    return [$sniffed, $candidate];
+                }
+            }
+
+            throw new RemoteAttachmentRejected('Remote file type is not allowed: '.$sniffed.' ('.$url.')');
+        }
+
+        [$canonicalMime, $acceptedMimes] = self::FILE_TYPES[$nameExtension];
+
+        if (! in_array($sniffed, $acceptedMimes, true)) {
+            throw new RemoteAttachmentRejected('Remote file content ('.$sniffed.') does not match .'.$nameExtension.': '.$url);
+        }
+
+        return [$canonicalMime, $nameExtension];
     }
 }

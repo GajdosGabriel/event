@@ -17,9 +17,12 @@ class ImportSocialAvatarJobTest extends TestCase
 
     private function fakeAvatarResponse(): void
     {
+        // Obsah musí byť skutočný obrázok — SVG ani text sa ako avatar neuloží.
+        $this->fakePublicDns();
+
         Http::fake([
             'https://lh3.googleusercontent.com/*' => Http::response(
-                (string) file_get_contents(__DIR__.'/../../../public/images/default.svg'),
+                $this->fakeImage('png'),
                 200,
                 ['Content-Type' => 'image/png'],
             ),

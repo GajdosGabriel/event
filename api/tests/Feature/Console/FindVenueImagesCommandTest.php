@@ -26,6 +26,7 @@ class FindVenueImagesCommandTest extends TestCase
         config(['filesystems.default' => 'public']);
         Storage::fake('public');
         Bus::fake();
+        $this->fakePublicDns();
     }
 
     #[Test]
@@ -250,7 +251,7 @@ class FindVenueImagesCommandTest extends TestCase
 
             if (str_starts_with($url, 'https://upload.wikimedia.org/')) {
                 // Iný obsah pre každý súbor, inak by ich checksum zlúčil.
-                return Http::response('jpeg-'.md5($url), 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg', $url), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             return Http::response('', 404);

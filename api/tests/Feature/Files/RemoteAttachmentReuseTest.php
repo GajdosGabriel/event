@@ -35,7 +35,12 @@ class RemoteAttachmentReuseTest extends TestCase
 
     private const URL = 'https://zdroj.test/plagat.png';
 
-    private const BODY = 'binárny-obsah-plagátu';
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakePublicDns();
+    }
 
     /** EventFactory nechá `user_id` prázdne, a ten stĺpec je NOT NULL. */
     private function event(): Event
@@ -61,7 +66,7 @@ class RemoteAttachmentReuseTest extends TestCase
     private function fakeDownload(): void
     {
         Http::fake([
-            self::URL => Http::response(self::BODY, 200, ['Content-Type' => 'image/png']),
+            self::URL => Http::response($this->fakeImage('png'), 200, ['Content-Type' => 'image/png']),
         ]);
     }
 
@@ -113,8 +118,8 @@ class RemoteAttachmentReuseTest extends TestCase
         // podvrhnutú odpoveď neprepíše a obe stiahnutia by vrátili to isté.
         Http::fake([
             self::URL => Http::sequence()
-                ->push('prvý obsah', 200, ['Content-Type' => 'image/png'])
-                ->push('úplne iný obsah', 200, ['Content-Type' => 'image/png']),
+                ->push($this->fakeImage('png', 'prvy'), 200, ['Content-Type' => 'image/png'])
+                ->push($this->fakeImage('png', 'druhy'), 200, ['Content-Type' => 'image/png']),
         ]);
 
         $first = $this->persist($this->event());

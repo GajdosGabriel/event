@@ -22,6 +22,14 @@ class ImportEventSourcesCommandTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Obrázky a prílohy idú cez SafeRemoteFetcher, ktorý prekladá hosty.
+        $this->fakePublicDns();
+    }
+
     #[Test]
     public function it_imports_ecav_event_creates_system_owned_canal_and_updates_without_duplicates(): void
     {
@@ -46,7 +54,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             return Http::response('', 404);
@@ -138,7 +146,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if ($request->url() === $attachmentUrl) {
@@ -196,11 +204,11 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $blobUrl) {
-                return Http::response('fake-full-image-binary', 200, ['Content-Type' => 'image/png']);
+                return Http::response($this->fakeImage('png', 'full'), 200, ['Content-Type' => 'image/png']);
             }
 
             if ($request->url() === $representationUrl) {
-                return Http::response('fake-small-image-binary', 200, ['Content-Type' => 'image/webp']);
+                return Http::response($this->fakeImage('webp', 'small'), 200, ['Content-Type' => 'image/webp']);
             }
 
             return Http::response('', 404);
@@ -247,11 +255,11 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if ($request->url() === $logoUrl) {
-                return Http::response('fake-logo-binary', 200, ['Content-Type' => 'image/gif']);
+                return Http::response($this->fakeImage('gif', 'logo'), 200, ['Content-Type' => 'image/gif']);
             }
 
             return Http::response('', 404);
@@ -334,7 +342,7 @@ class ImportEventSourcesCommandTest extends TestCase
             return match ($request->url()) {
                 $listingUrl => Http::response($this->tkkbsListingHtmlWithTitle($detailUrl, $title), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
                 $detailUrl => Http::response($this->tkkbsDetailHtmlWithContent($imageUrl, $title, $body), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
-                $imageUrl => Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']),
+                $imageUrl => Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']),
                 default => Http::response('', 404),
             };
         });
@@ -371,7 +379,7 @@ class ImportEventSourcesCommandTest extends TestCase
             return match ($request->url()) {
                 $listingUrl => Http::response($this->tkkbsListingHtmlWithTitle($detailUrl, $title), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
                 $detailUrl => Http::response($this->tkkbsDetailHtmlWithContent($imageUrl, $title, $body), 200, ['Content-Type' => 'text/html; charset=UTF-8']),
-                $imageUrl => Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']),
+                $imageUrl => Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']),
                 default => Http::response('', 404),
             };
         });
@@ -418,7 +426,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             return Http::response('', 404);
@@ -485,7 +493,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if (str_starts_with($request->url(), 'https://nominatim.example/search')) {
@@ -549,7 +557,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if ($request->url() === $attachmentUrl) {
@@ -628,7 +636,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if ($request->url() === $attachmentUrl) {
@@ -691,7 +699,7 @@ class ImportEventSourcesCommandTest extends TestCase
             }
 
             if ($request->url() === $imageUrl) {
-                return Http::response('fake-image-binary', 200, ['Content-Type' => 'image/jpeg']);
+                return Http::response($this->fakeImage('jpeg'), 200, ['Content-Type' => 'image/jpeg']);
             }
 
             if ($request->url() === $attachmentUrl) {
