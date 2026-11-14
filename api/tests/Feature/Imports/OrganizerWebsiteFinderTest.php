@@ -90,6 +90,30 @@ class OrganizerWebsiteFinderTest extends TestCase
     }
 
     #[Test]
+    public function a_wikidata_outage_is_not_cached(): void
+    {
+        Http::fake(['www.wikidata.org/*' => Http::response('', 500)]);
+        $finder = app(OrganizerWebsiteFinder::class);
+
+        $this->assertNull($finder->find('Katolícka univerzita v Ružomberku'));
+        $this->assertFalse(Cache::has('imports:organizer_website:'.md5(mb_strtolower('Katolícka univerzita v Ružomberku'))));
+
+        $this->assertNull($finder->find('Katolícka univerzita v Ružomberku'));
+        Http::assertSentCount(2);
+    }
+
+    #[Test]
+    public function a_wikidata_miss_is_cached(): void
+    {
+        Http::fake(['www.wikidata.org/*' => Http::response(['search' => []])]);
+        $finder = app(OrganizerWebsiteFinder::class);
+
+        $this->assertNull($finder->find('Neznámy spolok'));
+        $this->assertNull($finder->find('Neznámy spolok'));
+        Http::assertSentCount(1);
+    }
+
+    #[Test]
     public function wikidata_is_not_asked_when_the_lookup_is_disabled(): void
     {
         config()->set('services.imports.organizer_website_lookup', false);

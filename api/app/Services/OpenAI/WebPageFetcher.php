@@ -51,20 +51,38 @@ class WebPageFetcher
 
     private function attempt(string $url): string
     {
+        $maxBytes = (int) config('services.imports.page_fetch.max_bytes', 5 * 1024 * 1024);
+        $verifyTls = ! $this->isInsecureTlsHost($url);
+
         $ch = curl_init();
 
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => (int) config('services.imports.page_fetch.max_redirects', 5),
+            // Ani presmerovanie nesmie odbočiť na file://, gopher:// a pod.
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYPEER => $verifyTls,
+            CURLOPT_SSL_VERIFYHOST => $verifyTls ? 2 : 0,
             // HTTP/2 tu nič nezískava a niektoré zdroje v ňom rozbijú rámec
             // uprostred odpovede — nad HTTP/1.1 tie isté adresy prejdú.
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);
+
+        if ($maxBytes > 0) {
+            // MAXFILESIZE odmietne len odpoveď s ohláseným Content-Length;
+            // chunked odpoveď stráži priebežné počítadlo.
+            curl_setopt_array($ch, [
+                CURLOPT_MAXFILESIZE => $maxBytes,
+                CURLOPT_NOPROGRESS => false,
+                CURLOPT_XFERINFOFUNCTION => static fn ($ch, int $downloadTotal, int $downloaded): int => $downloaded > $maxBytes ? 1 : 0,
+            ]);
+        }
 
         $response = curl_exec($ch);
 
@@ -72,6 +90,10 @@ class WebPageFetcher
             $errno = curl_errno($ch);
             $error = 'cURL Error: '.curl_error($ch);
             curl_close($ch);
+
+            if (in_array($errno, [CURLE_FILESIZE_EXCEEDED, CURLE_ABORTED_BY_CALLBACK], true)) {
+                throw new \RuntimeException("Stránka presahuje limit {$maxBytes} B: {$url}");
+            }
 
             if (in_array($errno, self::TRANSIENT_ERRORS, true)) {
                 throw new TransientFetchException($error);
@@ -100,5 +122,23 @@ class WebPageFetcher
             (string) $response,
             is_string($contentType) ? $contentType : null,
         );
+    }
+
+    /** Výnimka z overenia TLS platí pre host z configu aj jeho subdomény. */
+    private function isInsecureTlsHost(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        foreach ((array) config('services.imports.page_fetch.insecure_tls_hosts', []) as $allowed) {
+            $allowed = strtolower(trim((string) $allowed));
+            if ($allowed !== '' && ($host === $allowed || str_ends_with($host, '.'.$allowed))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -99,6 +99,11 @@ class DetectorArticleCityWinsTest extends TestCase
         {
             public function __construct(private readonly string $geocodedCity) {}
 
+            public function lookupDetailed(string $name, string $city, ?string $country = null): array
+            {
+                return ['result' => $this->lookup($name, $city, $country), 'debug' => null];
+            }
+
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [

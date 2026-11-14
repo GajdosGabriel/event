@@ -52,7 +52,18 @@ use Throwable;
 class CanalEmailFinder
 {
     /** Odkazy, za ktorými býva kontakt. */
-    private const CONTACT_LINK = '/kontakt|contact|o-nas|o_nas|about|impressum|farsk[yý][-_ ]?[uú]rad|sekretari/iu';
+    private const CONTACT_LINK = '/kontakt|contact|o-nas|o_nas|o\s+n[aá]s|about|impressum|farsk[yý][-_ ]?[uú]rad|sekretari/iu';
+
+    /**
+     * Poradie kontaktných podstránok — sťahujú sa len prvé, tak nech „o nás"
+     * nepredbehne „kontakt" len preto, že je v menu skôr.
+     */
+    private const CONTACT_LINK_WEIGHTS = [
+        '/kontakt|contact/iu',
+        '/farsk[yý][-_ ]?[uú]rad|sekretari/iu',
+        '/o-nas|o_nas|o\s+n[aá]s|about/iu',
+        '/impressum/iu',
+    ];
 
     /** Všeobecná schránka organizácie má prednosť pred osobnou. */
     private const GENERIC_LOCAL = '/^(info|kontakt|kontakty|contact|office|sekretariat|podatelna|farnost|farsky\.?urad|fara|obec|mesto|ou|mu|recepcia|hello|ahoj|mail|email|admin)$/';
@@ -377,14 +388,52 @@ class CanalEmailFinder
         return $found;
     }
 
+    /**
+     * Je web spoločný portál viacerých organizácií?
+     *
+     * Portál je host, ktorý uvádzajú aspoň tri kanály, alebo dva kanály
+     * s rôznou cestou (`ecav.sk/zbor-x` a `ecav.sk/zbor-y`). Dva kanály
+     * s presne rovnakou adresou sú skôr nezlúčený duplikát — ten hľadanie
+     * neblokuje, len sa zapíše do denníka na zlúčenie.
+     */
     private function sharedWebsite(Canal $canal, string $home): bool
     {
-        $host = preg_replace('/^www\./i', '', (string) Url::host($home));
+        $host = $this->bareHost($home);
+        $address = $this->bareAddress($home);
 
-        return Canal::query()->whereKeyNot($canal->id)->whereNull('merged_into_id')
+        $others = Canal::query()->whereKeyNot($canal->id)->whereNull('merged_into_id')
             ->where('website', 'like', '%'.addcslashes($host, '%_\\').'%')
-            ->get(['id', 'website'])
-            ->contains(fn (Canal $other) => preg_replace('/^www\./i', '', (string) Url::host($other->website)) === $host);
+            ->get(['id', 'name', 'website'])
+            ->filter(fn (Canal $other) => $this->bareHost((string) $other->website) === $host)
+            ->values();
+
+        if ($others->isEmpty()) {
+            return false;
+        }
+
+        if ($others->count() >= 2 || $this->bareAddress((string) $others[0]->website) !== $address) {
+            return true;
+        }
+
+        $duplicate = $others[0];
+        Recorder::info('canals', 'duplicate_suspected',
+            "Kanál {$canal->name}: rovnaký web ako kanál {$duplicate->name} (#{$duplicate->id}) — pravdepodobne duplikát",
+            subject: $canal, context: ['website' => $home, 'duplicate_canal_id' => $duplicate->id]);
+
+        return false;
+    }
+
+    private function bareHost(string $url): string
+    {
+        return (string) preg_replace('/^www\./i', '', (string) Url::host($url));
+    }
+
+    /** Adresa bez schémy a `www.` — `http://www.x.sk/a/` a `https://x.sk/a` sú tá istá. */
+    private function bareAddress(string $url): string
+    {
+        $normalized = (string) Url::normalize($url);
+
+        return $this->bareHost($normalized).substr($normalized, strlen((string) parse_url($normalized, PHP_URL_SCHEME).'://'.(string) Url::host($normalized)));
     }
 
     /** @return array<int, array{email: string, found_on: ?string}> */
@@ -507,7 +556,7 @@ class CanalEmailFinder
             $html = (string) @iconv('Windows-1250', 'UTF-8//IGNORE', $html);
         }
 
-        $text = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = html_entity_decode($this->decodeCloudflare($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         // %xx z odkazov môže dať bajty mimo UTF-8 — tie sa zahodia, adresy sú ASCII.
         $text = mb_scrub(rawurldecode(preg_replace('/%(?![0-9a-f]{2})/i', '%25', $text)), 'UTF-8');
         $text = preg_replace('/\s*[\[\(\{]\s*(at|zavin[aá][cč]|@)\s*[\]\)\}]\s*/iu', '@', $text);
@@ -526,7 +575,27 @@ class CanalEmailFinder
         return array_keys($emails);
     }
 
-    /** @return array<int, string> kontaktné podstránky na tom istom webe */
+    /**
+     * Cloudflare „Email Address Obfuscation" nahradí adresu `data-cfemail="…"`
+     * alebo odkazom `/cdn-cgi/l/email-protection#…` — prvý bajt hex reťazca
+     * je kľúč, ostatné bajty sú znaky adresy XOR kľúč.
+     */
+    private function decodeCloudflare(string $html): string
+    {
+        return (string) preg_replace_callback(
+            '~(?:data-cfemail\s*=\s*["\']?|/cdn-cgi/l/email-protection#)((?:[0-9a-f]{2}){2,})~i',
+            function (array $m): string {
+                $bytes = array_map('hexdec', str_split($m[1], 2));
+                $key = array_shift($bytes);
+                $email = implode('', array_map(fn (int $b) => chr($b ^ $key), $bytes));
+
+                return $m[0].' '.$email.' ';
+            },
+            $html,
+        );
+    }
+
+    /** @return array<int, string> kontaktné podstránky na tom istom webe, najsľubnejšie prvé */
     private function contactLinks(string $html, string $base): array
     {
         $host = $this->registrable(Url::host($base));
@@ -536,22 +605,38 @@ class CanalEmailFinder
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
+        /** @var array<string, int> URL → váha (nižšia skôr) */
         $links = [];
 
         foreach ((new DOMXPath($dom))->query('//a[@href]') ?: [] as $anchor) {
             $href = (string) $anchor->getAttribute('href');
+            $label = $href.' '.$anchor->textContent;
 
-            if (! preg_match(self::CONTACT_LINK, $href.' '.$anchor->textContent)) {
+            if (! preg_match(self::CONTACT_LINK, $label)) {
                 continue;
             }
 
             $url = $this->pages->absolute($base, $href);
 
             if ($url !== null && $url !== $base && $this->registrable(Url::host($url)) === $host) {
-                $links[$url] = true;
+                $links[$url] = min($links[$url] ?? PHP_INT_MAX, $this->contactWeight($label));
             }
         }
 
+        // asort je stabilný — pri rovnakej váhe ostáva poradie v HTML.
+        asort($links);
+
         return array_keys($links);
+    }
+
+    private function contactWeight(string $label): int
+    {
+        foreach (self::CONTACT_LINK_WEIGHTS as $weight => $pattern) {
+            if (preg_match($pattern, $label)) {
+                return $weight;
+            }
+        }
+
+        return count(self::CONTACT_LINK_WEIGHTS);
     }
 }

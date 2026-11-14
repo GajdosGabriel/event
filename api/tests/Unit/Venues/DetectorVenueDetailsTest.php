@@ -59,6 +59,11 @@ class DetectorVenueDetailsTest extends TestCase
 
         $geocoder = new class extends NominatimGeocoder
         {
+            public function lookupDetailed(string $name, string $city, ?string $country = null): array
+            {
+                return ['result' => $this->lookup($name, $city, $country), 'debug' => null];
+            }
+
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -182,6 +187,11 @@ class DetectorVenueDetailsTest extends TestCase
 
         $geocoder = new class extends NominatimGeocoder
         {
+            public function lookupDetailed(string $name, string $city, ?string $country = null): array
+            {
+                return ['result' => $this->lookup($name, $city, $country), 'debug' => null];
+            }
+
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [
@@ -271,6 +281,11 @@ class DetectorVenueDetailsTest extends TestCase
         // take miesto skoncilo bez suradnic a na detaile bez mapy.
         $geocoder = new class extends NominatimGeocoder
         {
+            public function lookupDetailed(string $name, string $city, ?string $country = null): array
+            {
+                return ['result' => $this->lookup($name, $city, $country), 'debug' => null];
+            }
+
             public function lookup(string $name, string $city, ?string $country = null): array
             {
                 return [

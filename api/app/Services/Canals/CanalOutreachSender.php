@@ -48,6 +48,9 @@ use Illuminate\Support\Collection;
  */
 class CanalOutreachSender
 {
+    /** Podujatí v jednej dávke výberu. */
+    private const CHUNK = 200;
+
     public function __construct(
         private CanalInviter $inviter,
         private CanalClaims $claims,
@@ -66,22 +69,24 @@ class CanalOutreachSender
 
         // Výslovne vyžiadaný trigger (--trigger) platí aj mimo zapnutých.
         foreach ($only !== null ? [$only] : $this->triggers() as $trigger) {
+            // Podujatia idú po dávkach (lazy) — po naplnení limitu sa ďalšie
+            // ani nenačítajú.
             foreach ($this->eventsFor($trigger) as $event) {
                 if ($result->count() >= $limit) {
                     return $result;
                 }
 
-                if ($result->contains(fn ($c) => $c['canal']->id === $event->canal_id)) {
+                if ($result->has($event->canal_id)) {
                     continue;
                 }
 
                 if ($candidate = $this->candidate($trigger, $event)) {
-                    $result->push($candidate);
+                    $result->put($event->canal_id, $candidate);
                 }
             }
         }
 
-        return $result;
+        return $result->values();
     }
 
     /**
@@ -102,13 +107,17 @@ class CanalOutreachSender
      */
     public function stats(Canal $canal, Event $event): array
     {
+        // Zobrazenia aj rôzni ľudia jedným dotazom.
         $eventViews = View::query()
             ->where('viewable_type', $event->getMorphClass())
-            ->where('viewable_id', $event->id);
+            ->where('viewable_id', $event->id)
+            ->toBase()
+            ->selectRaw('COUNT(*) as views, COUNT(DISTINCT visitor_hash) as visitors')
+            ->first();
 
         return [
-            'event_views' => (clone $eventViews)->count(),
-            'event_visitors' => (clone $eventViews)->distinct()->count('visitor_hash'),
+            'event_views' => (int) ($eventViews->views ?? 0),
+            'event_visitors' => (int) ($eventViews->visitors ?? 0),
             'canal_views' => View::query()
                 ->where('viewable_type', $canal->getMorphClass())
                 ->where('viewable_id', $canal->id)
@@ -142,8 +151,8 @@ class CanalOutreachSender
      | Výber
      |---------------------------------------------------------------*/
 
-    /** @return Collection<int, Event> */
-    private function eventsFor(MailingTrigger $trigger): Collection
+    /** @return iterable<int, Event> */
+    private function eventsFor(MailingTrigger $trigger): iterable
     {
         $config = config('canals.outreach');
 
@@ -155,13 +164,15 @@ class CanalOutreachSender
                 ->where('published_at', '>=', now()->subDays((int) $config['created_days']))
                 ->where('start_at', '>', now())
                 ->orderBy('published_at')
-                ->get(),
+                ->orderBy('id')
+                ->lazy(self::CHUNK),
 
             MailingTrigger::CanalEventUpcoming => $this->events()
                 ->where('status', ModelStatus::Published->value)
                 ->whereBetween('start_at', [now(), now()->addDays((int) $config['upcoming_days'])])
                 ->orderBy('start_at')
-                ->get(),
+                ->orderBy('id')
+                ->lazy(self::CHUNK),
 
             MailingTrigger::CanalViewsMilestone => $this->milestoneEvents(),
 
@@ -172,7 +183,8 @@ class CanalOutreachSender
                     now()->subDays((int) $config['after_days']),
                 ])
                 ->orderByRaw('COALESCE(end_at, start_at) DESC')
-                ->get()
+                ->orderByDesc('id')
+                ->lazy(self::CHUNK)
                 ->unique('canal_id'),
         };
     }

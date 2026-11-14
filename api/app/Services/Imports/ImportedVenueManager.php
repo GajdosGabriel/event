@@ -11,6 +11,8 @@ use App\Services\OpenAI\Detector;
 use App\Support\ImportedText;
 use App\Support\NationwideCoordinates;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ImportedVenueManager
@@ -112,18 +114,31 @@ class ImportedVenueManager
                             return $this->adopt($existing, $canal, $hasCoordinates, $latitude, $longitude);
                         }
 
-                        $venue = Venue::create($payload);
+                        // Založenie a priradenie kanála spolu: keby zlyhalo až
+                        // assignCanal, catch nižšie by pustil vetvu s obcou a tá
+                        // by to isté miesto založila druhýkrát.
+                        $venue = DB::transaction(function () use ($payload, $canal): Venue {
+                            $venue = Venue::create($payload);
+                            // Kto miesto priniesol, ten ho aj vlastní — VenuePolicy
+                            // sa pýta výhradne na `ownerCanals()`, takže bez toho
+                            // importované miesto v dashboarde neupraví nikto okrem
+                            // super-admina. Viď backfill_venue_owner_canal.
+                            $venue->assignCanal($canal, isOwner: true);
+
+                            return $venue;
+                        });
                         $this->duplicates->markCreated($venue);
-                        // Kto miesto priniesol, ten ho aj vlastní — VenuePolicy
-                        // sa pýta výhradne na `ownerCanals()`, takže bez toho
-                        // importované miesto v dashboarde neupraví nikto okrem
-                        // super-admina. Viď backfill_venue_owner_canal.
-                        $venue->assignCanal($canal, isOwner: true);
 
                         return $venue;
                     }
-                } catch (\Throwable) {
-                    // venue detection failed, fall through to simple draft
+                } catch (\Throwable $e) {
+                    // Detekcia zlyhala — pokračuje sa jednoduchým konceptom nižšie.
+                    Log::warning('ImportedVenueManager: detekcia miesta zlyhala', [
+                        'canal_id' => $canal->id,
+                        'venue_name' => $venueName,
+                        'venue_city' => $venueCity,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         }
@@ -162,7 +177,8 @@ class ImportedVenueManager
                 }
             }
 
-            $venue = Venue::create([
+            // Rovnako v transakcii ako vo vetve s detekciou.
+            $venue = DB::transaction(fn (): Venue => tap(Venue::create([
                 'village_id' => $municipality['village_id'],
                 'name' => Str::limit($name, 250, ''),
                 'street' => $venueStreet ? Str::limit($venueStreet, 250, '') : null,
@@ -174,10 +190,9 @@ class ImportedVenueManager
                 // Pin z článku má prednosť pred súradnicami z geokódera.
                 'latitude' => $hasCoordinates ? $latitude : $municipality['latitude'],
                 'longitude' => $hasCoordinates ? $longitude : $municipality['longitude'],
-            ]);
+                // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
+            ]), fn (Venue $venue) => $venue->assignCanal($canal, isOwner: true)));
             $this->duplicates->markCreated($venue);
-            // Vlastníkom je kanál, ktorý miesto založil — viď vetva vyššie.
-            $venue->assignCanal($canal, isOwner: true);
 
             return $venue;
         }
@@ -208,8 +223,12 @@ class ImportedVenueManager
             return $venue;
         }
 
+        // Obec podľa slugu, nie natvrdo zapísané id — viď Municipality::NATIONWIDE_SLUG.
+        $villageId = Municipality::nationwideId()
+            ?? throw new \RuntimeException('V číselníku obcí chýba „Celé Slovensko“ ('.Municipality::NATIONWIDE_SLUG.').');
+
         return Venue::query()->create([
-            'village_id' => 4209,
+            'village_id' => $villageId,
             'name' => 'Celé Slovensko',
             'street' => null,
             'postcode' => null,

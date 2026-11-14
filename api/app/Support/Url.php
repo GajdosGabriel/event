@@ -20,6 +20,20 @@ final class Url
     /** Schémy, ktoré má zmysel ukladať ako web. Nič iné sa nepustí ďalej. */
     private const SCHEMES = ['http', 'https'];
 
+    /** @var (\Closure(string): array<int, string>)|null */
+    private static ?\Closure $resolver = null;
+
+    /**
+     * Podvrhne preklad hostov na IP (len pre testy — `*.test` sa nepreloží
+     * a skutočné DNS do testov nepatrí). null vráti skutočné DNS.
+     *
+     * @param  (\Closure(string): array<int, string>)|null  $resolver
+     */
+    public static function resolveHostsUsing(?\Closure $resolver): void
+    {
+        self::$resolver = $resolver;
+    }
+
     /**
      * Uvedie adresu do tvaru, v akom sa ukladá a overuje.
      *
@@ -240,6 +254,11 @@ final class Url
     public static function resolve(string $host): array
     {
         $host = self::toAscii($host);
+
+        if (self::$resolver !== null) {
+            return array_values((self::$resolver)($host));
+        }
+
         $addresses = [];
 
         // A a AAAA zvlášť: spoločný dotaz zlyhá celý, keď DNS server na AAAA

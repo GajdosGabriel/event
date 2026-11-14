@@ -62,9 +62,38 @@ class CanalEmailFinderTest extends TestCase
         $this->emails = app(CanalEmails::class);
     }
 
+    /** @var array<int, string> URL v poradí, v akom sa sťahovali */
+    private array $fetched = [];
+
     public function page(string $url): ?string
     {
+        $this->fetched[] = rtrim($url, '/');
+
         return $this->pages[rtrim($url, '/')] ?? null;
+    }
+
+    #[Test]
+    public function cloudflare_protected_addresses_are_decoded(): void
+    {
+        $html = '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5a3c3b283b1a3c3b283435292e742e3f292e">[email&#160;protected]</a>'
+            .'<a href="/cdn-cgi/l/email-protection#137a7d757c537572617d7c60673d67766067">Napíšte nám</a>';
+
+        $this->assertEqualsCanonicalizing(['fara@farnost.test', 'info@farnost.test'], app(CanalEmailFinder::class)->extract($html));
+    }
+
+    #[Test]
+    public function contact_page_is_fetched_before_about_page(): void
+    {
+        config(['canals.emails.discovery.pages' => 1]);
+        $canal = $this->canal(null, website: 'https://www.farnost.test');
+        $this->pages = [
+            'https://www.farnost.test' => '<a href="/historia">O nás</a> <a href="/impressum">Impressum</a> <a href="/spojenie">Kontakt</a>',
+            'https://www.farnost.test/spojenie' => '<p>fara@farnost.test</p>',
+        ];
+
+        $this->assertSame(CanalEmailSearch::FOUND, app(CanalEmailFinder::class)->run($canal));
+        $this->assertSame(['https://www.farnost.test', 'https://www.farnost.test/spojenie'], array_slice($this->fetched, 0, 2));
+        $this->assertSame('fara@farnost.test', $canal->fresh()->email);
     }
 
     #[Test]
@@ -156,14 +185,40 @@ class CanalEmailFinderTest extends TestCase
     }
 
     #[Test]
-    public function a_website_shared_by_several_canals_is_not_searched(): void
+    public function a_website_shared_by_three_canals_is_not_searched(): void
     {
         $canal = $this->canal(null, website: 'https://www.cirkev.test');
         $this->canal(null, website: 'https://cirkev.test/');
+        $this->canal(null, website: 'https://cirkev.test/zbor-y');
         $this->pages = ['https://www.cirkev.test' => '<a href="mailto:media@cirkev.test">Médiá</a>'];
 
         $this->assertSame(CanalEmailSearch::NONE, app(CanalEmailFinder::class)->run($canal));
         $this->assertNull($canal->fresh()->email);
+    }
+
+    #[Test]
+    public function two_canals_on_different_paths_of_one_host_share_a_portal(): void
+    {
+        $canal = $this->canal(null, website: 'https://www.cirkev.test/zbor-x');
+        $this->canal(null, website: 'https://cirkev.test/zbor-y');
+        $this->pages = ['https://www.cirkev.test/zbor-x' => '<a href="mailto:media@cirkev.test">Médiá</a>'];
+
+        $this->assertSame(CanalEmailSearch::NONE, app(CanalEmailFinder::class)->run($canal));
+        $this->assertNull($canal->fresh()->email);
+    }
+
+    #[Test]
+    public function a_duplicate_canal_with_the_same_website_does_not_block_the_search(): void
+    {
+        $canal = $this->canal(null, website: 'https://www.cirkev.test');
+        $duplicate = $this->canal(null, website: 'http://cirkev.test/');
+        $this->pages = ['https://www.cirkev.test' => '<a href="mailto:fara@cirkev.test">Fara</a>'];
+
+        $this->assertSame(CanalEmailSearch::FOUND, app(CanalEmailFinder::class)->run($canal));
+        $this->assertSame('fara@cirkev.test', $canal->fresh()->email);
+
+        $log = SystemLog::where('event', 'canals.duplicate_suspected')->sole();
+        $this->assertSame($duplicate->id, $log->context['duplicate_canal_id'] ?? null);
     }
 
     #[Test]

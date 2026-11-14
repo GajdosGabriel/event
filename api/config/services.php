@@ -85,6 +85,13 @@ return [
         ],
     ],
 
+    // Prílohy sťahované z cudzích webov (FileType::FILE). Obrázky majú
+    // vlastný limit vyššie (venue_detection.attach).
+    'remote_attachments' => [
+        'max_bytes' => env('REMOTE_ATTACHMENT_MAX_BYTES', 20971520),
+        'allowed_extensions' => env('REMOTE_ATTACHMENT_ALLOWED_EXTENSIONS', 'pdf,doc,docx,xls,xlsx,odt,txt'),
+    ],
+
     'pdf_converter' => [
         'url' => env('PDF_CONVERTER_URL', 'http://78.47.38.184'),
         'token' => env('PDF_CONVERTER_TOKEN', ''),
@@ -117,6 +124,18 @@ return [
                 explode(',', (string) env('IMPORT_SOURCE_URLS', 'https://www.ecav.sk/aktuality/pozvanky,https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl,https://www.vyveska.sk/zoznam-podujati/najnovsie/'))
             ))),
             'max_pages' => max(1, (int) env('IMPORT_SOURCE_MAX_PAGES', 1)),
+        ],
+        // Stiahnutie článku pre AI detektor (WebPageFetcher). TLS sa overuje;
+        // host s rozbitým certifikátom sem patrí len výslovne, s dôvodom v komentári.
+        // Všetky štyri zdroje (ecav.sk, tkkbs.sk, vyveska.sk, hlascirkvi.sk)
+        // prejdú s overením, zoznam je preto prázdny.
+        'page_fetch' => [
+            'insecure_tls_hosts' => array_values(array_filter(array_map(
+                static fn (string $host) => strtolower(trim($host)),
+                explode(',', (string) env('IMPORT_INSECURE_TLS_HOSTS', ''))
+            ))),
+            'max_redirects' => (int) env('IMPORT_PAGE_MAX_REDIRECTS', 5),
+            'max_bytes' => (int) env('IMPORT_PAGE_MAX_BYTES', 5 * 1024 * 1024),
         ],
     ],
 

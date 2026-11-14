@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class FileManager
 {
@@ -99,20 +101,52 @@ class FileManager
 
         $storageDirectory = $directory ?? $this->defaultDirectory($model, $type);
 
-        return DB::transaction(function () use ($model, $normalizedAttachments, $type, $disk, $storageDirectory, $makePrimary, $meta) {
+        // Sťahuje sa pred transakciou — každé stiahnutie môže trvať až 60 s
+        // a transakcia by po celý čas držala zámky. Zlyhaná príloha sa
+        // zaloguje a ostatné sa uložia.
+        $downloads = collect();
+        $firstFailure = null;
+
+        foreach ($normalizedAttachments as $attachment) {
+            try {
+                $downloads->push($this->remoteAttachmentPersister->download($attachment, $type));
+            } catch (Throwable $e) {
+                $firstFailure ??= $e;
+
+                Log::warning('Nepodarilo sa stiahnuť prílohu.', [
+                    'model_type' => $model->getMorphClass(),
+                    'model_id' => $model->getKey(),
+                    'url' => $attachment['url'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Keď nevyšla ani jedna, volajúci sa to musí dozvedieť — FindVenueImages
+        // na výnimke stavia opakovanie pri 429 a kontroléry chybovú odpoveď.
+        if ($downloads->isEmpty()) {
+            throw $firstFailure;
+        }
+
+        return DB::transaction(function () use ($model, $downloads, $type, $disk, $storageDirectory, $makePrimary, $meta) {
             if ($makePrimary) {
                 $model->files()->where('type', $type->value)->update(['is_primary' => false]);
             }
 
-            $storedFiles = $this->remoteAttachmentPersister->store(
-                model: $model,
-                attachments: $normalizedAttachments,
-                type: $type,
-                disk: $disk,
-                storageDirectory: $storageDirectory,
-                makePrimary: $makePrimary,
-                meta: $meta,
-            )->unique('id')->values();
+            // Primárna je prvá úspešne stiahnutá — keď prvá zlyhá, nemá
+            // ostať model bez primárneho obrázka.
+            $storedFiles = $downloads
+                ->map(fn (RemoteAttachmentDownload $download, int $index) => $this->remoteAttachmentPersister->persist(
+                    model: $model,
+                    download: $download,
+                    type: $type,
+                    disk: $disk,
+                    storageDirectory: $storageDirectory,
+                    makePrimary: $makePrimary && $index === 0,
+                    meta: $meta,
+                ))
+                ->unique('id')
+                ->values();
 
             $this->ensureModelPrimaryImage($model, $storedFiles, $makePrimary);
 

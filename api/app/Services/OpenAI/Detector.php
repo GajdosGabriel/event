@@ -42,7 +42,6 @@ class Detector
         private readonly NominatimGeocoder $nominatimGeocoder = new NominatimGeocoder,
         private readonly MunicipalityResolver $municipalityResolver = new MunicipalityResolver,
         private readonly WikipediaPlaceEnricher $wikipediaPlaceEnricher = new WikipediaPlaceEnricher,
-        private readonly AttachmentDownloader $attachmentDownloader = new AttachmentDownloader,
         private readonly TextLinkExtractor $textLinkExtractor = new TextLinkExtractor,
         private readonly MunicipalityNameFinder $municipalityNameFinder = new MunicipalityNameFinder,
         private readonly ?VenueCoordinateResolver $venueCoordinateResolver = null,
@@ -66,11 +65,6 @@ class Detector
     public function extrahujContentBody(string $html, string $baseUrl): array
     {
         return $this->contentExtractor->extract($html, $baseUrl);
-    }
-
-    public function stiahniPrilohy(array $attachments, int $eventId): array
-    {
-        return $this->attachmentDownloader->download($attachments, $eventId);
     }
 
     public function extrahujLinkyZTextu(string $text): array
@@ -587,10 +581,10 @@ class Detector
             ];
 
             $aiVenuePayload = $this->chatGPT->extractVenueDetails($input);
-            $geocodedPayload = $this->nominatimGeocoder->lookup($name, $city, $country);
-            $geocodedLookup = get_class($this->nominatimGeocoder) === NominatimGeocoder::class
-                ? $this->nominatimGeocoder->lookupDetailed($name, $city, $country)
-                : ['result' => $geocodedPayload, 'debug' => null];
+            // Jedno volanie: neúspech (429) sa necachuje, takže lookup() +
+            // lookupDetailed() by záťaž zdvojili práve vtedy, keď geokodér odmieta.
+            $geocodedLookup = $this->nominatimGeocoder->lookupDetailed($name, $city, $country);
+            $geocodedPayload = is_array($geocodedLookup['result'] ?? null) ? $geocodedLookup['result'] : [];
             $venuePayload = $this->mergeVenuePayload($input, $aiVenuePayload, $geocodedPayload);
 
             $placeEnrichment = $this->wikipediaPlaceEnricher->enrich(

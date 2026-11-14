@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Support\Url;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +18,9 @@ abstract class TestCase extends BaseTestCase
         // cache a inak by testy padali podľa poradia spustenia. Testy, ktoré samotné
         // limitovanie overujú, si ho zapnú cez `$this->withMiddleware(ThrottleRequests::class)`.
         $this->withoutMiddleware(ThrottleRequests::class);
+
+        // Podvrhnutý preklad hostov je statický — nesmie prežiť do ďalšieho testu.
+        Url::resolveHostsUsing(null);
 
         // Žiadny test nesmie ísť na skutočnú sieť. Uloženie kanála volá
         // geokóder (backfillCoordinates), ktorý na verejnom Nominatime čakal

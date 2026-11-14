@@ -122,17 +122,32 @@ class OrganizerWebsiteFinder
             return null;
         }
 
-        $website = Cache::remember(
-            'imports:organizer_website:'.md5(mb_strtolower($name)),
-            now()->addDays(7),
-            fn (): string => $this->lookupWikidata($name) ?? '',
-        );
+        $cacheKey = 'imports:organizer_website:'.md5(mb_strtolower($name));
+        $cached = Cache::get($cacheKey);
 
-        return $website !== '' ? $website : null;
+        if (is_string($cached)) {
+            return $cached !== '' ? $cached : null;
+        }
+
+        // Výpadok Wikidata (timeout, 429, 5xx) sa necachuje — inak by jeden
+        // výpadok znamenal týždeň bez webu organizátora.
+        ['website' => $website, 'cacheable' => $cacheable] = $this->lookupWikidata($name);
+
+        if ($cacheable) {
+            Cache::put($cacheKey, $website ?? '', now()->addDays(7));
+        }
+
+        return $website;
     }
 
-    private function lookupWikidata(string $name): ?string
+    /**
+     * @return array{website: ?string, cacheable: bool}
+     */
+    private function lookupWikidata(string $name): array
     {
+        $failed = ['website' => null, 'cacheable' => false];
+        $notFound = ['website' => null, 'cacheable' => true];
+
         try {
             $search = Http::timeout(10)
                 ->acceptJson()
@@ -148,7 +163,7 @@ class OrganizerWebsiteFinder
                 ]);
 
             if (! $search->ok()) {
-                return null;
+                return $failed;
             }
 
             $base = ImportedNameMatcher::baseSlug($name);
@@ -166,7 +181,7 @@ class OrganizerWebsiteFinder
             }
 
             if ($id === null) {
-                return null;
+                return $notFound;
             }
 
             $entity = Http::timeout(10)
@@ -175,15 +190,18 @@ class OrganizerWebsiteFinder
                 ->get('https://www.wikidata.org/wiki/Special:EntityData/'.rawurlencode($id).'.json');
 
             if (! $entity->ok()) {
-                return null;
+                return $failed;
             }
 
             $website = Url::normalize($entity->json('entities.'.$id.'.claims.P856.0.mainsnak.datavalue.value'));
             $host = $this->bareHost($website);
 
-            return $host !== null && ! $this->isListed($host, self::FOREIGN_HOSTS) ? $website : null;
+            return [
+                'website' => $host !== null && ! $this->isListed($host, self::FOREIGN_HOSTS) ? $website : null,
+                'cacheable' => true,
+            ];
         } catch (\Throwable) {
-            return null;
+            return $failed;
         }
     }
 

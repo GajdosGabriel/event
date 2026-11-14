@@ -117,7 +117,7 @@ class ContentExtractor
             $href = $link->getAttribute('href');
             $linkText = $this->sanitizeUtf8($link->textContent);
 
-            if (strpos($href, '.pdf') === false && stripos($linkText, 'priloha') === false) {
+            if (stripos($href, '.pdf') === false && stripos($linkText, 'priloha') === false) {
                 continue;
             }
 

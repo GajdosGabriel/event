@@ -4,6 +4,7 @@ namespace App\Services\Files;
 
 use App\Enums\FileType;
 use App\Jobs\GenerateFileVariantsJob;
+use App\Services\Security\SafeRemoteFetcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -13,12 +14,44 @@ use InvalidArgumentException;
 
 class RemoteAttachmentPersister
 {
+    /**
+     * Obrázky: MIME zistený z obsahu → prípustné prípony (prvá je kanonická).
+     * SVG tu zámerne nie je — je to dokument so skriptami.
+     */
+    private const IMAGE_EXTENSIONS = [
+        'image/jpeg' => ['jpg', 'jpeg'],
+        'image/png' => ['png'],
+        'image/webp' => ['webp'],
+        'image/gif' => ['gif'],
+    ];
+
+    /**
+     * Prílohy: prípona → [MIME, ktorý sa uloží, MIME, ktoré finfo pre takýto
+     * súbor môže zistiť]. Staré Office formáty sú OLE kontajner, nové OOXML
+     * a ODF sú ZIP — finfo ich nie vždy rozlíši presnejšie.
+     */
+    private const FILE_TYPES = [
+        'pdf' => ['application/pdf', ['application/pdf']],
+        'doc' => ['application/msword', ['application/msword', 'application/vnd.ms-office', 'application/cdfv2', 'application/x-ole-storage']],
+        'xls' => ['application/vnd.ms-excel', ['application/vnd.ms-excel', 'application/vnd.ms-office', 'application/cdfv2', 'application/x-ole-storage', 'application/msword']],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip']],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip']],
+        'odt' => ['application/vnd.oasis.opendocument.text', ['application/vnd.oasis.opendocument.text', 'application/zip']],
+        'txt' => ['text/plain', ['text/plain']],
+    ];
+
     public function __construct(
         private readonly \App\Services\Files\FileDisplayNameResolver $fileDisplayNameResolver = new \App\Services\Files\FileDisplayNameResolver,
         private readonly FileDuplicator $fileDuplicator = new FileDuplicator,
+        private readonly SafeRemoteFetcher $fetcher = new SafeRemoteFetcher,
     ) {}
 
     /**
+     * Stiahne a uloží všetky prílohy; prvé zlyhanie zahodí celú dávku.
+     *
+     * FileManager volá download() a persist() zvlášť, aby sťahovanie nebežalo
+     * vnútri DB transakcie a zlyhaná príloha nezhodila ostatné.
+     *
      * @param  Collection<int, array<string, mixed>>  $attachments
      * @param  array<string, mixed>  $meta
      */
@@ -31,108 +64,151 @@ class RemoteAttachmentPersister
         bool $makePrimary,
         array $meta
     ): Collection {
-        return $attachments->values()->map(function (array $attachment, int $index) use ($model, $type, $disk, $storageDirectory, $makePrimary, $meta) {
-            $url = (string) $attachment['url'];
-
-            // Wikimedia generický „bot" User-Agent škrtí (429) — volajúci smie
-            // poslať vlastný, popisný.
-            $response = Http::timeout(60)
-                ->withHeaders(['User-Agent' => (string) ($attachment['user_agent'] ?? 'Mozilla/5.0 (compatible; Event API Bot)')])
-                ->get($url);
-
-            if (! $response->successful()) {
-                throw new InvalidArgumentException('Failed to download remote file: '.$url);
-            }
-
-            $content = $response->body();
-            if ($content === '') {
-                throw new InvalidArgumentException('Remote file is empty: '.$url);
-            }
-
-            $originalName = $this->resolveOriginalName($attachment);
-            $safeOriginalName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('remote_file_'.time());
-            $extension = strtolower((string) pathinfo($safeOriginalName, PATHINFO_EXTENSION));
-
-            $mimeType = (string) $response->header('Content-Type', 'application/octet-stream');
-            if ($mimeType !== '' && str_contains($mimeType, ';')) {
-                $mimeType = trim((string) Str::before($mimeType, ';'));
-            }
-
-            $this->validateRemoteContent($type, $mimeType, $content, $url);
-
-            $checksum = hash('sha256', $content);
-            $existingFile = $model->files()
-                ->where('type', $type->value)
-                ->where('checksum', $checksum)
-                ->latest('id')
-                ->first();
-
-            if ($existingFile instanceof \App\Models\File) {
-                if ($makePrimary && $index === 0 && ! $existingFile->is_primary) {
-                    $existingFile->forceFill(['is_primary' => true])->save();
-                }
-
-                return $existingFile->fresh();
-            }
-
-            if ($extension === '') {
-                $extension = $this->extensionFromMimeType($mimeType);
-                if ($extension !== '') {
-                    $safeOriginalName .= '.'.$extension;
-                }
-            }
-
-            // Ten istý plagát visí pri viacerých podujatiach — v produkcii bol
-            // jeden PNG stiahnutý jedenásťkrát. Keď už rovnaký obsah niekde
-            // máme, netreba ho nahrávať znova ani znova prehnať generovaním
-            // variantov: objekty sa prekopírujú na disku aj s hotovým thumb
-            // a large. Rozhoduje checksum stiahnutého tela, nie odkaz, takže
-            // zámena obrázka na zdroji sa nedá prehliadnuť.
-            //
-            // Kópia, nie zdieľanie cesty — dôvod drží FileDuplicator.
-            $reused = $this->reuseStoredCopy($model, $checksum, $type, $safeOriginalName, $extension, $makePrimary && $index === 0, $meta, $attachment, $url);
-
-            if ($reused !== null) {
-                return $reused;
-            }
-
-            $storedFileName = Str::random(40).($extension !== '' ? '.'.$extension : '');
-            $path = trim($storageDirectory, '/').'/'.$storedFileName;
-
-            $stored = Storage::disk($disk)->put($path, $content);
-            if (! $stored) {
-                throw new InvalidArgumentException('Failed to store remote file: '.$url);
-            }
-
-            $file = $model->files()->create([
-                'name' => $this->fileDisplayNameResolver->resolve($model, $originalName),
-                'original_name' => $safeOriginalName,
-                'extension' => $extension !== '' ? $extension : null,
-                'size' => strlen($content),
-                'mime_type' => $mimeType !== '' ? $mimeType : null,
-                'disk' => $disk,
-                'path' => $path,
-                'checksum' => $checksum,
-                'type' => $type->value,
-                'is_primary' => $makePrimary && $index === 0,
-                'meta' => array_merge($meta, [
-                    'source' => 'remote_attachment',
-                    'source_url' => $url,
-                    'source_name' => $attachment['name'] ?? null,
-                    'source_link_text' => $attachment['link_text'] ?? null,
-                    'source_size' => $attachment['size'] ?? null,
-                ]),
-            ]);
-
-            GenerateFileVariantsJob::dispatch((int) $file->id);
-
-            return $file;
-        });
+        return $attachments->values()
+            ->map(fn (array $attachment) => $this->download($attachment, $type))
+            ->map(fn (RemoteAttachmentDownload $download, int $index) => $this->persist(
+                $model, $download, $type, $disk, $storageDirectory, $makePrimary && $index === 0, $meta,
+            ));
     }
 
     /**
+     * Stiahne a zvaliduje prílohu. Na DB ani disk nesiaha.
+     *
      * @param  array<string, mixed>  $attachment
      */
+    public function download(array $attachment, FileType $type): RemoteAttachmentDownload
+    {
+        $url = (string) $attachment['url'];
+
+        // Wikimedia generický „bot" User-Agent škrtí (429) — volajúci smie
+        // poslať vlastný, popisný.
+        $response = Http::timeout(60)
+            ->withHeaders(['User-Agent' => (string) ($attachment['user_agent'] ?? 'Mozilla/5.0 (compatible; Event API Bot)')])
+            ->get($url);
+
+        if (! $response->successful()) {
+            throw new InvalidArgumentException('Failed to download remote file: '.$url);
+        }
+
+        $content = $response->body();
+        if ($content === '') {
+            throw new InvalidArgumentException('Remote file is empty: '.$url);
+        }
+
+        $originalName = $this->resolveOriginalName($attachment);
+        $safeOriginalName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('remote_file_'.time());
+        $extension = strtolower((string) pathinfo($safeOriginalName, PATHINFO_EXTENSION));
+
+        $mimeType = (string) $response->header('Content-Type', 'application/octet-stream');
+        if ($mimeType !== '' && str_contains($mimeType, ';')) {
+            $mimeType = trim((string) Str::before($mimeType, ';'));
+        }
+
+        $this->validateRemoteContent($type, $mimeType, $content, $url);
+
+        return new RemoteAttachmentDownload(
+            attachment: $attachment,
+            url: $url,
+            content: $content,
+            mimeType: $mimeType,
+            checksum: hash('sha256', $content),
+            originalName: $originalName,
+            safeOriginalName: $safeOriginalName,
+            extension: $extension,
+        );
+    }
+
+    /**
+     * Zapíše stiahnutú prílohu na disk a do DB — patrí do transakcie.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function persist(
+        Model $model,
+        RemoteAttachmentDownload $download,
+        FileType $type,
+        string $disk,
+        string $storageDirectory,
+        bool $makePrimary,
+        array $meta
+    ): \App\Models\File {
+        $attachment = $download->attachment;
+        $url = $download->url;
+        $content = $download->content;
+        $mimeType = $download->mimeType;
+        $checksum = $download->checksum;
+        $originalName = $download->originalName;
+        $safeOriginalName = $download->safeOriginalName;
+        $extension = $download->extension;
+
+        $existingFile = $model->files()
+            ->where('type', $type->value)
+            ->where('checksum', $checksum)
+            ->latest('id')
+            ->first();
+
+        if ($existingFile instanceof \App\Models\File) {
+            if ($makePrimary && ! $existingFile->is_primary) {
+                $existingFile->forceFill(['is_primary' => true])->save();
+            }
+
+            return $existingFile->fresh();
+        }
+
+        if ($extension === '') {
+            $extension = $this->extensionFromMimeType($mimeType);
+            if ($extension !== '') {
+                $safeOriginalName .= '.'.$extension;
+            }
+        }
+
+        // Ten istý plagát visí pri viacerých podujatiach — v produkcii bol
+        // jeden PNG stiahnutý jedenásťkrát. Keď už rovnaký obsah niekde
+        // máme, netreba ho nahrávať znova ani znova prehnať generovaním
+        // variantov: objekty sa prekopírujú na disku aj s hotovým thumb
+        // a large. Rozhoduje checksum stiahnutého tela, nie odkaz, takže
+        // zámena obrázka na zdroji sa nedá prehliadnuť.
+        //
+        // Kópia, nie zdieľanie cesty — dôvod drží FileDuplicator.
+        $reused = $this->reuseStoredCopy($model, $checksum, $type, $safeOriginalName, $extension, $makePrimary, $meta, $attachment, $url);
+
+        if ($reused !== null) {
+            return $reused;
+        }
+
+        $storedFileName = Str::random(40).($extension !== '' ? '.'.$extension : '');
+        $path = trim($storageDirectory, '/').'/'.$storedFileName;
+
+        $stored = Storage::disk($disk)->put($path, $content);
+        if (! $stored) {
+            throw new InvalidArgumentException('Failed to store remote file: '.$url);
+        }
+
+        $file = $model->files()->create([
+            'name' => $this->fileDisplayNameResolver->resolve($model, $originalName),
+            'original_name' => $safeOriginalName,
+            'extension' => $extension !== '' ? $extension : null,
+            'size' => strlen($content),
+            'mime_type' => $mimeType !== '' ? $mimeType : null,
+            'disk' => $disk,
+            'path' => $path,
+            'checksum' => $checksum,
+            'type' => $type->value,
+            'is_primary' => $makePrimary,
+            'meta' => array_merge($meta, [
+                'source' => 'remote_attachment',
+                'source_url' => $url,
+                'source_name' => $attachment['name'] ?? null,
+                'source_link_text' => $attachment['link_text'] ?? null,
+                'source_size' => $attachment['size'] ?? null,
+            ]),
+        ]);
+
+        GenerateFileVariantsJob::dispatch((int) $file->id);
+
+        return $file;
+    }
+
     /**
      * Prekopíruje už uložený súbor s rovnakým obsahom, ak nejaký existuje.
      *
