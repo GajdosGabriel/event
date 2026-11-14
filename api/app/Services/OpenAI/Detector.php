@@ -10,11 +10,31 @@ use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\VenueCoordinateResolver;
 use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Places\WikipediaPlaceEnricher;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class Detector
 {
+    /** Kratší názov („Obec“, „Fara“) sa hľadá len presne, nie cez LIKE. */
+    private const MIN_LIKE_LOOKUP_LENGTH = 6;
+
+    /**
+     * Druhové slová v názvoch miest (po normalizácii na ASCII) — samy osebe
+     * budovu neidentifikujú, takže zhoda na nich nestačí.
+     */
+    private const GENERIC_VENUE_TOKENS = [
+        'kostol', 'chram', 'kaplnka', 'bazilika', 'katedrala',
+        'dom', 'kultury', 'kulturny', 'kulturne', 'centrum', 'stredisko',
+        'sala', 'hala', 'klub', 'namestie', 'park',
+        'skola', 'zakladna', 'materska', 'farsky', 'farnost',
+        'urad', 'obecny', 'obecne', 'mestsky', 'mestske',
+        'kino', 'divadlo', 'kniznica', 'muzeum', 'galeria', 'amfiteater',
+        'svaty', 'svata', 'svateho', 'svatej',
+    ];
+
     public function __construct(
         private readonly WebPageFetcher $fetcher = new WebPageFetcher,
         private readonly ContentExtractor $contentExtractor = new ContentExtractor,
@@ -227,21 +247,11 @@ class Detector
 
     private function lookupCanalByName(string $name): ?array
     {
-        $normalizedName = $this->normalizeLookupName($name);
-        $slug = Str::slug($normalizedName);
-
-        $canal = Canal::query()
-            ->where(function ($query) use ($normalizedName, $slug) {
-                $query->where('slug', $slug)
-                    ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
-            })
-            ->orderByDesc('created_at')
-            ->first(['id', 'name', 'slug']);
-
-        // Rovnaká zhoda na holom slugu ako v ImportedCanalManager, aby nápoveda
-        // v admine ukázala ten istý kanál, na ktorý napojí import.
-        $canal ??= ImportedNameMatcher::firstByBaseName(Canal::query(), $normalizedName);
+        // Zlúčený kanál je len alias — nápoveda má ukázať ten, do ktorého splynul.
+        $canal = $this->lookupByName(
+            fn () => Canal::query()->whereNull('merged_into_id'),
+            $this->normalizeLookupName($name),
+        );
 
         if (! $canal instanceof Canal) {
             return null;
@@ -257,29 +267,67 @@ class Detector
      */
     private function lookupVenueByName(string $name, ?string $city = null): ?array
     {
-        $normalizedName = $this->normalizeLookupName($name);
-        $slug = Str::slug($normalizedName);
+        $city = $city !== null && trim($city) !== '' ? trim($city) : null;
 
-        $venue = Venue::query()
-            ->where(function ($query) use ($normalizedName, $slug) {
-                $query->where('slug', $slug)
-                    ->orWhere('name', $normalizedName)
-                    ->orWhere('name', 'like', '%'.$normalizedName.'%');
-            })
-            ->when($city !== null && trim($city) !== '', fn ($query) => $query->whereHas(
+        $venue = $this->lookupByName(
+            fn () => Venue::query()->when($city !== null, fn ($query) => $query->whereHas(
                 'municipality',
                 fn ($municipality) => $municipality
-                    ->where('fullname', trim($city))
-                    ->orWhere('shortname', trim($city)),
-            ))
-            ->orderByDesc('created_at')
-            ->first(['id', 'name', 'slug']);
+                    ->where('fullname', $city)
+                    ->orWhere('shortname', $city),
+            )),
+            $this->normalizeLookupName($name),
+            $city,
+        );
 
         if (! $venue instanceof Venue) {
             return null;
         }
 
         return ['id' => $venue->id, 'name' => $venue->name, 'slug' => $venue->slug];
+    }
+
+    /**
+     * Záznam podľa názvu, od najistejšej zhody po najvoľnejšiu: presný slug →
+     * presný názov → holý slug (ImportedNameMatcher, rovnako ako import, aby
+     * nápoveda v admine ukázala to, na čo import napojí) → až nakoniec LIKE.
+     *
+     * Kedysi boli všetky podmienky v jednom OR a vyhral najnovší záznam, takže
+     * „Farnosť Košice“ sadla na novšiu „Farnosť Košice-Sever“. LIKE sa púšťa len
+     * pri dlhšom názve — „Obec“ či „Fara“ by trafili čokoľvek — a so
+     * zástupnými znakmi branými doslovne. V rámci kroku vyhráva najstarší záznam.
+     *
+     * @param  Closure(): Builder  $query  čerstvý dotaz pre každý krok
+     */
+    private function lookupByName(Closure $query, string $name, ?string $locality = null): ?Model
+    {
+        if ($name === '') {
+            return null;
+        }
+
+        $columns = ['id', 'name', 'slug'];
+        $slug = Str::slug($name);
+
+        if ($slug !== '' && ($found = $query()->where('slug', $slug)->orderBy('id')->first($columns))) {
+            return $found;
+        }
+
+        if ($found = $query()->where('name', $name)->orderBy('id')->first($columns)) {
+            return $found;
+        }
+
+        if ($found = ImportedNameMatcher::firstByBaseName($query(), $name, $locality)) {
+            return $found;
+        }
+
+        if (mb_strlen($name) < self::MIN_LIKE_LOOKUP_LENGTH) {
+            return null;
+        }
+
+        return $query()
+            ->where('name', 'like', '%'.addcslashes($name, '%_\\').'%')
+            ->orderBy('id')
+            ->first($columns);
     }
 
     private function normalizeLookupName(string $value): string
@@ -340,26 +388,8 @@ class Detector
             return false;
         }
 
-        $organizationKeywords = [
-            'centrum',
-            'zbor',
-            'farnos',
-            'obec',
-            'mesto',
-            'spolok',
-            'zdruzen',
-            'o.z.',
-            's.r.o',
-            'a.s.',
-            'nadacia',
-            'cirkev',
-        ];
-
-        $lower = mb_strtolower($normalized);
-        foreach ($organizationKeywords as $keyword) {
-            if (str_contains($lower, $keyword)) {
-                return false;
-            }
+        if ($this->containsOrganizationKeyword($normalized)) {
+            return false;
         }
 
         $parts = preg_split('/\s+/u', $normalized) ?: [];
@@ -374,6 +404,46 @@ class Detector
         }
 
         return true;
+    }
+
+    /**
+     * Druhové slovo organizácie v názve („Nadácia Pontis“, „Divadlo Andreja
+     * Bagara“). Porovnáva sa bez diakritiky a po slovách: kmeň musí stáť na
+     * začiatku slova, krátke slová celé — inak „rad“ trafí „Konráda“
+     * a „kino“ „Kinovú“. Skratky právnej formy stačí nájsť kdekoľvek.
+     */
+    private function containsOrganizationKeyword(string $value): bool
+    {
+        $ascii = Str::ascii(mb_strtolower($value));
+
+        foreach (['o.z.', 'o. z.', 'n.o.', 'n. o.', 's.r.o', 's. r. o', 'a.s.', 'a. s.'] as $abbreviation) {
+            if (str_contains($ascii, $abbreviation)) {
+                return true;
+            }
+        }
+
+        $stems = [
+            'centrum', 'zbor', 'farnos', 'obec', 'mesto', 'mestsk', 'spolok', 'spolocenstv',
+            'zdruzen', 'nadaci', 'cirkev', 'univerzit', 'fakult', 'gymnazi', 'skol',
+            'divadl', 'muze', 'galeri', 'kniznic', 'klub', 'zvaz', 'rehol', 'klastor',
+            'diecez', 'biskupstv', 'dekanat', 'komunit', 'hnuti', 'institut', 'akademi',
+            'agentur', 'filharmoni', 'festival',
+        ];
+        $wholeWords = ['rad', 'radu', 'kino', 'opera', 'opery'];
+
+        foreach (preg_split('/[^a-z]+/', $ascii, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+            if (in_array($word, $wholeWords, true)) {
+                return true;
+            }
+
+            foreach ($stems as $stem) {
+                if (str_starts_with($word, $stem)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -812,11 +882,22 @@ class Detector
             $ignoredTokens,
         ));
 
+        // Druhové slová („kostol“, „dom kultúry“…) do zhody nerátame: „Kostol
+        // sv. Martina“ a „Kostol sv. Jána“ v jednej obci sú dve budovy a cez
+        // spoločný „kostol“ by miesto dostalo fotku, kontakty aj súradnice
+        // tej druhej. Nesprávna fotka je horšia než žiadna.
+        $candidateTokens = array_values(array_unique(array_diff($candidateTokens, self::GENERIC_VENUE_TOKENS)));
+        $referenceTokens = array_values(array_unique(array_diff($referenceTokens, self::GENERIC_VENUE_TOKENS)));
+
         if ($candidateTokens === [] || $referenceTokens === []) {
             return false;
         }
 
-        return array_intersect($candidateTokens, $referenceTokens) !== [];
+        // Pri dvoch a viac rozlišujúcich slovách referencie musí sedieť väčšina
+        // — „Jána Krstiteľa“ nie je „Jána Nepomuckého“.
+        $shared = count(array_intersect($candidateTokens, $referenceTokens));
+
+        return $shared > 0 && $shared * 2 > count($referenceTokens);
     }
 
     private function normalizeComparableText(?string $value): ?string
