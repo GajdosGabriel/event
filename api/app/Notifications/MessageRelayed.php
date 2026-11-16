@@ -17,10 +17,9 @@ class MessageRelayed extends RelayedToCanal
         string $askerName,
         string $askerEmail,
         string $claimUrl,
-        string $unsubscribeUrl,
         string $organizerEmail,
     ) {
-        parent::__construct($canal, $audience, $body, $askerName, $askerEmail, $claimUrl, $unsubscribeUrl, $organizerEmail);
+        parent::__construct($canal, $audience, $body, $askerName, $askerEmail, $claimUrl, $organizerEmail);
     }
 
     public function accountKind(): string

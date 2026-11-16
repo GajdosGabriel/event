@@ -223,7 +223,8 @@ class CanalOutreachMailingTest extends TestCase
         $this->artisan('app:canal-outreach')->assertSuccessful();
         $this->assertSame(CanalOutreach::NOT_QUEUED, CanalOutreach::sole()->status);
         $this->assertCount(1, app(CanalOutreachSender::class)->candidates());
-        $this->assertStringContainsString('nie je aktívna kampaň', SystemLog::query()->where('event', 'canals.outreach_not_queued')->sole()->message);
+        // Do histórie kanála sa nezaradenie nepíše — opakuje sa každý deň.
+        $this->assertFalse(SystemLog::query()->where('event', 'canals.outreach_not_queued')->exists());
 
         $this->artisan('app:canal-outreach')->assertSuccessful();
         $this->assertSame(CanalOutreach::QUEUED, CanalOutreach::sole()->status);

@@ -17,10 +17,11 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
  *
  * Prihláška na akciu (EventSignup), zverejnená akcia (CanalEventOffer), otázka
  * aj správa návštevníka (CanalRelay) sa správajú rovnako (docs/canal-ownership.md):
- *  - kontakt je e-mail kanála, záložne z podujatia; vyradené adresy sa preskočia,
+ *  - kontakt je e-mail kanála, záložne z podujatia; nedoručiteľné adresy sa
+ *    preskočia, odhlásenie z kampaní nie (technický e-mail),
  *  - otázku a správu návštevníka prijíma len overený e-mail kanála (addressFor),
  *  - zberný kanál sa neoslovuje, lebo sa nedá prevziať,
- *  - e-mail ponúka prevzatie kanála a má odkaz na odhlásenie,
+ *  - e-mail ponúka prevzatie kanála; odkaz na odhlásenie nemá (technický e-mail),
  *  - ide cez Account (SendsViaAccount), vrátený e-mail adresu vyradí
  *    (CanalEmails::recordBounce),
  *  - celé to brzdí jediný vypínač `canals.simulate_takeover_mail`.
@@ -60,7 +61,8 @@ class CanalTakeover
             return ['reason' => self::NO_CONTACT, 'email' => null];
         }
 
-        $usable = $candidates->first(fn (string $candidate) => ! EmailSuppression::has($candidate));
+        // Technický e-mail: odhlásenie z kampaní ho nezastaví, len nedoručiteľnosť.
+        $usable = $candidates->first(fn (string $candidate) => ! EmailSuppression::bounced($candidate));
 
         return $usable !== null
             ? ['reason' => null, 'email' => $usable]

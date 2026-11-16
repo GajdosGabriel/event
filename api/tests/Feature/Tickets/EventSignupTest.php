@@ -34,6 +34,7 @@ use App\Services\Tickets\EventSignup;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -84,7 +85,7 @@ class EventSignupTest extends TestCase
         return $owner;
     }
 
-    private function registerAndVerify(Event $event, string $email = 'ucastnik@example.sk'): \Illuminate\Testing\TestResponse
+    private function registerAndVerify(Event $event, string $email = 'ucastnik@example.sk'): TestResponse
     {
         $this->postJson('/api/register', [
             'email' => $email,
@@ -236,9 +237,9 @@ class EventSignupTest extends TestCase
         $collection->canal()->first()->update(['name' => 'vyveska.sk']);
         $this->assertAdminToldOrganizer($collection, 'collection');
 
-        EmailSuppression::add('odhlaseny@example.sk', 'unsubscribe');
-        $suppressed = $this->importedEvent(['email' => 'odhlaseny@example.sk']);
-        $this->assertAdminToldOrganizer($suppressed, 'suppressed', ['email' => 'odhlaseny@example.sk']);
+        EmailSuppression::add('vrateny@example.sk', 'bounced');
+        $suppressed = $this->importedEvent(['email' => 'vrateny@example.sk']);
+        $this->assertAdminToldOrganizer($suppressed, 'suppressed', ['email' => 'vrateny@example.sk']);
 
         $muted = $this->importedEvent();
         $owner = $this->ownerOf($muted);
@@ -277,7 +278,7 @@ class EventSignupTest extends TestCase
 
             return $notifiable->routes['mail'] === 'kanal@example.sk'
                 && ! str_contains($text, 'tajny.ucastnik')
-                && str_contains($text, 'email/unsubscribe');
+                && ! str_contains($text, 'email/unsubscribe');
         });
     }
 

@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -59,7 +60,7 @@ class CanalRelayMessageTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    private function send(string $body = 'Kedy začína omša?'): \Illuminate\Testing\TestResponse
+    private function send(string $body = 'Kedy začína omša?'): TestResponse
     {
         return $this->postJson('/api/messages', [
             'target_type' => 'canal',
@@ -88,7 +89,7 @@ class CanalRelayMessageTest extends TestCase
                 && $n->audience === MessageRelayed::ORGANIZER
                 && str_contains($text, 'Kedy začína omša?')
                 && ! str_contains($text, 'pisatel@example.sk')
-                && str_contains($text, 'email/unsubscribe')
+                && ! str_contains($text, 'email/unsubscribe')
                 && str_contains((string) $mail->actionUrl, '/pozvanka/')
                 && str_contains($text, '/pre-organizatorov');
         });
@@ -143,7 +144,7 @@ class CanalRelayMessageTest extends TestCase
     }
 
     /** @param array<string, mixed> $message */
-    private function relayWebhook(CanalRelayThread $thread, array $message, string $event = 'message.received'): \Illuminate\Testing\TestResponse
+    private function relayWebhook(CanalRelayThread $thread, array $message, string $event = 'message.received'): TestResponse
     {
         $body = json_encode(['event' => $event, 'data' => [
             'conversation' => ['ref' => ['type' => 'canal_relay', 'id' => (string) $thread->id], 'contact_email' => $thread->organizer_email],
@@ -199,7 +200,7 @@ class CanalRelayMessageTest extends TestCase
     public function relay_goes_through_account_when_messaging_is_on(): void
     {
         $this->mock(AccountClient::class, fn ($mock) => $mock->shouldReceive('messagingEnabled')->andReturnTrue());
-        $notice = new MessageRelayed($this->canal, $this->canal, MessageRelayed::ORGANIZER, 'x', 'X', 'x@example.sk', 'u', 'u', 'farnost@example.sk');
+        $notice = new MessageRelayed($this->canal, $this->canal, MessageRelayed::ORGANIZER, 'x', 'X', 'x@example.sk', 'u', 'farnost@example.sk');
         $notifiable = Notification::route('mail', 'farnost@example.sk');
 
         $this->assertSame([AccountMailChannel::class], $notice->via($notifiable));

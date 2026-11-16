@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\Mime\Email;
 use Tests\TestCase;
 
 /**
@@ -114,9 +115,21 @@ class CanalEventOfferTest extends TestCase
     }
 
     #[Test]
-    public function suppressed_contact_falls_back_to_event_email_or_gets_nothing(): void
+    public function unsubscribe_from_campaigns_does_not_stop_the_technical_mail(): void
     {
-        EmailSuppression::add('kontakt@farnost.test', 'unsubscribed');
+        EmailSuppression::add('kontakt@farnost.test', 'unsubscribe', 'account');
+        $this->publish($this->importedCanal());
+
+        Notification::assertSentOnDemand(
+            CanalEventPublishedOffer::class,
+            fn ($n, $c, AnonymousNotifiable $to) => $to->routes['mail'] === 'kontakt@farnost.test',
+        );
+    }
+
+    #[Test]
+    public function bounced_contact_falls_back_to_event_email_or_gets_nothing(): void
+    {
+        EmailSuppression::add('kontakt@farnost.test', 'bounced');
         $canal = $this->importedCanal();
 
         $this->publish($canal);
@@ -192,7 +205,7 @@ class CanalEventOfferTest extends TestCase
     }
 
     #[Test]
-    public function mail_offers_takeover_with_unsubscribe(): void
+    public function mail_offers_takeover_without_unsubscribe(): void
     {
         $canal = $this->importedCanal(['name' => 'Farnosť Lamač']);
         $this->publish($canal, ['name' => 'Adventný koncert']);
@@ -204,8 +217,15 @@ class CanalEventOfferTest extends TestCase
             $this->assertStringContainsString('Vytvorili sme váš kanál', (string) $mail->subject);
             $this->assertStringContainsString('Farnosť Lamač', $text);
             $this->assertStringContainsString('/pozvanka/', (string) $mail->actionUrl);
-            $this->assertStringContainsString('odhlásiť', $text);
+            $this->assertStringNotContainsString('email/unsubscribe', $text);
             $this->assertStringContainsString('/pre-organizatorov', $text);
+
+            // Technický e-mail: ani hlavička na odhlásenie jedným klikom.
+            $email = new Email;
+            foreach ($mail->callbacks as $callback) {
+                $callback($email);
+            }
+            $this->assertFalse($email->getHeaders()->has('List-Unsubscribe'));
 
             return true;
         });

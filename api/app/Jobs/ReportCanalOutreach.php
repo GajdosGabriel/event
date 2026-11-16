@@ -73,12 +73,16 @@ class ReportCanalOutreach implements ShouldQueue
             'account_queued' => $queued,
         ])->save();
 
+        // Nezaradené oslovenie sa do histórie kanála nepíše: kým kampaň nie je
+        // aktívna, opakuje sa každý deň a nič sa nedeje. Stav ostáva v oslovení.
+        if ($queued <= 0) {
+            return;
+        }
+
         $name = $outreach->canal?->name;
 
         Recorder::info('canals', 'outreach_'.$outreach->status,
-            $queued > 0
-                ? "Kanál {$name}: ponuka prevzatia zaradená do kampane, e-mail čaká na odoslanie (oslovenie #{$outreach->id})"
-                : "Kanál {$name}: ponuka prevzatia nezaradená, na túto udalosť nie je aktívna kampaň alebo jej kontakt nevyhovuje, e-mail neodíde (oslovenie #{$outreach->id})",
+            "Kanál {$name}: ponuka prevzatia zaradená do kampane, e-mail čaká na odoslanie (oslovenie #{$outreach->id})",
             status: 'ok',
             recipient: $outreach->email,
             subject: $outreach->canal,

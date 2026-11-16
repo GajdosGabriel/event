@@ -90,6 +90,6 @@ return [
         // Bez zobrazení nemáme čo ukázať — takú akciu nepíšeme.
         'min_views' => (int) env('CANAL_OUTREACH_MIN_VIEWS', 1),
         // Najviac oslovení za jeden beh.
-        'limit' => (int) env('CANAL_OUTREACH_LIMIT', 20),
+        'limit' => (int) env('CANAL_OUTREACH_LIMIT', 50),
     ],
 ];

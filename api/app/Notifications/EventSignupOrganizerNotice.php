@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CanalInvitation;
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
 use App\Notifications\Concerns\SendsViaAccount;
 use App\Support\DashboardUrl;
 use App\Support\PublicUrl;
@@ -11,8 +12,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\URL;
-use Symfony\Component\Mime\Email;
 
 /**
  * Organizátorovi: na jeho akciu sa niekto prihlásil (App\Services\Tickets\EventSignup).
@@ -22,7 +21,7 @@ use Symfony\Component\Mime\Email;
  *  - s pozvánkou — kanál je importovaný a nikto ho nespravuje; e-mail ide na
  *    kontakt kanála a ponúka kanál prevziať. Meno ani kontakt účastníka tu
  *    zámerne neuvádzame — adresát ešte nie je overený organizátor, uvidí ich až
- *    po prevzatí. Ide cez Account (keď je zapnutý), aby sa nedoručenie vrátilo
+ *    po prevzatí. Technický e-mail bez odkazu na odhlásenie. Ide cez Account (keď je zapnutý), aby sa nedoručenie vrátilo
  *    webhookom a adresa sa vyradila (CanalEmails::recordBounce).
  */
 class EventSignupOrganizerNotice extends Notification implements ShouldQueue
@@ -40,7 +39,7 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, ...$this->mailVia($notifiable)];
+        return [BellChannel::class, ...$this->mailVia($notifiable)];
     }
 
     public function accountRef(object $notifiable): array
@@ -95,7 +94,6 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
     {
         $canal = $this->invitation->canal?->name ?? __('mail.canal_invitation.canal_fallback');
         $url = rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$this->invitation->token;
-        $unsubscribe = URL::signedRoute('public.email.unsubscribe', ['email' => $this->invitation->email]);
 
         $mail = (new MailMessage)
             ->subject(__('mail.event_signup_organizer.claim_subject', ['event' => $event]))
@@ -114,11 +112,6 @@ class EventSignupOrganizerNotice extends Notification implements ShouldQueue
             ->action(__('mail.event_signup_organizer.claim_action'), $url)
             ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
             ->line(__('mail.canal_invitation.email_note', ['email' => $this->invitation->email]))
-            ->line(__('mail.event_signup_organizer.claim_ignore'))
-            ->line(__('mail.event_signup_organizer.claim_unsubscribe', ['url' => $unsubscribe]))
-            ->withSymfonyMessage(function (Email $message) use ($unsubscribe) {
-                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$unsubscribe.'>');
-                $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-            });
+            ->line(__('mail.event_signup_organizer.claim_ignore'));
     }
 }

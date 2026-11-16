@@ -3,6 +3,7 @@
 namespace Tests\Feature\Canal;
 
 use App\Enums\CanalRole;
+use App\Enums\MailingTrigger;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
@@ -92,7 +93,7 @@ class CanalOutreachTest extends TestCase
     }
 
     #[Test]
-    public function unsubscribe_link_suppresses_the_address_everywhere(): void
+    public function unsubscribe_link_stops_campaigns_but_not_technical_mail(): void
     {
         $url = URL::signedRoute('public.email.unsubscribe', ['email' => 'info@hajske.sk']);
 
@@ -103,15 +104,20 @@ class CanalOutreachTest extends TestCase
         $this->assertTrue(EmailSuppression::has('info@hajske.sk'));
         $this->assertSame(1, SystemLog::where('event', 'mail.unsubscribed')->count());
 
-        // Ani prihláška na akciu už kontaktu neponúkne prevzatie.
         $canal = $this->imported('Farnosť Hájske', 'info@hajske.sk');
         $event = Event::factory()->future()->create([
             'canal_id' => $canal->id, 'status' => ModelStatus::Published->value, 'published_at' => now()->subDay(),
+            'start_at' => now()->addDays(3), 'end_at' => now()->addDays(3)->addHours(2),
             'registration_deadline_at' => null, 'price_amount' => null, 'email' => 'info@hajske.sk',
         ]);
+
+        // Kampaň (oslovenie) ho už nevyberie…
+        $this->assertCount(0, app(CanalOutreachSender::class)->candidates(only: MailingTrigger::CanalEventUpcoming));
+
+        // …technický e-mail o prihláške s ponukou prevzatia však odíde.
         $this->actingAs(User::factory()->create(['last_login_at' => now(), 'last_activity' => now()]), 'sanctum')
             ->postJson("/api/events/{$event->id}/signup")->assertOk();
-        $this->assertSame(0, CanalInvitation::count());
+        $this->assertSame(1, CanalInvitation::count());
     }
 
     private function imported(string $name, ?string $email): Canal

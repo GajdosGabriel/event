@@ -10,7 +10,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Symfony\Component\Mime\Email;
 
 /**
  * Text návštevníka preposlaný kanálu bez správcu (CanalRelay).
@@ -39,7 +38,6 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
         public readonly string $askerName,
         public readonly string $askerEmail,
         public readonly string $claimUrl,
-        public readonly string $unsubscribeUrl,
         public readonly string $organizerEmail,
     ) {}
 
@@ -98,19 +96,12 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
                 ->action(__($key.'.action'), $this->targetUrl());
         }
 
-        $unsubscribe = $this->unsubscribeUrl;
-
         return $mail
             ->replyTo($this->askerEmail, $this->askerName)
             ->line(__($shared.'.reply', $params))
             ->line(__($key.'.offer', $params))
             ->action(__($shared.'.action'), $this->claimUrl)
             ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
-            ->line(__($shared.'.why', $params))
-            ->line(__($shared.'.unsubscribe', ['url' => $unsubscribe]))
-            ->withSymfonyMessage(function (Email $message) use ($unsubscribe) {
-                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$unsubscribe.'>');
-                $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-            });
+            ->line(__($shared.'.why', $params));
     }
 }

@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Otázka alebo správa návštevníka pre kanál, ktorý nikto nespravuje.
@@ -45,8 +44,8 @@ class CanalRelay
     {
         $canal = $event->canal()->firstOrFail();
 
-        $this->relay($event, $canal, $sender, $body, 'question', fn (string $audience, string $email, string $claimUrl, string $unsubscribeUrl) => new QuestionRelayed(
-            $event, $canal, $audience, $body, $sender->displayName(), (string) $sender->email, $claimUrl, $unsubscribeUrl, $email,
+        $this->relay($event, $canal, $sender, $body, 'question', fn (string $audience, string $email, string $claimUrl) => new QuestionRelayed(
+            $event, $canal, $audience, $body, $sender->displayName(), (string) $sender->email, $claimUrl, $email,
         ));
     }
 
@@ -55,8 +54,8 @@ class CanalRelay
         $canal = $this->takeover->canalOf($target);
         abort_if($canal === null, 422, __('messages.errors.not_contactable'));
 
-        $this->relay($target, $canal, $sender, $body, 'message', fn (string $audience, string $email, string $claimUrl, string $unsubscribeUrl) => new MessageRelayed(
-            $target, $canal, $audience, $body, $sender->displayName(), (string) $sender->email, $claimUrl, $unsubscribeUrl, $email,
+        $this->relay($target, $canal, $sender, $body, 'message', fn (string $audience, string $email, string $claimUrl) => new MessageRelayed(
+            $target, $canal, $audience, $body, $sender->displayName(), (string) $sender->email, $claimUrl, $email,
         ));
     }
 
@@ -114,7 +113,6 @@ class CanalRelay
         RateLimiter::hit($canalKey, 86400);
 
         $claimUrl = $this->takeover->claimUrl($this->takeover->invitation($canal, $email));
-        $unsubscribeUrl = URL::signedRoute('public.email.unsubscribe', ['email' => $email]);
         $thread = CanalRelayThread::query()->create([
             'canal_id' => $canal->id,
             'kind' => $kind,
@@ -123,7 +121,7 @@ class CanalRelay
             'asker_email' => (string) $sender->email,
             'organizer_email' => $email,
         ]);
-        $build = fn (string $audience) => $notice($audience, $email, $claimUrl, $unsubscribeUrl)->forThread($thread->id);
+        $build = fn (string $audience) => $notice($audience, $email, $claimUrl)->forThread($thread->id);
 
         $this->takeover->send($email, $build(QuestionRelayed::ORGANIZER), $target);
 
