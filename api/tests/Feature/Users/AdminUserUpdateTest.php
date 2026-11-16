@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Users;
 
+use App\Enums\CanalIdentityMode;
 use App\Enums\ModelStatus;
+use App\Models\Canal;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,6 +60,51 @@ class AdminUserUpdateTest extends TestCase
         $this->assertNotNull($user->email_verified_at);
         $this->assertSame(ModelStatus::Archived, $user->status);
         $this->assertTrue(Hash::check('tajne-heslo-123', $user->password));
+    }
+
+    #[Test]
+    public function admin_renames_the_user_through_the_personal_canal(): void
+    {
+        $user = User::factory()->create();
+        $canal = Canal::factory()->create([
+            'name' => 'Spolok Kultúra, o. z.',
+            'identity_mode' => CanalIdentityMode::Personal->value,
+        ]);
+        $user->canals()->syncWithoutDetaching([$canal->id => ['is_owner' => true, 'role' => 'owner']]);
+        $user->forceFill(['canal_id' => $canal->id])->save();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, ['display_name' => '  Jana Nováková '])
+            ->assertStatus(200)
+            ->assertJsonFragment(['display_name' => 'Jana Nováková']);
+
+        $this->assertSame('Jana Nováková', $canal->refresh()->name);
+    }
+
+    #[Test]
+    public function a_user_without_a_canal_gets_the_name_in_the_pending_profile(): void
+    {
+        // Overený účet dostane osobný kanál už pri založení (UserObserver).
+        $user = User::factory()->create();
+        $user->canals()->detach();
+        $user->forceFill(['canal_id' => null])->saveQuietly();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, ['display_name' => 'Jana Nováková'])
+            ->assertStatus(200);
+
+        $this->assertSame('Jana Nováková', $user->pendingProfile()->value('display_name'));
+    }
+
+    #[Test]
+    public function the_name_cannot_be_emptied(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, ['display_name' => ''])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('display_name');
     }
 
     #[Test]

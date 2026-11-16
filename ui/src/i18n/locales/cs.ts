@@ -3090,6 +3090,8 @@ const cs: Messages = {
       editTitle: 'Úprava uživatele',
       editLead: 'Přihlašovací údaje, přístup a stav účtu.',
       backToDetail: '← Zpět na detail',
+      displayName: 'Jméno',
+      displayNameHint: 'Jméno nese osobní kanál — změní se i jeho název.',
       account: 'Účet',
       emailHint: 'Změna adresy sama o sobě ověření nezruší — odškrtni ho níže.',
       emailVerified: 'E-mail je ověřený',

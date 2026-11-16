@@ -3091,6 +3091,8 @@ const en: Messages = {
       editTitle: 'Edit the user',
       editLead: 'Sign-in details, access and account status.',
       backToDetail: '← Back to the detail',
+      displayName: 'Name',
+      displayNameHint: 'The name is carried by the personal channel — its title changes too.',
       account: 'Account',
       emailHint: 'A new address does not clear the verification on its own — untick it below.',
       emailVerified: 'Email is verified',

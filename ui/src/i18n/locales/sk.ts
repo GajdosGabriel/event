@@ -3212,6 +3212,8 @@ const sk = {
       editTitle: 'Úprava používateľa',
       editLead: 'Prihlasovacie údaje, prístup a stav účtu.',
       backToDetail: '← Späť na detail',
+      displayName: 'Meno',
+      displayNameHint: 'Meno nesie osobný kanál — zmení sa aj jeho názov.',
       account: 'Účet',
       emailHint: 'Zmena adresy sama o sebe overenie nezruší — odškrtni ho nižšie.',
       emailVerified: 'E-mail je overený',

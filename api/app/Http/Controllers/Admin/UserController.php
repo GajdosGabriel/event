@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CanalIdentityMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminUserUpdateRequest;
 use App\Http\Requests\IndexFilterRequest;
@@ -91,7 +92,30 @@ class UserController extends Controller
             $user->forceFill($attributes)->save();
         }
 
+        if (array_key_exists('display_name', $data)) {
+            $this->rename($user, trim((string) $data['display_name']));
+        }
+
         return response()->json(new UserResource($this->userRepository->adminShow($id)), 200);
+    }
+
+    /**
+     * Meno nesie osobný kanál (users.canal_id, inak kanál s identitou
+     * „osobný“). Kto ho ešte nemá — e-mail neoverený — má meno
+     * v PendingProfile, z ktorého kanál po overení vznikne.
+     */
+    private function rename(User $user, string $name): void
+    {
+        $canal = $user->canal()->first()
+            ?? $user->canals()->where('canals.identity_mode', CanalIdentityMode::Personal->value)->first();
+
+        if ($canal !== null) {
+            $canal->update(['name' => $name]);
+
+            return;
+        }
+
+        $user->pendingProfile()->updateOrCreate([], ['display_name' => $name]);
     }
 
     public function destroy(string $id): JsonResponse

@@ -44,6 +44,8 @@ export async function restoreUser(userId: number, scope: ACScope = 'dashboard'):
  * endpoint obsluhuje celý admin formulár aj samotné (od)blokovanie z detailu.
  */
 export interface UpdateUserPayload {
+  /** Meno človeka — backend ním premenuje osobný kanál. */
+  display_name?: string
   email?: string
   status?: string
   /** Potvrdenie/zrušenie overenia e-mailu adminom. */

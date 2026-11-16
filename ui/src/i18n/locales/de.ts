@@ -3091,6 +3091,8 @@ const de: Messages = {
       editTitle: 'Nutzer bearbeiten',
       editLead: 'Zugangsdaten, Zugriff und Kontostatus.',
       backToDetail: '← Zurück zum Detail',
+      displayName: 'Name',
+      displayNameHint: 'Den Namen trägt der persönliche Kanal — auch sein Titel ändert sich.',
       account: 'Konto',
       emailHint: 'Eine neue Adresse hebt die Bestätigung nicht auf — hake sie unten ab.',
       emailVerified: 'E-Mail ist bestätigt',

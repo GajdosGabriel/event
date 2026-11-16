@@ -11,6 +11,7 @@ return [
     ],
     'fields' => [
         'email' => 'e-mail',
+        'display_name' => 'jméno',
         'status' => 'stav',
         'password' => 'heslo',
         'canal_id' => 'osobní kanál',

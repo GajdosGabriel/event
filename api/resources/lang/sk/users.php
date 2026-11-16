@@ -14,6 +14,7 @@ return [
     // Názvy polí do chybových hlások validátora (AdminUserUpdateRequest).
     'fields' => [
         'email' => 'e-mail',
+        'display_name' => 'meno',
         'status' => 'stav',
         'password' => 'heslo',
         'canal_id' => 'osobný kanál',

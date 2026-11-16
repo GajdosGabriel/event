@@ -11,6 +11,7 @@ return [
     ],
     'fields' => [
         'email' => 'E-Mail',
+        'display_name' => 'Name',
         'status' => 'Status',
         'password' => 'Passwort',
         'canal_id' => 'persönlicher Kanal',

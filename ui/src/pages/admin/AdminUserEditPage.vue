@@ -37,6 +37,17 @@
             :force-open="!!errors['email'] || !!errors['status'] || !!errors['password']">
             <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <FormField
+                v-model="form.display_name"
+                required
+                maxlength="255"
+                :label="t('admin.user.displayName')"
+                :error="errors['display_name']"
+                :hint="t('admin.user.displayNameHint')"
+                :disabled="readonlyForm"
+                class="lg:col-span-2"
+              />
+
+              <FormField
                 v-model="form.email"
                 type="email"
                 required
@@ -199,6 +210,7 @@ const savingDelete = ref(false)
 
 /** Prázdny formulár do prvého načítania — polia sa naň viažu hneď od začiatku. */
 const form = ref({
+  display_name: '',
   email: '',
   email_verified: false,
   status: 'published',
@@ -281,6 +293,7 @@ function fill(data: Record<string, unknown>) {
   user.value = data
   selectedRoles.value = [...((data.roles as string[]) ?? [])]
   form.value = {
+    display_name: name.value,
     email: String(data.email ?? ''),
     email_verified: data.email_verified === true,
     status: String(data.status ?? 'published'),
@@ -352,6 +365,11 @@ async function submit() {
   // Prázdne heslo sa neposiela vôbec — inak by ho validátor riešil ako pokus
   // nastaviť príliš krátke heslo.
   if (form.value.password) payload.password = form.value.password
+
+  // Len zmenené meno: účet bez kanála ukazuje namiesto mena maskovaný e-mail
+  // a ten sa nemá uložiť ako meno.
+  const newName = form.value.display_name.trim()
+  if (newName !== name.value) payload.display_name = newName
 
   try {
     const updated = await updateUser(userId.value, payload, SCOPE)

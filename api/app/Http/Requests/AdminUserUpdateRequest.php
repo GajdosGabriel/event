@@ -36,6 +36,9 @@ class AdminUserUpdateRequest extends FormRequest
                 // unikátnosť kontroluje aj nad nimi — bez `withoutTrashed()`.
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
+            // Meno človeka. Účet ho sám nedrží — nesie ho osobný kanál
+            // (User::displayName), takže sa premenuje ten.
+            'display_name' => 'sometimes|required|string|max:255',
             'status' => ['sometimes', 'required', Rule::enum(ModelStatus::class)],
             // Overenie e-mailu vie admin potvrdiť aj zrušiť — napr. keď sa
             // adresa zmenila a má sa overiť znova.
@@ -59,6 +62,7 @@ class AdminUserUpdateRequest extends FormRequest
     {
         return [
             'email' => __('users.fields.email'),
+            'display_name' => __('users.fields.display_name'),
             'status' => __('users.fields.status'),
             'password' => __('users.fields.password'),
             'canal_id' => __('users.fields.canal_id'),
