@@ -33,6 +33,9 @@ class OrganizerName
 
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
         $value = self::cutTrailingSentence($value);
+        // Pred delením zoznamu: úradný tvar „ECAV na Slovensku, Cirkevný zbor
+        // Betliar" má čiarku vnútri jedného názvu.
+        $value = EcavCongregationName::normalize($value);
         $value = self::primaryOrganizer($value);
         $value = trim($value, " \t\n\r\0\x0B,.;:-/");
 
