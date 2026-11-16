@@ -21,6 +21,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -230,6 +231,29 @@ class CanalOutreachMailingTest extends TestCase
     }
 
     #[Test]
+    public function retries_without_campaign_do_not_starve_other_triggers(): void
+    {
+        $this->fakeAccount(queued: 0);
+        $waiting = $this->imported('Farnosť Hájske', 'info@hajske.sk');
+        $this->event($waiting, startsInDays: 4);
+        $this->artisan('app:canal-outreach')->assertSuccessful();
+        $this->assertSame(CanalOutreach::NOT_QUEUED, CanalOutreach::sole()->status);
+
+        // Opakovanie (pred akciou) má vyššiu prioritu triggera, no nový
+        // kandidát (po akcii) dostane miesto v limite prvý.
+        $fresh = $this->imported('S klub', 'sklub@example.sk');
+        $this->event($fresh, startsInDays: -3, views: 2);
+
+        $one = app(CanalOutreachSender::class)->candidates(limit: 1);
+        $this->assertSame([$fresh->id], $one->pluck('canal.id')->all());
+
+        // Voľné miesto po nových dostane opakovanie.
+        $two = app(CanalOutreachSender::class)->candidates(limit: 2);
+        $this->assertSame([$fresh->id, $waiting->id], $two->pluck('canal.id')->all());
+        $this->assertSame([false, true], $two->pluck('retry')->all());
+    }
+
+    #[Test]
     public function finished_event_still_works_via_account(): void
     {
         $this->fakeAccount(queued: 1);
@@ -369,7 +393,7 @@ class CanalOutreachMailingTest extends TestCase
     }
 
     /** @param  array<string, mixed>  $data */
-    private function webhook(string $event, array $data): \Illuminate\Testing\TestResponse
+    private function webhook(string $event, array $data): TestResponse
     {
         $body = json_encode(['id' => 'evt-'.uniqid(), 'event' => $event, 'data' => $data]);
         $timestamp = time();

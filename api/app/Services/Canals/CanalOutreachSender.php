@@ -60,12 +60,17 @@ class CanalOutreachSender
     /**
      * Kandidáti na oslovenie — najviac jeden na kanál.
      *
-     * @return Collection<int, array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string}>
+     * @return Collection<int, array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string, retry: bool}>
      */
     public function candidates(?int $limit = null, ?MailingTrigger $only = null): Collection
     {
         $limit ??= (int) config('canals.outreach.limit');
         $result = collect();
+        // Opakovania udalostí, ktoré žiadna kampaň nezaradila (not_queued),
+        // dostanú len miesto, ktoré po nových ostane — inak by bez aktívnej
+        // kampane každý deň minuli celý limit a ostatné triggery by sa
+        // nevyhodnotili vôbec.
+        $retries = collect();
 
         // Výslovne vyžiadaný trigger (--trigger) platí aj mimo zapnutých.
         foreach ($only !== null ? [$only] : $this->triggers() as $trigger) {
@@ -73,26 +78,37 @@ class CanalOutreachSender
             // ani nenačítajú.
             foreach ($this->eventsFor($trigger) as $event) {
                 if ($result->count() >= $limit) {
-                    return $result;
+                    return $result->values();
                 }
 
                 if ($result->has($event->canal_id)) {
                     continue;
                 }
 
-                if ($candidate = $this->candidate($trigger, $event)) {
-                    $result->put($event->canal_id, $candidate);
+                if (! $candidate = $this->candidate($trigger, $event)) {
+                    continue;
                 }
+
+                if ($candidate['retry']) {
+                    if (! $retries->has($event->canal_id)) {
+                        $retries->put($event->canal_id, $candidate);
+                    }
+
+                    continue;
+                }
+
+                $result->put($event->canal_id, $candidate);
+                $retries->forget($event->canal_id);
             }
         }
 
-        return $result->values();
+        return $result->values()->concat($retries->take(max(0, $limit - $result->count()))->values());
     }
 
     /**
      * Nahlási oslovenie jedného kandidáta do Account Emailingu.
      *
-     * @param  array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string}  $c
+     * @param  array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string, retry: bool}  $c
      */
     public function send(array $c): CanalOutreach
     {
@@ -236,7 +252,7 @@ class CanalOutreachSender
             ->values();
     }
 
-    /** @return array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string}|null */
+    /** @return array{trigger: MailingTrigger, canal: Canal, event: Event, email: string, stats: array<string, int>, milestone: ?int, dedupe_key: string, retry: bool}|null */
     private function candidate(MailingTrigger $trigger, Event $event): ?array
     {
         $canal = $event->canal;
@@ -284,6 +300,7 @@ class CanalOutreachSender
             'stats' => $stats,
             'milestone' => $milestone,
             'dedupe_key' => $dedupeKey,
+            'retry' => CanalOutreach::query()->where('dedupe_key', $dedupeKey)->exists(),
         ];
     }
 
