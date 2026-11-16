@@ -66,13 +66,14 @@
 <script setup lang="ts">
 import SimilarRecords from '@/components/SimilarRecords.vue'
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'
 import { showCanal, createCanal, updateCanal, resendCanalEmailVerification } from '@/api/canals'
 import type { CanalItem } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import { useReturnAfterSave } from '@/composables/useReturnAfterSave'
 import { useFormOptions } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
@@ -90,8 +91,8 @@ import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
-const router = useRouter()
 const toast = useToast()
+const returnAfterSave = useReturnAfterSave()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const isCreate = computed(() => !route.params.id)
@@ -254,7 +255,7 @@ async function submit() {
       savedStatus.value = c.status ?? form.value.status
       toast.success(savedMessage(null, savedStatus.value))
       await reloadWebsiteIssue()
-      router.replace(`${prefix.value}/canals/${c.id}/edit`)
+      returnAfterSave(`${prefix.value}/canals/${c.id}`)
     } else {
       const updated = await updateCanal(Number(route.params.id), payload(), scope.value)
       applyEmails(updated)
@@ -263,7 +264,7 @@ async function submit() {
       toast.success(savedMessage(savedStatus.value, next))
       savedStatus.value = next
       unpublishBlockedReason.value = updated.unpublishBlockedReason
-      await reloadWebsiteIssue()
+      returnAfterSave(`${prefix.value}/canals/${route.params.id}`)
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

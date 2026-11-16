@@ -152,12 +152,12 @@ const initials = computed(() => {
 const navLinks = computed(() => {
   const links: { to: string; label: string; icon: ReturnType<typeof defineComponent> }[] = []
 
-  // Vlastné vstupenky sú v dashboarde (bočné menu), preto tu samostatne nie sú.
-  links.push({ to: '/dashboard', label: t('nav.dashboard'), icon: IconDashboard })
-
   if (auth.isSuperAdmin) {
     links.push({ to: '/admin', label: t('nav.admin'), icon: IconAdmin })
   }
+
+  // Vlastné vstupenky sú v dashboarde (bočné menu), preto tu samostatne nie sú.
+  links.push({ to: '/dashboard', label: t('nav.dashboard'), icon: IconDashboard })
 
   links.push({ to: '/', label: t('nav.public'), icon: IconGlobe })
 

@@ -176,6 +176,7 @@ import {
 import type { AccessRole } from '@/types'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import { useReturnAfterSave } from '@/composables/useReturnAfterSave'
 import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { scrollToError } from '@/utils/scrollToError'
@@ -191,6 +192,7 @@ const SCOPE = 'admin' as const
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const returnAfterSave = useReturnAfterSave()
 const auth = useAuthStore()
 const validation = provideFormValidation()
 const errorBanner = ref<HTMLElement | null>(null)
@@ -390,6 +392,7 @@ async function submit() {
 
     fill(updated)
     toast.success(t('admin.user.saved'))
+    returnAfterSave(`/admin/users/${userId.value}`)
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
     if (resp?.errors) errors.value = Object.fromEntries(Object.entries(resp.errors).map(([k, v]) => [k, v[0]]))

@@ -331,7 +331,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { indexTicketTypes, createTicketType, updateTicketType } from '@/api/ticketTypes'
@@ -340,6 +340,7 @@ import type { TicketTypeItem } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import { useReturnAfterSave } from '@/composables/useReturnAfterSave'
 import { useFormOptions, type SelectOption } from '@/composables/useFormOptions'
 import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
@@ -368,8 +369,8 @@ import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
-const router = useRouter()
 const toast = useToast()
+const returnAfterSave = useReturnAfterSave()
 const auth = useAuthStore()
 
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
@@ -810,7 +811,7 @@ async function submit(publishDependencies = false) {
       await syncQuestionBoard(ev.id)
       toast.success(savedMessage(null, ev.status))
       rememberSaved(ev)
-      router.replace(`${prefix.value}/events/${ev.id}/edit`)
+      returnAfterSave(`${prefix.value}/events/${ev.id}`)
     } else {
       const updated = await updateEvent(Number(route.params.id), payload, scope.value)
       publishedAt.value = updated.publishedAt ?? publishedAt.value
@@ -818,6 +819,7 @@ async function submit(publishDependencies = false) {
       await syncQuestionBoard(Number(route.params.id))
       toast.success(savedMessage(savedStatus.value, updated.status))
       rememberSaved(updated)
+      returnAfterSave(`${prefix.value}/events/${route.params.id}`)
     }
   } catch (e: unknown) {
     const resp = errorBody(e)

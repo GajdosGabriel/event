@@ -88,13 +88,14 @@
 import SimilarRecords from '@/components/SimilarRecords.vue'
 import SearchableSelect from '@/components/SearchableSelect.vue'
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { showVenue, createVenue, updateVenue, detectVenue } from '@/api/venues'
 import { addressFrom, emptyAddress, toAddressPayload } from '@/api/address'
 import type { CoordinatesSource } from '@/types'
 import { uploadFiles } from '@/api/files'
 import { t } from '@/i18n'
 import { useToast } from '@/composables/useToast'
+import { useReturnAfterSave } from '@/composables/useReturnAfterSave'
 import { useFormOptions, type SelectOption } from '@/composables/useFormOptions'
 import { useAuthStore } from '@/stores/auth'
 import { provideFormValidation } from '@/composables/useFormValidation'
@@ -111,7 +112,8 @@ import RecordImages from '@/components/RecordImages.vue'
 import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
-const route = useRoute(); const router = useRouter(); const toast = useToast()
+const route = useRoute(); const toast = useToast()
+const returnAfterSave = useReturnAfterSave()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const isCreate = computed(() => !route.params.id)
@@ -320,12 +322,13 @@ async function submit() {
       // Znovupoužité miesto si drží svoj stav — o tom, čo sa stalo, hovorí hláška o zlúčení.
       savedStatus.value = v.status
       toast.success(v.reused ? t(v.filledFields?.length ? 'venues.form.reusedFilled' : 'venues.form.reused') : savedMessage(null, v.status))
-      router.replace(`${prefix.value}/venues/${v.id}/edit`)
+      returnAfterSave(`${prefix.value}/venues/${v.id}`)
     } else {
       const updated = await updateVenue(Number(route.params.id), payload(), scope.value)
       toast.success(savedMessage(savedStatus.value, updated.status))
       savedStatus.value = updated.status
       unpublishBlockedReason.value = updated.unpublishBlockedReason
+      returnAfterSave(`${prefix.value}/venues/${route.params.id}`)
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data
