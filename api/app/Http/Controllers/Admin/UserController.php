@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\CanalIdentityMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminUserUpdateRequest;
 use App\Http\Requests\IndexFilterRequest;
@@ -100,14 +99,13 @@ class UserController extends Controller
     }
 
     /**
-     * Meno nesie osobný kanál (users.canal_id, inak kanál s identitou
-     * „osobný“). Kto ho ešte nemá — e-mail neoverený — má meno
-     * v PendingProfile, z ktorého kanál po overení vznikne.
+     * Meno nesie osobný kanál (User::personalCanal) — nikdy nie organizácia,
+     * aj keby bola nastavená ako aktívny kanál. Kto osobný kanál nemá, má
+     * meno v PendingProfile (odtiaľ ho číta User::displayName).
      */
     private function rename(User $user, string $name): void
     {
-        $canal = $user->canal()->first()
-            ?? $user->canals()->where('canals.identity_mode', CanalIdentityMode::Personal->value)->first();
+        $canal = $user->personalCanal();
 
         if ($canal !== null) {
             $canal->update(['name' => $name]);

@@ -97,6 +97,42 @@ class AdminUserUpdateTest extends TestCase
     }
 
     #[Test]
+    public function an_organization_set_as_the_active_canal_is_not_renamed(): void
+    {
+        $user = User::factory()->create();
+        $personal = $user->personalCanal();
+        $org = Canal::factory()->create([
+            'name' => 'Spolok Kultúra, o. z.',
+            'identity_mode' => CanalIdentityMode::Organization->value,
+        ]);
+        $user->canals()->syncWithoutDetaching([$org->id => ['is_owner' => true, 'role' => 'owner']]);
+        $user->forceFill(['canal_id' => $org->id])->save();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, ['display_name' => 'Jana Nováková'])
+            ->assertStatus(200)
+            ->assertJsonPath('person_name', 'Jana Nováková');
+
+        $this->assertSame('Spolok Kultúra, o. z.', $org->refresh()->name);
+        $this->assertSame('Jana Nováková', $personal->refresh()->name);
+    }
+
+    #[Test]
+    public function the_name_from_the_pending_profile_comes_back_as_person_name(): void
+    {
+        $user = User::factory()->create();
+        $user->canals()->detach();
+        $user->forceFill(['canal_id' => null])->saveQuietly();
+        $org = Canal::factory()->create(['identity_mode' => CanalIdentityMode::Organization->value]);
+        $user->canals()->syncWithoutDetaching([$org->id => ['is_owner' => true, 'role' => 'owner']]);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, ['display_name' => 'Jana Nováková'])
+            ->assertStatus(200)
+            ->assertJsonPath('person_name', 'Jana Nováková');
+    }
+
+    #[Test]
     public function the_name_cannot_be_emptied(): void
     {
         $user = User::factory()->create();

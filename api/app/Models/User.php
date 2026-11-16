@@ -9,6 +9,7 @@ use App\Enums\ModelStatus;
 use App\Models\Traits\HasCommonFilters;
 use App\Notifications\PasswordResetLink;
 use App\Support\EmailMask;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -21,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasCommonFilters, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $appends = ['canal'];
@@ -90,7 +91,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'last_activity' => 'datetime',
             'terms_accepted_at' => 'datetime',
-            'status' => \App\Enums\ModelStatus::class,
+            'status' => ModelStatus::class,
         ];
     }
 
@@ -371,11 +372,20 @@ class User extends Authenticatable
      * prípadne ešte nespracovaný PendingProfile. Adresa je až posledná záchrana
      * a aj tak len maskovaná časť pred zavináčom (viď maskedEmail()).
      */
+    /**
+     * Osobný kanál — nesie meno človeka. Najprv users.canal_id (v ňom je
+     * vlastníkom aj bez pivotu), no len ak je naozaj osobný: admin vie ako
+     * aktívny kanál nastaviť aj organizáciu a tá meno človeka nenesie.
+     */
+    public function personalCanal(): ?Canal
+    {
+        return $this->canal()->where('identity_mode', CanalIdentityMode::Personal->value)->first()
+            ?? $this->canals()->where('canals.identity_mode', CanalIdentityMode::Personal->value)->first();
+    }
+
     public function displayName(): string
     {
-        $personal = $this->canals()
-            ->where('canals.identity_mode', CanalIdentityMode::Personal->value)
-            ->value('canals.name');
+        $personal = $this->personalCanal()?->name;
 
         $name = trim((string) ($personal ?? $this->pendingProfile()->value('display_name') ?? ''));
 

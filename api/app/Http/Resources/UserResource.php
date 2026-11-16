@@ -88,6 +88,10 @@ class UserResource extends JsonResource
             // out of the public + dashboard scopes.
             $this->mergeWhen($request->routeIs('admin.*'), fn () => [
                 'uuid' => $this->uuid,
+                // Meno človeka (osobný kanál / PendingProfile). `display_name`
+                // je meno aktívneho kanála — môže to byť aj organizácia, tak
+                // admin formulár upravuje toto.
+                'person_name' => $this->resource->displayName(),
                 'email' => $this->email,
                 'status' => $this->status,
                 'status_label' => $this->status?->label(),

@@ -226,7 +226,9 @@ const isSelf = computed(() => !!user.value && Number(user.value.id) === Number(a
 // aspoň nesnaží uložiť niečo, čo skončí chybou.
 const readonlyForm = computed(() => isSelf.value || !!user.value?.deleted_at)
 
-const name = computed(() => (user.value ? displayName(user.value) : ''))
+// Meno človeka, nie aktívneho kanála: `display_name` môže byť názov
+// organizácie a formulár by potom ukazoval niečo iné, než ukladá.
+const name = computed(() => (user.value ? String(user.value.person_name || displayName(user.value)) : ''))
 const canals = computed(() => (user.value?.canals as { id: number; name: string }[]) ?? [])
 const roleNames = computed(() => (user.value?.roles as string[]) ?? [])
 
