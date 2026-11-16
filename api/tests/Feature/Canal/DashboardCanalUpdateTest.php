@@ -80,6 +80,27 @@ class DashboardCanalUpdateTest extends CanalSetupTest
         ]);
     }
 
+    /**
+     * Názov po zmazanom kanáli je voľný; živý kanál s rovnakým názvom ho
+     * naďalej blokuje.
+     */
+    #[Test]
+    public function name_of_soft_deleted_canal_does_not_block_update(): void
+    {
+        $canal = $this->user->canals->first();
+        $payload = $this->payload();
+
+        Canal::factory()->create(['name' => $payload['name']])->delete();
+
+        $this->putJson("/api/dashboard/canals/{$canal->id}", $payload)->assertStatus(200);
+        $this->assertDatabaseHas('canals', ['id' => $canal->id, 'name' => $payload['name']]);
+
+        $live = Canal::factory()->create();
+        $this->putJson("/api/dashboard/canals/{$canal->id}", array_merge($payload, ['name' => $live->name]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
     #[Test]
     public function foreign_canal_cannot_be_updated_from_dashboard_scope(): void
     {

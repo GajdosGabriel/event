@@ -9,6 +9,7 @@ use App\Rules\PhoneNumber;
 use App\Rules\Postcode;
 use App\Rules\WebsiteUrl;
 use App\Services\Canals\CanalEmails;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ class CanalStoreRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -37,7 +38,9 @@ class CanalStoreRequest extends FormRequest
                 'string',
                 'max:255',
                 'min:3',
-                Rule::unique('canals', 'name')->ignore($canalId),
+                // Zmazaný kanál názov neblokuje — inak by ho nemohla prevziať
+                // ani obnovená/nová identita s rovnakým menom.
+                Rule::unique('canals', 'name')->ignore($canalId)->withoutTrashed(),
             ],
             'title_prefix' => 'nullable|string|max:50',
             'title_suffix' => 'nullable|string|max:50',
