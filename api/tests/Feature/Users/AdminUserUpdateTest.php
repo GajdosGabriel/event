@@ -133,6 +133,19 @@ class AdminUserUpdateTest extends TestCase
     }
 
     #[Test]
+    public function a_user_without_a_name_has_no_masked_person_name(): void
+    {
+        $user = User::factory()->create();
+        $user->canals()->detach();
+        $user->forceFill(['canal_id' => null])->saveQuietly();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/users/'.$user->id, [])
+            ->assertStatus(200)
+            ->assertJsonPath('person_name', null);
+    }
+
+    #[Test]
     public function the_name_cannot_be_emptied(): void
     {
         $user = User::factory()->create();

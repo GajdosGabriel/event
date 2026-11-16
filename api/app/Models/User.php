@@ -383,11 +383,21 @@ class User extends Authenticatable
             ?? $this->canals()->where('canals.identity_mode', CanalIdentityMode::Personal->value)->first();
     }
 
-    public function displayName(): string
+    /**
+     * Meno, ktoré človek naozaj zadal (osobný kanál / PendingProfile), bez
+     * náhrady maskovaným e-mailom. Null, keď meno nemá.
+     */
+    public function personName(): ?string
     {
         $personal = $this->personalCanal()?->name;
-
         $name = trim((string) ($personal ?? $this->pendingProfile()->value('display_name') ?? ''));
+
+        return $name !== '' ? $name : null;
+    }
+
+    public function displayName(): string
+    {
+        $name = (string) $this->personName();
 
         if ($name !== '') {
             return $name;

@@ -90,8 +90,9 @@ class UserResource extends JsonResource
                 'uuid' => $this->uuid,
                 // Meno človeka (osobný kanál / PendingProfile). `display_name`
                 // je meno aktívneho kanála — môže to byť aj organizácia, tak
-                // admin formulár upravuje toto.
-                'person_name' => $this->resource->displayName(),
+                // admin formulár upravuje toto. Null, keď meno nemá — nie
+                // maskovaný e-mail, ten by sa v editore uložil ako meno.
+                'person_name' => $this->resource->personName(),
                 'email' => $this->email,
                 'status' => $this->status,
                 'status_label' => $this->status?->label(),

@@ -38,7 +38,7 @@
             <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <FormField
                 v-model="form.display_name"
-                required
+                :required="!!personName"
                 maxlength="255"
                 :label="t('admin.user.displayName')"
                 :error="errors['display_name']"
@@ -228,7 +228,12 @@ const readonlyForm = computed(() => isSelf.value || !!user.value?.deleted_at)
 
 // Meno človeka, nie aktívneho kanála: `display_name` môže byť názov
 // organizácie a formulár by potom ukazoval niečo iné, než ukladá.
-const name = computed(() => (user.value ? String(user.value.person_name || displayName(user.value)) : ''))
+// Bez mena (`person_name` je null) ostane pole prázdne a nadpis ukáže celý
+// e-mail — admin ho vidí, maskovaný „d•••a“ mu nič nepovie.
+const personName = computed(() => String(user.value?.person_name ?? ''))
+const name = computed(() => (user.value
+  ? personName.value || String(user.value.email ?? '') || displayName(user.value)
+  : ''))
 const canals = computed(() => (user.value?.canals as { id: number; name: string }[]) ?? [])
 const roleNames = computed(() => (user.value?.roles as string[]) ?? [])
 
@@ -295,7 +300,7 @@ function fill(data: Record<string, unknown>) {
   user.value = data
   selectedRoles.value = [...((data.roles as string[]) ?? [])]
   form.value = {
-    display_name: name.value,
+    display_name: personName.value,
     email: String(data.email ?? ''),
     email_verified: data.email_verified === true,
     status: String(data.status ?? 'published'),
@@ -368,10 +373,10 @@ async function submit() {
   // nastaviť príliš krátke heslo.
   if (form.value.password) payload.password = form.value.password
 
-  // Len zmenené meno: účet bez kanála ukazuje namiesto mena maskovaný e-mail
-  // a ten sa nemá uložiť ako meno.
+  // Len zmenené meno — prázdne pole účtu bez mena sa neposiela (backend by
+  // ho zamietol ako povinné).
   const newName = form.value.display_name.trim()
-  if (newName !== name.value) payload.display_name = newName
+  if (newName !== personName.value) payload.display_name = newName
 
   try {
     const updated = await updateUser(userId.value, payload, SCOPE)
