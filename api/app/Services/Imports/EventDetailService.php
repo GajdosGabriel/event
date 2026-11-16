@@ -11,7 +11,7 @@ class EventDetailService
 
     public function __construct(
         private readonly ImportPageFetcher $pageFetcher,
-        private readonly \App\Services\Imports\VyveskaRssService $vyveskaRssService,
+        private readonly VyveskaRssService $vyveskaRssService,
         private readonly HtmlBodyCleaner $htmlCleaner = new HtmlBodyCleaner,
     ) {}
 
@@ -52,6 +52,12 @@ class EventDetailService
     private function extractEcavDetail(string $html, string $sourceUrl): array
     {
         $xpath = $this->createXPath($html);
+
+        $eventFacts = $this->ecavEventFacts($xpath);
+        if ($eventFacts !== null) {
+            return $this->extractEcavCalendarDetail($xpath, $eventFacts, $sourceUrl);
+        }
+
         $main = $this->firstNode($xpath, '//*[@id="content"] | //main');
         $title = $this->firstNodeText($xpath, '//h1');
         $bodyText = $this->normalizeWhitespace($main?->textContent ?? '');
@@ -84,6 +90,203 @@ class EventDetailService
             'attachments' => $media['attachments'],
             'source_url' => $sourceUrl,
         ];
+    }
+
+    /**
+     * Podujatie z kalendára ecav.sk/public/events. Na rozdiel od redakčných
+     * pozvánok má pod textom tabuľku s údajmi, ktoré zadal organizátor
+     * (Od, Do, Mesto, Ulica, Webstránka, Organizátor, Seniorát, Kategória) —
+     * berie sa z nej termín aj organizátor a miesto namiesto hádania z prózy.
+     *
+     * @return array<string, string>|null
+     */
+    private function ecavEventFacts(\DOMXPath $xpath): ?array
+    {
+        $rows = $xpath->query('//*[@id="content"]//table//tr[th and td]');
+        $facts = [];
+
+        foreach ($rows ?: [] as $row) {
+            $label = $this->normalizeWhitespace((string) $xpath->evaluate('string(th[1])', $row));
+            $value = $this->normalizeWhitespace((string) $xpath->evaluate('string(td[1])', $row));
+
+            if ($label !== '' && ! isset($facts[$label])) {
+                $facts[$label] = $value;
+            }
+        }
+
+        return isset($facts['Od']) && $this->parseEcavFactDate($facts['Od']) !== null ? $facts : null;
+    }
+
+    /**
+     * @param  array<string, string>  $facts
+     * @return array<string, mixed>
+     */
+    private function extractEcavCalendarDetail(\DOMXPath $xpath, array $facts, string $sourceUrl): array
+    {
+        $title = $this->firstNodeText($xpath, '//*[@id="content"]//h1');
+        if ($title === '') {
+            $title = $this->firstNodeText($xpath, '//title');
+        }
+        $article = $this->firstNode($xpath, '//*[@id="content"]//*[contains(@class, "entry-content")]');
+        $articleText = $this->normalizeWhitespace($article?->textContent ?? '');
+        $body = $article ? $this->htmlCleaner->cleanInner($article) : '';
+
+        if (trim(strip_tags($body)) === '' && $articleText !== '') {
+            $body = $this->htmlCleaner->fromPlainText($articleText);
+        }
+
+        // Organizátor zo stĺpca tabuľky; meta riadok s ikonou osoby nad textom
+        // je ten istý údaj a slúži len ako záloha.
+        $organizer = $facts['Organizátor'] ?? '';
+        if ($organizer === '') {
+            $organizer = $this->firstNodeText($xpath, '//*[@id="content"]//ul[contains(@class, "entry-meta")]/li[i[contains(@class, "icon-user")]]');
+        }
+
+        // Riadky s menovkami čítajú EventTextLabelExtractor („Organizátor:",
+        // „Miesto konania: obec, miesto") aj AI, preto idú pred text článku —
+        // menovka v próze nesmie prebiť údaj, ktorý organizátor vyplnil.
+        $city = $facts['Mesto'] ?? '';
+        $street = $facts['Ulica'] ?? '';
+        $factLines = array_filter([
+            $organizer !== '' ? 'Organizátor: '.$organizer : null,
+            $city !== '' ? 'Miesto konania: '.$city.($street !== '' ? ', '.$street : '') : null,
+            ($facts['Seniorát'] ?? '') !== '' ? 'Seniorát: '.$facts['Seniorát'] : null,
+            ($facts['Kategória'] ?? '') !== '' ? 'Kategória: '.$facts['Kategória'] : null,
+        ]);
+        $bodyText = trim(implode("\n", $factLines)."\n\n".$articleText);
+
+        $linkItems = $this->extractLinkItems($xpath, $sourceUrl, '//*[@id="content"]//a[@href]');
+        // Odkaz na hlavný obrázok (lightbox) nie je odkaz pre čitateľa.
+        $linkItems = array_values(array_filter(
+            $linkItems,
+            fn (array $item) => ! $this->isImageFileUrl($item['url']) && ! $this->isEcavBlobUrl($item['url'])
+        ));
+        $links = array_values(array_unique(array_column($linkItems, 'url')));
+
+        $attachments = array_values(array_filter(
+            $this->extractAttachments($xpath, $sourceUrl, '//*[@id="content"]//a[@href]'),
+            fn (array $attachment) => ! $this->isImageFileUrl((string) $attachment['url'])
+        ));
+
+        [$startAt, $startHasTime] = $this->parseEcavFactDate($facts['Od']) ?? [null, false];
+        [$endAt, $endHasTime] = $this->parseEcavFactDate($facts['Do'] ?? '') ?? [null, false];
+
+        if ($endAt !== null && ! $endHasTime) {
+            $endAt = $endAt->copy()->setTimezone(self::SOURCE_TIMEZONE)->setTime(23, 59, 59)->utc();
+        }
+        if ($startAt !== null && $endAt !== null && $endAt->lt($startAt)) {
+            $endAt = null;
+        }
+
+        return [
+            'title' => Str::limit($title !== '' ? $title : 'Imported event', 250, ''),
+            'body' => $body,
+            'body_text' => $bodyText,
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+            // „00:00" je v kalendári ECAV podujatie bez uvedeného času. Pri
+            // jednodňovom je taký začiatok len deň a čas môže doplniť AI
+            // z textu. Viacdňové (kurz, výstava) čas nepotrebuje a nepresný
+            // začiatok by importu zahodil aj koniec z tabuľky.
+            'start_at_precise' => $startHasTime || $this->spansMultipleDays($startAt, $endAt),
+            'registration_deadline_at' => $this->extractRegistrationDeadline($articleText),
+            'published_at_source' => null,
+            'links' => $links,
+            'link_items' => $linkItems,
+            'image_urls' => $this->ecavCalendarImages($xpath, $sourceUrl),
+            'attachments' => $attachments,
+            'source_url' => $sourceUrl,
+        ];
+    }
+
+    /**
+     * „19.11.2026 - 18:00" → [čas v UTC, či bol uvedený čas]. Polnoc znamená,
+     * že organizátor čas nevyplnil.
+     *
+     * @return array{0: Carbon, 1: bool}|null
+     */
+    private function parseEcavFactDate(string $value): ?array
+    {
+        if (! preg_match('/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s*[-–]?\s*(\d{1,2}):(\d{2}))?/u', $value, $m)) {
+            return null;
+        }
+
+        if (! checkdate((int) $m[2], (int) $m[1], (int) $m[3])) {
+            return null;
+        }
+
+        $hour = isset($m[4]) && $m[4] !== '' ? (int) $m[4] : 0;
+        $minute = isset($m[5]) && $m[5] !== '' ? (int) $m[5] : 0;
+
+        return [
+            $this->sourceDateTime((int) $m[3], (int) $m[2], (int) $m[1], $hour, $minute, 0),
+            $hour !== 0 || $minute !== 0,
+        ];
+    }
+
+    /**
+     * Hlavný obrázok podujatia je v og:image (na stránke ho ukazuje
+     * `.entry-image` len niekedy), ďalšie sú vložené v texte. Text často
+     * obsahuje ten istý plagát nahratý ešte raz — iný blob, ten istý súbor
+     * („plagat (1).jpg" vs „plagat.jpg") — a ten sa vynechá.
+     *
+     * @return array<int, string>
+     */
+    private function ecavCalendarImages(\DOMXPath $xpath, string $sourceUrl): array
+    {
+        $candidates = [];
+
+        $ogImage = trim((string) $xpath->evaluate('string(//meta[@property="og:image"]/@content)'));
+        if ($ogImage !== '') {
+            $candidates[] = $this->absoluteUrl($sourceUrl, $ogImage);
+        }
+        foreach ($this->extractLinks($xpath, $sourceUrl, '//*[@id="content"]//*[contains(@class, "entry-image")]//a[@href]') as $url) {
+            $candidates[] = $url;
+        }
+        foreach ($this->extractImages($xpath, $sourceUrl, '//*[@id="content"]//*[contains(@class, "entry-image") or contains(@class, "entry-content")]//img[@src]') as $url) {
+            $candidates[] = $url;
+        }
+
+        $images = [];
+        foreach (array_filter($candidates) as $url) {
+            $blobKey = $this->ecavImageKey($url);
+            $fileKey = $this->ecavImageFileKey($url);
+
+            $duplicateOf = null;
+            foreach ($images as $index => $image) {
+                if ($image['blob'] === $blobKey || ($fileKey !== '' && $image['file'] === $fileKey)) {
+                    $duplicateOf = $index;
+                    break;
+                }
+            }
+
+            if ($duplicateOf === null) {
+                $images[] = ['url' => $url, 'blob' => $blobKey, 'file' => $fileKey];
+            } elseif ($this->shouldPreferEcavImageUrl($url, $images[$duplicateOf]['url'])) {
+                $images[$duplicateOf]['url'] = $url;
+            }
+        }
+
+        return array_values(array_unique(array_column($images, 'url')));
+    }
+
+    private function spansMultipleDays(?Carbon $startAt, ?Carbon $endAt): bool
+    {
+        if ($startAt === null || $endAt === null) {
+            return false;
+        }
+
+        return $startAt->copy()->setTimezone(self::SOURCE_TIMEZONE)->toDateString()
+            !== $endAt->copy()->setTimezone(self::SOURCE_TIMEZONE)->toDateString();
+    }
+
+    private function ecavImageFileKey(string $url): string
+    {
+        $name = strtolower(rawurldecode(basename((string) parse_url($url, PHP_URL_PATH))));
+        // Kópia nahratá druhýkrát dostane príponu „ (1)".
+        $name = preg_replace('/\s*\(\d+\)(?=\.[a-z0-9]+$)/', '', $name) ?? $name;
+
+        return $this->isImageFileUrl($name) ? $name : '';
     }
 
     /**

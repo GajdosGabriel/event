@@ -121,13 +121,14 @@ return [
         'sources' => [
             'urls' => array_values(array_filter(array_map(
                 static fn (string $url) => trim($url),
-                explode(',', (string) env('IMPORT_SOURCE_URLS', 'https://www.ecav.sk/aktuality/pozvanky,https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl,https://www.vyveska.sk/zoznam-podujati/najnovsie/'))
+                explode(',', (string) env('IMPORT_SOURCE_URLS', 'https://www.ecav.sk/aktuality/pozvanky,https://www.tkkbs.sk/search.php?rstext=pozvanka&rskde=tsl,https://www.vyveska.sk/zoznam-podujati/najnovsie/,https://www.ecav.sk/public/events'))
             ))),
             'max_pages' => max(1, (int) env('IMPORT_SOURCE_MAX_PAGES', 1)),
         ],
         // Stiahnutie článku pre AI detektor (WebPageFetcher). TLS sa overuje;
         // host s rozbitým certifikátom sem patrí len výslovne, s dôvodom v komentári.
-        // Všetky štyri zdroje (ecav.sk, tkkbs.sk, vyveska.sk, hlascirkvi.sk)
+        // Všetky zdroje (ecav.sk – pozvánky aj kalendár podujatí, tkkbs.sk,
+        // vyveska.sk, hlascirkvi.sk)
         // prejdú s overením, zoznam je preto prázdny.
         'page_fetch' => [
             'insecure_tls_hosts' => array_values(array_filter(array_map(
