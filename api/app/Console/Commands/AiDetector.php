@@ -13,6 +13,7 @@ use App\Services\Imports\ImportedNameMatcher;
 use App\Services\Imports\ImportedVenueManager;
 use App\Services\Imports\OrganizerName;
 use App\Services\Imports\OrganizerWebsiteFinder;
+use App\Services\OpenAI\AiUsageRecorder;
 use App\Services\OpenAI\Detector;
 use App\Services\Publishing\EventDependencyPublisher;
 use Illuminate\Console\Command;
@@ -57,13 +58,16 @@ class AiDetector extends Command
         }
 
         // Spotreba AI z tohto behu patrí podujatiu a jeho kanálu.
-        app(\App\Services\OpenAI\AiUsageRecorder::class)->setSubject($event);
+        app(AiUsageRecorder::class)->setSubject($event);
 
         // Prvý beh nad podujatím prepisuje popis, ďalšie už len dohľadávajú
         // organizátora — hotový copywriter text sa druhýkrát neprepisuje.
         $rewritePass = $event->body_rewritten_at === null;
 
-        $result = $detector->detectFromUrl((string) $event->orginal_source);
+        $posterText = $this->pickString($event->meta['import']['poster_text'] ?? null);
+        $result = $posterText !== null
+            ? $detector->detectFromUrl((string) $event->orginal_source, $posterText)
+            : $detector->detectFromUrl((string) $event->orginal_source);
         $sourceGone = null;
 
         // Zdroj článok už nemá — typicky podujatia prenesené z archívu

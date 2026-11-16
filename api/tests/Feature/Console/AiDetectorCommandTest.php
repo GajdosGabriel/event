@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Imports\ImportedVenueManager;
 use App\Services\OpenAI\Detector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -106,6 +107,37 @@ class AiDetectorCommandTest extends TestCase
     }
 
     /**
+     * Na webe je pod plagátom len „Srdečne pozývame." — copywriter musí
+     * dostať aj prepis plagátu z importu, inak by ho z popisu vymazal.
+     */
+    #[Test]
+    public function the_copywriter_gets_the_imported_poster_text(): void
+    {
+        $canal = Canal::factory()->create();
+        $user = User::factory()->create(['canal_id' => $canal->id]);
+        $venue = Venue::factory()->create(['canal_id' => $canal->id]);
+        $event = Event::factory()->create([
+            'canal_id' => $canal->id, 'user_id' => $user->id, 'venue_id' => $venue->id,
+            'published_at' => now(), 'orginal_source' => 'https://www.ecav.sk/na-slovicko-o-m-r-stefanikovi',
+            'body_rewritten_at' => null,
+            'meta' => ['import' => ['poster_text' => 'Prednáša Mgr. Ján Novák']],
+        ]);
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromUrl')->once()
+            ->with('https://www.ecav.sk/na-slovicko-o-m-r-stefanikovi', 'Prednáša Mgr. Ján Novák')
+            ->andReturn([
+                'success' => true,
+                'corrected_text' => '<p>Prednášať bude Mgr. Ján Novák.</p>',
+                'event_payload' => ['name' => 'Na slovíčko'],
+            ]);
+        $this->app->instance(Detector::class, $detector);
+
+        $this->artisan('app:ai-detector')->assertSuccessful();
+
+        $this->assertStringContainsString('Ján Novák', (string) $event->fresh()->body);
+    }
+
+    /**
      * Archív hlascirkvi.sk má stovky podujatí bez popisu. Názov stačí na to,
      * aby AI dostala šancu prečítať z neho aspoň miesto.
      */
@@ -171,11 +203,11 @@ class AiDetectorCommandTest extends TestCase
         ]);
         $this->app->instance(Detector::class, $detector);
 
-        $venueManager = Mockery::mock(\App\Services\Imports\ImportedVenueManager::class);
+        $venueManager = Mockery::mock(ImportedVenueManager::class);
         $venueManager->shouldReceive('resolveOrDetect')->once()
             ->with(Mockery::on(fn ($c) => $c->id === $canal->id), 'Bazilika sv. Antona', 'Padova', null)
             ->andReturn($detected);
-        $this->app->instance(\App\Services\Imports\ImportedVenueManager::class, $venueManager);
+        $this->app->instance(ImportedVenueManager::class, $venueManager);
 
         $this->artisan('app:ai-detector')->assertSuccessful();
         $this->artisan('app:ai-detector')->assertSuccessful();

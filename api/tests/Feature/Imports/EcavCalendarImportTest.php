@@ -6,6 +6,8 @@ use App\Enums\FileType;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Imports\ImportPosterReader;
+use App\Services\OpenAI\ChatGPT;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -98,6 +100,57 @@ class EcavCalendarImportTest extends TestCase
         $this->assertSame('EMC ECAV', Canal::query()->findOrFail($course->canal_id)->name);
         $this->assertSame('https://www.edumiscentrum.sk/dps', $course->website);
         $this->assertSame([], $course->meta['import']['image_urls'] ?? null);
+    }
+
+    #[Test]
+    public function it_reads_the_poster_of_a_short_article_once(): void
+    {
+        config()->set('services.imports.read_posters', true);
+
+        $chatGpt = \Mockery::mock(ChatGPT::class);
+        $chatGpt->shouldReceive('extractDataFromPoster')
+            ->once()
+            ->withArgs(fn (string $text, array $images) => $text === '' && str_starts_with($images[0] ?? '', 'data:image/jpeg;base64,'))
+            ->andReturn(['poster_text' => "Prednáša Mgr. Ján Novák\nVstup voľný"]);
+        $this->app->instance(ChatGPT::class, $chatGpt);
+
+        Http::fake(function ($request) {
+            return match ($request->url()) {
+                self::LISTING_URL => Http::response($this->listingHtml(['/na-slovicko-o-m-r-stefanikovi'], null), 200, ['Content-Type' => 'text/html; charset=utf-8']),
+                'https://www.ecav.sk/na-slovicko-o-m-r-stefanikovi' => Http::response($this->detailHtml(
+                    'Na slovíčko o M. R. Štefánikovi',
+                    ['Od' => '19.11.2026 - 18:00', 'Do' => '19.11.2026 - 19:00', 'Mesto' => 'Kežmarok', 'Ulica' => 'Ev. lýceum', 'Organizátor' => 'CZ ECAV Kežmarok'],
+                    '',
+                    withImages: true,
+                ), 200, ['Content-Type' => 'text/html; charset=utf-8']),
+                self::BLOB, self::BODY_COPY, self::REPRESENTATION => Http::response($this->fakeImage('jpeg', $request->url()), 200, ['Content-Type' => 'application/octet-stream']),
+                default => Http::response('', 404),
+            };
+        });
+
+        $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL]])->assertSuccessful();
+
+        $event = Event::query()->where('orginal_source', 'https://www.ecav.sk/na-slovicko-o-m-r-stefanikovi')->firstOrFail();
+        $this->assertStringContainsString('<p>Prednáša Mgr. Ján Novák<br> Vstup voľný</p>', (string) $event->body);
+        $this->assertSame(self::BLOB, $event->meta['import']['poster_image_url'] ?? null);
+        $this->assertStringContainsString('Vstup voľný', (string) ($event->meta['raw_text'] ?? '').(string) ($event->meta['import']['poster_text'] ?? ''));
+
+        // Opakovaný beh prevezme prepis z meta — mock povolí len jedno volanie.
+        $this->artisan('app:import-event-sources', ['--url' => [self::LISTING_URL], '--force' => true])->assertSuccessful();
+        $this->assertStringContainsString('Prednáša Mgr. Ján Novák', (string) $event->fresh()->body);
+    }
+
+    #[Test]
+    public function it_does_not_read_the_poster_of_a_long_article(): void
+    {
+        config()->set('services.imports.read_posters', true);
+
+        $reader = new ImportPosterReader;
+        $this->assertTrue($reader->shouldRead('Srdečne pozývame.'));
+        $this->assertFalse($reader->shouldRead(str_repeat('Program podujatia. ', 40)));
+
+        config()->set('services.imports.read_posters', false);
+        $this->assertFalse($reader->shouldRead('Srdečne pozývame.'));
     }
 
     /**

@@ -33,6 +33,7 @@ class EventImportService
         private readonly GoogleMapsLinkResolver $mapsLinkResolver = new GoogleMapsLinkResolver,
         private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher,
         private readonly OrganizerWebsiteFinder $websiteFinder = new OrganizerWebsiteFinder,
+        private readonly ImportPosterReader $posterReader = new ImportPosterReader,
     ) {}
 
     /**
@@ -129,8 +130,25 @@ class EventImportService
             $pdfResults[] = ['result' => $result, 'name' => $name, 'source_url' => $url];
         }
 
+        // Obrázkový plagát pri krátkom článku: text z neho prečíta vision
+        // (ImportPosterReader). PDF plagát už prečítal spisor.eu vyššie.
+        // Prepis sa pamätá v meta podujatia, takže koncept, ktorý sa skúša
+        // každú noc znova, za ten istý plagát neplatí opakovane.
+        $posterText = '';
+        $posterImageUrl = null;
+        $imageUrls = array_values(array_filter((array) ($detail['image_urls'] ?? []), 'is_string'));
+        if ($pdfText === '' && $imageUrls !== [] && $this->posterReader->shouldRead(strip_tags((string) $detail['body']))) {
+            $posterImageUrl = $imageUrls[0];
+            $posterText = $this->previousPosterText($articleUrl, $posterImageUrl)
+                ?? $this->posterReader->transcribe($posterImageUrl)
+                ?? '';
+        }
+
         $rawBodyText = (string) ($detail['body_text'] ?? strip_tags((string) $detail['body']));
         $enrichedBodyText = $pdfText !== '' ? $rawBodyText.$pdfText : $rawBodyText;
+        if ($posterText !== '') {
+            $enrichedBodyText .= "\n\n".$posterText;
+        }
 
         // A date found without an explicit clock time (e.g. a "Sobota 4. júla
         // 2026:" heading in front of a multi-time program list) is only a
@@ -209,6 +227,13 @@ class EventImportService
             $body = rtrim($body)."\n<p>".nl2br($safeText).'</p>';
         }
 
+        // Prepis plagátu do popisu rovnako ako text z PDF. Formu mu neskôr dá
+        // copywriter (app:ai-detector), ktorý z popisu robí čitateľný text.
+        if ($posterText !== '') {
+            $safeText = htmlspecialchars(trim($posterText), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $body = rtrim($body)."\n<p>".nl2br($safeText).'</p>';
+        }
+
         // Precise regex dates take priority. An imprecise (date-only) regex
         // match defers to the AI-confirmed time when available, falling back
         // to the original guess only if AI could not confirm it either.
@@ -255,6 +280,8 @@ class EventImportService
                     'link_items' => $detail['link_items'] ?? [],
                     'image_urls' => $detail['image_urls'],
                     'attachments' => $detail['attachments'] ?? [],
+                    'poster_image_url' => $posterText !== '' ? $posterImageUrl : null,
+                    'poster_text' => $posterText !== '' ? $posterText : null,
                 ],
                 'raw_text' => $detail['body_text'] ?? strip_tags((string) $detail['body']),
             ],
@@ -379,6 +406,22 @@ class EventImportService
     }
 
     /** Spoločné hľadanie podľa zdroja — pozri App\Services\Imports\EventSourceLookup. */
+    /** Prepis toho istého plagátu z predošlého behu, nech sa neplatí znova. */
+    private function previousPosterText(string $articleUrl, string $imageUrl): ?string
+    {
+        $meta = Event::query()->where('orginal_source', $articleUrl)->value('meta');
+        $meta = is_string($meta) ? json_decode($meta, true) : $meta;
+        $import = is_array($meta) ? ($meta['import'] ?? null) : null;
+
+        if (! is_array($import) || ($import['poster_image_url'] ?? null) !== $imageUrl) {
+            return null;
+        }
+
+        $text = is_string($import['poster_text'] ?? null) ? trim($import['poster_text']) : '';
+
+        return $text !== '' ? $text : null;
+    }
+
     private function findEventBySourceUrl(string $sourceUrl): ?Event
     {
         return EventSourceLookup::find($sourceUrl);

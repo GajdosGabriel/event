@@ -483,13 +483,23 @@ class Detector
         return new HtmlBodyFinisher($this->chatGPT);
     }
 
-    public function detectFromUrl(string $url): array
+    /**
+     * @param  string|null  $posterText  prepis plagátu z importu (ImportPosterReader) —
+     *                                   na webe ako text nie je, takže bez neho by
+     *                                   copywriter popis prepísal len z vety pod plagátom
+     */
+    public function detectFromUrl(string $url, ?string $posterText = null): array
     {
         try {
             $html = $this->stiahniTextCurl($url);
             $extracted = $this->extrahujContentBody($html, $url);
+            $text = (string) ($extracted['text'] ?? '');
 
-            return $this->analyzeText($extracted['text'] ?? '', $extracted['attachments'] ?? []);
+            if ($posterText !== null && trim($posterText) !== '') {
+                $text = rtrim($text)."\n\nText z plagátu podujatia:\n".trim($posterText);
+            }
+
+            return $this->analyzeText($text, $extracted['attachments'] ?? []);
         } catch (\Throwable $e) {
             return [
                 'success' => false,
