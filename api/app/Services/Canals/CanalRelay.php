@@ -136,16 +136,14 @@ class CanalRelay
         }
 
         $what = $kind === 'question' ? 'otázka návštevníka preposlaná' : 'správa návštevníka preposlaná';
-        $simulated = $this->takeover->simulated() ? ' (len simulované, e-mail neodišiel)' : '';
-
-        Recorder::info('canals', $kind.'_relayed', "Kanál {$canal->name} bez správcu: {$what} na kontaktnú adresu{$simulated}",
+        Recorder::info('canals', $kind.'_relayed', "Kanál {$canal->name} bez správcu: {$what} na kontaktnú adresu",
             status: 'ok',
             recipient: $email,
             userId: $sender->id,
             subject: $target,
             context: [
                 'canal_id' => $canal->id,
-                'delivery' => $this->takeover->simulated() ? 'simulated' : 'sent',
+                'delivery' => 'sent',
                 'admins_notified' => $admins->count(),
             ],
         );

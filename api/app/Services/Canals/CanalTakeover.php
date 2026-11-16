@@ -24,7 +24,6 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
  *  - e-mail ponúka prevzatie kanála; odkaz na odhlásenie nemá (technický e-mail),
  *  - ide cez Account (SendsViaAccount), vrátený e-mail adresu vyradí
  *    (CanalEmails::recordBounce),
- *  - celé to brzdí jediný vypínač `canals.simulate_takeover_mail`.
  */
 class CanalTakeover
 {
@@ -123,11 +122,6 @@ class CanalTakeover
 
     public function send(string $email, Notification $notice, ?Model $subject = null): void
     {
-        MailSimulator::send([NotificationFacade::route('mail', $email)], $notice, $this->simulated(), $subject);
-    }
-
-    public function simulated(): bool
-    {
-        return (bool) config('canals.simulate_takeover_mail', false);
+        MailSimulator::send([NotificationFacade::route('mail', $email)], $notice, false, $subject);
     }
 }

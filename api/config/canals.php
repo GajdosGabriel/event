@@ -15,13 +15,6 @@ return [
     // Kým je true, idú len do denníka — odkaz na potvrdenie je v jeho kontexte.
     'simulate_claim_mail' => (bool) env('CANAL_CLAIM_MAIL_SIMULATE', true),
 
-    // Jediná brzda e-mailov na kontakt nespravovaného kanála (CanalTakeover):
-    // prihláška na akciu, zverejnená akcia (CanalEventOffer), otázka aj správa
-    // návštevníka. Ide o nevyžiadaný
-    // e-mail na verejnú adresu — súlad s § 116 zákona č. 452/2021 Z. z. overiť.
-    // Pri true sa e-mail len zapíše do denníka; kópia adminom odchádza vždy.
-    'simulate_takeover_mail' => (bool) env('CANAL_TAKEOVER_MAIL_SIMULATE', false),
-
     // Domény, na ktoré technický e-mail o zverejnenej akcii (CanalEventOffer)
     // nechodí — zdroje importu s množstvom akcií. Platí aj pre subdomény.
     // ecav.sk tu nie je: na nej majú adresy aj jednotlivé cirkevné zbory;

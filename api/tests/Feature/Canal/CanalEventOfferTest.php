@@ -33,7 +33,6 @@ class CanalEventOfferTest extends TestCase
         // EventFactory berie autora z existujúcich používateľov.
         User::factory()->create();
         Notification::fake();
-        config(['canals.simulate_takeover_mail' => false]);
     }
 
     private function importedCanal(array $attributes = []): Canal
@@ -63,6 +62,7 @@ class CanalEventOfferTest extends TestCase
         $canal = $this->importedCanal(['created_at' => now()->subMonth()]);
 
         $this->publish($canal);
+        $this->travel(1)->days();
         $this->publish($canal);
 
         Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 2);
@@ -78,6 +78,7 @@ class CanalEventOfferTest extends TestCase
         $canal = $this->importedCanal();
 
         $first = $this->publish($canal);
+        $this->travel(1)->days();
         $this->publish($canal);
 
         $sent = collect();
@@ -89,6 +90,30 @@ class CanalEventOfferTest extends TestCase
 
         $this->assertSame([true, false], $sent->all());
         $this->assertNotNull($first->fresh()->takeover_notified_at);
+    }
+
+    #[Test]
+    public function canal_gets_at_most_one_mail_a_day(): void
+    {
+        $canal = $this->importedCanal(['created_at' => now()->subMonth()]);
+        $other = $this->importedCanal(['email' => 'iny@kanal.test', 'created_at' => now()->subMonth()]);
+
+        // Import zverejní naraz tri akcie kanála — e-mail len k prvej.
+        $first = $this->publish($canal);
+        $second = $this->publish($canal);
+        $this->publish($canal);
+        // Iný kanál ten istý deň strop nezdieľa.
+        $this->publish($other);
+
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 2);
+        $this->assertNotNull($first->fresh()->takeover_notified_at);
+        $this->assertNull($second->fresh()->takeover_notified_at);
+
+        // Na druhý deň ďalšia akcia e-mail znova pošle.
+        $this->travel(1)->days();
+        $this->publish($canal);
+
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 3);
     }
 
     #[Test]
@@ -190,16 +215,6 @@ class CanalEventOfferTest extends TestCase
         app(CanalMembership::class)->attach($canal, $member, CanalRole::Editor);
 
         $this->publish($canal);
-
-        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 0);
-    }
-
-    #[Test]
-    public function simulation_switch_keeps_the_mail_in_the_log(): void
-    {
-        config(['canals.simulate_takeover_mail' => true]);
-
-        $this->publish($this->importedCanal());
 
         Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 0);
     }

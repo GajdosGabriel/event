@@ -3,8 +3,10 @@
 namespace App\Services\Canals;
 
 use App\Enums\ModelStatus;
+use App\Models\Canal;
 use App\Models\Event;
 use App\Notifications\CanalEventPublishedOffer;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Technický e-mail kontaktu nespravovaného kanála: zverejnili sme jeho akciu
@@ -13,11 +15,12 @@ use App\Notifications\CanalEventPublishedOffer;
  *
  * Nejde cez Account Emailing (kampane), ale ako ostatné e-maily na kontakt
  * kanála cez CanalTakeover: rovnaký výber adresy (kanál, záložne akcia),
- * vyradené adresy sa preskočia, brzdou je `canals.simulate_takeover_mail`.
- * Adresa nemusí byť overená. Nepíše sa kanálom s `event_offer_disabled`
- * (prepínač v úprave kanála v admine) ani na domény zo zoznamu
- * `canals.event_offer_excluded_domains`. Píše sa pri každej akcii, ku každej najviac raz
- * (`events.takeover_notified_at`).
+ * nedoručiteľné adresy sa preskočia. Adresa nemusí byť overená. Nepíše sa
+ * kanálom s `event_offer_disabled` (prepínač v úprave kanála v admine) ani na
+ * domény zo zoznamu `canals.event_offer_excluded_domains`. Píše sa pri každej
+ * akcii, ku každej najviac raz (`events.takeover_notified_at`), a kanálu
+ * najviac raz za deň — import, ktorý naraz zverejní viac akcií, tak pošle
+ * jeden e-mail (k prvej z nich), ostatné akcie toho dňa e-mail nedostanú.
  */
 class CanalEventOffer
 {
@@ -46,11 +49,18 @@ class CanalEventOffer
             return;
         }
 
-        // Rezervácia akcie pred odoslaním — dva súbežné joby nepošlú dva e-maily.
-        $claimed = Event::query()
-            ->whereKey($event->id)
-            ->whereNull('takeover_notified_at')
-            ->update(['takeover_notified_at' => now()]);
+        // Kontrola denného stropu a rezervácia akcie pod zámkom kanála — súbežné
+        // joby z importu nepošlú kanálu dva e-maily v ten istý deň.
+        $claimed = Cache::lock('canal-event-offer:'.$canal->id, 10)->block(5, function () use ($canal, $event) {
+            if ($this->notifiedToday($canal)) {
+                return 0;
+            }
+
+            return Event::query()
+                ->whereKey($event->id)
+                ->whereNull('takeover_notified_at')
+                ->update(['takeover_notified_at' => now()]);
+        });
 
         if ($claimed === 0) {
             return;
@@ -87,6 +97,12 @@ class CanalEventOffer
         }
 
         return false;
+    }
+
+    /** Kanál už dnes e-mail o zverejnenej akcii dostal. */
+    private function notifiedToday(Canal $canal): bool
+    {
+        return $canal->events()->where('takeover_notified_at', '>=', today())->exists();
     }
 
     private function eligible(Event $event): bool

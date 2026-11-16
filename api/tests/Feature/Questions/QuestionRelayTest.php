@@ -5,13 +5,13 @@ namespace Tests\Feature\Questions;
 use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\EmailSuppression;
-use App\Models\SystemLog;
 use App\Models\User;
 use App\Notifications\QuestionRelayed;
 use App\Services\Canals\CanalEmails;
 use App\Support\SubmissionTicket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
 use Tests\TestSupport\EventSetupTest;
@@ -47,7 +47,7 @@ class QuestionRelayTest extends EventSetupTest
         ])->save();
     }
 
-    private function ask(string $body = 'Je vstup naozaj zadarmo?'): \Illuminate\Testing\TestResponse
+    private function ask(string $body = 'Je vstup naozaj zadarmo?'): TestResponse
     {
         $ticket = $this->travelTo(
             now()->subSeconds(10),
@@ -157,9 +157,8 @@ class QuestionRelayTest extends EventSetupTest
     }
 
     #[Test]
-    public function a_verified_question_reaches_the_admin_and_the_organizer_is_only_simulated(): void
+    public function a_verified_question_reaches_the_admin_too(): void
     {
-        config(['canals.simulate_takeover_mail' => true]);
         $admin = $this->admin();
         $this->actingAs($this->user, 'sanctum');
 
@@ -168,17 +167,12 @@ class QuestionRelayTest extends EventSetupTest
         Notification::assertSentTo($admin, QuestionRelayed::class,
             fn (QuestionRelayed $n) => $n->audience === QuestionRelayed::ADMIN && $n->askerEmail === $this->user->email);
 
-        // Simulácia: organizátorovi nič neodišlo, ale zapísalo sa to do denníka.
-        Notification::assertNotSentTo(new \Illuminate\Notifications\AnonymousNotifiable, QuestionRelayed::class);
-        $log = SystemLog::where('event', 'mail.simulated')->sole();
-        $this->assertSame('info@organizator.sk', $log->recipient);
-
         // Nič sa neukladá a nástenka sa nezakladá.
         $this->assertNull($this->futureEvent->questionBoard()->first());
     }
 
     #[Test]
-    public function the_organizer_mail_is_sent_for_real_once_simulation_is_off(): void
+    public function the_organizer_mail_is_sent_to_the_canal_contact(): void
     {
         $this->actingAs($this->user, 'sanctum');
 
