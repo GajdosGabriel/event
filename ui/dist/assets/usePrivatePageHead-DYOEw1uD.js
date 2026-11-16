@@ -1,0 +1,1 @@
+import{t as e}from"./vue.CXwiCT15-CXSvktP4.js";function t(t){e({title:()=>`${t()} | Tixio`,meta:[{name:`robots`,content:`noindex, nofollow`}]})}export{t};

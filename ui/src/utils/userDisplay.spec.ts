@@ -11,6 +11,11 @@ describe('displayName', () => {
       .toBe('Jana Nováková')
   })
 
+  it('uprednostní meno človeka pred názvom aktívneho kanála', () => {
+    expect(displayName({ person_name: 'Daniela Suchá', display_name: 'Spolok, o. z.' }))
+      .toBe('Daniela Suchá')
+  })
+
   it('použije e-mail, keď display_name chýba', () => {
     expect(displayName({ email: 'jana@test.sk' })).toBe('jana@test.sk')
   })

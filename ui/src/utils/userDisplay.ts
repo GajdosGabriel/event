@@ -4,8 +4,12 @@ import type { AccessRole } from '@/types'
 
 export type UserLike = Record<string, unknown>
 
+// `person_name` (len admin scope) je meno človeka; `display_name` je názov
+// aktívneho kanála — ak je ním organizácia, ukázal by ju namiesto mena
+// a zmena mena v editore by v zozname ani detaile nebola vidieť.
 export function displayName(user: UserLike): string {
-  return (user.display_name as string)
+  return (user.person_name as string)
+    || (user.display_name as string)
     || (user.email as string)
     || (user.email_masked as string)
     || t('users.unknown')
