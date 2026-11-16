@@ -18,6 +18,7 @@ class PendingRegistration extends Model
         'email',
         'password',
         'display_name',
+        'organization_name',
         'event_id',
         'registered_via',
         'verification_token',

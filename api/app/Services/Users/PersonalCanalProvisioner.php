@@ -8,6 +8,7 @@ use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Jobs\ImportSocialAvatarJob;
 use App\Models\Canal;
+use App\Models\Municipality;
 use App\Models\User;
 use App\Services\Canals\CanalAuditor;
 use App\Services\Canals\CanalEmails;
@@ -20,6 +21,10 @@ use Illuminate\Support\Str;
  * Jediné miesto, kde osobný kanál vzniká — volá ho UserObserver po overení
  * e-mailu aj AttendeeRegistrar pri založení účtu účastníka. Guard na
  * existujúci kanál zabezpečí, že sa nevytvorí druhýkrát.
+ *
+ * Kto sa registroval za organizáciu (PendingProfile::organization_name),
+ * dostane popri osobnom kanáli aj organizačný. Osobný nesie meno človeka
+ * (User::displayName, oslovenie v e-mailoch), organizačný názov spolku.
  */
 class PersonalCanalProvisioner
 {
@@ -48,24 +53,31 @@ class PersonalCanalProvisioner
             'identity_mode' => CanalIdentityMode::Personal->value,
         ]);
 
-        $user->canals()->attach($canal->id, [
-            'is_owner' => true,
-            'role' => CanalRole::Owner->value,
-            'status' => ModelStatus::Published->value,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $this->attachOwner($user, $canal, 'personal_canal');
+
+        $organizationName = trim((string) ($pending?->organization_name ?? ''));
+        if ($organizationName !== '') {
+            $organization = Canal::create([
+                // Obec sa ešte nevie — doplní ju CanalSeatDeriver podľa podujatí,
+                // rovnako ako pri importovaných organizátoroch.
+                'municipality_id' => Municipality::nationwideId(),
+                'name' => $organizationName,
+                'email' => $user->email,
+                'status' => 'published',
+                'published_at' => now(),
+                'registration_source' => RegistrationSource::SELF->value,
+                'identity_mode' => CanalIdentityMode::Organization->value,
+            ]);
+
+            $this->attachOwner($user, $organization, 'organization_registration');
+        }
 
         $user->forgetCanalRoles();
         // Bez globálnej roly by nový vlastník neprešiel `permission:` middlewarom
         // na dashboard routách (viď CanalMembership).
         app(CanalMembership::class)->syncGlobalRoles($user);
 
-        app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'personal_canal']);
-
-        // Adresa kanála je e-mail účtu — overená, ak je overený účet.
-        app(CanalEmails::class)->recordOwner($canal, $user);
-
+        // users.canal_id ostáva osobný kanál — nesie meno človeka.
         $user->canal_id = $canal->id;
         $user->save();
 
@@ -79,5 +91,21 @@ class PersonalCanalProvisioner
         $pending?->delete();
 
         return $canal;
+    }
+
+    private function attachOwner(User $user, Canal $canal, string $reason): void
+    {
+        $user->canals()->attach($canal->id, [
+            'is_owner' => true,
+            'role' => CanalRole::Owner->value,
+            'status' => ModelStatus::Published->value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => $reason]);
+
+        // Adresa kanála je e-mail účtu — overená, ak je overený účet.
+        app(CanalEmails::class)->recordOwner($canal, $user);
     }
 }

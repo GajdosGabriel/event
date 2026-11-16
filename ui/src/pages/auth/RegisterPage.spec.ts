@@ -64,4 +64,46 @@ describe('registration', () => {
     const label = w.get(`[id="${labelledBy}"]`)
     expect(label.text()).toContain(t('auth.register.termsLink'))
   })
+
+  it('offers to move an organization name out of the personal name field', async () => {
+    register.mockResolvedValue({})
+    const w = await page()
+    await field(w, t('auth.register.name')).find('input').setValue('CYRILOMETODIADA, o. z.')
+
+    const warning = w.get('[data-testid="organization-name-warning"]')
+    await warning.get('button').trigger('click')
+
+    expect(field(w, t('auth.register.organizationName')).find('input').element.value).toBe('CYRILOMETODIADA, o. z.')
+    expect(field(w, t('auth.register.name')).find('input').element.value).toBe('')
+    expect(w.find('[data-testid="organization-name-warning"]').exists()).toBe(false)
+
+    await field(w, t('auth.register.name')).find('input').setValue('Jana Nováková')
+    await field(w, t('auth.register.email')).find('input').setValue('jana@example.test')
+    await field(w, t('auth.register.password')).find('input').setValue('dlhe-heslo')
+    await field(w, t('auth.register.passwordConfirm')).find('input').setValue('dlhe-heslo')
+    await w.get('input[type="checkbox"]').setValue(true)
+    await w.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(register).toHaveBeenCalledWith(expect.objectContaining({
+      account_type: 'organization',
+      organization_name: 'CYRILOMETODIADA, o. z.',
+      display_name: 'Jana Nováková',
+    }))
+  })
+
+  it('sends no organization name when registering as a person', async () => {
+    register.mockResolvedValue({})
+    const w = await page()
+    expect(w.find('[data-testid="organization-name-warning"]').exists()).toBe(false)
+    await field(w, t('auth.register.name')).find('input').setValue('Jana')
+    await field(w, t('auth.register.email')).find('input').setValue('jana@example.test')
+    await field(w, t('auth.register.password')).find('input').setValue('dlhe-heslo')
+    await field(w, t('auth.register.passwordConfirm')).find('input').setValue('dlhe-heslo')
+    await w.get('input[type="checkbox"]').setValue(true)
+    await w.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(register).toHaveBeenCalledWith(expect.objectContaining({ account_type: 'person', organization_name: null }))
+  })
 })

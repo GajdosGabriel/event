@@ -209,4 +209,69 @@ class UserCreationTest extends TestCase
         $this->postJson('/api/login', ['email' => 'obet-google@example.sk', 'password' => 'Utocnik-heslo-1'])
             ->assertUnauthorized();
     }
+
+    #[Test]
+    public function registration_for_an_organization_creates_a_personal_and_an_organization_canal()
+    {
+        Notification::fake();
+
+        // Človek z CYRILOMETODIADA, o. z. — názov spolku nesmie skončiť v mene
+        // osobného kanála, z ktorého sa berie oslovenie aj meno v tíme.
+        $this->postJson('/api/register', [
+            'account_type' => 'organization',
+            'organization_name' => 'Spolok priateľov, o. z.',
+            'display_name' => 'Jana Spolková',
+            'email' => 'spolok@example.sk',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+            'terms_accepted' => true,
+        ])->assertStatus(201);
+
+        $pending = PendingRegistration::where('email', 'spolok@example.sk')->firstOrFail();
+        $rawToken = Str::random(64);
+        $pending->forceFill(['verification_token' => hash('sha256', $rawToken)])->save();
+
+        $this->postJson('/api/register/verify', ['token' => $rawToken])->assertOk();
+
+        $user = User::where('email', 'spolok@example.sk')->firstOrFail();
+        $canals = $user->canals()->get()->keyBy(fn (Canal $canal) => $canal->identity_mode->value);
+
+        $this->assertSame('Jana Spolková', $canals['personal']->name);
+        $this->assertSame('Spolok priateľov, o. z.', $canals['organization']->name);
+        $this->assertSame((int) $canals['personal']->id, (int) $user->canal_id);
+        $this->assertSame('Jana Spolková', $user->displayName());
+        $this->assertTrue((bool) $canals['organization']->pivot->is_owner);
+    }
+
+    #[Test]
+    public function registration_for_an_organization_requires_its_name()
+    {
+        $this->postJson('/api/register', [
+            'account_type' => 'organization',
+            'display_name' => 'Jana',
+            'email' => 'bez-nazvu@example.sk',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+            'terms_accepted' => true,
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['organization_name']);
+    }
+
+    #[Test]
+    public function a_person_registration_ignores_a_stray_organization_name()
+    {
+        Notification::fake();
+
+        $this->postJson('/api/register', [
+            'organization_name' => 'Spolok',
+            'display_name' => 'Jana',
+            'email' => 'osoba@example.sk',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+            'terms_accepted' => true,
+        ])->assertStatus(201);
+
+        $this->assertDatabaseHas('pending_registrations', ['email' => 'osoba@example.sk', 'organization_name' => null]);
+    }
 }

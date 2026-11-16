@@ -1,1 +1,0 @@
-import{r as e}from"./api-DVCnpWgx.js";function t(e){return Object.fromEntries(Object.entries(e).filter(([,e])=>e!==void 0&&e!==``))}async function n(n={}){let{data:r}=await e.get(`/admin/tickets`,{params:t(n)});return r}async function r(n={}){let{data:r}=await e.get(`/admin/questions`,{params:t(n)});return r}export{n,r as t};

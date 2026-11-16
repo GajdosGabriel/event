@@ -120,7 +120,7 @@ export interface SocialLoginResult {
 export async function socialLogin(
   mode: 'login' | 'register',
   provider: 'google' | 'facebook',
-  payload: { id_token?: string; access_token?: string; terms_accepted?: boolean },
+  payload: { id_token?: string; access_token?: string; terms_accepted?: boolean; organization_name?: string | null },
 ): Promise<SocialLoginResult> {
   await csrf()
   const { data } = await http.post(`/${mode}/${provider}`, payload)

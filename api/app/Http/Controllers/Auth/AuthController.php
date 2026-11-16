@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Notifications\PendingRegistrationVerification;
 use App\Services\Tickets\EventSignup;
 use App\Support\Impersonation;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -91,6 +93,9 @@ class AuthController extends Controller
         $pending = PendingRegistration::updateOrCreate(['email' => $request->input('email')], [
             'password' => Hash::make($request->input('password')),
             'display_name' => $request->input('display_name'),
+            'organization_name' => $request->input('account_type') === 'organization'
+                ? (trim((string) $request->input('organization_name')) ?: null)
+                : null,
             'event_id' => $event?->id,
             'registered_via' => 'local',
             'verification_token' => $hashedToken,
@@ -164,6 +169,7 @@ class AuthController extends Controller
             displayName: $displayName,
             avatarUrl: $this->googleAvatarUrl((string) ($payload['picture'] ?? '')),
             termsAccepted: $request->boolean('terms_accepted'),
+            organizationName: trim((string) $request->input('organization_name', '')),
         );
     }
 
@@ -276,7 +282,7 @@ class AuthController extends Controller
         return (string) preg_replace('/=s\d+(-c)?$/', '=s512$1', $picture);
     }
 
-    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', string $avatarUrl = '', bool $termsAccepted = false)
+    protected function authenticateSocialUser(string $provider, string $email, string $providerId, string $displayName = '', string $avatarUrl = '', bool $termsAccepted = false, string $organizationName = '')
     {
         $normalizedProviderId = $provider.':'.$providerId;
 
@@ -315,10 +321,14 @@ class AuthController extends Controller
         // osobného kanála a PersonalCanalProvisioner berie názov práve odtiaľto.
         // Neskôr už kanál existuje a meno by ostalo nevyužité (kanál by sa volal
         // podľa časti e-mailu pred zavináčom).
-        if ($displayName !== '' && ! $user->canals()->exists() && ! $user->pendingProfile()->exists()) {
+        // Názov organizácie len pri novom účte — existujúci by si ním pri
+        // prihlásení z registračnej stránky omylom založil ďalší kanál.
+        $organizationName = $created ? $organizationName : '';
+        if (($displayName !== '' || $organizationName !== '') && ! $user->canals()->exists() && ! $user->pendingProfile()->exists()) {
             PendingProfile::create([
                 'user_id' => $user->id,
                 'display_name' => $displayName,
+                'organization_name' => $organizationName !== '' ? $organizationName : null,
                 'avatar_url' => $avatarUrl !== '' ? $avatarUrl : null,
             ]);
         }
@@ -391,7 +401,7 @@ class AuthController extends Controller
     protected function sendPendingConfirmation(PendingRegistration $pending): bool
     {
         $key = 'registration-mail:'.hash('sha256', $pending->email);
-        $limiter = app(\Illuminate\Cache\RateLimiter::class);
+        $limiter = app(RateLimiter::class);
         if ($limiter->tooManyAttempts($key.':cooldown', 1) || $limiter->tooManyAttempts($key, 5)) {
             return false;
         }
@@ -466,6 +476,7 @@ class AuthController extends Controller
         PendingProfile::create([
             'user_id' => $user->id,
             'display_name' => $pending->display_name,
+            'organization_name' => $pending->organization_name,
         ]);
 
         $user->forceFill(['email_verified_at' => now()])->save();
@@ -511,7 +522,7 @@ class AuthController extends Controller
      * Bez dátumu a verzie dokumentov by sa po prvej zmene textov nedalo
      * preukázať, s čím konkrétne kto súhlasil (čl. 7 ods. 1 GDPR).
      *
-     * @return array{terms_accepted_at: \Illuminate\Support\Carbon, terms_version: string}
+     * @return array{terms_accepted_at: Carbon, terms_version: string}
      */
     protected function termsConsent(): array
     {

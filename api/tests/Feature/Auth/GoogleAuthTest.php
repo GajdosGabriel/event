@@ -285,4 +285,59 @@ class GoogleAuthTest extends TestCase
 
         Queue::assertNotPushed(ImportSocialAvatarJob::class);
     }
+
+    public function test_google_registration_for_an_organization_adds_the_organization_canal(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'spolok.google@example.test',
+                'sub' => 'google-provider-organization',
+                'email_verified' => true,
+                'name' => 'Jana Spolková',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/register/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+            'organization_name' => 'Spolok priateľov, o. z.',
+        ])->assertOk();
+
+        $user = User::where('email', 'spolok.google@example.test')->firstOrFail();
+
+        $this->assertSame('Jana Spolková', $user->displayName());
+        $this->assertSame(
+            ['Jana Spolková' => 'personal', 'Spolok priateľov, o. z.' => 'organization'],
+            $user->canals()->get()->mapWithKeys(fn ($canal) => [$canal->name => $canal->identity_mode->value])->sortKeys()->all(),
+        );
+    }
+
+    public function test_google_login_of_an_existing_account_ignores_the_organization_name(): void
+    {
+        Config::set('services.google.client_id', 'google-client-id');
+
+        $user = User::factory()->create(['email' => 'existujuci@example.test', 'email_verified_at' => now()]);
+        $before = $user->canals()->count();
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'google-client-id',
+                'email' => 'existujuci@example.test',
+                'sub' => 'google-provider-existing-org',
+                'email_verified' => true,
+                'name' => 'Existujúci',
+            ], 200),
+        ]);
+
+        $this->postJson('/api/register/google', [
+            'id_token' => 'google-id-token',
+            'terms_accepted' => true,
+            'organization_name' => 'Iný spolok',
+        ])->assertOk();
+
+        $this->assertSame($before, $user->canals()->count());
+    }
 }

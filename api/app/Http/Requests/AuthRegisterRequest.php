@@ -39,6 +39,11 @@ class AuthRegisterRequest extends FormRequest
             // overený účet na ľubovoľnú adresu s heslom od volajúceho.
             'registered_via' => 'sometimes|string|in:local',
             'display_name' => 'required|string|max:255',
+            // Registrácia za organizáciu: `display_name` je meno človeka (osobný
+            // kanál), názov organizácie dostane vlastný kanál. Bez voľby sa
+            // registruje osoba — starší klienti posielajú len meno.
+            'account_type' => 'sometimes|string|in:person,organization',
+            'organization_name' => 'nullable|required_if:account_type,organization|string|max:255',
             // Súhlas s obchodnými podmienkami je podmienkou vzniku účtu, preto
             // `accepted` (musí prísť true/1/"on"), nie obyčajný boolean —
             // hodnota false alebo chýbajúce pole registráciu zastaví.
