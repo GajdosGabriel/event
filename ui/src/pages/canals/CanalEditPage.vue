@@ -147,11 +147,7 @@ const serverError = ref<string | null>(null)
 const errorBanner = ref<HTMLElement | null>(null)
 const saving = ref(false)
 
-/**
- * Prečo sa kanál nedá stiahnuť z výpisu (odkazuje naň podujatie). Backend ho
- * počíta len publikovanému kanálu; tu zošedne voľbu „Koncept", nech to
- * nekončí až chybou po uložení.
- */
+/** Prečo sa zverejnenie nedá zrušiť (odkazuje naň zverejnené podujatie). */
 const unpublishBlockedReason = ref<string | null>(null)
 /** Stav, ako je uložený na serveri — lišta ukazuje ten, nie rozkliknutý. */
 const savedStatus = ref<string | null>(null)

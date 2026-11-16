@@ -5,6 +5,10 @@
     Uložiť a mysleli si, že je záznam na webe. Tu sa o zverejnení rozhoduje
     tlačidlom a stav (ako je uložený, nie ako je rozklikaný) je stále na očiach.
 
+    Zverejnenie sa dá zrušiť (záznam ostane uložený, len nie na webe).
+    Archiváciu lišta neponúka: archív nastavuje systém (záznam, ktorý sa už
+    nesmie zmazať), nie používateľ v editore.
+
     Obe hlavné tlačidlá sú `submit`: click nastaví cieľový stav skôr, než
     prehliadač zvaliduje a odošle formulár. Enter v poli spustí prvé submit
     tlačidlo v DOM — preto je vľavo to neškodné (Uložiť koncept / Uložiť zmeny).
@@ -30,17 +34,17 @@
       </template>
 
       <template v-else-if="state === 'scheduled'">
-        <button type="submit" class="btn btn-secondary" :disabled="busy" @click="status = publishTarget">
+        <button type="submit" class="btn btn-primary" :disabled="busy" @click="status = publishTarget">
           {{ busyLabel ?? (publishTarget === 'scheduled' ? t('publishBar.saveChanges') : t('publishBar.publishNow')) }}
         </button>
-        <button type="submit" class="btn btn-ghost" :disabled="busy" @click="status = 'draft'">{{ t('publishBar.unpublish') }}</button>
+        <button type="submit" class="btn btn-ghost" :disabled="busy" @click="status = 'draft'">{{ t('publishBar.cancelSchedule') }}</button>
       </template>
 
       <template v-else-if="state === 'published'">
         <button type="submit" class="btn btn-primary" :disabled="busy" @click="status = 'published'">
           {{ busyLabel ?? t('publishBar.saveChanges') }}
         </button>
-        <!-- Záznam, na ktorý odkazuje zverejnené podujatie, sa stiahnuť nesmie.
+        <!-- Záznam, na ktorý odkazuje zverejnené podujatie, sa nesmie skryť.
              Tlačidlo nie je `disabled`: to by na mobile nepovedalo prečo. -->
         <button v-if="blockedReason" type="button" class="btn btn-ghost opacity-60" :aria-disabled="true"
           :title="blockedReason" @click="toast.info(blockedReason)">{{ t('publishBar.unpublish') }}</button>
@@ -53,8 +57,6 @@
         </button>
       </template>
 
-      <button v-if="archivable && (state === 'draft' || state === 'published')" type="submit" class="btn btn-ghost"
-        :disabled="busy" @click="archive">{{ t('publishBar.archive') }}</button>
       <RouterLink :to="cancelTo" class="btn btn-ghost">{{ t('publishBar.cancel') }}</RouterLink>
     </div>
   </div>
@@ -71,16 +73,13 @@ const props = withDefaults(defineProps<{
   savedStatus: string | null
   saving: boolean
   cancelTo: RouteLocationRaw
-  /** Prečo sa záznam nedá stiahnuť do konceptu (prázdne = dá sa). */
+  /** Prečo sa zverejnenie nedá zrušiť (prázdne = dá sa). */
   blockedReason?: string | null
   /** Hlavné tlačidlo naplánuje namiesto okamžitého zverejnenia (podujatie). */
   scheduleLater?: boolean
   /** Uložený termín naplánovaného zverejnenia. */
   publishAt?: string | null
-  /** Ponúknuť archiváciu (podujatie ju má jednosmernú, preto potvrdenie). */
-  archivable?: boolean
-  archiveConfirm?: string
-}>(), { blockedReason: null, scheduleLater: false, publishAt: null, archivable: true, archiveConfirm: undefined })
+}>(), { blockedReason: null, scheduleLater: false, publishAt: null })
 
 /** Cieľový stav pre odoslanie — nastaví ho kliknuté tlačidlo. */
 const status = defineModel<string>({ required: true })
@@ -118,14 +117,6 @@ const tone = computed(() => ({
   published: { border: 'border-emerald-300', dot: 'bg-emerald-500' },
   archived: { border: 'border-slate-300', dot: 'bg-slate-400' },
 }[state.value]))
-
-function archive(e: MouseEvent) {
-  if (!confirm(props.archiveConfirm ?? t('publishBar.archiveConfirm'))) {
-    e.preventDefault()
-    return
-  }
-  status.value = 'archived'
-}
 </script>
 
 <style scoped>

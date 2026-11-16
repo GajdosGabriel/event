@@ -43,9 +43,13 @@ export function isCancelled(e: unknown): boolean {
  * `previous` = stav pred uložením (null = nový záznam).
  */
 export function savedMessage(previous: string | null, next: string): string {
-  if (next === 'draft') return t(previous === 'published' || previous === 'scheduled' ? 'publishBar.toast.unpublished' : 'publishBar.toast.draft')
+  if (next === 'draft') {
+    if (previous === 'published') return t('publishBar.toast.unpublished')
+    if (previous === 'scheduled') return t('publishBar.toast.unscheduled')
+    return t('publishBar.toast.draft')
+  }
   if (next === 'scheduled') return t('publishBar.toast.scheduled')
-  if (next === 'archived') return t(previous === 'archived' ? 'publishBar.toast.saved' : 'publishBar.toast.archived')
+  if (next === 'archived') return t('publishBar.toast.saved')
   return t(previous === 'published' ? 'publishBar.toast.saved' : 'publishBar.toast.published')
 }
 

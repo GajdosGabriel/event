@@ -259,8 +259,7 @@
            obrazovkami formulára a na `xl` pod okrajom, lebo panel je vyšší než
            obrazovka. Lišta ho drží pri spodnom okraji na každej šírke. -->
       <PublishBar v-if="!guided" v-model="form.status" :saved-status="savedStatus" :saving="saving" :cancel-to="indexRoute"
-        :schedule-later="canSchedule && schedulePublication" :publish-at="savedPublishAt"
-        :archive-confirm="t('publishBar.archiveEventConfirm')" />
+        :schedule-later="canSchedule && schedulePublication" :publish-at="savedPublishAt" />
       <div v-if="guided" class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <button v-if="step > 1" type="button" class="btn btn-secondary" @click="goToStep(step - 1)">{{ t('eventJourney.back') }}</button>
         <button type="button" class="btn btn-secondary" :disabled="saving || organizer.saving" @click="saveGuided('draft')">{{ saving ? t('events.form.saving') : t('eventJourney.saveDraft') }}</button>
