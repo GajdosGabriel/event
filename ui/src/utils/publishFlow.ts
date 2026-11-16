@@ -38,6 +38,18 @@ export function isCancelled(e: unknown): boolean {
 }
 
 /**
+ * Hláška po uložení editora podľa toho, kam sa stav posunul — samotné
+ * „Uložené" pri koncepte zvádzalo k dojmu, že záznam je už na webe.
+ * `previous` = stav pred uložením (null = nový záznam).
+ */
+export function savedMessage(previous: string | null, next: string): string {
+  if (next === 'draft') return t(previous === 'published' || previous === 'scheduled' ? 'publishBar.toast.unpublished' : 'publishBar.toast.draft')
+  if (next === 'scheduled') return t('publishBar.toast.scheduled')
+  if (next === 'archived') return t(previous === 'archived' ? 'publishBar.toast.saved' : 'publishBar.toast.archived')
+  return t(previous === 'published' ? 'publishBar.toast.saved' : 'publishBar.toast.published')
+}
+
+/**
  * Ponuka „zverejniť aj miesto/kanál" pre formuláre, ktoré ju ukazujú priamo na
  * stránke. Vráti null, keď chyba nie je o závislostiach.
  */

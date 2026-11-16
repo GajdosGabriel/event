@@ -25,7 +25,6 @@
                 </button>
               </template>
             </FormField>
-            <RecordStatusField v-model="form.status" kind="venues" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
             <FormField v-model="form.category" :label="t('venues.fields.category')" maxlength="100" :error="errors.category" :placeholder="t('venues.fields.categoryPlaceholder')" />
             <FormField v-model="form.capacity" type="number" :label="t('venues.fields.capacity')" min="0" max="1000000" step="1" :error="errors.capacity" />
             <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
@@ -72,7 +71,8 @@
         <ContactFieldset v-model:email="form.email" v-model:phone="form.phone" v-model:website="form.website"
           kind="venues" :errors="errors" :website-issue="websiteIssue" />
 
-        <RecordFormActions kind="venues" :saving="saving" :cancel-to="indexRoute" />
+        <!-- Pri úprave až s načítaným stavom, inak by kým beží načítanie hlásila „Ešte neuložené". -->
+        <PublishBar v-if="isCreate || savedStatus !== null" v-model="form.status" :saved-status="savedStatus" :saving="saving" :cancel-to="indexRoute" :blocked-reason="unpublishBlockedReason" />
       </form>
     </div>
 
@@ -105,9 +105,9 @@ import EditPageHeader from '@/components/EditPageHeader.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import ContactFieldset from '@/components/ContactFieldset.vue'
-import RecordFormActions from '@/components/RecordFormActions.vue'
+import PublishBar from '@/components/PublishBar.vue'
+import { savedMessage } from '@/utils/publishFlow'
 import RecordImages from '@/components/RecordImages.vue'
-import RecordStatusField from '@/components/RecordStatusField.vue'
 import FormField from '@/components/FormField.vue'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
@@ -173,6 +173,8 @@ const saving = ref(false)
  * až chybou po uložení.
  */
 const unpublishBlockedReason = ref<string | null>(null)
+/** Stav, ako je uložený na serveri — lišta ukazuje ten, nie rozkliknutý. */
+const savedStatus = ref<string | null>(null)
 
 // Kanál pre nové miesto: aktívny kanál používateľa, inak prvý dostupný.
 // Rovnaká predvoľba ako v editore eventu — organizátor s jedným kanálom ho
@@ -281,6 +283,7 @@ onMounted(async () => {
       const own = v.canalsList.find(c => c.id === v.ownerCanalId)
       venueCanal.value = own ? { id: own.id, name: own.name } : null
       unpublishBlockedReason.value = v.unpublishBlockedReason
+      savedStatus.value = v.status
       address.value = addressFrom(v)
       applyWebsiteIssue(v)
     } catch { serverError.value = t('venues.form.loadFailed') }
@@ -318,11 +321,15 @@ async function submit() {
         pending.forEach(f => fd.append('files[]', f))
         await uploadFiles(fd)
       }
-      toast.success(t(v.reused ? (v.filledFields?.length ? 'venues.form.reusedFilled' : 'venues.form.reused') : 'venues.form.created'))
+      // Znovupoužité miesto si drží svoj stav — o tom, čo sa stalo, hovorí hláška o zlúčení.
+      savedStatus.value = v.status
+      toast.success(v.reused ? t(v.filledFields?.length ? 'venues.form.reusedFilled' : 'venues.form.reused') : savedMessage(null, v.status))
       router.replace(`${prefix.value}/venues/${v.id}/edit`)
     } else {
-      await updateVenue(Number(route.params.id), payload(), scope.value)
-      toast.success(t('venues.form.saved'))
+      const updated = await updateVenue(Number(route.params.id), payload(), scope.value)
+      toast.success(savedMessage(savedStatus.value, updated.status))
+      savedStatus.value = updated.status
+      unpublishBlockedReason.value = updated.unpublishBlockedReason
     }
   } catch (e: unknown) {
     const resp = (e as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response?.data

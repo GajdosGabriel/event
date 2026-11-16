@@ -193,7 +193,9 @@ describe('guided event creation', () => {
   it('keeps the full editor for admin creation', async () => {
     const w = await openForm('admin')
     expect(w.find('[aria-current="step"]').exists()).toBe(false)
-    expect(w.find('select').exists()).toBe(true)
+    // Plný editor: o zverejnení rozhoduje lišta, nie výberové pole stavu.
+    expect(w.find('.publish-bar').text()).toContain(t('publishBar.state.new.title'))
+    expect(w.findAll('.publish-bar button').map(b => b.text())).toEqual([t('publishBar.saveDraft'), t('publishBar.publish')])
     w.unmount()
   })
 })

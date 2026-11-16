@@ -2,6 +2,36 @@ import type { Messages } from './sk'
 
 const cs: Messages = {
   pagination: { label: 'Stránkování', previous: 'Předchozí strana', next: 'Následující strana', page: 'Strana {n}' },
+  publishBar: {
+    state: {
+      new: { title: 'Zatím neuloženo', text: 'Uložením jako koncept se na web nedostane — k tomu slouží Zveřejnit.' },
+      draft: { title: 'Nezveřejněno (koncept)', text: 'Na webu ho zatím nikdo nevidí. Zveřejníte ho tlačítkem Zveřejnit.' },
+      scheduled: { title: 'Naplánováno', text: 'Zveřejní se samo v nastaveném termínu.', textAt: 'Zveřejní se samo {date}.' },
+      published: { title: 'Zveřejněno', text: 'Návštěvníci webu ho vidí.' },
+      archived: { title: 'Archivováno', text: 'Na webu se už nezobrazuje.' },
+    },
+    saveDraft: 'Uložit koncept',
+    publish: 'Zveřejnit',
+    schedule: 'Naplánovat zveřejnění',
+    publishNow: 'Zveřejnit hned',
+    saveChanges: 'Uložit změny',
+    save: 'Uložit',
+    saving: 'Ukládám…',
+    unpublish: 'Stáhnout do konceptu',
+    archive: 'Archivovat',
+    archiveConfirm: 'Archivovat? Na webu se přestane zobrazovat.',
+    archiveEventConfirm: 'Archivovat akci? Přestane se zobrazovat na webu a už ji nepůjde upravit.',
+    cancel: 'Zrušit',
+    scheduleLater: 'Zveřejnit později v nastaveném termínu',
+    toast: {
+      draft: 'Uloženo jako koncept — na webu zatím není.',
+      unpublished: 'Staženo do konceptu — na webu už není.',
+      scheduled: 'Uloženo — zveřejní se samo v nastaveném termínu.',
+      published: 'Zveřejněno — už je na webu.',
+      saved: 'Změny uloženy.',
+      archived: 'Archivováno.',
+    },
+  },
   notifications: {
     title: "Upozornění",
     unread: "Upozornění: {count} nepřečtených",

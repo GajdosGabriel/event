@@ -2,6 +2,36 @@ import type { Messages } from './sk'
 
 const en: Messages = {
   pagination: { label: 'Pagination', previous: 'Previous page', next: 'Next page', page: 'Page {n}' },
+  publishBar: {
+    state: {
+      new: { title: 'Not saved yet', text: 'Saving as a draft does not put it on the website — use Publish for that.' },
+      draft: { title: 'Not published (draft)', text: 'Nobody can see it on the website yet. Use Publish to make it visible.' },
+      scheduled: { title: 'Scheduled', text: 'It will be published automatically at the set time.', textAt: 'It will be published automatically on {date}.' },
+      published: { title: 'Published', text: 'Visible to website visitors.' },
+      archived: { title: 'Archived', text: 'No longer shown on the website.' },
+    },
+    saveDraft: 'Save draft',
+    publish: 'Publish',
+    schedule: 'Schedule publishing',
+    publishNow: 'Publish now',
+    saveChanges: 'Save changes',
+    save: 'Save',
+    saving: 'Saving…',
+    unpublish: 'Move back to draft',
+    archive: 'Archive',
+    archiveConfirm: 'Archive it? It will no longer be shown on the website.',
+    archiveEventConfirm: 'Archive the event? It will no longer be shown on the website and can no longer be edited.',
+    cancel: 'Cancel',
+    scheduleLater: 'Publish later at a set time',
+    toast: {
+      draft: 'Saved as a draft — not on the website yet.',
+      unpublished: 'Moved back to draft — no longer on the website.',
+      scheduled: 'Saved — it will be published at the set time.',
+      published: 'Published — it is now on the website.',
+      saved: 'Changes saved.',
+      archived: 'Archived.',
+    },
+  },
   notifications: {
     title: "Notifications",
     unread: "Notifications: {count} unread",

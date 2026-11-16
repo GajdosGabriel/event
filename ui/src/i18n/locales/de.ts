@@ -2,6 +2,36 @@ import type { Messages } from './sk'
 
 const de: Messages = {
   pagination: { label: 'Seitennavigation', previous: 'Vorherige Seite', next: 'Nächste Seite', page: 'Seite {n}' },
+  publishBar: {
+    state: {
+      new: { title: 'Noch nicht gespeichert', text: 'Als Entwurf gespeichert erscheint es nicht im Web — dafür gibt es Veröffentlichen.' },
+      draft: { title: 'Nicht veröffentlicht (Entwurf)', text: 'Im Web sieht es noch niemand. Mit Veröffentlichen machen Sie es sichtbar.' },
+      scheduled: { title: 'Geplant', text: 'Wird zum eingestellten Zeitpunkt automatisch veröffentlicht.', textAt: 'Wird am {date} automatisch veröffentlicht.' },
+      published: { title: 'Veröffentlicht', text: 'Für Besucher der Website sichtbar.' },
+      archived: { title: 'Archiviert', text: 'Wird im Web nicht mehr angezeigt.' },
+    },
+    saveDraft: 'Entwurf speichern',
+    publish: 'Veröffentlichen',
+    schedule: 'Veröffentlichung planen',
+    publishNow: 'Jetzt veröffentlichen',
+    saveChanges: 'Änderungen speichern',
+    save: 'Speichern',
+    saving: 'Wird gespeichert…',
+    unpublish: 'Zurück zum Entwurf',
+    archive: 'Archivieren',
+    archiveConfirm: 'Archivieren? Es wird im Web nicht mehr angezeigt.',
+    archiveEventConfirm: 'Veranstaltung archivieren? Sie wird im Web nicht mehr angezeigt und lässt sich nicht mehr bearbeiten.',
+    cancel: 'Abbrechen',
+    scheduleLater: 'Später zum eingestellten Zeitpunkt veröffentlichen',
+    toast: {
+      draft: 'Als Entwurf gespeichert — noch nicht im Web.',
+      unpublished: 'Zurück zum Entwurf — nicht mehr im Web.',
+      scheduled: 'Gespeichert — wird zum eingestellten Zeitpunkt veröffentlicht.',
+      published: 'Veröffentlicht — jetzt im Web.',
+      saved: 'Änderungen gespeichert.',
+      archived: 'Archiviert.',
+    },
+  },
   notifications: {
     title: "Benachrichtigungen",
     unread: "Benachrichtigungen: {count} ungelesen",

@@ -2,6 +2,36 @@
 // takže chýbajúci alebo preklepnutý kľúč spadne už na typecheck.
 const sk = {
   pagination: { label: 'Stránkovanie', previous: 'Predchádzajúca strana', next: 'Nasledujúca strana', page: 'Strana {n}' },
+  publishBar: {
+    state: {
+      new: { title: 'Ešte neuložené', text: 'Uložením ako koncept sa na web nedostane — na to slúži Zverejniť.' },
+      draft: { title: 'Nezverejnené (koncept)', text: 'Na webe ho zatiaľ nikto nevidí. Zverejníte ho tlačidlom Zverejniť.' },
+      scheduled: { title: 'Naplánované', text: 'Zverejní sa samo v nastavenom termíne.', textAt: 'Zverejní sa samo {date}.' },
+      published: { title: 'Zverejnené', text: 'Návštevníci webu ho vidia.' },
+      archived: { title: 'Archivované', text: 'Na webe sa už nezobrazuje.' },
+    },
+    saveDraft: 'Uložiť koncept',
+    publish: 'Zverejniť',
+    schedule: 'Naplánovať zverejnenie',
+    publishNow: 'Zverejniť hneď',
+    saveChanges: 'Uložiť zmeny',
+    save: 'Uložiť',
+    saving: 'Ukladám…',
+    unpublish: 'Stiahnuť do konceptu',
+    archive: 'Archivovať',
+    archiveConfirm: 'Archivovať? Na webe sa prestane zobrazovať.',
+    archiveEventConfirm: 'Archivovať podujatie? Prestane sa zobrazovať na webe a už sa nebude dať upraviť.',
+    cancel: 'Zrušiť',
+    scheduleLater: 'Zverejniť neskôr v nastavenom termíne',
+    toast: {
+      draft: 'Uložené ako koncept — na webe zatiaľ nie je.',
+      unpublished: 'Stiahnuté do konceptu — na webe už nie je.',
+      scheduled: 'Uložené — zverejní sa samo v nastavenom termíne.',
+      published: 'Zverejnené — už je na webe.',
+      saved: 'Zmeny uložené.',
+      archived: 'Archivované.',
+    },
+  },
   notifications: {
     title: "Upozornenia",
     unread: "Upozornenia: {count} neprečítaných",

@@ -226,39 +226,31 @@
           </div>
         </FormSection>
 
-        <!-- Publikovanie je posledné zámerne: je to posledné rozhodnutie nad
-             podujatím a Uložiť pod ním uzatvára celý panel. -->
-        <div v-if="!guided" class="edit-card grid gap-3">
+        <!-- O zverejnení rozhodujú tlačidlá v lište (PublishBar) — výberové pole
+             „Stav" tu noví používatelia prehliadali. Panel ostal len na
+             naplánovanie: termín patrí k „Naplánovať", pri zverejnenom či
+             archivovanom podujatí nemá čo ponúknuť. -->
+        <div v-if="!guided && (canSchedule || savedStatus === 'archived')" class="edit-card grid gap-3">
           <p class="field-legend mb-0">{{ t('events.sections.publish') }}</p>
           <!-- Archivácia je jednosmerka: archivovaný event už policy upraviť
                nedovolí. Späť ho dostane len „Vrátiť z archívu" z menu akcií,
                a to iba dovtedy, kým naň nevisia vydané lístky. -->
-          <FormField
-            v-model="form.status"
-            type="select"
-            :label="t('events.fields.status')"
-            :error="errors.status"
-            :hint="form.status === 'archived' ? t('events.form.archivedHint') : undefined"
-          >
-            <option value="draft">{{ t('events.statuses.draft') }}</option>
-            <option value="scheduled">{{ t('events.statuses.scheduled') }}</option>
-            <option value="published">{{ t('events.statuses.published') }}</option>
-            <option value="archived">{{ t('events.statuses.archived') }}</option>
-          </FormField>
-          <!-- Termín zverejnenia patrí k stavu „Naplánovaný"; pri ostatných
-               stavoch ho backend aj tak zahodí, tak ho ani neukazujeme.
-               Minulosť sa zakazuje len pri zakladaní — pri úprave už
-               naplánovaného eventu by inak nešlo uložiť vôbec nič. -->
-          <FormField
-            v-if="form.status === 'scheduled'"
-            v-model="form.publish_at"
-            type="datetime"
-            :allow-past="!isCreate"
-            :label="t('events.fields.publishAt')"
-            required
-            :error="errors.publish_at"
-            :hint="t('events.fields.publishAtHint')"
-          />
+          <p v-if="savedStatus === 'archived'" class="form-hint m-0">{{ t('events.form.archivedHint') }}</p>
+          <template v-else>
+            <ToggleCard v-model="schedulePublication" :label="t('publishBar.scheduleLater')" />
+            <!-- Minulosť sa zakazuje len pri zakladaní — pri úprave už
+                 naplánovaného eventu by inak nešlo uložiť vôbec nič. -->
+            <FormField
+              v-if="schedulePublication"
+              v-model="form.publish_at"
+              type="datetime"
+              :allow-past="!isCreate"
+              :label="t('events.fields.publishAt')"
+              required
+              :error="errors.publish_at"
+              :hint="t('events.fields.publishAtHint')"
+            />
+          </template>
         </div>
 
       </aside>
@@ -266,12 +258,9 @@
       <!-- Uložiť bolo len na konci panelu Publikovanie — pod `xl` za piatimi
            obrazovkami formulára a na `xl` pod okrajom, lebo panel je vyšší než
            obrazovka. Lišta ho drží pri spodnom okraji na každej šírke. -->
-      <div v-if="!guided" class="sticky bottom-3 z-20 flex gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-        <button type="submit" class="btn btn-primary" :disabled="saving">
-          {{ saving ? t('events.form.saving') : t('events.form.save') }}
-        </button>
-        <RouterLink :to="indexRoute" class="btn btn-secondary">{{ t('events.form.cancel') }}</RouterLink>
-      </div>
+      <PublishBar v-if="!guided" v-model="form.status" :saved-status="savedStatus" :saving="saving" :cancel-to="indexRoute"
+        :schedule-later="canSchedule && schedulePublication" :publish-at="savedPublishAt"
+        :archive-confirm="t('publishBar.archiveEventConfirm')" />
       <div v-if="guided" class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <button v-if="step > 1" type="button" class="btn btn-secondary" @click="goToStep(step - 1)">{{ t('eventJourney.back') }}</button>
         <button type="button" class="btn btn-secondary" :disabled="saving || organizer.saving" @click="saveGuided('draft')">{{ saving ? t('events.form.saving') : t('eventJourney.saveDraft') }}</button>
@@ -357,7 +346,7 @@ import { provideFormValidation } from '@/composables/useFormValidation'
 import { useWebsiteIssue } from '@/composables/useWebsiteIssue'
 import { isImageLikeUpload } from '@/utils/uploadFileTypes'
 import { focusFirstInvalid, scrollToError } from '@/utils/scrollToError'
-import { errorBody, dependencyPromptFor } from '@/utils/publishFlow'
+import { errorBody, dependencyPromptFor, savedMessage } from '@/utils/publishFlow'
 import { publicEventPath } from '@/utils/publicUrl'
 import AiAssistPanel from '@/components/ai/AiAssistPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -374,6 +363,7 @@ import { createCanal } from '@/api/canals'
 import http from '@/api/index'
 import { fmtRowDateRange, toLocalInput } from '@/utils/dateFormat'
 import ToggleCard from '@/components/ToggleCard.vue'
+import PublishBar from '@/components/PublishBar.vue'
 import HtmlEditor from '@/components/HtmlEditor.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -396,6 +386,16 @@ watch(step, async () => {
   stepNavigation.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
 const schedulePublication = ref(false)
+/** Stav a termín, ako sú uložené na serveri — lišta ukazuje tie, nie rozkliknuté. */
+const savedStatus = ref<string | null>(null)
+const savedPublishAt = ref<string | null>(null)
+/** Naplánovať sa dá len to, čo ešte nie je vonku. */
+const canSchedule = computed(() => savedStatus.value === null || savedStatus.value === 'draft' || savedStatus.value === 'scheduled')
+function rememberSaved(ev: { status: string; publishAt?: string | null }) {
+  savedStatus.value = ev.status
+  savedPublishAt.value = ev.publishAt ?? null
+  schedulePublication.value = ev.status === 'scheduled'
+}
 const stepLabels = computed(() => [t('eventJourney.basics'), t('eventJourney.place'), t('eventJourney.review')])
 const indexRoute = computed(() => `${prefix.value}/events`)
 
@@ -724,6 +724,7 @@ onMounted(async () => {
       const ev = await showEvent(scope.value, Number(route.params.id))
       eventSlug.value = ev.slug || null
       publishedAt.value = ev.publishedAt ?? null
+      rememberSaved(ev)
       eventCanal.value = ev.canalId ? { id: ev.canalId, name: ev.canalName } : null
       eventVenue.value = ev.venue ? { id: ev.venue.id, name: ev.venue.name, canalId: ev.canalId } : null
       form.value = {
@@ -808,13 +809,16 @@ async function submit(publishDependencies = false) {
       }
       await syncFreeRegistration(ev.id)
       await syncQuestionBoard(ev.id)
-      toast.success(t('events.form.created'))
+      toast.success(savedMessage(null, ev.status))
+      rememberSaved(ev)
       router.replace(`${prefix.value}/events/${ev.id}/edit`)
     } else {
-      await updateEvent(Number(route.params.id), payload, scope.value)
+      const updated = await updateEvent(Number(route.params.id), payload, scope.value)
+      publishedAt.value = updated.publishedAt ?? publishedAt.value
       await syncFreeRegistration(Number(route.params.id))
       await syncQuestionBoard(Number(route.params.id))
-      toast.success(t('events.form.saved'))
+      toast.success(savedMessage(savedStatus.value, updated.status))
+      rememberSaved(updated)
     }
   } catch (e: unknown) {
     const resp = errorBody(e)

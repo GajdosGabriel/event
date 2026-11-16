@@ -14,7 +14,6 @@
             <FormField v-model="form.title_prefix" :label="t('canals.fields.titlePrefix')" maxlength="50" :error="errors.title_prefix" :placeholder="t('canals.fields.titlePrefixPlaceholder')" />
             <FormField v-model="form.title_suffix" :label="t('canals.fields.titleSuffix')" maxlength="50" :error="errors.title_suffix" :placeholder="t('canals.fields.titleSuffixPlaceholder')" />
             <FormField v-model="form.identity_mode" type="select" :label="t('canals.fields.identityMode')" :options="canalIdentityModes" :error="errors.identity_mode" />
-            <RecordStatusField v-model="form.status" kind="canals" :error="errors.status" :blocked-reason="unpublishBlockedReason" />
             <!-- Editor + AI pomocník (poznámky z kontroly, pripravenosť, vylepšenie) v jednom komponente. -->
             <DescriptionField v-model="form.body" :label="t('canals.fields.description')" :error="errors.body" min-height="130px"
               kind="canal" :scope="scope" :values="readinessValues" :name="form.name" :context="aiContext"
@@ -46,7 +45,8 @@
           <p v-if="eventOfferDomainExcluded" class="form-hint mt-2">{{ t('canals.fields.eventOfferDomainExcluded') }}</p>
         </fieldset>
 
-        <RecordFormActions kind="canals" :saving="saving" :cancel-to="indexRoute" />
+        <!-- Pri úprave až s načítaným stavom, inak by kým beží načítanie hlásila „Ešte neuložené". -->
+        <PublishBar v-if="isCreate || savedStatus !== null" v-model="form.status" :saved-status="savedStatus" :saving="saving" :cancel-to="indexRoute" :blocked-reason="unpublishBlockedReason" />
       </form>
     </div>
 
@@ -82,9 +82,9 @@ import EditPageHeader from '@/components/EditPageHeader.vue'
 import AddressFieldset from '@/components/AddressFieldset.vue'
 import AddressMapField from '@/components/AddressMapField.vue'
 import ContactFieldset from '@/components/ContactFieldset.vue'
-import RecordFormActions from '@/components/RecordFormActions.vue'
+import PublishBar from '@/components/PublishBar.vue'
+import { savedMessage } from '@/utils/publishFlow'
 import RecordImages from '@/components/RecordImages.vue'
-import RecordStatusField from '@/components/RecordStatusField.vue'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import FormField from '@/components/FormField.vue'
 
@@ -153,6 +153,8 @@ const saving = ref(false)
  * nekončí až chybou po uložení.
  */
 const unpublishBlockedReason = ref<string | null>(null)
+/** Stav, ako je uložený na serveri — lišta ukazuje ten, nie rozkliknutý. */
+const savedStatus = ref<string | null>(null)
 
 /** Adresa, ktorá čaká na potvrdenie, a kontakt, ktorý dovtedy platí. */
 const pendingEmail = ref<string | null>(null)
@@ -221,6 +223,7 @@ onMounted(async () => {
         body: c.body ?? '',
       }
       unpublishBlockedReason.value = c.unpublishBlockedReason
+      savedStatus.value = c.status ?? 'draft'
       applyEmails(c)
       applyEventOffer(c)
       address.value = addressFrom(c)
@@ -252,14 +255,18 @@ async function submit() {
         pending.forEach(f => fd.append('files[]', f))
         await uploadFiles(fd)
       }
-      toast.success(t('canals.form.created'))
+      savedStatus.value = c.status ?? form.value.status
+      toast.success(savedMessage(null, savedStatus.value))
       await reloadWebsiteIssue()
       router.replace(`${prefix.value}/canals/${c.id}/edit`)
     } else {
       const updated = await updateCanal(Number(route.params.id), payload(), scope.value)
       applyEmails(updated)
       applyEventOffer(updated)
-      toast.success(t('canals.form.saved'))
+      const next = updated.status ?? form.value.status
+      toast.success(savedMessage(savedStatus.value, next))
+      savedStatus.value = next
+      unpublishBlockedReason.value = updated.unpublishBlockedReason
       await reloadWebsiteIssue()
     }
   } catch (e: unknown) {
