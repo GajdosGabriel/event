@@ -4,6 +4,7 @@ namespace App\Services\Canals;
 
 use App\Models\Canal;
 use App\Models\CanalEmail;
+use App\Models\User;
 use App\Notifications\CanalContactNotice;
 use App\Services\SystemLog\MailSimulator;
 use App\Services\SystemLog\Recorder;
@@ -85,6 +86,36 @@ class CanalContactVerifier
 
             $this->sendVerification($canal, $row->email);
         }
+    }
+
+    /**
+     * Nový kanál z formulára (založil ho používateľ alebo admin): kontaktný
+     * e-mail treba potvrdiť, inak ostane neoverený a otázky ani správy
+     * návštevníkov naň nechodia. Overený e-mail účtu zakladateľa sa
+     * nepotvrdzuje znova — kanál ho prevezme ako overený.
+     */
+    public function created(Canal $canal, ?User $creator): void
+    {
+        // Čerstvo vložený model nemá stĺpce s predvolenou hodnotou z DB
+        // (`registration_source`), podľa ktorých sa rozhoduje isManaged().
+        $canal = $canal->fresh() ?? $canal;
+        $email = $this->normalize($canal->email);
+
+        if ($email === null || ! $canal->isManaged()) {
+            return;
+        }
+
+        if ($canal->emails()->where('email', $email)->first()?->isVerified()) {
+            return;
+        }
+
+        if ($creator?->email_verified_at !== null && $this->normalize($creator->email) === $email) {
+            $this->emails->confirm($canal, $email, 'owner_account');
+
+            return;
+        }
+
+        $this->sendVerification($canal, $email);
     }
 
     /**

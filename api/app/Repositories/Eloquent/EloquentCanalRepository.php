@@ -174,6 +174,9 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
 
         app(CanalAuditor::class)->memberChanged($canal, $user, null, CanalRole::Owner, notify: false, context: ['reason' => 'canal_created']);
 
+        // Kontaktný e-mail nového kanála treba potvrdiť (okrem overeného e-mailu zakladateľa).
+        app(CanalContactVerifier::class)->created($canal, $user);
+
         $this->syncCanalFiles($canal, $filePayload);
 
         return $canal->fresh(['files']);
