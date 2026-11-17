@@ -7,10 +7,12 @@ use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\AiUsage;
 use App\Models\Canal;
+use App\Models\Event;
 use App\Models\Municipality;
 use App\Models\ProfileEnrichment;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\CanalEventPublishedOffer;
 use App\Notifications\ProfileCompleted;
 use App\Repositories\Contracts\CanalRepository;
 use App\Services\Geocoding\NominatimGeocoder;
@@ -19,6 +21,7 @@ use App\Services\Profiles\ProfileEnricher;
 use App\Services\Profiles\ProfileResearch;
 use App\Support\NationwideCoordinates;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -32,7 +35,7 @@ class ProfileEnrichmentTest extends TestCase
         parent::setUp();
         config(['openai.api_key' => 'test-key', 'profile_enrichment.enabled' => true, 'profile_enrichment.monthly_limit_usd' => 1]);
         Notification::fake();
-        \Illuminate\Support\Facades\DB::table('municipalities')->insertOrIgnore(['id' => 900001,
+        DB::table('municipalities')->insertOrIgnore(['id' => 900001,
             'fullname' => 'Testovce', 'shortname' => 'Testovce', 'zip' => '90001', 'district_id' => 1, 'region_id' => 1,
         ]);
     }
@@ -263,7 +266,12 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertSame('kontakt@example.sk', $canal->fresh()->email);
         $this->assertSame('kontakt@example.sk', $venue->fresh()->email);
         $this->assertDatabaseCount('profile_enrichments', 2);
-        Notification::assertNothingSent();
+        // Dohľadaný e-mail nespravovaného kanála s aktuálnou akciou odomkne
+        // ponuku prevzatia (CanalEventOffer) — práve raz, iné e-maily nie.
+        Notification::assertSentOnDemandTimes(CanalEventPublishedOffer::class, 1);
+        Notification::assertSentOnDemand(CanalEventPublishedOffer::class,
+            fn ($n, array $channels, $to) => $to->routes['mail'] === 'kontakt@example.sk');
+        Notification::assertNotSentTo(User::all(), ProfileCompleted::class);
     }
 
     public function test_command_enriches_only_unclaimed_canals_with_a_current_event_nearest_first(): void
@@ -305,11 +313,11 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertSame([$busy->id], $venues);
     }
 
-    private function currentEvent(Canal $canal, ?\DateTimeInterface $start = null, ?Venue $venue = null): \App\Models\Event
+    private function currentEvent(Canal $canal, ?\DateTimeInterface $start = null, ?Venue $venue = null): Event
     {
         $start ??= now()->addDays(5);
 
-        return \App\Models\Event::factory()->create([
+        return Event::factory()->create([
             'canal_id' => $canal->id, 'user_id' => User::factory(), 'status' => ModelStatus::Published->value,
             'venue_id' => $venue?->id,
             'published_at' => now()->subDay(), 'start_at' => $start, 'end_at' => (clone $start)->modify('+2 hours'),

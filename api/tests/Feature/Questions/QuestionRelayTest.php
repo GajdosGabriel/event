@@ -35,6 +35,9 @@ class QuestionRelayTest extends EventSetupTest
         $this->futureEvent->update(['status' => ModelStatus::Published, 'email' => null]);
         // Fixtúra je osobný kanál používateľa s overenou adresou účtu — test
         // potrebuje importovaný kanál, ktorého overenie príde s jeho kontaktom.
+        // Ponuka prevzatia (CanalEventOffer) k tejto akcii už odišla — nový kontakt
+        // importovaného kanála by ju inak poslal a test rieši len otázky.
+        $this->futureEvent->forceFill(['takeover_notified_at' => now()])->saveQuietly();
         $this->futureEvent->canal->emails()->delete();
         $this->futureEvent->canal->forceFill(['email_verified_at' => null])->saveQuietly();
         $this->futureEvent->canal->forceFill([
