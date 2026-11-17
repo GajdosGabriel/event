@@ -6,6 +6,7 @@ use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Notifications\CanalEventPublishedOffer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -21,33 +22,34 @@ use Illuminate\Support\Facades\Cache;
  * akcii, ku každej najviac raz (`events.takeover_notified_at`), a kanálu
  * najviac raz za deň — import, ktorý naraz zverejní viac akcií, tak pošle
  * jeden e-mail (k prvej z nich), ostatné akcie toho dňa e-mail nedostanú.
+ *
+ * Import zakladá kanál najprv bez kontaktu a e-mail dohľadá až neskôr, takže
+ * pri zverejnení akcie často nie je komu písať. Preto sa ponuka pošle aj
+ * vtedy, keď kanál alebo jeho akcia e-mail dostane či zmení (notifyCanal) —
+ * k najbližšej akcii, ku ktorej e-mail ešte neodišiel, ak kanál nedostal
+ * ponuku posledných CONTACT_CHANGE_QUIET_DAYS dní.
  */
 class CanalEventOffer
 {
     /** Kanál je „nový", keď vznikol najviac pred toľkými dňami a ešte nič nedostal. */
     public const NEW_CANAL_DAYS = 2;
 
+    /** Po zmene kontaktu sa nepíše kanálu, ktorý ponuku dostal pred menej ako toľkými dňami. */
+    public const CONTACT_CHANGE_QUIET_DAYS = 14;
+
     public function __construct(private CanalTakeover $takeover) {}
 
-    public function notify(int $eventId): void
+    /** Pošle ponuku k akcii, ak sa smie. Vráti, či e-mail odišiel. */
+    public function notify(int $eventId): bool
     {
         $event = Event::query()->with(['canal', 'venue'])->find($eventId);
+        $contact = $event ? $this->recipient($event) : null;
 
-        if (! $event || ! $this->eligible($event)) {
-            return;
+        if ($contact === null) {
+            return false;
         }
 
         $canal = $event->canal;
-        ['reason' => $reason, 'email' => $contact] = $this->takeover->contact($canal, $event);
-
-        if ($reason !== null || self::excludedDomain($contact)) {
-            return;
-        }
-
-        // Kontakt, ktorý už v tíme kanála je, ponuku prevzatia nepotrebuje.
-        if ($canal->users()->where('users.email', $contact)->exists()) {
-            return;
-        }
 
         // Kontrola denného stropu a rezervácia akcie pod zámkom kanála — súbežné
         // joby z importu nepošlú kanálu dva e-maily v ten istý deň.
@@ -63,7 +65,7 @@ class CanalEventOffer
         });
 
         if ($claimed === 0) {
-            return;
+            return false;
         }
 
         $newCanal = $canal->created_at !== null
@@ -73,6 +75,79 @@ class CanalEventOffer
         $invitation = $this->takeover->invitation($canal, $contact);
 
         $this->takeover->send($contact, new CanalEventPublishedOffer($event, $invitation, $newCanal), $event);
+
+        return true;
+    }
+
+    /**
+     * Kanál alebo jeho akcia dostali kontakt či nový kontakt: ponuka k
+     * najbližšej zverejnenej akcii, ku ktorej e-mail ešte neodišiel. Kanálu,
+     * ktorý ponuku dostal nedávno, sa nepíše — import, ktorý adresu prepisuje,
+     * tak nepošle sériu e-mailov.
+     */
+    public function notifyCanal(int $canalId): bool
+    {
+        $canal = Canal::query()->find($canalId);
+
+        if (! $canal || $canal->isManaged() || $canal->event_offer_disabled) {
+            return false;
+        }
+
+        if ($canal->events()->where('takeover_notified_at', '>=', now()->subDays(self::CONTACT_CHANGE_QUIET_DAYS))->exists()) {
+            return false;
+        }
+
+        foreach ($this->pendingEvents($canal)->pluck('id') as $eventId) {
+            if ($this->notify((int) $eventId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Zverejnené akcie kanála, ktoré ešte neskončili a e-mail k nim neodišiel,
+     * od najbližšej.
+     *
+     * @return Builder<Event>
+     */
+    public function pendingEvents(Canal $canal): Builder
+    {
+        return Event::query()
+            ->where('canal_id', $canal->id)
+            ->where('status', ModelStatus::Published->value)
+            ->whereNull('takeover_notified_at')
+            ->where(fn (Builder $q) => $q->whereRaw('COALESCE(end_at, start_at) IS NULL')
+                ->orWhereRaw('COALESCE(end_at, start_at) > ?', [now()]))
+            ->orderByRaw('start_at IS NULL')
+            ->orderBy('start_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Komu by išla ponuka k tejto akcii, alebo null, keď nikomu. Denný strop
+     * kanála nerieši — ten sa kontroluje až pod zámkom pri odoslaní.
+     */
+    public function recipient(Event $event): ?string
+    {
+        if (! $this->eligible($event)) {
+            return null;
+        }
+
+        $canal = $event->canal;
+        ['reason' => $reason, 'email' => $contact] = $this->takeover->contact($canal, $event);
+
+        if ($reason !== null || self::excludedDomain($contact)) {
+            return null;
+        }
+
+        // Kontakt, ktorý už v tíme kanála je, ponuku prevzatia nepotrebuje.
+        if ($canal->users()->where('users.email', $contact)->exists()) {
+            return null;
+        }
+
+        return $contact;
     }
 
     /**

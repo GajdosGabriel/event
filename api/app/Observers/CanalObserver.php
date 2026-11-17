@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\OfferCanalAfterContactChange;
 use App\Models\Canal;
 use App\Models\CanalEmailSearch;
 use App\Services\Canals\CanalEmails;
@@ -33,6 +34,14 @@ class CanalObserver
     {
         if ($canal->wasRecentlyCreated || $canal->wasChanged(['email', 'email_verified_at'])) {
             app(CanalEmails::class)->adopt($canal);
+        }
+
+        // Nový kontakt → ponuka prevzatia k akcii, ku ktorej e-mail ešte neodišiel.
+        // Pri vložení je `wasChanged()` prázdne (nový kanál ešte akcie nemá, tie
+        // si e-mail pošlú pri zverejnení); `wasRecentlyCreated` tu nepomôže —
+        // ostáva true aj pri ďalšom uložení tej istej inštancie, napr. v importe.
+        if ($canal->wasChanged('email') && filled($canal->email)) {
+            OfferCanalAfterContactChange::dispatch((int) $canal->id)->afterCommit();
         }
 
         // Nový web je nový zdroj kontaktu — hľadanie adresy nečaká na odklad.

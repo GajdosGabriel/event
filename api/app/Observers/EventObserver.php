@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Enums\ModelStatus;
+use App\Jobs\OfferCanalAfterContactChange;
 use App\Jobs\OfferCanalForPublishedEvent;
 use App\Models\Event;
 use App\Models\Subscription;
@@ -42,6 +43,11 @@ class EventObserver
     public function updated(Event $event): void
     {
         $this->reportToAccount($event);
+
+        // Kontakt akcie je záložný kontakt kanála — nový môže odomknúť ponuku prevzatia.
+        if ($event->wasChanged('email') && filled($event->email) && $event->canal_id !== null) {
+            OfferCanalAfterContactChange::dispatch((int) $event->canal_id)->afterCommit();
+        }
 
         $cancelled = $this->becameCancelled($event);
         $changes = $cancelled ? [] : $this->describeChanges($event);

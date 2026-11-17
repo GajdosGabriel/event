@@ -5,6 +5,7 @@ namespace App\Services\Canals;
 use App\Enums\CanalEmailStatus;
 use App\Enums\CanalIdentityMode;
 use App\Enums\RegistrationSource;
+use App\Jobs\OfferCanalAfterContactChange;
 use App\Models\Canal;
 use App\Models\CanalEmail;
 use App\Models\CanalEmailSearch;
@@ -639,8 +640,16 @@ class CanalEmails
 
         $values = ['email' => $primary?->email, 'email_verified_at' => $verifiedAt];
 
+        $emailChanged = $canal->email !== $primary?->email;
+
         $canal->newQueryWithoutScopes()->whereKey($canal->getKey())->toBase()->update($values);
         $canal->forceFill($values)->syncOriginalAttributes(array_keys($values));
+
+        // Zápis obchádza CanalObserver — ponuku pri novom kontakte treba spustiť tu
+        // (napr. adresa nájdená na webe kanála až po importe jeho akcie).
+        if ($emailChanged && filled($primary?->email)) {
+            OfferCanalAfterContactChange::dispatch((int) $canal->getKey())->afterCommit();
+        }
     }
 
     /** Neoverená adresa z importu a adresa predošlého vlastníka ustúpia vlastníkovi. */
