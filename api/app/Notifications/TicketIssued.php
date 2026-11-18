@@ -3,11 +3,14 @@
 namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
+use App\Models\Admission;
 use App\Models\Ticket;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
 use App\Services\Tickets\PaymentInstructions;
 use App\Services\Tickets\QrCodeGenerator;
 use App\Services\Tickets\Questionnaire;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -32,8 +35,8 @@ class TicketIssued extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         return $this->bellOnly
-            ? [\App\Notifications\Channels\BellChannel::class]
-            : [\App\Notifications\Channels\BellChannel::class, 'mail'];
+            ? [BellChannel::class]
+            : [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -46,7 +49,7 @@ class TicketIssued extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $ticketUrl = rtrim(config('app.frontend_url'), '/').'/tickets/'.$this->ticket->uuid;
-        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
+        $eventName = MailText::name($this->ticket->event?->name) ?: __('mail.common.event_fallback');
 
         // Neuhradená platená objednávka: zatiaľ len rekapitulácia a suma, QR až po úhrade.
         if ($this->ticket->awaitsPayment()) {
@@ -65,13 +68,13 @@ class TicketIssued extends Notification implements ShouldQueue
 
         // Vstupenky objednané pre iných čakajú na ich potvrdenie — QR objednávateľovi
         // ešte nedávame, aby nescanoval miesto, ktoré účastník ešte neprijal.
-        $pendingCount = $admissions->filter(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())->count();
+        $pendingCount = $admissions->filter(fn (Admission $a) => $a->isPendingConfirmation())->count();
 
         // Účastníci, ktorí ešte nepotvrdili — bez QR, ale s tým, čo sa za nich vyplnilo.
         $pendingSeats = $admissions
-            ->filter(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())
+            ->filter(fn (Admission $a) => $a->isPendingConfirmation())
             ->values()
-            ->map(fn (\App\Models\Admission $admission) => [
+            ->map(fn (Admission $admission) => [
                 'label' => (string) $admission->attendee_name,
                 'type' => $admission->ticketType?->name,
                 'answers' => app(Questionnaire::class)->present($admission->answers),
@@ -79,9 +82,9 @@ class TicketIssued extends Notification implements ShouldQueue
             ->all();
 
         $seats = $admissions
-            ->reject(fn (\App\Models\Admission $a) => $a->isPendingConfirmation())
+            ->reject(fn (Admission $a) => $a->isPendingConfirmation())
             ->values()
-            ->map(fn (\App\Models\Admission $admission, int $i) => [
+            ->map(fn (Admission $admission, int $i) => [
                 // Miesto bez mena patrí objednávateľovi.
                 'label' => $admission->attendee_name ?: ($i === 0 ? $this->ticket->holder_name : __('mail.common.seat_label', ['number' => $i + 1])),
                 'type' => $admission->ticketType?->name,
@@ -97,7 +100,7 @@ class TicketIssued extends Notification implements ShouldQueue
         $key = $this->restored ? 'mail.ticket_restored' : 'mail.ticket_issued';
 
         $mail = (new MailMessage)
-            ->subject(__($key.'.subject', ['event' => $eventName]))
+            ->subject(__($key.'.subject', ['event' => MailText::subjectName($eventName)]))
             ->markdown('mail.ticket-issued', [
                 'greetingName' => $this->ticket->holder_name,
                 'intro' => __($key.'.intro', ['event' => $eventName]),
@@ -113,6 +116,7 @@ class TicketIssued extends Notification implements ShouldQueue
                     $this->ticket->answers()->whereNull('admission_id')->with(['question', 'option'])->get()
                 ),
                 'ticketUrl' => $ticketUrl,
+                ...MailText::eventPlace($this->ticket->event),
                 ...$calendar->viewData(),
             ]);
 
@@ -134,7 +138,7 @@ class TicketIssued extends Notification implements ShouldQueue
             ->orderBy('id')
             ->get()
             ->values()
-            ->map(fn (\App\Models\Admission $admission, int $i) => [
+            ->map(fn (Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: ($i === 0 ? $this->ticket->holder_name : __('mail.common.seat_label', ['number' => $i + 1])),
                 'type' => $admission->ticketType?->name,
                 'answers' => $questionnaire->present($admission->answers),
@@ -142,7 +146,7 @@ class TicketIssued extends Notification implements ShouldQueue
             ->all();
 
         return (new MailMessage)
-            ->subject(__('mail.ticket_payment.subject', ['event' => $eventName]))
+            ->subject(__('mail.ticket_payment.subject', ['event' => MailText::subjectName($eventName)]))
             ->markdown('mail.ticket-payment-requested', [
                 'greetingName' => $this->ticket->holder_name,
                 'eventName' => $eventName,
@@ -154,6 +158,7 @@ class TicketIssued extends Notification implements ShouldQueue
                 // Kam a s akým VS zaplatiť; bez účtu organizácie ostane všeobecná výzva.
                 'payment' => app(PaymentInstructions::class)->for($this->ticket),
                 'ticketUrl' => $ticketUrl,
+                ...MailText::eventPlace($this->ticket->event),
             ]);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Models\CanalInvitation;
 use App\Models\Event;
 use App\Notifications\Concerns\SendsViaAccount;
-use App\Support\EventDateRange;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -55,15 +55,15 @@ class CanalEventPublishedOffer extends Notification implements ShouldQueue
     {
         $this->event->loadMissing(['canal', 'venue']);
 
-        $event = $this->event->name ?: __('mail.common.event_fallback');
+        $event = MailText::name($this->event->name) ?: __('mail.common.event_fallback');
         $canal = $this->event->canal?->name ?? __('mail.canal_invitation.canal_fallback');
         $url = rtrim((string) config('app.frontend_url'), '/').'/pozvanka/'.$this->invitation->token;
-        $when = EventDateRange::label($this->event->start_at, $this->event->end_at);
+        $when = MailText::range($this->event->start_at, $this->event->end_at);
         $variant = $this->newCanal ? 'new_canal' : 'new_event';
         $replace = ['event' => $event, 'canal' => $canal, 'site' => (string) config('app.name')];
 
         $mail = (new MailMessage)
-            ->subject(__('mail.canal_event_offer.'.$variant.'.subject', $replace))
+            ->subject(__('mail.canal_event_offer.'.$variant.'.subject', [...$replace, 'event' => MailText::subjectName($event)]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.canal_event_offer.'.$variant.'.intro', $replace));
 
@@ -75,13 +75,20 @@ class CanalEventPublishedOffer extends Notification implements ShouldQueue
             $mail->line(__('mail.canal_event_offer.where', ['where' => $this->event->venue->name]));
         }
 
-        return $mail
+        $mail
             ->line(__('mail.canal_event_offer.event_link', ['url' => PublicUrl::event($this->event)]))
             ->line(__('mail.canal_event_offer.contact_note'))
             ->line(__('mail.event_signup_organizer.claim_benefits'))
-            ->action(__('mail.canal_event_offer.action'), $url)
-            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
-            ->line(__('mail.canal_invitation.email_note', ['email' => $this->invitation->email]))
+            ->action(__('mail.canal_event_offer.action'), $url);
+
+        // Čo portál ponúka, hovoríme len v prvom kontakte (nový kanál), nie pri
+        // každej ďalšej zverejnenej akcii.
+        if ($this->newCanal) {
+            $mail->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]));
+        }
+
+        return $mail
+            ->line(__('mail.event_signup_organizer.claim_email_note', ['email' => $this->invitation->email]))
             ->line(__('mail.event_signup_organizer.claim_ignore'));
     }
 }

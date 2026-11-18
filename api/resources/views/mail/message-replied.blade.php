@@ -1,10 +1,10 @@
 @component('mail::message')
-# {{ __('mail.message_replied.heading') }}
+{{ __('mail.common.greeting') }}
 
-{{ __('mail.message_replied.intro', ['name' => $senderName, 'label' => $label, 'target' => $targetName]) }}
+{{ __('mail.message_replied.intro', ['name' => $senderName, 'label' => $labelTo, 'target' => $targetName]) }}
 
 @component('mail::panel')
-{{ $body }}
+{!! nl2br(e($body), false) !!}
 @endcomponent
 
 {{ __('mail.message_replied.reply_hint') }}

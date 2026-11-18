@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,7 +26,7 @@ class AttendeeConfirmed extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -34,12 +36,12 @@ class AttendeeConfirmed extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
+        $eventName = MailText::name($this->ticket->event?->name) ?: __('mail.common.event_fallback');
         $who = $this->attendeeName ?: $this->attendeeEmail;
         $ticketUrl = rtrim((string) config('app.frontend_url'), '/').'/tickets/'.$this->ticket->uuid;
 
         return (new MailMessage)
-            ->subject(__('mail.attendee_confirmed.subject', ['attendee' => $who, 'event' => $eventName]))
+            ->subject(__('mail.attendee_confirmed.subject', ['attendee' => $who, 'event' => MailText::subjectName($eventName)]))
             ->markdown('mail.attendee-confirmed', [
                 'holderName' => $this->ticket->holder_name,
                 'attendeeName' => $who,

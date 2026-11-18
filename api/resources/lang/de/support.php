@@ -21,13 +21,14 @@ return [
     'mail' => [
         'action' => 'Unterhaltung öffnen',
         'created' => [
-            'subject' => 'Support :reference: :subject',
+            'subject' => 'Neue Anfrage :reference – :subject',
             'intro' => ':name hat dem Support geschrieben (:category, Kontext: :context):',
         ],
         'replied' => [
-            'subject_answered' => 'Der Support hat geantwortet — :reference :subject',
-            'subject_user' => 'Ergänzung zu :reference: :subject',
-            'intro' => ':name hat geschrieben:',
+            'subject_answered' => 'Antwort des Supports :reference – :subject',
+            'subject_user' => 'Ergänzung :reference – :subject',
+            'intro' => 'Neue Nachricht von :name:',
+            'intro_staff' => 'Antwort des Supports:',
             'outro' => 'Bitte antworten Sie nicht auf diese E-Mail, sondern direkt in der Unterhaltung.',
         ],
     ],

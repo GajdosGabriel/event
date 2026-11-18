@@ -11,7 +11,10 @@ return [
         // Odkaz na stránku „Pre organizátorov" v e-mailoch organizátorom.
         'for_organizers' => 'Co všechno portál pořadatelům nabízí, najdete na stránce [Pro pořadatele](:url).',
         'greeting' => 'Dobrý den!',
-        'greeting_named' => 'Dobrý den, :name!',
+        'date_moment' => 'dd D. M. YYYY [v] HH:mm',
+        'date_day' => 'dd D. M. YYYY',
+        'when' => 'Termín: **:when**',
+        'where' => 'Místo: **:where**',
         'event_fallback' => 'akce',
         'workshop_fallback' => 'workshop',
         // Náhradný popis vstupenky, keď účastník nemá vyplnené meno.
@@ -41,7 +44,7 @@ return [
         'ignore' => 'Pokud jste si účet nevytvářeli, nemusíte dělat nic.',
         'subject_event' => 'Ověřte e-mail a dokončete přihlášení na :event',
         'intro_event' => 'Děkujeme, že se přihlašujete na akci **„:event"**. Nejprve prosím ověřte svou e-mailovou adresu.',
-        'event_note' => 'Místo na akci **„:event"** si zarezervujete až po ověření e-mailu — hned potom vám pošleme e-mail s odkazem na rezervaci.',
+        'event_note' => 'Kliknutím na tlačítko ověříte e-mail a zároveň vás na akci **„:event"** rovnou přihlásíme — další e-mail ani přihlašování nejsou potřeba.',
         'action_event' => 'Ověřit e-mail',
     ],
 
@@ -161,10 +164,12 @@ return [
 
     // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
     'canal_claim' => [
-        'message' => 'Zpráva: „:message"',
+        'message' => 'Zpráva od žadatele: „:message"',
+        'reason' => 'Důvod: :reason',
+        'next' => 'Pokud si myslíte, že jde o omyl, odpovězte na tento e-mail. Žádost o převzetí můžete podat i znovu, s doplněným vysvětlením.',
         'verify' => [
             'subject' => 'Žádost o správu kanálu :canal',
-            'intro' => 'Účet **:member** žádá o správu kanálu **„:canal"**, u kterého je uvedena tato adresa. Pokud ho znáte a souhlasíte, potvrďte to.',
+            'intro' => '**:name** (:member) žádá o převzetí kanálu **„:canal"**, u kterého je uvedena tato adresa. Pokud ho znáte a souhlasíte, potvrďte to.',
             'action' => 'Posoudit žádost',
             'ignore' => 'Pokud žadatele neznáte, e-mail ignorujte — žádost vyprší :date.',
         ],
@@ -249,14 +254,11 @@ return [
         'confirm' => 'Potvrdit účast',
         'decline' => 'Zrušit lístek',
         'ignore' => 'Pokud jste o tuto rezervaci nežádali, jednoduše lístek zrušte nebo tento e-mail ignorujte — místo se po lhůtě uvolní samo.',
-        'activation' => 'Na tuto e-mailovou adresu jsme vám založili účet, abyste měli své lístky vždy po ruce. Plně ho aktivujete přihlášením.',
     ],
 
     // App\Notifications\AttendeeConfirmed — objednávateľovi, keď účastník potvrdil.
     'attendee_confirmed' => [
         'subject' => ':attendee potvrdil(a) účast na :event',
-        'heading' => 'Dobrá zpráva!',
-        'heading_named' => 'Dobrá zpráva, :name!',
         'intro' => '{1} **:attendee** potvrdil(a) účast na akci **„:event"**.|[2,4] **:attendee** potvrdil(a) účast na akci **„:event"** (:count místa).|[5,*] **:attendee** potvrdil(a) účast na akci **„:event"** (:count míst).',
         'ticket_sent' => 'Jeho/její vstupenku s QR kódem jsme právě poslali na **:email**.',
         'action' => 'Zobrazit objednávku',
@@ -264,17 +266,18 @@ return [
 
     // App\Notifications\AttendeeDeclined — účastník lístok zrušil alebo nepotvrdil.
     'attendee_declined' => [
-        'subject' => 'Uvolněné místo na :event',
+        'subject' => 'Účastník zrušil vstupenku na :event',
+        'subject_expired' => 'Nepotvrzená účast na :event',
         'expired' => '{1} **:attendee** nepotvrdil(a) účast na akci **„:event"** ve stanovené lhůtě, proto jsme jeho/její rezervované místo uvolnili.|[2,4] **:attendee** nepotvrdil(a) účast na akci **„:event"** ve stanovené lhůtě, proto jsme :count rezervovaná místa uvolnili.|[5,*] **:attendee** nepotvrdil(a) účast na akci **„:event"** ve stanovené lhůtě, proto jsme :count rezervovaných míst uvolnili.',
         'declined' => '{1} **:attendee** (:email) zrušil(a) lístek na akci **„:event"**, takže místo je opět volné.|[2,4] **:attendee** (:email) zrušil(a) lístek na akci **„:event"** (:count místa), takže místa jsou opět volná.|[5,*] **:attendee** (:email) zrušil(a) lístek na akci **„:event"** (:count míst), takže místa jsou opět volná.',
-        'waitlist_note' => 'Pokud se uvolnilo místo na obsazené akci nebo workshopu, automaticky jsme na něj posunuli prvního náhradníka.',
+        'others_valid' => 'Ostatní vstupenky ve vaší objednávce platí dál.',
+        'waitlist_note' => 'Uvolněné místo na workshopu jsme nabídli prvnímu náhradníkovi.',
     ],
 
     // App\Notifications\MessageReceived — správa cez tlačidlo „Poslať správu".
     'message_received' => [
         'subject' => 'Nová zpráva – :label „:name"',
-        'heading' => 'Nová zpráva',
-        'intro' => 'Dostali jste zprávu k :label **„:name"**.',
+        'intro' => 'Dostali jste novou zprávu :label **„:name"**.',
         'from' => '**Od:** :name (:email)',
         'reply_hint' => 'Odpovědět můžete přímo na tento e-mail — odpověď dorazí odesílateli.',
         'action' => 'Zobrazit :label',
@@ -285,14 +288,19 @@ return [
             'canal' => 'kanálu',
             'default' => 'profilu',
         ],
+        'targets_to' => [
+            'event' => 'k akci',
+            'venue' => 'k místu',
+            'canal' => 'ke kanálu',
+            'default' => 'k profilu',
+        ],
         'target_fallback' => 'váš profil',
     ],
 
     // App\Notifications\MessageReplied — odpoveď organizátora z inboxu.
     'message_replied' => [
         'subject' => 'Odpověď – :label „:name"',
-        'heading' => 'Přišla vám odpověď',
-        'intro' => '**:name** odpověděl(a) na vaši zprávu k :label **„:target"**.',
+        'intro' => 'Přišla odpověď od **:name** na vaši zprávu :label **„:target"**.',
         'reply_hint' => 'Odpovědět můžete přímo na tento e-mail.',
         'action' => 'Zobrazit konverzaci',
     ],
@@ -300,6 +308,7 @@ return [
     // App\Notifications\EventAnnouncement — hromadný e-mail organizátora.
     // Predmet aj telo píše organizátor, tu sú len rámcové texty.
     'event_announcement' => [
+        'subject' => ':subject – :event',
         'action' => 'Zobrazit akci',
         'outro' => 'Tento e-mail vám přišel, protože máte lístek na uvedenou akci.',
     ],
@@ -313,7 +322,8 @@ return [
         'action' => 'Zobrazit akci',
         'outro' => 'Vstupenku s QR kódem najdete v e-mailu, který vám přišel při objednávce.',
         // Ten istý e-mail pre toho, kto si vypýtal upozornenie a lístok nemá.
-        'outro_subscriber' => 'Vstup je bez registrace — stačí přijít.',
+        'outro_subscriber' => 'Podrobnosti o vstupu najdete na stránce akce.',
+        'intro_subscriber' => 'Připomínáme, že se blíží akce **„:event"**, o které jste chtěli dostat upozornění.',
     ],
 
     // App\Notifications\QuestionAnswered — jediný e-mail, ktorý pisateľ otázky
@@ -372,9 +382,10 @@ return [
     ],
 
     'message_relayed' => [
+        'organizer_suffix' => '(kanál **:canal**)',
         'organizer' => [
             'subject' => 'Zpráva od návštěvníka: :target',
-            'intro' => 'Návštěvník portálu :site vám posílá zprávu k **„:target"** (organizátor **:canal**):',
+            'intro' => 'Návštěvník portálu :site vám posílá zprávu k **„:target"**:organizer:',
             'offer' => 'Profil **„:canal"** vznikl automaticky z veřejných zdrojů. Pokud jej převezmete, budete dostávat zprávy lidí, kteří mají zájem o vaše akce, a můžete zdarma zveřejňovat další akce.',
         ],
         'admin' => [
@@ -401,8 +412,6 @@ return [
         'subject_cancelled' => 'Zrušeno: :event',
         'intro' => 'U akce **„:event"** se změnilo toto:',
         'intro_cancelled' => 'Akce **„:event"** se neuskuteční — pořadatel ji stáhl. Pokud jste si ji zapsali do kalendáře, záznam můžete smazat.',
-        'starts_at' => 'Nový termín: **:date**.',
-        'venue' => 'Místo: **:venue**.',
         'action' => 'Zobrazit akci',
         'change_start' => 'Termín: :from → :to',
         'change_venue' => 'Místo: :from → :to',
@@ -462,19 +471,23 @@ return [
     ],
 
     'event_signup_organizer' => [
-        'subject' => 'Nový účastník na akci :event',
-        'intro' => 'Na vaši akci **„:event"** se přes portál :site přihlásil(a) **:name**.',
+        'subject' => 'Nový účastník: :event',
+        'subject_interest' => 'Nový zájemce: :event',
+        'intro' => 'Nový účastník na vaší akci **„:event"**: **:name** (přihláška přes portál :site).',
+        'intro_interest' => 'Nový zájemce o vaši akci **„:event"**: **:name** (přihláška přes portál :site).',
         'reserved' => 'Místo je rezervováno — účastník dostal vstupenku s QR kódem a je v seznamu přihlášených.',
-        'interest' => 'Rezervace míst je vypnutá, vyžaduje placenou vstupenku nebo je plno, proto jsme vstupenku nevystavili a zaznamenali jen zájem. Ozvěte se prosím účastníkovi.',
-        'count' => '{1} Zatím je přihlášen **:count** účastník.|[2,4] Přihlášeni jsou už **:count** účastníci.|[5,*] Přihlášeno je už **:count** účastníků.',
+        'interest_unavailable' => 'Akce nemá zapnutou rezervaci míst zdarma (nebo nabízí jen placené vstupenky), proto jsme vstupenku nevystavili a zaznamenali jen zájem. Ozvěte se prosím zájemci.',
+        'interest_full' => 'Volná místa došla nebo skončila rezervace, proto jsme vstupenku nevystavili a zaznamenali jen zájem. Ozvěte se prosím zájemci.',
+        'count' => '{1} Přihlášen je teď **:count** účastník.|[2,4] Přihlášeni jsou teď **:count** účastníci.|[5,*] Přihlášeno je teď **:count** účastníků.',
         'contact' => 'Kontakt na účastníka: :email',
         'action' => 'Zobrazit seznam přihlášených',
         'claim_subject' => 'Na vaši akci „:event" se hlásí lidé',
         'claim_signup' => 'Na akci **„:event"** se přes portál :site přihlásil nový účastník.',
         'claim_interest' => 'O akci **„:event"** projevil přes portál :site zájem nový účastník.',
-        'claim_intro' => 'Akci jsme zveřejnili na portálu tixio.eu pod kanálem **„:canal"**, který zatím nikdo nespravuje. Zpráva vám přišla na kontakt uvedený u kanálu nebo akce.',
+        'claim_intro' => 'Akci jsme zveřejnili na portálu :site pod kanálem **„:canal"**, který zatím nikdo nespravuje. Zpráva vám přišla na kontakt uvedený u kanálu nebo akce.',
         'claim_benefits' => 'Převzetí kanálu je zdarma. Uvidíte seznam přihlášených a jejich kontakty, budete moci upravovat tuto akci, přidávat další, nastavit kapacitu a na vstupu načítat QR kódy.',
         'claim_action' => 'Převzít kanál a zobrazit přihlášené',
+        'claim_email_note' => 'Kanál převezmete po přihlášení účtem s adresou **:email**. Pokud účet ještě nemáte, vytvoříte si ho po kliknutí na tlačítko výše.',
         'claim_ignore' => 'Pokud nejste organizátorem této akce, tento e-mail klidně ignorujte.',
     ],
     'canal_event_offer' => [
@@ -522,7 +535,8 @@ return [
     ],
     'event_interest' => [
         'subject' => 'Váš zájem o :event',
-        'intro' => 'Děkujeme za přihlášení na akci **„:event"**. Organizátor rezervace míst zatím neumožňuje nebo je už plno, proto vám vstupenku nevystavujeme.',
+        'intro_unavailable' => 'Děkujeme za přihlášení na akci **„:event"**. Organizátor rezervaci míst přes portál nenabízí, proto vám vstupenku nevystavujeme.',
+        'intro_full' => 'Děkujeme za přihlášení na akci **„:event"**. Volná místa už došla nebo skončila rezervace, proto vám vstupenku nevystavujeme.',
         'next' => 'Váš zájem jsme předali organizátorovi. Podrobnosti o vstupu najdete u akce.',
         'action' => 'Zobrazit akci',
     ],

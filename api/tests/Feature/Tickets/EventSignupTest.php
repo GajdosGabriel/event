@@ -39,8 +39,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * „Rezervovať" / „Prihlásiť sa": registrácia s podujatím → overenie e-mailu →
- * e-mail „rezervujte si miesto" → rezervácia jedným klikom → e-mail
+ * „Rezervovať" / „Prihlásiť sa": registrácia s podujatím → overenie e-mailu
+ * rovno rezervuje (prihlásený rezervuje jedným klikom) → e-mail
  * organizátorovi a super-adminom (EventSignup, DefaultReservation).
  */
 class EventSignupTest extends TestCase
@@ -184,22 +184,81 @@ class EventSignupTest extends TestCase
     }
 
     #[Test]
-    public function verification_sends_an_invitation_to_reserve_but_does_not_reserve_yet(): void
+    public function verification_reserves_the_seat_right_away(): void
     {
         Notification::fake();
         $event = $this->importedEvent();
 
+        $response = $this->registerAndVerify($event)
+            ->assertOk()
+            ->assertJsonPath('reserve_event.id', $event->id)
+            ->assertJsonPath('signup.status', EventSignup::RESERVED)
+            ->assertJsonPath('signup.event.id', $event->id);
+
+        $user = User::where('email', 'ucastnik@example.sk')->firstOrFail();
+        $ticket = Ticket::where('event_id', $event->id)->firstOrFail();
+        $this->assertSame($user->id, $ticket->user_id);
+        $this->assertSame($ticket->uuid, $response->json('signup.ticket_uuid'));
+
+        Notification::assertSentOnDemand(TicketIssued::class, fn ($n, $c, $notifiable) => $notifiable->routes['mail'] === 'ucastnik@example.sk');
+        Notification::assertSentTo($this->admin, EventSignupAdminNotice::class);
+        Notification::assertSentOnDemandTimes(EventReservationInvite::class, 0);
+    }
+
+    #[Test]
+    public function verification_records_interest_when_reservation_is_not_offered(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $event->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => false]);
+
         $this->registerAndVerify($event)
             ->assertOk()
-            ->assertJsonPath('reserve_event.id', $event->id);
+            ->assertJsonPath('signup.status', EventSignup::INTEREST)
+            ->assertJsonPath('signup.ticket_uuid', null);
 
+        $this->assertSame(0, Ticket::where('event_id', $event->id)->count());
+        $this->assertSame(1, EventInterest::where('event_id', $event->id)->where('email', 'ucastnik@example.sk')->count());
+        Notification::assertSentOnDemand(EventInterestRecorded::class);
+        Notification::assertSentOnDemandTimes(EventReservationInvite::class, 0);
+    }
+
+    #[Test]
+    public function verification_with_a_required_questionnaire_points_to_the_form(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $event->questions()->create(['scope' => 'attendee', 'type' => 'text', 'label' => 'Strava', 'is_required' => true]);
+
+        $this->registerAndVerify($event)
+            ->assertOk()
+            ->assertJsonPath('signup.status', EventSignup::NEEDS_FORM);
+
+        $this->assertSame(0, Ticket::where('event_id', $event->id)->count());
+        $this->assertSame(0, EventInterest::where('event_id', $event->id)->count());
+        Notification::assertNothingSentTo($this->admin);
+        Notification::assertSentOnDemandTimes(EventReservationInvite::class, 0);
+    }
+
+    #[Test]
+    public function failed_reservation_after_verification_keeps_the_account_and_sends_the_invite(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent();
+        $this->partialMock(EventSignup::class, fn ($mock) => $mock
+            ->shouldReceive('signup')->andThrow(new \RuntimeException('boom')));
+
+        $this->registerAndVerify($event)
+            ->assertOk()
+            ->assertJsonPath('reserve_event.id', $event->id)
+            ->assertJsonPath('signup', null);
+
+        $this->assertNotNull(User::where('email', 'ucastnik@example.sk')->value('email_verified_at'));
         Notification::assertSentOnDemand(
             EventReservationInvite::class,
             fn ($n, $c, $notifiable) => $notifiable->routes['mail'] === 'ucastnik@example.sk'
                 && str_contains($n->toMail($notifiable)->actionUrl, '/prihlasenie/'.$event->id),
         );
-        $this->assertSame(0, Ticket::where('event_id', $event->id)->count());
-        Notification::assertNothingSentTo($this->admin);
     }
 
     #[Test]

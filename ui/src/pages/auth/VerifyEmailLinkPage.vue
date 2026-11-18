@@ -7,9 +7,14 @@
         <div class="mb-4 text-4xl">✓</div>
         <h1 class="mb-2 text-xl font-semibold text-slate-900">{{ t('auth.verifyLink.successTitle') }}</h1>
         <p class="mb-6 text-sm text-slate-600">{{ message }}</p>
-        <!-- Registrácia z „Rezervovať" pri akcii — teraz si miesto rezervuje
-             (po prihlásení jedným klikom na /prihlasenie/:id). -->
-        <template v-if="reserveEvent">
+        <!-- Registrácia z „Rezervovať" pri akcii — overením sa naň rovno
+             prihlásil; ukážeme výsledok (vstupenka, záujem, dotazník…). -->
+        <template v-if="signup">
+          <EventSignupOutcome class="text-left" :result="signup" />
+          <RouterLink to="/login" class="mt-4 inline-block text-sm text-slate-600 underline">{{ t('auth.verifyLink.login') }}</RouterLink>
+        </template>
+        <!-- Rezervácia po overení zlyhala — dokončí ju po prihlásení na /prihlasenie/:id. -->
+        <template v-else-if="reserveEvent">
           <p class="mb-4 rounded-lg bg-green-50 p-3 text-left text-sm text-green-900">
             {{ t('eventSignup.verifiedLead', { event: reserveEvent.name ? `„${reserveEvent.name}"` : t('eventSignup.eventFallback') }) }}
           </p>
@@ -32,6 +37,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { verifyRegistrationLink } from '@/api/auth'
+import type { EventSignupResult } from '@/api/tickets'
+import EventSignupOutcome from '@/components/EventSignupOutcome.vue'
 import { t } from '@/i18n'
 import { takeRememberedRedirect } from '@/utils/authRedirect'
 
@@ -39,6 +46,7 @@ const route = useRoute()
 const status = ref<'loading' | 'success' | 'error'>('loading')
 const message = ref('')
 const reserveEvent = ref<{ id: number; name: string | null } | null>(null)
+const signup = ref<EventSignupResult | null>(null)
 // Kam chcel pred registráciou ísť (napr. požiadať o prevzatie kanála).
 const redirect = ref<string | null>(null)
 
@@ -49,6 +57,7 @@ onMounted(async () => {
     // API odpovedá po anglicky — návštevníkovi ukážeme preloženú vetu.
     message.value = t('auth.verifyLink.successFallback')
     reserveEvent.value = res.reserveEvent
+    signup.value = res.signup
     redirect.value = takeRememberedRedirect()
     status.value = 'success'
   } catch {

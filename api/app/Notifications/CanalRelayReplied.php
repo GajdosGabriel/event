@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CanalRelayThread;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -39,7 +40,7 @@ class CanalRelayReplied extends Notification implements ShouldQueue
             ->greeting(__('mail.common.greeting'))
             ->replyTo($this->fromEmail, $this->fromName ?: $canal)
             ->line(__('mail.canal_relay_replied.intro', $params))
-            ->line('> '.str_replace("\n", "\n> ", $this->reply));
+            ->line(MailText::quote($this->reply));
 
         if ($this->hasAttachments) {
             $mail->line(__('mail.canal_relay_replied.attachments'));

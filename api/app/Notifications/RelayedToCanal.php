@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Models\Canal;
 use App\Notifications\Concerns\SendsViaAccount;
 use App\Services\Canals\CanalRelay;
-use App\Support\PublicUrl;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -88,7 +88,7 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
             ->subject(__($key.'.subject', $params))
             ->greeting(__('mail.common.greeting'))
             ->line(__($key.'.intro', $params))
-            ->line('> '.str_replace("\n", "\n> ", $this->body));
+            ->line(MailText::quote($this->body));
 
         if ($this->audience === self::ADMIN) {
             return $mail
@@ -101,7 +101,6 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
             ->line(__($shared.'.reply', $params))
             ->line(__($key.'.offer', $params))
             ->action(__($shared.'.action'), $this->claimUrl)
-            ->line(__('mail.common.for_organizers', ['url' => PublicUrl::forOrganizers()]))
             ->line(__($shared.'.why', $params));
     }
 }

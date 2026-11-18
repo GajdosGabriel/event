@@ -1,7 +1,9 @@
 @component('mail::message')
-# {{ $greetingName ? __('mail.common.greeting_named', ['name' => $greetingName]) : __('mail.common.greeting') }}
+{{ __('mail.common.greeting') }}
 
 {{ __('mail.attendee_ticket_issued.' . ($isPaid ? 'intro_paid' : 'intro_free'), ['holder' => $holderName, 'event' => $eventName]) }}
+
+@include('mail.partials.when')
 
 @if (count($seats))
 @foreach ($seats as $seat)

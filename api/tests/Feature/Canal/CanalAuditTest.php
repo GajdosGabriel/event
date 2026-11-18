@@ -93,7 +93,7 @@ class CanalAuditTest extends TestCase
         $mail = SystemLog::where('event', 'mail.simulated')->sole();
         $this->assertSame('simulated', $mail->status);
         $this->assertSame('farnost@example.sk', $mail->recipient);
-        $this->assertSame('Kanál Farnosť Hájske má nového správcu', $mail->message);
+        $this->assertSame('Kanál Farnosť Hájske má nového vlastníka', $mail->message);
         $this->assertSame(CanalOwnershipChanged::class, $mail->context['class']);
 
         Notification::assertNotSentTo($farar, CanalOwnershipChanged::class);
@@ -164,7 +164,7 @@ class CanalAuditTest extends TestCase
         $this->assertSame(1, SystemLog::where('event', 'canals.member_removed')->where('user_id', $second->id)->count());
         $mail = SystemLog::where('event', 'mail.simulated')->sole();
         $this->assertSame('druhy@divadlo.test', $mail->recipient);
-        $this->assertSame('Zmena vlastníka kanála Divadlo', $mail->message);
+        $this->assertSame('Kanál Divadlo: odobratý vlastník', $mail->message);
     }
 
     #[Test]

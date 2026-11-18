@@ -1,5 +1,5 @@
 @component('mail::message')
-# {{ $holderName ? __('mail.attendee_confirmed.heading_named', ['name' => $holderName]) : __('mail.attendee_confirmed.heading') }}
+{{ __('mail.common.greeting') }}
 
 {{ trans_choice('mail.attendee_confirmed.intro', $seats, ['attendee' => $attendeeName, 'event' => $eventName]) }}
 

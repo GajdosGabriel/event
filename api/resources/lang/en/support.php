@@ -21,13 +21,14 @@ return [
     'mail' => [
         'action' => 'Open conversation',
         'created' => [
-            'subject' => 'Support :reference: :subject',
+            'subject' => 'New request :reference – :subject',
             'intro' => ':name wrote to support (:category, context: :context):',
         ],
         'replied' => [
-            'subject_answered' => 'Support replied — :reference :subject',
-            'subject_user' => 'Follow-up on :reference: :subject',
-            'intro' => ':name wrote:',
+            'subject_answered' => 'Support reply :reference – :subject',
+            'subject_user' => 'Follow-up :reference – :subject',
+            'intro' => 'New message from :name:',
+            'intro_staff' => 'Reply from support:',
             'outro' => 'Please do not reply to this e-mail — reply directly in the conversation.',
         ],
     ],

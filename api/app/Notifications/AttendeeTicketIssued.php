@@ -3,10 +3,13 @@
 namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
+use App\Models\Admission;
 use App\Models\Ticket;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
 use App\Services\Tickets\QrCodeGenerator;
 use App\Services\Tickets\Questionnaire;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,7 +32,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -39,7 +42,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
+        $eventName = MailText::name($this->ticket->event?->name) ?: __('mail.common.event_fallback');
 
         $generator = app(QrCodeGenerator::class);
 
@@ -52,7 +55,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
         $seats = $admissions
             ->values()
-            ->map(fn (\App\Models\Admission $admission, int $i) => [
+            ->map(fn (Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type' => $admission->ticketType?->name,
                 'answers' => app(Questionnaire::class)->present($admission->answers),
@@ -66,7 +69,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
 
         // Bezplatnú vstupenku môže účastník sám zrušiť — odkaz vedie na RSVP
         // stránku, kde zrušenie ešte potvrdí (aby ho neurobil náhľad e-mailu).
-        $cancelToken = $admissions->first(fn (\App\Models\Admission $a) => $a->isCancellableByAttendee())
+        $cancelToken = $admissions->first(fn (Admission $a) => $a->isCancellableByAttendee())
             ?->confirmation_token;
 
         $cancelUrl = $cancelToken
@@ -76,7 +79,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
         $calendar = new EventCalendarLinks($this->ticket->event);
 
         $mail = (new MailMessage)
-            ->subject(__('mail.attendee_ticket_issued.subject', ['event' => $eventName]))
+            ->subject(__('mail.attendee_ticket_issued.subject', ['event' => MailText::subjectName($eventName)]))
             ->markdown('mail.attendee-ticket-issued', [
                 'greetingName' => $admissions->first()?->attendee_name,
                 'holderName' => $this->ticket->holder_name,
@@ -86,6 +89,7 @@ class AttendeeTicketIssued extends Notification implements ShouldQueue
                 'cancelUrl' => $cancelUrl,
                 'needsActivation' => $this->needsActivation,
                 'activationUrl' => $activationUrl,
+                ...MailText::eventPlace($this->ticket->event),
                 ...$calendar->viewData(),
             ]);
 

@@ -91,7 +91,8 @@ class CanalRelayMessageTest extends TestCase
                 && ! str_contains($text, 'pisatel@example.sk')
                 && ! str_contains($text, 'email/unsubscribe')
                 && str_contains((string) $mail->actionUrl, '/pozvanka/')
-                && str_contains($text, '/pre-organizatorov');
+                // „Pre organizátorov" patrí len do prvého kontaktu, nie do relay správy.
+                && ! str_contains($text, '/pre-organizatorov');
         });
 
         $this->assertSame(1, CanalInvitation::where('canal_id', $this->canal->id)->pending()->count());
@@ -120,7 +121,8 @@ class CanalRelayMessageTest extends TestCase
             $mail = $n->toMail($notifiable);
 
             return $notifiable->routes['mail'] === 'pisatel@example.sk'
-                && in_array('> O ôsmej.', $mail->introLines, true)
+                && str_contains(implode(' ', $mail->introLines), '<blockquote')
+                && str_contains(implode(' ', $mail->introLines), 'O ôsmej.')
                 && $mail->replyTo[0][0] === 'farnost@example.sk';
         });
         $this->assertNotNull($thread->fresh()->last_reply_at);

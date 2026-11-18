@@ -3,7 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +17,8 @@ use Illuminate\Notifications\Notification;
  *
  * Predmet aj telo píše organizátor; text ide do e-mailu escapovaný (šablóna
  * používa `{{ }}`), takže sa cez neho nedá poslať HTML. Reply-to smeruje na
- * organizátora — účastník má odpovedať jemu, nie portálu.
+ * organizátora — účastník má odpovedať jemu, nie portálu. K predmetu pridávame
+ * názov podujatia, aby oznam „Zmena času začiatku“ mal v schránke kontext.
  */
 class EventAnnouncement extends Notification implements ShouldQueue
 {
@@ -31,12 +34,12 @@ class EventAnnouncement extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => $this->subject, 'link' => \App\Support\PublicUrl::event($this->event)];
+        return ['message' => $this->fullSubject(), 'link' => PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -46,9 +49,10 @@ class EventAnnouncement extends Notification implements ShouldQueue
         $calendar = new EventCalendarLinks($this->event);
 
         $mail = (new MailMessage)
-            ->subject($this->subject)
+            ->subject($this->fullSubject())
             ->markdown('mail.event-announcement', [
                 'eventName' => $this->event->name,
+                ...MailText::eventPlace($this->event),
                 'eventUrl' => PublicUrl::event($this->event),
                 'body' => $this->body,
                 ...$calendar->viewData(),
@@ -59,5 +63,17 @@ class EventAnnouncement extends Notification implements ShouldQueue
         }
 
         return $calendar->attachTo($mail);
+    }
+
+    private function fullSubject(): string
+    {
+        $event = MailText::subjectName($this->event->name);
+
+        // Organizátor názov podujatia do predmetu často napíše sám.
+        if ($event === '' || str_contains(mb_strtolower($this->subject), mb_strtolower($event))) {
+            return $this->subject;
+        }
+
+        return __('mail.event_announcement.subject', ['subject' => $this->subject, 'event' => $event]);
     }
 }

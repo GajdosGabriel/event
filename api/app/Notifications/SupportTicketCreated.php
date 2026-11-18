@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\SupportTicket;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -45,7 +46,7 @@ class SupportTicketCreated extends Notification implements ShouldQueue
                 'category' => $ticket->category->label(),
                 'context' => $ticket->canal?->name ?? __('support.no_context'),
             ]))
-            ->line(Str::limit((string) $first?->body, 1000))
+            ->line(MailText::paragraph(Str::limit((string) $first?->body, 1000)))
             ->action(__('support.mail.action'), $this->url());
     }
 

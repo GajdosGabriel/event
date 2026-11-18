@@ -1,8 +1,10 @@
 @component('mail::message')
 # {{ $eventName }}
 
+@include('mail.partials.when')
+
 @component('mail::panel')
-{{ $body }}
+{!! nl2br(e($body), false) !!}
 @endcomponent
 
 @component('mail::button', ['url' => $eventUrl])

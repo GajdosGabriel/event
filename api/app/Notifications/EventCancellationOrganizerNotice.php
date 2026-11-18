@@ -3,7 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
 use App\Support\DashboardUrl;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,20 +27,20 @@ class EventCancellationOrganizerNotice extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.event_cancellation_organizer.subject', ['event' => $this->event->name]), 'link' => '/dashboard/events/'.$this->event->id.'/attendees'];
+        return ['message' => __('mail.event_cancellation_organizer.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => '/dashboard/events/'.$this->event->id.'/attendees'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $event = $this->event->name ?: __('mail.common.event_fallback');
+        $event = MailText::name($this->event->name) ?: __('mail.common.event_fallback');
 
         $mail = (new MailMessage)
-            ->subject(__('mail.event_cancellation_organizer.subject', ['event' => $event]))
+            ->subject(__('mail.event_cancellation_organizer.subject', ['event' => MailText::subjectName($event)]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.event_cancellation_organizer.intro', ['event' => $event, 'name' => $this->attendeeName]));
 

@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,20 +26,20 @@ class RegistrationCancelled extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.registration_cancelled.subject', ['event' => $this->event->name]), 'link' => PublicUrl::event($this->event)];
+        return ['message' => __('mail.registration_cancelled.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $event = $this->event->name ?: __('mail.common.event_fallback');
+        $event = MailText::name($this->event->name) ?: __('mail.common.event_fallback');
 
         return (new MailMessage)
-            ->subject(__('mail.registration_cancelled.subject', ['event' => $event]))
+            ->subject(__('mail.registration_cancelled.subject', ['event' => MailText::subjectName($event)]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.registration_cancelled.intro', ['event' => $event]))
             ->line(__('mail.registration_cancelled.next'))

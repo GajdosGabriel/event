@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Message;
+use App\Notifications\Channels\BellChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,7 +26,7 @@ class MessageReplied extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -40,12 +41,14 @@ class MessageReplied extends Notification implements ShouldQueue
         $target = $this->reply->loadMissing('messageable')->messageable;
         $targetName = $target?->name ?? __('mail.message_received.target_fallback');
         $label = __('mail.message_received.targets.'.($this->reply->targetType() ?? 'default'));
+        $labelTo = __('mail.message_received.targets_to.'.($this->reply->targetType() ?? 'default'));
 
         return (new MailMessage)
             ->subject(__('mail.message_replied.subject', ['label' => $label, 'name' => $targetName]))
             ->replyTo($this->senderEmail, $this->senderName)
             ->markdown('mail.message-replied', [
                 'label' => $label,
+                'labelTo' => $labelTo,
                 'targetName' => $targetName,
                 'senderName' => $this->senderName,
                 'body' => $this->reply->body,

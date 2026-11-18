@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -30,10 +31,10 @@ class TicketCancelledByOrganizer extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $event = $this->event->name ?: __('mail.common.event_fallback');
+        $event = MailText::name($this->event->name) ?: __('mail.common.event_fallback');
 
         $mail = (new MailMessage)
-            ->subject(self::subjectFor($event))
+            ->subject(self::subjectFor(MailText::subjectName($event)))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.ticket_cancelled_by_organizer.intro', ['event' => $event]));
 
@@ -50,6 +51,6 @@ class TicketCancelledByOrganizer extends Notification implements ShouldQueue
 
     public static function subjectFor(string $event): string
     {
-        return __('mail.ticket_cancelled_by_organizer.subject', ['event' => $event]);
+        return __('mail.ticket_cancelled_by_organizer.subject', ['event' => MailText::subjectName($event)]);
     }
 }

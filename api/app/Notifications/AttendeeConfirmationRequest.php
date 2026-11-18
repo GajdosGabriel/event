@@ -3,8 +3,11 @@
 namespace App\Notifications;
 
 use App\Enums\AdmissionStatus;
+use App\Models\Admission;
 use App\Models\Ticket;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Tickets\Questionnaire;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,7 +32,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -39,7 +42,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $eventName = $this->ticket->event?->name ?? __('mail.common.event_fallback');
+        $eventName = MailText::name($this->ticket->event?->name) ?: __('mail.common.event_fallback');
 
         $admissions = $this->ticket->admissions()
             ->with(['ticketType', 'answers.question', 'answers.option'])
@@ -50,7 +53,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
 
         $seats = $admissions
             ->values()
-            ->map(fn (\App\Models\Admission $admission, int $i) => [
+            ->map(fn (Admission $admission, int $i) => [
                 'label' => $admission->attendee_name ?: __('mail.common.seat_label', ['number' => $i + 1]),
                 'type' => $admission->ticketType?->name,
                 // Čo za neho objednávateľ vyplnil (strava, ubytovanie…) — nech to vie skontrolovať.
@@ -62,7 +65,7 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
         $deadline = $admissions->first()?->confirmation_deadline_at;
 
         return (new MailMessage)
-            ->subject(__('mail.attendee_confirmation_request.subject', ['event' => $eventName]))
+            ->subject(__('mail.attendee_confirmation_request.subject', ['event' => MailText::subjectName($eventName)]))
             ->markdown('mail.attendee-confirmation-request', [
                 'greetingName' => $admissions->first()?->attendee_name,
                 'holderName' => $this->ticket->holder_name,
@@ -72,7 +75,8 @@ class AttendeeConfirmationRequest extends Notification implements ShouldQueue
                 'seats' => $seats,
                 'confirmUrl' => $base.'?do=confirm',
                 'declineUrl' => $base.'?do=cancel',
-                'deadline' => $deadline?->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
+                'deadline' => MailText::moment($deadline),
+                ...MailText::eventPlace($this->ticket->event),
                 'needsActivation' => $this->needsActivation,
             ]);
     }

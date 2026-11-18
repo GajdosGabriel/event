@@ -11,7 +11,7 @@ use App\Models\Venue;
 use App\Notifications\EventChanged;
 use App\Services\Account\AccountMailing;
 use App\Services\Events\SubscriberDirectory;
-use App\Support\EventDateRange;
+use App\Support\MailText;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 
@@ -179,7 +179,7 @@ class EventObserver
         if ($event->wasChanged('start_at')) {
             $changes[] = __('mail.event_changed.change_start', [
                 'from' => $this->formatDate($event->getOriginal('start_at')),
-                'to' => EventDateRange::moment($event->start_at) ?? '—',
+                'to' => MailText::moment($event->start_at) ?? '—',
             ]);
         }
 
@@ -200,7 +200,7 @@ class EventObserver
         }
 
         try {
-            return EventDateRange::moment(Carbon::parse($raw, 'UTC'));
+            return (string) MailText::moment(Carbon::parse($raw, 'UTC'));
         } catch (\Throwable) {
             return '—';
         }

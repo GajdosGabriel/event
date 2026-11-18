@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CanalClaim;
 use App\Notifications\Concerns\SendsViaAccount;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -82,7 +83,7 @@ class CanalClaimNotice extends Notification implements ShouldQueue
         }
 
         if ($claim->decision_note && in_array($this->kind, [self::REJECTED, self::REVERTED], true)) {
-            $mail->line(__('mail.canal_claim.message', ['message' => $claim->decision_note]));
+            $mail->line(__('mail.canal_claim.reason', ['reason' => $claim->decision_note]));
         }
 
         $frontend = rtrim((string) config('app.frontend_url'), '/');
@@ -90,9 +91,11 @@ class CanalClaimNotice extends Notification implements ShouldQueue
         return match ($this->kind) {
             self::VERIFY => $mail
                 ->action(__($key.'.action'), $frontend.'/prevzatie/'.$claim->token)
-                ->line(__($key.'.ignore', ['date' => $claim->expires_at?->format('d. m. Y') ?? ''])),
+                ->line(__($key.'.ignore', ['date' => MailText::day($claim->expires_at) ?? ''])),
             self::REQUESTED, self::CONTESTED => $mail
                 ->action(__($key.'.action'), $frontend.'/admin/prevzatia'),
+            // Zamietnutie a zrušenie prevzatia: čo ďalej, keď s tým žiadateľ nesúhlasí.
+            self::REJECTED, self::REVERTED => $mail->line(__('mail.canal_claim.next')),
             default => $mail,
         };
     }

@@ -3,11 +3,13 @@
 
 {{ __('mail.question_answered.intro', ['event' => $eventName]) }}
 
-> {{ $questionBody }}
+@component('mail::panel')
+{!! nl2br(e($questionBody), false) !!}
+@endcomponent
 
 **{{ __('mail.question_answered.answer_label') }}**
 
-{{ $answerBody }}
+{!! nl2br(e($answerBody), false) !!}
 
 @if ($eventUrl)
 @component('mail::button', ['url' => $eventUrl])

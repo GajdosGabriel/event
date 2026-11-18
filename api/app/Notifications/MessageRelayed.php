@@ -34,7 +34,11 @@ class MessageRelayed extends RelayedToCanal
 
     protected function targetParams(): array
     {
-        return ['target' => (string) $this->target->name];
+        // Správa priamo kanálu: „(organizátor Sigord)“ by len opakovalo názov.
+        return [
+            'target' => (string) $this->target->name,
+            'organizer' => $this->target instanceof Canal ? '' : ' '.__('mail.message_relayed.organizer_suffix', ['canal' => $this->canal->name]),
+        ];
     }
 
     protected function targetUrl(): string

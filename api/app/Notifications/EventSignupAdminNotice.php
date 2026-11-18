@@ -3,7 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
 use App\Support\DashboardUrl;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,20 +32,20 @@ class EventSignupAdminNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.event_signup_admin.subject', ['event' => $this->event->name]), 'link' => '/admin/events/'.$this->event->id];
+        return ['message' => __('mail.event_signup_admin.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => '/admin/events/'.$this->event->id];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $event = $this->event->name ?: __('mail.common.event_fallback');
+        $event = MailText::name($this->event->name) ?: __('mail.common.event_fallback');
 
         return (new MailMessage)
-            ->subject(__('mail.event_signup_admin.subject', ['event' => $event]))
+            ->subject(__('mail.event_signup_admin.subject', ['event' => MailText::subjectName($event)]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.event_signup_admin.intro', [
                 'name' => $this->attendeeName,

@@ -11,7 +11,10 @@ return [
         // Odkaz na stránku „Pre organizátorov" v e-mailoch organizátorom.
         'for_organizers' => 'Was das Portal Veranstaltern bietet, finden Sie auf der Seite [Für Veranstalter](:url).',
         'greeting' => 'Guten Tag!',
-        'greeting_named' => 'Guten Tag, :name!',
+        'date_moment' => 'dd, D. M. YYYY, HH:mm',
+        'date_day' => 'dd, D. M. YYYY',
+        'when' => 'Termin: **:when**',
+        'where' => 'Ort: **:where**',
         'event_fallback' => 'Veranstaltung',
         'workshop_fallback' => 'Workshop',
         // Náhradný popis vstupenky, keď účastník nemá vyplnené meno.
@@ -41,7 +44,7 @@ return [
         'ignore' => 'Wenn Sie kein Konto angelegt haben, brauchen Sie nichts zu tun.',
         'subject_event' => 'Bestätigen Sie Ihre E-Mail und schließen Sie die Anmeldung zu :event ab',
         'intro_event' => 'Danke für Ihre Anmeldung zu **„:event"**. Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.',
-        'event_note' => 'Ihren Platz bei **„:event"** reservieren Sie nach der Bestätigung Ihrer E-Mail — gleich danach senden wir Ihnen den Reservierungslink.',
+        'event_note' => 'Mit dem Klick auf die Schaltfläche bestätigen Sie Ihre E-Mail und wir melden Sie gleichzeitig zu **„:event"** an — eine weitere E-Mail oder Anmeldung ist nicht nötig.',
         'action_event' => 'E-Mail bestätigen',
     ],
 
@@ -161,10 +164,12 @@ return [
 
     // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
     'canal_claim' => [
-        'message' => 'Nachricht: „:message"',
+        'message' => 'Nachricht der antragstellenden Person: „:message"',
+        'reason' => 'Grund: :reason',
+        'next' => 'Wenn Sie glauben, dass es sich um einen Irrtum handelt, antworten Sie auf diese E-Mail. Sie können die Anfrage mit ergänzter Begründung auch erneut stellen.',
         'verify' => [
             'subject' => 'Anfrage zur Verwaltung des Kanals :canal',
-            'intro' => 'Das Konto **:member** möchte den Kanal **„:canal"** verwalten, bei dem diese Adresse angegeben ist. Wenn Sie es kennen und einverstanden sind, bestätigen Sie bitte.',
+            'intro' => '**:name** (:member) möchte den Kanal **„:canal"** verwalten, bei dem diese Adresse angegeben ist. Wenn Sie es kennen und einverstanden sind, bestätigen Sie bitte.',
             'action' => 'Anfrage prüfen',
             'ignore' => 'Wenn Sie den Antragsteller nicht kennen, ignorieren Sie diese E-Mail — die Anfrage läuft am :date ab.',
         ],
@@ -249,14 +254,11 @@ return [
         'confirm' => 'Teilnahme bestätigen',
         'decline' => 'Ticket stornieren',
         'ignore' => 'Falls Sie diese Reservierung nicht angefragt haben, stornieren Sie das Ticket einfach oder ignorieren Sie diese E-Mail — der Platz wird nach Ablauf der Frist von selbst frei.',
-        'activation' => 'Wir haben für diese E-Mail-Adresse ein Konto angelegt, damit Sie Ihre Tickets immer griffbereit haben. Mit der Anmeldung aktivieren Sie es vollständig.',
     ],
 
     // App\Notifications\AttendeeConfirmed — objednávateľovi, keď účastník potvrdil.
     'attendee_confirmed' => [
         'subject' => ':attendee hat die Teilnahme an :event bestätigt',
-        'heading' => 'Gute Nachrichten!',
-        'heading_named' => 'Gute Nachrichten, :name!',
         'intro' => '{1} **:attendee** hat die Teilnahme an **„:event"** bestätigt.|[2,*] **:attendee** hat die Teilnahme an **„:event"** bestätigt (:count Plätze).',
         'ticket_sent' => 'Das Ticket mit QR-Code haben wir soeben an **:email** geschickt.',
         'action' => 'Bestellung anzeigen',
@@ -264,17 +266,18 @@ return [
 
     // App\Notifications\AttendeeDeclined — účastník lístok zrušil alebo nepotvrdil.
     'attendee_declined' => [
-        'subject' => 'Freigewordener Platz bei :event',
+        'subject' => 'Ticket storniert für :event',
+        'subject_expired' => 'Teilnahme nicht bestätigt für :event',
         'expired' => '{1} **:attendee** hat die Teilnahme an **„:event"** nicht fristgerecht bestätigt, daher haben wir den reservierten Platz freigegeben.|[2,*] **:attendee** hat die Teilnahme an **„:event"** nicht fristgerecht bestätigt, daher haben wir :count reservierte Plätze freigegeben.',
         'declined' => '{1} **:attendee** (:email) hat das Ticket für **„:event"** storniert, der Platz ist also wieder frei.|[2,*] **:attendee** (:email) hat das Ticket für **„:event"** storniert (:count Plätze), die Plätze sind also wieder frei.',
-        'waitlist_note' => 'Wenn bei einer ausgebuchten Veranstaltung oder einem Workshop ein Platz frei wurde, ist die erste Person auf der Warteliste automatisch nachgerückt.',
+        'others_valid' => 'Die übrigen Tickets Ihrer Bestellung bleiben gültig.',
+        'waitlist_note' => 'Den frei gewordenen Workshop-Platz haben wir der ersten Person auf der Warteliste angeboten.',
     ],
 
     // App\Notifications\MessageReceived — správa cez tlačidlo „Poslať správu".
     'message_received' => [
         'subject' => 'Neue Nachricht – :label „:name"',
-        'heading' => 'Neue Nachricht',
-        'intro' => 'Sie haben eine Nachricht zu :label **„:name"** erhalten.',
+        'intro' => 'Sie haben eine neue Nachricht :label **„:name"** erhalten.',
         'from' => '**Von:** :name (:email)',
         'reply_hint' => 'Sie können direkt auf diese E-Mail antworten — die Antwort erreicht den Absender.',
         'action' => ':label anzeigen',
@@ -285,14 +288,19 @@ return [
             'canal' => 'dem Kanal',
             'default' => 'dem Profil',
         ],
+        'targets_to' => [
+            'event' => 'zur Veranstaltung',
+            'venue' => 'zum Ort',
+            'canal' => 'zum Kanal',
+            'default' => 'zum Profil',
+        ],
         'target_fallback' => 'Ihrem Profil',
     ],
 
     // App\Notifications\MessageReplied — odpoveď organizátora z inboxu.
     'message_replied' => [
         'subject' => 'Antwort – :label „:name"',
-        'heading' => 'Sie haben eine Antwort erhalten',
-        'intro' => '**:name** hat auf Ihre Nachricht zu :label **„:target"** geantwortet.',
+        'intro' => '**:name** hat auf Ihre Nachricht :label **„:target"** geantwortet.',
         'reply_hint' => 'Sie können direkt auf diese E-Mail antworten.',
         'action' => 'Unterhaltung anzeigen',
     ],
@@ -300,6 +308,7 @@ return [
     // App\Notifications\EventAnnouncement — hromadný e-mail organizátora.
     // Predmet aj telo píše organizátor, tu sú len rámcové texty.
     'event_announcement' => [
+        'subject' => ':subject – :event',
         'action' => 'Veranstaltung anzeigen',
         'outro' => 'Sie erhalten diese E-Mail, weil Sie ein Ticket für diese Veranstaltung haben.',
     ],
@@ -313,7 +322,8 @@ return [
         'action' => 'Veranstaltung anzeigen',
         'outro' => 'Ihr Ticket mit dem QR-Code finden Sie in der E-Mail, die Sie bei der Bestellung erhalten haben.',
         // Ten istý e-mail pre toho, kto si vypýtal upozornenie a lístok nemá.
-        'outro_subscriber' => 'Der Eintritt ist ohne Anmeldung — kommen Sie einfach vorbei.',
+        'outro_subscriber' => 'Details zum Einlass finden Sie auf der Seite der Veranstaltung.',
+        'intro_subscriber' => 'Wir erinnern Sie daran, dass **„:event"** bald stattfindet – Sie wollten darüber benachrichtigt werden.',
     ],
 
     // App\Notifications\QuestionAnswered — jediný e-mail, ktorý pisateľ otázky
@@ -372,9 +382,10 @@ return [
     ],
 
     'message_relayed' => [
+        'organizer_suffix' => '(Kanal **:canal**)',
         'organizer' => [
             'subject' => 'Nachricht von einem Besucher: :target',
-            'intro' => 'Ein Besucher von :site sendet Ihnen eine Nachricht zu **„:target"** (Veranstalter **:canal**):',
+            'intro' => 'Ein Besucher von :site sendet Ihnen eine Nachricht zu **„:target"**:organizer:',
             'offer' => 'Das Profil **„:canal"** wurde automatisch aus öffentlichen Quellen erstellt. Wenn Sie es übernehmen, erhalten Sie Nachrichten von Menschen, die sich für Ihre Veranstaltungen interessieren, und können weitere Veranstaltungen kostenlos veröffentlichen.',
         ],
         'admin' => [
@@ -401,8 +412,6 @@ return [
         'subject_cancelled' => 'Abgesagt: :event',
         'intro' => 'Bei **„:event"** hat sich Folgendes geändert:',
         'intro_cancelled' => 'Die Veranstaltung **„:event"** findet nicht statt — der Veranstalter hat sie zurückgezogen. Falls Sie den Termin im Kalender haben, können Sie ihn löschen.',
-        'starts_at' => 'Neuer Termin: **:date**.',
-        'venue' => 'Ort: **:venue**.',
         'action' => 'Veranstaltung anzeigen',
         'change_start' => 'Termin: :from → :to',
         'change_venue' => 'Ort: :from → :to',
@@ -463,18 +472,22 @@ return [
 
     'event_signup_organizer' => [
         'subject' => 'Neue Anmeldung für :event',
+        'subject_interest' => 'Neues Interesse an :event',
         'intro' => '**:name** hat sich über :site zu Ihrer Veranstaltung **„:event"** angemeldet.',
+        'intro_interest' => '**:name** hat über :site Interesse an Ihrer Veranstaltung **„:event"** bekundet.',
         'reserved' => 'Der Platz ist reserviert — die Person hat ein Ticket mit QR-Code erhalten und steht auf der Teilnehmerliste.',
-        'interest' => 'Reservierungen sind aus, erfordern ein kostenpflichtiges Ticket oder es ist voll, daher wurde nur das Interesse erfasst. Bitte melden Sie sich bei der Person.',
+        'interest_unavailable' => 'Kostenlose Reservierungen sind für diese Veranstaltung nicht aktiviert (oder es gibt nur kostenpflichtige Tickets), daher wurde nur das Interesse erfasst. Bitte melden Sie sich bei der Person.',
+        'interest_full' => 'Es sind keine Plätze mehr frei oder die Reservierung ist beendet, daher wurde nur das Interesse erfasst. Bitte melden Sie sich bei der Person.',
         'count' => '{1} Bisher ist **:count** Person angemeldet.|[2,*] Bisher sind **:count** Personen angemeldet.',
         'contact' => 'Kontakt: :email',
         'action' => 'Teilnehmerliste anzeigen',
         'claim_subject' => 'Für Ihre Veranstaltung „:event" melden sich Teilnehmer an',
         'claim_signup' => 'Für **„:event"** hat sich über :site ein neuer Teilnehmer angemeldet.',
         'claim_interest' => 'Für **„:event"** hat ein neuer Teilnehmer über :site Interesse bekundet.',
-        'claim_intro' => 'Die Veranstaltung ist auf tixio.eu unter dem Kanal **„:canal"** veröffentlicht, den noch niemand verwaltet. Diese Nachricht ging an den beim Kanal oder der Veranstaltung angegebenen Kontakt.',
+        'claim_intro' => 'Die Veranstaltung ist auf :site unter dem Kanal **„:canal"** veröffentlicht, den noch niemand verwaltet. Diese Nachricht ging an den beim Kanal oder der Veranstaltung angegebenen Kontakt.',
         'claim_benefits' => 'Die Übernahme des Kanals ist kostenlos. Sie sehen die Teilnehmerliste mit Kontakten, können die Veranstaltung bearbeiten, weitere hinzufügen, die Kapazität festlegen und am Eingang QR-Codes scannen.',
         'claim_action' => 'Kanal übernehmen und Teilnehmer ansehen',
+        'claim_email_note' => 'Den Kanal übernehmen Sie nach der Anmeldung mit dem Konto **:email**. Wenn Sie noch kein Konto haben, legen Sie es über die Schaltfläche oben an.',
         'claim_ignore' => 'Wenn Sie nicht der Veranstalter sind, können Sie diese E-Mail ignorieren.',
     ],
     'canal_event_offer' => [
@@ -522,7 +535,8 @@ return [
     ],
     'event_interest' => [
         'subject' => 'Ihr Interesse an :event',
-        'intro' => 'Danke für Ihre Anmeldung zu **„:event"**. Der Veranstalter nimmt noch keine Reservierungen an oder es ist voll, daher stellen wir kein Ticket aus.',
+        'intro_unavailable' => 'Danke für Ihre Anmeldung zu **„:event"**. Der Veranstalter bietet über das Portal keine Reservierungen an, daher stellen wir kein Ticket aus.',
+        'intro_full' => 'Danke für Ihre Anmeldung zu **„:event"**. Es sind keine Plätze mehr frei oder die Reservierung ist beendet, daher stellen wir kein Ticket aus.',
         'next' => 'Ihr Interesse haben wir an den Veranstalter weitergegeben. Details zum Einlass finden Sie bei der Veranstaltung.',
         'action' => 'Veranstaltung anzeigen',
     ],

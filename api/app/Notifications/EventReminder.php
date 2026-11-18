@@ -3,8 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
-use App\Support\EventDateRange;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,12 +37,12 @@ class EventReminder extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.event_reminder.subject', ['event' => $this->event->name]), 'link' => \App\Support\PublicUrl::event($this->event)];
+        return ['message' => __('mail.event_reminder.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -55,15 +56,19 @@ class EventReminder extends Notification implements ShouldQueue
         // účastníkov si ho pri objednávke nezapísala.
         $calendar = new EventCalendarLinks($this->event);
 
+        // Odberateľ („Pripomeň mi") lístok nemá — úvod mu ho nesmie pripisovať.
+        $subscriber = $this->unsubscribeUrl !== null;
+
         $mail = (new MailMessage)
-            ->subject(__('mail.event_reminder.subject', ['event' => $this->event->name]))
+            ->subject(__('mail.event_reminder.subject', ['event' => MailText::subjectName($this->event->name)]))
             ->markdown('mail.event-reminder', [
-                'greeting' => $this->attendeeName !== ''
-                    ? __('mail.common.greeting_named', ['name' => $this->attendeeName])
-                    : __('mail.common.greeting'),
+                'greeting' => __('mail.common.greeting'),
+                'intro' => __($subscriber ? 'mail.event_reminder.intro_subscriber' : 'mail.event_reminder.intro', [
+                    'event' => MailText::name($this->event->name),
+                ]),
                 'eventName' => $this->event->name,
                 'eventUrl' => PublicUrl::event($this->event),
-                'startsAt' => EventDateRange::moment($this->event->start_at),
+                'startsAt' => MailText::range($this->event->start_at, $this->event->end_at),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
                 'unsubscribeUrl' => $this->unsubscribeUrl,

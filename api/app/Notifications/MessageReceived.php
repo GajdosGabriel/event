@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Message;
+use App\Notifications\Channels\BellChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,7 +26,7 @@ class MessageReceived extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -46,6 +47,7 @@ class MessageReceived extends Notification implements ShouldQueue
             ->replyTo($this->senderEmail, $this->senderName)
             ->markdown('mail.message-received', [
                 'label' => $label,
+                'labelTo' => $this->targetLabelTo(),
                 'targetName' => $targetName,
                 'targetUrl' => $targetUrl,
                 'senderName' => $this->senderName,
@@ -63,6 +65,17 @@ class MessageReceived extends Notification implements ShouldQueue
         };
 
         return __('mail.message_received.targets.'.$type);
+    }
+
+    /** „k podujatiu / k miestu / ku kanálu“ — pre vetu „správu k …“. */
+    private function targetLabelTo(): string
+    {
+        $type = match ($this->message->targetType()) {
+            'event', 'venue', 'canal' => $this->message->targetType(),
+            default => 'default',
+        };
+
+        return __('mail.message_received.targets_to.'.$type);
     }
 
     /** Odkaz na cieľ vo frontende podľa jeho typu. */

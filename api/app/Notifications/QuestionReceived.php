@@ -5,6 +5,8 @@ namespace App\Notifications;
 use App\Enums\QuestionBoardPhase;
 use App\Models\Event;
 use App\Models\Question;
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -38,12 +40,12 @@ class QuestionReceived extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.question_received.'.$this->textKey().'.subject', ['event' => $this->event->name]), 'link' => $this->boardUrl()];
+        return ['message' => __('mail.question_received.'.$this->textKey().'.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => $this->boardUrl()];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -51,7 +53,7 @@ class QuestionReceived extends Notification implements ShouldQueue
         $key = $this->textKey();
 
         return (new MailMessage)
-            ->subject(__('mail.question_received.'.$key.'.subject', ['event' => $this->event->name]))
+            ->subject(__('mail.question_received.'.$key.'.subject', ['event' => MailText::subjectName($this->event->name)]))
             ->markdown('mail.question-received', [
                 'greeting' => __('mail.common.greeting'),
                 'intro' => __('mail.question_received.'.$key.'.intro', ['event' => $this->event->name]),

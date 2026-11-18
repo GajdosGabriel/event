@@ -225,8 +225,10 @@ class AttendeeConfirmation
             return $freed->filter()->unique('id');
         });
 
+        $promoted = false;
+
         foreach ($freedTypes as $type) {
-            $this->tickets->promoteFromWaitlist($type);
+            $promoted = $this->tickets->promoteFromWaitlist($type) !== null || $promoted;
         }
 
         /** @var Admission $first */
@@ -238,7 +240,7 @@ class AttendeeConfirmation
         // práve odmietol — správu „X nepotvrdil(a) účasť" mu neposielame.
         if (! $this->isSelfService($ticket, $attendeeEmail)) {
             Notification::route('mail', $ticket->holder_email)
-                ->notify(new AttendeeDeclined($ticket, $first->attendee_name, $attendeeEmail, $pending->count(), $expired));
+                ->notify(new AttendeeDeclined($ticket, $first->attendee_name, $attendeeEmail, $pending->count(), $expired, $promoted));
         }
     }
 

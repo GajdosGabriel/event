@@ -1,14 +1,14 @@
 @component('mail::message')
 {{ $greeting }}
 
-{{ __('mail.event_reminder.intro', ['event' => $eventName]) }}
+{{ $intro }}
 
 @if ($startsAt)
 {{ __('mail.event_reminder.starts_at', ['date' => $startsAt]) }}
 @endif
 @if ($venueName)
 
-{{ __('mail.event_reminder.venue', ['venue' => trim($venueName . ' ' . $venueAddress)]) }}
+{{ __('mail.event_reminder.venue', ['venue' => implode(', ', array_filter([$venueName, $venueAddress]))]) }}
 @endif
 
 @component('mail::button', ['url' => $eventUrl])

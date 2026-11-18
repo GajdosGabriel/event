@@ -1,7 +1,9 @@
 @component('mail::message')
-# {{ $greetingName ? __('mail.common.greeting_named', ['name' => $greetingName]) : __('mail.common.greeting') }}
+{{ __('mail.common.greeting') }}
 
 {{ __('mail.attendee_confirmation_request.' . ($isPaid ? 'intro_paid' : 'intro_free'), ['holder' => $holderName, 'event' => $eventName]) }}
+
+@include('mail.partials.when')
 
 {{ __('mail.attendee_confirmation_request.ask') }}
 
@@ -34,9 +36,4 @@
 
 {{ __('mail.attendee_confirmation_request.ignore') }}
 
-@if ($needsActivation)
----
-
-{{ __('mail.attendee_confirmation_request.activation') }}
-@endif
 @endcomponent

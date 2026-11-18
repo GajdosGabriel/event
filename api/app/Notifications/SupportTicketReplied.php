@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\SupportMessage;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -43,8 +44,10 @@ class SupportTicketReplied extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject($this->subject())
             ->greeting(__('mail.common.greeting'))
-            ->line(__('support.mail.replied.intro', ['name' => $author]))
-            ->line(Str::limit($message->body, 1000))
+            ->line($message->is_staff
+                ? __('support.mail.replied.intro_staff')
+                : __('support.mail.replied.intro', ['name' => $author]))
+            ->line(MailText::paragraph(Str::limit($message->body, 1000)))
             ->action(__('support.mail.action'), rtrim((string) config('app.frontend_url'), '/').$this->path())
             ->line(__('support.mail.replied.outro'));
     }

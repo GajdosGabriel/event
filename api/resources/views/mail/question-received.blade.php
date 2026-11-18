@@ -4,7 +4,7 @@
 {{ $intro }}
 
 @component('mail::panel')
-{{ $body }}
+{!! nl2br(e($body), false) !!}
 @endcomponent
 
 @if ($authorName)

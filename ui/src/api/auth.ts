@@ -1,6 +1,7 @@
 import http from './index'
 import { beginImpersonation, clearAuthToken, endImpersonation, setAuthToken } from './authToken'
 import type { AuthIdentity, BotGuardPayload, LoginPayload, RegisterPayload } from '@/types'
+import type { EventSignupResult } from './tickets'
 
 const CSRF_URL = '/sanctum/csrf-cookie'
 
@@ -99,12 +100,18 @@ export async function setActiveCanal(canalId: number): Promise<AuthIdentity | nu
 
 /**
  * Overenie e-mailu z odkazu. Ak sa človek registráciou hlásil na podujatie,
- * backend vráti v `reserve_event` to podujatie (a pošle e-mail s pozvaním
- * na rezerváciu) — stránka ponúkne tlačidlo „Rezervovať miesto".
+ * backend ho naň overením rovno prihlási: `signup` nesie výsledok (vstupenka,
+ * záujem, povinný dotazník…), `reserve_event` samotné podujatie. Keď je
+ * `signup` null pri známom podujatí, rezervácia zlyhala — stránka ponúkne
+ * tlačidlo „Rezervovať miesto".
  */
-export async function verifyRegistrationLink(token: string): Promise<{ message: string; reserveEvent: { id: number; name: string | null } | null }> {
+export async function verifyRegistrationLink(token: string): Promise<{
+  message: string
+  reserveEvent: { id: number; name: string | null } | null
+  signup: EventSignupResult | null
+}> {
   const { data } = await http.get(`/register/verify/${token}`)
-  return { message: data?.message, reserveEvent: data?.reserve_event ?? null }
+  return { message: data?.message, reserveEvent: data?.reserve_event ?? null, signup: data?.signup ?? null }
 }
 
 export interface SocialLoginResult {

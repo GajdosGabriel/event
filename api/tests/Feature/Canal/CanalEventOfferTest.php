@@ -229,7 +229,7 @@ class CanalEventOfferTest extends TestCase
             $mail = $n->toMail($to);
             $text = implode("\n", [...$mail->introLines, ...$mail->outroLines]);
 
-            $this->assertStringContainsString('Vytvorili sme váš kanál', (string) $mail->subject);
+            $this->assertStringContainsString('v novom kanáli', (string) $mail->subject);
             $this->assertStringContainsString('Farnosť Lamač', $text);
             $this->assertStringContainsString('/pozvanka/', (string) $mail->actionUrl);
             $this->assertStringNotContainsString('email/unsubscribe', $text);

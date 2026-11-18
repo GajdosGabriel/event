@@ -37,8 +37,10 @@ use Throwable;
  *
  * Tok „Rezervovať" (portál aj hlascirkvi.sk):
  *  1. Hosť sa musí zaregistrovať a overiť e-mail. Registrácia si pamätá
- *     podujatie; po overení mu príde e-mail „môžete si rezervovať miesto"
- *     (inviteAfterVerification) s odkazom na /prihlasenie/{id}.
+ *     podujatie a overením e-mailu sa naň rovno prihlási (signup, volá
+ *     AuthController) — ďalší e-mail ani prihlásenie netreba. Len keď
+ *     rezervácia technicky zlyhá, príde záložne e-mail s odkazom na
+ *     /prihlasenie/{id} (inviteAfterVerification).
  *  2. Prihlásený rezervuje jedným klikom (signup): dostane bezplatnú
  *     vstupenku s QR kódom — aj pri platenej akcii, vstupné sa rieši na
  *     mieste. Len keď organizátor rezerváciu vypol alebo nastavil výhradne
@@ -58,6 +60,12 @@ class EventSignup
     public const INTEREST = 'interest';
 
     public const CLOSED = 'closed';
+
+    /** Prečo sa zaznamenal len záujem: organizátor rezerváciu neponúka (vypnutá, len platené lístky)… */
+    public const INTEREST_UNAVAILABLE = 'unavailable';
+
+    /** …alebo rezervácia zlyhala na kapacite či uzávierke typu lístka. */
+    public const INTEREST_FULL = 'full';
 
     /** Podujatie má povinný dotazník — jedným klikom to nejde, treba formulár. */
     public const NEEDS_FORM = 'needs_form';
@@ -87,7 +95,7 @@ class EventSignup
         return $event && $this->isOpen($event) ? $event : null;
     }
 
-    /** Po overení e-mailu: „účet je hotový, rezervujte si miesto". */
+    /** Záloha po overení e-mailu, keď rezervácia zlyhala: „účet je hotový, rezervujte si miesto". */
     public function inviteAfterVerification(Event $event, User $user): void
     {
         $this->safely(fn () => Notification::route('mail', $user->email)
@@ -114,7 +122,9 @@ class EventSignup
             return ['status' => self::NEEDS_FORM, 'ticket' => null, 'event' => $event];
         }
 
-        $ticket = $this->reserve($event, $user);
+        $reserved = $this->reserve($event, $user);
+        $ticket = $reserved instanceof Ticket ? $reserved : null;
+        $reason = $ticket ? null : $reserved;
         $status = $ticket ? self::RESERVED : self::INTEREST;
 
         if (! $ticket) {
@@ -125,10 +135,10 @@ class EventSignup
             );
 
             $this->safely(fn () => Notification::route('mail', $user->email)
-                ->notify(new EventInterestRecorded($event)));
+                ->notify(new EventInterestRecorded($event, $reason)));
         }
 
-        $this->notifyOrganizerAndAdmins($event, $user->displayName(), $user->email, $status);
+        $this->notifyOrganizerAndAdmins($event, $user->displayName(), $user->email, $status, $reason);
 
         return ['status' => $status, 'ticket' => $ticket, 'event' => $event];
     }
@@ -203,13 +213,16 @@ class EventSignup
             ->exists();
     }
 
-    /** Vydá vstupenku zdarma, alebo null, keď sa dá zaznamenať len záujem. */
-    private function reserve(Event $event, User $user): ?Ticket
+    /**
+     * Vydá vstupenku zdarma, alebo vráti dôvod (INTEREST_*), prečo sa dá
+     * zaznamenať len záujem.
+     */
+    private function reserve(Event $event, User $user): Ticket|string
     {
         $type = $this->freeTicketType($event);
 
         if (! $type) {
-            return null;
+            return self::INTEREST_UNAVAILABLE;
         }
 
         try {
@@ -226,7 +239,7 @@ class EventSignup
                 'reason' => $e->getMessage(),
             ]);
 
-            return null;
+            return self::INTEREST_FULL;
         }
 
         $this->forgetInterest($event, $ticket->holder_email);
@@ -265,9 +278,9 @@ class EventSignup
         return $free ?? $this->defaultReservation->resolve($event);
     }
 
-    private function notifyOrganizerAndAdmins(Event $event, string $name, ?string $email, string $status): void
+    private function notifyOrganizerAndAdmins(Event $event, string $name, ?string $email, string $status, ?string $interestReason = null): void
     {
-        $organizer = $this->notifyOrganizer($event, $name, $email, $status === self::RESERVED);
+        $organizer = $this->notifyOrganizer($event, $name, $email, $status === self::RESERVED, $interestReason);
 
         $admins = User::query()
             ->whereHas('roles', fn ($q) => $q->where('name', 'super-admin'))
@@ -291,12 +304,12 @@ class EventSignup
      *
      * @return array{channel: 'owner'|'invitation'|'muted'|'collection'|'suppressed'|'throttled'|'none', email: ?string}
      */
-    private function notifyOrganizer(Event $event, string $name, ?string $email, bool $reserved): array
+    private function notifyOrganizer(Event $event, string $name, ?string $email, bool $reserved, ?string $interestReason = null): array
     {
         $canal = $event->canal()->first();
         $count = $this->registeredCount($event);
 
-        $notice = fn ($invitation = null) => new EventSignupOrganizerNotice($event, $name, $email, $reserved, $count, $invitation);
+        $notice = fn ($invitation = null) => new EventSignupOrganizerNotice($event, $name, $email, $reserved, $count, $invitation, $interestReason);
 
         $owners = $this->managingOwners($canal);
 

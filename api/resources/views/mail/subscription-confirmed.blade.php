@@ -8,7 +8,7 @@
 @endif
 @if ($venueName)
 
-{{ __('mail.subscription_confirmed.venue', ['venue' => trim($venueName . ' ' . $venueAddress)]) }}
+{{ __('mail.subscription_confirmed.venue', ['venue' => implode(', ', array_filter([$venueName, $venueAddress]))]) }}
 @endif
 
 @component('mail::button', ['url' => $eventUrl])

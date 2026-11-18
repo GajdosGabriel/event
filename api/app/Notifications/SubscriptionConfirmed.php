@@ -4,8 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Event;
 use App\Models\Subscription;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
-use App\Support\EventDateRange;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,12 +33,12 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.subscription_confirmed.subject', ['event' => $this->event->name]), 'link' => \App\Support\PublicUrl::event($this->event)];
+        return ['message' => __('mail.subscription_confirmed.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -49,12 +50,12 @@ class SubscriptionConfirmed extends Notification implements ShouldQueue
         $calendar = new EventCalendarLinks($this->event);
 
         $mail = (new MailMessage)
-            ->subject(__('mail.subscription_confirmed.subject', ['event' => $this->event->name]))
+            ->subject(__('mail.subscription_confirmed.subject', ['event' => MailText::subjectName($this->event->name)]))
             ->markdown('mail.subscription-confirmed', [
                 'greeting' => __('mail.common.greeting'),
-                'eventName' => $this->event->name,
+                'eventName' => MailText::name($this->event->name),
                 'eventUrl' => PublicUrl::event($this->event),
-                'startsAt' => EventDateRange::moment($this->event->start_at),
+                'startsAt' => MailText::range($this->event->start_at, $this->event->end_at),
                 'venueName' => $venue?->name,
                 'venueAddress' => trim((string) $venue?->street),
                 'unsubscribeUrl' => PublicUrl::unsubscribe((string) $this->subscription->token),

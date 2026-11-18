@@ -92,7 +92,7 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertArrayHasKey('website', ProfileEnrichment::sole()->evidence);
         Notification::assertSentToTimes($owner, ProfileCompleted::class, 1);
         Notification::assertSentTo($owner, ProfileCompleted::class, function ($notification) use ($owner) {
-            $this->assertStringContainsString('Skontrolovať profil', (string) $notification->toMail($owner)->render());
+            $this->assertStringContainsString('Skontrolovať údaje', (string) $notification->toMail($owner)->render());
             $this->assertArrayNotHasKey('email', $notification->changes);
 
             return true;

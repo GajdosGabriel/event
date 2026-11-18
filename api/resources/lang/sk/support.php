@@ -22,14 +22,15 @@ return [
     'mail' => [
         'action' => 'Otvoriť konverzáciu',
         'created' => [
-            'subject' => 'Podpora :reference: :subject',
-            'intro' => ':name napísal(a) podpore (:category, kontext: :context):',
+            'subject' => 'Nová žiadosť :reference – :subject',
+            'intro' => 'Nová žiadosť od :name (:category, kontext: :context):',
         ],
         'replied' => [
-            'subject_answered' => 'Podpora odpovedala — :reference :subject',
-            'subject_user' => 'Doplnenie k :reference: :subject',
-            'intro' => ':name napísal(a):',
-            'outro' => 'Na tento e-mail neodpovedajte — odpíšte priamo v konverzácii.',
+            'subject_answered' => 'Odpoveď podpory :reference – :subject',
+            'subject_user' => 'Doplnenie :reference – :subject',
+            'intro' => 'Nová správa od :name:',
+            'intro_staff' => 'Odpoveď podpory:',
+            'outro' => 'Na tento e-mail neodpovedajte – odpíšte priamo v konverzácii.',
         ],
     ],
 ];

@@ -8,6 +8,7 @@ use App\Http\Requests\FacebookAuthRequest;
 use App\Http\Requests\GoogleAuthRequest;
 use App\Http\Requests\UserLoginRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Event;
 use App\Models\PendingProfile;
 use App\Models\PendingRegistration;
 use App\Models\User;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -487,32 +489,44 @@ class AuthController extends Controller
 
         $pending->delete();
 
+        $event = app(EventSignup::class)->findOpenEvent($eventId);
+
         return response()->json([
             'message' => 'Email verified successfully.',
             'user' => $user,
-            'reserve_event' => $this->inviteToReserve($user, $eventId),
+            'reserve_event' => $event ? ['id' => $event->id, 'name' => $event->name] : null,
+            'signup' => $event ? $this->signupAfterVerification($event, $user) : null,
         ], 200);
     }
 
     /**
-     * Registrácia z tlačidla „Rezervovať": po overení e-mailu pošle pozvanie
-     * rezervovať si miesto (EventSignup). Samotnú rezerváciu robí človek sám
-     * po prihlásení na /prihlasenie/{id}. Vráti podujatie pre stránku overenia.
+     * Registrácia z tlačidla „Rezervovať": overením e-mailu sa človek rovno
+     * prihlási na podujatie (EventSignup::signup) — vstupenka, záujem, alebo
+     * pri povinnom dotazníku odkaz na formulár. Tvar ako POST /events/{id}/signup.
      *
-     * @return array{id: int, name: ?string}|null
+     * Účet už existuje, takže zlyhanie rezervácie nesmie zhodiť overenie:
+     * vtedy vráti null a pošle záložný e-mail s odkazom na /prihlasenie/{id}.
+     *
+     * @return array{status: string, event: array{id: int, name: ?string}, ticket_uuid: ?string}|null
      */
-    protected function inviteToReserve(User $user, mixed $eventId): ?array
+    protected function signupAfterVerification(Event $event, User $user): ?array
     {
         $signup = app(EventSignup::class);
-        $event = $signup->findOpenEvent($eventId);
 
-        if (! $event) {
+        try {
+            $result = $signup->signup($event, $user);
+        } catch (Throwable $e) {
+            report($e);
+            $signup->inviteAfterVerification($event, $user);
+
             return null;
         }
 
-        $signup->inviteAfterVerification($event, $user);
-
-        return ['id' => $event->id, 'name' => $event->name];
+        return [
+            'status' => $result['status'],
+            'event' => ['id' => $event->id, 'name' => $event->name],
+            'ticket_uuid' => $result['ticket']?->uuid,
+        ];
     }
 
     /**

@@ -1,7 +1,9 @@
 @component('mail::message')
-# {{ __('mail.common.greeting_named', ['name' => $greetingName]) }}
+{{ __('mail.common.greeting') }}
 
 {{ __('mail.ticket_payment.intro', ['event' => $eventName]) }}
+
+@include('mail.partials.when')
 
 **{{ __('mail.ticket_payment.recap') }}**
 

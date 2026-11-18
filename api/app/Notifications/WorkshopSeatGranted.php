@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Admission;
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,7 +26,7 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -35,7 +37,7 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $workshop = $this->admission->ticketType?->name ?? __('mail.common.workshop_fallback');
-        $eventName = $this->admission->event?->name ?? __('mail.common.event_fallback');
+        $eventName = MailText::name($this->admission->event?->name) ?: __('mail.common.event_fallback');
         $base = rtrim((string) config('app.frontend_url'), '/').'/rsvp/'.$this->admission->confirmation_token;
 
         $message = (new MailMessage)
@@ -45,13 +47,13 @@ class WorkshopSeatGranted extends Notification implements ShouldQueue
 
         if ($this->admission->ticketType?->starts_at) {
             $message->line(__('mail.workshop_seat_granted.starts_at', [
-                'date' => $this->admission->ticketType->starts_at->format('j. n. Y H:i'),
+                'date' => MailText::moment($this->admission->ticketType->starts_at),
             ]));
         }
 
         if ($deadline = $this->admission->confirmation_deadline_at) {
             $message->line(__('mail.workshop_seat_granted.deadline', [
-                'deadline' => $deadline->locale(app()->getLocale())->translatedFormat('j. F Y, H:i'),
+                'deadline' => MailText::moment($deadline),
             ]));
         }
 

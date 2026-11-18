@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Notifications\Channels\AccountMailChannel;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterEmailIntake;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -93,7 +94,7 @@ class PosterEmailReply extends Notification implements ShouldQueue
         $mail->action(__('mail.poster_email.action'), $url);
 
         if ($this->expiresAt !== null) {
-            $mail->line(__('mail.poster_email.expires', ['date' => $this->expiresAt->format('d. m. Y')]));
+            $mail->line(__('mail.poster_email.expires', ['date' => MailText::day($this->expiresAt)]));
         }
 
         return $mail

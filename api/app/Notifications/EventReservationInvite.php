@@ -3,14 +3,16 @@
 namespace App\Notifications;
 
 use App\Models\Event;
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Po overení e-mailu: účet je hotový, na podujatie, kvôli ktorému sa človek
- * registroval, si teraz môže rezervovať miesto (EventSignup). Odkaz vedie na
+ * Záložný e-mail po overení: bežne overenie rovno rezervuje (EventSignup),
+ * tento e-mail ide len vtedy, keď rezervácia zlyhala. Odkaz vedie na
  * /prihlasenie/{id} — po prihlásení rezervuje jedným klikom.
  */
 class EventReservationInvite extends Notification implements ShouldQueue
@@ -23,12 +25,12 @@ class EventReservationInvite extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __('mail.event_reservation_invite.subject', ['event' => $this->event->name]), 'link' => '/prihlasenie/'.$this->event->id];
+        return ['message' => __('mail.event_reservation_invite.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => '/prihlasenie/'.$this->event->id];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -37,7 +39,7 @@ class EventReservationInvite extends Notification implements ShouldQueue
         $url = rtrim((string) config('app.frontend_url'), '/').'/prihlasenie/'.$this->event->id;
 
         return (new MailMessage)
-            ->subject(__('mail.event_reservation_invite.subject', ['event' => $event]))
+            ->subject(__('mail.event_reservation_invite.subject', ['event' => MailText::subjectName($event)]))
             ->greeting(__('mail.common.greeting'))
             ->line(__('mail.event_reservation_invite.intro'))
             ->line(__('mail.event_reservation_invite.next', ['event' => $event]))

@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Channels\BellChannel;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -32,7 +34,7 @@ class PosterDraftSaved extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
@@ -56,7 +58,7 @@ class PosterDraftSaved extends Notification implements ShouldQueue
 
         if ($this->expiresAt !== null) {
             $mail->line(__('mail.poster_draft.expires', [
-                'date' => $this->expiresAt->format('d. m. Y'),
+                'date' => MailText::day($this->expiresAt),
             ]));
         }
 

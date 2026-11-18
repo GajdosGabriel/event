@@ -4,8 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Event;
 use App\Models\Subscription;
+use App\Notifications\Channels\BellChannel;
 use App\Services\Calendar\EventCalendarLinks;
-use App\Support\EventDateRange;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,34 +41,30 @@ class EventChanged extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [\App\Notifications\Channels\BellChannel::class, 'mail'];
+        return [BellChannel::class, 'mail'];
     }
 
     public function toBell(object $notifiable): array
     {
-        return ['message' => __($this->cancelled ? 'mail.event_changed.subject_cancelled' : 'mail.event_changed.subject', ['event' => $this->event->name]), 'link' => \App\Support\PublicUrl::event($this->event)];
+        return ['message' => __($this->cancelled ? 'mail.event_changed.subject_cancelled' : 'mail.event_changed.subject', ['event' => MailText::subjectName($this->event->name)]), 'link' => PublicUrl::event($this->event)];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $venue = $this->event->loadMissing('venue')->venue;
-
         $calendar = new EventCalendarLinks($this->event);
 
         $mail = (new MailMessage)
             ->subject(
                 $this->cancelled
-                    ? __('mail.event_changed.subject_cancelled', ['event' => $this->event->name])
-                    : __('mail.event_changed.subject', ['event' => $this->event->name])
+                    ? __('mail.event_changed.subject_cancelled', ['event' => MailText::subjectName($this->event->name)])
+                    : __('mail.event_changed.subject', ['event' => MailText::subjectName($this->event->name)])
             )
             ->markdown('mail.event-changed', [
                 'greeting' => __('mail.common.greeting'),
-                'eventName' => $this->event->name,
+                'eventName' => MailText::name($this->event->name),
                 'eventUrl' => PublicUrl::event($this->event),
                 'cancelled' => $this->cancelled,
                 'changes' => $this->changes,
-                'startsAt' => EventDateRange::moment($this->event->start_at),
-                'venueName' => $venue?->name,
                 'unsubscribeUrl' => PublicUrl::unsubscribe((string) $this->subscription->token),
                 // Zrušené podujatie nemá čo ponúkať do kalendára — naopak, ten
                 // záznam si má človek zmazať.

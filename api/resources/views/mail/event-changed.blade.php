@@ -11,16 +11,7 @@
 @endforeach
 @endif
 
-@unless ($cancelled)
-@if ($startsAt)
-
-{{ __('mail.event_changed.starts_at', ['date' => $startsAt]) }}
-@endif
-@if ($venueName)
-
-{{ __('mail.event_changed.venue', ['venue' => $venueName]) }}
-@endif
-@endunless
+{{-- Nový termín a miesto sú už vo výpise zmien — druhýkrát ich neopakujeme. --}}
 
 @component('mail::button', ['url' => $eventUrl])
 {{ __('mail.event_changed.action') }}

@@ -7,6 +7,7 @@ use App\Models\Canal;
 use App\Models\CanalClaim;
 use App\Models\User;
 use App\Support\DashboardUrl;
+use App\Support\MailText;
 use App\Support\PublicUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -60,7 +61,10 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
             ->greeting(__('mail.common.greeting'))
             ->line(__($key.'.'.$audience, [
                 'canal' => $canal,
-                'member' => $this->member->maskedEmail() ?? $this->member->displayName(),
+                // Kontaktu bez účtu len meno a maskovaný e-mail; tímu kanála celé.
+                'member' => $audience === 'contact'
+                    ? trim($this->member->displayName().' ('.($this->member->maskedEmail() ?? '').')', ' ()')
+                    : trim($this->member->displayName().' ('.$this->member->email.')', ' ()'),
                 'role' => $this->role?->label() ?? '',
             ]));
 
@@ -68,13 +72,18 @@ class CanalOwnershipChanged extends Notification implements ShouldQueue
             // Prevzatie so záznamom (CanalClaim) sa dá v lehote napadnúť priamo z e-mailu.
             if ($this->claim?->contest_token && $this->claim->contest_until) {
                 return $mail
-                    ->line(__('mail.canal_ownership.contest', ['date' => $this->claim->contest_until->format('d. m. Y')]))
+                    ->line(__('mail.canal_ownership.contest', ['date' => MailText::day($this->claim->contest_until)]))
                     ->action(
                         __('mail.canal_ownership.contest_action'),
                         rtrim((string) config('app.frontend_url'), '/').'/prevzatie/namietka/'.$this->claim->contest_token,
                     );
             }
 
+            return $mail->line(__('mail.canal_ownership.not_you'));
+        }
+
+        // Odobratý vlastník už do kanála nemá prístup — tlačidlo by viedlo do prázdna.
+        if ($this->change === self::OWNER_REMOVED && $audience === 'member') {
             return $mail->line(__('mail.canal_ownership.not_you'));
         }
 

@@ -11,7 +11,10 @@ return [
         // Odkaz na stránku „Pre organizátorov" v e-mailoch organizátorom.
         'for_organizers' => 'See everything the portal offers organisers on the [For organisers](:url) page.',
         'greeting' => 'Hello!',
-        'greeting_named' => 'Hello :name!',
+        'date_moment' => 'ddd D MMM YYYY, HH:mm',
+        'date_day' => 'ddd D MMM YYYY',
+        'when' => 'Date: **:when**',
+        'where' => 'Venue: **:where**',
         'event_fallback' => 'event',
         'workshop_fallback' => 'workshop',
         // Náhradný popis vstupenky, keď účastník nemá vyplnené meno.
@@ -41,7 +44,7 @@ return [
         'ignore' => 'If you did not create an account, no action is required.',
         'subject_event' => 'Verify your email to finish signing up for :event',
         'intro_event' => 'Thank you for signing up for **":event"**. Please verify your email address first.',
-        'event_note' => 'You can reserve your place at **":event"** once you verify your email — right after that we will send you a link to reserve it.',
+        'event_note' => 'Clicking the button verifies your email and signs you up for **":event"** at the same time — no further email or sign-in needed.',
         'action_event' => 'Verify email',
     ],
 
@@ -161,10 +164,12 @@ return [
 
     // App\Notifications\CanalClaimNotice — žiadosť o prevzatie kanála.
     'canal_claim' => [
-        'message' => 'Message: ":message"',
+        'message' => 'Message from the requester: ":message"',
+        'reason' => 'Reason: :reason',
+        'next' => 'If you think this is a mistake, reply to this email. You can also submit the request again with more explanation.',
         'verify' => [
             'subject' => 'Request to manage channel :canal',
-            'intro' => 'The account **:member** asks to manage the channel **":canal"**, which lists this address. If you know them and agree, please confirm.',
+            'intro' => '**:name** (:member) asks to take over the channel **":canal"**, which lists this address. If you know them and agree, please confirm.',
             'action' => 'Review request',
             'ignore' => 'If you do not know the requester, ignore this email — the request expires on :date.',
         ],
@@ -249,14 +254,11 @@ return [
         'confirm' => 'Confirm attendance',
         'decline' => 'Cancel ticket',
         'ignore' => 'If you did not ask for this reservation, just cancel the ticket or ignore this e-mail — the seat is released on its own once the deadline passes.',
-        'activation' => 'We created an account for this e-mail address so your tickets are always at hand. Signing in fully activates it.',
     ],
 
     // App\Notifications\AttendeeConfirmed — objednávateľovi, keď účastník potvrdil.
     'attendee_confirmed' => [
         'subject' => ':attendee confirmed attendance at :event',
-        'heading' => 'Good news!',
-        'heading_named' => 'Good news, :name!',
         'intro' => '{1} **:attendee** confirmed attendance at **":event"**.|[2,*] **:attendee** confirmed attendance at **":event"** (:count seats).',
         'ticket_sent' => 'We have just sent their ticket with the QR code to **:email**.',
         'action' => 'View order',
@@ -264,17 +266,18 @@ return [
 
     // App\Notifications\AttendeeDeclined — účastník lístok zrušil alebo nepotvrdil.
     'attendee_declined' => [
-        'subject' => 'Seat released at :event',
+        'subject' => 'Ticket cancelled for :event',
+        'subject_expired' => 'Attendance not confirmed for :event',
         'expired' => '{1} **:attendee** did not confirm attendance at **":event"** in time, so we released their reserved seat.|[2,*] **:attendee** did not confirm attendance at **":event"** in time, so we released :count reserved seats.',
         'declined' => '{1} **:attendee** (:email) cancelled their ticket for **":event"**, so the seat is free again.|[2,*] **:attendee** (:email) cancelled their ticket for **":event"** (:count seats), so the seats are free again.',
-        'waitlist_note' => 'If a seat opened up at a sold-out event or workshop, we automatically moved the first person on the waitlist into it.',
+        'others_valid' => 'The other tickets in your order remain valid.',
+        'waitlist_note' => 'We offered the released workshop seat to the first person on the waitlist.',
     ],
 
     // App\Notifications\MessageReceived — správa cez tlačidlo „Poslať správu".
     'message_received' => [
         'subject' => 'New message – :label ":name"',
-        'heading' => 'New message',
-        'intro' => 'You have received a message about the :label **":name"**.',
+        'intro' => 'You have received a new message :label **":name"**.',
         'from' => '**From:** :name (:email)',
         'reply_hint' => 'You can reply straight to this e-mail — your reply reaches the sender.',
         'action' => 'View :label',
@@ -285,14 +288,19 @@ return [
             'canal' => 'canal',
             'default' => 'profile',
         ],
+        'targets_to' => [
+            'event' => 'about the event',
+            'venue' => 'about the venue',
+            'canal' => 'about the channel',
+            'default' => 'about the profile',
+        ],
         'target_fallback' => 'your profile',
     ],
 
     // App\Notifications\MessageReplied — odpoveď organizátora z inboxu.
     'message_replied' => [
         'subject' => 'Reply – :label ":name"',
-        'heading' => 'You have a reply',
-        'intro' => '**:name** replied to your message about the :label **":target"**.',
+        'intro' => '**:name** replied to your message :label **":target"**.',
         'reply_hint' => 'You can reply straight to this e-mail.',
         'action' => 'View conversation',
     ],
@@ -300,6 +308,7 @@ return [
     // App\Notifications\EventAnnouncement — hromadný e-mail organizátora.
     // Predmet aj telo píše organizátor, tu sú len rámcové texty.
     'event_announcement' => [
+        'subject' => ':subject – :event',
         'action' => 'View event',
         'outro' => 'You are receiving this e-mail because you hold a ticket for this event.',
     ],
@@ -313,7 +322,8 @@ return [
         'action' => 'View event',
         'outro' => 'Your ticket with the QR code is in the e-mail you received with your order.',
         // Ten istý e-mail pre toho, kto si vypýtal upozornenie a lístok nemá.
-        'outro_subscriber' => 'No registration needed — just turn up.',
+        'outro_subscriber' => 'Admission details are on the event page.',
+        'intro_subscriber' => 'Just a reminder that **":event"**, which you asked to be notified about, is coming up.',
     ],
 
     // App\Notifications\QuestionAnswered — jediný e-mail, ktorý pisateľ otázky
@@ -372,9 +382,10 @@ return [
     ],
 
     'message_relayed' => [
+        'organizer_suffix' => '(channel **:canal**)',
         'organizer' => [
             'subject' => 'Message from a visitor: :target',
-            'intro' => 'A visitor of :site is sending you a message about **“:target”** (organiser **:canal**):',
+            'intro' => 'A visitor of :site is sending you a message about **“:target”**:organizer:',
             'offer' => 'The profile **“:canal”** was created automatically from public sources. If you claim it, you will receive messages from people interested in your events and can publish further events for free.',
         ],
         'admin' => [
@@ -401,8 +412,6 @@ return [
         'subject_cancelled' => 'Called off: :event',
         'intro' => 'Here is what changed about **":event"**:',
         'intro_cancelled' => 'The event **":event"** is not happening — the organiser withdrew it. If you added it to your calendar, you can delete that entry.',
-        'starts_at' => 'New date: **:date**.',
-        'venue' => 'Venue: **:venue**.',
         'action' => 'View event',
         'change_start' => 'Date: :from → :to',
         'change_venue' => 'Venue: :from → :to',
@@ -463,18 +472,22 @@ return [
 
     'event_signup_organizer' => [
         'subject' => 'New attendee for :event',
+        'subject_interest' => 'New interest in :event',
         'intro' => '**:name** has signed up for your event **":event"** via :site.',
+        'intro_interest' => '**:name** showed interest in your event **":event"** via :site.',
         'reserved' => 'The place is reserved — the attendee received a ticket with a QR code and is on the attendee list.',
-        'interest' => 'Reservations are off, require a paid ticket or the event is full, so no ticket was issued and only interest was recorded. Please get in touch with the attendee.',
+        'interest_unavailable' => 'Free reservations are not enabled for this event (or only paid tickets are offered), so no ticket was issued and only interest was recorded. Please get in touch with them.',
+        'interest_full' => 'There are no free places left or reservations have closed, so no ticket was issued and only interest was recorded. Please get in touch with them.',
         'count' => '{1} So far **:count** attendee has signed up.|[2,*] **:count** attendees have signed up so far.',
         'contact' => 'Attendee contact: :email',
         'action' => 'View attendee list',
         'claim_subject' => 'People are signing up for your event ":event"',
         'claim_signup' => 'A new attendee signed up for **":event"** on :site.',
         'claim_interest' => 'A new attendee showed interest in **":event"** on :site.',
-        'claim_intro' => 'The event is listed on tixio.eu under the channel **":canal"**, which nobody manages yet. This message was sent to the contact given for the channel or event.',
+        'claim_intro' => 'The event is listed on :site under the channel **":canal"**, which nobody manages yet. This message was sent to the contact given for the channel or event.',
         'claim_benefits' => 'Taking over the channel is free. You will see the attendee list with contacts, can edit this event, add more, set capacity and scan QR codes at the entrance.',
         'claim_action' => 'Take over the channel and view attendees',
+        'claim_email_note' => 'You can take over the channel after signing in with the account **:email**. If you do not have an account yet, you can create one via the button above.',
         'claim_ignore' => 'If you are not the organiser of this event, you can safely ignore this email.',
     ],
 
@@ -525,7 +538,8 @@ return [
 
     'event_interest' => [
         'subject' => 'Your interest in :event',
-        'intro' => 'Thank you for signing up for **":event"**. The organiser does not accept reservations yet or the event is full, so we are not issuing a ticket.',
+        'intro_unavailable' => 'Thank you for signing up for **":event"**. The organiser does not offer reservations through the portal, so we are not issuing a ticket.',
+        'intro_full' => 'Thank you for signing up for **":event"**. There are no free places left or reservations have closed, so we are not issuing a ticket.',
         'next' => 'We have passed your interest on to the organiser. Details about admission are on the event page.',
         'action' => 'View event',
     ],
