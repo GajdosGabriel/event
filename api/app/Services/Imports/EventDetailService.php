@@ -2,6 +2,7 @@
 
 namespace App\Services\Imports;
 
+use App\Support\ImportedText;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -296,7 +297,7 @@ class EventDetailService
     {
         $xpath = $this->createXPath($html);
         $title = $this->firstNodeText($xpath, '//title | //h1');
-        $bodyText = $this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[contains(@class, "clatext")]//p | //*[contains(@class, "clatext")]'));
+        $bodyText = ImportedText::stripPortalFooter($this->normalizeWhitespace($this->joinNodeTexts($xpath, '//*[contains(@class, "clatext")]//p | //*[contains(@class, "clatext")]')));
         $body = $this->htmlCleaner->cleanFromXPath($xpath, '//*[contains(@class, "clatext")]');
         $linkItems = $this->extractLinkItems($xpath, $sourceUrl, '//*[contains(@class, "clatext")]//a[@href]');
         $links = array_values(array_unique(array_column($linkItems, 'url')));

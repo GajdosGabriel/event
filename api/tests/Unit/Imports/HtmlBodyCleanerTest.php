@@ -30,6 +30,52 @@ class HtmlBodyCleanerTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_the_tkkbs_portal_footer_but_keeps_the_sources_under_their_heading(): void
+    {
+        $html = $this->cleaner->cleanHtmlString(
+            '<p>Púť sa začína o 9:00.</p>'
+            .'<h3>Zdroje a ďalšie informácie</h3>'
+            .'<p>Zdroje: Bratislavská arcidiecéza/Cliptime, redakčne upravené | Upozorniť na chybu v správe | [naspäť] O nás | Ochrana osobných údajov | Copyright | Výveska | Do kostola Nastavenie Cookies</p>'
+            .'<ul><li>(c) TK KBS 2003 - 2026</li></ul>'
+        );
+
+        $this->assertSame("<p>Púť sa začína o 9:00.</p>\n<h3>Zdroje a ďalšie informácie</h3>\n<p>Zdroje: Bratislavská arcidiecéza/Cliptime, redakčne upravené</p>", $html);
+    }
+
+    #[Test]
+    public function it_drops_the_heading_when_only_the_tkkbs_portal_footer_was_under_it(): void
+    {
+        $html = $this->cleaner->cleanHtmlString(
+            '<p>Púť sa začína o 9:00.</p>'
+            .'<h3>Zdroje a ďalšie informácie</h3>'
+            .'<p> | Upozorniť na chybu v správe | O nás | Ochrana osobných údajov | Nastavenie Cookies (c) TK KBS 2003 - 2026</p>'
+        );
+
+        $this->assertSame('<p>Púť sa začína o 9:00.</p>', $html);
+    }
+
+    #[Test]
+    public function it_drops_the_tkkbs_portal_footer_rendered_as_a_list(): void
+    {
+        $html = $this->cleaner->cleanHtmlString(
+            '<p>Viac na www.misijnediela.sk.</p><h3>Odkazy a informácie</h3>'
+            .'<ul><li>Upozorniť na chybu v správe</li><li>[naspäť]</li><li>O nás</li><li>Nastavenie Cookies</li></ul>'
+            .'<p>(c) TK KBS 2003 - 2026</p>'
+        );
+
+        $this->assertSame('<p>Viac na www.misijnediela.sk.</p>', $html);
+
+        $html = $this->cleaner->cleanHtmlString(
+            '<p>Text.</p><h3>Dôležité odkazy</h3>'
+            .'<ul><li>Hovorca KBS</li><li>Zoznam hovorcov diecéz</li><li>Do kostola</li></ul>'
+            .'<p><strong>Nastavenie Cookies:</strong> (c) TK KBS 2003 - 2026</p>'
+            .'<p><strong>Kontakt:</strong> 20260910015</p>'
+        );
+
+        $this->assertSame('<p>Text.</p>', $html);
+    }
+
+    #[Test]
     public function it_wraps_loose_text_left_over_after_unwrapping_into_paragraphs(): void
     {
         $html = $this->cleaner->cleanHtmlString('<div>Prvý odstavec.<br><br>Druhý odstavec.</div>');

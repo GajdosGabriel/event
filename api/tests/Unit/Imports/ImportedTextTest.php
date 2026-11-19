@@ -32,6 +32,20 @@ class ImportedTextTest extends TestCase
     }
 
     #[Test]
+    public function it_strips_the_tkkbs_portal_footer_with_its_credit(): void
+    {
+        $footer = 'Upozorniť na chybu v správe | [naspäť] O nás | Ochrana osobných údajov | Logo | Copyright | Fotobanka | Hovorca KBS | Zoznam hovorcov diecéz TV Lux naživo | Rádio Lumen | Rádio Vatikán | SSV | Katolícke noviny | Výveska | Do kostola Nastavenie Cookies (c) TK KBS 2003 - 2026';
+
+        $this->assertSame('<p>Úvod</p><p>Zdroje: Bratislavská arcidiecéza/Cliptime, redakčne upravené</p>', ImportedText::stripPortalFooter('<p>Úvod</p><p>Zdroje: Bratislavská arcidiecéza/Cliptime, redakčne upravené | '.$footer.'</p>'));
+        $this->assertSame('<p>TK KBS informovala Katarína Kurucová</p>', ImportedText::stripPortalFooter('<p>TK KBS informovala Katarína Kurucová | '.$footer.'</p>'));
+        $this->assertSame('<p>Zdroj: Prešovská archieparchia, redakčne upravené</p>', ImportedText::stripPortalFooter('<p>Zdroj: Prešovská archieparchia, redakčne upravené. 20261103003 | '.$footer.'</p>'));
+        $this->assertSame('<p>Úvod</p><p></p>', ImportedText::stripPortalFooter('<p>Úvod</p><p> | '.$footer.'</p>'), 'Prázdny odsek zahodí až HtmlBodyCleaner.');
+        $this->assertSame('<ul><li></li></ul>', ImportedText::stripPortalFooter('<ul><li>Kontakt: [naspäť] O nás | Ochrana osobných údajov | Copyright | Nastavenie Cookies (c) TK KBS 2003 - 2026</li></ul>'));
+        $this->assertSame("Program\n\nViac na www.sbb.sk. TK KBS informoval Tibor Ujlacký", ImportedText::stripPortalFooter("Program\n\nViac na www.sbb.sk. TK KBS informoval Tibor Ujlacký | ".$footer));
+        $this->assertSame('<p>Zdroje: TASR</p>', ImportedText::stripPortalFooter('<p>Zdroje: TASR</p>'), 'Bez päty nemení nič.');
+    }
+
+    #[Test]
     public function it_adds_the_missing_space_after_sv(): void
     {
         $this->assertSame('Sv. omša a sv. Ján', ImportedText::fixAbbreviationSpacing('Sv.omša a sv.Ján'));

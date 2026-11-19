@@ -389,6 +389,24 @@ class HtmlBodyCleaner
         // Collapse runs of blank lines to a single newline
         $html = preg_replace('/\n{3,}/', "\n\n", $html) ?? $html;
 
+        $withoutFooter = ImportedText::stripPortalFooter($html);
+        if ($withoutFooter !== $html) {
+            return $this->withoutPortalFooterLeftovers($withoutFooter);
+        }
+
         return trim(ImportedText::fixAbbreviationSpacing(ImportedText::stripDatelines(ImportedText::stripNewsroomCodes($html))));
+    }
+
+    /**
+     * Päta webu sa dá vystrihnúť len ako text, takže môže prechádzať cez
+     * hranice blokov — opätovné vyčistenie HTML uzavrie tagy a zahodí prázdne
+     * bloky. Nadpis, ktorý potom ostane na konci („Zdroje a ďalšie informácie"),
+     * uvádzal len pätu.
+     */
+    private function withoutPortalFooterLeftovers(string $html): string
+    {
+        $html = $this->cleanHtmlString($html);
+
+        return trim(preg_replace('~(?:\s*<h[2-6]>(?:(?!</?h[2-6]).)*</h[2-6]>)+\s*$~su', '', $html) ?? $html);
     }
 }

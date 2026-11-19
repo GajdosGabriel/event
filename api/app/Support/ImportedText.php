@@ -83,6 +83,53 @@ class ImportedText
         return trim($stripped);
     }
 
+    /**
+     * Začiatok navigácie v päte webu tkkbs.sk: „| Upozorniť na chybu v správe |
+     * [naspäť] O nás | Ochrana osobných údajov | … Nastavenie Cookies
+     * (c) TK KBS 2003 - 2026". Import ju občas zoberie s textom článku.
+     */
+    private const PORTAL_FOOTER_START = '/(?:\[naspäť\]\s*)?(?:Upozorniť\s+na\s+chybu\s+v\s+správe'
+        .'|O\s+nás(?:\s|\||<[^>]+>)+Ochrana\s+osobných\s+údajov'
+        .'|Ochrana\s+osobných\s+údajov(?:\s|\||<[^>]+>)+(?:Logo(?:\s|\||<[^>]+>)+)?Copyright'
+        .'|Hovorca\s+KBS(?:\s|\||<[^>]+>)+Zoznam\s+hovorcov\s+diecéz)/u';
+
+    /** Koniec päty, prípadne s osirelým číslom správy („Kontakt: 20260910015"), ktoré AI pridala za ňu. */
+    private const PORTAL_FOOTER_END = '/\(c\)\s*TK\s*KBS\s*\d{4}\s*[-–]\s*\d{4}\.?(?:(?:\s|<[^>]+>)*Kontakt:?(?:\s|<[^>]+>)*\d{11}\b)?/u';
+
+    /**
+     * Čo pred pätou ostane bez obsahu: oddeľovač „|", číslo správy
+     * („20261103003") alebo osirelý štítok („Kontakt:"), ktorého obsahom bola
+     * päta. Redakčný kredit („Zdroje: TASR", „TK KBS informovala …") ostáva.
+     */
+    private const PORTAL_FOOTER_LEFTOVERS = [
+        '/[\s|]+$/u' => '',
+        '/[\s,.]*\b\d{11}$/u' => '',
+        '/(>|\n|^)\s*\p{Lu}[\p{L}\d ]{0,30}:$/u' => '$1',
+    ];
+
+    /**
+     * Odstráni z textu alebo HTML pätu webu tkkbs.sk. Redakčný kredit pred
+     * ňou nechá. Čo po nej v HTML ostane nevyvážené či prázdne, upraví
+     * volajúci (HtmlBodyCleaner).
+     */
+    public static function stripPortalFooter(string $text): string
+    {
+        $stripped = $text;
+
+        // Päta môže byť rozdelená do viacerých blokov aj viackrát (AI ju občas zopakovala).
+        while (preg_match(self::PORTAL_FOOTER_START, $stripped, $start, PREG_OFFSET_CAPTURE) === 1
+            && preg_match(self::PORTAL_FOOTER_END, $stripped, $end, PREG_OFFSET_CAPTURE, $start[0][1]) === 1) {
+            $before = substr($stripped, 0, $start[0][1]);
+            foreach (self::PORTAL_FOOTER_LEFTOVERS as $pattern => $replacement) {
+                $before = preg_replace($pattern, $replacement, $before) ?? $before;
+            }
+
+            $stripped = $before.substr($stripped, $end[0][1] + strlen($end[0][0]));
+        }
+
+        return $stripped;
+    }
+
     /** „Sv.omša" → „Sv. omša" (skratka svätý/svätá bez medzery pred slovom). */
     public static function fixAbbreviationSpacing(string $text): string
     {
