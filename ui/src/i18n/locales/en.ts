@@ -791,8 +791,10 @@ const en: Messages = {
       relay: {
         title: 'Ask the organiser',
         lead: 'The organiser has no profile on the portal yet, but we have a verified contact. We will e-mail your question and they will reply to you directly.',
+        unconfirmedLead: 'The organiser has no profile on the portal yet. We will e-mail your question to a contact from public sources, but we cannot guarantee it reaches them or that they reply.',
         loginToAsk: 'Sign in to ask',
         emailShared: 'The organiser will see your account e-mail so they can reply. The question is not published.',
+        emailHidden: 'The organiser will not see your e-mail or full name; we will forward their reply to you. The question is not published.',
         submit: 'Send to the organiser',
         sentTitle: 'Question sent',
         sentLead: 'We have sent it to the organiser. The reply will arrive at your account e-mail.',

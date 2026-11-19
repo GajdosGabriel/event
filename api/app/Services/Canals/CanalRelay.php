@@ -121,7 +121,11 @@ class CanalRelay
             'asker_email' => (string) $sender->email,
             'organizer_email' => $email,
         ]);
-        $build = fn (string $audience) => $notice($audience, $email, $claimUrl)->forThread($thread->id);
+        // Neoverený kontakt môže byť hocičia schránka — pisateľ je mu anonymný.
+        $anonymous = $this->takeover->isUnverified($canal);
+        $build = fn (string $audience) => $notice($audience, $email, $claimUrl)
+            ->forThread($thread->id)
+            ->anonymous($anonymous);
 
         $this->takeover->send($email, $build(QuestionRelayed::ORGANIZER), $target);
 

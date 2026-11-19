@@ -791,8 +791,10 @@ const de: Messages = {
       relay: {
         title: 'Den Veranstalter fragen',
         lead: 'Der Veranstalter hat noch kein Profil auf dem Portal, aber wir haben einen verifizierten Kontakt. Wir senden ihm Ihre Frage per E-Mail und er antwortet Ihnen direkt.',
+        unconfirmedLead: 'Der Veranstalter hat noch kein Profil auf dem Portal. Wir senden Ihre Frage per E-Mail an einen Kontakt aus öffentlichen Quellen, können aber nicht garantieren, dass sie ankommt und beantwortet wird.',
         loginToAsk: 'Anmelden und fragen',
         emailShared: 'Der Veranstalter sieht Ihre Konto-E-Mail, um antworten zu können. Die Frage wird nicht veröffentlicht.',
+        emailHidden: 'Der Veranstalter sieht weder Ihre E-Mail noch Ihren vollen Namen; seine Antwort leiten wir an Sie weiter. Die Frage wird nicht veröffentlicht.',
         submit: 'An den Veranstalter senden',
         sentTitle: 'Frage gesendet',
         sentLead: 'Wir haben sie an den Veranstalter gesendet. Die Antwort kommt an Ihre Konto-E-Mail.',

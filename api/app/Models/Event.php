@@ -17,6 +17,7 @@ use App\Models\Traits\HasViews;
 use App\Models\Traits\InteractsAsMessageable;
 use App\Models\Traits\InteractsAsQuestionBoard;
 use App\Models\Traits\SanitizesHtmlBody;
+use App\Services\Canals\CanalTakeover;
 use App\Support\EventTimeframe;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -326,10 +327,20 @@ class Event extends Model implements HasQuestionBoard, Messageable
         return ! $this->ticketTypes()->withTrashed()->exists();
     }
 
-    /** Dá sa na podujatie rezervovať — nastavené lístky alebo predvolená rezervácia zdarma. */
+    /**
+     * Dá sa na podujatie rezervovať — nastavené lístky, alebo predvolená
+     * rezervácia zdarma. Tá len vtedy, keď má o rezervácii kto vedieť
+     * (CanalTakeover::hasOrganizerContact): importovaný kanál bez e-mailu by
+     * dal návštevníkovi miesto, o ktorom organizátor nikdy nepočuje.
+     */
     public function isReservable(): bool
     {
-        return $this->tickets_enabled || $this->usesDefaultReservation();
+        if ($this->tickets_enabled) {
+            return true;
+        }
+
+        return $this->usesDefaultReservation()
+            && app(CanalTakeover::class)->hasOrganizerContact($this);
     }
 
     /** `reservable` v odpovedi — front podľa neho ukáže sekciu rezervácie. */

@@ -50,9 +50,26 @@ class CanalRelayMessageTest extends TestCase
     }
 
     #[Test]
-    public function an_unverified_contact_gets_no_message(): void
+    public function an_unverified_contact_gets_an_anonymous_message(): void
     {
         $this->canal->forceFill(['email_verified_at' => null])->save();
+        $this->actingAs($this->sender(), 'sanctum');
+
+        $this->send()->assertCreated();
+
+        Notification::assertSentOnDemand(MessageRelayed::class, function (MessageRelayed $n, array $channels, $notifiable) {
+            $mail = $n->toMail($notifiable);
+
+            return $n->audience === MessageRelayed::ORGANIZER
+                && $mail->replyTo === []
+                && ! str_contains(implode("\n", [...$mail->introLines, ...$mail->outroLines]), 'pisatel@example.sk');
+        });
+    }
+
+    #[Test]
+    public function a_canal_without_contact_gets_no_message(): void
+    {
+        $this->canal->forceFill(['email' => null, 'email_verified_at' => null])->save();
         $this->actingAs($this->sender(), 'sanctum');
 
         $this->send()->assertStatus(422);

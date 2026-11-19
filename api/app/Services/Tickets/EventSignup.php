@@ -198,6 +198,12 @@ class EventSignup
             return false;
         }
 
+        // Predvolená rezervácia bez kontaktu na organizátora sa neponúka
+        // (Event::isReservable) — nezaznamenávame ani záujem, nemá ho kto dostať.
+        if ($event->usesDefaultReservation() && ! $event->isReservable()) {
+            return false;
+        }
+
         return $event->registration_deadline_at === null || $event->registration_deadline_at->isFuture();
     }
 

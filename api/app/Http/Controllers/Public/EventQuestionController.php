@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\QuestionStoreRequest;
 use App\Http\Resources\QuestionResource;
 use App\Models\Event;
+use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
 use App\Services\Canals\CanalRelay;
@@ -15,6 +16,7 @@ use App\Services\Canals\CanalTakeover;
 use App\Services\Questions\QuestionAlert;
 use App\Services\Questions\QuestionDraft;
 use App\Services\Questions\QuestionSubmitter;
+use App\Support\EventTimeframe;
 use App\Support\SubmissionTicket;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -65,10 +67,12 @@ class EventQuestionController extends Controller
         if ($board === null) {
             // Nespravovaný kanál s overenou adresou: nástenku nemá, ale otázku mu vieme
             // doručiť e-mailom (CanalRelay). Bez verejného zoznamu.
-            if ($this->takeover->addressFor($model) !== null) {
+            if ($this->relayAvailable($model)) {
                 return response()->json([
                     'available' => true,
                     'relay' => true,
+                    // Kontakt sa nám ešte neozval — front upozorní, že odpoveď nemusí prísť.
+                    'unconfirmed' => $this->takeover->organizerUnconfirmed($model),
                     'ticket' => SubmissionTicket::issue('question:event:'.$model->id),
                 ]);
             }
@@ -139,13 +143,23 @@ class EventQuestionController extends Controller
     }
 
     /**
+     * Otázka e-mailom organizátorovi kanála bez správcu: treba kontakt
+     * (aj neoverený) a podujatie, ktoré ešte neskončilo.
+     */
+    private function relayAvailable(Event $event): bool
+    {
+        return ! EventTimeframe::hasEnded($event)
+            && $this->takeover->addressFor($event) !== null;
+    }
+
+    /**
      * Otázka na podujatie bez nástenky: doručí sa e-mailom organizátorovi
      * nespravovaného kanála (CanalRelay). Ako proti spamu, tak proti
      * zneužitiu cudzej schránky smie len prihlásený s overeným účtom.
      */
     private function relayToOrganizer(QuestionStoreRequest $request, Event $event): JsonResponse
     {
-        if ($this->takeover->addressFor($event) === null) {
+        if (! $this->relayAvailable($event)) {
             abort(422, __('questions.errors.closed'));
         }
 
@@ -197,7 +211,7 @@ class EventQuestionController extends Controller
      * hore), počas podujatia to isté poradie ako na plátne — divák má na oboch
      * obrazovkách vidieť to isté.
      *
-     * @return Collection<int, \App\Models\Question>
+     * @return Collection<int, Question>
      */
     private function visibleQuestions(QuestionBoard $board, QuestionBoardPhase $phase): Collection
     {

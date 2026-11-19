@@ -31,6 +31,13 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
     /** Záznam CanalRelayThread — z neho vznikne samostatná konverzácia v Accounte. */
     public ?int $threadId = null;
 
+    /**
+     * Kontakt kanála sa nám ešte neozval (CanalTakeover::isUnverified) — nevieme,
+     * čia je to schránka. Organizátor dostane len skrátené meno („Ján N.")
+     * a žiadnu adresu pisateľa, ani v Reply-To.
+     */
+    public bool $anonymous = false;
+
     public function __construct(
         public readonly Canal $canal,
         public readonly string $audience,
@@ -63,6 +70,25 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
         return $this;
     }
 
+    public function anonymous(bool $anonymous = true): static
+    {
+        $this->anonymous = $anonymous;
+
+        return $this;
+    }
+
+    /** „Ján Novák" → „Ján N."; jedno slovo (aj maskovaný e-mail) ostáva. */
+    public static function shortName(string $name): string
+    {
+        $parts = preg_split('/\s+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if (count($parts) < 2) {
+            return $parts[0] ?? '';
+        }
+
+        return $parts[0].' '.mb_strtoupper(mb_substr((string) end($parts), 0, 1)).'.';
+    }
+
     public function accountRef(object $notifiable): array
     {
         $ref = $this->canalRef($this->canal);
@@ -74,10 +100,11 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $hidden = $this->anonymous && $this->audience === self::ORGANIZER;
         $params = [
             ...$this->targetParams(),
             'canal' => $this->canal->name,
-            'name' => $this->askerName,
+            'name' => $hidden ? static::shortName($this->askerName) : $this->askerName,
             'email' => $this->askerEmail,
             'site' => (string) config('app.name'),
         ];
@@ -96,8 +123,11 @@ abstract class RelayedToCanal extends Notification implements ShouldQueue
                 ->action(__($key.'.action'), $this->targetUrl());
         }
 
+        if (! $hidden) {
+            $mail->replyTo($this->askerEmail, $this->askerName);
+        }
+
         return $mail
-            ->replyTo($this->askerEmail, $this->askerName)
             ->line(__($shared.'.reply', $params))
             ->line(__($key.'.offer', $params))
             ->action(__($shared.'.action'), $this->claimUrl)

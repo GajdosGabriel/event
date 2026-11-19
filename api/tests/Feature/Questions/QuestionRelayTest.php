@@ -7,7 +7,6 @@ use App\Enums\RegistrationSource;
 use App\Models\EmailSuppression;
 use App\Models\User;
 use App\Notifications\QuestionRelayed;
-use App\Services\Canals\CanalEmails;
 use App\Support\SubmissionTicket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
@@ -18,7 +17,7 @@ use Tests\TestSupport\EventSetupTest;
 
 /**
  * Otázka na podujatie importovaného kanála sa doručí e-mailom (QuestionRelay).
- * Strážia sa hlavne brzdy: len overená adresa, len prihlásený s overeným účtom
+ * Strážia sa hlavne brzdy: len s kontaktom (neoverenému anonymne), len prihlásený s overeným účtom
  * a žiadne ukladanie ani zakladanie nástenky.
  */
 class QuestionRelayTest extends EventSetupTest
@@ -73,48 +72,98 @@ class QuestionRelayTest extends EventSetupTest
     }
 
     #[Test]
-    public function the_button_is_offered_only_for_a_verified_contact(): void
+    public function the_button_is_offered_for_any_contact_with_a_warning_when_unverified(): void
     {
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()->assertJsonPath('available', true)->assertJsonPath('relay', true);
+            ->assertOk()->assertJsonPath('relay', true)->assertJsonPath('unconfirmed', false);
 
         $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
 
-        // Neoverená adresa: nevieme, či niekto odpovie.
+        // Neoverená adresa: otázka odíde, návštevník však vie, že odpoveď nemusí prísť.
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()->assertJsonPath('available', false);
+            ->assertOk()->assertJsonPath('relay', true)->assertJsonPath('unconfirmed', true);
     }
 
     #[Test]
-    public function an_unverified_contact_cannot_be_reached_by_posting_directly(): void
+    public function without_any_contact_there_is_nothing_to_ask(): void
     {
-        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+        $this->futureEvent->canal->forceFill(['email' => null, 'email_verified_at' => null])->save();
         $this->actingAs($this->user, 'sanctum');
 
+        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
+            ->assertOk()->assertJsonPath('available', false);
         $this->ask()->assertStatus(422);
 
         Notification::assertNothingSent();
     }
 
     #[Test]
-    public function the_events_own_e_mail_does_not_stand_in_for_a_verified_contact(): void
+    public function the_events_own_e_mail_stands_in_for_a_missing_canal_contact(): void
     {
         $this->futureEvent->update(['email' => 'akcia@organizator.sk']);
-        $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+        $this->futureEvent->canal->forceFill(['email' => null, 'email_verified_at' => null])->save();
+        $this->actingAs($this->user, 'sanctum');
 
-        $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()->assertJsonPath('available', false);
+        $this->ask()->assertCreated();
+
+        Notification::assertSentOnDemand(QuestionRelayed::class,
+            fn (QuestionRelayed $n, array $channels, $notifiable) => $notifiable->routes['mail'] === 'akcia@organizator.sk');
     }
 
     #[Test]
-    public function a_reply_from_the_contact_opens_the_questions(): void
+    public function an_unverified_contact_sees_neither_the_e_mail_nor_the_full_name(): void
     {
         $this->futureEvent->canal->forceFill(['email_verified_at' => null])->save();
+        $sender = User::factory()->create(['email' => 'pisatel@example.sk', 'email_verified_at' => now()]);
+        $admin = $this->admin();
+        $this->actingAs($sender, 'sanctum');
 
-        app(CanalEmails::class)->recordReply('info@organizator.sk');
+        $this->ask()->assertCreated();
+
+        Notification::assertSentOnDemand(QuestionRelayed::class, function (QuestionRelayed $n, array $channels, $notifiable) use ($sender) {
+            $mail = $n->toMail($notifiable);
+            $text = implode("\n", [...$mail->introLines, ...$mail->outroLines]);
+
+            return $n->audience === QuestionRelayed::ORGANIZER
+                && $mail->replyTo === []
+                && ! str_contains($text, 'pisatel@example.sk')
+                && str_contains($text, $n::shortName($sender->displayName()));
+        });
+
+        // Správca portálu vidí pisateľa celého.
+        Notification::assertSentTo($admin, QuestionRelayed::class, fn (QuestionRelayed $n) => str_contains(
+            implode("\n", $n->toMail($admin)->introLines), 'pisatel@example.sk',
+        ));
+    }
+
+    #[Test]
+    public function a_verified_contact_gets_the_reply_to(): void
+    {
+        $this->actingAs($this->user, 'sanctum');
+
+        $this->ask()->assertCreated();
+
+        Notification::assertSentOnDemand(QuestionRelayed::class, fn (QuestionRelayed $n, array $channels, $notifiable) => $n->audience === QuestionRelayed::ORGANIZER
+            && $n->toMail($notifiable)->replyTo !== []);
+    }
+
+    #[Test]
+    public function the_short_name_keeps_only_the_initial_of_the_surname(): void
+    {
+        $this->assertSame('Ján N.', QuestionRelayed::shortName('Ján Novák'));
+        $this->assertSame('Mária K.', QuestionRelayed::shortName('  Mária Anna  kováčová '));
+        $this->assertSame('g•••o', QuestionRelayed::shortName('g•••o'));
+    }
+
+    #[Test]
+    public function an_ended_event_takes_no_more_questions(): void
+    {
+        $this->futureEvent->update(['start_at' => now()->subDays(3), 'end_at' => now()->subDays(2)]);
+        $this->actingAs($this->user, 'sanctum');
 
         $this->getJson("/api/events/{$this->futureEvent->id}/questions")
-            ->assertOk()->assertJsonPath('relay', true);
+            ->assertOk()->assertJsonPath('available', false);
+        $this->ask()->assertStatus(422);
     }
 
     #[Test]

@@ -790,8 +790,10 @@ const cs: Messages = {
       relay: {
         title: 'Zeptat se organizátora',
         lead: 'Organizátor zatím nemá na portálu vlastní profil, ale jeho kontakt máme ověřený. Pošleme mu váš dotaz e-mailem a odpoví vám přímo.',
+        unconfirmedLead: 'Organizátor zatím nemá na portálu vlastní profil. Dotaz mu pošleme e-mailem na kontakt z veřejných zdrojů — nemůžeme však zaručit, že ho dostane a odpoví.',
         loginToAsk: 'Přihlásit se a zeptat se',
         emailShared: 'Váš e-mail z účtu uvidí organizátor, aby vám mohl odpovědět. Dotaz se nezveřejní.',
+        emailHidden: 'Organizátorovi neukážeme váš e-mail ani celé jméno, jeho odpověď vám přepošleme. Dotaz se nezveřejní.',
         submit: 'Poslat organizátorovi',
         sentTitle: 'Dotaz odeslán',
         sentLead: 'Poslali jsme ho organizátorovi. Odpověď vám přijde na e-mail z vašeho účtu.',

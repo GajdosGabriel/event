@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
  * aj správa návštevníka (CanalRelay) sa správajú rovnako (docs/canal-ownership.md):
  *  - kontakt je e-mail kanála, záložne z podujatia; nedoručiteľné adresy sa
  *    preskočia, odhlásenie z kampaní nie (technický e-mail),
- *  - otázku a správu návštevníka prijíma len overený e-mail kanála (addressFor),
+ *  - otázku a správu návštevníka prijíma aj neoverený kontakt (addressFor),
+ *    pisateľ je mu však anonymizovaný; bez kontaktu nie je ani rezervácia
+ *    (hasOrganizerContact),
  *  - zberný kanál sa neoslovuje, lebo sa nedá prevziať,
  *  - e-mail ponúka prevzatie kanála; odkaz na odhlásenie nemá (technický e-mail),
  *  - ide cez Account (SendsViaAccount), vrátený e-mail adresu vyradí
@@ -81,21 +83,51 @@ class CanalTakeover
     /**
      * Adresa, na ktorú smie návštevník poslať otázku alebo správu, alebo null.
      *
-     * Len overený kontakt kanála: schránka sa nám už ozvala (odpoveď, potvrdenie),
-     * takže návštevník môže čakať odpoveď. Neoverený e-mail z importu ani záložný
-     * e-mail podujatia túto istotu nedávajú.
+     * Stačí aj neoverený kontakt (z importu, pri podujatí aj záložný e-mail
+     * podujatia) — e-mail o otázke ponúka prevzatie a odpoveď organizátora
+     * kontakt overí. Pisateľa vtedy organizátorovi anonymizujeme (CanalRelay)
+     * a návštevníka front upozorní, že odpoveď nemusí prísť (isUnverified).
      */
     public function addressFor(Model $target): ?string
     {
         $canal = $this->canalOf($target);
 
-        if ($canal === null || $canal->isManaged() || $canal->email_verified_at === null) {
+        if ($canal === null || $canal->isManaged()) {
             return null;
         }
 
-        $contact = $this->contact($canal);
+        $contact = $this->contact($canal, $target instanceof Event ? $target : null);
 
         return $contact['reason'] === null ? $contact['email'] : null;
+    }
+
+    /**
+     * Má podujatie komu oznámiť rezerváciu? Spravovaný kanál áno; nespravovaný
+     * len s kontaktom (e-mail kanála, záložne podujatia), zberný nikdy.
+     *
+     * Volá sa z Event::isReservable() pri každom riadku výpisu, preto bez
+     * dotazu na nedoručiteľné adresy — tie rieši až samotné oznámenie (contact).
+     */
+    public function hasOrganizerContact(Event $event): bool
+    {
+        $canal = $event->canal;
+
+        if (! $canal instanceof Canal || CollectionCanal::is($canal)) {
+            return false;
+        }
+
+        if ($canal->isManaged()) {
+            return true;
+        }
+
+        return collect([$canal->email, $event->email])
+            ->contains(fn ($candidate) => filter_var(trim((string) $candidate), FILTER_VALIDATE_EMAIL) !== false);
+    }
+
+    /** Kontakt kanála bez správcu, ktorý sa nám ešte neozval — organizátorovi pisateľa anonymizujeme. */
+    public function isUnverified(?Canal $canal): bool
+    {
+        return $canal !== null && ! $canal->isManaged() && $canal->email_verified_at === null;
     }
 
     /**
@@ -107,7 +139,7 @@ class CanalTakeover
     {
         $canal = $this->canalOf($event);
 
-        return $canal === null || (! $canal->isManaged() && $this->addressFor($canal) === null);
+        return $canal === null || $this->isUnverified($canal);
     }
 
     public function invitation(Canal $canal, string $email): CanalInvitation

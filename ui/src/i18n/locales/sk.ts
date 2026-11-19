@@ -841,8 +841,10 @@ const sk = {
       relay: {
         title: 'Opýtať sa organizátora',
         lead: 'Organizátor zatiaľ nemá na portáli vlastný profil, ale jeho kontakt máme overený. Pošleme mu vašu otázku e-mailom a odpovie vám priamo.',
+        unconfirmedLead: 'Organizátor zatiaľ nemá na portáli vlastný profil. Otázku mu pošleme e-mailom na kontakt z verejných zdrojov — nevieme však zaručiť, že ju dostane a odpovie.',
         loginToAsk: 'Prihlásiť sa a opýtať',
         emailShared: 'Váš e-mail z účtu uvidí organizátor, aby vám mohol odpovedať. Otázka sa nezverejní.',
+        emailHidden: 'Organizátorovi neukážeme váš e-mail ani celé meno, jeho odpoveď vám prepošleme. Otázka sa nezverejní.',
         submit: 'Poslať organizátorovi',
         sentTitle: 'Otázka odoslaná',
         sentLead: 'Poslali sme ju organizátorovi. Odpoveď vám príde na e-mail z vášho účtu.',

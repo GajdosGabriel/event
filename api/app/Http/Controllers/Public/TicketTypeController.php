@@ -35,7 +35,7 @@ class TicketTypeController extends Controller
 
         // Organizátor lístky nenastavil → formulár dostane neuložený typ
         // „Rezervácia miesta" (id 0); skutočný vznikne až pri objednávke.
-        if ($types->isEmpty() && $event->usesDefaultReservation()) {
+        if ($types->isEmpty() && $event->usesDefaultReservation() && $event->isReservable()) {
             $types->push(app(DefaultReservation::class)->virtual($event));
         }
 

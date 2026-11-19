@@ -1,9 +1,10 @@
 <template>
-  <!-- Importovaný kanál s overenou adresou: otázka ide organizátorovi e-mailom.
-       Bez verejného zoznamu — nástenka tu nie je a nemal by ju kto moderovať. -->
+  <!-- Importovaný kanál s kontaktom (aj neovereným): otázka ide organizátorovi
+       e-mailom. Bez verejného zoznamu — nástenka tu nie je a nemal by ju kto moderovať. -->
   <section v-if="view?.relay" class="rounded-2xl border border-slate-200 bg-white p-6">
     <h2 class="mb-1 text-base font-semibold text-slate-800">{{ t('public.questions.relay.title') }}</h2>
-    <p class="mb-4 text-sm text-slate-500">{{ t('public.questions.relay.lead') }}</p>
+    <p v-if="view.unconfirmed" class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{{ t('public.questions.relay.unconfirmedLead') }}</p>
+    <p v-else class="mb-4 text-sm text-slate-500">{{ t('public.questions.relay.lead') }}</p>
 
     <div v-if="relaySent" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
       <p class="font-semibold">{{ t('public.questions.relay.sentTitle') }}</p>
@@ -27,7 +28,7 @@
         maxlength="500"
         :placeholder="t('public.questions.placeholder')"
       />
-      <p class="text-xs text-slate-500">{{ t('public.questions.relay.emailShared') }}</p>
+      <p class="text-xs text-slate-500">{{ t(view.unconfirmed ? 'public.questions.relay.emailHidden' : 'public.questions.relay.emailShared') }}</p>
       <div class="absolute left-[-9999px]" aria-hidden="true">
         <label>
           Website

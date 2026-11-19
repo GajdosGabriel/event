@@ -343,6 +343,11 @@ export interface EventQuestionsView {
    * ide organizátorovi e-mailom (len prihlásený) a nikde sa nezobrazí.
    */
   relay: boolean
+  /**
+   * Pri relay: kontakt organizátora sa nám ešte neozval. Odpoveď nemusí prísť
+   * a organizátor nevidí e-mail ani celé meno pisateľa.
+   */
+  unconfirmed: boolean
   phase: QuestionPhase
   open: boolean
   moderation: boolean
@@ -372,6 +377,7 @@ export async function showEventQuestions(eventId: number): Promise<EventQuestion
   return {
     available: Boolean(raw['available']),
     relay: Boolean(raw['relay']),
+    unconfirmed: Boolean(raw['unconfirmed']),
     phase: (raw['phase'] as QuestionPhase) ?? 'before',
     open: Boolean(raw['open']),
     moderation: Boolean(raw['moderation']),

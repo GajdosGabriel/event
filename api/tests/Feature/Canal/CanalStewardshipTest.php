@@ -161,7 +161,8 @@ class CanalStewardshipTest extends TestCase
         $this->assertNull($this->canal->fresh()->claimed_at);
         $this->assertSame([$this->admin->id], $this->canal->owners()->pluck('users.id')->all());
 
-        // Prihláška na akciu v zbernom kanáli nesmie ponúknuť jeho prevzatie.
+        // Prihláška na akciu v zbernom kanáli nesmie ponúknuť jeho prevzatie —
+        // a keďže rezerváciu nemá komu oznámiť, ani sa neponúka.
         $invitation->delete();
         $event = Event::factory()->future()->create([
             'canal_id' => $this->canal->id,
@@ -171,7 +172,8 @@ class CanalStewardshipTest extends TestCase
             'price_amount' => null,
             'email' => 'organizator@example.sk',
         ]);
-        $this->actingAs($this->user(), 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertOk();
+        $this->assertFalse($event->fresh()->isReservable());
+        $this->actingAs($this->user(), 'sanctum')->postJson("/api/events/{$event->id}/signup")->assertUnprocessable();
 
         $this->assertSame(0, CanalInvitation::where('canal_id', $this->canal->id)->count());
         Notification::assertNotSentTo($this->admin, EventSignupOrganizerNotice::class);

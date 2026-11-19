@@ -285,15 +285,62 @@ class EventSignupTest extends TestCase
     }
 
     #[Test]
+    public function an_imported_event_without_any_contact_offers_no_reservation(): void
+    {
+        Notification::fake();
+        $event = $this->importedEvent(['email' => null]);
+
+        $this->assertFalse($event->fresh()->isReservable());
+        $this->assertNull($event->fresh()->ticketCta());
+
+        $this->actingAs(User::factory()->create(), 'sanctum')
+            ->postJson("/api/events/{$event->id}/signup")
+            ->assertStatus(422);
+
+        $this->postJson("/api/events/{$event->id}/tickets", [
+            'holder_name' => 'Ján Novák',
+            'holder_email' => 'jan@example.sk',
+            'items' => [['ticket_type_id' => 0, 'quantity' => 1]],
+        ])->assertStatus(422);
+
+        $this->getJson("/api/events/{$event->id}/ticket-types")->assertJsonCount(0, 'data');
+        $this->assertDatabaseMissing('tickets', ['event_id' => $event->id]);
+        $this->assertDatabaseMissing('ticket_types', ['event_id' => $event->id]);
+        Notification::assertNothingSent();
+    }
+
+    #[Test]
+    public function an_unverified_contact_keeps_the_reservation_open(): void
+    {
+        // Kontakt z importu (kanála alebo záložne podujatia) stačí, aj neoverený.
+        $fromEvent = $this->importedEvent();
+        $this->assertTrue($fromEvent->fresh()->isReservable());
+
+        $fromCanal = $this->importedEvent(['email' => null]);
+        $fromCanal->canal()->first()->update(['email' => 'farnost@example.sk', 'email_verified_at' => null]);
+        $this->assertTrue($fromCanal->fresh()->isReservable());
+        $this->assertSame('reserve', $fromCanal->fresh()->ticketCta()['kind']);
+
+        // Zberný kanál sa neoslovuje, takže rezerváciu nemá komu oznámiť.
+        $collection = $this->importedEvent();
+        $collection->canal()->first()->update(['name' => 'vyveska.sk']);
+        $this->assertFalse($collection->fresh()->isReservable());
+    }
+
+    #[Test]
     public function admin_notice_says_why_the_organizer_got_nothing(): void
     {
         Notification::fake();
 
+        // Bez kontaktu sa predvolená rezervácia neponúka — „none" a „collection"
+        // nastanú len pri lístkoch, ktoré niekto nastavil ručne.
         $missing = $this->importedEvent(['email' => null]);
+        $missing->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
         $this->assertAdminToldOrganizer($missing, 'none');
 
         $collection = $this->importedEvent();
         $collection->canal()->first()->update(['name' => 'vyveska.sk']);
+        $collection->ticketTypes()->create(['name' => 'Vstupenka', 'price_amount' => 0, 'is_active' => true]);
         $this->assertAdminToldOrganizer($collection, 'collection');
 
         EmailSuppression::add('vrateny@example.sk', 'bounced');
