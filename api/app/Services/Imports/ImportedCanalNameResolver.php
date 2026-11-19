@@ -51,7 +51,7 @@ class ImportedCanalNameResolver
         $heuristicVenue = $this->labelExtractor->extractVenue($text);
         $detectedVenueName = $heuristicVenue['name'] ?? null;
         $detectedVenueCity = $heuristicVenue['city'] ?? null;
-        $detectedVenueStreet = null;
+        $detectedVenueStreet = $heuristicVenue['street'] ?? null;
 
         $detectedCanalCity = null;
         $detectedCanalWebsite = null;

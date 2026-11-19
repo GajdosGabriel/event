@@ -109,7 +109,7 @@ class EventTextLabelExtractor
     }
 
     /**
-     * Returns ['name' => string|null, 'city' => string|null] or null.
+     * Returns ['name' => string|null, 'city' => string|null, 'street' => string|null] or null.
      *
      * Slovak event format: "label: [city/municipality], [specific venue name]"
      * First comma-delimited segment is treated as the municipality/city,
@@ -135,17 +135,57 @@ class EventTextLabelExtractor
 
             if (count($parts) === 1) {
                 // Single token: could be city-only or venue-only — treat as venue name
-                return ['name' => $parts[0], 'city' => null];
+                return ['name' => $parts[0], 'city' => null, 'street' => null];
+            }
+
+            $addressFirst = $this->venueStreetCity($parts);
+            if ($addressFirst !== null) {
+                return $addressFirst;
             }
 
             // "city, venue" — first token is the municipality, rest is the venue
             $city = $parts[0];
             $name = implode(', ', array_slice($parts, 1));
 
-            return ['name' => $name, 'city' => $city];
+            return ['name' => $name, 'city' => $city, 'street' => null];
         }
 
         return $this->extractVenueFromProse($text);
+    }
+
+    /**
+     * Poradie „miesto, ulica s číslom, mesto“, ako ho píše Výveska
+     * („Kde: Dom Quo Vadis, Veterná 1, Bratislava“), prípadne bez miesta
+     * („Kde: Park garbiarov 107, Bošany“). Bez tohto rozlíšenia sa prvý úsek
+     * bral ako mesto a adresa ako názov miesta, takže import zakladal miesta
+     * „Veterná 1, Bratislava“ namiesto nájdenia Domu Quo Vadis.
+     *
+     * Ulica s číslom musí stáť pred posledným úsekom, ktorý je mestom —
+     * „Mesto, Miesto, Ulica 5“ ostáva pri pôvodnom poradí.
+     *
+     * @param  array<int, string>  $parts
+     * @return array{name: string|null, city: string, street: string}|null
+     */
+    private function venueStreetCity(array $parts): ?array
+    {
+        $last = count($parts) - 1;
+        $city = $parts[$last];
+
+        if (preg_match('/\d/u', $city) === 1 || VenueKeywords::matches($city)) {
+            return null;
+        }
+
+        for ($i = 0; $i < $last; $i++) {
+            if (preg_match('/^\p{L}[\p{L}\p{M}\s.\-]*\s\d+[a-zA-Z]?(?:\/\d+[a-zA-Z]?)?\.?$/u', $parts[$i]) !== 1) {
+                continue;
+            }
+
+            $name = implode(', ', array_slice($parts, 0, $i));
+
+            return ['name' => $name !== '' ? $name : null, 'city' => $city, 'street' => rtrim($parts[$i], '.')];
+        }
+
+        return null;
     }
 
     /**

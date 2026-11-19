@@ -27,6 +27,37 @@ class EventTextLabelExtractorTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_venue_street_and_city_in_vyveska_order(): void
+    {
+        $result = $this->extractor->extractVenue("Kedy: 18:00 – 20:00\nKde: Dom Quo Vadis, Veterná 1, Bratislava\nOrganizátor: katRande");
+
+        $this->assertSame(['name' => 'Dom Quo Vadis', 'city' => 'Bratislava', 'street' => 'Veterná 1'], $result);
+
+        $result = $this->extractor->extractVenue('Kde: Dóm sv. Martina (Katedrála sv. Martina), Rudnayovo námestie 1, Bratislava');
+
+        $this->assertSame('Dóm sv. Martina (Katedrála sv. Martina)', $result['name']);
+        $this->assertSame('Rudnayovo námestie 1', $result['street']);
+        $this->assertSame('Bratislava', $result['city']);
+    }
+
+    #[Test]
+    public function it_does_not_name_the_venue_after_its_address(): void
+    {
+        $result = $this->extractor->extractVenue('Kde: Cesta olympionikov 1271/28, Banská Bystrica');
+
+        $this->assertSame(['name' => null, 'city' => 'Banská Bystrica', 'street' => 'Cesta olympionikov 1271/28'], $result);
+    }
+
+    #[Test]
+    public function it_keeps_city_first_order_when_the_street_is_last(): void
+    {
+        $result = $this->extractor->extractVenue('Miesto konania: Sabinov, Gréckokatolícky chrám, Hlavná 5');
+
+        $this->assertSame('Sabinov', $result['city']);
+        $this->assertSame('Gréckokatolícky chrám, Hlavná 5', $result['name']);
+    }
+
+    #[Test]
     public function it_extracts_venue_and_city_from_single_v_prose(): void
     {
         $result = $this->extractor->extractVenue('Stretnutie o 18:00 v Katedrále svätého Martina v Bratislave.');
