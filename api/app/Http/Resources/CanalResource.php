@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\CanalIdentityMode;
+use App\Enums\CanalRole;
 use App\Enums\ModelStatus;
 use App\Http\Resources\Traits\HasAllowedStatuses;
 use App\Http\Resources\Traits\HasAttributeCheckState;
@@ -27,6 +28,16 @@ class CanalResource extends JsonResource
 
         $data['status_label'] = $this->statusLabel();
         $data['allowed_statuses'] = $this->allowedStatuses($request);
+
+        // Prevzatý kanál správca nearchivuje (CanalPolicy::archive) — stav mu
+        // vo formulári neponúkame. Admin ho mení v /admin.
+        if ($this->resource->isClaimed() && ! $user?->hasRole('super-admin')
+            && $this->status !== ModelStatus::Archived) {
+            $data['allowed_statuses'] = array_values(array_filter(
+                $data['allowed_statuses'],
+                fn (array $option) => $option['value'] !== ModelStatus::Archived->value,
+            ));
+        }
         $data['identity_mode_label'] = $this->identityModeLabel();
         // Nefunkčné hodnoty (dnes web) — viď App\Services\Attributes.
         $data['attribute_issues'] = $this->attributeCheckState($request);
@@ -42,6 +53,18 @@ class CanalResource extends JsonResource
 
         // Technický e-mail o zverejnenej akcii (CanalEventOffer) — len super-admin.
         if ($user?->hasRole('super-admin')) {
+            // Pôvod kanála: kto ho založil a kto ho prevzal. Organizátor to
+            // nevidí — prevzatý kanál založila platforma, správca ho len spravuje.
+            if ($request->route()?->getActionMethod() === 'show') {
+                $claimedBy = $this->resource->claimedBy;
+                $data['origin'] = [
+                    'source' => $this->registration_source?->value,
+                    'created_at' => $this->created_at,
+                    'claimed_at' => $this->claimed_at,
+                    'claimed_by' => $claimedBy ? ['id' => $claimedBy->id, 'name' => $claimedBy->displayName()] : null,
+                ];
+            }
+
             $data['event_offer_disabled'] = (bool) $this->event_offer_disabled;
             $data['event_offer_domain_excluded'] = CanalEventOffer::excludedDomain($this->email);
         }
@@ -116,8 +139,13 @@ class CanalResource extends JsonResource
         if ($this->relationLoaded('users')) {
             $data['members_list'] = $this->users->map(fn ($u) => [
                 'id' => $u->id,
-                'name' => $u->display_name ?? $u->name ?? ('User #'.$u->id),
+                // Používateľ nemá stĺpec s menom — meno je v osobnom kanáli
+                // (displayName()); `display_name`/`name` tu boli vždy null.
+                'name' => $u->displayName(),
                 'is_owner' => (bool) $u->pivot->is_owner,
+                'role' => $u->pivot->role,
+                'role_label' => CanalRole::tryFrom((string) $u->pivot->role)?->label(),
+                'is_primary' => $this->resource->isClaimed() && (int) $this->claimed_by_user_id === (int) $u->id,
             ])->values()->all();
         }
 

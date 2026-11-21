@@ -2,7 +2,8 @@
 
 // Popisky rolí člena tímu kanála (App\Enums\CanalRole).
 return [
-    'owner' => 'Vlastník',
+    'owner' => 'Správca',
     'editor' => 'Editor',
+    'viewer' => 'Prehliadač',
     'checkin' => 'Vstup',
 ];

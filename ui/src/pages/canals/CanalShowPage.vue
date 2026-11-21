@@ -177,11 +177,29 @@
               <dd class="mt-1 grid gap-1">
                 <span v-for="m in membersPage.items.value" :key="m.id"
                   class="flex min-w-0 items-center gap-1.5 text-sm text-slate-700">
-                  <span v-if="m.isOwner" class="text-xs font-semibold text-teal-600">{{ t('common.owner') }}</span>
+                  <span v-if="m.roleLabel" class="shrink-0 text-xs font-semibold" :class="m.isOwner ? 'text-teal-600' : 'text-slate-500'">[{{ m.roleLabel.toLowerCase() }}]</span>
                   <RouterLink :to="`/admin/users/${m.id}`" class="min-w-0 truncate text-blue-700 no-underline hover:underline" :title="m.name">{{ m.name }}</RouterLink>
+                  <span v-if="m.isPrimary" class="shrink-0 text-xs text-amber-700">· {{ t('canals.show.origin.primary') }}</span>
                 </span>
               </dd>
               <AppPaginator :current-page="membersPage.page.value" :last-page="membersPage.lastPage.value" @change="membersPage.setPage" />
+            </div>
+
+            <!-- Pôvod: prevzatý kanál založila platforma, správca ho len spravuje.
+                 Správca to nevidí — API pošle `origin` len super-adminovi. -->
+            <div v-if="scope === 'admin' && canal.origin" class="detail-card" :title="t('canals.show.origin.hint')">
+              <dt>{{ t('canals.show.origin.title') }}</dt>
+              <dd class="mt-1 grid gap-0.5 text-sm text-slate-700">
+                <span>
+                  {{ t('canals.show.origin.founded') }}:
+                  {{ canal.origin.source ? t(`canals.show.origin.sources.${canal.origin.source}`) : '—' }}<template v-if="canal.origin.createdAt">, {{ formatDate(canal.origin.createdAt) }}</template>
+                </span>
+                <span v-if="canal.origin.claimedBy">
+                  {{ t('canals.show.origin.claimed') }}:
+                  <RouterLink :to="`/admin/users/${canal.origin.claimedBy.id}`" class="text-blue-700 no-underline hover:underline">{{ canal.origin.claimedBy.name }}</RouterLink><template v-if="canal.origin.claimedAt">, {{ formatDate(canal.origin.claimedAt) }}</template>
+                </span>
+                <span v-else-if="canal.origin.source === 'import' || canal.origin.source === 'system'" class="text-slate-400">{{ t('canals.show.origin.notClaimed') }}</span>
+              </dd>
             </div>
 
             <!-- Stav a technické dátumy (publikované/vytvorené/upravené) tu

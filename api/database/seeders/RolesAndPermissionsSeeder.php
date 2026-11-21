@@ -77,6 +77,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $viewerRole = Role::firstOrCreate([
+            'name' => 'canal-viewer',
+            'guard_name' => 'web',
+        ]);
+
         $superAdminRole->syncPermissions(Permission::query()->pluck('name')->all());
 
         $ownerRole->syncPermissions([
@@ -137,6 +142,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'event.view',
             'ticket.view',
             'ticket.checkin',
+        ]);
+
+        // Prehliadač: vidí podujatia, miesta, lístky a objednávateľov, nič nemení.
+        $viewerRole->syncPermissions([
+            'canal.view',
+            'event.view',
+            'venue.view',
+            'ticket.view',
+            'file.view',
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

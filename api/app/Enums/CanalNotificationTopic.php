@@ -36,7 +36,8 @@ enum CanalNotificationTopic: string implements HasLabel
         return match ($role) {
             CanalRole::Owner => true,
             CanalRole::Editor => in_array($this, [self::Signups, self::Questions], true),
-            CanalRole::Checkin => false,
+            // Prehliadač si prihlášky zapne sám, ak ich chce dostávať.
+            CanalRole::Viewer, CanalRole::Checkin => false,
         };
     }
 }

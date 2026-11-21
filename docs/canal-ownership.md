@@ -5,10 +5,28 @@
 |---|---|---|
 | Pôvod | `canals.registration_source` | Ako kanál vznikol (`self`, `admin`, `import`, `system`). Nemení sa. |
 | Správa | `canals.claimed_at`, `claimed_by_user_id` | Či za kanálom stojí človek. `Canal::isManaged()` = pôvod `self`/`admin` **alebo** prevzatý. |
-| Členstvo | `canal_user.role` | `owner` / `editor` / `checkin`. Mení len `CanalMembership`. |
+| Členstvo | `canal_user.role` | `owner` (v UI **Správca**) / `editor` / `viewer` (Prehliadač) / `checkin`. Mení len `CanalMembership`. |
+| Hlavný správca | `canals.claimed_by_user_id` | Kto prevzatý kanál prevzal. V dashboarde ho nikto neodoberie ani nepreradí. |
 | Verejný kontakt | `canals.email`, `phone` | Údaj na stránke. Po fáze 2 už nerozhoduje, kto dostáva notifikácie. |
 | Technický vlastník | super-admin (`ImportedCanalManager::systemOwner()`) | Vlastník neprevzatého importu. Neoslovuje sa. |
 | Zberný kanál | `CollectionCanal::is()` | Importovaný kanál pomenovaný po zdroji (napr. vyveska.sk), obsahuje podujatia rôznych organizátorov. |
+
+## Platforma, správca a tím
+Prevzatý kanál (a jeho miesta) založila platforma. Kto ho prevzal, ho **spravuje, ale nevlastní**:
+- Platforma (super-admin) nie je členom tímu. Celú moc nad kanálom má cez `/admin`, kde policy neplatí (`AuthServiceProvider`). V dashboarde vystupuje ako bežný člen.
+- Správca nevidí, že kanál založila platforma. Pôvod (`origin`: `registration_source`, `created_at`, `claimed_at`, `claimed_by`) posiela `CanalResource` len super-adminovi na detaile. Admin ho vidí v module „Pôvod“ na detaile kanála, kde sú pri členoch aj ich roly.
+- Rola `owner` sa v UI volá **Správca**. Technicky ostáva `owner`.
+
+| Rola | Smie | Nesmie |
+|---|---|---|
+| Správca (`owner`) | upravovať kanál, robiť podujatia, miesta a lístky, spravovať tím, pozvať ďalšieho správcu | pri prevzatom kanáli: zmazať ho (`CanalPolicy::delete`), archivovať ho (`CanalPolicy::archive` aj `status` vo formulári), odobrať alebo znížiť hlavného správcu |
+| Editor | robiť obsah: podujatia, miesta, lístky, súbory | mazať podujatia, spravovať tím, upravovať kanál |
+| Prehliadač (`viewer`) | vidieť podujatia, miesta, lístky a objednávateľov (export prihlásených) a súbory | čokoľvek meniť, robiť check-in |
+| Vstup (`checkin`) | vidieť podujatia a lístky, robiť check-in | čokoľvek meniť |
+
+- Notifikácie pre prehliadača sú predvolene vypnuté. Prihlášky si môže zapnúť sám.
+- **Hlavný správca** (`claimed_by_user_id`): `DashboardCanalTeamController` odmietne jeho odobratie aj preradenie (422 `canal_team.primary_steward`). Rieši to len admin: námietka alebo `CanalStewardship::revert`. Tím ho vidí s príznakom `is_primary`.
+- Platí aj pôvodné: publikované podujatie sa len archivuje, miesto používané iným kanálom sa nemaže a zmeny tímu idú do denníka `canals.*`.
 
 ## Fáza 1: Prevzatie kanála (hotové)
 - `CanalStewardship::complete($canal, $user)`: nový vlastník, odobratie technického vlastníka, `claimed_at`, zápis do denníka a e-mail.

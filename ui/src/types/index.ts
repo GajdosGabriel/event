@@ -395,7 +395,14 @@ export interface CanalItem {
   /** Fakturačná identita kanála; `null` pri osobnom kanáli bez firmy. */
   organization: { id: number; name: string } | null
   venuesList: { id: number; name: string; isOwner: boolean }[]
-  membersList: { id: number; name: string; isOwner: boolean }[]
+  membersList: { id: number; name: string; isOwner: boolean; roleLabel: string | null; isPrimary: boolean }[]
+  /** Pôvod kanála (kto ho založil a kto prevzal) — len super-admin na detaile. */
+  origin?: {
+    source: 'self' | 'admin' | 'import' | 'system' | null
+    createdAt: string | null
+    claimedAt: string | null
+    claimedBy: { id: number; name: string } | null
+  } | null
   /** Má cieľ vlastníka s e-mailom? (riadi tlačidlo „Poslať správu") */
   contactable?: boolean
   /** Nikto ho nespravuje a nie je zberný — ponúknuť „Spravujete tento kanál?" */

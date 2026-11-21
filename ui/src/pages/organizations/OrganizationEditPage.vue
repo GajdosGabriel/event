@@ -358,7 +358,7 @@ const canalsError = ref<string | null>(null)
 const detaching = ref<number | null>(null)
 const attaching = ref(false)
 
-const ROLES = ['owner', 'editor', 'checkin'] as const
+const ROLES = ['owner', 'editor', 'viewer', 'checkin'] as const
 
 /** Neznámu rolu zo servera ukážeme tak, ako prišla — radšej než prázdno. */
 function roleLabel(role: string | null) {

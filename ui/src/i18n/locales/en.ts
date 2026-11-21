@@ -559,8 +559,9 @@ const en: Messages = {
       members: { one: '{n} member', few: '{n} members', many: '{n} members' },
     },
     roles: {
-      owner: 'Owner',
+      owner: 'Manager',
       editor: 'Programmer',
+      viewer: 'Viewer',
       checkin: 'Check-in',
       member: 'Member',
     },
@@ -1391,6 +1392,15 @@ const en: Messages = {
     show: {
       notFound: 'Channel not found',
       members: 'Members',
+      origin: {
+        title: 'Origin',
+        founded: 'Created by',
+        claimed: 'Claimed by',
+        notClaimed: 'Nobody has claimed this channel yet.',
+        primary: 'main manager',
+        hint: 'Visible to administrators only. The channel manager does not see the origin.',
+        sources: { self: 'organiser (sign-up)', admin: 'administrator', import: 'platform (import)', system: 'platform' },
+      },
       events: 'Events of the channel',
       contact: 'Contact',
       email: 'Email',
@@ -1539,6 +1549,7 @@ const en: Messages = {
     loading: 'Loading…',
     loadFailed: 'The team could not be loaded.',
     self: '(you)',
+    primary: 'main manager',
     remove: 'Remove',
     removeConfirm: 'Really remove {name} from the team?',
     removed: 'Member removed.',
@@ -1564,6 +1575,7 @@ const en: Messages = {
     roleHints: {
       owner: 'manages the channel, its events, venues and the team, and can invite others.',
       editor: 'makes the content — creates and edits events, venues and tickets. Cannot delete the channel or manage the team.',
+      viewer: 'sees events, venues, tickets and buyers. Edits nothing.',
       checkin: 'door staff — sees events and tickets and scans QR codes on arrival. Edits nothing.',
     },
     actionFailed: 'The action could not be completed.',
@@ -1584,8 +1596,9 @@ const en: Messages = {
     email: 'Invitation address',
     expires: 'Valid until',
     roleNotes: {
-      owner: 'As the owner you will be able to manage the channel, its events and the team.',
+      owner: 'As the manager you will be able to manage the channel, its events and the team.',
       editor: 'As an editor you will be able to create and edit events, venues and tickets.',
+      viewer: 'As a viewer you will see events, venues, tickets and buyers, but change nothing.',
       checkin: 'As door staff you will be able to scan QR codes and handle arrivals.',
     },
     acceptedTitle: 'You are in the team!',

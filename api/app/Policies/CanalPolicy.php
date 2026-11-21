@@ -60,11 +60,14 @@ class CanalPolicy
     }
 
     /**
-     * Determine whether the user can archive the model (published -> archived).
+     * Archivácia (published -> archived). Prevzatý kanál správca nearchivuje —
+     * stiahol by tým z webu podujatia a históriu, ktorú založila platforma.
+     * Rovnako ako mazanie to vie len administrátor (v /admin policy neplatí).
      */
     public function archive(User $user, Canal $canal): bool
     {
         return $canal->status === ModelStatus::Published
+            && ! $canal->isClaimed()
             && $user->canInCanal((int) $canal->id, 'canal.delete');
     }
 

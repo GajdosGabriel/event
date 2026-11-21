@@ -2,7 +2,7 @@
 
 // Hlášky správy tímu kanála (App\Services\Canals\*, DashboardCanalTeamController).
 return [
-    'last_owner' => 'Kanál musí mít alespoň jednoho vlastníka.',
+    'last_owner' => 'Kanál musí mít alespoň jednoho správce.',
     'collection_not_claimable' => 'Tento kanál sdružuje akce různých pořadatelů a nelze ho převzít.',
     'already_member' => 'Tento uživatel už v týmu kanálu je.',
     'already_accepted' => 'Pozvánka už byla přijata.',
@@ -10,4 +10,5 @@ return [
     'email_mismatch' => 'Pozvánka je určena pro adresu :email. Přihlaste se účtem s touto adresou.',
     'self_role_change' => 'Vlastní roli v kanálu měnit nemůžete.',
     'self_remove' => 'Sami sebe z týmu odebrat nemůžete.',
+    'primary_steward' => 'Hlavního správce, který kanál převzal, může odebrat nebo přeřadit jen administrátor portálu.',
 ];

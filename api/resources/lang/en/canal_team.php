@@ -2,7 +2,7 @@
 
 // Hlášky správy tímu kanála (App\Services\Canals\*, DashboardCanalTeamController).
 return [
-    'last_owner' => 'A canal must have at least one owner.',
+    'last_owner' => 'A canal must have at least one manager.',
     'collection_not_claimable' => 'This canal collects events from various organizers and cannot be taken over.',
     'already_member' => 'This user is already on the canal team.',
     'already_accepted' => 'The invitation has already been accepted.',
@@ -10,4 +10,5 @@ return [
     'email_mismatch' => 'This invitation is for :email. Sign in with an account using that address.',
     'self_role_change' => 'You cannot change your own role in the canal.',
     'self_remove' => 'You cannot remove yourself from the team.',
+    'primary_steward' => 'Only a portal administrator can remove or reassign the main manager who claimed the canal.',
 ];

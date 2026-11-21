@@ -559,8 +559,9 @@ const de: Messages = {
       members: { one: '{n} Mitglied', few: '{n} Mitglieder', many: '{n} Mitglieder' },
     },
     roles: {
-      owner: 'Inhaber',
+      owner: 'Verwalter',
       editor: 'Dramaturg',
+      viewer: 'Betrachter',
       checkin: 'Einlass',
       member: 'Mitglied',
     },
@@ -1391,6 +1392,15 @@ const de: Messages = {
     show: {
       notFound: 'Kanal nicht gefunden',
       members: 'Mitglieder',
+      origin: {
+        title: 'Herkunft',
+        founded: 'Angelegt von',
+        claimed: 'Übernommen von',
+        notClaimed: 'Den Kanal hat noch niemand übernommen.',
+        primary: 'Hauptverwalter',
+        hint: 'Nur für Administratoren sichtbar. Der Kanalverwalter sieht die Herkunft nicht.',
+        sources: { self: 'Veranstalter (Registrierung)', admin: 'Administrator', import: 'Plattform (Import)', system: 'Plattform' },
+      },
       events: 'Veranstaltungen des Kanals',
       contact: 'Kontakt',
       email: 'E-Mail',
@@ -1539,6 +1549,7 @@ const de: Messages = {
     loading: 'Wird geladen…',
     loadFailed: 'Das Team konnte nicht geladen werden.',
     self: '(Sie)',
+    primary: 'Hauptverwalter',
     remove: 'Entfernen',
     removeConfirm: '{name} wirklich aus dem Team entfernen?',
     removed: 'Mitglied entfernt.',
@@ -1564,6 +1575,7 @@ const de: Messages = {
     roleHints: {
       owner: 'verwaltet den Kanal, seine Veranstaltungen, Orte und das Team und kann weitere einladen.',
       editor: 'macht die Inhalte — legt Veranstaltungen, Orte und Tickets an und bearbeitet sie. Löscht den Kanal nicht und verwaltet das Team nicht.',
+      viewer: 'sieht Veranstaltungen, Orte, Tickets und Besteller. Bearbeitet nichts.',
       checkin: 'Einlasskraft — sieht Veranstaltungen und Tickets und scannt QR-Codes beim Ankommen. Bearbeitet nichts.',
     },
     actionFailed: 'Die Aktion konnte nicht abgeschlossen werden.',
@@ -1584,8 +1596,9 @@ const de: Messages = {
     email: 'Adresse der Einladung',
     expires: 'Gültig bis',
     roleNotes: {
-      owner: 'Als Eigentümer können Sie den Kanal, seine Veranstaltungen und das Team verwalten.',
+      owner: 'Als Verwalter können Sie den Kanal, seine Veranstaltungen und das Team verwalten.',
       editor: 'Als Redakteur können Sie Veranstaltungen, Orte und Tickets anlegen und bearbeiten.',
+      viewer: 'Als Betrachter sehen Sie Veranstaltungen, Orte, Tickets und Besteller, ändern aber nichts.',
       checkin: 'Als Einlasskraft können Sie QR-Codes scannen und Ankünfte abfertigen.',
     },
     acceptedTitle: 'Sie sind im Team!',

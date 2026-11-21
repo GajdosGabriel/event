@@ -558,8 +558,9 @@ const cs: Messages = {
       members: { one: '{n} člen', few: '{n} členové', many: '{n} členů' },
     },
     roles: {
-      owner: 'Vlastník',
+      owner: 'Správce',
       editor: 'Dramaturg',
+      viewer: 'Prohlížeč',
       checkin: 'Vstup',
       member: 'Člen',
     },
@@ -1390,6 +1391,15 @@ const cs: Messages = {
     show: {
       notFound: 'Kanál nenalezen',
       members: 'Členové',
+      origin: {
+        title: 'Původ',
+        founded: 'Založil',
+        claimed: 'Převzal',
+        notClaimed: 'Kanál zatím nikdo nepřevzal.',
+        primary: 'hlavní správce',
+        hint: 'Vidí jen administrátor. Správce kanálu původ nevidí.',
+        sources: { self: 'organizátor (registrace)', admin: 'administrátor', import: 'platforma (import)', system: 'platforma' },
+      },
       events: 'Akce kanálu',
       contact: 'Kontakt',
       email: 'E-mail',
@@ -1538,6 +1548,7 @@ const cs: Messages = {
     loading: 'Načítám…',
     loadFailed: 'Tým se nepodařilo načíst.',
     self: '(vy)',
+    primary: 'hlavní správce',
     remove: 'Odebrat',
     removeConfirm: 'Opravdu odebrat {name} z týmu?',
     removed: 'Člen odebrán.',
@@ -1563,6 +1574,7 @@ const cs: Messages = {
     roleHints: {
       owner: 'spravuje kanál, jeho akce, místa i tým a může zvát další.',
       editor: 'dělá obsah — vytváří a upravuje akce, místa a vstupenky. Kanál nesmaže a tým nespravuje.',
+      viewer: 'vidí akce, místa, vstupenky i objednatele. Nic neupravuje.',
       checkin: 'obsluha vstupu — vidí akce a vstupenky a načítá QR kódy při příchodu. Nic neupravuje.',
     },
     actionFailed: 'Akci se nepodařilo dokončit.',
@@ -1583,8 +1595,9 @@ const cs: Messages = {
     email: 'Adresa pozvánky',
     expires: 'Platí do',
     roleNotes: {
-      owner: 'Jako vlastník budete moci spravovat kanál, jeho akce i tým.',
+      owner: 'Jako správce budete moci spravovat kanál, jeho akce i tým.',
       editor: 'Jako editor budete moci vytvářet a upravovat akce, místa a vstupenky.',
+      viewer: 'Jako prohlížeč uvidíte akce, místa, vstupenky i objednatele, ale nic nezměníte.',
       checkin: 'Jako obsluha vstupu budete moci načítat QR kódy a odbavovat příchody.',
     },
     acceptedTitle: 'Jste v týmu!',

@@ -2,7 +2,7 @@ import http from './index'
 import type { SelectOption } from '@/types'
 
 /** Rola člena v konkrétnom kanáli — zhoduje sa s App\Enums\CanalRole. */
-export type CanalRole = 'owner' | 'editor' | 'checkin'
+export type CanalRole = 'owner' | 'editor' | 'viewer' | 'checkin'
 
 export interface CanalTeamMember {
   id: number
@@ -13,6 +13,8 @@ export interface CanalTeamMember {
   roleLabel: string
   isOwner: boolean
   isSelf: boolean
+  /** Hlavný správca prevzatého kanála — v dashboarde sa neodoberá ani nepreraďuje. */
+  isPrimary: boolean
   joinedAt: string | null
   /** Zapnuté témy notifikácií — len pre seba a pre toho, kto tím spravuje. */
   notifications: Record<string, boolean> | null
@@ -50,6 +52,7 @@ function mapTeam(payload: Record<string, unknown>): CanalTeam {
       roleLabel: m['role_label'] as string,
       isOwner: Boolean(m['is_owner']),
       isSelf: Boolean(m['is_self']),
+      isPrimary: Boolean(m['is_primary']),
       joinedAt: (m['joined_at'] as string) ?? null,
       notifications: (m['notifications'] as Record<string, boolean>) ?? null,
     })),

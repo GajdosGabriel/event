@@ -586,8 +586,9 @@ const sk = {
       members: { one: '{n} člen', few: '{n} členovia', many: '{n} členov' },
     },
     roles: {
-      owner: 'Vlastník',
+      owner: 'Správca',
       editor: 'Dramaturg',
+      viewer: 'Prehliadač',
       checkin: 'Vstup',
       member: 'Člen',
     },
@@ -1469,6 +1470,15 @@ const sk = {
     show: {
       notFound: 'Kanál nenájdený',
       members: 'Členovia',
+      origin: {
+        title: 'Pôvod',
+        founded: 'Založil',
+        claimed: 'Prevzal',
+        notClaimed: 'Kanál zatiaľ nikto neprevzal.',
+        primary: 'hlavný správca',
+        hint: 'Vidí len administrátor. Správca kanála pôvod nevidí.',
+        sources: { self: 'organizátor (registrácia)', admin: 'administrátor', import: 'platforma (import)', system: 'platforma' },
+      },
       events: 'Eventy kanálu',
       contact: 'Kontakt',
       email: 'E-mail',
@@ -1618,6 +1628,7 @@ const sk = {
     loading: 'Načítavam…',
     loadFailed: 'Tím sa nepodarilo načítať.',
     self: '(vy)',
+    primary: 'hlavný správca',
     remove: 'Odobrať',
     removeConfirm: 'Naozaj odobrať {name} z tímu?',
     removed: 'Člen odobratý.',
@@ -1645,6 +1656,7 @@ const sk = {
     roleHints: {
       owner: 'spravuje kanál, jeho podujatia, miesta aj tím a môže pozývať ďalších.',
       editor: 'robí obsah — vytvára a upravuje podujatia, miesta a lístky. Kanál nezmaže a tím nespravuje.',
+      viewer: 'vidí podujatia, miesta, lístky aj objednávateľov. Nič neupravuje.',
       checkin: 'obsluha vstupu — vidí podujatia a lístky a načítava QR kódy pri príchode. Nič neupravuje.',
     },
     actionFailed: 'Akciu sa nepodarilo dokončiť.',
@@ -1666,8 +1678,9 @@ const sk = {
     email: 'Adresa pozvánky',
     expires: 'Platí do',
     roleNotes: {
-      owner: 'Ako vlastník budete môcť spravovať kanál, jeho podujatia aj tím.',
+      owner: 'Ako správca budete môcť spravovať kanál, jeho podujatia aj tím.',
       editor: 'Ako editor budete môcť vytvárať a upravovať podujatia, miesta a lístky.',
+      viewer: 'Ako prehliadač uvidíte podujatia, miesta, lístky aj objednávateľov, ale nič nezmeníte.',
       checkin: 'Ako obsluha vstupu budete môcť načítavať QR kódy a odbavovať príchody.',
     },
     acceptedTitle: 'Ste v tíme!',

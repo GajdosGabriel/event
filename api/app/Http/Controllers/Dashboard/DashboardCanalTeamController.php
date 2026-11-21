@@ -52,6 +52,7 @@ class DashboardCanalTeamController extends Controller
         $this->authorize('manageTeam', $canal);
         $this->assertNotSelf($request, $user, 'canal_team.self_role_change');
         $this->assertMember($canal, $user);
+        $this->assertNotPrimarySteward($canal, $user, $request->role());
 
         $this->membership->changeRole($canal, $user, $request->role());
 
@@ -87,6 +88,7 @@ class DashboardCanalTeamController extends Controller
         $this->authorize('manageTeam', $canal);
         $this->assertNotSelf($request, $user, 'canal_team.self_remove');
         $this->assertMember($canal, $user);
+        $this->assertNotPrimarySteward($canal, $user);
 
         $this->membership->detach($canal, $user);
 
@@ -126,7 +128,7 @@ class DashboardCanalTeamController extends Controller
 
         $notifications = $this->recipients->matrix($canal);
 
-        $members = $canal->users()->get()->map(function (User $member) use ($authUser, $canManage, $notifications) {
+        $members = $canal->users()->get()->map(function (User $member) use ($canal, $authUser, $canManage, $notifications) {
             $role = CanalRole::tryFrom((string) $member->pivot->role) ?? CanalRole::Editor;
             $isSelf = (int) $member->id === (int) $authUser?->id;
 
@@ -138,6 +140,9 @@ class DashboardCanalTeamController extends Controller
                 'role_label' => $role->label(),
                 'is_owner' => (bool) $member->pivot->is_owner,
                 'is_self' => $isSelf,
+                // Hlavný správca prevzatého kanála — v dashboarde ho nikto
+                // neodoberie ani nepreradí (UI skryje výber roly aj „Odobrať").
+                'is_primary' => $this->isPrimarySteward($canal, $member),
                 'joined_at' => $member->pivot->created_at,
                 // Nastavenia vidí a mení člen sám a ten, kto tím spravuje.
                 'notifications' => $isSelf || $canManage ? ($notifications[$member->id] ?? null) : null,
@@ -174,6 +179,27 @@ class DashboardCanalTeamController extends Controller
     private function assertMember(Canal $canal, User $user): void
     {
         abort_unless($canal->users()->where('users.id', $user->id)->exists(), 404);
+    }
+
+    /**
+     * Prevzatý kanál založila platforma; kto ho prevzal (claimed_by), je jeho
+     * hlavný správca. Ďalší správca ho nesmie vyhodiť ani znížiť — inak by si
+     * kanál mohol „ukradnúť" ktokoľvek, koho hlavný správca pozval. Prípadný
+     * spor rieši admin (námietka / CanalStewardship::revert). Platí aj pre
+     * super-admina v dashboarde: tam vystupuje ako člen, nie ako admin.
+     */
+    private function assertNotPrimarySteward(Canal $canal, User $user, ?CanalRole $role = null): void
+    {
+        if ($role?->isOwner() || ! $this->isPrimarySteward($canal, $user)) {
+            return;
+        }
+
+        abort(422, __('canal_team.primary_steward'));
+    }
+
+    private function isPrimarySteward(Canal $canal, User $user): bool
+    {
+        return $canal->isClaimed() && (int) $canal->claimed_by_user_id === (int) $user->id;
     }
 
     private function assertBelongsToCanal(Canal $canal, CanalInvitation $invitation): void

@@ -27,10 +27,13 @@
               class="text-slate-900 no-underline hover:text-blue-700 hover:underline">{{ m.name }}</RouterLink>
             <template v-else>{{ m.name }}</template>
             <span v-if="m.isSelf" class="text-xs font-normal text-slate-500">{{ t('team.self') }}</span>
+            <span v-if="m.isPrimary" class="ml-1 text-xs font-normal text-amber-700">· {{ t('team.primary') }}</span>
           </span>
 
-          <!-- Vlastnú rolu si meniť nemožno — kanál by ostal bez správcu. -->
-          <select v-if="canManage && !m.isSelf" :value="m.role" :disabled="busy"
+          <!-- Vlastnú rolu si meniť nemožno — kanál by ostal bez správcu.
+               Hlavného správcu (ten, kto kanál prevzal) nepreradí ani neodoberie
+               nikto z tímu, len administrátor portálu. -->
+          <select v-if="canManage && !m.isSelf && !m.isPrimary" :value="m.role" :disabled="busy"
             class="shrink-0 rounded-lg border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
             @change="changeRole(m, ($event.target as HTMLSelectElement).value as CanalRole)">
             <option v-for="r in team.roles" :key="r.value" :value="r.value">{{ r.label }}</option>
@@ -38,7 +41,7 @@
           <span v-else class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
             :class="roleClass(m.role)">{{ m.roleLabel }}</span>
 
-          <button v-if="canManage && !m.isSelf" type="button" :disabled="busy"
+          <button v-if="canManage && !m.isSelf && !m.isPrimary" type="button" :disabled="busy"
             class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             @click="remove(m)">
             {{ t('team.remove') }}
@@ -194,6 +197,7 @@ function roleClass(role: CanalRole): string {
   switch (role) {
     case 'owner': return 'bg-amber-50 text-amber-700'
     case 'editor': return 'bg-sky-50 text-sky-700'
+    case 'viewer': return 'bg-violet-50 text-violet-700'
     default: return 'bg-slate-100 text-slate-600'
   }
 }

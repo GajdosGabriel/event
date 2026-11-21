@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\CanalIdentityMode;
+use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CanalStoreRequest;
 use App\Http\Requests\IndexFilterRequest;
@@ -81,6 +82,15 @@ class DashboardCanalController extends Controller
     {
         $canal = $this->canalRepository->dashboardShow($id);
         $this->authorize('update', $canal);
+
+        // Archivácia cez formulár (`status`) nesmie obísť CanalPolicy::archive —
+        // prevzatý kanál archivuje len admin.
+        abort_if(
+            $canal->isClaimed()
+                && $canal->status !== ModelStatus::Archived
+                && ModelStatus::tryFrom((string) $request->validated('status')) === ModelStatus::Archived,
+            403,
+        );
 
         $this->canalRepository->update($id, $request->validated());
 

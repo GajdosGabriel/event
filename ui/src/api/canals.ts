@@ -10,6 +10,19 @@ function baseUrl(scope: Scope) {
   return scope === 'admin' ? '/admin/canals' : '/dashboard/canals'
 }
 
+function mapOrigin(value: unknown): CanalItem['origin'] {
+  if (!value || typeof value !== 'object') return null
+  const o = value as Record<string, unknown>
+  const by = o['claimed_by'] as Record<string, unknown> | null
+
+  return {
+    source: (o['source'] as NonNullable<CanalItem['origin']>['source']) ?? null,
+    createdAt: (o['created_at'] as string) ?? null,
+    claimedAt: (o['claimed_at'] as string) ?? null,
+    claimedBy: by ? { id: by['id'] as number, name: by['name'] as string } : null,
+  }
+}
+
 function mapCanal(raw: Record<string, unknown>): CanalItem {
   return {
     id: raw['id'] as number,
@@ -58,7 +71,8 @@ function mapCanal(raw: Record<string, unknown>): CanalItem {
     municipality: raw['municipality'] ? { id: (raw['municipality'] as Record<string,unknown>)['id'] as number, name: (raw['municipality'] as Record<string,unknown>)['name'] as string } : null,
     organization: raw['organization'] ? { id: (raw['organization'] as Record<string,unknown>)['id'] as number, name: (raw['organization'] as Record<string,unknown>)['name'] as string } : null,
     venuesList: ((raw['venues_list'] as Record<string,unknown>[]) ?? []).map(v => ({ id: v['id'] as number, name: v['name'] as string, isOwner: v['is_owner'] as boolean })),
-    membersList: ((raw['members_list'] as Record<string,unknown>[]) ?? []).map(u => ({ id: u['id'] as number, name: u['name'] as string, isOwner: u['is_owner'] as boolean })),
+    membersList: ((raw['members_list'] as Record<string,unknown>[]) ?? []).map(u => ({ id: u['id'] as number, name: u['name'] as string, isOwner: u['is_owner'] as boolean, roleLabel: (u['role_label'] as string) ?? null, isPrimary: Boolean(u['is_primary']) })),
+    origin: mapOrigin(raw['origin']),
     contactable: Boolean(raw['contactable']),
     claimable: Boolean(raw['claimable']),
     claimContact: Boolean(raw['claim_contact']),

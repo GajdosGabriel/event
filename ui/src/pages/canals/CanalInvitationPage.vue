@@ -114,7 +114,7 @@ const error = ref<string | null>(null)
 
 const token = computed(() => String(route.params.token ?? ''))
 
-const ROLES = ['owner', 'editor', 'checkin'] as const
+const ROLES = ['owner', 'editor', 'viewer', 'checkin'] as const
 
 const roleNote = computed(() => {
   const role = invitation.value?.role ?? ''

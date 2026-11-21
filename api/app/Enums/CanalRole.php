@@ -20,11 +20,18 @@ enum CanalRole: string implements HasLabel
 {
     use ProvidesOptions;
 
-    /** Plná správa kanála vrátane tímu, mazania a archivácie. */
+    /**
+     * Správca: plná správa kanála vrátane tímu. V UI „Správca", nie „Vlastník" —
+     * prevzatý kanál založila platforma a správcovi nepatrí; jeho mazanie,
+     * archiváciu a odobratie hlavného správcu (claimed_by) rieši len admin.
+     */
     case Owner = 'owner';
 
     /** Robí obsah: podujatia, miesta, lístky. Nemôže spravovať tím ani kanál zmazať. */
     case Editor = 'editor';
+
+    /** Prehliadač: vidí podujatia, miesta, lístky aj objednávateľov, nič nemení. */
+    case Viewer = 'viewer';
 
     /** Brigádnik na vstupe — vidí podujatia a lístky, robí len check-in. */
     case Checkin = 'checkin';
@@ -62,6 +69,13 @@ enum CanalRole: string implements HasLabel
                 'ticket.view', 'ticket.create', 'ticket.update', 'ticket.checkin',
                 'file.view', 'file.create', 'file.update', 'file.delete',
             ],
+            self::Viewer => [
+                'canal.view',
+                'event.view',
+                'venue.view',
+                'ticket.view',
+                'file.view',
+            ],
             self::Checkin => [
                 'canal.view',
                 'event.view',
@@ -85,6 +99,7 @@ enum CanalRole: string implements HasLabel
         return match ($this) {
             self::Owner => 'canal-owner',
             self::Editor => 'canal-editor',
+            self::Viewer => 'canal-viewer',
             self::Checkin => 'canal-checkin',
         };
     }
@@ -99,9 +114,10 @@ enum CanalRole: string implements HasLabel
     public function weight(): int
     {
         return match ($this) {
-            self::Owner => 3,
-            self::Editor => 2,
-            self::Checkin => 1,
+            self::Owner => 4,
+            self::Editor => 3,
+            self::Checkin => 2,
+            self::Viewer => 1,
         };
     }
 }
