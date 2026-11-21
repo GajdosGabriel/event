@@ -113,6 +113,26 @@ final class PublicUrl
         return self::absolute(self::eventPath($event));
     }
 
+    /**
+     * Adresa do QR kódu pozvánky — zámerne bez slugu.
+     *
+     * Krátka adresa dá redší QR, ktorý sa načíta aj z malého výtlačku na
+     * nástenke či zo zadného radu pri premietaní, a dá sa prepísať rukou.
+     * Slug doplní SPA presmerovaním na kanonickú adresu (kotva prežije).
+     *
+     * Pri akcii s registráciou vedie rovno na formulár (`#registracia`).
+     * Vytlačený kód sa už nezmení; ak akcia registráciu neskôr stratí,
+     * stránka kotvu len ignoruje.
+     *
+     * Zrkadlo: `publicEventInviteUrl()` v ui/src/utils/publicUrl.ts.
+     */
+    public static function eventInvite(Event $event): string
+    {
+        $url = self::absolute(self::EVENTS.'/'.$event->id);
+
+        return $event->isReservable() ? $url.'#registracia' : $url;
+    }
+
     public static function venuePath(Venue $venue): string
     {
         return self::VENUES.'/'.self::segment($venue->slug, $venue->name, $venue->id);

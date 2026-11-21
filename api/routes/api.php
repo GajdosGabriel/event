@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ImpersonationController as AdminImpersonationCont
 use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\QuestionController as AdminQuestionController;
+use App\Http\Controllers\Admin\ResourceMergeController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
 use App\Http\Controllers\Admin\TagSuggestionController as AdminTagSuggestionController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Dashboard\DashboardFileController;
 use App\Http\Controllers\Dashboard\DashboardHomeController;
 use App\Http\Controllers\Dashboard\DashboardMessageController;
 use App\Http\Controllers\Dashboard\DashboardMunicipalityController;
+use App\Http\Controllers\Dashboard\DashboardNextActionsController;
 use App\Http\Controllers\Dashboard\DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\DashboardQuestionController;
 use App\Http\Controllers\Dashboard\DashboardRoleController;
@@ -43,6 +45,7 @@ use App\Http\Controllers\Dashboard\DashboardUserController;
 use App\Http\Controllers\Dashboard\DashboardVenueController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Me\NotificationController;
 use App\Http\Controllers\Me\SubscriptionController as MeSubscriptionController;
 use App\Http\Controllers\Me\TicketController as MeTicketController;
 use App\Http\Controllers\Public\AdmissionQrController as PublicAdmissionQrController;
@@ -56,6 +59,7 @@ use App\Http\Controllers\Public\CheckinLinkController as PublicCheckinLinkContro
 use App\Http\Controllers\Public\EmailUnsubscribeController as PublicEmailUnsubscribeController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
+use App\Http\Controllers\Public\EventQrController as PublicEventQrController;
 use App\Http\Controllers\Public\EventQuestionController as PublicEventQuestionController;
 use App\Http\Controllers\Public\EventSignupController as PublicEventSignupController;
 use App\Http\Controllers\Public\MessageController as PublicMessageController;
@@ -76,6 +80,7 @@ use App\Http\Controllers\Public\TicketTypeController as PublicTicketTypeControll
 use App\Http\Controllers\Public\VenueController as PublicVenueController;
 use App\Http\Controllers\Public\ViewController as PublicViewController;
 use App\Http\Controllers\Public\WorkshopRegistrationController as PublicWorkshopRegistrationController;
+use App\Http\Controllers\ResourceSimilarityController;
 use App\Http\Controllers\Webhooks\AccountWebhookController;
 use App\Http\Resources\UserResource;
 use App\Services\Lookups\ManualLookups;
@@ -89,11 +94,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Me\NotificationController::class, 'index']);
-    Route::get('/count', [\App\Http\Controllers\Me\NotificationController::class, 'count']);
-    Route::post('/read', [\App\Http\Controllers\Me\NotificationController::class, 'markRead']);
-    Route::post('/unread', [\App\Http\Controllers\Me\NotificationController::class, 'markUnread']);
-    Route::delete('/', [\App\Http\Controllers\Me\NotificationController::class, 'destroy']);
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::get('/count', [NotificationController::class, 'count']);
+    Route::post('/read', [NotificationController::class, 'markRead']);
+    Route::post('/unread', [NotificationController::class, 'markUnread']);
+    Route::delete('/', [NotificationController::class, 'destroy']);
 });
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -162,6 +167,15 @@ Route::get('events/{id}/files', [PublicEventController::class, 'files'])->name('
 // podľa URL.
 Route::get('events/{id}/calendar.ics', [PublicEventCalendarController::class, 'show'])
     ->name('public.events.calendar');
+
+// QR kód pozvánky na akciu — panel Propagácia v správe akcie. Verejný, lebo
+// nesie len verejnú adresu a náhľad tak môže byť obyčajný `<img>`.
+Route::get('events/{id}/qr.png', [PublicEventQrController::class, 'png'])
+    ->name('public.events.qr.png')
+    ->middleware('throttle:render');
+Route::get('events/{id}/qr.svg', [PublicEventQrController::class, 'svg'])
+    ->name('public.events.qr.svg')
+    ->middleware('throttle:render');
 
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
 Route::get('events/{event}/questionnaire', [PublicQuestionnaireController::class, 'index'])->name('public.events.questionnaire.index');
@@ -379,11 +393,11 @@ Route::middleware('auth:sanctum')->prefix('me')->name('me.')->group(function () 
 });
 
 Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->group(function () {
-    Route::get('{resource}/similar', \App\Http\Controllers\ResourceSimilarityController::class)
+    Route::get('{resource}/similar', ResourceSimilarityController::class)
         ->whereIn('resource', ['canals', 'venues', 'organizations'])->name('resources.similar')->middleware('throttle:60,1');
 
     Route::get('/', [DashboardHomeController::class, 'index'])->name('home');
-    Route::get('next-actions', \App\Http\Controllers\Dashboard\DashboardNextActionsController::class)->name('next-actions');
+    Route::get('next-actions', DashboardNextActionsController::class)->name('next-actions');
     Route::get('municipalities/all', [DashboardMunicipalityController::class, 'all']);
 
     // Poloha z rozpísanej adresy — spoločné pre editor miesta aj kanála. Bez
@@ -777,9 +791,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware('auth:sanctum')->grou
 });
 
 Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-admin'])->group(function () {
-    Route::get('{resource}/similar', \App\Http\Controllers\ResourceSimilarityController::class)
+    Route::get('{resource}/similar', ResourceSimilarityController::class)
         ->whereIn('resource', ['canals', 'venues', 'organizations'])->name('resources.similar')->middleware('throttle:60,1');
-    Route::post('{resource}/{id}/merge', \App\Http\Controllers\Admin\ResourceMergeController::class)
+    Route::post('{resource}/{id}/merge', ResourceMergeController::class)
         ->whereIn('resource', ['canals', 'venues'])->whereNumber('id')->name('resources.merge');
 
     Route::get('/', [AdminDashboardController::class, 'index'])->name('home');

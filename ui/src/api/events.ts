@@ -1,4 +1,4 @@
-import http from './index'
+import http, { BASE_URL } from './index'
 import { mapAttributeIssues } from './attributeIssues'
 import { fmtEventRange } from '@/utils/dateFormat'
 import type { EventItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
@@ -335,4 +335,19 @@ export async function municipalitiesOverview(scope: Scope): Promise<Municipality
     : `/${scope === 'admin' ? 'admin' : 'dashboard'}/events/municipalities-overview`
   const { data } = await http.get(url)
   return (data.data ?? data) as MunicipalityOverviewItem[]
+}
+
+/**
+ * QR kód pozvánky na akciu. Obyčajné odkazy pre `<img>` a `<a download>`,
+ * mimo axiosu — rovnaký vzor ako `boardQrUrl` pri nástenke otázok.
+ */
+export function eventQrPngUrl(id: number, options: { size?: number; download?: boolean } = {}): string {
+  const params = new URLSearchParams({ size: String(options.size ?? 1200) })
+  if (options.download) params.set('download', '1')
+
+  return `${BASE_URL}/events/${id}/qr.png?${params.toString()}`
+}
+
+export function eventQrSvgUrl(id: number): string {
+  return `${BASE_URL}/events/${id}/qr.svg?download=1`
 }

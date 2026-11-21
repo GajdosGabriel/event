@@ -102,3 +102,15 @@ export function idFromRouteParam(param: string | string[] | undefined): string {
 export function absoluteUrl(path: string): string {
   return `${window.location.origin}${path}`
 }
+
+/**
+ * Adresa do QR kódu pozvánky — zrkadlo `PublicUrl::eventInvite()`.
+ *
+ * Bez slugu, aby bol vytlačený kód čo najredší a adresa sa dala prepísať
+ * rukou; pri akcii s registráciou vedie rovno na formulár.
+ */
+export function publicEventInviteUrl(event: { id: number; reservable: boolean }): string {
+  const url = absoluteUrl(`${PUBLIC_EVENTS}/${event.id}`)
+
+  return event.reservable ? `${url}#registracia` : url
+}

@@ -145,6 +145,11 @@
 
         <!-- Pravý stĺpec -->
         <aside class="grid gap-4 self-start">
+          <!-- Propagácia hore v paneli: po zverejnení je to to prvé, čo
+               organizátor s akciou robí. Koncept ani kôš ju nemajú — odkaz
+               by viedol na 404 a vytlačený QR by sa už nedal opraviť. -->
+          <EventPromotionPanel v-if="event.status === 'published' && !event.deletedAt" :event="event" />
+
           <!-- Zobrazenia. Číslo chodí z API len organizátorovi a adminovi;
                návštevník ho v odpovedi vôbec nemá. -->
           <dl v-if="event.viewsCount !== null" class="show-card grid gap-3">
@@ -287,6 +292,7 @@ import EventDateRange from '@/components/EventDateRange.vue'
 import EventWorkshops from '@/components/EventWorkshops.vue'
 import EventSeriesPanel from '@/components/EventSeriesPanel.vue'
 import ContactButton from '@/components/ContactButton.vue'
+import EventPromotionPanel from '@/components/EventPromotionPanel.vue'
 import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import PublicPreviewLink from '@/components/PublicPreviewLink.vue'
 import RowActions from '@/components/RowActions.vue'

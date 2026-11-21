@@ -8,6 +8,7 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\Result\GdResult;
 use Endroid\QrCode\Writer\Result\ResultInterface;
+use Endroid\QrCode\Writer\SvgWriter;
 use GdImage;
 
 class QrCodeGenerator
@@ -68,5 +69,22 @@ class QrCodeGenerator
         }
 
         return $image;
+    }
+
+    /**
+     * Ten istý QR ako `imageForUrl()`, ale vektorovo — pre letáky a plagáty,
+     * kde ho grafik zväčší na ľubovoľnú veľkosť bez rozmazania.
+     */
+    public function svgForUrl(string $url, int $margin = 24): string
+    {
+        return (new Builder(
+            writer: new SvgWriter,
+            data: $url,
+            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+            size: 600,
+            margin: $margin,
+            foregroundColor: new Color(11, 18, 32),
+            backgroundColor: new Color(255, 255, 255),
+        ))->build()->getString();
     }
 }
