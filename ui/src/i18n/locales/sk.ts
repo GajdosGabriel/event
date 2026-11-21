@@ -1246,6 +1246,7 @@ const sk = {
       canalLink: 'Kanál →',
       views: 'Zobrazenia',
       viewsHint: 'Unikátni návštevníci verejného detailu, jeden za deň.',
+      viewsFrom: { qr: 'z toho cez QR kód', pozvanka: 'cez pozvánku', odkaz: 'cez zdieľaný odkaz' },
       deadline: 'Registrácia do',
       organizer: 'Organizátor',
       locationName: 'Popis miesta',

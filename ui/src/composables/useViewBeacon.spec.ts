@@ -38,6 +38,16 @@ describe('useViewBeacon', () => {
     vi.restoreAllMocks()
   })
 
+  it('passes the source of the visit along and keeps it when the same page starts again', () => {
+    const { start } = mountBeacon()
+    start(7, 'qr')
+    // Presmerovanie na kanonickú adresu už bez `?z=` — zdroj sa nesmie stratiť.
+    start(7, null)
+
+    vi.advanceTimersByTime(VIEW_DELAY_MS)
+    expect(recordView).toHaveBeenCalledExactlyOnceWith('events', 7, 'qr')
+  })
+
   it('records the view only after the page was visible long enough', () => {
     const { start } = mountBeacon()
     start(7)
@@ -46,7 +56,7 @@ describe('useViewBeacon', () => {
     expect(recordView).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(1)
-    expect(recordView).toHaveBeenCalledExactlyOnceWith('events', 7)
+    expect(recordView).toHaveBeenCalledExactlyOnceWith('events', 7, null)
   })
 
   it('does not count time spent in a hidden tab', () => {

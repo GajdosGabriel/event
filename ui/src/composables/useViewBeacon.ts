@@ -18,6 +18,8 @@ export const VIEW_DELAY_MS = 3000
  */
 export function useViewBeacon(kind: ViewableKind) {
   let targetId: number | null = null
+  /** Odkiaľ návštevník prišiel (`?z=` z odkazu panela Propagácia). */
+  let targetSource: string | null = null
   let remaining = VIEW_DELAY_MS
   let startedAt = 0
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -39,7 +41,7 @@ export function useViewBeacon(kind: ViewableKind) {
     timer = null
     const id = targetId
     stop()
-    if (id !== null) recordView(kind, id)
+    if (id !== null) recordView(kind, id, targetSource)
   }
 
   function onVisibility() {
@@ -53,14 +55,17 @@ export function useViewBeacon(kind: ViewableKind) {
     document.removeEventListener('visibilitychange', onVisibility)
   }
 
-  function start(id: number) {
+  function start(id: number, source: string | null = null) {
     // Automatizovaný prehliadač (Selenium, Puppeteer, Playwright) sa sám
     // priznáva cez navigator.webdriver.
     if (navigator.webdriver) return
+    // Opakovaný štart toho istého detailu (presmerovanie na kanonickú adresu
+    // už bez `?z=`) nesmie zdroj zabudnúť.
     if (id === targetId) return
 
     stop()
     targetId = id
+    targetSource = source
     remaining = VIEW_DELAY_MS
     document.addEventListener('visibilitychange', onVisibility)
     resume()

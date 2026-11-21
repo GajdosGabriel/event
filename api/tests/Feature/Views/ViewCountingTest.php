@@ -6,6 +6,7 @@ use App\Enums\ModelStatus;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -48,7 +49,7 @@ class ViewCountingTest extends EventSetupTest
     /**
      * Návštevník, ktorého front po pár sekundách na detaile ohlási cez POST.
      */
-    private function visit(?Event $event = null, array $headers = [], bool $asGuest = true): \Illuminate\Testing\TestResponse
+    private function visit(?Event $event = null, array $headers = [], bool $asGuest = true): TestResponse
     {
         $event ??= $this->futureEvent;
 
@@ -262,5 +263,62 @@ class ViewCountingTest extends EventSetupTest
         // Mazanie riadkov nesmie siahnuť na trvalé počítadlo.
         $this->assertDatabaseCount('views', 1);
         $this->assertSame(1, $this->viewsOf());
+    }
+
+    #[Test]
+    public function view_source_from_the_promotion_panel_is_counted_once_per_visitor(): void
+    {
+        $this->asGuest();
+        $post = fn (array $body) => $this->withHeaders($this->browserHeaders())
+            ->postJson('/api/events/'.$this->futureEvent->id.'/view', $body);
+
+        $post(['source' => 'qr'])->assertNoContent();
+        // Ten istý návštevník v ten istý deň — ani zobrazenie, ani zdroj nepribudne.
+        $post(['source' => 'qr'])->assertNoContent();
+
+        $this->assertSame(1, $this->viewsOf());
+        $this->assertSame(1, (int) DB::table('event_view_sources')
+            ->where(['event_id' => $this->futureEvent->id, 'source' => 'qr'])
+            ->value('views'));
+
+        // Iný návštevník (iný prehliadač) cez pozvánku.
+        $this->withHeaders($this->browserHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone) Safari/17']))
+            ->postJson('/api/events/'.$this->futureEvent->id.'/view', ['source' => 'pozvanka'])
+            ->assertNoContent();
+
+        $this->assertSame(2, $this->viewsOf());
+        $this->assertSame(['pozvanka' => 1, 'qr' => 1], DB::table('event_view_sources')
+            ->where('event_id', $this->futureEvent->id)
+            ->orderBy('source')
+            ->pluck('views', 'source')
+            ->map(fn ($views) => (int) $views)
+            ->all());
+    }
+
+    #[Test]
+    public function unknown_view_source_is_ignored_but_the_view_still_counts(): void
+    {
+        $this->asGuest();
+
+        $this->withHeaders($this->browserHeaders())
+            ->postJson('/api/events/'.$this->futureEvent->id.'/view', ['source' => 'spam'])
+            ->assertNoContent();
+
+        $this->assertSame(1, $this->viewsOf());
+        $this->assertDatabaseCount('event_view_sources', 0);
+    }
+
+    #[Test]
+    public function organizer_sees_views_by_source_on_event_detail(): void
+    {
+        DB::table('event_view_sources')->insert([
+            ['event_id' => $this->futureEvent->id, 'source' => 'qr', 'views' => 7],
+            ['event_id' => $this->futureEvent->id, 'source' => 'odkaz', 'views' => 3],
+        ]);
+
+        $this->getJson('/api/dashboard/events/'.$this->futureEvent->id)
+            ->assertOk()
+            ->assertJsonPath('views_by_source.qr', 7)
+            ->assertJsonPath('views_by_source.odkaz', 3);
     }
 }

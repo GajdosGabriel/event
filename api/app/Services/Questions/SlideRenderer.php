@@ -44,7 +44,9 @@ class SlideRenderer
         $photo = $this->canvas->decodePhoto($content->photo);
 
         $this->paintBackground($image, $spec, $palette, $photo);
-        $this->paintCard($image, $spec, $palette, $content);
+        if ($spec->hasCard) {
+            $this->paintCard($image, $spec, $palette, $content);
+        }
         $this->paintTextColumn($image, $spec, $palette, $content, $photo);
 
         if ($photo !== null) {

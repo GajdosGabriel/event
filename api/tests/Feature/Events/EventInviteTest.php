@@ -83,11 +83,34 @@ class EventInviteTest extends EventSetupTest
         $content = app(SlideComposer::class)->composeInvite($this->futureEvent);
 
         $this->assertSame('Koncert v parku', $content->title);
-        $this->assertStringEndsWith("/akcie/{$this->futureEvent->id}#registracia", $content->qrUrl);
+        $this->assertStringEndsWith("/akcie/{$this->futureEvent->id}?z=pozvanka#registracia", $content->qrUrl);
         // Pod QR krátka adresa bez schémy a bez kotvy — prepisuje sa rukou.
         $this->assertStringEndsWith("/akcie/{$this->futureEvent->id}", $content->url);
         $this->assertStringNotContainsString('://', $content->url);
         $this->assertSame(__('events.invite.cta_signup'), $content->cta);
+    }
+
+    #[Test]
+    public function link_preview_image_is_rendered_once_and_cached(): void
+    {
+        $this->publish();
+
+        $first = $this->get("/api/events/{$this->futureEvent->id}/og.png");
+        $first->assertOk()->assertHeader('Content-Type', 'image/png');
+        [$width, $height] = getimagesizefromstring((string) $first->getContent());
+        $this->assertSame([1200, 630], [$width, $height]);
+
+        // Druhé čítanie (ďalší crawler) príde z cache — ten istý obrázok.
+        $this->assertSame($first->getContent(), $this->get("/api/events/{$this->futureEvent->id}/og.png")->getContent());
+
+        // Pozvánka náhľad odkazu ako formát neponúka a snímka otázok tiež nie.
+        $this->get("/api/events/{$this->futureEvent->id}/invite.png?variant=og")->assertStatus(422);
+    }
+
+    #[Test]
+    public function draft_event_has_no_link_preview_image(): void
+    {
+        $this->get("/api/events/{$this->futureEvent->id}/og.png")->assertNotFound();
     }
 
     #[Test]

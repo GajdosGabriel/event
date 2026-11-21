@@ -53,6 +53,15 @@ class PrerenderTest extends TestCase
     }
 
     #[Test]
+    public function event_without_photo_gets_generated_link_preview_image(): void
+    {
+        $response = $this->prerender(PublicUrl::eventPath($this->event));
+
+        $response->assertOk();
+        $response->assertSee('<meta property="og:image" content="'.PublicUrl::eventOgImage($this->event).'">', false);
+    }
+
+    #[Test]
     public function event_detail_renders_json_ld_event(): void
     {
         $response = $this->prerender(PublicUrl::eventPath($this->event));

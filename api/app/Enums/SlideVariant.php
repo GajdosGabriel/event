@@ -27,12 +27,20 @@ enum SlideVariant: string
      */
     case Poster = 'poster';
 
+    /**
+     * Náhľad odkazu (`og:image`) pre akciu bez vlastnej fotky — 1200×630,
+     * pomer, ktorý Facebook, WhatsApp aj LinkedIn zobrazia bez orezania.
+     * Bez QR karty; verejne sa nesťahuje, len ho číta crawler.
+     */
+    case Og = 'og';
+
     public function width(): int
     {
         return match ($this) {
             self::Slide => 1920,
             self::Square, self::Story => 1080,
             self::Poster => 1654,
+            self::Og => 1200,
         };
     }
 
@@ -42,7 +50,14 @@ enum SlideVariant: string
             self::Slide, self::Square => 1080,
             self::Story => 1920,
             self::Poster => 2339,
+            self::Og => 630,
         };
+    }
+
+    /** Biela karta s QR kódom — všade okrem náhľadu odkazu. */
+    public function hasQrCard(): bool
+    {
+        return $this !== self::Og;
     }
 
     /**

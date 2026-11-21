@@ -2,6 +2,8 @@
 
 namespace App\Services\Views;
 
+use App\Enums\ViewSource;
+use App\Models\Event;
 use App\Support\VisitorPseudonym;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -27,7 +29,7 @@ class ViewRecorder
     /**
      * @return bool true, keď zobrazenie naozaj pribudlo
      */
-    public function record(Model $model, Request $request): bool
+    public function record(Model $model, Request $request, ?ViewSource $source = null): bool
     {
         try {
             if (! $this->isCountable($model, $request)) {
@@ -56,6 +58,16 @@ class ViewRecorder
                 ->increment('views_count');
 
             $model->setAttribute('views_count', (int) $model->getAttribute('views_count') + 1);
+
+            // Až po započítaní — zdroj sa počíta z tých istých zobrazení ako
+            // `views_count` (jeden návštevník za deň), inak by sa čísla rozišli.
+            if ($source !== null && $model instanceof Event) {
+                DB::table('event_view_sources')->upsert(
+                    [['event_id' => $model->getKey(), 'source' => $source->value, 'views' => 1]],
+                    ['event_id', 'source'],
+                    ['views' => DB::raw('views + 1')],
+                );
+            }
 
             return true;
         } catch (\Throwable) {

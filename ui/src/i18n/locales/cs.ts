@@ -1179,6 +1179,7 @@ const cs: Messages = {
       canalLink: 'Kanál →',
       views: 'Zobrazení',
       viewsHint: 'Unikátní návštěvníci veřejného detailu, jeden za den.',
+      viewsFrom: { qr: 'z toho přes QR kód', pozvanka: 'přes pozvánku', odkaz: 'přes sdílený odkaz' },
       deadline: 'Registrace do',
       organizer: 'Pořadatel',
       locationName: 'Popis místa',

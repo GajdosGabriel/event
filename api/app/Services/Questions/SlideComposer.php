@@ -3,6 +3,7 @@
 namespace App\Services\Questions;
 
 use App\Enums\FileType;
+use App\Enums\ViewSource;
 use App\Models\Event;
 use App\Models\File;
 use App\Models\QuestionBoard;
@@ -76,7 +77,7 @@ class SlideComposer
             where: $where !== '' ? $where : null,
             organizer: $canal?->name,
             url: preg_replace('#^https?://#', '', $short) ?? $short,
-            qrUrl: PublicUrl::eventInvite($event),
+            qrUrl: PublicUrl::eventInvite($event, ViewSource::Invite),
             cta: __($reservable ? 'events.invite.cta_signup' : 'events.invite.cta_info'),
             photo: $this->photoBytes($event, $canal),
         );

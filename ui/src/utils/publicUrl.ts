@@ -114,3 +114,11 @@ export function publicEventInviteUrl(event: { id: number; reservable: boolean })
 
   return event.reservable ? `${url}#registracia` : url
 }
+
+/**
+ * Vygenerovaný náhľad odkazu pre akciu bez fotky — zrkadlo
+ * `PublicUrl::eventOgImage()`. API beží pod `/api` na tom istom origine.
+ */
+export function publicEventOgImageUrl(eventId: number): string {
+  return absoluteUrl(`/api/events/${eventId}/og.png`)
+}

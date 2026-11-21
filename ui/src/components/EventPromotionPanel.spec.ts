@@ -28,7 +28,7 @@ describe('EventPromotionPanel', () => {
     const message = (wrapper.find('textarea').element as HTMLTextAreaElement).value
     expect(message).toContain('Koncert v parku')
     expect(message).toContain('Amfiteáter, Žilina')
-    expect(message).toContain(`${t('events.promotion.moreInfo')} ${origin}/akcie/42/koncert-v-parku`)
+    expect(message).toContain(`${t('events.promotion.moreInfo')} ${origin}/akcie/42/koncert-v-parku?z=odkaz`)
 
     expect(wrapper.text()).toContain(`${origin}/akcie/42`)
     expect(wrapper.text()).toContain(t('events.promotion.qrLeadsToPage'))
@@ -47,7 +47,7 @@ describe('EventPromotionPanel', () => {
     const origin = window.location.origin
 
     const message = (wrapper.find('textarea').element as HTMLTextAreaElement).value
-    expect(message).toContain(`${t('events.promotion.signupHere')} ${origin}/akcie/42/koncert-v-parku#registracia`)
+    expect(message).toContain(`${t('events.promotion.signupHere')} ${origin}/akcie/42/koncert-v-parku?z=odkaz#registracia`)
     expect(wrapper.text()).toContain(`${origin}/akcie/42#registracia`)
     expect(wrapper.text()).toContain(t('events.promotion.qrLeadsToSignup'))
   })

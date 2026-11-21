@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\ViewSource;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Repositories\Contracts\EventRepository;
@@ -35,7 +36,7 @@ class EventQrController extends Controller
         $size = max(120, min(2000, (int) $request->query('size', 1200)));
         // Tichá zóna 4 moduly ≈ 6 % pri bežnej dĺžke adresy; bez nej časť
         // čítačiek kód nenájde, keď ho niekto vloží na farebné pozadie.
-        $image = $this->qrCodes->imageForUrl(PublicUrl::eventInvite($event), $size, (int) round($size * 0.06));
+        $image = $this->qrCodes->imageForUrl(PublicUrl::eventInvite($event, ViewSource::Qr), $size, (int) round($size * 0.06));
 
         ob_start();
         imagepng($image, null, 6);
@@ -49,7 +50,7 @@ class EventQrController extends Controller
     {
         $event = $this->event($id);
 
-        $svg = $this->qrCodes->svgForUrl(PublicUrl::eventInvite($event));
+        $svg = $this->qrCodes->svgForUrl(PublicUrl::eventInvite($event, ViewSource::Qr));
 
         return $this->respond($request, $svg, 'image/svg+xml', $this->filename($event, 'svg'));
     }

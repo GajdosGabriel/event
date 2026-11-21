@@ -740,6 +740,7 @@ import { fmtDateLong, daysUntil, weekdayLabel, dayName, dateTile } from '@/utils
 import { formatPrice, formatPriceOrFree } from '@/utils/money'
 import {
   absoluteUrl,
+  publicEventOgImageUrl,
   publicEventPath,
   publicCanalPath,
   publicVenuePath,
@@ -1193,7 +1194,8 @@ useHead(computed(() => {
   if (!e) return { title: t('common.loading') }
   const title = e.name
   const description = plainDescription.value.slice(0, 160) || title
-  const image = e.imageUrlLarge ?? e.imageUrl ?? undefined
+  // Bez fotky vygenerovaná karta s názvom a termínom — rovnako ako v prerendri.
+  const image = e.imageUrlLarge ?? e.imageUrl ?? publicEventOgImageUrl(e.id)
   // Kanonická adresa, nie `window.location.href` — ten nesie aj parametre
   // z kampaní (`?fbclid=…`) a zo starej číselnej cesty, čo by z jedného
   // podujatia urobilo v indexe niekoľko rôznych stránok.
@@ -1240,9 +1242,14 @@ async function load() {
     // zo starého číselného odkazu alebo so zastaraným slugom po premenovaní.
     // `replace`, nie `push`: v histórii nemá vzniknúť krok navyše.
     const canonicalPath = publicEventPath(ev)
-    if (route.path !== canonicalPath) {
+    // `?z=qr` (QR, pozvánka, odkaz z panela Propagácia) sa prečíta pre
+    // štatistiku a z adresy hneď zmizne — návštevník, ktorý odkaz pošle
+    // ďalej, by inak zdroj šíril a čísla by klamali.
+    const source = typeof route.query.z === 'string' ? route.query.z : null
+    if (route.path !== canonicalPath || source !== null) {
+      const { z: _z, ...query } = route.query
       // Hash sa nesie ďalej — karta vo výpise odkazuje na `#registracia`.
-      router.replace({ path: canonicalPath, hash: route.hash })
+      router.replace({ path: canonicalPath, query, hash: route.hash })
     }
 
     // Typy lístkov (vrátane workshopov) načítame tu — používa ich sekcia
@@ -1252,7 +1259,7 @@ async function load() {
     } catch { /* non-fatal — formulár ukáže prázdny stav */ }
 
     event.value = ev
-    viewBeacon.start(ev.id)
+    viewBeacon.start(ev.id, source)
     // Bez `await`: súvisiace podujatia sú doplnok, nemajú zdržiavať vykreslenie.
     void nextTick(() => loadRelated(ev))
   } catch (e: unknown) {

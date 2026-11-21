@@ -95,7 +95,9 @@ onMounted(() => {
 })
 
 /** Do správ kanonická adresa so slugom — v náhľade a v texte vyzerá lepšie. */
-const pageUrl = computed(() => absoluteUrl(publicEventPath(props.event)))
+// `?z=odkaz` povie štatistike v správe akcie, koľko ľudí prišlo cez odkaz
+// z tohto panela (ViewSource::Link); detail akcie ho z adresy hneď odstráni.
+const pageUrl = computed(() => `${absoluteUrl(publicEventPath(props.event))}?z=odkaz`)
 const inviteUrl = computed(() => publicEventInviteUrl(props.event))
 
 const placeLabel = computed(() => {

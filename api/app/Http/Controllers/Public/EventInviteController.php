@@ -11,6 +11,7 @@ use App\Services\Questions\SlideComposer;
 use App\Services\Questions\SlideRenderer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -61,6 +62,34 @@ class EventInviteController extends Controller
             // Krátka cache: organizátor po úprave akcie čaká novú pozvánku
             // a pri preklikávaní motívov stačí, že sa ten istý náhľad neťahá znova.
             'Cache-Control' => 'public, max-age=120',
+        ]);
+    }
+
+    /**
+     * Náhľad odkazu (`og:image`) pre akciu bez vlastnej fotky.
+     *
+     * Číta ho crawler Facebooku, WhatsAppu či Messengera pri každom vložení
+     * odkazu — a tie chodia v dávkach z rovnakých adries. Preto sa obrázok
+     * nevykresľuje zakaždým, ale drží v cache, kým sa akcia nezmení
+     * (kľúč nesie `updated_at`), a nepodlieha limiteru `render`.
+     */
+    public function og(string $id): Response
+    {
+        $event = ctype_digit($id) ? $this->events->publicShow($id) : null;
+        abort_unless($event instanceof Event, 404);
+        abort_unless($this->renderer->isAvailable(), 503, __('events.invite.unavailable'));
+
+        $key = sprintf('event-og:%d:%d:%s', $event->id, $event->updated_at?->getTimestamp() ?? 0, app()->getLocale());
+
+        // base64: databázová cache (CACHE_STORE=database) binárne dáta neznesie.
+        $png = base64_decode((string) Cache::remember($key, now()->addDays(7), fn () => base64_encode(
+            $this->renderer->render($this->composer->composeInvite($event), SlideVariant::Og, SlideTheme::Bold),
+        )));
+
+        return response($png, 200, [
+            'Content-Type' => 'image/png',
+            'Content-Length' => (string) strlen($png),
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 

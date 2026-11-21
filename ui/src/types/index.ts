@@ -304,6 +304,12 @@ export interface EventItem {
    * do odpovede dáva len organizátorovi a adminovi.
    */
   viewsCount: number | null
+  /**
+   * Koľko zo zobrazení prišlo cez QR (`qr`), pozvánku (`pozvanka`) alebo odkaz
+   * z panela Propagácia (`odkaz`) — App\Enums\ViewSource. Len na detaile
+   * v správe akcie; inde prázdny objekt.
+   */
+  viewsBySource: Record<string, number>
 }
 
 /**

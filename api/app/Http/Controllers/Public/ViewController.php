@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\ViewSource;
 use App\Http\Controllers\Controller;
 use App\Repositories\Contracts\CanalRepository;
 use App\Repositories\Contracts\EventRepository;
@@ -44,7 +45,13 @@ class ViewController extends Controller
             abort(404);
         }
 
-        $viewRecorder->record($model, $request);
+        // Zdroj (`?z=` z odkazu, ktorý front prečítal a poslal ďalej) sa
+        // eviduje len pri podujatí — len tam ho panel Propagácia rozdáva.
+        $source = $resource === 'events'
+            ? ViewSource::tryFrom((string) $request->input('source', ''))
+            : null;
+
+        $viewRecorder->record($model, $request, $source);
 
         return response()->noContent();
     }

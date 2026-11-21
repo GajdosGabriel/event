@@ -1180,6 +1180,7 @@ const en: Messages = {
       canalLink: 'Channel →',
       views: 'Views',
       viewsHint: 'Unique visitors of the public page, one per day.',
+      viewsFrom: { qr: 'of which via QR code', pozvanka: 'via invitation', odkaz: 'via shared link' },
       deadline: 'Registration until',
       organizer: 'Organiser',
       locationName: 'Description of the place',

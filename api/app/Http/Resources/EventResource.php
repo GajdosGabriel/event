@@ -12,6 +12,7 @@ use App\Support\EventDateRange;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class EventResource extends JsonResource
 {
@@ -95,6 +96,16 @@ class EventResource extends JsonResource
             $data['ai_tags_hash'] = $this->ai_tags_hash;
             $data['ai_tags_attempts'] = (int) $this->ai_tags_attempts;
             $data['body_rewritten_at'] = $this->body_rewritten_at;
+
+            // Odkiaľ zobrazenia prišli (QR, pozvánka, odkaz z panela Propagácia).
+            // Len na detaile — vo výpise by to bol dotaz navyše na každý riadok.
+            if ($request->route()?->getActionMethod() === 'show') {
+                $data['views_by_source'] = (object) DB::table('event_view_sources')
+                    ->where('event_id', $this->id)
+                    ->pluck('views', 'source')
+                    ->map(fn ($views) => (int) $views)
+                    ->all();
+            }
         }
 
         $isShow = $request->route()?->getActionMethod() === 'show';

@@ -164,6 +164,13 @@
                 {{ event.viewsCount }}
               </dd>
               <dd class="text-xs text-slate-400">{{ t('events.show.viewsHint') }}</dd>
+              <!-- Odkiaľ prišli: QR, pozvánka, odkaz z panela Propagácia. Bez
+                   týchto čísel organizátor nevie, či sa plagát oplatil. -->
+              <dd v-if="sourceRows.length" class="mt-2 grid gap-0.5 text-xs text-slate-600">
+                <span v-for="row in sourceRows" :key="row.key" class="flex justify-between gap-2">
+                  <span>{{ row.label }}</span><span class="font-semibold text-slate-800">{{ row.views }}</span>
+                </span>
+              </dd>
             </div>
           </dl>
 
@@ -355,6 +362,11 @@ async function duplicateRelated(id: number) {
 }
 
 const renderedBody = useBodyHtml(() => event.value?.body)
+
+const SOURCES = ['qr', 'pozvanka', 'odkaz'] as const
+const sourceRows = computed(() => SOURCES
+  .map(key => ({ key, label: t(`events.show.viewsFrom.${key}`), views: event.value?.viewsBySource?.[key] ?? 0 }))
+  .filter(row => row.views > 0))
 
 function fmt(d: string | null) {
   return d ? fmtDate(d) : t('common.none')

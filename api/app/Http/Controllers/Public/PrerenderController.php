@@ -186,7 +186,9 @@ class PrerenderController extends Controller
                 title: $event->name,
                 description: $description,
                 canonical: PublicUrl::event($event),
-                image: $event->has_primary_image ? $event->primary_image['large'] : null,
+                // Akcia bez fotky dostane vygenerovanú kartu s názvom a termínom —
+                // inak by odkaz v chate ostal bez obrázka a ľahko sa prehliadol.
+                image: $event->has_primary_image ? $event->primary_image['large'] : PublicUrl::eventOgImage($event),
                 type: 'article',
             ),
             'event' => $event,

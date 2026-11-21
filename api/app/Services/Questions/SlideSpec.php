@@ -45,6 +45,8 @@ final readonly class SlideSpec
         public int $urlSize,
         /** Základná medzera medzi blokmi (pod QR, pod odznakom). */
         public int $gap = 0,
+        /** Biela karta s QR kódom — chýba len v náhľade odkazu (og). */
+        public bool $hasCard = true,
     ) {}
 
     /** Šírka, ktorú má text vnútri bielej karty k dispozícii. */
@@ -55,6 +57,10 @@ final readonly class SlideSpec
 
     public static function for(SlideVariant $variant, SlideTheme $theme): self
     {
+        if (! $variant->hasQrCard()) {
+            return self::cardless($variant, $theme);
+        }
+
         $w = $variant->width();
         $h = $variant->height();
         // Veľkosti sa odvodzujú od kratšej strany. Pri širokej snímke a štvorci
@@ -133,6 +139,53 @@ final readonly class SlideSpec
             ctaSize: $ctaSize,
             urlSize: $urlSize,
             gap: (int) round($s * 0.022),
+        );
+    }
+
+    /**
+     * Náhľad odkazu (`og:image`) — bez QR karty. QR v náhľade na WhatsAppe
+     * či Facebooku nemá zmysel: človek už drží v ruke odkaz, na ktorý stačí
+     * ťuknúť. Text dostane celú šírku a väčšie písmo, lebo sa náhľad
+     * zobrazuje zmenšený na šírku bubliny v chate.
+     */
+    private static function cardless(SlideVariant $variant, SlideTheme $theme): self
+    {
+        $w = $variant->width();
+        $h = $variant->height();
+        $s = min($w, $h);
+        $pad = (int) round($s * 0.09);
+
+        return new self(
+            variant: $variant,
+            theme: $theme,
+            width: $w,
+            height: $h,
+            pad: $pad,
+            twoColumn: false,
+            cardX: 0,
+            cardY: 0,
+            cardW: 0,
+            cardH: 0,
+            cardRadius: 0,
+            cardInnerPad: 0,
+            qrSize: 0,
+            textX: $pad,
+            textY: $pad,
+            textW: $w - 2 * $pad,
+            textH: $h - 2 * $pad,
+            // Bez odznaku: organizátora v náhľade nesie podnadpis a monogram
+            // vo farebnom motíve splýva s pozadím.
+            badgeSize: 0,
+            eyebrowSize: (int) round($s * 0.042),
+            titleMaxSize: (int) round($s * 0.11),
+            titleMinSize: (int) round($s * 0.06),
+            titleMaxLines: 3,
+            subtitleSize: (int) round($s * 0.042),
+            metaSize: (int) round($s * 0.046),
+            ctaSize: 0,
+            urlSize: 0,
+            gap: (int) round($s * 0.022),
+            hasCard: false,
         );
     }
 

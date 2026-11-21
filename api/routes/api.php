@@ -181,6 +181,10 @@ Route::get('events/{id}/qr.svg', [PublicEventQrController::class, 'svg'])
 Route::get('events/{id}/invite.png', [PublicEventInviteController::class, 'png'])
     ->name('public.events.invite')
     ->middleware('throttle:render');
+// Náhľad odkazu pre akciu bez fotky. Číta ho crawler sociálnych sietí, preto
+// bez limitera `render` — vykreslenie drží cache až do zmeny akcie.
+Route::get('events/{id}/og.png', [PublicEventInviteController::class, 'og'])
+    ->name('public.events.og');
 
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');
 Route::get('events/{event}/questionnaire', [PublicQuestionnaireController::class, 'index'])->name('public.events.questionnaire.index');

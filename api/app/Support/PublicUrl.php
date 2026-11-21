@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\ViewSource;
 use App\Models\Canal;
 use App\Models\Event;
 use App\Models\Municipality;
@@ -124,13 +125,31 @@ final class PublicUrl
      * Vytlačený kód sa už nezmení; ak akcia registráciu neskôr stratí,
      * stránka kotvu len ignoruje.
      *
+     * `$source` (`?z=qr`…) povie štatistike, odkiaľ návštevník prišiel
+     * (App\Enums\ViewSource). Front ho z adresy po prečítaní odstráni, takže
+     * sa nešíri ďalej, keď návštevník odkaz preposiela.
+     *
      * Zrkadlo: `publicEventInviteUrl()` v ui/src/utils/publicUrl.ts.
      */
-    public static function eventInvite(Event $event): string
+    public static function eventInvite(Event $event, ?ViewSource $source = null): string
     {
         $url = self::absolute(self::EVENTS.'/'.$event->id);
 
+        if ($source !== null) {
+            $url .= '?z='.$source->value;
+        }
+
         return $event->isReservable() ? $url.'#registracia' : $url;
+    }
+
+    /**
+     * Vygenerovaný náhľad odkazu (Public\EventInviteController::og). API beží
+     * pod `/api` na tom istom origine ako SPA, takže základ je ten istý.
+     * Zrkadlo: `publicEventOgImageUrl()` v ui/src/utils/publicUrl.ts.
+     */
+    public static function eventOgImage(Event $event): string
+    {
+        return self::absolute('api/events/'.$event->id.'/og.png');
     }
 
     public static function venuePath(Venue $venue): string

@@ -122,8 +122,12 @@ class QuestionSlideController extends Controller
 
     private function variant(Request $request): SlideVariant
     {
-        return SlideVariant::tryFrom((string) $request->query('variant', SlideVariant::Slide->value))
-            ?? abort(422, __('questions.errors.unknown_variant'));
+        $variant = SlideVariant::tryFrom((string) $request->query('variant', SlideVariant::Slide->value));
+
+        // Náhľad odkazu (og) nemá QR — snímka nástenky bez neho nemá zmysel.
+        abort_unless($variant?->hasQrCard(), 422, __('questions.errors.unknown_variant'));
+
+        return $variant;
     }
 
     /**
