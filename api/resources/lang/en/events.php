@@ -17,4 +17,11 @@ return [
         'buy' => 'Buy tickets',
         'reserve' => 'Reserve',
     ],
+    // Invitation with a QR code (Promotion panel in event management).
+    'invite' => [
+        'eyebrow' => 'You are invited',
+        'cta_signup' => 'Scan to sign up',
+        'cta_info' => 'Scan for more information',
+        'unavailable' => 'The invitation could not be rendered right now. Please try again later.',
+    ],
 ];

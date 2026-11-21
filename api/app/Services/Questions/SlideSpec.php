@@ -43,6 +43,8 @@ final readonly class SlideSpec
         public int $metaSize,
         public int $ctaSize,
         public int $urlSize,
+        /** Základná medzera medzi blokmi (pod QR, pod odznakom). */
+        public int $gap = 0,
     ) {}
 
     /** Šírka, ktorú má text vnútri bielej karty k dispozícii. */
@@ -55,13 +57,20 @@ final readonly class SlideSpec
     {
         $w = $variant->width();
         $h = $variant->height();
-        $pad = (int) round($h * 0.075);
+        // Veľkosti sa odvodzujú od kratšej strany. Pri širokej snímke a štvorci
+        // je to výška (čísla sú teda tie isté ako predtým); pri formátoch na
+        // výšku by výška nafúkla kartu aj písmo cez okraj šírky.
+        $s = min($w, $h);
+        $tall = $variant->isTall();
+        $pad = (int) round($s * 0.075);
         $twoColumn = $variant->isTwoColumn();
 
         // Karta je na širokej snímke výrazne väčšia — premieta sa na plátno
         // a musí sa dať naskenovať zo zadného radu. Na štvorci sa naopak pozerá
         // z ruky, takže tam ustúpi textu.
-        $cardW = (int) round($h * ($twoColumn ? 0.62 : 0.42));
+        // Na výšku je pod textom miesta dosť — plagát sa skenuje z chodby
+        // a story z cudzieho telefónu, tak QR dostane viac.
+        $cardW = (int) round($s * ($twoColumn ? 0.62 : ($tall ? 0.56 : 0.42)));
 
         // Tichá zóna okolo QR: štandard žiada štyri moduly, čo je pri
         // typickom kóde zhruba 14 % jeho veľkosti. Odsadenie karty je preto
@@ -70,12 +79,12 @@ final readonly class SlideSpec
         $qrSize = (int) round($cardW / 1.30);
         $innerPad = (int) round(($cardW - $qrSize) / 2);
 
-        $ctaSize = (int) round($h * ($twoColumn ? 0.032 : 0.026));
-        $urlSize = (int) round($h * ($twoColumn ? 0.036 : 0.028));
+        $ctaSize = (int) round($s * ($twoColumn || $tall ? 0.032 : 0.026));
+        $urlSize = (int) round($s * ($twoColumn || $tall ? 0.036 : 0.028));
 
         // Výška bloku pod QR: dva riadky aj s medzerami, plus spodné odsadenie.
         $belowQr = (int) round($ctaSize * 1.6 + $urlSize * 1.5) + $innerPad;
-        $cardH = $innerPad + $qrSize + (int) round($h * 0.022) + $belowQr;
+        $cardH = $innerPad + $qrSize + (int) round($s * 0.022) + $belowQr;
 
         if ($twoColumn) {
             $cardX = $w - $pad - $cardW;
@@ -90,7 +99,7 @@ final readonly class SlideSpec
             $textX = $pad;
             $textW = $w - 2 * $pad;
             $textY = $pad;
-            $textH = $cardY - $pad - (int) round($h * 0.022);
+            $textH = $cardY - $pad - (int) round($s * 0.022);
         }
 
         return new self(
@@ -104,7 +113,7 @@ final readonly class SlideSpec
             cardY: $cardY,
             cardW: $cardW,
             cardH: $cardH,
-            cardRadius: (int) round($h * 0.032),
+            cardRadius: (int) round($s * 0.032),
             cardInnerPad: $innerPad,
             qrSize: $qrSize,
             textX: $textX,
@@ -114,15 +123,16 @@ final readonly class SlideSpec
             // Odznak s fotkou kanála sa na štvorec nezmestí bez toho, aby ubral
             // z nadpisu — a na sociálnu sieť ho aj tak nesie profil, z ktorého
             // sa obrázok zdieľa.
-            badgeSize: $twoColumn ? (int) round($h * 0.105) : 0,
-            eyebrowSize: (int) round($h * ($twoColumn ? 0.028 : 0.026)),
-            titleMaxSize: (int) round($h * ($twoColumn ? 0.095 : 0.063)),
-            titleMinSize: (int) round($h * ($twoColumn ? 0.044 : 0.036)),
-            titleMaxLines: $twoColumn ? 3 : 2,
-            subtitleSize: (int) round($h * ($twoColumn ? 0.030 : 0.024)),
-            metaSize: (int) round($h * ($twoColumn ? 0.032 : 0.024)),
+            badgeSize: $twoColumn ? (int) round($s * 0.105) : 0,
+            eyebrowSize: (int) round($s * ($twoColumn ? 0.028 : ($tall ? 0.034 : 0.026))),
+            titleMaxSize: (int) round($s * ($twoColumn ? 0.095 : ($tall ? 0.092 : 0.063))),
+            titleMinSize: (int) round($s * ($twoColumn ? 0.044 : 0.036)),
+            titleMaxLines: $twoColumn || $tall ? ($tall ? 4 : 3) : 2,
+            subtitleSize: (int) round($s * ($twoColumn ? 0.030 : ($tall ? 0.036 : 0.024))),
+            metaSize: (int) round($s * ($twoColumn ? 0.032 : ($tall ? 0.040 : 0.024))),
             ctaSize: $ctaSize,
             urlSize: $urlSize,
+            gap: (int) round($s * 0.022),
         );
     }
 

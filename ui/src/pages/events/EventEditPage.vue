@@ -331,7 +331,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showEvent, createEvent, updateEvent } from '@/api/events'
 import { createVenue } from '@/api/venues'
 import { indexTicketTypes, createTicketType, updateTicketType } from '@/api/ticketTypes'
@@ -369,6 +369,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const returnAfterSave = useReturnAfterSave()
 const auth = useAuthStore()
@@ -395,6 +396,20 @@ function rememberSaved(ev: { status: string; publishAt?: string | null }) {
   savedStatus.value = ev.status
   savedPublishAt.value = ev.publishAt ?? null
   schedulePublication.value = ev.status === 'scheduled'
+}
+
+/**
+ * Kam po uložení. Bežne späť, odkiaľ človek prišiel. Keď ale uloženie akciu
+ * práve zverejnilo, ide sa na jej detail s panelom Propagácia — to je chvíľa,
+ * keď ju organizátor najochotnejšie pošle ďalej, a návrat do zoznamu by ju
+ * premárnil. Naplánované zverejnenie sem nepatrí: odkaz by zatiaľ viedol na 404.
+ */
+function leaveAfterSave(id: number, statusBefore: string | null, statusAfter: string) {
+  if (statusAfter === 'published' && statusBefore !== 'published') {
+    router.push({ path: `${prefix.value}/events/${id}`, query: { zverejnene: '1' } })
+    return
+  }
+  returnAfterSave(`${prefix.value}/events/${id}`)
 }
 const stepLabels = computed(() => [t('eventJourney.basics'), t('eventJourney.place'), t('eventJourney.review')])
 const indexRoute = computed(() => `${prefix.value}/events`)
@@ -811,15 +826,16 @@ async function submit(publishDependencies = false) {
       await syncQuestionBoard(ev.id)
       toast.success(savedMessage(null, ev.status))
       rememberSaved(ev)
-      returnAfterSave(`${prefix.value}/events/${ev.id}`)
+      leaveAfterSave(ev.id, null, ev.status)
     } else {
       const updated = await updateEvent(Number(route.params.id), payload, scope.value)
       publishedAt.value = updated.publishedAt ?? publishedAt.value
       await syncFreeRegistration(Number(route.params.id))
       await syncQuestionBoard(Number(route.params.id))
-      toast.success(savedMessage(savedStatus.value, updated.status))
+      const statusBefore = savedStatus.value
+      toast.success(savedMessage(statusBefore, updated.status))
       rememberSaved(updated)
-      returnAfterSave(`${prefix.value}/events/${route.params.id}`)
+      leaveAfterSave(Number(route.params.id), statusBefore, updated.status)
     }
   } catch (e: unknown) {
     const resp = errorBody(e)

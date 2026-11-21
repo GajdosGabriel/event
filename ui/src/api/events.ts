@@ -351,3 +351,21 @@ export function eventQrPngUrl(id: number, options: { size?: number; download?: b
 export function eventQrSvgUrl(id: number): string {
   return `${BASE_URL}/events/${id}/qr.svg?download=1`
 }
+
+/** Formáty a motívy pozvánky — zrkadlo SlideVariant::inviteValues() a SlideTheme. */
+export type EventInviteVariant = 'square' | 'story' | 'slide' | 'poster'
+export type EventInviteTheme = 'dark' | 'light' | 'bold'
+
+/**
+ * Pozvánka s QR kódom. Jazyk ide do adresy, nie hlavičkou — `<img>`
+ * a `<a download>` idú mimo axiosu (rovnako ako `slidePngUrl`).
+ */
+export function eventInvitePngUrl(
+  id: number,
+  options: { variant: EventInviteVariant; theme: EventInviteTheme; lang: string; download?: boolean },
+): string {
+  const params = new URLSearchParams({ variant: options.variant, theme: options.theme, lang: options.lang })
+  if (options.download) params.set('download', '1')
+
+  return `${BASE_URL}/events/${id}/invite.png?${params.toString()}`
+}

@@ -17,4 +17,11 @@ return [
         'buy' => 'Koupit vstupenku',
         'reserve' => 'Rezervovat',
     ],
+    // Pozvánka s QR kódem (panel Propagace ve správě akce).
+    'invite' => [
+        'eyebrow' => 'Zveme vás',
+        'cta_signup' => 'Naskenujte a přihlaste se',
+        'cta_info' => 'Naskenujte pro více informací',
+        'unavailable' => 'Pozvánku se teď nepodařilo vykreslit. Zkuste to později.',
+    ],
 ];

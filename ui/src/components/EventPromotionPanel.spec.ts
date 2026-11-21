@@ -52,3 +52,14 @@ describe('EventPromotionPanel', () => {
     expect(wrapper.text()).toContain(t('events.promotion.qrLeadsToSignup'))
   })
 })
+
+describe('EventPromotionPanel after publishing', () => {
+  it('greets the organizer right after publishing and only then', () => {
+    expect(mountPanel().find('[role="status"]').exists()).toBe(false)
+
+    const greeted = shallowMount(EventPromotionPanel, {
+      props: { event: { id: 42, name: 'X', slug: 'x', reservable: false } as unknown as EventItem, justPublished: true },
+    })
+    expect(greeted.find('[role="status"]').text()).toContain(t('events.promotion.published'))
+  })
+})

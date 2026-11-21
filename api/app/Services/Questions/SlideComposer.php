@@ -3,6 +3,7 @@
 namespace App\Services\Questions;
 
 use App\Enums\FileType;
+use App\Models\Event;
 use App\Models\File;
 use App\Models\QuestionBoard;
 use App\Support\BoardToken;
@@ -42,6 +43,41 @@ class SlideComposer
             url: preg_replace('#^https?://#', '', PublicUrl::questionBoard(BoardToken::forDisplay($board->token))) ?? $url,
             qrUrl: $url,
             cta: __('questions.slide.cta'),
+            photo: $this->photoBytes($event, $canal),
+        );
+    }
+
+    /**
+     * Pozvánka na akciu — tá istá snímka, len QR vedie na akciu, nie na
+     * nástenku otázok. Kreslí ju ten istý SlideRenderer, takže pozvánka
+     * a snímka otázok vyzerajú ako jedna rodina.
+     *
+     * Adresa pod QR je krátka (`tixio.eu/akcie/42`) a bez kotvy — prepisuje sa
+     * rukou a kotva `#registracia` by v nej len mätla. Kotvu nesie iba QR.
+     */
+    public function composeInvite(Event $event): SlideContent
+    {
+        $event->loadMissing(['canal', 'venue.municipality']);
+        $canal = $event->getRelation('canal');
+
+        // Akcia bez miesta z katalógu má aspoň voľný názov miesta konania.
+        $place = $event->getRelation('venue')?->name ?: $event->location_name;
+        $town = $event->municipality?->name;
+        $where = implode(', ', array_unique(array_filter([$place, $town])));
+        $reservable = $event->isReservable();
+
+        $short = PublicUrl::absolute(PublicUrl::EVENTS.'/'.$event->id);
+
+        return new SlideContent(
+            eyebrow: __('events.invite.eyebrow'),
+            title: (string) $event->name,
+            subtitle: $canal?->name,
+            when: $this->whenLabel($event->start_at, $event->end_at),
+            where: $where !== '' ? $where : null,
+            organizer: $canal?->name,
+            url: preg_replace('#^https?://#', '', $short) ?? $short,
+            qrUrl: PublicUrl::eventInvite($event),
+            cta: __($reservable ? 'events.invite.cta_signup' : 'events.invite.cta_info'),
             photo: $this->photoBytes($event, $canal),
         );
     }

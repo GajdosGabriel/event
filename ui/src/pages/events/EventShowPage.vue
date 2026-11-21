@@ -148,7 +148,8 @@
           <!-- Propagácia hore v paneli: po zverejnení je to to prvé, čo
                organizátor s akciou robí. Koncept ani kôš ju nemajú — odkaz
                by viedol na 404 a vytlačený QR by sa už nedal opraviť. -->
-          <EventPromotionPanel v-if="event.status === 'published' && !event.deletedAt" :event="event" />
+          <EventPromotionPanel v-if="event.status === 'published' && !event.deletedAt" :event="event"
+            :just-published="justPublished" />
 
           <!-- Zobrazenia. Číslo chodí z API len organizátorovi a adminovi;
                návštevník ho v odpovedi vôbec nemá. -->
@@ -319,6 +320,17 @@ const relatedEvents = ref<CanalEventItem[]>([])
 const workshops = ref<TicketTypeItem[]>([])
 const ticketTypes = ref<TicketTypeItem[]>([])
 const ticketTypesLoaded = ref(false)
+
+/**
+ * Editor sem posiela `?zverejnene=1` hneď po zverejnení (leaveAfterSave).
+ * Príznak sa prečíta raz a z adresy hneď zmizne — obnovenie stránky ani
+ * zdieľaný odkaz nemajú privítanie ukazovať znova.
+ */
+const justPublished = route.query.zverejnene === '1'
+if (justPublished) {
+  const { zverejnene: _, ...query } = route.query
+  router.replace({ query })
+}
 
 /** Klik na Check-in, kým event nemá typ lístka: povieme prečo sa nikam nejde. */
 function warnNoTicketTypes() {

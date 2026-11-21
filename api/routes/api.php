@@ -59,6 +59,7 @@ use App\Http\Controllers\Public\CheckinLinkController as PublicCheckinLinkContro
 use App\Http\Controllers\Public\EmailUnsubscribeController as PublicEmailUnsubscribeController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
+use App\Http\Controllers\Public\EventInviteController as PublicEventInviteController;
 use App\Http\Controllers\Public\EventQrController as PublicEventQrController;
 use App\Http\Controllers\Public\EventQuestionController as PublicEventQuestionController;
 use App\Http\Controllers\Public\EventSignupController as PublicEventSignupController;
@@ -175,6 +176,10 @@ Route::get('events/{id}/qr.png', [PublicEventQrController::class, 'png'])
     ->middleware('throttle:render');
 Route::get('events/{id}/qr.svg', [PublicEventQrController::class, 'svg'])
     ->name('public.events.qr.svg')
+    ->middleware('throttle:render');
+// Pozvánka s QR kódom — štvorec, story, plátno alebo plagát A4.
+Route::get('events/{id}/invite.png', [PublicEventInviteController::class, 'png'])
+    ->name('public.events.invite')
     ->middleware('throttle:render');
 
 Route::get('events/{event}/ticket-types', [PublicTicketTypeController::class, 'index'])->name('public.events.ticket-types.index');

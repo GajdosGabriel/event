@@ -17,4 +17,11 @@ return [
         'buy' => 'Tickets kaufen',
         'reserve' => 'Reservieren',
     ],
+    // Einladung mit QR-Code (Bereich „Werbung“ in der Veranstaltungsverwaltung).
+    'invite' => [
+        'eyebrow' => 'Herzliche Einladung',
+        'cta_signup' => 'Scannen und anmelden',
+        'cta_info' => 'Scannen für weitere Informationen',
+        'unavailable' => 'Die Einladung konnte gerade nicht erstellt werden. Bitte versuchen Sie es später erneut.',
+    ],
 ];

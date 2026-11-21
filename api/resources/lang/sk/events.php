@@ -18,4 +18,11 @@ return [
         'buy' => 'Kúpiť lístok',
         'reserve' => 'Rezervovať',
     ],
+    // Pozvánka s QR kódom (panel Propagácia v správe akcie).
+    'invite' => [
+        'eyebrow' => 'Pozývame vás',
+        'cta_signup' => 'Naskenujte a prihláste sa',
+        'cta_info' => 'Naskenujte pre viac informácií',
+        'unavailable' => 'Pozvánku sa teraz nepodarilo vykresliť. Skúste to neskôr.',
+    ],
 ];

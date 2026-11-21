@@ -149,7 +149,7 @@ class SlideRenderer
         $textColor = $this->canvas->color($image, (string) $palette['card_text']);
         $mutedColor = $this->canvas->color($image, $this->mix((string) $palette['card_text'], (string) $palette['card'], 0.42));
 
-        $y = $spec->qrY() + $spec->qrSize + (int) round($spec->height * 0.022);
+        $y = $spec->qrY() + $spec->qrSize + $spec->gap;
 
         $y += $this->line($image, $content->cta, $this->fonts->semibold(), $spec->ctaSize, $centerX, $y, $mutedColor, 'center', 1.6);
 
@@ -270,7 +270,7 @@ class SlideRenderer
         $rows = [];
 
         if ($spec->badgeSize > 0 && $dropped < 3) {
-            $rows[] = ['kind' => 'badge', 'height' => $spec->badgeSize + (int) round($spec->height * 0.028)];
+            $rows[] = ['kind' => 'badge', 'height' => $spec->badgeSize + (int) round(min($spec->width, $spec->height) * 0.028)];
         }
 
         $rows[] = $this->textRow($content->eyebrow, $this->fonts->semibold(), $spec->eyebrowSize, $accentColor, 1.55);

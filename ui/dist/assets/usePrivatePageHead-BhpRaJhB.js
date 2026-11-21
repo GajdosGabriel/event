@@ -1,1 +1,0 @@
-import{t as e}from"./vue.CXwiCT15-CAvync1-.js";function t(t){e({title:()=>`${t()} | Tixio`,meta:[{name:`robots`,content:`noindex, nofollow`}]})}export{t};
