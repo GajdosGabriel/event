@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Imports;
 
+use App\Enums\ModelStatus;
 use App\Enums\RegistrationSource;
 use App\Models\Canal;
 use App\Models\Venue;
@@ -44,6 +45,7 @@ class CompleteCanalsVenuesOf17NovemberMigrationTest extends TestCase
         $venue = Venue::factory()->create([
             'id' => 1094,
             'name' => 'Evanjelický chrám Boží',
+            'status' => ModelStatus::Published,
             'village_id' => 73,
             'street' => null,
             'postcode' => null,
