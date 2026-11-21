@@ -146,6 +146,10 @@
             <p v-if="subscription.target?.startAt" class="text-sm text-slate-500">
               {{ fmtDateLong(subscription.target.startAt) }}
             </p>
+            <!-- Sledovaný organizátor nemá termín — povieme aspoň, čo odber robí. -->
+            <p v-else-if="subscription.type === 'canal'" class="text-sm text-slate-500">
+              {{ t('myTickets.followingCanal') }}
+            </p>
           </div>
 
           <button

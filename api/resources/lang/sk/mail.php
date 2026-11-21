@@ -424,6 +424,28 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
+    // App\Notifications\CanalFollowConfirmation — „Sledovať organizátora".
+    // Hosť musí odber potvrdiť (dvojité potvrdenie), inak mu nič nepríde.
+    'canal_follow' => [
+        'subject_pending' => 'Potvrďte sledovanie: :canal',
+        'subject_confirmed' => 'Sledujete: :canal',
+        'intro_pending' => 'Chcete dostávať e-mail, keď organizátor **„:canal"** zverejní novú akciu? Potvrďte to tlačidlom nižšie.',
+        'action_pending' => 'Potvrdiť sledovanie',
+        'outro_pending' => 'Ak ste o to nežiadali, e-mail ignorujte – bez potvrdenia vám nič ďalšie nepošleme.',
+        'intro_confirmed' => 'Hotovo – keď organizátor **„:canal"** zverejní novú akciu, dáme vám vedieť e-mailom.',
+        'action_confirmed' => 'Zobraziť organizátora',
+    ],
+
+    // App\Notifications\CanalNewEvents — súhrn nových akcií sledovaného kanála.
+    'canal_new_events' => [
+        'subject_one' => 'Nová akcia: :event (:canal)',
+        'subject_many' => ':canal zverejnil :count nových akcií',
+        'intro' => 'Organizátor **„:canal"**, ktorého sledujete, zverejnil:',
+        'more' => '…a ďalšie (:count) nájdete na stránke organizátora.',
+        'action' => 'Všetky akcie organizátora',
+        'outro' => 'Tento e-mail dostávate, lebo sledujete organizátora „:canal".',
+    ],
+
     'subscription_confirmed' => [
         'subject' => 'Budeme vás informovať: :event',
         'intro' => 'Hotovo – ak sa na podujatí **„:event"** niečo zmení alebo ho organizátor zruší, dáme vám vedieť. Pred začiatkom vám pošleme pripomienku.',

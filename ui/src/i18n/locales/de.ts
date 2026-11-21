@@ -757,6 +757,7 @@ const de: Messages = {
     cancelFailed: 'Die Anmeldung konnte nicht storniert werden.',
     subscriptions: 'Ich verfolge',
     subscriptionsLead: 'Wir melden uns, wenn sich Termin oder Ort ändern.',
+    followingCanal: 'Sie folgen diesem Veranstalter — neue Veranstaltungen kommen per E-Mail.',
     unsubscribe: 'Beenden',
     unsubscribed: 'Das Abo wurde beendet.',
     unsubscribeFailed: 'Das Abo konnte nicht beendet werden.',
@@ -847,6 +848,26 @@ const de: Messages = {
       failed: 'Die Frage konnte nicht gesendet werden.',
     },
     // „Pripomeň mi" — jediná akcia na bezplatnom podujatí bez lístkov.
+    // „Veranstalter folgen“ — E-Mail bei neuen Veranstaltungen (Double-Opt-in).
+    follow: {
+      button: 'Veranstalter folgen',
+      title: 'Neue Veranstaltungen per E-Mail',
+      lead: 'Wenn der Veranstalter eine neue Veranstaltung veröffentlicht, schicken wir Ihnen eine E-Mail. Mehrere auf einmal kommen in einer Übersicht.',
+      account: 'Die E-Mails gehen an',
+      useOther: 'Andere Adresse verwenden',
+      useAccount: 'Adresse des Kontos verwenden',
+      email: 'E-Mail-Adresse',
+      emailPlaceholder: 'ihre@email.de',
+      privacy: 'Wir nutzen die Adresse nur für diese Benachrichtigungen. Abmelden geht mit einem Klick aus jeder E-Mail.',
+      submit: 'Folgen',
+      submitting: 'Wird gesendet…',
+      doneTitle: 'Sie folgen',
+      doneLead: 'Über neue Veranstaltungen dieses Veranstalters informieren wir Sie per E-Mail.',
+      doneTitlePending: 'Bitte prüfen Sie Ihr Postfach',
+      doneLeadPending: 'Wir haben Ihnen einen Bestätigungslink geschickt. Bis Sie ihn anklicken, senden wir Ihnen nichts weiter.',
+      failed: 'Folgen konnte nicht aktiviert werden.',
+      close: 'Schließen',
+    },
     remind: {
       button: 'Erinnere mich',
       title: 'Wir halten Sie auf dem Laufenden',
@@ -1664,6 +1685,20 @@ const de: Messages = {
     acceptFailed: 'Die Einladung konnte nicht angenommen werden.',
   },
   // Odhlásenie z „Pripomeň mi" — stránka za odkazom v pätičke e-mailu.
+  // Bestätigung von „Veranstalter folgen“ aus der E-Mail (SubscriptionConfirmPage).
+  subscriptionConfirm: {
+    loading: 'Wird bestätigt…',
+    kicker: 'Veranstalter folgen',
+    fallback: 'Veranstalter',
+    doneTitle: 'Folgen bestätigt',
+    doneLead: 'Sobald der Veranstalter eine neue Veranstaltung veröffentlicht, schicken wir Ihnen eine E-Mail. Abmelden geht aus jeder E-Mail.',
+    inactiveTitle: 'Dieses Abonnement ist nicht mehr aktiv',
+    inactiveLead: 'Sie haben sich inzwischen abgemeldet. Um dem Veranstalter wieder zu folgen, melden Sie sich auf seiner Seite an.',
+    invalidTitle: 'Der Link ist ungültig',
+    invalidLead: 'Der Bestätigungslink existiert nicht oder wurde unvollständig kopiert.',
+    browse: 'Veranstaltungen ansehen',
+    home: 'Zur Startseite',
+  },
   unsubscribe: {
     loading: 'Wird geladen…',
     invalidTitle: 'Der Link ist ungültig',

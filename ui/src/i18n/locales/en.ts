@@ -757,6 +757,7 @@ const en: Messages = {
     cancelFailed: 'The registration could not be cancelled.',
     subscriptions: 'Following',
     subscriptionsLead: 'We will let you know if the date or venue changes.',
+    followingCanal: 'You follow this organiser — new events come by e-mail.',
     unsubscribe: 'Stop',
     unsubscribed: 'You have been unsubscribed.',
     unsubscribeFailed: 'You could not be unsubscribed.',
@@ -847,6 +848,26 @@ const en: Messages = {
       failed: 'The question could not be sent.',
     },
     // „Pripomeň mi" — jediná akcia na bezplatnom podujatí bez lístkov.
+    // "Follow organiser" — e-mail about the canal's new events (double opt-in).
+    follow: {
+      button: 'Follow organiser',
+      title: 'New events by e-mail',
+      lead: 'Whenever the organiser publishes a new event, we will send you an e-mail. Several events at once come in one digest.',
+      account: 'We will send the e-mails to',
+      useOther: 'Use a different address',
+      useAccount: 'Use my account address',
+      email: 'E-mail address',
+      emailPlaceholder: 'you@email.com',
+      privacy: 'We use your address only for these notifications. One click in any e-mail stops them.',
+      submit: 'Follow',
+      submitting: 'Sending…',
+      doneTitle: 'You are following',
+      doneLead: 'We will let you know by e-mail about this organiser\'s new events.',
+      doneTitlePending: 'Check your e-mail',
+      doneLeadPending: 'We sent you a confirmation link. Until you click it, we will send you nothing else.',
+      failed: 'Following could not be turned on.',
+      close: 'Close',
+    },
     remind: {
       button: 'Remind me',
       title: 'We will keep you posted',
@@ -1664,6 +1685,20 @@ const en: Messages = {
     acceptFailed: 'The invitation could not be accepted.',
   },
   // Odhlásenie z „Pripomeň mi" — stránka za odkazom v pätičke e-mailu.
+  // Confirming "follow organiser" from the e-mail (SubscriptionConfirmPage).
+  subscriptionConfirm: {
+    loading: 'Confirming…',
+    kicker: 'Following an organiser',
+    fallback: 'Organiser',
+    doneTitle: 'Following confirmed',
+    doneLead: 'Whenever the organiser publishes a new event, we will e-mail you. Every e-mail lets you unsubscribe.',
+    inactiveTitle: 'This subscription is no longer active',
+    inactiveLead: 'You have unsubscribed in the meantime. To follow the organiser again, sign up on their page.',
+    invalidTitle: 'The link is not valid',
+    invalidLead: 'The confirmation link does not exist or was copied incompletely.',
+    browse: 'Browse events',
+    home: 'Go to the home page',
+  },
   unsubscribe: {
     loading: 'Loading…',
     invalidTitle: 'This link is not valid',

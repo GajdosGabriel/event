@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Support\SubmissionTicket;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
@@ -21,7 +22,7 @@ class SubscriptionStoreRequest extends FormRequest
     }
 
     /**
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -61,7 +62,7 @@ class SubscriptionStoreRequest extends FormRequest
 
             $valid = SubmissionTicket::isValid(
                 $this->input('ticket'),
-                'subscription:'.$this->route('event'),
+                self::ticketScope($this->route('event'), $this->route('canal')),
                 self::MIN_FILL_SECONDS,
                 self::MAX_TICKET_AGE_SECONDS,
             );
@@ -82,6 +83,17 @@ class SubscriptionStoreRequest extends FormRequest
      * Jazyk beriem len ako dvojpísmenový kód a len zo zoznamu, ktorý naozaj
      * prekladáme — čokoľvek iné by v e-maile skončilo fallbackom aj tak.
      */
+    /**
+     * Rozsah známky (SubmissionTicket). Odber podujatia ostáva pri pôvodnom
+     * tvare `subscription:{id}`, aby známky vydané pred nasadením platili;
+     * kanál má vlastnú predponu, inak by známka podujatia 5 otvorila odber
+     * kanála 5.
+     */
+    public static function ticketScope(mixed $event, mixed $canal = null): string
+    {
+        return $canal !== null ? 'subscription:canal:'.$canal : 'subscription:'.$event;
+    }
+
     public function subscriptionLocale(): ?string
     {
         $locale = Str::lower(substr(trim((string) $this->input('locale')), 0, 2));

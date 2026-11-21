@@ -97,6 +97,8 @@ const router = createRouter({
         // Odhlásenie z „Pripomeň mi". Chodí v pätičke každého e-mailu z odberu,
         // takže sa adresa nesmie meniť; segment drží PublicUrl::UNSUBSCRIBE.
         { path: 'odhlasenie/:token', name: 'unsubscribe', component: () => import('@/pages/subscriptions/UnsubscribePage.vue') },
+        // Potvrdenie sledovania organizátora z e-mailu (PublicUrl::CONFIRM_SUBSCRIPTION).
+        { path: 'potvrdenie-odberu/:token', name: 'subscription-confirm', component: () => import('@/pages/subscriptions/SubscriptionConfirmPage.vue') },
         // Otázky z publika. Jediná verejná cesta bez slovenského slova — adresa
         // sa premieta na plátno a ľudia v zadnom rade si ju prepisujú rukou,
         // takže každý znak navyše je cena. Segment drží PublicUrl.QUESTIONS

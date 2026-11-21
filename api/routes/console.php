@@ -81,6 +81,9 @@ $artisan('app:tickets-expire-unconfirmed')->everyTenMinutes();
 // Pripomienky účastníkom. Presnosť na desať minút stačí — organizátor si volí
 // hodiny pred akciou, nie minúty.
 $artisan('app:events-send-reminders')->everyTenMinutes();
+// Súhrn nových akcií pre sledovateľov kanála. Štvrťhodina stačí a zbiera
+// hromadné zverejnenia (import, séria) do jedného e-mailu.
+$artisan('app:canal-followers-notify')->everyFifteenMinutes()->withoutOverlapping(10);
 $artisan('app:registrations-expire-pending')->everyTenMinutes();
 // Obsahové štítky podujatí. Malá dávka a vlastný časový strop — všetky príkazy
 // bežia sekvenčne v jednom webcron requeste spolu s app:ai-detector.

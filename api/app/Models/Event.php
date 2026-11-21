@@ -83,6 +83,8 @@ class Event extends Model implements HasQuestionBoard, Messageable
         'ai_tags_hash',
         'ai_tags_attempts',
         'body_rewritten_at',
+        // Interná poistka app:canal-followers-notify — návštevníka nezaujíma.
+        'followers_notified_at',
         // Pomocné príznaky z withTicketCtaFlags(); von ide z nich ticket_cta.
         'has_active_ticket_types',
         'has_paid_ticket_types',
@@ -96,6 +98,7 @@ class Event extends Model implements HasQuestionBoard, Messageable
         'website' => Website::class,
         'status' => ModelStatus::class,
         'published_at' => 'datetime',
+        'followers_notified_at' => 'datetime',
         'publish_at' => 'datetime',
         'start_at' => 'datetime',
         'end_at' => 'datetime',
@@ -258,6 +261,12 @@ class Event extends Model implements HasQuestionBoard, Messageable
     public function subscriptions()
     {
         return $this->morphMany(Subscription::class, 'subscribable');
+    }
+
+    /** Akcia už bola oznámená sledovateľom kanála (app:canal-followers-notify)? */
+    public function scopeAwaitingFollowerNotice(Builder $query): Builder
+    {
+        return $query->whereNull('followers_notified_at');
     }
 
     public function admissions()

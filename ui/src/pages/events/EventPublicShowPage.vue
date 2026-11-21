@@ -596,6 +596,9 @@
                 class="font-semibold text-slate-900 no-underline hover:text-blue-600">{{ event.canal.name }}</RouterLink>
               <ExternalLink v-if="event.canal.website" :href="event.canal.website" target="canal"
                 :target-id="event.canal.id" class="ml-2 text-sm text-blue-600 hover:underline">{{ t('public.web') }}</ExternalLink>
+              <!-- Sledovanie organizátora — kto prišiel na jednu akciu, často
+                   chce vedieť aj o ďalších. Odhlásenie je v každom e-maile. -->
+              <RemindMeButton :canal-id="event.canal.id" :event-name="event.canal.name" variant="ghost" class="mt-3" />
               <!-- Výzva na prevzatie. Detail akcie má oveľa viac návštev než
                    profil kanála, takže organizátor sa o správe dozvie najmä
                    tu. Samotná žiadosť ostáva na profile (CanalClaimBox) —

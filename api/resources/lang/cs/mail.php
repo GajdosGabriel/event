@@ -397,6 +397,27 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
+    // App\Notifications\CanalFollowConfirmation — „Sledovat pořadatele".
+    'canal_follow' => [
+        'subject_pending' => 'Potvrďte sledování: :canal',
+        'subject_confirmed' => 'Sledujete: :canal',
+        'intro_pending' => 'Chcete dostávat e-mail, když pořadatel **„:canal"** zveřejní novou akci? Potvrďte to tlačítkem níže.',
+        'action_pending' => 'Potvrdit sledování',
+        'outro_pending' => 'Pokud jste o to nežádali, e-mail ignorujte – bez potvrzení vám nic dalšího nepošleme.',
+        'intro_confirmed' => 'Hotovo – když pořadatel **„:canal"** zveřejní novou akci, dáme vám vědět e-mailem.',
+        'action_confirmed' => 'Zobrazit pořadatele',
+    ],
+
+    // App\Notifications\CanalNewEvents — souhrn nových akcí sledovaného kanálu.
+    'canal_new_events' => [
+        'subject_one' => 'Nová akce: :event (:canal)',
+        'subject_many' => ':canal zveřejnil :count nových akcí',
+        'intro' => 'Pořadatel **„:canal"**, kterého sledujete, zveřejnil:',
+        'more' => '…a další (:count) najdete na stránce pořadatele.',
+        'action' => 'Všechny akce pořadatele',
+        'outro' => 'Tento e-mail dostáváte, protože sledujete pořadatele „:canal".',
+    ],
+
     'subscription_confirmed' => [
         'subject' => 'Budeme vás informovat: :event',
         'intro' => 'Máte to. Pokud se u akce **„:event"** něco změní nebo ji pořadatel zruší, dáme vám vědět — a před začátkem pošleme připomínku.',

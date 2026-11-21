@@ -756,6 +756,7 @@ const cs: Messages = {
     cancelFailed: 'Registraci se nepodařilo zrušit.',
     subscriptions: 'Sleduji',
     subscriptionsLead: 'Ozveme se, když se termín nebo místo změní.',
+    followingCanal: 'Sledujete pořadatele — o nových akcích dostanete e-mail.',
     unsubscribe: 'Zrušit',
     unsubscribed: 'Odběr je zrušen.',
     unsubscribeFailed: 'Odběr se nepodařilo zrušit.',
@@ -846,6 +847,26 @@ const cs: Messages = {
       failed: 'Otázku se nepodařilo odeslat.',
     },
     // „Pripomeň mi" — jediná akcia na bezplatnom podujatí bez lístkov.
+    // „Sledovat pořadatele" — e-mail při nové akci kanálu (dvojité potvrzení).
+    follow: {
+      button: 'Sledovat pořadatele',
+      title: 'Nové akce e-mailem',
+      lead: 'Když pořadatel zveřejní novou akci, pošleme vám e-mail. Více akcí najednou přijde v jednom souhrnu.',
+      account: 'E-maily pošleme na',
+      useOther: 'Použít jinou adresu',
+      useAccount: 'Použít adresu účtu',
+      email: 'E-mailová adresa',
+      emailPlaceholder: 'vas@email.cz',
+      privacy: 'Adresu použijeme jen na tato upozornění. Odhlásit se dá jedním kliknutím z každého e-mailu.',
+      submit: 'Sledovat',
+      submitting: 'Odesílám…',
+      doneTitle: 'Sledujete',
+      doneLead: 'O nových akcích tohoto pořadatele vám dáme vědět e-mailem.',
+      doneTitlePending: 'Zkontrolujte e-mail',
+      doneLeadPending: 'Poslali jsme vám odkaz k potvrzení. Dokud na něj nekliknete, nic dalšího vám nepošleme.',
+      failed: 'Sledování se nepodařilo zapnout.',
+      close: 'Zavřít',
+    },
     remind: {
       button: 'Připomeň mi',
       title: 'Dáme vám vědět',
@@ -1663,6 +1684,20 @@ const cs: Messages = {
     acceptFailed: 'Pozvánku se nepodařilo přijmout.',
   },
   // Odhlásenie z „Pripomeň mi" — stránka za odkazom v pätičke e-mailu.
+  // Potvrzení sledování pořadatele z e-mailu (SubscriptionConfirmPage).
+  subscriptionConfirm: {
+    loading: 'Potvrzuji…',
+    kicker: 'Sledování pořadatele',
+    fallback: 'Pořadatel',
+    doneTitle: 'Sledování je potvrzené',
+    doneLead: 'Když pořadatel zveřejní novou akci, pošleme vám e-mail. Odhlásit se dá z každého e-mailu.',
+    inactiveTitle: 'Tento odběr už neplatí',
+    inactiveLead: 'Z odběru jste se mezitím odhlásili. Pokud chcete pořadatele znovu sledovat, přihlaste se na jeho stránce.',
+    invalidTitle: 'Odkaz není platný',
+    invalidLead: 'Odkaz k potvrzení neexistuje nebo byl zkopírován neúplně.',
+    browse: 'Prohlédnout akce',
+    home: 'Na úvodní stránku',
+  },
   unsubscribe: {
     loading: 'Načítám…',
     invalidTitle: 'Odkaz je neplatný',

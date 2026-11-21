@@ -55,6 +55,7 @@ use App\Http\Controllers\Public\BrokenLinkReportController;
 use App\Http\Controllers\Public\CanalClaimController as PublicCanalClaimController;
 use App\Http\Controllers\Public\CanalController as PublicCanalController;
 use App\Http\Controllers\Public\CanalInvitationController as PublicCanalInvitationController;
+use App\Http\Controllers\Public\CanalSubscriptionController as PublicCanalSubscriptionController;
 use App\Http\Controllers\Public\CheckinLinkController as PublicCheckinLinkController;
 use App\Http\Controllers\Public\EmailUnsubscribeController as PublicEmailUnsubscribeController;
 use App\Http\Controllers\Public\EventCalendarController as PublicEventCalendarController;
@@ -234,6 +235,18 @@ Route::get('events/{event}/subscription', [PublicSubscriptionController::class, 
     ->middleware('throttle:public-write');
 Route::post('events/{event}/subscription', [PublicSubscriptionController::class, 'store'])
     ->name('public.events.subscription.store')
+    ->middleware('throttle:public-write');
+
+// „Sledovať organizátora" — e-mail pri novej akcii kanála, s dvojitým
+// potvrdením (CanalSubscriptionController). Známka rovnako ako pri podujatí.
+Route::get('canals/{canal}/subscription', [PublicCanalSubscriptionController::class, 'ticket'])
+    ->name('public.canals.subscription.ticket')
+    ->middleware('throttle:public-write');
+Route::post('canals/{canal}/subscription', [PublicCanalSubscriptionController::class, 'store'])
+    ->name('public.canals.subscription.store')
+    ->middleware('throttle:public-write');
+Route::post('subscriptions/{token}/confirm', [PublicSubscriptionController::class, 'confirm'])
+    ->name('public.subscriptions.confirm')
     ->middleware('throttle:public-write');
 
 // Odhlásenie z pätičky e-mailu — token v odkaze JE autorizácia (ako RSVP nižšie).

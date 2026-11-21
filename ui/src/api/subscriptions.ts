@@ -47,3 +47,36 @@ export async function unsubscribe(token: string): Promise<SubscriptionInfo> {
   const { data } = await http.delete(`/subscriptions/${token}`)
   return mapSubscription((data.data ?? data) as Record<string, unknown>)
 }
+
+/**
+ * „Sledovať organizátora" — e-mail pri novej akcii kanála. Hosť odber musí
+ * potvrdiť z e-mailu (`pending`); prihlásený s overenou adresou účtu nie.
+ */
+export async function canalSubscriptionTicket(canalId: number): Promise<string> {
+  const { data } = await http.get(`/canals/${canalId}/subscription`)
+  return (data.ticket as string) ?? ''
+}
+
+export async function subscribeToCanal(
+  canalId: number,
+  payload: { email: string; ticket: string; locale: string; website?: string },
+): Promise<'pending' | 'subscribed'> {
+  const { data } = await http.post(`/canals/${canalId}/subscription`, payload)
+  return data?.status === 'subscribed' ? 'subscribed' : 'pending'
+}
+
+export type SubscriptionConfirmation = SubscriptionInfo & {
+  type: 'event' | 'canal' | null
+  confirmed: boolean
+}
+
+/** Klik na „Potvrdiť sledovanie" v e-maile. Idempotentné. */
+export async function confirmSubscription(token: string): Promise<SubscriptionConfirmation> {
+  const { data } = await http.post(`/subscriptions/${token}/confirm`)
+  const raw = (data.data ?? data) as Record<string, unknown>
+  return {
+    ...mapSubscription(raw),
+    type: raw['type'] === 'canal' || raw['type'] === 'event' ? raw['type'] : null,
+    confirmed: Boolean(raw['confirmed']),
+  }
+}

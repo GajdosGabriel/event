@@ -83,6 +83,9 @@ final class PublicUrl
      */
     public const UNSUBSCRIBE = 'odhlasenie';
 
+    /** Potvrdenie sledovania organizátora z e-mailu (dvojité potvrdenie). */
+    public const CONFIRM_SUBSCRIPTION = 'potvrdenie-odberu';
+
     /**
      * Formulár na nastavenie nového hesla. Rovnako ako odhlásenie z odberu to
      * je verejná stránka SPA, ktorú otvára odkaz z e-mailu a ktorá do sitemapy
@@ -257,6 +260,15 @@ final class PublicUrl
     public static function unsubscribe(string $token): string
     {
         return self::absolute(self::UNSUBSCRIBE.'/'.$token);
+    }
+
+    /**
+     * Potvrdenie sledovania organizátora (dvojité potvrdenie) — odkaz chodí
+     * len v e-maile, token je autorizácia. Mimo sitemapy, ako odhlásenie.
+     */
+    public static function confirmSubscription(string $token): string
+    {
+        return self::absolute(self::CONFIRM_SUBSCRIPTION.'/'.$token);
     }
 
     /**

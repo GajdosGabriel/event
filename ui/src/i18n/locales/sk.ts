@@ -803,6 +803,7 @@ const sk = {
     cancelFailed: 'Registráciu sa nepodarilo zrušiť.',
     subscriptions: 'Sledujem',
     subscriptionsLead: 'Ozveme sa, keď sa termín alebo miesto zmení.',
+    followingCanal: 'Sledujete organizátora — o nových akciách dostanete e-mail.',
     unsubscribe: 'Zrušiť',
     unsubscribed: 'Odber je zrušený.',
     unsubscribeFailed: 'Odber sa nepodarilo zrušiť.',
@@ -902,6 +903,26 @@ const sk = {
     // „Pripomeň mi" — jediná akcia na bezplatnom podujatí bez lístkov.
     // Hlavný sľub je zmena a zrušenie, nie „novinky": to je dôvod, ktorý ľudia
     // prijmú bez váhania, a pripomienka je až bonus.
+    // „Sledovať organizátora" — e-mail pri novej akcii kanála (dvojité potvrdenie).
+    follow: {
+      button: 'Sledovať organizátora',
+      title: 'Nové akcie e-mailom',
+      lead: 'Keď organizátor zverejní novú akciu, pošleme vám e-mail. Viac akcií naraz príde v jednom súhrne.',
+      account: 'E-maily pošleme na',
+      useOther: 'Použiť inú adresu',
+      useAccount: 'Použiť adresu účtu',
+      email: 'E-mailová adresa',
+      emailPlaceholder: 'vas@email.sk',
+      privacy: 'Adresu použijeme len na tieto upozornenia. Odhlásiť sa dá jedným klikom z každého e-mailu.',
+      submit: 'Sledovať',
+      submitting: 'Odosielam…',
+      doneTitle: 'Sledujete',
+      doneLead: 'O nových akciách tohto organizátora vám dáme vedieť e-mailom.',
+      doneTitlePending: 'Skontrolujte e-mail',
+      doneLeadPending: 'Poslali sme vám odkaz na potvrdenie. Kým naň nekliknete, nič ďalšie vám nepošleme.',
+      failed: 'Sledovanie sa nepodarilo zapnúť.',
+      close: 'Zavrieť',
+    },
     remind: {
       button: 'Pripomeň mi',
       title: 'Dáme vám vedieť',
@@ -1747,6 +1768,20 @@ const sk = {
   },
   // Potvrdenie účasti z e-mailu — vrátane ponuky uvoľneného miesta z čakačky.
   // Odhlásenie z „Pripomeň mi" — stránka za odkazom v pätičke e-mailu.
+  // Potvrdenie sledovania organizátora z e-mailu (SubscriptionConfirmPage).
+  subscriptionConfirm: {
+    loading: 'Potvrdzujem…',
+    kicker: 'Sledovanie organizátora',
+    fallback: 'Organizátor',
+    doneTitle: 'Sledovanie je potvrdené',
+    doneLead: 'Keď organizátor zverejní novú akciu, pošleme vám e-mail. Odhlásiť sa dá z každého e-mailu.',
+    inactiveTitle: 'Tento odber už neplatí',
+    inactiveLead: 'Z odberu ste sa medzitým odhlásili. Ak chcete organizátora znova sledovať, prihláste sa na jeho stránke.',
+    invalidTitle: 'Odkaz nie je platný',
+    invalidLead: 'Odkaz na potvrdenie neexistuje alebo bol skopírovaný neúplne.',
+    browse: 'Prezrieť akcie',
+    home: 'Na úvodnú stránku',
+  },
   unsubscribe: {
     loading: 'Načítavam…',
     invalidTitle: 'Odkaz je neplatný',
