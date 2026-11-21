@@ -175,7 +175,9 @@ class AttendeeExportAndMailingTest extends EventSetupTest
 
         $this->artisan('app:events-send-reminders')->assertSuccessful();
 
-        Notification::assertNothingSent();
+        // Presun termínu v príprave testu legitímne ohlási účastníkovi zmenu
+        // (EventChanged) — tu sa sleduje len pripomienka.
+        Notification::assertSentOnDemandTimes(EventReminder::class, 0);
         $this->assertNull($this->futureEvent->fresh()->reminder_sent_at);
     }
 
@@ -196,7 +198,9 @@ class AttendeeExportAndMailingTest extends EventSetupTest
 
         $this->artisan('app:events-send-reminders')->assertSuccessful();
 
-        Notification::assertNothingSent();
+        // Stiahnutie zo zverejnenia v príprave testu účastníkovi ohlási
+        // zrušenie (EventChanged) — tu sa sleduje len pripomienka.
+        Notification::assertSentOnDemandTimes(EventReminder::class, 0);
     }
 
     #[Test]
