@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\Question;
 use App\Models\QuestionBoard;
 use App\Repositories\Contracts\EventRepository;
+use App\Services\Canals\CanalFollowing;
 use App\Services\Canals\CanalRelay;
 use App\Services\Canals\CanalTakeover;
 use App\Services\Questions\QuestionAlert;
@@ -129,6 +130,11 @@ class EventQuestionController extends Controller
         // o ktorej sa nedozvie, je otázka bez odpovede (QuestionAlert).
         $this->organizerAlert->notify($question, $model);
 
+        // Kto sa na akciu pýtal a nechal adresu, dozvie sa aj o ďalších akciách
+        // organizátora (CanalFollowing). Adresa otázky sa po odpovedi maže
+        // ako doteraz — sledovanie je samostatný odber s vlastným odhlásením.
+        app(CanalFollowing::class)->followAfterInteraction($model, $question->author_email, app()->getLocale());
+
         return response()->json([
             'id' => $question->id,
             'pending' => ! $question->isPublished(),
@@ -174,6 +180,8 @@ class EventQuestionController extends Controller
         }
 
         $this->relay->question($event, $sender, $request->questionBody());
+
+        app(CanalFollowing::class)->followAfterInteraction($event, $sender->email, app()->getLocale());
 
         return response()->json(['relayed' => true, 'notify' => true], 201);
     }

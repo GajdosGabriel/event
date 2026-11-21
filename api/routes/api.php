@@ -237,16 +237,13 @@ Route::post('events/{event}/subscription', [PublicSubscriptionController::class,
     ->name('public.events.subscription.store')
     ->middleware('throttle:public-write');
 
-// „Sledovať organizátora" — e-mail pri novej akcii kanála, s dvojitým
-// potvrdením (CanalSubscriptionController). Známka rovnako ako pri podujatí.
+// „Sledovať organizátora" — e-mail pri novej akcii kanála, platí hneď
+// (CanalFollowing). Známka rovnako ako pri podujatí.
 Route::get('canals/{canal}/subscription', [PublicCanalSubscriptionController::class, 'ticket'])
     ->name('public.canals.subscription.ticket')
     ->middleware('throttle:public-write');
 Route::post('canals/{canal}/subscription', [PublicCanalSubscriptionController::class, 'store'])
     ->name('public.canals.subscription.store')
-    ->middleware('throttle:public-write');
-Route::post('subscriptions/{token}/confirm', [PublicSubscriptionController::class, 'confirm'])
-    ->name('public.subscriptions.confirm')
     ->middleware('throttle:public-write');
 
 // Odhlásenie z pätičky e-mailu — token v odkaze JE autorizácia (ako RSVP nižšie).

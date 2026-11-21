@@ -34,7 +34,11 @@ class EventChanged extends Notification implements ShouldQueue
      */
     public function __construct(
         protected Event $event,
-        protected Subscription $subscription,
+        /**
+         * Odber „Pripomeň mi"; null pri účastníkovi s lístkom — ten sa nemá
+         * z čoho odhlasovať, správa o zmene patrí k jeho rezervácii.
+         */
+        protected ?Subscription $subscription,
         protected array $changes,
         protected bool $cancelled = false,
     ) {}
@@ -65,7 +69,7 @@ class EventChanged extends Notification implements ShouldQueue
                 'eventUrl' => PublicUrl::event($this->event),
                 'cancelled' => $this->cancelled,
                 'changes' => $this->changes,
-                'unsubscribeUrl' => PublicUrl::unsubscribe((string) $this->subscription->token),
+                'unsubscribeUrl' => $this->subscription ? PublicUrl::unsubscribe((string) $this->subscription->token) : null,
                 // Zrušené podujatie nemá čo ponúkať do kalendára — naopak, ten
                 // záznam si má človek zmazať.
                 ...($this->cancelled ? $this->emptyCalendar() : $calendar->viewData()),

@@ -39,9 +39,8 @@
 
             <!-- Hotovo -->
             <div v-if="done" class="rounded-lg bg-green-50 p-4 text-sm text-green-800">
-              <!-- Sledovanie kanála hosťom čaká na potvrdenie z e-mailu. -->
-              <p class="mb-1 font-semibold">{{ t(pending ? 'public.follow.doneTitlePending' : `${prefix}.doneTitle`) }}</p>
-              <p>{{ t(pending ? 'public.follow.doneLeadPending' : `${prefix}.doneLead`) }}</p>
+              <p class="mb-1 font-semibold">{{ t(`${prefix}.doneTitle`) }}</p>
+              <p>{{ t(`${prefix}.doneLead`) }}</p>
               <button type="button" class="mt-3 text-sm font-medium text-green-700 hover:underline" @click="close">
                 {{ t(`${prefix}.close`) }}
               </button>
@@ -121,7 +120,7 @@ const props = withDefaults(defineProps<{
   eventId?: number
   /**
    * Sledovanie organizátora namiesto odberu podujatia — ten istý formulár,
-   * iné texty (`public.follow`) a dvojité potvrdenie pre hosťa.
+   * iné texty (`public.follow`). Platí hneď, bez potvrdzovania.
    */
   canalId?: number
   /** Názov podujatia v hlavičke modálu (nepovinný). */
@@ -137,8 +136,6 @@ const props = withDefaults(defineProps<{
 
 const isCanal = computed(() => props.canalId !== undefined)
 const prefix = computed(() => (isCanal.value ? 'public.follow' : 'public.remind'))
-/** Hosť sleduje kanál — čaká sa na klik v potvrdzovacom e-maile. */
-const pending = ref(false)
 
 function fetchTicket(): Promise<string> {
   return isCanal.value ? canalSubscriptionTicket(props.canalId as number) : subscriptionTicket(props.eventId as number)
@@ -224,7 +221,7 @@ async function submit() {
     }
 
     if (isCanal.value) {
-      pending.value = (await subscribeToCanal(props.canalId as number, payload)) === 'pending'
+      await subscribeToCanal(props.canalId as number, payload)
     } else {
       await subscribeToEvent(props.eventId as number, payload)
     }

@@ -1,1 +1,0 @@
-import{_ as e}from"./useApi-SF8tY_yo-5NaQPU1_.js";function t(){let t=e();return e=>{let n=window.history.state?.back;typeof n==`string`&&n!==t.currentRoute.value.fullPath&&!/^\/(login|register)\b/.test(n)?t.back():t.push(e)}}export{t};

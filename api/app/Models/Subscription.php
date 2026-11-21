@@ -39,13 +39,32 @@ class Subscription extends Model
      * Token je autorizácia odhlásenia a nemá čo opustiť server inak než
      * v odkaze, ktorý sami pošleme do e-mailu.
      */
-    protected $hidden = ['token'];
+    protected $hidden = ['token', 'email_hash'];
 
     protected $casts = [
         'confirmed_at' => 'datetime',
         'notified_at' => 'datetime',
         'unsubscribed_at' => 'datetime',
     ];
+
+    /**
+     * Odtlačok adresy sa dopĺňa pri každom uložení s adresou a pri odhlásení
+     * ostáva — viď migráciu add_email_hash_to_subscriptions.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $subscription) {
+            if (filled($subscription->email)) {
+                $subscription->email_hash = self::hashEmail((string) $subscription->email);
+            }
+        });
+    }
+
+    /** Odtlačok adresy — malé písmená a bez medzier, aby sa zhodoval vždy. */
+    public static function hashEmail(string $email): string
+    {
+        return hash('sha256', mb_strtolower(trim($email)));
+    }
 
     /** Cieľ odberu — Event / Canal (morph). */
     public function subscribable(): MorphTo

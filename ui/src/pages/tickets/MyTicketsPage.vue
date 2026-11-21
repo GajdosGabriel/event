@@ -123,14 +123,16 @@
     </template>
 
     <!-- Odbery sú tu, a nie na vlastnej stránke, lebo sú to tie isté „veci,
-         na ktoré čakám" — len bez lístka. -->
-    <section v-if="subscriptions.length" class="mt-10">
-      <h2 class="text-lg font-semibold text-slate-900">{{ t('myTickets.subscriptions') }}</h2>
-      <p class="mt-1 text-sm text-slate-500">{{ t('myTickets.subscriptionsLead') }}</p>
+         na ktoré čakám" — len bez lístka. Sledovaní organizátori idú zvlášť:
+         pribúdajú sami (rezervácia, lístok, otázka), takže človek musí na
+         jednom mieste vidieť, kto mu píše, a vedieť ho jedným klikom vyškrtnúť. -->
+    <section v-for="group in subscriptionGroups" :key="group.type" class="mt-10">
+      <h2 class="text-lg font-semibold text-slate-900">{{ group.title }}</h2>
+      <p class="mt-1 text-sm text-slate-500">{{ group.lead }}</p>
 
       <ul class="mt-3 grid gap-2">
         <li
-          v-for="subscription in subscriptions"
+          v-for="subscription in group.items"
           :key="subscription.id"
           class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
         >
@@ -146,10 +148,6 @@
             <p v-if="subscription.target?.startAt" class="text-sm text-slate-500">
               {{ fmtDateLong(subscription.target.startAt) }}
             </p>
-            <!-- Sledovaný organizátor nemá termín — povieme aspoň, čo odber robí. -->
-            <p v-else-if="subscription.type === 'canal'" class="text-sm text-slate-500">
-              {{ t('myTickets.followingCanal') }}
-            </p>
           </div>
 
           <button
@@ -157,7 +155,7 @@
             :disabled="unsubscribing === subscription.id"
             @click="unsubscribe(subscription)"
           >
-            {{ t('myTickets.unsubscribe') }}
+            {{ group.type === 'canal' ? t('myTickets.unfollow') : t('myTickets.unsubscribe') }}
           </button>
         </li>
       </ul>
@@ -195,6 +193,22 @@ const page = ref(Number(route.query.page ?? 1) || 1)
 const tickets = ref<TicketItem[]>([])
 const meta = ref({ current_page: 1, last_page: 1, per_page: 20, total: 0 })
 const subscriptions = ref<MySubscription[]>([])
+
+/** Sledovaní organizátori hore — tých pribúda samo a človek ich má vidieť prvých. */
+const subscriptionGroups = computed(() => [
+  {
+    type: 'canal' as const,
+    title: t('myTickets.followedCanals'),
+    lead: t('myTickets.followedCanalsLead'),
+    items: subscriptions.value.filter(s => s.type === 'canal'),
+  },
+  {
+    type: 'event' as const,
+    title: t('myTickets.subscriptions'),
+    lead: t('myTickets.subscriptionsLead'),
+    items: subscriptions.value.filter(s => s.type !== 'canal'),
+  },
+].filter(group => group.items.length > 0))
 const loading = ref(true)
 const cancelling = ref<string | null>(null)
 const unsubscribing = ref<number | null>(null)

@@ -23,6 +23,7 @@ use App\Notifications\EventSignupOrganizerNotice;
 use App\Notifications\RegistrationCancelled;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Canals\CanalFollowing;
 use App\Services\Canals\CanalRecipients;
 use App\Services\Canals\CanalTakeover;
 use App\Support\EventTimeframe;
@@ -254,6 +255,9 @@ class EventSignup
 
         $this->safely(fn () => Notification::route('mail', $ticket->holder_email)
             ->notify(new TicketIssued($ticket->fresh(['event', 'admissions.ticketType']))));
+
+        // Rezervácia jedným klikom — organizátora odteraz sleduje (CanalFollowing).
+        app(CanalFollowing::class)->followAfterInteraction($event, $ticket->holder_email, app()->getLocale());
 
         return $ticket;
     }

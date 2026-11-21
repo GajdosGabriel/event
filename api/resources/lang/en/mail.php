@@ -397,15 +397,12 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
-    // App\Notifications\CanalFollowConfirmation — "Follow organiser".
+    // App\Notifications\CanalFollowStarted — "Follow organiser".
     'canal_follow' => [
-        'subject_pending' => 'Confirm following: :canal',
-        'subject_confirmed' => 'You are following: :canal',
-        'intro_pending' => 'Would you like an e-mail whenever **":canal"** publishes a new event? Please confirm with the button below.',
-        'action_pending' => 'Confirm following',
-        'outro_pending' => 'If you did not ask for this, simply ignore this e-mail – without confirmation we will send you nothing else.',
-        'intro_confirmed' => 'Done – whenever **":canal"** publishes a new event, we will let you know by e-mail.',
-        'action_confirmed' => 'View organiser',
+        'subject' => 'You are following: :canal',
+        'intro' => 'Done – whenever **":canal"** publishes a new event, we will let you know by e-mail. Several events at once come in one digest.',
+        'action' => 'View organiser',
+        'outro' => 'If you did not ask for this or no longer want it, unsubscribe with the link below.',
     ],
 
     // App\Notifications\CanalNewEvents — digest of a followed organiser's new events.

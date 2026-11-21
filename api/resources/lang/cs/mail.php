@@ -397,15 +397,12 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
-    // App\Notifications\CanalFollowConfirmation — „Sledovat pořadatele".
+    // App\Notifications\CanalFollowStarted — „Sledovat pořadatele".
     'canal_follow' => [
-        'subject_pending' => 'Potvrďte sledování: :canal',
-        'subject_confirmed' => 'Sledujete: :canal',
-        'intro_pending' => 'Chcete dostávat e-mail, když pořadatel **„:canal"** zveřejní novou akci? Potvrďte to tlačítkem níže.',
-        'action_pending' => 'Potvrdit sledování',
-        'outro_pending' => 'Pokud jste o to nežádali, e-mail ignorujte – bez potvrzení vám nic dalšího nepošleme.',
-        'intro_confirmed' => 'Hotovo – když pořadatel **„:canal"** zveřejní novou akci, dáme vám vědět e-mailem.',
-        'action_confirmed' => 'Zobrazit pořadatele',
+        'subject' => 'Sledujete: :canal',
+        'intro' => 'Hotovo – když pořadatel **„:canal"** zveřejní novou akci, dáme vám vědět e-mailem. Více akcí najednou přijde v jednom souhrnu.',
+        'action' => 'Zobrazit pořadatele',
+        'outro' => 'Pokud jste o to nežádali nebo už nechcete, odhlaste se odkazem níže.',
     ],
 
     // App\Notifications\CanalNewEvents — souhrn nových akcí sledovaného kanálu.

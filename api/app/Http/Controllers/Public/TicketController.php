@@ -8,6 +8,7 @@ use App\Http\Resources\TicketResource;
 use App\Models\Event;
 use App\Notifications\TicketIssued;
 use App\Repositories\Contracts\TicketRepository;
+use App\Services\Canals\CanalFollowing;
 use App\Services\Tickets\AttendeeRegistrar;
 use App\Services\Tickets\EventSignup;
 use App\Services\Tickets\Questionnaire;
@@ -62,6 +63,10 @@ class TicketController extends Controller
         // Organizátor a super-admini sa o prihlásení dozvedia pri každej
         // objednávke — aj z formulára, nielen z tlačidla „Rezervovať".
         app(EventSignup::class)->notifyAboutOrder($ticket);
+
+        // Kto si u organizátora rezervoval či kúpil lístok, dozvie sa aj o jeho
+        // ďalších akciách — bez pýtania, odhlásiť sa dá z každého e-mailu.
+        app(CanalFollowing::class)->followAfterInteraction($event, $ticket->holder_email, app()->getLocale());
 
         return response()->json(new TicketResource($ticket), 201);
     }

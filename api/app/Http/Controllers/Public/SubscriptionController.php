@@ -112,28 +112,6 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    /**
-     * Potvrdenie sledovania organizátora z e-mailu (dvojité potvrdenie,
-     * CanalSubscriptionController). Idempotentné — klient si odkaz môže
-     * prednačítať a človek naň môže kliknúť dvakrát. Odhlásený odber sa
-     * neoživí: kto sa odhlásil, musí sa prihlásiť znova.
-     */
-    public function confirm(string $token): JsonResponse
-    {
-        $subscription = $this->byTokenOrFail($token);
-
-        if ($subscription->isActive() && $subscription->confirmed_at === null) {
-            $subscription->forceFill(['confirmed_at' => now()])->save();
-        }
-
-        return response()->json([
-            'event' => $this->targetName($subscription),
-            'type' => array_search($subscription->subscribable_type, Subscription::TARGETS, true) ?: null,
-            'active' => $subscription->isActive(),
-            'confirmed' => $subscription->isActive() && $subscription->confirmed_at !== null,
-        ]);
-    }
-
     private function byTokenOrFail(string $token): Subscription
     {
         // Cieľ sa načítava rovno v dopyte — `Model::preventLazyLoading` je mimo

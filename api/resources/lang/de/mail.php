@@ -397,15 +397,12 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
-    // App\Notifications\CanalFollowConfirmation — „Veranstalter folgen“.
+    // App\Notifications\CanalFollowStarted — „Veranstalter folgen“.
     'canal_follow' => [
-        'subject_pending' => 'Folgen bestätigen: :canal',
-        'subject_confirmed' => 'Sie folgen: :canal',
-        'intro_pending' => 'Möchten Sie eine E-Mail erhalten, wenn **„:canal“** eine neue Veranstaltung veröffentlicht? Bitte bestätigen Sie mit der Schaltfläche unten.',
-        'action_pending' => 'Folgen bestätigen',
-        'outro_pending' => 'Falls Sie das nicht angefordert haben, ignorieren Sie diese E-Mail – ohne Bestätigung senden wir Ihnen nichts weiter.',
-        'intro_confirmed' => 'Erledigt – sobald **„:canal“** eine neue Veranstaltung veröffentlicht, informieren wir Sie per E-Mail.',
-        'action_confirmed' => 'Veranstalter anzeigen',
+        'subject' => 'Sie folgen: :canal',
+        'intro' => 'Erledigt – sobald **„:canal“** eine neue Veranstaltung veröffentlicht, informieren wir Sie per E-Mail. Mehrere auf einmal kommen in einer Übersicht.',
+        'action' => 'Veranstalter anzeigen',
+        'outro' => 'Falls Sie das nicht angefordert haben oder nicht mehr möchten, melden Sie sich über den Link unten ab.',
     ],
 
     // App\Notifications\CanalNewEvents — Übersicht neuer Veranstaltungen eines gefolgten Veranstalters.

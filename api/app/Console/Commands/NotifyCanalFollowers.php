@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Notification;
  * - len nadchádzajúce akcie (alebo bez termínu) — oznamovať, čo už bolo, nemá zmysel;
  * - každá akcia najviac raz (`events.followers_notified_at`), aj keď ju
  *   organizátor stiahne a znova zverejní;
- * - sledovateľ dostane len akcie zverejnené po tom, čo sledovanie potvrdil.
+ * - sledovateľ dostane len akcie zverejnené po tom, čo začal sledovať.
  */
 class NotifyCanalFollowers extends Command
 {

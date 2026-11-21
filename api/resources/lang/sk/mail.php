@@ -424,16 +424,12 @@ return [
     ],
 
     // App\Notifications\SubscriptionConfirmed — prvý e-mail po „Pripomeň mi".
-    // App\Notifications\CanalFollowConfirmation — „Sledovať organizátora".
-    // Hosť musí odber potvrdiť (dvojité potvrdenie), inak mu nič nepríde.
+    // App\Notifications\CanalFollowStarted — „Sledovať organizátora".
     'canal_follow' => [
-        'subject_pending' => 'Potvrďte sledovanie: :canal',
-        'subject_confirmed' => 'Sledujete: :canal',
-        'intro_pending' => 'Chcete dostávať e-mail, keď organizátor **„:canal"** zverejní novú akciu? Potvrďte to tlačidlom nižšie.',
-        'action_pending' => 'Potvrdiť sledovanie',
-        'outro_pending' => 'Ak ste o to nežiadali, e-mail ignorujte – bez potvrdenia vám nič ďalšie nepošleme.',
-        'intro_confirmed' => 'Hotovo – keď organizátor **„:canal"** zverejní novú akciu, dáme vám vedieť e-mailom.',
-        'action_confirmed' => 'Zobraziť organizátora',
+        'subject' => 'Sledujete: :canal',
+        'intro' => 'Hotovo – keď organizátor **„:canal"** zverejní novú akciu, dáme vám vedieť e-mailom. Viac akcií naraz príde v jednom súhrne.',
+        'action' => 'Zobraziť organizátora',
+        'outro' => 'Ak ste o to nežiadali alebo už nechcete, odhláste sa odkazom nižšie.',
     ],
 
     // App\Notifications\CanalNewEvents — súhrn nových akcií sledovaného kanála.

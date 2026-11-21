@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\Venue;
 use App\Notifications\EventChanged;
 use App\Services\Account\AccountMailing;
+use App\Services\Events\AttendeeDirectory;
 use App\Services\Events\SubscriberDirectory;
 use App\Support\MailText;
 use Illuminate\Support\Carbon;
@@ -70,10 +71,24 @@ class EventObserver
         }
 
         $subscribers = app(SubscriberDirectory::class)->forEvent($event);
+        $notified = [];
 
         foreach ($subscribers as $subscription) {
             Notification::route('mail', $subscription->email)
                 ->notify(new EventChanged($event, $subscription, $changes, $cancelled));
+            $notified[mb_strtolower((string) $subscription->email)] = true;
+        }
+
+        // Účastníci s lístkom či rezerváciou. Ich sa presun alebo zrušenie
+        // týka ešte viac než odberateľov — majú miesto, chystajú sa prísť.
+        // Kto je zároveň odberateľom, dostane jeden e-mail, nie dva.
+        foreach (app(AttendeeDirectory::class)->recipients($event) as $email => $recipient) {
+            if (isset($notified[$email])) {
+                continue;
+            }
+
+            Notification::route('mail', $recipient['email'])
+                ->notify(new EventChanged($event, null, $changes, $cancelled));
         }
 
         // Zrušené podujatie sa už nemá čím pripomenúť — odbery na ňom zaniknú

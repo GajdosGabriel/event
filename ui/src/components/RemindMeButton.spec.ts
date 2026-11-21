@@ -9,7 +9,7 @@ vi.mock('@/api/subscriptions', () => ({
   subscriptionTicket: vi.fn().mockResolvedValue('event-ticket'),
   subscribeToEvent: vi.fn().mockResolvedValue(undefined),
   canalSubscriptionTicket: vi.fn().mockResolvedValue('canal-ticket'),
-  subscribeToCanal: vi.fn().mockResolvedValue('pending'),
+  subscribeToCanal: vi.fn().mockResolvedValue(undefined),
 }))
 
 async function openAndSubmit(props: Record<string, unknown>) {
@@ -28,21 +28,13 @@ beforeEach(() => {
 })
 
 describe('RemindMeButton as "follow organiser"', () => {
-  it('follows the canal and tells a guest to confirm from the e-mail', async () => {
+  it('follows the canal right away, without asking for a confirmation', async () => {
     const wrapper = await openAndSubmit({ canalId: 9, eventName: 'Zbor' })
 
-    expect(wrapper.text()).toContain(t('public.follow.doneTitlePending'))
+    expect(wrapper.text()).toContain(t('public.follow.doneTitle'))
     expect(canalSubscriptionTicket).toHaveBeenCalledWith(9)
     expect(subscribeToCanal).toHaveBeenCalledWith(9, expect.objectContaining({ email: 'fan@example.com', ticket: 'canal-ticket' }))
     expect(subscribeToEvent).not.toHaveBeenCalled()
-    wrapper.unmount()
-  })
-
-  it('confirms right away when the server says the address is already verified', async () => {
-    vi.mocked(subscribeToCanal).mockResolvedValueOnce('subscribed')
-    const wrapper = await openAndSubmit({ canalId: 9 })
-
-    expect(wrapper.text()).toContain(t('public.follow.doneTitle'))
     wrapper.unmount()
   })
 

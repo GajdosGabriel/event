@@ -177,6 +177,9 @@
             class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
             {{ loading ? t('tickets.request.submitting') : submitLabel(type) }}
           </button>
+          <!-- Rezervácia zapne sledovanie organizátora (CanalFollowing) — bez
+               pýtania, ale nie potichu: povieme to tu a odhlásenie je v každom e-maile. -->
+          <p class="text-center text-xs text-slate-500">{{ t('tickets.request.followNotice') }}</p>
 
           <button v-if="auth.isAuthenticated" type="button"
             class="w-full text-center text-xs text-slate-500 hover:text-blue-600"
