@@ -183,9 +183,6 @@ export interface BotGuardPayload {
 export interface RegisterPayload {
   /** Meno človeka — vždy osoba, aj pri registrácii za organizáciu (osobný kanál). */
   display_name: string
-  /** Za organizáciu vznikne popri osobnom aj organizačný kanál s názvom `organization_name`. */
-  account_type?: 'person' | 'organization'
-  organization_name?: string | null
   email: string
   password: string
   password_confirmation?: string

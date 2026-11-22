@@ -19,28 +19,17 @@
 
       <template v-if="!success">
         <form class="grid gap-3" @submit.prevent="submit">
-          <FormField v-model="form.account_type" type="radio" :label="t('auth.register.accountType')" :options="accountTypeOptions" />
-          <FormField
-            v-if="form.account_type === 'organization'"
-            v-model="form.organization_name"
-            :label="t('auth.register.organizationName')"
-            :hint="t('auth.register.organizationNameHint')"
-            required
-            autocomplete="organization"
-            maxlength="255"
-          />
           <FormField
             v-model="form.display_name"
             :label="t('auth.register.name')"
-            :hint="form.account_type === 'organization' ? t('auth.register.nameHintOrganization') : t('auth.register.nameHint')"
+            :hint="t('auth.register.nameHint')"
             required
             autocomplete="name"
             maxlength="255"
           />
-          <div v-if="nameLooksLikeOrganization" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="organization-name-warning">
-            <p>{{ t('auth.register.looksLikeOrganization') }}</p>
-            <button type="button" class="mt-1 underline" @click="switchToOrganization">{{ t('auth.register.switchToOrganization') }}</button>
-          </div>
+          <p v-if="nameLooksLikeOrganization" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="organization-name-warning">
+            {{ t('auth.register.looksLikeOrganization') }}
+          </p>
           <FormField v-model="form.email" type="email" :label="t('auth.register.email')" required autocomplete="email" />
           <FormField v-model="form.password" type="password" :label="t('auth.register.password')" required autocomplete="new-password" :hint="t('auth.reset.passwordHint')" :error="passwordLengthError" />
           <FormField v-model="form.password_confirmation" type="password" :label="t('auth.register.passwordConfirm')" required autocomplete="new-password" :error="passwordError" />
@@ -93,8 +82,6 @@ const validation = provideFormValidation()
 const prefillEmail = typeof route.query.email === 'string' ? route.query.email : ''
 
 const form = ref({
-  account_type: 'person' as 'person' | 'organization',
-  organization_name: '',
   display_name: '',
   email: prefillEmail,
   password: '',
@@ -102,24 +89,10 @@ const form = ref({
   terms_accepted: false,
 })
 
-// Pole „Meno“ je meno človeka — z neho vzniká osobný kanál. Kto sa registruje
-// za spolok, dostane aj organizačný kanál s vlastným názvom.
-const accountTypeOptions = computed(() => [
-  { value: 'person', label: t('auth.register.asPerson') },
-  { value: 'organization', label: t('auth.register.asOrganization'), hint: t('auth.register.asOrganizationHint') },
-])
-
-// Do mena ľudia píšu názov spolku („…, o. z.“) — upozorníme a ponúkneme
-// presunúť ho do názvu organizácie.
-const nameLooksLikeOrganization = computed(() => form.value.account_type === 'person' && looksLikeOrganization(form.value.display_name))
-
-function switchToOrganization() {
-  if (form.value.account_type === 'person' || !form.value.organization_name.trim()) {
-    form.value.organization_name = form.value.display_name.trim()
-  }
-  form.value.account_type = 'organization'
-  form.value.display_name = ''
-}
+// Pole „Meno“ je meno človeka — z neho vzniká osobný kanál. Ľudia doň píšu
+// názov spolku („…, o. z.“), tak upozorníme, že organizácia sa pridáva
+// až po registrácii ako ďalší kanál.
+const nameLooksLikeOrganization = computed(() => looksLikeOrganization(form.value.display_name))
 
 // „Prihlásiť sa" pri akcii (hlascirkvi.sk) sem posiela `?event=<id>`. Nový účet
 // si akciu zapamätá a miesto sa rezervuje po overení e-mailu; kto je už
@@ -190,12 +163,7 @@ async function submit() {
 
   loading.value = true
   try {
-    const { organization_name, ...rest } = form.value
-    const payload = {
-      ...rest,
-      organization_name: rest.account_type === 'organization' ? organization_name.trim() : null,
-      ...guard.value,
-    }
+    const payload = { ...form.value, ...guard.value }
     const result = await register(eventId ? { ...payload, event_id: Number(eventId) } : payload)
     rememberRedirect(redirect)
     if (result?.already_pending) {
@@ -226,17 +194,9 @@ async function onGoogleCredential(credential: string) {
     return
   }
 
-  // Meno človeka dá Google, názov organizácie musí byť z formulára.
-  const organizationName = form.value.account_type === 'organization' ? form.value.organization_name.trim() : ''
-  if (form.value.account_type === 'organization' && !organizationName) {
-    validation.markValidated()
-    error.value = t('auth.register.organizationNameRequired')
-    return
-  }
-
   loading.value = true
   try {
-    await auth.socialLogin('register', 'google', { id_token: credential, terms_accepted: true, organization_name: organizationName || null })
+    await auth.socialLogin('register', 'google', { id_token: credential, terms_accepted: true })
     // Google e-mail overil — na akciu sa hlási hneď.
     router.push(eventId ? { name: 'event-signup', params: { id: eventId } } : redirect ?? '/dashboard')
   } catch (e: unknown) {

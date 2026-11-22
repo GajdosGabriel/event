@@ -1,0 +1,1 @@
+import{o as e}from"./i18n-BOCbwR1k.js";function t(){let{t}=e();function n(e){let n=`systemLog.ev.${e.replace(/\./g,`_`)}`,r=t(n);return r===n?e:r}function r(e){let n=`systemLog.status.${e}`,r=t(n);return r===n?e:r}return{eventLabel:n,statusLabel:r}}export{t};
