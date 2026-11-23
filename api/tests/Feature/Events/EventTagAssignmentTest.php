@@ -121,15 +121,19 @@ class EventTagAssignmentTest extends EventSetupTest
             'group' => 'attribute', 'slug' => 'viacdnove', 'name' => 'Viacdňové', 'sort_order' => 0, 'is_active' => true,
         ]);
 
+        // Pevná hodina: s now() by beh okolo polnoci (CI o 23:41 v Bratislave)
+        // pretiahol „+2 h“ cez polnoc a podujatie by bolo naozaj viacdňové.
+        $start = now()->addWeek()->setTime(10, 0);
+
         $this->futureEvent->update([
-            'start_at' => now()->addWeek(),
-            'end_at' => now()->addWeek()->addHours(2),
+            'start_at' => $start,
+            'end_at' => $start->copy()->addHours(2),
         ]);
 
         $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
-            'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
-            'end_at' => now()->addWeek()->addHours(2)->format('Y-m-d H:i:s'),
+            'start_at' => $start->format('Y-m-d H:i:s'),
+            'end_at' => $start->copy()->addHours(2)->format('Y-m-d H:i:s'),
         ])->assertOk();
 
         $this->assertArrayNotHasKey('viacdnove', $this->pivot($this->futureEvent->id));
@@ -138,8 +142,8 @@ class EventTagAssignmentTest extends EventSetupTest
         // preto musí bežať pri každom zápise, inak by štítok chýbal navždy.
         $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
-            'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
-            'end_at' => now()->addWeek()->addDays(3)->format('Y-m-d H:i:s'),
+            'start_at' => $start->format('Y-m-d H:i:s'),
+            'end_at' => $start->copy()->addDays(3)->format('Y-m-d H:i:s'),
         ])->assertOk();
 
         $this->assertSame(['viacdnove' => 'derived'], $this->pivot($this->futureEvent->id));
@@ -147,8 +151,8 @@ class EventTagAssignmentTest extends EventSetupTest
         // A skrátenie termínu ho musí zase odobrať.
         $this->putJson('/api/dashboard/events/'.$this->futureEvent->id, [
             'name' => $this->futureEvent->name,
-            'start_at' => now()->addWeek()->format('Y-m-d H:i:s'),
-            'end_at' => now()->addWeek()->addHours(2)->format('Y-m-d H:i:s'),
+            'start_at' => $start->format('Y-m-d H:i:s'),
+            'end_at' => $start->copy()->addHours(2)->format('Y-m-d H:i:s'),
         ])->assertOk();
 
         $this->assertArrayNotHasKey('viacdnove', $this->pivot($this->futureEvent->id));
