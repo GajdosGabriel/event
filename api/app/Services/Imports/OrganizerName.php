@@ -36,6 +36,9 @@ class OrganizerName
         // Pred delením zoznamu: úradný tvar „ECAV na Slovensku, Cirkevný zbor
         // Betliar" má čiarku vnútri jedného názvu.
         $value = EcavCongregationName::normalize($value);
+        // „Cirkvi bratskej" → „Cirkev bratská", „Cirkev bratská, zbor Prešov"
+        // → „Cirkev bratská Prešov" — tiež pred delením zoznamu čiarkou.
+        $value = ChurchName::normalize($value);
         $value = self::primaryOrganizer($value);
         $value = trim($value, " \t\n\r\0\x0B,.;:-/");
 

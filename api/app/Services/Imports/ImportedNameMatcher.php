@@ -100,6 +100,8 @@ class ImportedNameMatcher
     {
         // „CZ ECAV Poltár" / „Evanjelický a. v. cirkevný zbor Poltár" → jeden zápis.
         $value = EcavCongregationName::normalize($value);
+        // „Cirkvi bratskej" / „Cirkev bratská" → úradný názov cirkvi.
+        $value = ChurchName::normalize($value);
         $value = str_replace(["\u{2013}", "\u{2014}", "\u{2018}", "\u{2019}"], ['-', '-', "'", "'"], $value);
         $value = preg_replace('/\([^()]*\)/u', ' ', $value) ?? $value;
         $key = ' '.str_replace('-', ' ', Str::slug($value)).' ';

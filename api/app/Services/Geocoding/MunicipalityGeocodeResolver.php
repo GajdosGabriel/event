@@ -113,6 +113,26 @@ class MunicipalityGeocodeResolver
     }
 
     /**
+     * Obec z číselníka aj zo skloňovaného tvaru („v Prešove") — bez siete.
+     *
+     * Pre názov miestneho zboru (ChurchName): ten sa tvorí pri každom článku
+     * a obec, ktorú nepozná číselník, doň radšej nedáme, než by sme sa pýtali
+     * Nominatimu.
+     */
+    public function offline(?string $city): ?int
+    {
+        $city = $this->clean($city);
+        $city = $city !== null ? preg_replace('/^(?:v|vo|na)\s+/iu', '', $city) : null;
+        $city = $this->dropCountryWide($this->clean($city));
+
+        if ($city === null) {
+            return null;
+        }
+
+        return $this->villageIdFor($city, null) ?? $this->fromInflectedCity($city);
+    }
+
+    /**
      * @return list<array{0:string, 1:string}> dvojice [co hladat, v okoli coho]
      */
     private function geocodeAttempts(?string $city, ?string $venueName): array
@@ -223,7 +243,7 @@ class MunicipalityGeocodeResolver
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array{id:int, normalized:string}>
+     * @return Collection<int, array{id:int, normalized:string}>
      */
     private function catalog(): Collection
     {

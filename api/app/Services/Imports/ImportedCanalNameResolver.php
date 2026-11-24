@@ -2,6 +2,8 @@
 
 namespace App\Services\Imports;
 
+use App\Models\Municipality;
+use App\Services\Geocoding\MunicipalityGeocodeResolver;
 use App\Services\OpenAI\ChatGPT;
 use App\Support\ContactList;
 use Carbon\Carbon;
@@ -12,6 +14,7 @@ class ImportedCanalNameResolver
     public function __construct(
         private readonly ChatGPT $chatGPT = new ChatGPT,
         private readonly EventTextLabelExtractor $labelExtractor = new EventTextLabelExtractor,
+        private readonly MunicipalityGeocodeResolver $municipalities = new MunicipalityGeocodeResolver,
     ) {}
 
     /**
@@ -146,6 +149,8 @@ class ImportedCanalNameResolver
             $detectedCanalCity = $this->labelExtractor->extractOrganizerCity($text, $detectedName);
         }
 
+        [$detectedName, $detectedCanalCity] = $this->localizeChurch($detectedName, $detectedCanalCity, $detectedVenueName, $detectedVenueCity);
+
         $sourceOrigin = $this->extractOrigin($sourceUrl);
 
         return [
@@ -164,6 +169,61 @@ class ImportedCanalNameResolver
             'ai_additional_emails' => $aiAdditionalEmails,
             'ai_additional_phones' => $aiAdditionalPhones,
         ];
+    }
+
+    /**
+     * Cirkev so zbormi pomenovaná bez zboru patrí zboru v obci podujatia.
+     *
+     * „Cirkev bratská" v článku o stretnutí v Prešove je takmer vždy prešovský
+     * zbor, nie celá cirkev — a keď organizátor uvedený nie je, ale podujatie
+     * je v „modlitebni Cirkvi bratskej", usporiadal ho tiež tamojší zbor.
+     * Názov zboru je „Cirkev bratská Prešov": obec v základnom tvare
+     * z číselníka, aby „v Prešove" a „Prešov" (a „v Košiciach" a „Košice")
+     * skončili v jednom kanáli.
+     *
+     * Bez obce, ktorú pozná číselník, sa nič nemení — celoslovenské podujatie
+     * bez miesta ostane celej cirkvi a mestská časť „Palisády" ostane, ako je.
+     *
+     * @return array{0: string|null, 1: string|null} [organizátor, mesto organizátora]
+     */
+    private function localizeChurch(?string $name, ?string $canalCity, ?string $venueName, ?string $venueCity): array
+    {
+        $church = $name !== null
+            ? ChurchName::parse($name)
+            : ($venueName !== null ? ChurchName::inVenueName($venueName) : null);
+
+        if ($church === null || ! $church['local']) {
+            return [$name, $canalCity];
+        }
+
+        $eventCity = $canalCity ?? $venueCity;
+        $eventMunicipalityId = $eventCity !== null ? $this->municipalities->offline($eventCity) : null;
+
+        if ($church['rest'] === '') {
+            $municipalityId = $eventMunicipalityId;
+        } else {
+            // Za názvom cirkvi býva aj mestská časť či ulica zboru („Palisády").
+            // Orezanie koncovky by z nej spravilo cudziu obec (Palín), preto
+            // sa skloňovaný tvar uzná len vtedy, keď sedí s mestom podujatia.
+            $rest = preg_replace('/^(?:v|vo)\s+/iu', '', $church['rest']) ?? $church['rest'];
+            $municipalityId = $this->municipalities->catalogOnly($rest);
+
+            if ($municipalityId === null && $eventMunicipalityId !== null && $this->municipalities->offline($rest) === $eventMunicipalityId) {
+                $municipalityId = $eventMunicipalityId;
+            }
+        }
+
+        if ($municipalityId === null || $municipalityId === Municipality::nationwideId()) {
+            return [$name, $canalCity];
+        }
+
+        $municipality = Municipality::query()->find($municipalityId)?->fullname;
+
+        if (! is_string($municipality) || $municipality === '') {
+            return [$name, $canalCity];
+        }
+
+        return [$church['short'].' '.$municipality, $canalCity ?? $municipality];
     }
 
     private function parseAiDateTime(mixed $value): ?Carbon

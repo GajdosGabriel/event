@@ -134,6 +134,7 @@ PRAVIDLÁ:
 - Nerozširuj adresy ani názvy o domienky.
 - Organizátor je subjekt, ktorý akciu organizuje (inštitúcia, zbor, farnosť…).
 - organizer.name je názov JEDNÉHO subjektu — hlavného organizátora. Ak text uvádza aj spoluorganizátorov či partnerov ("v spolupráci s…", zoznam logiel), vráť len hlavného, ostatných nevymenúvaj.
+- organizer.name vráť v nominatíve a v úplnom oficiálnom tvare, nie v páde z vety ("Cirkev bratská", nie "Cirkvi bratskej"; "Apoštolská cirkev", nie "Apoštolskej cirkvi"). Ak je organizátorom miestny zbor či obec cirkvi, pridaj obec: "Cirkev bratská v Prešove".
 - Venue je fyzické miesto, kde sa akcia koná (kostol, sála, katedrála, centrum…).
 - Ak je uvedený iba jeden subjekt a je zjavne miestom konania, vyplň venue a organizer nastav na null.
 - Ak je uvedený iba organizátor bez miesta, vyplň organizer a venue nastav na null.
