@@ -12,6 +12,7 @@ use App\Models\Event;
 use App\Models\PosterDraft;
 use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\PosterOrganizerNotice;
 use App\Services\Canals\CanalMembership;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\MunicipalityResolver;
@@ -116,8 +117,36 @@ class PosterDraftMaterializer
         });
 
         $this->attachPoster($draft, $event);
+        $this->notifyChosenOrganizer($draft, $event, $user);
 
         return $event->load('files');
+    }
+
+    /**
+     * Organizátor vybraný zo zoznamu, ktorého kanál autor nespravuje: podujatie
+     * vzniklo pod kanálom autora, tak aspoň dáme vedieť správcovi vybraného
+     * kanála. Nespravovaný (importovaný) kanál nemá komu písať — nič.
+     */
+    private function notifyChosenOrganizer(PosterDraft $draft, Event $event, User $user): void
+    {
+        $id = $draft->overrides['canal_id'] ?? null;
+
+        if (! is_numeric($id) || (int) $id === (int) $event->canal_id) {
+            return;
+        }
+
+        $organizer = Canal::query()->find((int) $id);
+        $recipient = $organizer?->messageRecipient();
+
+        if ($organizer === null || $recipient === null || $recipient->is($user)) {
+            return;
+        }
+
+        $event->forceFill(['meta' => array_replace_recursive((array) $event->meta, [
+            'poster_upload' => ['organizer_canal_id' => $organizer->id],
+        ])])->save();
+
+        $recipient->notify(new PosterOrganizerNotice($event, $organizer));
     }
 
     /**

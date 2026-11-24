@@ -509,6 +509,14 @@ return [
         'claim_ignore' => 'If you are not the organiser of this event, you can safely ignore this email.',
     ],
 
+    // App\Notifications\PosterOrganizerNotice — to the manager of a channel named as a poster's organiser.
+    'poster_organizer' => [
+        'subject' => 'Your channel “:canal” was named as an event organiser',
+        'intro' => 'Someone on :site saved the event **“:event”** and picked your channel **“:canal”** as its organiser. They do not manage your channel, so the event was created under their channel “:author”.',
+        'draft_note' => 'The event is still a draft and is not public until its author publishes it.',
+        'reply_note' => 'If you do not know this event or want it in your own channel, reply to this email and we will look into it.',
+    ],
+
     'canal_event_offer' => [
         'new_event' => [
             'subject' => 'We have published your event ":event"',

@@ -18,7 +18,6 @@ use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterDraftMaterializer;
 use App\Services\Posters\PosterEmailIntake;
 use App\Services\Posters\PosterExtraction;
-use App\Services\Posters\PosterExtractionException;
 use App\Services\Posters\PosterTextExtractor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,16 +57,17 @@ class PosterController extends Controller
         Detector $detector,
         PosterAnalysisReport $report,
     ): JsonResponse {
-        $upload = $request->file('file');
+        // Súbory aj sprievodný text spolu — rovnako ako pozvánka e-mailom.
+        $input = $extractor->combine((string) $request->input('text', ''), $request->uploads());
+        $extraction = $input->extraction;
+        $upload = $input->primaryFile;
 
-        try {
-            $extraction = $upload instanceof UploadedFile
-                ? $extractor->fromUploadedFile($upload)
-                : $extractor->fromText((string) $request->input('text'));
-        } catch (PosterExtractionException $e) {
+        // Žiadny súbor sa nedal prečítať a text sám nestačí → chyba súboru,
+        // nie „analýza zlyhala": človek musí vedieť, čo nahrať inak.
+        if ($extraction === null || ($upload === null && $input->errors !== [] && mb_strlen($extraction->text) < 30)) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => $input->errors[0] ?? __('poster.errors.input_missing'),
             ], 422);
         }
 

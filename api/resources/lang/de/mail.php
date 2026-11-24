@@ -508,6 +508,14 @@ return [
         'claim_email_note' => 'Den Kanal übernehmen Sie nach der Anmeldung mit dem Konto **:email**. Wenn Sie noch kein Konto haben, legen Sie es über die Schaltfläche oben an.',
         'claim_ignore' => 'Wenn Sie nicht der Veranstalter sind, können Sie diese E-Mail ignorieren.',
     ],
+    // App\Notifications\PosterOrganizerNotice — an die Verwaltung eines Kanals, der als Veranstalter eines Plakats gewählt wurde.
+    'poster_organizer' => [
+        'subject' => 'Ihr Kanal „:canal“ wurde als Veranstalter angegeben',
+        'intro' => 'Auf :site hat jemand die Veranstaltung **„:event“** gespeichert und Ihren Kanal **„:canal“** als Veranstalter gewählt. Er verwaltet Ihren Kanal nicht, daher wurde die Veranstaltung unter seinem Kanal „:author“ angelegt.',
+        'draft_note' => 'Die Veranstaltung ist noch ein Entwurf und erst öffentlich, wenn der Autor sie veröffentlicht.',
+        'reply_note' => 'Wenn Sie die Veranstaltung nicht kennen oder sie in Ihrem Kanal haben möchten, antworten Sie auf diese E-Mail und wir kümmern uns darum.',
+    ],
+
     'canal_event_offer' => [
         'new_event' => [
             'subject' => 'Wir haben Ihre Veranstaltung „:event" veröffentlicht',

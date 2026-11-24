@@ -55,11 +55,7 @@ class PosterEmailIntake
         'image/webp' => 'webp',
     ];
 
-    /** Plagát, program, fotka — viac príloh pozvánka nepotrebuje. */
-    private const MAX_ATTACHMENTS = 4;
-
-    /** Spolu toľko obrázkov ide na vision zo všetkých príloh. */
-    private const MAX_VISION_IMAGES = 4;
+    private const MAX_ATTACHMENTS = PosterTextExtractor::MAX_FILES;
 
     private const MIN_TEXT = 30;
 
@@ -285,9 +281,9 @@ class PosterEmailIntake
     }
 
     /**
-     * Text e-mailu a všetky prílohy, ktoré vieme prečítať: e-mail býva
-     * sprievodný list, plagát nesie termín a miesto a ďalšia príloha program —
-     * AI potrebuje všetko. Prvá prečítaná príloha sa uloží ako plagát.
+     * Text e-mailu a všetky prílohy, ktoré vieme prečítať — to isté spojenie
+     * ako pri nahratí na webe (PosterTextExtractor::combine). Bez prečítanej
+     * prílohy musí mať pozvánku čo niesť samotný text.
      *
      * @param  array<int, UploadedFile>  $attachments
      * @param  array<int, string>  $images  obrázky, ktoré už koncept má
@@ -295,44 +291,15 @@ class PosterEmailIntake
      */
     private function extract(string $text, array $attachments, array $images = []): array
     {
-        $texts = [trim($text)];
-        $primary = null;
-        $primaryFile = null;
+        $input = $this->extractor->combine($text, $attachments, $images);
+        $extraction = $input->extraction;
 
-        foreach ($attachments as $attachment) {
-            try {
-                $file = $this->extractor->fromUploadedFile($attachment);
-            } catch (PosterExtractionException) {
-                continue;
-            }
-
-            if ($primary === null) {
-                $primary = $attachment;
-                $primaryFile = $file;
-            }
-
-            $texts[] = trim($file->text);
-            $images = [...$images, ...$file->imageDataUrls];
+        if ($extraction === null
+            || ($input->primaryFile === null && $extraction->imageDataUrls === [] && mb_strlen($extraction->text) < self::MIN_TEXT)) {
+            return [null, null];
         }
 
-        $combined = implode("\n\n", array_filter($texts, static fn (string $t) => $t !== ''));
-        $images = array_slice($images, 0, self::MAX_VISION_IMAGES);
-
-        if ($primaryFile === null) {
-            return [
-                $images !== [] || mb_strlen($combined) >= self::MIN_TEXT
-                    ? new PosterExtraction(text: $combined, imageDataUrls: $images, kind: 'text')
-                    : null,
-                null,
-            ];
-        }
-
-        return [new PosterExtraction(
-            text: $combined,
-            imageDataUrls: $images,
-            kind: $primaryFile->kind,
-            pageCount: $primaryFile->pageCount,
-        ), $primary];
+        return [$extraction, $input->primaryFile];
     }
 
     /** @return array<int, string> */

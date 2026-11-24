@@ -18,30 +18,11 @@
 
     <!-- 1. Nahratie -->
     <section v-if="step === 'upload'">
-      <!-- Dve rovnocenné cesty: súbor (plagát, PDF, Word) alebo vložený text
-           pozvánky či celého e-mailu. Tretia — e-mail — je pod nimi. -->
-      <div class="mb-4 inline-flex rounded-lg bg-slate-100 p-1 text-sm font-medium" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="!textMode"
-          class="rounded-md px-3 py-1.5 transition"
-          :class="!textMode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
-          @click="textMode = false"
-        >{{ t('poster.wizard.tabFile') }}</button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="textMode"
-          class="rounded-md px-3 py-1.5 transition"
-          :class="textMode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
-          @click="textMode = true"
-        >{{ t('poster.wizard.tabText') }}</button>
-      </div>
-
+      <!-- Jeden vstup pre všetko, čo pozvánka býva: súbory (plagát, PDF, Word,
+           fotky programu) a/alebo text (e-mail, pár viet). Spracujú sa spolu,
+           rovnako ako pozvánka poslaná e-mailom (tretia cesta, pod nimi). -->
       <div
-        v-if="!textMode"
-        class="rounded-xl border-2 border-dashed p-8 text-center transition-colors"
+        class="rounded-xl border-2 border-dashed p-6 text-center transition-colors"
         :class="dragging ? 'border-slate-900 bg-slate-50' : 'border-slate-200'"
         @dragover.prevent="dragging = true"
         @dragleave.prevent="dragging = false"
@@ -49,37 +30,62 @@
       >
         <p class="mb-4 text-base font-semibold text-slate-900">{{ t('poster.wizard.drop') }}</p>
 
-        <button type="button" class="btn btn-primary" @click="fileInput?.click()">{{ t('poster.wizard.pick') }}</button>
+        <button
+          type="button"
+          :class="pickedFiles.length > 0 ? 'btn btn-secondary' : 'btn btn-primary'"
+          :disabled="pickedFiles.length >= MAX_FILES"
+          @click="fileInput?.click()"
+        >{{ t(pickedFiles.length > 0 ? 'poster.wizard.pickMore' : 'poster.wizard.pick') }}</button>
 
         <!-- Zoznam formátov stojí pod tlačidlom: je to poznámka pod čiarou,
              nie krok — nad tlačidlom len odďaľoval výzvu k akcii. -->
-        <p class="mt-3 text-sm text-slate-500">{{ t('poster.wizard.formats') }}</p>
+        <p class="mt-3 text-sm text-slate-500">{{ t('poster.wizard.formats', { max: MAX_FILES }) }}</p>
         <input
           ref="fileInput"
           type="file"
           class="hidden"
+          multiple
           accept=".pdf,.docx,.txt,.md,.jpg,.jpeg,.png,.webp"
           @change="onFilePicked"
         />
+
+        <ul v-if="pickedFiles.length > 0" class="mx-auto mt-4 grid max-w-md gap-1.5 text-left">
+          <li
+            v-for="(file, index) in pickedFiles"
+            :key="`${file.name}-${index}`"
+            class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          >
+            <span class="min-w-0 truncate text-slate-800">📎 {{ file.name }}</span>
+            <button
+              type="button"
+              class="shrink-0 text-slate-400 hover:text-red-600"
+              :aria-label="t('poster.wizard.removeFile', { name: file.name })"
+              @click="removeFile(index)"
+            >✕</button>
+          </li>
+        </ul>
       </div>
 
-      <div>
-        <div v-if="textMode" class="grid gap-2">
-          <p class="text-sm text-slate-600">{{ t('poster.wizard.textLead') }}</p>
-          <textarea
-            v-model="pastedText"
-            rows="10"
-            class="form-input h-auto py-2"
-            :placeholder="t('poster.wizard.textPlaceholder')"
-          ></textarea>
-          <p v-if="pastedTextTooShort" class="form-hint">
-            {{ t('poster.wizard.textMinHint', { min: MIN_TEXT_LENGTH, count: pastedText.trim().length }) }}
-          </p>
-          <div>
-            <button type="button" class="btn btn-primary" :disabled="pastedTextTooShort" @click="analyze(pastedText)">
-              {{ t('poster.wizard.textSubmit') }}
-            </button>
-          </div>
+      <div class="mt-4 grid gap-2">
+        <label for="poster-text" class="text-sm font-medium text-slate-800">
+          {{ t(pickedFiles.length > 0 ? 'poster.wizard.textLabelOptional' : 'poster.wizard.textLabel') }}
+        </label>
+        <p class="text-sm text-slate-600">{{ t('poster.wizard.textLead') }}</p>
+        <textarea
+          id="poster-text"
+          ref="textInput"
+          v-model="pastedText"
+          :rows="pickedFiles.length > 0 ? 4 : 8"
+          class="form-input h-auto py-2"
+          :placeholder="t('poster.wizard.textPlaceholder')"
+        ></textarea>
+        <p v-if="pickedFiles.length === 0 && pastedText.trim() !== '' && pastedTextTooShort" class="form-hint">
+          {{ t('poster.wizard.textMinHint', { min: MIN_TEXT_LENGTH, count: pastedText.trim().length }) }}
+        </p>
+        <div>
+          <button type="button" class="btn btn-primary" :disabled="!canAnalyze" @click="analyze()">
+            {{ t('poster.wizard.submit') }}
+          </button>
         </div>
       </div>
 
@@ -426,11 +432,14 @@ const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 const busy = ref(false)
 const dragging = ref(false)
-// `?mode=text` z homepage otvorí rovno vloženie textu.
-const textMode = ref(route.query.mode === 'text')
+/** Toľko súborov naraz prijme API (PosterTextExtractor::MAX_FILES). */
+const MAX_FILES = 4
+const pickedFiles = ref<File[]>([])
 const pastedText = ref('')
 const inbox = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+// `?mode=text` z homepage: kurzor rovno do textu.
+const textInput = useTemplateRef<HTMLTextAreaElement>('textInput')
 const createdEventId = ref<number | null>(null)
 const progressMessage = ref(t('poster.wizard.progress.readPoster'))
 let progressTimer: ReturnType<typeof setInterval> | undefined
@@ -502,6 +511,8 @@ const botGuard = useTemplateRef<InstanceType<typeof BotGuard>>('botGuard')
 /** Pod tento počet znakov AI nemá z čoho čítať (rovnaké minimum ako na serveri). */
 const MIN_TEXT_LENGTH = 30
 const pastedTextTooShort = computed(() => pastedText.value.trim().length < MIN_TEXT_LENGTH)
+/** Pri súbore stačí aj krátka poznámka; samotný text musí mať minimum. */
+const canAnalyze = computed(() => pickedFiles.value.length > 0 || !pastedTextTooShort.value)
 
 /**
  * Prehľad nálezov prichádza zo servera a o názve miesta nevie, čo človek
@@ -552,24 +563,40 @@ function shorten(value: string): string {
   return value.length > 120 ? `${value.slice(0, 120)}…` : value
 }
 
+function addFiles(files: FileList | File[] | null | undefined) {
+  const incoming = Array.from(files ?? [])
+  if (incoming.length === 0) return
+  const room = MAX_FILES - pickedFiles.value.length
+  error.value = incoming.length > room ? t('poster.wizard.filesLimit', { max: MAX_FILES }) : null
+  pickedFiles.value = [...pickedFiles.value, ...incoming.slice(0, Math.max(0, room))]
+}
+
+function removeFile(index: number) {
+  pickedFiles.value = pickedFiles.value.filter((_, i) => i !== index)
+  error.value = null
+}
+
 function onDrop(event: DragEvent) {
   dragging.value = false
-  const file = event.dataTransfer?.files?.[0]
-  if (file) analyze(file)
+  addFiles(event.dataTransfer?.files)
 }
 
 function onFilePicked(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) analyze(file)
+  const input = event.target as HTMLInputElement
+  addFiles(input.files)
+  // Rovnaký súbor sa po odobratí musí dať vybrať znova.
+  input.value = ''
 }
 
-async function analyze(input: File | string) {
+async function analyze() {
+  if (!canAnalyze.value) return
   error.value = null
   step.value = 'analyzing'
-  startProgress(typeof input === 'string' ? 'text' : input.type)
+  const files = pickedFiles.value
+  startProgress(files.find(f => f.type.startsWith('image') || f.type === 'application/pdf')?.type ?? 'text')
 
   try {
-    const result = await analyzePoster(input)
+    const result = await analyzePoster({ files, text: pastedText.value })
     applyDraft(result)
     persist()
     step.value = 'review'
@@ -904,6 +931,7 @@ function reset() {
   info.value = null
   createdEventId.value = null
   pastedText.value = ''
+  pickedFiles.value = []
   localStorage.removeItem(STORAGE_KEY)
   step.value = 'upload'
 }
@@ -979,6 +1007,7 @@ onMounted(async () => {
   void fetchPosterInbox().then((email) => { inbox.value = email })
   await loadMunicipalities()
   await restore()
+  if (route.query.mode === 'text' && step.value === 'upload') textInput.value?.focus()
 })
 
 onBeforeUnmount(stopProgress)

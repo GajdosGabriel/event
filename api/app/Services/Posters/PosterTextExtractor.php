@@ -5,6 +5,7 @@ namespace App\Services\Posters;
 use App\Services\Imports\PdfConverterService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Smalot\PdfParser\Parser;
 
 /**
  * Prečíta nahratý plagát a pripraví z neho vstup pre AI.
@@ -25,6 +26,12 @@ class PosterTextExtractor
     /** Toľko strán PDF ide na vision. Podstatné je takmer vždy na prvej. */
     private const MAX_VISION_PAGES = 3;
 
+    /** Spolu toľko obrázkov ide na vision zo všetkých súborov pozvánky. */
+    public const MAX_VISION_IMAGES = 4;
+
+    /** Plagát, program, fotka — viac súborov pozvánka nepotrebuje. */
+    public const MAX_FILES = 4;
+
     /**
      * Nad túto veľkosť sa obrázok do promptu neposiela. Musí sedieť s limitom
      * v `PosterAnalyzeRequest` (max:12288) — nižšia hodnota by fotku z mobilu
@@ -35,6 +42,60 @@ class PosterTextExtractor
     public function __construct(
         private readonly PdfConverterService $pdfConverter = new PdfConverterService,
     ) {}
+
+    /**
+     * Sprievodný text a súbory naraz: pozvánka býva text (e-mail, pár viet)
+     * plus plagát a program. AI dostane všetko spolu — text plagátu nesie termín
+     * a miesto, sprievodný list kontakt. Súbor, ktorý sa prečítať nedá, sa
+     * preskočí; dôvod ostane v `errors`.
+     *
+     * @param  array<int, UploadedFile>  $files
+     * @param  array<int, string>  $images  obrázky, ktoré už koncept má (doplnenie e-mailom)
+     */
+    public function combine(string $text, array $files, array $images = []): PosterInput
+    {
+        $text = $this->normalizeText($text);
+        $texts = [$text];
+        $primary = null;
+        $primaryFile = null;
+        $errors = [];
+
+        foreach ($files as $file) {
+            try {
+                $extraction = $this->fromUploadedFile($file);
+            } catch (PosterExtractionException $e) {
+                $errors[] = $e->getMessage();
+
+                continue;
+            }
+
+            if ($primary === null) {
+                $primary = $extraction;
+                $primaryFile = $file;
+            }
+
+            $texts[] = $extraction->text;
+            $images = [...$images, ...$extraction->imageDataUrls];
+        }
+
+        $combined = implode("\n\n", array_filter(array_map('trim', $texts), static fn (string $t) => $t !== ''));
+        $images = array_slice($images, 0, self::MAX_VISION_IMAGES);
+
+        if ($primary === null && $combined === '' && $images === []) {
+            return new PosterInput(null, null, $errors);
+        }
+
+        return new PosterInput(
+            new PosterExtraction(
+                text: $combined,
+                imageDataUrls: $images,
+                kind: $primary?->kind ?? 'text',
+                pageCount: $primary?->pageCount ?? 1,
+            ),
+            $primaryFile,
+            $errors,
+        );
+    }
 
     public function fromText(string $text): PosterExtraction
     {
@@ -206,12 +267,12 @@ class PosterTextExtractor
      */
     private function extractTextLocally(string $binary): string
     {
-        if (! class_exists(\Smalot\PdfParser\Parser::class)) {
+        if (! class_exists(Parser::class)) {
             return '';
         }
 
         try {
-            return (string) (new \Smalot\PdfParser\Parser)->parseContent($binary)->getText();
+            return (string) (new Parser)->parseContent($binary)->getText();
         } catch (\Throwable $e) {
             Log::debug('PosterTextExtractor: lokálna extrakcia textu z PDF zlyhala.', [
                 'error' => $e->getMessage(),

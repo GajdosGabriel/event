@@ -543,6 +543,14 @@ return [
     ],
 
     // App\Notifications\CanalEventPublishedOffer — kontaktu nespravovaného kanála pri zverejnení podujatia.
+    // App\Notifications\PosterOrganizerNotice — správcovi kanála uvedeného ako organizátor plagátu.
+    'poster_organizer' => [
+        'subject' => 'Váš kanál „:canal" uviedli ako organizátora podujatia',
+        'intro' => 'Na portáli :site niekto uložil podujatie **„:event"** a ako organizátora vybral váš kanál **„:canal"**. Kanál nespravuje, preto podujatie vzniklo pod jeho kanálom „:author".',
+        'draft_note' => 'Podujatie je zatiaľ koncept a verejne ho nevidno, kým ho autor nezverejní.',
+        'reply_note' => 'Ak podujatie nepoznáte alebo ho chcete mať vo svojom kanáli, odpovedzte na tento e-mail a pozrieme sa na to.',
+    ],
+
     'canal_event_offer' => [
         'new_event' => [
             'subject' => 'Zverejnili sme vaše podujatie „:event"',

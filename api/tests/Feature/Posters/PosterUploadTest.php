@@ -9,6 +9,7 @@ use App\Models\PosterDraft;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\PosterDraftSaved;
+use App\Notifications\PosterOrganizerNotice;
 use App\Services\OpenAI\Detector;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterExtraction;
@@ -81,6 +82,40 @@ class PosterUploadTest extends TestCase
 
         $this->assertNotNull($response->json('draft.token'));
         $this->assertSame(1, PosterDraft::query()->count());
+    }
+
+    #[Test]
+    public function files_and_a_short_text_are_read_together(): void
+    {
+        Storage::fake('local');
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')
+            ->once()
+            ->with(
+                Mockery::on(static fn (string $text) => str_contains($text, 'Vstup voľný') && str_contains($text, 'Program koncertu')),
+                Mockery::on(static fn (array $images) => count($images) === 1),
+            )
+            ->andReturn($this->detection());
+        $this->app->instance(Detector::class, $detector);
+
+        $response = $this->post('/api/poster/analyze', [
+            'text' => 'Vstup voľný.',
+            'files' => [
+                UploadedFile::fake()->image('plagat.png'),
+                UploadedFile::fake()->createWithContent('program.txt', 'Program koncertu: o 18:00 zbor, o 19:00 orchester.'),
+            ],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(201)->assertJsonPath('draft.original_filename', 'plagat.png');
+    }
+
+    #[Test]
+    public function a_short_text_alone_is_rejected(): void
+    {
+        $this->postJson('/api/poster/analyze', ['text' => 'Vstup voľný.'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('text');
     }
 
     #[Test]
@@ -432,6 +467,53 @@ class PosterUploadTest extends TestCase
         $response->assertStatus(201);
         $this->assertSame($venue->id, (int) $response->json('venue_id'));
         $this->assertSame($venues, Venue::query()->count());
+    }
+
+    #[Test]
+    public function the_manager_of_a_chosen_organizer_the_author_does_not_manage_is_notified(): void
+    {
+        Storage::fake('public');
+        Notification::fake();
+
+        $manager = User::factory()->create();
+        $organizer = $manager->canals()->firstOrFail();
+        $draft = $this->makeDraft();
+        $author = User::factory()->create();
+        $this->actingAs($author, 'sanctum');
+
+        $response = $this->postJson("/api/poster/drafts/{$draft->id}/claim", [
+            'token' => 'tajny-token',
+            'overrides' => ['canal_id' => $organizer->id],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertNotSame($organizer->id, (int) $response->json('canal_id'));
+        Notification::assertSentTo($manager, PosterOrganizerNotice::class, function (PosterOrganizerNotice $notice) use ($manager, $organizer) {
+            $mail = $notice->toMail($manager);
+
+            return str_contains($mail->subject, $organizer->name)
+                && str_contains(implode("\n", $mail->introLines), 'Letný koncert');
+        });
+        Notification::assertNotSentTo($author, PosterOrganizerNotice::class);
+    }
+
+    #[Test]
+    public function choosing_ones_own_canal_as_organizer_notifies_nobody(): void
+    {
+        Storage::fake('public');
+        Notification::fake();
+
+        $draft = $this->makeDraft();
+        $user = User::factory()->create();
+        $own = $user->canals()->firstOrFail();
+        $this->actingAs($user, 'sanctum');
+
+        $this->postJson("/api/poster/drafts/{$draft->id}/claim", [
+            'token' => 'tajny-token',
+            'overrides' => ['canal_id' => $own->id],
+        ])->assertStatus(201)->assertJsonPath('canal_id', $own->id);
+
+        Notification::assertNothingSentTo($user);
     }
 
     #[Test]

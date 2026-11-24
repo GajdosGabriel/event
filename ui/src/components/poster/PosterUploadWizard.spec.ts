@@ -83,9 +83,8 @@ async function click(w: VueWrapper, label: string) {
 }
 
 async function analyzeText(w: VueWrapper) {
-  await click(w, t('poster.wizard.tabText'))
   await w.get('textarea').setValue('Pozývame vás na koncert 1. mája 2030 o 18:00 v Dome kultúry v Bratislave.')
-  await click(w, t('poster.wizard.textSubmit'))
+  await click(w, t('poster.wizard.submit'))
 }
 
 describe('poster wizard', () => {
@@ -126,6 +125,32 @@ describe('poster wizard', () => {
     expect(w.text()).not.toContain('Email not verified')
     const link = w.findAll('a').find(a => a.text() === t('auth.verify.resend'))
     expect(link?.attributes('href')).toBe('/verify-email?email=jana@example.test')
+    w.unmount()
+  })
+
+  it('sends files and a short accompanying text together', async () => {
+    mocks.analyzePoster.mockResolvedValue(draft('pdf'))
+    const w = await open()
+    const submit = () => w.findAll('button').find(b => b.text() === t('poster.wizard.submit'))!
+
+    expect(submit().attributes('disabled')).toBeDefined()
+
+    const poster = new File(['%PDF'], 'plagat.pdf', { type: 'application/pdf' })
+    const program = new File(['x'], 'program.jpg', { type: 'image/jpeg' })
+    const input = w.get('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [poster, program], configurable: true })
+    await input.trigger('change')
+
+    expect(w.text()).toContain('plagat.pdf')
+    expect(w.text()).toContain('program.jpg')
+    expect(w.text()).toContain(t('poster.wizard.textLabelOptional'))
+
+    // Krátka poznámka pri súbore stačí — minimum platí len pre samotný text.
+    await w.get('textarea').setValue('Vstup voľný.')
+    expect(submit().attributes('disabled')).toBeUndefined()
+    await click(w, t('poster.wizard.submit'))
+
+    expect(mocks.analyzePoster).toHaveBeenCalledWith({ files: [poster, program], text: 'Vstup voľný.' })
     w.unmount()
   })
 

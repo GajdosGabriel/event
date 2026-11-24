@@ -82,13 +82,11 @@ export interface PosterOverrides {
  * Analýza beží bez prihlásenia, ale je drahá (OpenAI) — API ju obmedzuje
  * limiterom `ai`, takže 429 je tu očakávaný stav, nie chyba klienta.
  */
-export async function analyzePoster(input: File | string): Promise<PosterDraft> {
+export async function analyzePoster(input: { files: File[]; text: string }): Promise<PosterDraft> {
+  // Súbory aj sprievodný text idú spolu — AI ich číta ako jednu pozvánku.
   const form = new FormData()
-  if (typeof input === 'string') {
-    form.append('text', input)
-  } else {
-    form.append('file', input)
-  }
+  input.files.forEach(file => form.append('files[]', file))
+  if (input.text.trim() !== '') form.append('text', input.text)
 
   const { data } = await http.post('/poster/analyze', form, {
     headers: { 'Content-Type': 'multipart/form-data' },

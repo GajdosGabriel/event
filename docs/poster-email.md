@@ -2,9 +2,16 @@
 
 Tri cesty k tomu istému konceptu (`poster_drafts`), z ktorého po potvrdení vznikne podujatie, kanál a miesto (`PosterDraftMaterializer`):
 
-1. **Plagát alebo súbor** na `/nahrat-plagat` (PDF, Word, obrázok).
-2. **Vložený text** — pozvánka, celý e-mail alebo pár viet. Na homepage tlačidlo „Vložiť text pozvánky" (`/nahrat-plagat?mode=text`).
-3. **E-mail na kontaktnú adresu** (`PosterEmailIntake`).
+1. **Súbory a/alebo text** na `/nahrat-plagat`: až 4 súbory (PDF, Word, obrázky) a sprievodný text v jednom formulári. Samotný text musí mať aspoň 30 znakov, pri súbore stačí krátka poznámka. Na homepage tlačidlo „Vložiť text pozvánky" (`/nahrat-plagat?mode=text`) dá kurzor do textu.
+2. **E-mail na kontaktnú adresu** (`PosterEmailIntake`): text e-mailu a prílohy.
+
+Obe cesty spájajú vstup rovnako (`PosterTextExtractor::combine`): texty za sebou, obrázky spolu najviac 4 na vision. Prvý prečítaný súbor sa uloží ako plagát.
+
+## Organizátor a miesto zo zoznamu
+
+- Sprievodca ponúka zverejnené miesta a kanály z vybranej obce (`GET /api/poster/places`, pri meste aj mestské časti).
+- Vybrané miesto sa použije priamo (`overrides.venue_id`).
+- Vybraný kanál (`overrides.canal_id`) dostane podujatie, len keď v ňom autor smie tvoriť. Inak podujatie vznikne pod kanálom autora a správca vybraného kanála dostane e-mail (`PosterOrganizerNotice`). Kanál bez správcu (import) nedostane nič. ID kanála sa zapíše do `events.meta.poster_upload.organizer_canal_id`.
 
 Z e-mailu sa nikdy nič nezverejní. Podujatie vznikne až vtedy, keď odosielateľ otvorí odkaz na koncept a uloží ho (`PosterController::claim`, pri tom si vytvorí účet). Kanál mu odoslaním e-mailu nepatrí, platí bežné prevzatie (`canal-ownership.md`).
 

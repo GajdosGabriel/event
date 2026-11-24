@@ -508,6 +508,14 @@ return [
         'claim_email_note' => 'Kanál převezmete po přihlášení účtem s adresou **:email**. Pokud účet ještě nemáte, vytvoříte si ho po kliknutí na tlačítko výše.',
         'claim_ignore' => 'Pokud nejste organizátorem této akce, tento e-mail klidně ignorujte.',
     ],
+    // App\Notifications\PosterOrganizerNotice — správci kanálu uvedeného jako pořadatel plakátu.
+    'poster_organizer' => [
+        'subject' => 'Váš kanál „:canal" byl uveden jako pořadatel akce',
+        'intro' => 'Na portálu :site někdo uložil akci **„:event"** a jako pořadatele vybral váš kanál **„:canal"**. Kanál nespravuje, proto akce vznikla pod jeho kanálem „:author".',
+        'draft_note' => 'Akce je zatím koncept a veřejně ji neuvidíte, dokud ji autor nezveřejní.',
+        'reply_note' => 'Pokud akci neznáte nebo ji chcete mít ve svém kanálu, odpovězte na tento e-mail a podíváme se na to.',
+    ],
+
     'canal_event_offer' => [
         'new_event' => [
             'subject' => 'Zveřejnili jsme vaši akci „:event"',
