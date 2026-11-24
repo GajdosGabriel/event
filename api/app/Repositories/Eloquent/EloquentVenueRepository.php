@@ -84,7 +84,25 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
         if (! empty($filters['for_select']) && ! empty($filters['search'])) {
             unset($filters['canal_id']);
 
-            return $this->paginateFilteredQuery($this->withRowContext($this->selectableQuery()), $perPage, $filters);
+            $query = $this->withRowContext($this->selectableQuery());
+
+            // „Bratislava" alebo „Staré Mesto" nájde aj miesta v tej obci (celé
+            // mesto s mestskými časťami), nielen tie, čo majú obec v názve —
+            // rovnaká ponuka ako v sprievodcovi plagátu (/api/poster/places).
+            $municipalityIds = Municipality::idsMatchingName((string) $filters['search']);
+
+            if ($municipalityIds !== []) {
+                $search = (string) $filters['search'];
+                unset($filters['search']);
+
+                $query->where(fn ($q) => $q
+                    ->whereIn('venues.village_id', $municipalityIds)
+                    ->orWhere(fn ($named) => $named->bySearch($search)))
+                    ->reorder()
+                    ->orderBy('venues.name');
+            }
+
+            return $this->paginateFilteredQuery($query, $perPage, $filters);
         }
 
         $query = ! empty($filters['for_select']) || empty($filters['search'])
@@ -400,5 +418,16 @@ class EloquentVenueRepository extends AbstractRepository implements VenueReposit
     public function publicIndexQuery()
     {
         return $this->latestFirst($this->model());
+    }
+
+    public function publishedInMunicipalities(array $municipalityIds, int $limit): Collection
+    {
+        return $this->model()
+            ->whereIn('village_id', $municipalityIds)
+            ->where('status', ModelStatus::Published->value)
+            ->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'fallback'))
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'name', 'street']);
     }
 }

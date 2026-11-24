@@ -9,7 +9,8 @@ Obe cesty spájajú vstup rovnako (`PosterTextExtractor::combine`): texty za seb
 
 ## Organizátor a miesto zo zoznamu
 
-- Sprievodca ponúka zverejnené miesta a kanály z vybranej obce (`GET /api/poster/places`, pri meste aj mestské časti).
+- Sprievodca ponúka zverejnené miesta a kanály z vybranej obce (`GET /api/poster/places` → `publishedInMunicipalities()` vo venue a canal repozitári). Mesto a mestské časti spája `Municipality::cityWithDistrictIds()`.
+- Formulár podujatia v dashboarde: hľadanie miesta (`for_select` + `search`) nájde aj miesta v obci podľa jej názvu, s mestskými časťami (`Municipality::idsMatchingName()`).
 - Vybrané miesto sa použije priamo (`overrides.venue_id`).
 - Vybraný kanál (`overrides.canal_id`) dostane podujatie, len keď v ňom autor smie tvoriť. Inak podujatie vznikne pod kanálom autora a správca vybraného kanála dostane e-mail (`PosterOrganizerNotice`). Kanál bez správcu (import) nedostane nič. ID kanála sa zapíše do `events.meta.poster_upload.organizer_canal_id`.
 

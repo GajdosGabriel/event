@@ -9,6 +9,7 @@ use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\Imports\DuplicateResolver;
 use App\Services\OpenAI\ChatGPT;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestSupport\EventSetupTest;
 
@@ -45,6 +46,26 @@ class SharedVenueTest extends EventSetupTest
         $this->assertTrue($ids->contains($foreign->id), 'Zverejnené cudzie miesto sa má ponúknuť.');
         $this->assertFalse($ids->contains($draft->id), 'Koncept cudzieho kanála sa ponúknuť nesmie.');
         $this->assertNotNull(collect($response->json('data'))->firstWhere('id', $foreign->id)['hint']);
+    }
+
+    #[Test]
+    public function the_venue_picker_search_finds_venues_by_municipality_including_city_districts(): void
+    {
+        $bratislava = Municipality::query()->where('fullname', 'Bratislava')->firstOrFail();
+        $district = Municipality::query()->where('fullname', 'like', 'Bratislava - %')->firstOrFail();
+        $inCity = $this->foreignPublishedVenue(['name' => 'Aula fakulty', 'village_id' => $bratislava->id]);
+        $inDistrict = $this->foreignPublishedVenue(['name' => 'Farský kostol', 'village_id' => $district->id]);
+        $elsewhere = $this->foreignPublishedVenue(['name' => 'Kino Úsmev']);
+
+        // Hľadanie podľa mestskej časti ponúkne celé mesto, nielen miesta s obcou v názve.
+        $response = $this->getJson('/api/dashboard/venues?for_select=1&search='.rawurlencode(trim(Str::after($district->fullname, ' - '))));
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($inCity->id));
+        $this->assertTrue($ids->contains($inDistrict->id));
+        $this->assertFalse($ids->contains($elsewhere->id));
     }
 
     #[Test]

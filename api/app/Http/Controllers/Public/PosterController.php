@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PosterAnalyzeRequest;
 use App\Http\Requests\PosterClaimRequest;
@@ -12,7 +11,8 @@ use App\Models\PosterDraft;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\PosterDraftSaved;
-use App\Services\Imports\CollectionCanal;
+use App\Repositories\Contracts\CanalRepository;
+use App\Repositories\Contracts\VenueRepository;
 use App\Services\OpenAI\Detector;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterDraftMaterializer;
@@ -145,62 +145,22 @@ class PosterController extends Controller
      * na výber, aby z plagátu nevzniklo druhé „Kultúrne centrum" vedľa
      * existujúceho. Len zverejnené záznamy — to isté vidí ktokoľvek na webe.
      */
-    public function places(Request $request): JsonResponse
+    public function places(Request $request, VenueRepository $venues, CanalRepository $canals): JsonResponse
     {
         $validated = $request->validate([
             'municipality_id' => ['required', 'integer'],
         ]);
-        $municipalityIds = $this->cityWithDistricts((int) $validated['municipality_id']);
+        // Celé mesto aj s mestskými časťami (Municipality::cityWithDistrictIds).
+        $municipalityIds = Municipality::cityWithDistrictIds((int) $validated['municipality_id']);
 
-        $venues = Venue::query()
-            ->whereIn('village_id', $municipalityIds)
-            ->where('status', ModelStatus::Published->value)
-            ->orderBy('name')
-            ->limit(self::PLACES_LIMIT)
-            ->get(['id', 'name', 'street'])
-            ->map(static fn (Venue $venue) => [
-                'id' => $venue->id,
-                'name' => $venue->name,
-                'street' => $venue->street,
-            ])
-            ->values();
-
-        $canals = Canal::query()
-            ->whereIn('municipality_id', $municipalityIds)
-            ->where('status', ModelStatus::Published->value)
-            ->orderBy('name')
-            ->limit(self::PLACES_LIMIT)
-            ->get()
-            ->reject(static fn (Canal $canal) => CollectionCanal::is($canal))
-            ->map(static fn (Canal $canal) => ['id' => $canal->id, 'name' => $canal->name])
-            ->values();
-
-        return response()->json(['venues' => $venues, 'canals' => $canals]);
-    }
-
-    /**
-     * Mestské časti sú v číselníku samostatné obce („Bratislava - Staré Mesto")
-     * a miesta bývajú zapísané raz pod mestom, raz pod časťou. Ponuka preto
-     * berie celé mesto: pri meste aj jeho časti, pri časti aj mesto a ostatné časti.
-     *
-     * @return array<int, int>
-     */
-    private function cityWithDistricts(int $municipalityId): array
-    {
-        $name = (string) Municipality::query()->whereKey($municipalityId)->value('fullname');
-        $city = trim(Str::before($name, ' - '));
-
-        if ($city === '') {
-            return [$municipalityId];
-        }
-
-        return Municipality::query()
-            ->where(static fn ($q) => $q->where('fullname', $city)->orWhere('fullname', 'like', $city.' - %'))
-            ->pluck('id')
-            ->push($municipalityId)
-            ->unique()
-            ->values()
-            ->all();
+        return response()->json([
+            'venues' => $venues->publishedInMunicipalities($municipalityIds, self::PLACES_LIMIT)
+                ->map(static fn (Venue $venue) => ['id' => $venue->id, 'name' => $venue->name, 'street' => $venue->street])
+                ->values(),
+            'canals' => $canals->publishedInMunicipalities($municipalityIds, self::PLACES_LIMIT)
+                ->map(static fn (Canal $canal) => ['id' => $canal->id, 'name' => $canal->name])
+                ->values(),
+        ]);
     }
 
     public function show(Request $request, string $draft, PosterAnalysisReport $report): JsonResponse

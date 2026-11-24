@@ -13,6 +13,7 @@ use App\Services\Canals\CanalAuditor;
 use App\Services\Canals\CanalContactVerifier;
 use App\Services\Canals\CanalEmails;
 use App\Services\Files\FileManager;
+use App\Services\Imports\CollectionCanal;
 use App\Services\Lookups\PlaceLookups;
 use App\Services\Municipalities\MunicipalityOverviewQuery;
 use App\Services\Publishing\UnpublishGuard;
@@ -142,6 +143,18 @@ class EloquentCanalRepository extends AbstractRepository implements CanalReposit
                 ->where('status', ModelStatus::Published->value)
                 ->whereNotNull('published_at')
         );
+    }
+
+    public function publishedInMunicipalities(array $municipalityIds, int $limit): Collection
+    {
+        return $this->publicIndexQuery()
+            ->reorder()
+            ->whereIn('municipality_id', $municipalityIds)
+            ->orderBy('name')
+            ->limit($limit)
+            ->get()
+            ->reject(static fn (Canal $canal) => CollectionCanal::is($canal))
+            ->values();
     }
 
     public function create(array $properties)

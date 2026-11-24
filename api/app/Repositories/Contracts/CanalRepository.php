@@ -9,6 +9,9 @@
 
 namespace App\Repositories\Contracts;
 
+use App\Models\Canal;
+use Illuminate\Support\Collection;
+
 interface CanalRepository extends InterfaceRepository
 {
     public function create(array $properties);
@@ -26,4 +29,13 @@ interface CanalRepository extends InterfaceRepository
     public function adminMunicipalityOverview();
 
     public function dashboardMunicipalityOverview();
+
+    /**
+     * Zverejnené kanály so sídlom v obciach, zoradené podľa názvu — verejná
+     * ponuka organizátorov (sprievodca plagátu), bez zberných kanálov.
+     *
+     * @param  array<int, int>  $municipalityIds
+     * @return Collection<int, Canal>
+     */
+    public function publishedInMunicipalities(array $municipalityIds, int $limit);
 }
