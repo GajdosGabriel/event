@@ -75,6 +75,18 @@ class PosterDraft extends Model
         return $this->claimed_at !== null;
     }
 
+    /**
+     * Odosielateľ pozvánky poslanej e-mailom. Keď v pozvánke kontakt nie je,
+     * je to on — napísal ju a odpovede mu chodia. Pri nahratí na webe je
+     * `email` len adresa na návrat ku konceptu, nie kontakt podujatia.
+     */
+    public function senderEmail(): ?string
+    {
+        return $this->channel === self::CHANNEL_EMAIL && is_string($this->email) && $this->email !== ''
+            ? $this->email
+            : null;
+    }
+
     public function event()
     {
         return $this->belongsTo(Event::class);

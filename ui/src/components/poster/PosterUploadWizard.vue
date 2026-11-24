@@ -165,8 +165,6 @@
 
         <FormField v-model="form.end_at" type="datetime" :label="t('poster.wizard.endAt')" allow-past />
 
-        <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required :live-error="venueNameError" maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
-
         <!-- Mesto musí byť záznam z číselníka, nie voľný text: `village_id` je
              na `venues` povinné a z preklepu ako „Nové Zámky-mesto" by vzniklo
              miesto bez obce. AI dodá len reťazec, ktorý sa tu snažíme na
@@ -188,9 +186,50 @@
           </template>
         </FormField>
 
-        <FormField v-model="form.venueStreet" :label="t('poster.wizard.street')" maxlength="250" />
+        <!-- Miesta, ktoré už v obci máme: výber namiesto druhého „Kultúrneho
+             domu" vedľa existujúceho. Nové miesto sa dá stále napísať. -->
+        <FormField v-if="places.venues.length > 0" v-model="form.venueId" :label="t('poster.wizard.existingVenue')">
+          <template #default="{ value, update }">
+            <SearchableSelect
+              :model-value="value ?? null"
+              :options="venueOptions"
+              :placeholder="t('poster.wizard.existingVenuePlaceholder')"
+              @update:model-value="update"
+              @selected="pickVenue"
+            />
+          </template>
+          <template #footer>
+            <button v-if="form.venueId !== null" type="button" class="form-hint text-blue-700 hover:underline" @click="clearVenue">
+              {{ t('poster.wizard.newVenue') }}
+            </button>
+            <span v-else class="form-hint">{{ t('poster.wizard.existingVenueHint', { count: places.venues.length }) }}</span>
+          </template>
+        </FormField>
 
-        <FormField v-model="form.organizerName" :label="t('poster.wizard.organizer')" maxlength="250" />
+        <template v-if="form.venueId === null">
+          <FormField v-model="form.venueName" :label="t('poster.wizard.venueName')" required :live-error="venueNameError" maxlength="250" :placeholder="t('poster.wizard.venueNamePlaceholder')" />
+
+          <FormField v-model="form.venueStreet" :label="t('poster.wizard.street')" maxlength="250" />
+        </template>
+
+        <FormField v-if="places.canals.length > 0" v-model="form.canalId" :label="t('poster.wizard.existingOrganizer')">
+          <template #default="{ value, update }">
+            <SearchableSelect
+              :model-value="value ?? null"
+              :options="places.canals"
+              :placeholder="t('poster.wizard.existingOrganizerPlaceholder')"
+              @update:model-value="update"
+              @selected="pickCanal"
+            />
+          </template>
+          <template #footer>
+            <button v-if="form.canalId !== null" type="button" class="form-hint text-blue-700 hover:underline" @click="clearCanal">
+              {{ t('poster.wizard.newOrganizer') }}
+            </button>
+          </template>
+        </FormField>
+
+        <FormField v-if="form.canalId === null" v-model="form.organizerName" :label="t('poster.wizard.organizer')" maxlength="250" />
 
         <FormField v-model="form.email" type="email" :label="t('poster.wizard.email')" maxlength="250" />
 
@@ -330,7 +369,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormField from '@/components/FormField.vue'
 import TermsConsentField from '@/components/TermsConsentField.vue'
@@ -350,7 +389,9 @@ import {
   claimPosterDraft,
   fetchPosterDraft,
   fetchPosterInbox,
+  fetchPosterPlaces,
   rememberPosterDraft,
+  type PosterPlaces,
   type PosterDraft,
   type PosterField,
   type PosterFieldStatus,
@@ -424,11 +465,24 @@ const form = reactive({
   venueName: '',
   municipalityId: null as number | null,
   venueStreet: '',
+  /** Existujúce miesto z obce; null = nové miesto podľa názvu a ulice. */
+  venueId: null as number | null,
   organizerName: '',
+  /** Existujúci organizátor (kanál) z obce; null = podľa názvu. */
+  canalId: null as number | null,
   email: '',
   phone: '',
   description: '',
 })
+
+/** Miesta a organizátori, ktorých už vo vybranej obci máme. */
+const places = ref<PosterPlaces>({ venues: [], canals: [] })
+const venueOptions = computed(() =>
+  places.value.venues.map(v => ({ id: v.id, name: v.name, hint: v.street })),
+)
+/** Výber z konceptu (predošlá oprava alebo zhoda z AI), kým sa zoznam načíta. */
+let preferredVenueId: number | null = null
+let preferredCanalId: number | null = null
 
 const municipalities = ref<LookupOption[]>([])
 /** Reťazec mesta tak, ako ho prečítala AI — na vysvetlenie, keď sa nenapároval. */
@@ -581,8 +635,16 @@ function applyDraft(next: PosterDraft) {
   form.phone = s.phone ?? ''
   form.description = toEditorHtml(next.description ?? '')
 
+  form.venueId = null
+  form.canalId = null
+  preferredVenueId = s.venue_id ?? next.analysis.matches.venue?.id ?? null
+  preferredCanalId = s.canal_id ?? next.analysis.matches.canal?.id ?? null
+
   detectedCity.value = s.venue?.city ?? ''
+  const previousMunicipality = form.municipalityId
   form.municipalityId = matchMunicipality(detectedCity.value)
+  // Zmenu obce vybaví watcher; pri tej istej obci ponuku načítame sami.
+  if (form.municipalityId !== null && form.municipalityId === previousMunicipality) void loadPlaces(form.municipalityId)
 
   // E-mail na koncepte znamená, že sa človek vracia z odkazu — účet už buď má,
   // alebo si ho medzitým založil. Prepnúť ho späť na registráciu vie jedným klikom.
@@ -590,6 +652,62 @@ function applyDraft(next: PosterDraft) {
     account.email = next.email
     account.mode = 'login'
   }
+}
+
+// Obec sa zmenila → ponuka miest a organizátorov z nej. Výber z inej obce
+// by miesto priradil inam, preto sa zahodí.
+watch(() => form.municipalityId, (id, previous) => {
+  if (id === previous) return
+  form.venueId = null
+  form.canalId = null
+  if (id === null) {
+    places.value = { venues: [], canals: [] }
+    return
+  }
+  void loadPlaces(id)
+})
+
+async function loadPlaces(municipalityId: number) {
+  const result = await fetchPosterPlaces(municipalityId)
+  // Kým odpoveď prišla, človek mohol vybrať inú obec.
+  if (form.municipalityId !== municipalityId) return
+  places.value = result
+
+  // Predvyberieme len istú zhodu: miesto, na ktoré AI koncept napojila, alebo
+  // rovnaký názov. Podobný názov nie — „Kultúrny dom" v obci býva aj dvakrát.
+  const venue = result.venues.find(v => v.id === preferredVenueId)
+    ?? result.venues.find(v => sameName(v.name, form.venueName))
+  if (venue && form.venueId === null) pickVenue({ id: venue.id, name: venue.name, hint: venue.street })
+
+  const canal = result.canals.find(c => c.id === preferredCanalId)
+    ?? result.canals.find(c => sameName(c.name, form.organizerName))
+  if (canal && form.canalId === null) pickCanal(canal)
+}
+
+function sameName(a: string, b: string): boolean {
+  const left = normalizeCity(a)
+  return left !== '' && left === normalizeCity(b)
+}
+
+function pickVenue(option: { id: number; name: string; hint?: string | null }) {
+  form.venueId = option.id
+  form.venueName = option.name
+  form.venueStreet = option.hint ?? ''
+}
+
+function clearVenue() {
+  form.venueId = null
+  preferredVenueId = null
+}
+
+function pickCanal(option: { id: number; name: string }) {
+  form.canalId = option.id
+  form.organizerName = option.name
+}
+
+function clearCanal() {
+  form.canalId = null
+  preferredCanalId = null
 }
 
 /**
@@ -659,6 +777,8 @@ function overrides(): PosterOverrides {
     email: form.email.trim() || null,
     phone: form.phone.trim() || null,
     description: form.description.trim() || null,
+    venue_id: form.venueId,
+    canal_id: form.canalId,
     venue: {
       name: form.venueName.trim() || null,
       // Posielame názov obce z číselníka, nie `id`: backend miesto zakladá cez

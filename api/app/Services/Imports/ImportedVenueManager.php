@@ -24,6 +24,15 @@ class ImportedVenueManager
         private readonly DuplicateResolver $duplicates = new DuplicateResolver,
     ) {}
 
+    /**
+     * Existujúce miesto, ktoré si človek vybral sám (napr. v sprievodcovi
+     * plagátu) — len sa napojí na kanál, nič sa nehľadá ani nezakladá.
+     */
+    public function useExisting(Venue $venue, Canal $canal): Venue
+    {
+        return $this->adopt($venue, $canal, false, null, null);
+    }
+
     public function resolveOrDetect(
         Canal $canal,
         ?string $venueName,

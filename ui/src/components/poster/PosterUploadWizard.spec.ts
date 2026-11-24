@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   rememberPosterDraft: vi.fn(),
   claimPosterDraft: vi.fn(),
   fetchPosterDraft: vi.fn(),
+  fetchPosterPlaces: vi.fn(),
   login: vi.fn(),
   register: vi.fn(),
 }))
@@ -20,6 +21,7 @@ vi.mock('@/api/posters', () => ({
   claimPosterDraft: mocks.claimPosterDraft,
   fetchPosterDraft: mocks.fetchPosterDraft,
   fetchPosterInbox: () => Promise.resolve(null),
+  fetchPosterPlaces: mocks.fetchPosterPlaces,
 }))
 vi.mock('@/api/municipalities', () => ({ listPublicMunicipalities: () => Promise.resolve([{ id: 1, name: 'Bratislava' }]) }))
 vi.mock('@/api/auth', () => ({ register: mocks.register }))
@@ -51,6 +53,7 @@ const draft = (sourceKind: string) => ({
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mocks.fetchPosterPlaces.mockResolvedValue({ venues: [], canals: [] })
   setLocale('sk')
   localStorage.clear()
   Element.prototype.scrollIntoView = vi.fn()
@@ -123,6 +126,28 @@ describe('poster wizard', () => {
     expect(w.text()).not.toContain('Email not verified')
     const link = w.findAll('a').find(a => a.text() === t('auth.verify.resend'))
     expect(link?.attributes('href')).toBe('/verify-email?email=jana@example.test')
+    w.unmount()
+  })
+
+  it('offers venues and organisers already known in the municipality and sends the choice', async () => {
+    mocks.analyzePoster.mockResolvedValue(draft('text'))
+    mocks.fetchPosterPlaces.mockResolvedValue({
+      venues: [{ id: 7, name: 'Dom kultúry', street: 'Hlavná 1' }, { id: 8, name: 'Kino', street: null }],
+      canals: [{ id: 3, name: 'Mestský úrad' }],
+    })
+    const w = await open()
+
+    await analyzeText(w)
+
+    expect(mocks.fetchPosterPlaces).toHaveBeenCalledWith(1)
+    expect(w.text()).toContain(t('poster.wizard.existingVenue'))
+    expect(w.text()).toContain(t('poster.wizard.existingOrganizer'))
+    // Rovnaký názov ako na plagáte → miesto je predvybraté, nové sa nezakladá.
+    expect(w.text()).toContain(t('poster.wizard.newVenue'))
+    expect(w.text()).not.toContain(t('poster.wizard.venueName'))
+
+    await click(w, t('poster.wizard.newVenue'))
+    expect(w.text()).toContain(t('poster.wizard.venueName'))
     w.unmount()
   })
 })

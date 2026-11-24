@@ -12,7 +12,8 @@ Z e-mailu sa nikdy nič nezverejní. Podujatie vznikne až vtedy, keď odosielat
 
 - Account pošle nový e-mail mimo konverzácie ako `message.unassigned`. Webhook ho odovzdá do fronty (`ProcessPosterEmail`).
 - Na kontakt chodí aj bežná pošta, preto prejde len e-mail, ktorý vyzerá ako pozvánka: má dátum alebo prílohu (plagát, PDF, Word). Neprejde e-mail s odkazom na existujúce podujatie (`/akcie/{id}`), lebo to je žiadosť o opravu. Potom AI musí nájsť názov a termín alebo miesto. Inak e-mail ostane nepriradený v inboxe Accountu operátorovi.
-- Z textu e-mailu a prvej čitateľnej prílohy vznikne koncept (`channel = email`). Odosielateľ dostane odpoveď do tej istej konverzácie (`PosterEmailReply`): čo sme pochopili, čo chýba a odkaz na koncept. Odpoveď si konverzáciu priradí (ref `poster_draft`).
+- Z textu e-mailu a všetkých čitateľných príloh (najviac 4, spolu 4 obrázky na vision) vznikne koncept (`channel = email`). Príloha bez prípony sa spozná podľa MIME. Prvá prečítaná príloha sa uloží ako plagát.
+- Keď pozvánka neuvádza kontaktný e-mail, kontaktom je odosielateľ (`PosterDraft::senderEmail()`): v reporte, v predvyplnenom formulári aj v uloženom podujatí. Odosielateľ dostane odpoveď do tej istej konverzácie (`PosterEmailReply`): čo sme pochopili, čo chýba a odkaz na koncept. Odpoveď si konverzáciu priradí (ref `poster_draft`).
 - Odpoveď odosielateľa príde ako `message.received`. Doplnenie sa pridá k textu, rozbor sa zopakuje a ide ďalšia odpoveď, spolu najviac `POSTER_EMAIL_MAX_ROUNDS` kôl. Ďalšie odpovede ostávajú v inboxe Accountu.
 - Limity proti nákladom na AI: `POSTER_EMAIL_PER_SENDER_DAILY` (predvolene 3) a `POSTER_EMAIL_DAILY` (30) konceptov za deň. Nad limitom ostane e-mail operátorovi.
 

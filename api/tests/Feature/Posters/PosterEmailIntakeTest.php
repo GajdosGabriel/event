@@ -12,6 +12,7 @@ use App\Services\Posters\PosterEmailIntake;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
@@ -74,6 +75,50 @@ class PosterEmailIntakeTest extends TestCase
                 && str_contains($lines, 'miesto konania')
                 && str_contains((string) $mail->actionUrl, '/nahrat-plagat/'.$draft->id.'?token=');
         });
+    }
+
+    #[Test]
+    public function all_attachments_are_read_including_one_without_an_extension(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+        Http::fake(['files.account.test/*' => Http::response($png, 200, ['Content-Type' => 'image/png'])]);
+
+        $detector = Mockery::mock(Detector::class);
+        $detector->shouldReceive('detectFromPoster')
+            ->once()
+            ->with(Mockery::type('string'), Mockery::on(static fn (array $images) => count($images) === 2))
+            ->andReturn($this->detection());
+        $this->app->instance(Detector::class, $detector);
+
+        $message = $this->message(self::TEXT);
+        $message['attachments'] = [
+            ['filename' => '2', 'mime' => 'image/png', 'size' => strlen($png), 'url' => 'https://files.account.test/a'],
+            ['filename' => 'program.png', 'mime' => 'image/png', 'size' => strlen($png), 'url' => 'https://files.account.test/b'],
+        ];
+
+        app(PosterEmailIntake::class)->unassigned($this->conversation(), $message);
+
+        $draft = PosterDraft::sole();
+        $this->assertSame('2.png', $draft->original_filename);
+        $this->assertNotNull($draft->file_path);
+    }
+
+    #[Test]
+    public function the_sender_is_the_contact_when_the_invitation_has_no_email(): void
+    {
+        $this->detector($this->detection());
+
+        app(PosterEmailIntake::class)->unassigned($this->conversation(), $this->message(self::TEXT));
+
+        $draft = PosterDraft::sole();
+        $email = collect($draft->analysis['fields'])->firstWhere('key', 'email');
+        $this->assertSame('jana@farnost.test', $email['value']);
+        $this->assertSame('found', $email['status']);
+        $this->assertNotNull($email['note']);
+
+        $this->getJson('/api/poster/drafts/'.$draft->id.'?token='.$draft->email_token)
+            ->assertOk()
+            ->assertJsonPath('draft.suggestion.email', 'jana@farnost.test');
     }
 
     #[Test]

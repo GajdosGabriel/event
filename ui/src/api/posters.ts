@@ -42,6 +42,9 @@ export interface PosterSuggestion {
   end_at?: string | null
   email?: string | null
   phone?: string | null
+  /** Z predošlej opravy (overrides), ak si človek už raz vybral. */
+  venue_id?: number | null
+  canal_id?: number | null
   venue?: { name?: string | null; street_and_number?: string | null; city?: string | null } | null
   organizer?: { name?: string | null; street_and_number?: string | null; city?: string | null } | null
 }
@@ -69,6 +72,8 @@ export interface PosterOverrides {
   phone?: string | null
   description?: string | null
   canal_id?: number | null
+  /** Existujúce miesto vybraté zo zoznamu miest obce. */
+  venue_id?: number | null
   venue?: { name?: string | null; street_and_number?: string | null; city?: string | null }
   organizer?: { name?: string | null; city?: string | null }
 }
@@ -101,6 +106,21 @@ export async function fetchPosterInbox(): Promise<string | null> {
     return typeof data?.email === 'string' && data.email !== '' ? data.email : null
   } catch {
     return null
+  }
+}
+
+export interface PosterPlaces {
+  venues: { id: number; name: string; street: string | null }[]
+  canals: { id: number; name: string }[]
+}
+
+/** Miesta a organizátori, ktorých už v obci máme — na výber namiesto nového záznamu. */
+export async function fetchPosterPlaces(municipalityId: number): Promise<PosterPlaces> {
+  try {
+    const { data } = await http.get('/poster/places', { params: { municipality_id: municipalityId } })
+    return { venues: data?.venues ?? [], canals: data?.canals ?? [] }
+  } catch {
+    return { venues: [], canals: [] }
   }
 }
 

@@ -32,6 +32,8 @@ class PosterClaimRequest extends FormRequest
             'overrides.phone' => ['sometimes', 'nullable', 'string', 'max:20', new PhoneNumber],
             'overrides.description' => ['sometimes', 'nullable', 'string', 'max:50000'],
             'overrides.canal_id' => ['sometimes', 'nullable', 'integer'],
+            // Existujúce miesto vybraté zo zoznamu miest obce (PosterController::places).
+            'overrides.venue_id' => ['sometimes', 'nullable', 'integer'],
 
             'overrides.venue' => ['sometimes', 'array'],
             'overrides.venue.name' => ['sometimes', 'nullable', 'string', 'max:250'],

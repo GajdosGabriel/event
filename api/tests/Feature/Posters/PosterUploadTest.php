@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Posters;
 
+use App\Enums\ModelStatus;
+use App\Models\Canal;
 use App\Models\Event;
 use App\Models\PosterDraft;
 use App\Models\User;
+use App\Models\Venue;
 use App\Notifications\PosterDraftSaved;
 use App\Services\OpenAI\Detector;
 use App\Services\Posters\PosterAnalysisReport;
@@ -394,6 +397,41 @@ class PosterUploadTest extends TestCase
         $response->assertStatus(201);
         $this->assertSame($existingCanalId, (int) $response->json('canal_id'));
         $this->assertSame(1, $user->fresh()->canals()->count());
+    }
+
+    #[Test]
+    public function places_list_only_published_venues_and_organizers_of_the_municipality(): void
+    {
+        $published = Venue::factory()->create(['village_id' => 4209, 'name' => 'Dom kultúry', 'status' => ModelStatus::Published->value]);
+        Venue::factory()->create(['village_id' => 4209, 'name' => 'Rozpracované', 'status' => ModelStatus::Draft->value]);
+        Venue::factory()->create(['village_id' => 4210, 'name' => 'Iná obec', 'status' => ModelStatus::Published->value]);
+        $canal = Canal::factory()->create(['municipality_id' => 4209, 'name' => 'Mestský úrad', 'status' => ModelStatus::Published->value]);
+
+        $response = $this->getJson('/api/poster/places?municipality_id=4209')->assertOk();
+
+        $this->assertSame([$published->id], array_column($response->json('venues'), 'id'));
+        $this->assertContains($canal->id, array_column($response->json('canals'), 'id'));
+    }
+
+    #[Test]
+    public function claiming_with_a_chosen_venue_uses_it_instead_of_creating_one(): void
+    {
+        Storage::fake('public');
+
+        $venue = Venue::factory()->create(['village_id' => 4209, 'name' => 'Dom kultúry', 'status' => ModelStatus::Published->value]);
+        $draft = $this->makeDraft();
+        $user = User::factory()->create();
+        $this->actingAs($user, 'sanctum');
+        $venues = Venue::query()->count();
+
+        $response = $this->postJson("/api/poster/drafts/{$draft->id}/claim", [
+            'token' => 'tajny-token',
+            'overrides' => ['venue_id' => $venue->id],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertSame($venue->id, (int) $response->json('venue_id'));
+        $this->assertSame($venues, Venue::query()->count());
     }
 
     #[Test]

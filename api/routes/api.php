@@ -205,6 +205,10 @@ Route::get('municipalities/{slug}', [PublicMunicipalityController::class, 'show'
 // Adresa na pozvánky e-mailom („alebo pošlite e-mail na…"), null pri vypnutom príjme.
 Route::get('poster/inbox', [PublicPosterController::class, 'inbox'])
     ->name('public.poster.inbox');
+// Existujúce miesta a organizátori v obci — na výber v sprievodcovi plagátu.
+Route::get('poster/places', [PublicPosterController::class, 'places'])
+    ->name('public.poster.places')
+    ->middleware('throttle:60,1');
 Route::post('poster/analyze', [PublicPosterController::class, 'analyze'])
     ->name('public.poster.analyze')
     ->middleware('throttle:ai');

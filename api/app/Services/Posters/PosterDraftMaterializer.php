@@ -11,6 +11,7 @@ use App\Models\Canal;
 use App\Models\Event;
 use App\Models\PosterDraft;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\Canals\CanalMembership;
 use App\Services\Files\FileManager;
 use App\Services\Geocoding\MunicipalityResolver;
@@ -56,12 +57,15 @@ class PosterDraftMaterializer
         $payload = $this->mergedPayload($draft);
 
         $canal = $this->resolveCanal($draft, $user, $payload);
-        $venue = $this->venueManager->resolveOrDetect(
-            $canal,
-            $this->stringOrNull($payload['venue']['name'] ?? null),
-            $this->stringOrNull($payload['venue']['city'] ?? null),
-            $this->stringOrNull($payload['venue']['street_and_number'] ?? null),
-        );
+        $chosenVenue = $this->chosenVenue($draft);
+        $venue = $chosenVenue !== null
+            ? $this->venueManager->useExisting($chosenVenue, $canal)
+            : $this->venueManager->resolveOrDetect(
+                $canal,
+                $this->stringOrNull($payload['venue']['name'] ?? null),
+                $this->stringOrNull($payload['venue']['city'] ?? null),
+                $this->stringOrNull($payload['venue']['street_and_number'] ?? null),
+            );
 
         $startAt = $this->parseDate($payload['start_at'] ?? null);
         $endAt = $this->parseDate($payload['end_at'] ?? null) ?? $startAt?->copy()->addHours(2);
@@ -117,6 +121,24 @@ class PosterDraftMaterializer
     }
 
     /**
+     * Miesto, ktoré človek vybral zo zoznamu miest obce. Len zverejnené —
+     * rovnaký rozsah, aký mu ponúkol zoznam (PosterController::places).
+     */
+    private function chosenVenue(PosterDraft $draft): ?Venue
+    {
+        $id = $draft->overrides['venue_id'] ?? null;
+
+        if (! is_numeric($id)) {
+            return null;
+        }
+
+        return Venue::query()
+            ->whereKey((int) $id)
+            ->where('status', ModelStatus::Published->value)
+            ->first();
+    }
+
+    /**
      * Údaje z AI prekryté tým, čo človek opravil v sprievodcovi. Opravy majú
      * vždy prednosť — sú to jediné hodnoty, ktoré niekto naozaj videl.
      *
@@ -131,6 +153,11 @@ class PosterDraftMaterializer
             if (array_key_exists($key, $overrides) && $this->stringOrNull($overrides[$key]) !== null) {
                 $detected[$key] = trim((string) $overrides[$key]);
             }
+        }
+
+        // Pozvánka z e-mailu bez kontaktu: kontaktom je jej odosielateľ.
+        if ($this->stringOrNull($detected['email'] ?? null) === null && $draft->senderEmail() !== null) {
+            $detected['email'] = $draft->senderEmail();
         }
 
         foreach (['venue', 'organizer'] as $group) {

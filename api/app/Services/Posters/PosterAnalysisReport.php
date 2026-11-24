@@ -22,11 +22,15 @@ class PosterAnalysisReport
 
     /**
      * @param  array<string, mixed>  $detection  výstup Detector::detectFromPoster()
+     * @param  string|null  $senderEmail  odosielateľ pozvánky poslanej e-mailom —
+     *                                    kontakt, keď v pozvánke žiadny nie je
      * @return array<string, mixed>
      */
-    public function build(array $detection, PosterExtraction $extraction): array
+    public function build(array $detection, PosterExtraction $extraction, ?string $senderEmail = null): array
     {
         $payload = (array) ($detection['event_payload'] ?? []);
+        $detectedEmail = $this->stringOrNull($payload['email'] ?? null);
+        $senderEmail = $detectedEmail === null ? $this->stringOrNull($senderEmail) : null;
         $venue = (array) ($payload['venue'] ?? []);
         $organizer = (array) ($payload['organizer'] ?? []);
 
@@ -60,7 +64,13 @@ class PosterAnalysisReport
                 $this->stringOrNull($organizer['name'] ?? null),
                 $this->stringOrNull($organizer['city'] ?? null),
             ]), required: false),
-            $this->field('email', 'Kontaktný e-mail', $this->stringOrNull($payload['email'] ?? null), required: false),
+            $this->field(
+                'email',
+                'Kontaktný e-mail',
+                $detectedEmail ?? $senderEmail,
+                required: false,
+                note: $senderEmail !== null ? 'V pozvánke nebol, použili sme adresu odosielateľa.' : null,
+            ),
             $this->field('phone', 'Telefón', $this->stringOrNull($payload['phone'] ?? null), required: false),
             // Popis má dva zdroje: text prepísaný copywriterom a — keď
             // copywriter zlyhá alebo sa preň text neposiela — surový text

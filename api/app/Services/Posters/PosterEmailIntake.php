@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  * konceptu ako „nahrajte plagát" (súbor alebo vložený text na webe).
  *
  *  1. Nový e-mail mimo konverzácie (`message.unassigned` z Accountu): ak v ňom
- *     AI rozpozná pozvánku, vznikne PosterDraft z textu a prvej prílohy
+ *     AI rozpozná pozvánku, vznikne PosterDraft z textu a všetkých príloh
  *     a odosielateľ dostane odpoveď do tej istej konverzácie — čo sme
  *     pochopili, čo chýba a odkaz na koncept. Odpoveď si konverzáciu priradí
  *     (ref `poster_draft`), takže ďalšia správa odosielateľa príde sem.
@@ -44,6 +44,22 @@ class PosterEmailIntake
     private const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024;
 
     private const ATTACHMENT_EXTENSIONS = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+
+    /** Príloha bez prípony (alebo s cudzou) sa spozná podľa MIME. */
+    private const MIME_EXTENSIONS = [
+        'application/pdf' => 'pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'image/jpeg' => 'jpg',
+        'image/jpg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    /** Plagát, program, fotka — viac príloh pozvánka nepotrebuje. */
+    private const MAX_ATTACHMENTS = 4;
+
+    /** Spolu toľko obrázkov ide na vision zo všetkých príloh. */
+    private const MAX_VISION_IMAGES = 4;
 
     private const MIN_TEXT = 30;
 
@@ -88,9 +104,9 @@ class PosterEmailIntake
         }
 
         $text = $this->messageText($message);
-        $attachment = $this->attachment($message);
+        $attachments = $this->attachments($message);
 
-        if (! $this->looksLikeInvitation($text, $attachment !== null)) {
+        if (! $this->looksLikeInvitation($text, $attachments !== [])) {
             return;
         }
 
@@ -100,7 +116,7 @@ class PosterEmailIntake
             return;
         }
 
-        $extraction = $this->extract($text, $attachment);
+        [$extraction, $attachment] = $this->extract($text, $attachments);
 
         if ($extraction === null) {
             return;
@@ -123,7 +139,7 @@ class PosterEmailIntake
             'file_path' => $attachment !== null ? ($attachment->store('poster-drafts', self::DISK) ?: null) : null,
             'extracted_text' => $extraction->text,
             'detection' => $detection,
-            'analysis' => $this->report->build($detection, $extraction),
+            'analysis' => $this->report->build($detection, $extraction, $from),
             'expires_at' => now()->addDays(self::DRAFT_TTL_DAYS),
         ]);
         $draft->token = PosterDraft::hashToken($token);
@@ -161,18 +177,18 @@ class PosterEmailIntake
         }
 
         $addition = $this->messageText($message);
-        $attachment = $draft->file_path === null ? $this->attachment($message) : null;
+        $attachments = $this->attachments($message);
 
-        if (mb_strlen($addition) < 2 && $attachment === null) {
+        if (mb_strlen($addition) < 2 && $attachments === []) {
             return;
         }
 
         $text = trim((string) $draft->extracted_text."\n\n".__('poster.email.addition_heading')."\n".$addition);
-        // Text prílohy už je v `extracted_text`; obrázok plagátu sa neukladá,
+        // Text príloh už je v `extracted_text`; obrázok plagátu sa neukladá,
         // tak ho pre vision prečítame zo súboru konceptu znova.
-        $extraction = $attachment !== null
-            ? $this->extract($text, $attachment)
-            : new PosterExtraction(text: $text, imageDataUrls: $this->storedImages($draft), kind: (string) $draft->source_kind);
+        [$extraction, $attachment] = $attachments !== []
+            ? $this->extract($text, $attachments, $this->storedImages($draft))
+            : [new PosterExtraction(text: $text, imageDataUrls: $this->storedImages($draft), kind: (string) $draft->source_kind), null];
 
         if ($extraction === null) {
             return;
@@ -190,13 +206,14 @@ class PosterEmailIntake
         $draft->forceFill([
             'extracted_text' => $extraction->text,
             'detection' => $detection,
-            'analysis' => $this->report->build($detection, $extraction),
+            'analysis' => $this->report->build($detection, $extraction, $draft->email),
             'last_message_id' => $messageId,
             'email_rounds' => $draft->email_rounds + 1,
             'expires_at' => now()->addDays(self::DRAFT_TTL_DAYS),
         ]);
 
-        if ($attachment !== null) {
+        // Uložený plagát sa nevymieňa — doplnenie k nemu len pridáva text.
+        if ($attachment !== null && $draft->file_path === null) {
             $draft->forceFill([
                 'source_kind' => $extraction->kind,
                 'original_filename' => $attachment->getClientOriginalName(),
@@ -267,26 +284,55 @@ class PosterEmailIntake
         return $title !== '' && ($start !== '' || $venue !== '');
     }
 
-    private function extract(string $text, ?UploadedFile $attachment): ?PosterExtraction
+    /**
+     * Text e-mailu a všetky prílohy, ktoré vieme prečítať: e-mail býva
+     * sprievodný list, plagát nesie termín a miesto a ďalšia príloha program —
+     * AI potrebuje všetko. Prvá prečítaná príloha sa uloží ako plagát.
+     *
+     * @param  array<int, UploadedFile>  $attachments
+     * @param  array<int, string>  $images  obrázky, ktoré už koncept má
+     * @return array{0: ?PosterExtraction, 1: ?UploadedFile}
+     */
+    private function extract(string $text, array $attachments, array $images = []): array
     {
-        try {
-            if ($attachment === null) {
-                return mb_strlen($text) >= self::MIN_TEXT ? $this->extractor->fromText($text) : null;
+        $texts = [trim($text)];
+        $primary = null;
+        $primaryFile = null;
+
+        foreach ($attachments as $attachment) {
+            try {
+                $file = $this->extractor->fromUploadedFile($attachment);
+            } catch (PosterExtractionException) {
+                continue;
             }
 
-            $file = $this->extractor->fromUploadedFile($attachment);
+            if ($primary === null) {
+                $primary = $attachment;
+                $primaryFile = $file;
+            }
 
-            // Text e-mailu aj príloha: e-mail býva sprievodný list, plagát
-            // nesie termín a miesto — AI potrebuje oboje.
-            return new PosterExtraction(
-                text: trim($text."\n\n".$file->text),
-                imageDataUrls: $file->imageDataUrls,
-                kind: $file->kind,
-                pageCount: $file->pageCount,
-            );
-        } catch (PosterExtractionException) {
-            return mb_strlen($text) >= self::MIN_TEXT ? new PosterExtraction(text: $text, kind: 'text') : null;
+            $texts[] = trim($file->text);
+            $images = [...$images, ...$file->imageDataUrls];
         }
+
+        $combined = implode("\n\n", array_filter($texts, static fn (string $t) => $t !== ''));
+        $images = array_slice($images, 0, self::MAX_VISION_IMAGES);
+
+        if ($primaryFile === null) {
+            return [
+                $images !== [] || mb_strlen($combined) >= self::MIN_TEXT
+                    ? new PosterExtraction(text: $combined, imageDataUrls: $images, kind: 'text')
+                    : null,
+                null,
+            ];
+        }
+
+        return [new PosterExtraction(
+            text: $combined,
+            imageDataUrls: $images,
+            kind: $primaryFile->kind,
+            pageCount: $primaryFile->pageCount,
+        ), $primary];
     }
 
     /** @return array<int, string> */
@@ -306,17 +352,31 @@ class PosterEmailIntake
     }
 
     /**
-     * Prvá príloha, ktorú vieme prečítať (plagát, PDF, Word), stiahnutá
-     * z dočasnej URL Accountu.
+     * Prílohy, ktoré vieme prečítať (plagát, PDF, Word), stiahnuté z dočasnej
+     * URL Accountu. Príloha bez prípony sa spozná podľa MIME — pošta z mobilu
+     * ju často pomenuje „IMG_2041" alebo len „2".
      *
      * @param  array<string, mixed>  $message
+     * @return array<int, UploadedFile>
      */
-    private function attachment(array $message): ?UploadedFile
+    private function attachments(array $message): array
     {
+        $files = [];
+
         foreach ((array) ($message['attachments'] ?? []) as $item) {
+            if (count($files) >= self::MAX_ATTACHMENTS) {
+                break;
+            }
+
             $name = (string) ($item['filename'] ?? '');
             $url = (string) ($item['url'] ?? '');
+            $mime = strtolower(trim((string) ($item['mime'] ?? '')));
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            if (! in_array($extension, self::ATTACHMENT_EXTENSIONS, true) && isset(self::MIME_EXTENSIONS[$mime])) {
+                $extension = self::MIME_EXTENSIONS[$mime];
+                $name = ($name !== '' ? $name : 'priloha').'.'.$extension;
+            }
 
             if ($url === '' || ! in_array($extension, self::ATTACHMENT_EXTENSIONS, true)
                 || (int) ($item['size'] ?? 0) > self::MAX_ATTACHMENT_BYTES) {
@@ -338,10 +398,10 @@ class PosterEmailIntake
             $path = tempnam(sys_get_temp_dir(), 'poster-mail-');
             file_put_contents($path, $body);
 
-            return new UploadedFile($path, $name, $item['mime'] ?? null, null, true);
+            $files[] = new UploadedFile($path, $name, $mime !== '' ? $mime : null, null, true);
         }
 
-        return null;
+        return $files;
     }
 
     /** @param  array<string, mixed>  $message */

@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\ModelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PosterAnalyzeRequest;
 use App\Http\Requests\PosterClaimRequest;
+use App\Models\Canal;
+use App\Models\Municipality;
 use App\Models\PosterDraft;
 use App\Models\User;
+use App\Models\Venue;
 use App\Notifications\PosterDraftSaved;
+use App\Services\Imports\CollectionCanal;
 use App\Services\OpenAI\Detector;
 use App\Services\Posters\PosterAnalysisReport;
 use App\Services\Posters\PosterDraftMaterializer;
@@ -43,6 +48,9 @@ class PosterController extends Controller
     private const DRAFT_TTL_DAYS = 7;
 
     private const DISK = 'local';
+
+    /** Bratislava má stovky miest — zoznam je na výber, nie katalóg. */
+    private const PLACES_LIMIT = 300;
 
     public function analyze(
         PosterAnalyzeRequest $request,
@@ -132,6 +140,69 @@ class PosterController extends Controller
         return response()->json(['email' => $intake->inbox()]);
     }
 
+    /**
+     * Miesta a organizátori, ktorých už v obci máme. Sprievodca ich ponúkne
+     * na výber, aby z plagátu nevzniklo druhé „Kultúrne centrum" vedľa
+     * existujúceho. Len zverejnené záznamy — to isté vidí ktokoľvek na webe.
+     */
+    public function places(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'municipality_id' => ['required', 'integer'],
+        ]);
+        $municipalityIds = $this->cityWithDistricts((int) $validated['municipality_id']);
+
+        $venues = Venue::query()
+            ->whereIn('village_id', $municipalityIds)
+            ->where('status', ModelStatus::Published->value)
+            ->orderBy('name')
+            ->limit(self::PLACES_LIMIT)
+            ->get(['id', 'name', 'street'])
+            ->map(static fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'street' => $venue->street,
+            ])
+            ->values();
+
+        $canals = Canal::query()
+            ->whereIn('municipality_id', $municipalityIds)
+            ->where('status', ModelStatus::Published->value)
+            ->orderBy('name')
+            ->limit(self::PLACES_LIMIT)
+            ->get()
+            ->reject(static fn (Canal $canal) => CollectionCanal::is($canal))
+            ->map(static fn (Canal $canal) => ['id' => $canal->id, 'name' => $canal->name])
+            ->values();
+
+        return response()->json(['venues' => $venues, 'canals' => $canals]);
+    }
+
+    /**
+     * Mestské časti sú v číselníku samostatné obce („Bratislava - Staré Mesto")
+     * a miesta bývajú zapísané raz pod mestom, raz pod časťou. Ponuka preto
+     * berie celé mesto: pri meste aj jeho časti, pri časti aj mesto a ostatné časti.
+     *
+     * @return array<int, int>
+     */
+    private function cityWithDistricts(int $municipalityId): array
+    {
+        $name = (string) Municipality::query()->whereKey($municipalityId)->value('fullname');
+        $city = trim(Str::before($name, ' - '));
+
+        if ($city === '') {
+            return [$municipalityId];
+        }
+
+        return Municipality::query()
+            ->where(static fn ($q) => $q->where('fullname', $city)->orWhere('fullname', 'like', $city.' - %'))
+            ->pluck('id')
+            ->push($municipalityId)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function show(Request $request, string $draft, PosterAnalysisReport $report): JsonResponse
     {
         $model = $this->resolveDraft($draft, (string) $request->query('token', ''));
@@ -146,6 +217,7 @@ class PosterController extends Controller
                 $model->analysis['source'] ?? null,
                 (string) $model->extracted_text,
             ),
+            $model->senderEmail(),
         );
 
         return response()->json([
@@ -262,6 +334,15 @@ class PosterController extends Controller
      */
     private function draftPayload(PosterDraft $draft, ?string $token = null): array
     {
+        $suggestion = array_replace_recursive(
+            (array) ($draft->detection['event_payload'] ?? []),
+            (array) ($draft->overrides ?? []),
+        );
+
+        if ($this->stringOrNull($suggestion['email'] ?? null) === null && $draft->senderEmail() !== null) {
+            $suggestion['email'] = $draft->senderEmail();
+        }
+
         return [
             'id' => $draft->id,
             'token' => $token,
@@ -274,10 +355,7 @@ class PosterController extends Controller
             'analysis' => $draft->analysis,
             // Predvyplnenie formulára opráv: hodnoty tak, ako ich AI vrátila,
             // prekryté tým, čo už človek raz opravil.
-            'suggestion' => array_replace_recursive(
-                (array) ($draft->detection['event_payload'] ?? []),
-                (array) ($draft->overrides ?? []),
-            ),
+            'suggestion' => $suggestion,
             // Rovnaké poradie ako v materializéri: vlastná oprava → copywriter
             // → prepis plagátu → surový text z dokumentu. Bez prvého kroku by
             // sa človeku po návrate z e-mailu prepísal jeho vlastný text späť
