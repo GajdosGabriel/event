@@ -15,6 +15,7 @@ use App\Models\Venue;
 use App\Notifications\CanalEventPublishedOffer;
 use App\Notifications\ProfileCompleted;
 use App\Repositories\Contracts\CanalRepository;
+use App\Services\Canals\CanalWebsitePages;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Profiles\ProfileCoordinates;
 use App\Services\Profiles\ProfileEnricher;
@@ -35,6 +36,9 @@ class ProfileEnrichmentTest extends TestCase
         parent::setUp();
         config(['openai.api_key' => 'test-key', 'profile_enrichment.enabled' => true, 'profile_enrichment.monthly_limit_usd' => 1]);
         Notification::fake();
+        // E-mail od AI sa overuje na zdrojovej stránke — tá v testoch uvádza adresy z odpovedí.
+        $this->mock(CanalWebsitePages::class)->shouldReceive('fetch')->andReturn(
+            '<p>info@example.sk, kontakt@example.sk, ai@example.sk, prevadzka@example.sk, cudzi@example.sk</p>');
         DB::table('municipalities')->insertOrIgnore(['id' => 900001,
             'fullname' => 'Testovce', 'shortname' => 'Testovce', 'zip' => '90001', 'district_id' => 1, 'region_id' => 1,
         ]);
@@ -371,12 +375,14 @@ class ProfileEnrichmentTest extends TestCase
     {
         $canal = $this->canal();
         $entry = $this->entry('info@example.sk') + ['official_source' => true];
-        $payload = ['identity_match' => true, 'fields' => ['email' => $entry, 'latitude' => $this->entry('48.5')]];
+        $payload = ['identity_match' => true, 'matched_name' => 'Organizátor Testovce o. z.',
+            'fields' => ['email' => $entry, 'latitude' => $this->entry('48.5')]];
         Http::fake(['api.openai.com/*' => Http::response([
             'model' => 'gpt-4.1-mini', 'status' => 'completed',
             'usage' => ['input_tokens' => 1000, 'output_tokens' => 200],
             'output' => [
-                ['type' => 'web_search_call', 'action' => ['sources' => [['url' => $entry['source_url']]]]],
+                // Vyhľadávanie pridáva k zdroju utm_source, model ho uvádza bez neho.
+                ['type' => 'web_search_call', 'action' => ['sources' => [['url' => 'https://www.example.sk/kontakt/?utm_source=openai']]]],
                 ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode($payload)]]],
             ],
         ])]);
@@ -385,10 +391,80 @@ class ProfileEnrichmentTest extends TestCase
         $this->assertArrayNotHasKey('latitude', $result);
         $this->assertEqualsWithDelta(0.01072, AiUsage::sole()->cost_usd, 0.000001);
         $this->assertSame($canal->id, AiUsage::sole()->subject_id);
-        Http::assertSent(fn ($request) => $request['tool_choice'] === 'required' && $request['store'] === false);
+        Http::assertSent(fn ($request) => $request['tool_choice'] === 'required' && $request['store'] === false
+            && $request['text']['format']['strict'] === true
+            && array_keys((array) $request['text']['format']['schema']['properties']['fields']['properties']) === ['email']
+            && str_contains($request['input'], 'Názov: Organizátor Testovce') && ! str_starts_with($request['input'], '{'));
         $this->assertSame([], app(ProfileResearch::class)->verifiedFields($payload, [], ['email']));
         $payload['identity_match'] = false;
         $this->assertSame([], app(ProfileResearch::class)->verifiedFields($payload, [$entry['source_url']], ['email']));
+    }
+
+    public function test_research_rejects_another_organization_with_a_similar_name(): void
+    {
+        $canal = $this->canal(['name' => 'Iniciatíva na podporu cností vo verejnom živote']);
+        $entry = $this->entry('inakost@example.sk') + ['official_source' => true];
+        Http::fake(['api.openai.com/*' => Http::response([
+            'model' => 'gpt-6-luna', 'status' => 'completed',
+            'usage' => ['input_tokens' => 1000, 'output_tokens' => 200],
+            'output' => [
+                ['type' => 'web_search_call', 'action' => ['sources' => [['url' => $entry['source_url']]]]],
+                ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode([
+                    'identity_match' => true, 'matched_name' => 'Iniciatíva Inakosť', 'fields' => ['email' => $entry],
+                ])]]],
+            ],
+        ])]);
+
+        $this->assertSame([], app(ProfileResearch::class)->research($canal, ['email']));
+        $this->assertTrue(AiUsage::sole()->success);
+    }
+
+    public function test_identity_tolerates_declension_and_word_order(): void
+    {
+        $research = app(ProfileResearch::class);
+
+        $this->assertTrue($research->sameIdentity('Farnosť KVP', 'Rímskokatolícka farnosť Košice - KVP'));
+        $this->assertTrue($research->sameIdentity('CZ ECAV Kežmarok', 'Cirkevný zbor ECAV na Slovensku Kežmarok'));
+        $this->assertTrue($research->sameIdentity('Sigord - Centrum pre rodinu', 'Centrum pre rodinu Sigord'));
+        $this->assertFalse($research->sameIdentity('Iniciatíva na podporu cností vo verejnom živote', 'Iniciatíva Inakosť'));
+        $this->assertFalse($research->sameIdentity('Farnosť KVP', null));
+    }
+
+    public function test_missing_country_alone_makes_no_paid_search_and_is_derived_with_address(): void
+    {
+        $complete = $this->canal(['website' => 'https://example.sk', 'email' => 'a@example.sk', 'phone' => '+421 900 000 000',
+            'street' => 'Hlavná 1', 'postcode' => '900 01', 'body' => 'Popis organizácie.']);
+        $this->mock(ProfileResearch::class)->shouldNotReceive('research');
+        app(ProfileEnricher::class)->run($complete);
+        $this->assertNotNull(ProfileEnrichment::sole()->completed_at);
+        $this->assertNull($complete->fresh()->country);
+
+        $canal = $this->canal(['name' => 'Druhý organizátor', 'email' => 'b@example.sk']);
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->once()
+            ->withArgs(fn ($subject, array $missing) => ! in_array('country', $missing, true))
+            ->andReturn(['street' => $this->entry('Hlavná 2'), 'country' => $this->entry('Slovakia')]);
+        app(ProfileEnricher::class)->run($canal);
+        $this->assertSame('Hlavná 2', $canal->fresh()->street);
+        $this->assertSame('Slovensko', $canal->fresh()->country);
+    }
+
+    public function test_ai_email_is_saved_only_when_the_source_page_shows_it(): void
+    {
+        $canal = $this->canal();
+        $this->mock(CanalWebsitePages::class)->shouldReceive('fetch')->andReturnUsing(fn (string $url) => match ($url) {
+            'https://example.sk/kontakt' => '<p>Píšte na info [at] example.sk</p>',
+            default => '<p>Bez kontaktu</p>',
+        });
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->once()->andReturn(['email' => $this->entry('info@example.sk')]);
+        app(ProfileEnricher::class)->run($canal);
+        $this->assertSame('info@example.sk', $canal->fresh()->email);
+
+        $other = $this->canal(['name' => 'Druhý organizátor']);
+        $this->mock(ProfileResearch::class)->shouldReceive('research')->once()->andReturn(['email' => [
+            'value' => 'vymysleny@example.sk', 'source_url' => 'https://example.sk/iny', 'evidence' => 'Kontakt.',
+        ]]);
+        app(ProfileEnricher::class)->run($other);
+        $this->assertNull($other->fresh()->email);
     }
 
     public function test_finished_profile_is_reopened_only_by_new_inputs(): void

@@ -11,7 +11,10 @@ use App\Models\Municipality;
 use App\Models\ProfileEnrichment;
 use App\Models\Venue;
 use App\Notifications\ProfileCompleted;
+use App\Services\Canals\CanalEmailFinder;
+use App\Services\Canals\CanalEmails;
 use App\Services\Canals\CanalRecipients;
+use App\Services\Canals\CanalWebsitePages;
 use App\Services\SystemLog\Recorder;
 use App\Support\AppSettings;
 use App\Support\LookupInputs;
@@ -154,12 +157,15 @@ class ProfileEnricher
                 return;
             }
             $missing = $this->missing($subject);
-            if ($missing !== [] && (! (string) config('openai.api_key') || ! $this->budgetAvailable())) {
+            $search = $this->worthSearching($missing);
+            if ($search && (! (string) config('openai.api_key') || ! $this->budgetAvailable())) {
                 return;
             }
             $audit->update(['attempts' => $audit->attempts + 1, 'retry_at' => now()->addHours((int) config('profile_enrichment.retry_hours', 6))]);
             try {
-                $found = $missing !== [] ? $this->research->research($subject, $missing) : [];
+                // Pri známej obci sa krajina nehľadá — doplní sa nižšie spolu s adresou.
+                $ask = in_array('city', $missing, true) ? $missing : array_values(array_diff($missing, ['country']));
+                $found = $search ? $this->verifiedEmail($this->research->research($subject, $ask), $ask) : [];
                 $position = $this->coordinates->resolve($subject, $found);
                 DB::transaction(function () use ($subject, $audit, $found, $position, $ignoreDelay) {
                     $current = $subject->newQuery()->whereKey($subject->id)->lockForUpdate()->first();
@@ -191,6 +197,17 @@ class ProfileEnricher
                             $changes[$key] = $matches->first()->id;
                             $evidence[$key] = $found['city'];
                         }
+                    }
+                    // Doplnenej adrese v slovenskej obci (číselník obcí je slovenský) patrí
+                    // krajina Slovensko — bez vyhľadávania a bez „Slovakia" od modelu.
+                    $key = $current instanceof Canal ? 'municipality_id' : 'village_id';
+                    $municipalityId = $changes[$key] ?? $current->$key;
+                    if (in_array('country', $this->missing($current), true)
+                        && (isset($changes['street']) || isset($changes['postcode']))
+                        && $municipalityId !== null && (int) $municipalityId !== Municipality::nationwideId()) {
+                        $changes['country'] = 'Slovensko';
+                        $evidence['country'] = ['value' => 'Slovensko', 'source_url' => $evidence['street']['source_url'] ?? $evidence['postcode']['source_url'],
+                            'evidence' => 'Adresa v slovenskej obci.'];
                     }
                     if ($position !== [] && $this->coordinates->needsLookup($current)) {
                         foreach (['latitude', 'longitude', 'coordinates_source'] as $field) {
@@ -234,6 +251,36 @@ class ProfileEnricher
                     context: ['audit_id' => $audit->id, 'error' => mb_substr($e->getMessage(), 0, 500)]);
             }
         });
+    }
+
+    /**
+     * Stojí chýbajúce za platené vyhľadávanie? Samotná krajina nie — pri
+     * slovenskej obci je známa a výskum by ju len zopakoval (predtým sa kvôli
+     * nej hľadalo aj pri inak úplnom profile). S ostatnými poľami sa pýta naraz.
+     */
+    public function worthSearching(array $missing): bool
+    {
+        return array_diff($missing, ['country']) !== [];
+    }
+
+    /**
+     * E-mail od AI sa prijme, len keď na zdrojovej stránke doslova je —
+     * ide naň oslovenie a vymyslená adresa by sa vrátila ako nedoručiteľná.
+     * Rovnako ho overuje CanalEmailFinder pri hľadaní po vrátenom e-maile.
+     */
+    private function verifiedEmail(array $found, array $asked): array
+    {
+        // Nežiadaný e-mail sa aj tak neuloží — netreba kvôli nemu sťahovať stránku.
+        if (! isset($found['email']) || ! in_array('email', $asked, true)) {
+            return $found;
+        }
+        $email = CanalEmails::normalize($found['email']['value']);
+        $page = app(CanalWebsitePages::class)->fetch($found['email']['source_url']);
+        if ($email === null || $page === null || ! in_array($email, app(CanalEmailFinder::class)->extract($page), true)) {
+            unset($found['email']);
+        }
+
+        return $found;
     }
 
     private function notify(Canal|Venue $subject, ProfileEnrichment $audit): void

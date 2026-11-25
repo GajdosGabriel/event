@@ -46,7 +46,7 @@ class ManualLookups
             self::PROFILE => match (true) {
                 ! $this->profiles->enabled() => 'disabled',
                 ! $this->profiles->eligible($canal, ignoreDelay: true) => 'not_eligible',
-                $this->profiles->missing($canal) === [] && ! $this->coordinates->needsLookup($canal) => 'complete',
+                ! $this->profiles->worthSearching($this->profiles->missing($canal)) && ! $this->coordinates->needsLookup($canal) => 'complete',
                 ! $this->profiles->budgetAvailable() => 'budget',
                 default => null,
             },
