@@ -123,7 +123,7 @@ class EventTextLabelExtractor
                 continue;
             }
 
-            $line = trim($match[1]);
+            $line = $this->unwrapParenthesizedAddress(trim($match[1]));
             $parts = array_values(array_filter(
                 array_map('trim', preg_split('/\s*,\s*/u', $line) ?: []),
                 static fn (string $p): bool => $p !== ''
@@ -151,6 +151,22 @@ class EventTextLabelExtractor
         }
 
         return $this->extractVenueFromProse($text);
+    }
+
+    /**
+     * „Mariánska sála (Františkánska 33A, Trnava)“ → „Mariánska sála, Františkánska 33A, Trnava“.
+     * Výveska takto píše adresu v zátvorke; delenie po čiarke by z nej spravilo
+     * miesto „Trnava)“ v obci „Mariánska sála (Františkánska 33A“ a import
+     * priradil podujatia k inému miestu v Trnave. Zátvorka bez čiarky
+     * („Katedrála (Spišská Kapitula)“) ostáva súčasťou názvu.
+     */
+    private function unwrapParenthesizedAddress(string $line): string
+    {
+        if (preg_match('/^([^()]+?)\s*\(([^()]*,[^()]*)\)\s*\.?$/u', $line, $match) !== 1) {
+            return $line;
+        }
+
+        return trim($match[1]).', '.trim($match[2]);
     }
 
     /**

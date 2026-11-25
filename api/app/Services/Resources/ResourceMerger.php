@@ -7,6 +7,7 @@ use App\Models\Canal;
 use App\Models\SystemLog;
 use App\Models\Venue;
 use App\Services\Canals\CanalEmails;
+use App\Services\Imports\DuplicateResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -101,6 +102,9 @@ class ResourceMerger
                 DB::table('canal_user')->where('canal_id', $sourceId)->delete();
                 // The source name stays an alias of the target for future imports.
                 DB::table('canals')->where('id', $sourceId)->update(['merged_into_id' => $targetId]);
+            } else {
+                // Venues have no merged_into_id; the decision leads future imports to the target.
+                app(DuplicateResolver::class)->rememberVenueMerge($source, $target);
             }
             $source->delete();
             // Audit is part of the transaction: a failure must roll the merge back.

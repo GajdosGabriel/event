@@ -146,4 +146,19 @@ class EventTextLabelExtractorTest extends TestCase
             'Západoslovenské múzeum',
         ));
     }
+
+    #[Test]
+    public function it_reads_the_address_in_parentheses_after_the_venue(): void
+    {
+        $this->assertSame(
+            ['name' => 'Mariánska sála', 'city' => 'Trnava', 'street' => 'Františkánska 33A'],
+            $this->extractor->extractVenue("Kde:\nMariánska sála (Františkánska 33A, Trnava)\nOrganizátor:\nMariánska sála"),
+        );
+
+        // Zátvorka bez čiarky je súčasťou názvu.
+        $this->assertSame(
+            'Katedrála (Spišská Kapitula)',
+            $this->extractor->extractVenue('Kde: Katedrála (Spišská Kapitula)')['name'],
+        );
+    }
 }

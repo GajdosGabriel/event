@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Imports;
 
+use App\Enums\ModelStatus;
 use App\Models\Canal;
 use App\Models\DuplicateDecision;
 use App\Models\Municipality;
 use App\Models\Venue;
 use App\Services\Imports\DuplicateResolver;
+use App\Services\Resources\ResourceMerger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
@@ -177,6 +179,33 @@ class DuplicateResolverTest extends TestCase
         $middle->delete();
 
         $this->assertSame($target->id, app(DuplicateResolver::class)->findCanal('TV LUX')?->id);
+    }
+
+    #[Test]
+    public function the_name_of_a_merged_venue_leads_to_the_venue_it_was_merged_into(): void
+    {
+        config()->set('services.imports.dedupe_with_ai', false);
+        Http::fake();
+
+        $smizany = Municipality::query()->where('slug', 'smizany')->firstOrFail();
+        $shrine = Venue::factory()->create([
+            'name' => 'Diecézna svätyňa Božieho milosrdenstva', 'category' => null, 'village_id' => $smizany->id,
+            'street' => 'Jahodová', 'status' => ModelStatus::Published,
+            'latitude' => 48.954591, 'longitude' => 20.5160425, 'coordinates_source' => 'address',
+        ]);
+        $resolver = app(DuplicateResolver::class);
+
+        // Bez AI je podobný názov len neistý — import by založil nové miesto.
+        $this->assertNull($resolver->findVenue('Centrum Božieho milosrdenstva', $smizany->id, 'Jahodová', 48.954591, 20.5160425, null, 'address'));
+
+        $duplicate = Venue::factory()->create([
+            'name' => 'Centrum Božieho milosrdenstva', 'category' => null, 'village_id' => $smizany->id,
+            'street' => 'Jahodová', 'status' => ModelStatus::Published,
+            'latitude' => 48.954591, 'longitude' => 20.5160425, 'coordinates_source' => 'address',
+        ]);
+        app(ResourceMerger::class)->merge('venues', $duplicate->id, $shrine->id, null);
+
+        $this->assertSame($shrine->id, $resolver->findVenue('Centrum Božieho milosrdenstva', $smizany->id, 'Jahodová', 48.954591, 20.5160425, null, 'address')?->id);
     }
 
     #[Test]

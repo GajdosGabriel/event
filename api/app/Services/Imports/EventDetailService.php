@@ -994,6 +994,12 @@ class EventDetailService
             return $url;
         }
 
+        // mailto:, tel:, data: … nie sú relatívne cesty — inak vznikne
+        // „https://www.vyveska.sk/clanok/mailto:adresa@…“.
+        if (preg_match('#^[a-z][a-z0-9+.\-]*:#i', $url) === 1) {
+            return null;
+        }
+
         $base = parse_url($baseUrl);
         if (! is_array($base) || empty($base['host'])) {
             return null;

@@ -357,6 +357,35 @@ class DuplicateResolver
     }
 
     /**
+     * Človek zlúčil miesto $source do $target: názov zdroja v jeho obci odteraz
+     * vedie na cieľ. Bez toho import s vypnutou AI kontrolou zhodu vyhodnotí
+     * len ako neistú a založí rovnakú duplicitu znova („Centrum Božieho
+     * milosrdenstva" v Smižanoch vzniklo štyrikrát).
+     */
+    public function rememberVenueMerge(Venue $source, Venue $target): void
+    {
+        $villageId = $source->village_id !== null ? (int) $source->village_id : null;
+        $baseSlug = $this->venueBaseSlug((string) $source->name, $villageId);
+
+        if ($baseSlug === '') {
+            return;
+        }
+
+        DuplicateDecision::query()->create([
+            'entity' => DuplicateDecision::ENTITY_VENUE,
+            'input_key' => Str::limit($baseSlug.'@'.$villageId, 250, ''),
+            'input_name' => Str::limit((string) $source->name, 250, ''),
+            'candidate_id' => $target->getKey(),
+            'candidate_name' => Str::limit((string) $target->name, 250, ''),
+            'created_id' => $source->getKey(),
+            'decision' => DuplicateDecision::SAME,
+            'source' => DuplicateDecision::SOURCE_HUMAN,
+            'reason' => 'Miesto bolo zlúčené do tohto záznamu.',
+            'reviewed_at' => now(),
+        ]);
+    }
+
+    /**
      * Doplní id nového záznamu k rozhodnutiam `uncertain`, ktoré vznikli pri
      * jeho posúdení — kontrolujúci človek tak vie, ktorý záznam je podozrivý.
      */
