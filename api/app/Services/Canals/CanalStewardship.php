@@ -64,6 +64,12 @@ class CanalStewardship
                 'claimed_at' => now(),
                 'claimed_by_user_id' => $user->id,
             ])->save();
+
+            // Účet bez aktívneho kanála (registrácia profilom organizácie, viď
+            // PersonalCanalProvisioner) dostane prevzatú organizáciu.
+            if ($user->canal_id === null) {
+                $user->forceFill(['canal_id' => $canal->id])->save();
+            }
         });
 
         $this->auditor->claimed($canal, $user, $removed, $claim);

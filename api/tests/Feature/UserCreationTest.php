@@ -7,6 +7,7 @@ use App\Models\Canal;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Notifications\PendingRegistrationVerification;
+use App\Services\Canals\CanalStewardship;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
@@ -241,6 +242,35 @@ class UserCreationTest extends TestCase
         $this->assertSame((int) $canals['personal']->id, (int) $user->canal_id);
         $this->assertSame('Jana Spolková', $user->displayName());
         $this->assertTrue((bool) $canals['organization']->pivot->is_owner);
+    }
+
+    #[Test]
+    public function a_profile_named_like_an_existing_organization_gets_no_personal_canal()
+    {
+        Notification::fake();
+
+        // Google účet organizácie prichádza cez pozvánku na jej kanál — jeho meno
+        // je názov organizácie, nie človeka.
+        $organization = Canal::factory()->create([
+            'name' => 'Konfederácia politických väzňov Slovenska',
+            'slug' => 'konfederacia-politickych-vaznov-slovenska',
+            'registration_source' => 'import',
+            'identity_mode' => 'organization',
+            'status' => ModelStatus::Published->value,
+            'claimed_at' => null,
+        ]);
+        $user = User::factory()->unverified()->create(['canal_id' => null]);
+        $user->pendingProfile()->create(['display_name' => 'Konfederácia politických väzňov Slovenska']);
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        $user->refresh();
+        $this->assertFalse($user->canals()->where('identity_mode', 'personal')->exists());
+        $this->assertNull($user->canal_id);
+
+        app(CanalStewardship::class)->complete($organization, $user);
+
+        $this->assertSame((int) $organization->id, (int) $user->fresh()->canal_id);
     }
 
     #[Test]

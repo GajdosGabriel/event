@@ -43,18 +43,27 @@ class PersonalCanalProvisioner
             $displayName = 'User '.$user->id;
         }
 
-        $canal = Canal::create([
-            'name' => $displayName,
-            'email' => $user->email,
-            'status' => 'published',
-            'body' => 'Osobný kanál používateľa '.$displayName,
-            'published_at' => now(),
-            'registration_source' => RegistrationSource::SELF->value,
-            'identity_mode' => CanalIdentityMode::Personal->value,
-        ]);
+        // Google/Facebook profil organizácie nesie jej názov, nie meno človeka
+        // („Konfederácia politických väzňov Slovenska" prišla cez pozvánku na
+        // svoj kanál). Osobný kanál s názvom organizácie by bol jej duplicitou —
+        // účet dostane za aktívny kanál organizáciu až pri prevzatí
+        // (CanalStewardship::complete).
+        $canal = null;
+        if (! ($pending?->display_name && $this->namesOrganization($displayName))) {
+            $canal = Canal::create([
+                'name' => $displayName,
+                'email' => $user->email,
+                'status' => 'published',
+                'body' => 'Osobný kanál používateľa '.$displayName,
+                'published_at' => now(),
+                'registration_source' => RegistrationSource::SELF->value,
+                'identity_mode' => CanalIdentityMode::Personal->value,
+            ]);
 
-        $this->attachOwner($user, $canal, 'personal_canal');
+            $this->attachOwner($user, $canal, 'personal_canal');
+        }
 
+        $organization = null;
         $organizationName = trim((string) ($pending?->organization_name ?? ''));
         if ($organizationName !== '') {
             $organization = Canal::create([
@@ -78,19 +87,33 @@ class PersonalCanalProvisioner
         app(CanalMembership::class)->syncGlobalRoles($user);
 
         // users.canal_id ostáva osobný kanál — nesie meno človeka.
-        $user->canal_id = $canal->id;
-        $user->save();
+        $created = $canal ?? $organization;
+        if ($created !== null) {
+            $user->canal_id = $created->id;
+            $user->save();
+        }
 
         // Profilovka z Google/Facebooku. Sťahuje ju až job vo fronte, aby
         // prihlásenie nečakalo na cudzí server.
         $avatarUrl = trim((string) ($pending?->avatar_url ?? ''));
-        if ($avatarUrl !== '') {
-            ImportSocialAvatarJob::dispatch((int) $canal->id, $avatarUrl);
+        if ($avatarUrl !== '' && $created !== null) {
+            ImportSocialAvatarJob::dispatch((int) $created->id, $avatarUrl);
         }
 
         $pending?->delete();
 
-        return $canal;
+        return $created;
+    }
+
+    /** Názov existujúceho organizačného kanála — nie je to meno človeka. */
+    private function namesOrganization(string $name): bool
+    {
+        $slug = Str::slug($name);
+
+        return $slug !== '' && Canal::query()
+            ->where('identity_mode', CanalIdentityMode::Organization->value)
+            ->where('slug', $slug)
+            ->exists();
     }
 
     private function attachOwner(User $user, Canal $canal, string $reason): void
