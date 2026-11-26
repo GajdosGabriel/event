@@ -50,7 +50,12 @@ class ResourceMerger
             // two different channels, so their links are united instead of compared (below).
             $supported = ['events', 'canal_venue'];
             if ($class === Canal::class) {
-                $supported = [...$supported, 'canal_user', 'users', 'canal_emails', 'canal_email_searches'];
+                $supported = [...$supported, 'canal_user', 'users', 'canal_emails', 'canal_email_searches', 'canal_outreach'];
+                // Neprijatá pozvánka na prevzatie ide s kanálom (nižšie); prijatá znamená,
+                // že kanál niekto spravuje, a zlúčenie nech posúdi človek.
+                if (! DB::table('canal_invitations')->where('canal_id', $sourceId)->whereNotNull('accepted_at')->exists()) {
+                    $supported[] = 'canal_invitations';
+                }
             }
             // Include legacy non-FK references and morph aliases as well as class names.
             foreach (Schema::getTables() as $table) {
@@ -97,6 +102,24 @@ class ResourceMerger
                 DB::table('canal_emails')->where('canal_id', $sourceId)->delete();
                 // Derived state of the address search (CanalEmailFinder) — the target keeps its own.
                 DB::table('canal_email_searches')->where('canal_id', $sourceId)->delete();
+                // Pozvánka na prevzatie zdroja platí pre cieľ — je to tá istá organizácia
+                // a odkaz z e-mailu má fungovať ďalej. Tú istú adresu už pozvanú do cieľa
+                // netreba dvakrát: zdrojová sa zruší.
+                $invited = DB::table('canal_invitations')->where('canal_id', $targetId)->whereNull('accepted_at')->whereNull('revoked_at')
+                    ->lockForUpdate()->pluck('email')->map(fn ($email) => mb_strtolower((string) $email))->all();
+                $invitations = DB::table('canal_invitations')->where('canal_id', $sourceId)->lockForUpdate()->get();
+                foreach ($invitations as $invitation) {
+                    DB::table('canal_invitations')->where('id', $invitation->id)->update([
+                        'canal_id' => $targetId,
+                        'revoked_at' => $invitation->revoked_at ?? (in_array(mb_strtolower((string) $invitation->email), $invited, true) ? now() : null),
+                        'updated_at' => now(),
+                    ]);
+                }
+                $moved['canal_invitations'] = $invitations->pluck('id')->all();
+                // Oslovenia organizácie idú s ňou: strop a odstup medzi mailmi
+                // (CanalOutreachSender::mayContact) sa počítajú podľa kanála.
+                $moved['canal_outreach'] = DB::table('canal_outreach')->where('canal_id', $sourceId)->lockForUpdate()->pluck('id')->all();
+                DB::table('canal_outreach')->where('canal_id', $sourceId)->update(['canal_id' => $targetId]);
                 app(CanalEmails::class)->refresh($target);
                 $moved['canal_user'] = DB::table('canal_user')->where('canal_id', $sourceId)->get()->map(fn ($row) => (array) $row)->all();
                 DB::table('canal_user')->where('canal_id', $sourceId)->delete();

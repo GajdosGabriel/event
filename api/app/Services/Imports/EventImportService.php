@@ -34,6 +34,7 @@ class EventImportService
         private readonly EventDependencyPublisher $dependencyPublisher = new EventDependencyPublisher,
         private readonly OrganizerWebsiteFinder $websiteFinder = new OrganizerWebsiteFinder,
         private readonly ImportPosterReader $posterReader = new ImportPosterReader,
+        private readonly ImportedEventMatcher $eventMatcher = new ImportedEventMatcher,
     ) {}
 
     /**
@@ -287,9 +288,41 @@ class EventImportService
             ],
         ];
 
+        // Tá istá akcia z iného článku (iná URL aj titulok, rovnaký začiatok
+        // a miesto) — nový záznam by bol duplicita. Adresa článku sa zapíše
+        // podujatiu, ktoré už existuje, nech ho ďalší beh nájde hneď.
+        if (! $existingEvent instanceof Event && $startAt instanceof CarbonInterface) {
+            $twin = $this->eventMatcher->find($payload['name'], $rawBodyText, $startAt, $venue->id);
+
+            if ($twin instanceof Event) {
+                ImportedEventMatcher::rememberSource($twin, (string) $detail['source_url']);
+                Recorder::info('import', 'event_duplicate', "Článok je podujatie #{$twin->id} {$twin->name}, nový záznam sa nezaložil",
+                    status: 'ok', subject: $twin, context: ['url' => (string) $detail['source_url'], 'title' => $payload['name']]);
+
+                return 'skipped';
+            }
+        }
+
         if ($existingEvent instanceof Event) {
             if (! $force && $this->isComplete($existingEvent)) {
                 return 'skipped';
+            }
+
+            // Meta existujúceho podujatia sa dopĺňa, neprepisuje: inak by sa
+            // stratili `merged_sources` zlúčených článkov a import by ich pri
+            // ďalšom behu založil znova.
+            $existingMeta = is_array($existingEvent->meta) ? $existingEvent->meta : [];
+            $payload['meta'] = array_replace($existingMeta, $payload['meta']);
+
+            // Podujatie nájdené podľa názvu a termínu má svoj pôvodný článok —
+            // ten ostáva zdrojom, nový sa len pripíše.
+            $existingSource = trim((string) $existingEvent->orginal_source);
+            if ($existingSource !== '' && $existingSource !== $payload['orginal_source']) {
+                $payload['meta']['merged_sources'] = array_values(array_unique([
+                    ...($existingMeta['merged_sources'] ?? []),
+                    $payload['orginal_source'],
+                ]));
+                unset($payload['orginal_source']);
             }
 
             // Kanál už raz priradený nechávame tak. Detekcia organizátora nie je

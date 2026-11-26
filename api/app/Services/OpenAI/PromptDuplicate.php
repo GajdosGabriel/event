@@ -33,15 +33,18 @@ class PromptDuplicate
     }
 
     /**
-     * @param  'canal'|'venue'  $kind
+     * @param  'canal'|'venue'|'event'  $kind
      * @param  array<string, string|null>  $a  nový záznam (názov, obec, adresa, web…)
      * @param  array<string, string|null>  $b  existujúci záznam
      */
     public function prompt(string $kind, array $a, array $b): array
     {
-        $subject = $kind === 'venue'
-            ? 'miesto konania podujati (kostol, kulturny dom, hrad, namestie, hala a podobne)'
-            : 'organizatora podujati (farnost, rehola, zbor, mesto/obec, skola, klub, spolok a podobne)';
+        $subject = match ($kind) {
+            'venue' => 'miesto konania podujati (kostol, kulturny dom, hrad, namestie, hala a podobne)',
+            // Oba zaznamy maju rovnaky zaciatok aj miesto — rozhoduje, ci ide o tu istu akciu.
+            'event' => 'podujatia s rovnakym zaciatkom na rovnakom mieste. Rovnaka akcia byva opisana viacerymi clankami (pozvanka vopred, "o tyzden sa zacne", sprava od organizatora) s roznym titulkom. Rozne akcie su napriklad dva rozne kurzy ci prednasky s inou temou alebo inym prednasajucim, aj ked ich robi ten isty organizator v ten isty cas',
+            default => 'organizatora podujati (farnost, rehola, zbor, mesto/obec, skola, klub, spolok a podobne)',
+        };
 
         $describe = static function (array $fields): string {
             $lines = [];

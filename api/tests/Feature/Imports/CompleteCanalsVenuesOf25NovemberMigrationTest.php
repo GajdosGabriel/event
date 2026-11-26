@@ -26,8 +26,6 @@ class CompleteCanalsVenuesOf25NovemberMigrationTest extends TestCase
         Storage::fake('public');
         Storage::fake(config('filesystems.default'));
 
-        $user = User::factory()->create();
-
         $this->municipality(1892, 'liptovsky-mikulas', 'Liptovský Mikuláš');
         $this->municipality(2018, 'mala-calomija', 'Malá Čalomija');
         $this->municipality(3306, 'stredne-plachtince', 'Stredné Plachtince');
@@ -45,6 +43,9 @@ class CompleteCanalsVenuesOf25NovemberMigrationTest extends TestCase
             'identity_mode' => 'organization', 'organization_id' => null, 'status' => ModelStatus::Published->value,
             'street' => 'Malá Čalomija 78', 'latitude' => 48.7411522, 'longitude' => 19.4528646, 'coordinates_source' => 'municipality',
         ]);
+        // Až po kanáloch s pevným ID: osobný kanál používateľa berie ID z autoinkrementu,
+        // ktoré v plnej sade testov môže práve trafiť 1987.
+        $user = User::factory()->create();
 
         $trnava = Venue::factory()->create(['id' => 823, 'name' => 'Bazilika svätého Mikuláša (Trnava)', 'village_id' => 3596, 'status' => ModelStatus::Published]);
         $bariMass = Event::factory()->create([

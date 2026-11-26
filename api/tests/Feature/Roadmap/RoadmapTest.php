@@ -181,6 +181,45 @@ class RoadmapTest extends EventSetupTest
         $this->assertDatabaseMissing('canal_email_searches', ['canal_id' => $source->id]);
     }
 
+    public function test_canal_merge_moves_open_claim_invitations_to_the_target(): void
+    {
+        $source = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        $target = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        $invite = fn (Canal $canal, string $email, array $extra = []) => DB::table('canal_invitations')->insertGetId([
+            'canal_id' => $canal->id, 'email' => $email, 'role' => 'owner', 'token' => bin2hex(random_bytes(16)),
+            'expires_at' => now()->addWeek(), 'created_at' => now(), 'updated_at' => now(), ...$extra,
+        ]);
+        $own = $invite($source, 'fara@example.sk');
+        $twice = $invite($source, 'info@example.sk');
+        $invite($target, 'INFO@example.sk');
+        $outreach = DB::table('canal_outreach')->insertGetId([
+            'canal_id' => $source->id, 'trigger' => 'canal_event_upcoming', 'dedupe_key' => 'canal:'.$source->id.':test',
+            'email' => 'fara@example.sk', 'status' => 'not_queued', 'invitation_id' => $own, 'created_at' => now(),
+        ]);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+
+        $this->postJson('/api/admin/canals/'.$source->id.'/merge', ['target_id' => $target->id])->assertOk();
+
+        $this->assertDatabaseHas('canal_invitations', ['id' => $own, 'canal_id' => $target->id, 'revoked_at' => null]);
+        $this->assertNotNull(DB::table('canal_invitations')->where('id', $twice)->value('revoked_at'), 'adresa už pozvaná do cieľa sa zruší');
+        $this->assertSame($target->id, (int) DB::table('canal_invitations')->where('id', $twice)->value('canal_id'));
+        $this->assertSame($target->id, (int) DB::table('canal_outreach')->where('id', $outreach)->value('canal_id'));
+    }
+
+    public function test_canal_merge_keeps_a_canal_with_an_accepted_invitation_apart(): void
+    {
+        $source = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        $target = Canal::factory()->create(['status' => 'draft', 'identity_mode' => 'organization']);
+        DB::table('canal_invitations')->insert([
+            'canal_id' => $source->id, 'email' => 'fara@example.sk', 'role' => 'owner', 'token' => bin2hex(random_bytes(16)),
+            'expires_at' => now()->addWeek(), 'accepted_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->actingAs($this->userSuperAdmin, 'sanctum');
+
+        $this->postJson('/api/admin/canals/'.$source->id.'/merge', ['target_id' => $target->id])->assertUnprocessable();
+        $this->assertDatabaseHas('canals', ['id' => $source->id, 'deleted_at' => null]);
+    }
+
     public function test_canal_merge_preserves_identical_memberships_and_rejects_repeat_and_self(): void
     {
         $source = Canal::factory()->withOwner($this->user)->create(['status' => 'draft', 'identity_mode' => 'personal']);

@@ -180,7 +180,7 @@ class DuplicateEventMerger
      * podujatia nič z toho nemávajú — keď áno, niekto s ním už pracoval a
      * automatika sa ho nesmie dotknúť.
      */
-    private function referenceCount(Event $event): ?string
+    public function referenceCount(Event $event): ?string
     {
         $counts = [
             'objednávka' => Ticket::query()->where('event_id', $event->id)->count(),
