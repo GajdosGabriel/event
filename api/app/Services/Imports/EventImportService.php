@@ -296,6 +296,7 @@ class EventImportService
 
             if ($twin instanceof Event) {
                 ImportedEventMatcher::rememberSource($twin, (string) $detail['source_url']);
+                $this->eventMatcher->refineVenue($twin, $venue->id);
                 Recorder::info('import', 'event_duplicate', "Článok je podujatie #{$twin->id} {$twin->name}, nový záznam sa nezaložil",
                     status: 'ok', subject: $twin, context: ['url' => (string) $detail['source_url'], 'title' => $payload['name']]);
 

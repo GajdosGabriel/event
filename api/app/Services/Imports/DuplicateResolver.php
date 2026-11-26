@@ -44,6 +44,9 @@ class DuplicateResolver
      */
     private const SAME_POINT_METERS = 40;
 
+    /** Podobnosť názvov (Jaccard), pri ktorej sú dve miesta na tom istom bode to isté. */
+    private const SAME_POINT_NAME_JACCARD = 0.5;
+
     /** Zdroje súradníc, ktoré ukazujú na budovu/adresu, nie na odhad či stred obce. */
     private const PRECISE_COORDINATES = ['venue', 'address', 'manual'];
 
@@ -324,13 +327,21 @@ class DuplicateResolver
                 continue;
             }
 
+            // Rovnaký holý názov v tej istej obci je to isté miesto — import
+            // túto zhodu chytá už v manageri, ručné zadanie až tu.
+            $sameName = (int) $venue->village_id === $villageId
+                && ImportedNameMatcher::baseSlug((string) $venue->name, $village) === $baseSlug;
+            // Ten istý bod (oba presne umiestnené, do 40 m) a skoro rovnaký názov:
+            // „Zrkadlová sála" a „Zrkadlová sieň Primaciálneho paláca". Samotný
+            // bod dôkaz nie je (viac podnikov v jednom dome), s názvom áno.
+            $samePointName = $samePoint && (int) $venue->village_id === $villageId
+                && in_array($venue->coordinates_source, self::PRECISE_COORDINATES, true)
+                && self::jaccard($newTokens, $tokens) >= self::SAME_POINT_NAME_JACCARD;
+
             $candidates[] = [
                 'model' => $venue,
-                // Rovnaký holý názov v tej istej obci je to isté miesto — import
-                // túto zhodu chytá už v manageri, ručné zadanie až tu.
-                'sure' => (int) $venue->village_id === $villageId
-                    && ImportedNameMatcher::baseSlug((string) $venue->name, $village) === $baseSlug,
-                'reason' => 'Rovnaký názov v tej istej obci.',
+                'sure' => $sameName || $samePointName,
+                'reason' => $sameName ? 'Rovnaký názov v tej istej obci.' : 'Ten istý bod a takmer rovnaký názov.',
                 'score' => self::jaccard($newTokens, $tokens),
                 'distance' => $distance,
                 'hidden' => $hidden,

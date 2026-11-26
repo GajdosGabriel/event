@@ -340,6 +340,23 @@ class DuplicateResolverTest extends TestCase
     }
 
     #[Test]
+    public function the_same_point_with_an_almost_equal_name_is_the_same_venue_without_ai(): void
+    {
+        config(['services.imports.dedupe_with_ai' => false]);
+        $bratislava = Municipality::query()->where('slug', 'kosice')->firstOrFail();
+
+        $hall = Venue::factory()->create([
+            'name' => 'Zrkadlová sieň Primaciálneho paláca', 'street' => 'Primaciálne námestie 1', 'category' => null,
+            'village_id' => $bratislava->id, 'latitude' => 48.1437398, 'longitude' => 17.1095582, 'coordinates_source' => 'address',
+        ]);
+        $resolver = app(DuplicateResolver::class);
+
+        $this->assertSame($hall->id, $resolver->findVenue('Zrkadlová sála Primaciálneho paláca', $bratislava->id, null, 48.1437398, 17.1095582, null, 'address')?->id);
+        // Iný podnik v tom istom dome sa len zapíše na kontrolu.
+        $this->assertNull($resolver->findVenue('Kaviareň Primaciálneho paláca', $bratislava->id, null, 48.1437398, 17.1095582, null, 'address'));
+    }
+
+    #[Test]
     public function a_precise_point_next_to_a_venue_is_a_candidate_even_without_a_shared_word(): void
     {
         $this->fakeJudge(true, 0.9);

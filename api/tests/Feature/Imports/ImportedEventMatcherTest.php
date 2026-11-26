@@ -66,18 +66,33 @@ class ImportedEventMatcherTest extends TestCase
     }
 
     #[Test]
-    public function it_ignores_venues_named_only_after_the_town_and_other_times(): void
+    public function it_matches_an_article_naming_only_the_town_and_takes_the_precise_place(): void
     {
         $town = $this->venue('Bratislava');
-        $start = Carbon::parse('2026-09-19 22:00:00');
-        $this->event('Národný pochod za život', self::BODY, $start, $town);
-
-        $this->assertNull(app(ImportedEventMatcher::class)->find('Národný pochod za život', self::BODY, $start, $town->id));
-
         $venue = $this->venue('Dom Quo Vadis');
-        $this->event('Prebúdzanie milosrdenstva', self::BODY, $start, $venue);
+        $start = Carbon::parse('2026-11-26 17:00:00');
+        $existing = $this->event('Prebúdzanie milosrdenstva', self::BODY, $start, $town);
 
-        $this->assertNull(app(ImportedEventMatcher::class)->find('Prebúdzanie milosrdenstva', self::BODY, $start->copy()->addHour(), $venue->id));
+        $matcher = app(ImportedEventMatcher::class);
+        $found = $matcher->find('Prebúdzanie milosrdenstva', self::BODY, $start, $venue->id);
+        $this->assertSame($existing->id, $found?->id);
+
+        $matcher->refineVenue($found, $venue->id);
+        $this->assertSame($venue->id, (int) $existing->fresh()->venue_id);
+    }
+
+    #[Test]
+    public function it_keeps_other_times_and_other_events_in_the_town_apart(): void
+    {
+        $town = $this->venue('Bratislava');
+        $venue = $this->venue('Dom Quo Vadis');
+        $start = Carbon::parse('2026-11-26 17:00:00');
+        $this->event('Prebúdzanie milosrdenstva', self::BODY, $start, $venue);
+        $this->event('Adventný koncert zboru', 'Spevácky zbor mesta pozýva na adventný koncert v Primaciálnom paláci, zaznejú koledy a skladby Bacha, Händela a slovenských autorov, vstupné dobrovoľné, výťažok pôjde na charitu, deti vstup zdarma, rezervácie mailom.', $start, $town);
+
+        $matcher = app(ImportedEventMatcher::class);
+        $this->assertNull($matcher->find('Prebúdzanie milosrdenstva', self::BODY, $start->copy()->addHours(2), $venue->id), 'iný čas v ten deň');
+        $this->assertNull($matcher->find('Prebúdzanie milosrdenstva', self::BODY, $start->copy()->addHours(2), $town->id), 'obec, ale iný presný čas');
     }
 
     #[Test]
