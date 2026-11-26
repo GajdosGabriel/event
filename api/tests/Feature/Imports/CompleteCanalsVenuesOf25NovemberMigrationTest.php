@@ -23,6 +23,11 @@ class CompleteCanalsVenuesOf25NovemberMigrationTest extends TestCase
     #[Test]
     public function it_completes_records_merges_duplicate_and_moves_bari_mass(): void
     {
+        // Migrácia už prebehla nad prázdnou databázou (RefreshDatabase) a bez
+        // podujatia na presun nesmie založiť ani miesto, ani obec Bari.
+        $this->assertSame(0, Venue::query()->where('name', 'Bazilika svätého Mikuláša (Bari)')->count());
+        $this->assertSame(0, DB::table('municipalities')->where('slug', 'bari')->count());
+
         Storage::fake('public');
         Storage::fake(config('filesystems.default'));
 

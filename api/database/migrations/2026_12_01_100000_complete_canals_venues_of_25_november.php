@@ -296,6 +296,13 @@ return new class extends Migration
     private function createVenues(): void
     {
         foreach (self::NEW_VENUES as $key => $data) {
+            // Miesto (a jeho obec) len pre podujatie, ktoré sa naň naozaj presúva:
+            // inak by vzniklo v každej databáze, aj v prázdnej testovacej, kde
+            // jeho web potom visí v attribute_checks.
+            if (! $this->awaitsVenue($key)) {
+                continue;
+            }
+
             $cityId = $this->city($data['city']);
             if ($cityId === null) {
                 continue;
@@ -327,6 +334,18 @@ return new class extends Migration
 
             $this->newVenueIds[$key] = $venue->id;
         }
+    }
+
+    /** Čaká ešte niektoré podujatie na presun na nové miesto s týmto kľúčom? */
+    private function awaitsVenue(string $key): bool
+    {
+        foreach (self::EVENT_MOVES as $eventId => [$name, $fromId, $toKey]) {
+            if ($toKey === $key && Event::query()->whereKey($eventId)->where('name', $name)->where('venue_id', $fromId)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function moveEvents(): void
