@@ -117,6 +117,17 @@ $artisan('app:poster-drafts-prune')->dailyAt('03:40');
 // Reťazec, nie pole — $artisan() z parametrov skladá meno úlohy.
 $artisan('model:prune', ['--model' => SystemLog::class])->dailyAt('03:25');
 $artisan('model:prune', ['--model' => CanalRelayThread::class])->dailyAt('03:27');
+// Upratovanie po vypršaní. Bez neho tabuľky len rastú — nikto iný ich nemaže.
+// Sanctum: tokeny s expires_at (prihlásenie do cudzieho účtu) deň po vypršaní.
+// Bežné prihlasovacie tokeny expiráciu nemajú (config/sanctum.php), tie ostávajú.
+$artisan('sanctum:prune-expired', ['--hours' => 24])->dailyAt('03:30');
+// Odkazy na obnovu hesla po platnosti (config/auth.php → passwords.users.expire).
+$artisan('auth:clear-resets')->dailyAt('03:32');
+// Zlyhané joby po mesiaci, dokončené dávky po dvoch dňoch.
+$artisan('queue:prune-failed', ['--hours' => 24 * 30])->dailyAt('03:34');
+$artisan('queue:prune-batches', ['--hours' => 48])->dailyAt('03:36');
+// Vypršané riadky databázovej cache a zámkov (store ich maže len pri čítaní).
+$artisan('app:cache-prune-expired')->dailyAt('03:38');
 // Každý zdroj má vlastný beh s vlastným časom. Kým išli všetky v jednom
 // príkaze za sebou, posledný z nich hladoval: 27. 7. 2026 zjedli ecav.sk a
 // tkkbs.sk 13 minút a na vyveska.sk sa už nedostalo — hosting nemá shell,
