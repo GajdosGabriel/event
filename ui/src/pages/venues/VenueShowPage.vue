@@ -176,14 +176,17 @@
               </dd>
             </div>
 
-            <!-- Stav ani dátumy vytvorenia/úpravy tu nie sú zámerne — sú to
-                 technické údaje, ktoré pri práci s miestom nikto nečíta.
-                 Zmazaný záznam ostáva: to musí byť na prvý pohľad vidieť. -->
+            <!-- Stav ani dátumy vytvorenia/úpravy tu nie sú zámerne — organizátor
+                 ich nepotrebuje, admin ich má v paneli nižšie. Zmazaný záznam
+                 ostáva: to musí byť na prvý pohľad vidieť. -->
             <div v-if="venue.deletedAt" class="detail-card bg-red-50">
               <dt class="text-red-600">{{ t('common.deletedAt') }}</dt>
               <dd>{{ formatDate(venue.deletedAt) }}</dd>
             </div>
           </dl>
+
+          <!-- Údaje o zázname a história — len administrácia. -->
+          <RecordInsightsPanel v-if="scope === 'admin'" kind="venue" :record-id="venue.id" />
 
           <div v-if="venue.contactable" class="mt-4">
             <ContactButton target-type="venue" :target-id="venue.id" :target-name="venue.name" />
@@ -205,6 +208,7 @@ import ResourceActionsMenu from '@/components/ResourceActionsMenu.vue'
 import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
+import RecordInsightsPanel from '@/components/RecordInsightsPanel.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { fmtDate, weekdayLabel } from '@/utils/dateFormat'
 import { publicVenuePath } from '@/utils/publicUrl'

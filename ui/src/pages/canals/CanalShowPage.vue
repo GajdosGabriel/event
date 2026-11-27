@@ -192,7 +192,7 @@
               <dd class="mt-1 grid gap-0.5 text-sm text-slate-700">
                 <span>
                   {{ t('canals.show.origin.founded') }}:
-                  {{ canal.origin.source ? t(`canals.show.origin.sources.${canal.origin.source}`) : '—' }}<template v-if="canal.origin.createdAt">, {{ formatDate(canal.origin.createdAt) }}</template>
+                  {{ canal.origin.source ? t(`canals.show.origin.sources.${canal.origin.source}`) : '—' }}
                 </span>
                 <span v-if="canal.origin.claimedBy">
                   {{ t('canals.show.origin.claimed') }}:
@@ -210,6 +210,9 @@
               <dd>{{ formatDate(canal.deletedAt) }}</dd>
             </div>
           </dl>
+
+          <!-- Údaje o zázname a história — len administrácia. -->
+          <RecordInsightsPanel v-if="scope === 'admin'" kind="canal" :record-id="canal.id" :version="insightsVersion" />
 
           <!-- Kontakt pre správu portálu: e-mail kanála je inak neverejný,
                admin ho potrebuje pri riešení prevzatia či sťažností. -->
@@ -242,30 +245,6 @@
           <!-- Doplnenie údajov: profil → poloha → e-mail, stav a ručné spustenie. -->
           <CanalLookupsPanel v-if="scope === 'admin'" :canal-id="canal.id" @changed="reloadAfterLookup" />
 
-          <!-- História z denníka udalostí (tím, prevzatia, maily na kontakt). -->
-          <div v-if="scope === 'admin'" class="show-card">
-            <div class="mb-3 flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold text-slate-800">{{ t('canals.show.history') }}</h2>
-              <RouterLink :to="{ path: '/admin/dennik', query: { canal_id: String(canal.id) } }" class="text-xs text-blue-600 hover:underline">
-                {{ t('canals.show.historyAll') }}
-              </RouterLink>
-            </div>
-            <p v-if="historyLoading" class="text-sm text-slate-500">{{ t('common.loading') }}</p>
-            <p v-else-if="!history.length" class="text-sm text-slate-400">{{ t('canals.show.historyEmpty') }}</p>
-            <ol v-else class="grid gap-2">
-              <li v-for="h in historyPage.items.value" :key="h.id" class="border-l-2 pl-3"
-                :class="h.level === 'error' ? 'border-red-400' : h.level === 'warning' ? 'border-amber-400' : 'border-slate-200'">
-                <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                  <span class="font-medium text-slate-700" :title="h.event">{{ eventLabel(h.event) }}</span>
-                  <span v-if="h.status">· {{ statusLabel(h.status) }}</span>
-                  <span class="ml-auto" :title="h.createdAt ?? ''">{{ formatDateTime(h.createdAt) }}</span>
-                </div>
-                <p v-if="h.message" class="break-words text-sm text-slate-800">{{ h.message }}</p>
-              </li>
-            </ol>
-            <AppPaginator v-if="!historyLoading" :current-page="historyPage.page.value" :last-page="historyPage.lastPage.value" @change="historyPage.setPage" />
-          </div>
-
           <div v-if="canal.contactable" class="mt-4">
             <ContactButton target-type="canal" :target-id="canal.id" :target-name="canal.name" />
           </div>
@@ -278,7 +257,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showCanal, listCanalEvents, listCanalHistory, type CanalEventItem, type CanalHistoryEntry } from '@/api/canals'
+import { showCanal, listCanalEvents, type CanalEventItem } from '@/api/canals'
 import { listFiles, type FileItem } from '@/api/files'
 import CanalTeamPanel from '@/components/CanalTeamPanel.vue'
 import EmbedSnippetPanel from '@/components/EmbedSnippetPanel.vue'
@@ -290,9 +269,9 @@ import RowActions from '@/components/RowActions.vue'
 import ContactButton from '@/components/ContactButton.vue'
 import CanalLookupsPanel from '@/components/CanalLookupsPanel.vue'
 import AppPaginator from '@/components/AppPaginator.vue'
+import RecordInsightsPanel from '@/components/RecordInsightsPanel.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
-import { fmtDate, fmtTime } from '@/utils/dateFormat'
-import { useSystemLogLabels } from '@/composables/useSystemLogLabels'
+import { fmtDate } from '@/utils/dateFormat'
 import { useBodyHtml } from '@/composables/useBodyHtml'
 import { useI18n } from '@/i18n'
 import type { CanalItem } from '@/types'
@@ -301,7 +280,6 @@ const props = defineProps<{ scope?: 'dashboard' | 'admin' }>()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { eventLabel, statusLabel } = useSystemLogLabels()
 const scope = computed(() => props.scope ?? (route.path.startsWith('/admin') ? 'admin' : 'dashboard'))
 const prefix = computed(() => scope.value === 'admin' ? '/admin' : '/dashboard')
 const indexRoute = computed(() => `${prefix.value}/canals`)
@@ -313,33 +291,15 @@ const error = ref(false)
 const files = ref<FileItem[]>([])
 const events = ref<CanalEventItem[]>([])
 const eventsLoading = ref(false)
-const history = ref<CanalHistoryEntry[]>([])
-const historyLoading = ref(false)
+const insightsVersion = ref(0)
 
 // Detail ukazuje zoznamy po stránkach; stránkovač sa zobrazí, len keď ich je viac.
 const venuesPage = useClientPagination(computed(() => canal.value?.venuesList ?? []), 10)
 const eventsPage = useClientPagination(events, 10)
 const membersPage = useClientPagination(computed(() => canal.value?.membersList ?? []), 10)
-const historyPage = useClientPagination(history, 10)
 
 function formatDate(d: string | null) {
   return d ? fmtDate(d) : t('common.none')
-}
-
-function formatDateTime(d: string | null) {
-  return d ? `${fmtDate(d)} ${fmtTime(d)}` : '—'
-}
-
-/** Denník je len pre admina; chyba histórie nesmie zhodiť detail. */
-async function loadHistory(id: number) {
-  historyLoading.value = true
-  try {
-    history.value = await listCanalHistory(id)
-  } catch {
-    history.value = []
-  } finally {
-    historyLoading.value = false
-  }
 }
 
 /** Po akcii z menu (publikovanie, obnova) — stav aj práva prídu nanovo. */
@@ -354,7 +314,7 @@ async function reload() {
 /** Hľadanie mohlo doplniť web, adresu, polohu či e-maily — aj záznam do denníka. */
 async function reloadAfterLookup() {
   await reload()
-  if (canal.value) void loadHistory(canal.value.id)
+  insightsVersion.value++
 }
 
 onMounted(async () => {
@@ -363,7 +323,6 @@ onMounted(async () => {
   try {
     canal.value = await showCanal(scope.value, id)
     document.title = canal.value.name
-    if (scope.value === 'admin') void loadHistory(id)
 
     eventsLoading.value = true
     const [filesRes, eventsRes] = await Promise.allSettled([

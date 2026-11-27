@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ImpersonationController as AdminImpersonationCont
 use App\Http\Controllers\Admin\MunicipalityController as AdminMunicipalityController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\QuestionController as AdminQuestionController;
+use App\Http\Controllers\Admin\RecordInsightsController as AdminRecordInsightsController;
 use App\Http\Controllers\Admin\ResourceMergeController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\SystemLogController as AdminSystemLogController;
@@ -873,9 +874,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:sanctum', 'role:super-
     Route::get('canals/{canal}/events', [AdminCanalController::class, 'events'])
         ->name('canals.events')
         ->middleware('permission:canal.view');
-    Route::get('canals/{canal}/history', [AdminCanalController::class, 'history'])
-        ->name('canals.history')
+    // Údaje a časová os (denník, AI, doplnenie) pre detail v administrácii.
+    Route::get('canals/{canal}/insights', [AdminRecordInsightsController::class, 'canal'])
+        ->name('canals.insights')
         ->middleware('permission:canal.view');
+    Route::get('venues/{venue}/insights', [AdminRecordInsightsController::class, 'venue'])
+        ->name('venues.insights')
+        ->middleware('permission:venue.view');
     // Doplnenie údajov (profil, poloha, e-mail) — stav a ručné spustenie.
     Route::get('canals/{canal}/lookups', [AdminCanalLookupController::class, 'show'])
         ->name('canals.lookups.show')

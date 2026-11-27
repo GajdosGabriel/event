@@ -1,6 +1,5 @@
 import http from './index'
 import { mapAttributeIssues } from './attributeIssues'
-import type { SystemLogEntry } from './systemLogs'
 import { mapNestedEventPermissions, mapTicketCta, type NestedEventPermissions } from './events'
 import type { CanalItem, EventTicketCta, FilterParams, PaginatedResponse, MunicipalityOverviewItem } from '@/types'
 
@@ -171,8 +170,6 @@ export async function canalsMunicipalitiesOverview(scope: Scope): Promise<Munici
   return (data.data ?? data) as MunicipalityOverviewItem[]
 }
 
-export type CanalHistoryEntry = Pick<SystemLogEntry, 'id' | 'createdAt' | 'level' | 'channel' | 'event' | 'status' | 'message' | 'recipient'>
-
 export type CanalLookupKind = 'profile' | 'coordinates' | 'email'
 
 /** Stav dopĺňania údajov kanála — len admin (Admin\CanalLookupController). */
@@ -219,10 +216,4 @@ export async function getCanalLookups(canalId: number): Promise<CanalLookups> {
 export async function runCanalLookup(canalId: number, kind: CanalLookupKind): Promise<CanalLookups> {
   const { data } = await http.post(`/admin/canals/${canalId}/lookups/${kind}`)
   return data.data as CanalLookups
-}
-
-/** Posledné záznamy z denníka o kanáli — len admin (Admin\CanalController::history). */
-export async function listCanalHistory(canalId: number): Promise<CanalHistoryEntry[]> {
-  const { data } = await http.get(`/admin/canals/${canalId}/history`)
-  return data.data as CanalHistoryEntry[]
 }

@@ -11,6 +11,7 @@ use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -95,7 +96,7 @@ class SystemLogController extends Controller
      * aby sa z denníka dalo preklikať na ich detail. Mená sa dočítavajú
      * hromadne, jedným dotazom na typ, nie po riadkoch.
      *
-     * @param  \Illuminate\Support\Collection<int, SystemLog>  $logs
+     * @param  Collection<int, SystemLog>  $logs
      * @return array<int, list<array{type: string, id: int, label: string, role: string}>>
      */
     private function links($logs): array
@@ -195,7 +196,7 @@ class SystemLogController extends Controller
                     ->when($email, fn ($q) => $q->orWhere('recipient', $email)));
             })
             // Všetko o jednom kanáli — to isté, čo ukazuje „História" na
-            // detaile kanála (Admin\CanalController::history).
+            // detaile kanála (Services\Insights\RecordInsights).
             ->when($filters['canal_id'] ?? null, function ($q, $canalId) {
                 $email = trim((string) Canal::withTrashed()->whereKey($canalId)->value('email'));
                 $q->where(fn ($q) => $q
